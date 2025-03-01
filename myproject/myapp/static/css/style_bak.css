@@ -1,0 +1,112 @@
+*{
+    padding: 0;
+    margin: 0;
+    box-sizing: border-box;
+}
+
+
+body{
+    display: flex;
+    height: 100vh;
+    background-color: #333;
+    color: whitesmoke;
+    flex-direction: column;
+}
+
+header{
+    position: relative;
+    display: flex;
+    place-content: center;
+}
+
+header #logolink{
+    position: absolute;
+    font-family: monospace;
+    text-decoration: none;
+    color: rgb(121, 121, 121);
+    top: 5px;
+    left: 150px;
+    font-size: 2rem;
+}
+
+nav {
+    display: flex;
+    justify-content: right;
+    padding: 10px;
+    margin: 5px;
+    /* border: 3px solid blue; */
+    width: 80vw;
+
+}
+
+nav p {
+    margin: 20px;
+    text-decoration: none;
+    color: inherit;
+    font-size: 1.3em;
+    font-family: 'Franklin Gothic Medium', 'Arial Narrow', Arial, sans-serif;
+    
+}
+
+nav a{
+    text-decoration: none;
+}
+
+nav a:hover{
+    color: rgb(227, 92, 121);
+}
+
+nav a:active {
+    color: crimson;
+}
+
+main{
+    flex: 1;
+    display: flex;
+    place-content: center;
+    padding: 20px;
+    /* border: 5px solid goldenrod; */
+    position: relative; /* Добавлено для позиционирования */
+
+}
+
+main section{
+    /* border: 5px dashed wheat; */
+    position: relative;
+    width: 85%;
+    height: 100%;
+}
+
+main section #clinicajpg{
+    width: 500px;
+    position: absolute;
+    bottom: 0;
+    right: 0;
+}
+
+main > section > .text-block{
+    position: absolute;
+    top: 5%;
+    left: 5%;
+    padding: 10px;
+    max-width: 600px;
+    font-size: 1.3em;
+}
+
+main section h1{
+    font-size: 3em;
+    font-family: 'Arial Narrow Bold', sans-serif;
+    margin-top: 15px;
+    margin-bottom: 15px;
+    
+}
+
+footer{
+    position: relative;
+    text-align: center;
+}
+
+footer p{
+    font-size: 0.8em;
+    font-style: italic;
+}
