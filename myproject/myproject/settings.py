@@ -71,6 +71,9 @@ TEMPLATES = [
     },
 ]
 
+MEDIA_URL = '/media/'  # URL для доступа к медиафайлам
+MEDIA_ROOT = BASE_DIR / 'media'  # Папка для хранения медиафайлов
+
 WSGI_APPLICATION = 'myproject.wsgi.application'
 
 
