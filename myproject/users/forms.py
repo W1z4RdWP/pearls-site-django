@@ -70,4 +70,4 @@ class ProfileUpdateForm(forms.ModelForm):
         """
         
         model = Profile
-        fields = ['image']
+        fields = ['image', 'bio']

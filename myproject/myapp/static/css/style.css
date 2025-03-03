@@ -12,6 +12,11 @@ body {
     flex-direction: column;
 }
 
+/* Цвет наименования полей во crispy form */
+.form-label{
+    color: rgb(255, 0, 0);
+}
+
 header{
     display: flex;
     place-content: center;
@@ -125,6 +130,6 @@ footer {
     font-style: italic;
 }
 
-.warning-info-about a, a:hover{
+.warning-info-about a a:hover{
     cursor: default;
 }
