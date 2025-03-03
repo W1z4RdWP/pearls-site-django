@@ -53,7 +53,7 @@ main section {
     position: relative;
     width: 85%;
     height: 80vh;
-    border: 5px solid red;
+    /* border: 5px solid red; */
     justify-self: center;
 }
 
