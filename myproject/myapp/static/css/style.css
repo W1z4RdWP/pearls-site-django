@@ -64,7 +64,7 @@ main section {
 
 
 main section #clinicajpg {
-    width: 700px;
+    width: 500px;
     position: absolute;
     bottom: 5%;
     right: 5%;
@@ -132,4 +132,147 @@ footer {
 
 .warning-info-about a a:hover{
     cursor: default;
+}
+
+.course-info-block {
+    place-self: center;
+    text-align: center;
+    height: 150px;
+    width: 80%;
+    margin-top: 20px;
+    padding: 20px;
+    background-color: #706f6f;
+    border-radius: 10px;
+    box-shadow: 0 0 10px rgba(0,0,0,0.1);
+}
+
+.course-info-block h5 {
+    font-size: 1.5em;
+    margin-bottom: 10px;
+}
+
+.course-info-block p {
+    font-size: 1em;
+    font-family: 'Open Sans', sans-serif; /* Хорошо читаемый шрифт */
+    color: #333;
+}
+
+.carousel-item img {
+    max-width: 700px;
+    height: 400px;
+    object-fit: cover; /* Чтобы сохранить пропорции */
+}
+
+/* во вкладке регистрации текст с информацией о требованиях к имени пользователя */
+#id_username_helptext{
+    color: rgb(54, 85, 223);
+}
+/* во вкладке регистрации текст с информацией о требованиях к паролю */
+#id_password1_helptext{
+    color: rgb(54, 85, 223);
+}
+/* во вкладке регистрации текст с информацией о подтверждении пароля */
+#id_password2_helptext{
+    color: rgb(54, 85, 223);
+}
+/* Текст "Уже есть аккаунт" стилизуется непосредственно в templates/users/register.html */
+
+@media (max-width: 768px) {
+    
+    body {
+        display: flex;
+        height: 100vh;
+        max-width: 768px;
+    }
+
+    .navbar .navbar-toggler{
+        font-size: smaller;
+    }
+
+    .navbar #logopng{
+        width: 100px;
+    }
+
+
+    main {
+        flex: 1;
+        place-content: center;
+        padding: 5px;
+        position: relative;
+    
+    }
+
+
+    main section #clinicajpg {
+        width: 260px;
+        position: absolute;
+        bottom: 5%;
+        right: 0;
+    }
+    
+    main > section > .text-block {
+        position: absolute;
+        top: 0;
+        left: 0;
+        padding: 5px;
+        max-width: 300px;
+        font-size: 0.9em;
+    }
+
+    footer {
+        display: flex;
+        align-items: center; /* Выравниваем элементы по вертикали */
+        justify-content: flex-start; /* Элементы начинаются с левого края */
+        background-color: #333; /* Цвет фона футера */
+        padding: 5px 10px; /* Отступы внутри футера */
+        border-top: 1px solid #444; /* Граница сверху */
+        position: relative;
+        width: 100%;
+        margin-top: 10px;
+    }
+    
+    .footer-logo {
+        width: 100px; /* Ширина логотипа */
+        height: auto; /* Сохраняем пропорции */
+    }
+    
+    .footer-text {
+        font-size: 0.4em;
+        font-style: italic;
+        color: whitesmoke;
+        margin: 0; /* Убираем отступы */
+        position: absolute; /* Позиционируем текст */
+        left: 50%; /* Сдвигаем текст на 50% вправо */
+        transform: translateX(-50%); /* Центрируем текст */
+        transform: translateY(120%);
+    }
+
+    .warning-info-about{
+        margin-top: 45px;
+        padding: 8px;
+    }
+
+    .course-info-block {
+        height: 75px;
+        margin-top: 10px;
+        padding: 10px;
+        border-radius: 5px;
+        box-shadow: 0 0 5px rgba(0,0,0,0.1);
+    }
+    
+    .course-info-block h5 {
+        font-size: 0.8em;
+        margin-bottom: 5px;
+    }
+    
+    .course-info-block p {
+        font-size: 0.5em;
+    }
+
+    .carousel-item img {
+        max-width: 350px;
+        height: 200px;
+        object-fit: cover; /* Чтобы сохранить пропорции */
+    }
+    
 }

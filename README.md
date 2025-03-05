@@ -6,4 +6,5 @@
 4) Примените созданное виртуальное окржуение к среде разработки - `source venv/Scripts/activate`
 5) Установите зависимости `pip install -r requirements.txt`
 6) Перейдите в папку проекта `cd myproject`
-7) Запустите сервер: `python manage.py runserver 0.0.0.0:8080`
+7) Убедитесь что сделаны все актуальные миграции в БД. `python manage.py migrate`
+8) Запустите сервер: `python manage.py runserver 0.0.0.0:8080`
