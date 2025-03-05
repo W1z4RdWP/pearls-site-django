@@ -17,7 +17,7 @@
         {% for course in courses %}
         <div class="carousel-item {% if forloop.first %}active{% endif %}">
             <!-- Если при создании курса загрузили картинку - используется она, иначе используется default.jpg -->
-            <img src="{% if course.image %}{{ course.image.url }}{% else %}{% static 'imgs/default.jpg' %}{% endif %}" class="d-block mx-auto" style="max-width: 700px; height: 400px;" alt="{{ course.title }}" id="course_carousel_img">
+            <img src="{% if course.image %}{{ course.image.url }}{% else %}{% static 'imgs/default.jpg' %}{% endif %}" class="d-block mx-auto" alt="{{ course.title }}" id="course_carousel_img">
             <div class="course-info-block">
                 <h5>{{ course.title }}</h5>
                 <p>{{ course.description|truncatewords:50 }}</p>
