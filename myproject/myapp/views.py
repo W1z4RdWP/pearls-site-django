@@ -1,6 +1,6 @@
 from django.shortcuts import render, redirect
 from django.http import HttpResponse, HttpRequest
-from django.contrib.auth.decorators import login_required
+from django.contrib.auth.decorators import login_required, user_passes_test
 from .forms import CourseForm
 from .models import Course
 
@@ -14,8 +14,12 @@ def about(request: HttpRequest) -> HttpResponse:
 def profile(request: HttpRequest) -> HttpResponse:
     return render(request, 'profile.html')
 
+def is_admin(user) -> bool:
+    return user.is_staff
+
 
 @login_required
+@user_passes_test(is_admin, login_url='/')
 def create_course(request):
     if request.method == 'POST':
         form = CourseForm(request.POST, request.FILES)

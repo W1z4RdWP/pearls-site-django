@@ -31,9 +31,11 @@
                             <a class="nav-link" href="{% url 'about' %}">О нас</a>
                         </li>
                         {% if user.is_authenticated %}
-                            <li class="nav-item">
-                                <a class="nav-link" href="{% url 'create-course' %}">Создать курс</a>
-                            </li>
+                            {% if user.is_staff %}
+                                <li class="nav-item">
+                                    <a class="nav-link" href="{% url 'create-course' %}">Создать курс</a>
+                                </li>
+                            {% endif %}
                             <li class="nav-item">
                                 <a class="nav-link" href="{% url 'profile' %}">Профиль</a>
                             </li>
