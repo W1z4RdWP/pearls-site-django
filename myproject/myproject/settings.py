@@ -37,6 +37,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'captcha',
     'crispy_forms',
     'crispy_bootstrap5',
     'myapp',
@@ -138,3 +139,6 @@ CRISPY_TEMPLATE_PACK = 'bootstrap5'
 
 LOGIN_REDIRECT_URL = 'home'
 LOGIN_URL = 'login'
+
+# RECAPTCHA_PUBLIC_KEY = '6LfNMusqAAAAAL3yAV9YTv3ttE73agpGFzKRddT0'
+# RECAPTCHA_PRIVATE_KEY = '6LfNMusqAAAAAEGfgQJZbg1SYVanSZrrxjskbdC9'
