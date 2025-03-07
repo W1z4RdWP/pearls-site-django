@@ -19,7 +19,7 @@
             <!-- Если при создании курса загрузили картинку - используется она, иначе используется default.jpg -->
             <img src="{% if course.image %}{{ course.image.url }}{% else %}{% static 'imgs/default.jpg' %}{% endif %}" class="d-block mx-auto" alt="{{ course.title }}" id="course_carousel_img">
             <div class="course-info-block">
-                <h5>{{ course.title }}</h5>
+                <a href="{% url 'course_detail' course.slug %}"><h5>{{ course.title }}</h5></a>
                 <p>{{ course.description|truncatewords:50 }}</p>
             </div>
         </div>

@@ -36,6 +36,11 @@ urlpatterns = [
     path('login/', auth_views.LoginView.as_view(template_name='users/login.html'), name='login'),
     path('logout/', auth_views.LogoutView.as_view(template_name='users/logout.html'), name='logout'),
     path('create-course/', views.create_course, name='create-course'),
+    path('course/<slug:slug>/', views.course_detail, name='course_detail'),
+    path('course/<slug:course_slug>/lesson/<int:lesson_id>/', views.lesson_detail, name='lesson_detail'),
+    path('course/<slug:course_slug>/create-lesson/', views.create_lesson, name='create_lesson'),
+    path('course/<slug:slug>/delete/', views.delete_course, name='delete_course'),
+    path('lesson/<int:lesson_id>/delete/', views.delete_lesson, name='delete_lesson'),
 ]
 
 handler404 = 'myapp.views.page_not_found_view'
