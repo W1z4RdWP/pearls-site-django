@@ -191,6 +191,15 @@ footer {
     border-color: #b02a37;
 }
 
+.django-ckeditor-widget{
+    width: 100%;
+}
+
+.ckeditorwidget {
+    height: 300px;
+    width: 100%;
+}
+
 /* во вкладке регистрации текст с информацией о требованиях к имени пользователя */
 #id_username_helptext{
     color: rgb(54, 85, 223);

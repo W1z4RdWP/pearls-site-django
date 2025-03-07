@@ -1,6 +1,7 @@
 from django.db import models
 from django.contrib.auth.models import User
 from django.utils.text import slugify
+from django_ckeditor_5.fields import CKEditor5Field
 
 class Course(models.Model):
     title = models.CharField(max_length=200, verbose_name="Название курса")
@@ -28,7 +29,7 @@ class Course(models.Model):
 class Lesson(models.Model):
     course = models.ForeignKey(Course, on_delete=models.CASCADE, related_name='lessons', verbose_name="Курс")
     title = models.CharField(max_length=200, verbose_name="Название урока")
-    content = models.TextField(verbose_name="Содержание урока")
+    content = CKEditor5Field('Content', config_name='extends')
     order = models.PositiveIntegerField(verbose_name="Порядок урока")
 
     def __str__(self):

@@ -40,6 +40,7 @@ INSTALLED_APPS = [
     'captcha',
     'crispy_forms',
     'crispy_bootstrap5',
+    'django_ckeditor_5',
     'myapp',
     'users'
 ]
@@ -124,7 +125,7 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/5.1/howto/static-files/
 STATIC_URL = '/static/'
 STATICFILES_DIRS = [
-    BASE_DIR / "static",
+    BASE_DIR / "myapp/static",
 ]
 STATIC_ROOT = BASE_DIR / "staticfiles"
 
@@ -139,6 +140,49 @@ CRISPY_TEMPLATE_PACK = 'bootstrap5'
 
 LOGIN_REDIRECT_URL = 'home'
 LOGIN_URL = 'login'
+
+
+CKEDITOR_UPLOAD_PATH = "uploads/"
+CKEDITOR_CONFIGS = {
+    'default': {
+        'toolbar': 'Full',
+        'height': 300,
+        'width': '100%',
+        'extraPlugins': ','.join([
+            'uploadimage', # drag and drop images
+            'div',
+            'autolink',
+            'iframe',
+            'embed',
+        ]),
+    },
+}
+
+CKEDITOR_5_CONFIGS = {
+    'default': {
+        'toolbar': [
+            'heading', '|', 'bold', 'italic', 'link', 'bulletedList', 
+            'numberedList', 'blockQuote', 'imageUpload'
+        ],
+    },
+    'extends': {
+        'blockToolbar': [
+            'paragraph', 'heading1', 'heading2', 'heading3',
+            '|', 'bulletedList', 'numberedList',
+            '|', 'blockQuote', 'imageUpload'
+        ],
+        'toolbar': [
+            'heading', '|', 'bold', 'italic', 'link', 'underline',
+            'strikethrough', 'code', 'subscript', 'superscript',
+            'highlight', '|', 'codeBlock', 'sourceEditing', '|',
+            'bulletedList', 'numberedList', 'todoList', '|',
+            'blockQuote', 'imageUpload', '|', 'undo', 'redo'
+        ],
+        'language': 'ru',
+    }
+}
+CKEDITOR_ALLOW_NONIMAGE_FILES = False  # Только изображения
+CKEDITOR_IMAGE_BACKEND = "pillow"  # Для оптимизации изображений
 
 # RECAPTCHA_PUBLIC_KEY = '6LfNMusqAAAAAL3yAV9YTv3ttE73agpGFzKRddT0'
 # RECAPTCHA_PRIVATE_KEY = '6LfNMusqAAAAAEGfgQJZbg1SYVanSZrrxjskbdC9'

@@ -6,7 +6,9 @@
 {% block content %}
     <div class="content-section">
         <h2>{{ lesson.title }}</h2>
-        <p>{{ lesson.content }}</p>
+        <div class="lesson-content">
+            {{ lesson.content|safe }}
+        </div>
     </div>
     {% if user.is_authenticated and user.is_staff %}
         <div class="lesson-actions">
