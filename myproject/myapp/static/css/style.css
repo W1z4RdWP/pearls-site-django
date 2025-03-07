@@ -176,11 +176,6 @@ footer {
     margin: 20px 0;
 }
 
-/* form { 
-    display: inline-block;
-    margin-left: 10px;
-} */
-
 .btn-danger {
     background-color: #dc3545;
     border-color: #dc3545;
@@ -191,14 +186,12 @@ footer {
     border-color: #b02a37;
 }
 
-.django-ckeditor-widget{
-    width: 100%;
+/* Цвет текста по умолчанию для ввода поля ввода в форме создании урока */
+.ck-editor__main {
+    color: #333 !important;
+    background-color: white !important;
 }
 
-.ckeditorwidget {
-    height: 300px;
-    width: 100%;
-}
 
 /* во вкладке регистрации текст с информацией о требованиях к имени пользователя */
 #id_username_helptext{

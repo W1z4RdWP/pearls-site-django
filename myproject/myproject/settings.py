@@ -142,28 +142,29 @@ LOGIN_REDIRECT_URL = 'home'
 LOGIN_URL = 'login'
 
 
-CKEDITOR_UPLOAD_PATH = "uploads/"
-CKEDITOR_CONFIGS = {
-    'default': {
-        'toolbar': 'Full',
-        'height': 300,
-        'width': '100%',
-        'extraPlugins': ','.join([
-            'uploadimage', # drag and drop images
-            'div',
-            'autolink',
-            'iframe',
-            'embed',
-        ]),
-    },
-}
 
 CKEDITOR_5_CONFIGS = {
     'default': {
         'toolbar': [
-            'heading', '|', 'bold', 'italic', 'link', 'bulletedList', 
-            'numberedList', 'blockQuote', 'imageUpload'
+            'heading', '|', 
+            'bold', 'italic', 'link', 
+            'bulletedList', 'numberedList', 
+            'blockQuote', 'imageUpload'
         ],
+        'height': '300px',
+        'width': '100%',
+        'language': 'ru',
+        'image': {
+            'toolbar': ['imageTextAlternative', '|', 'imageStyle:alignLeft', 'imageStyle:full', 'imageStyle:alignRight'],
+            'styles': [
+                'full',
+                'alignLeft',
+                'alignRight'
+            ],
+            'uploadUrl': '/ckeditor5/upload/'  # ⚠️ Обязательно добавьте
+        },
+        'uiColor': '#FFFFFF',  # Цвет фона редактора
+        'contentsCss': ['body { color: #333; }'],  # Цвет текста
     },
     'extends': {
         'blockToolbar': [
@@ -172,17 +173,21 @@ CKEDITOR_5_CONFIGS = {
             '|', 'blockQuote', 'imageUpload'
         ],
         'toolbar': [
-            'heading', '|', 'bold', 'italic', 'link', 'underline',
+            'heading', '|', 
+            'bold', 'italic', 'link', 'underline',
             'strikethrough', 'code', 'subscript', 'superscript',
             'highlight', '|', 'codeBlock', 'sourceEditing', '|',
             'bulletedList', 'numberedList', 'todoList', '|',
             'blockQuote', 'imageUpload', '|', 'undo', 'redo'
         ],
         'language': 'ru',
+        'image': {
+            'uploadUrl': '/ckeditor5/upload/'  # ⚠️ Обязательно
+        }
     }
 }
-CKEDITOR_ALLOW_NONIMAGE_FILES = False  # Только изображения
-CKEDITOR_IMAGE_BACKEND = "pillow"  # Для оптимизации изображений
+
+
 
 # RECAPTCHA_PUBLIC_KEY = '6LfNMusqAAAAAL3yAV9YTv3ttE73agpGFzKRddT0'
 # RECAPTCHA_PRIVATE_KEY = '6LfNMusqAAAAAEGfgQJZbg1SYVanSZrrxjskbdC9'
