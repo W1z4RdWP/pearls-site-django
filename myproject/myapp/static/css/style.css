@@ -171,6 +171,26 @@ footer {
     place-self: center;
 }
 
+/* Для правильного отображения кнопок */
+.course-actions, .lesson-actions {
+    margin: 20px 0;
+}
+
+/* form { 
+    display: inline-block;
+    margin-left: 10px;
+} */
+
+.btn-danger {
+    background-color: #dc3545;
+    border-color: #dc3545;
+}
+
+.btn-danger:hover {
+    background-color: #bb2d3b;
+    border-color: #b02a37;
+}
+
 /* во вкладке регистрации текст с информацией о требованиях к имени пользователя */
 #id_username_helptext{
     color: rgb(54, 85, 223);
