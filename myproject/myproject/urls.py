@@ -20,7 +20,10 @@ from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
 from myapp import views
+from myapp.views import page_not_found_view
 from users import views as user_views
+
+
 
 
 urlpatterns = [
@@ -34,6 +37,8 @@ urlpatterns = [
     path('logout/', auth_views.LogoutView.as_view(template_name='users/logout.html'), name='logout'),
     path('create-course/', views.create_course, name='create-course'),
 ]
+
+handler404 = 'myapp.views.page_not_found_view'
 
 if settings.DEBUG:
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

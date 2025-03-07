@@ -17,6 +17,8 @@ def profile(request: HttpRequest) -> HttpResponse:
 def is_admin(user) -> bool:
     return user.is_staff
 
+def page_not_found_view(request, exception):
+    return render(request, '404.html', status=404)
 
 @login_required
 @user_passes_test(is_admin, login_url='/')
