@@ -15,7 +15,7 @@ class Profile(models.Model):
 
     user = models.OneToOneField(User, on_delete=models.CASCADE)
     image = models.ImageField(default='profile_pics/default.jpg', upload_to='profile_pics')
-    bio = models.TextField(blank=True, null=True, verbose_name="О себе")
+    bio = models.TextField(max_length=255, blank=True, null=True, verbose_name="О себе")
     
     def __str__(self) -> str:
         """
