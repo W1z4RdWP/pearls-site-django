@@ -194,7 +194,6 @@ footer {
         width: 100px;
     }
 
-
     main {
         flex: 1;
         place-content: center;
@@ -277,6 +276,11 @@ footer {
         height: 200px;
         object-fit: cover; /* Чтобы сохранить пропорции */
     }
+
+    .content-section{
+        place-self: center;
+        width: 350px;
+    }
     
 }
 
@@ -298,6 +302,19 @@ footer {
         width: 100px;
     }
 
+    .navbar-collapse {
+        flex-direction: row !important;
+        justify-content: space-between;
+        padding: 10px;
+    }
+    .navbar-nav {
+        flex-direction: row !important;
+        justify-content: space-between;
+        width: 100%;
+    }
+    .navbar-nav li {
+        margin-right: 20px;
+    }
 
     main {
         flex: 1;
@@ -326,7 +343,7 @@ footer {
 
     .content-section{
         place-self: center;
-        width: 700px;
+        width: 500px;
     }
 
     .carousel-arrows{
@@ -362,10 +379,9 @@ footer {
     }
 
     .warning-info-about{
-        position: fixed;
-        right: 0;
-        top: 10%;
-        margin-top: 10px;
+        position: absolute;
+        margin-right: 10px;
+        top: 50%;
         padding: 8px;
     }
 
