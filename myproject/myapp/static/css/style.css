@@ -171,11 +171,15 @@ footer {
     place-self: center;
 }
 
+.course-detail-content li {
+    padding: 5px;
+}
+
 /* Для правильного отображения кнопок */
 .course-actions, .lesson-actions {
     margin: 20px 0;
 }
-
+/* Кнопка удаления */
 .btn-danger {
     background-color: #dc3545;
     border-color: #dc3545;
