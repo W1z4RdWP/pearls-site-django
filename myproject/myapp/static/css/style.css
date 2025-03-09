@@ -79,7 +79,54 @@ main > section > .text-block {
     font-size: 1.3em;
 }
 
+/* course_detail.html styles */
+.progress {
+    height: 25px;
+    border-radius: 12px;
+}
 
+.progress-bar {
+    background-color: #4CAF50;
+    transition: width 0.5s ease-in-out;
+}
+
+.btn-success {
+    background-color: #28a745;
+    border-color: #28a745;
+}
+
+.btn-success:hover {
+    background-color: #218838;
+    border-color: #1e7e34;
+}
+
+.list-group-item-action {
+    transition: all 0.3s ease;
+}
+
+.badge {
+    font-size: 0.9em;
+    padding: 0.5em 0.75em;
+}
+
+
+/* --- */
+
+.lesson-navigation {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+}
+
+.lesson-navigation .btn {
+    min-width: 200px;
+}
+
+.lesson-actions .btn-success {
+    width: 100%;
+    padding: 12px;
+    font-size: 1.1rem;
+}
 
 footer {
     display: flex;

@@ -32,5 +32,59 @@ class Lesson(models.Model):
     content = CKEditor5Field('Content', config_name='extends')
     order = models.PositiveIntegerField(verbose_name="Порядок урока")
 
+    def get_previous_lesson(self):
+        return Lesson.objects.filter(
+            course=self.course, 
+            order__lt=self.order
+        ).order_by('-order').first()
+
+    def get_next_lesson(self):
+        return Lesson.objects.filter(
+            course=self.course, 
+            order__gt=self.order
+        ).order_by('order').first()
+
     def __str__(self):
         return self.title
+    
+
+# class UserProgress(models.Model):
+#     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='progress')
+#     course = models.ForeignKey(Course, on_delete=models.CASCADE)
+#     lesson = models.ForeignKey(Lesson, on_delete=models.CASCADE)
+#     completed = models.BooleanField(default=False)
+#     completed_at = models.DateTimeField(auto_now_add=True)
+
+#     class Meta:
+#         unique_together = ('user', 'lesson')  # Один прогресс на урок для пользователя
+
+#     def __str__(self):
+#         return f"{self.user.username} - {self.course.title}: {self.lesson.title}"
+    
+class UserProgress(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    course = models.ForeignKey(Course, on_delete=models.CASCADE)
+    lesson = models.ForeignKey(Lesson, on_delete=models.CASCADE)
+    completed = models.BooleanField(default=False)
+    completed_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ('user', 'lesson')
+
+    def save(self, *args, **kwargs):
+        if not self.course_id:
+            self.course = self.lesson.course
+        super().save(*args, **kwargs)
+
+
+class UserCourse(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='started_courses')
+    course = models.ForeignKey(Course, on_delete=models.CASCADE)
+    start_date = models.DateTimeField(auto_now_add=True)
+    is_completed = models.BooleanField(default=False)
+
+    class Meta:
+        unique_together = ('user', 'course')
+
+    def __str__(self):
+        return f"{self.user.username} - {self.course.title}"
