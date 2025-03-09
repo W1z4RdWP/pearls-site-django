@@ -1,8 +1,11 @@
 {% extends 'layout.html' %}
+{% load static %}
 {% block content %}
+
 <div class="container mt-4">
     <h1>{{ course.title }}</h1>
     <p class="lead">{{ course.description }}</p>
+    
     
     {% if has_started %}
     <div class="progress mb-4">
@@ -15,6 +18,7 @@
         </div>
     </div>
     {% endif %}
+    
     
     <div class="row">
         <div class="col-md-8">
@@ -35,7 +39,7 @@
         <div class="col-md-4">
             <div class="card">
                 <div class="card-body">
-                    {% if has_started %}
+                    {% if has_started and lessons %}
                     <p class="text-success">Вы начали этот курс {{ user_course.start_date|date:"d.m.Y" }}</p>
                     <a href="{% url 'lesson_detail' course.slug course.lessons.first.id %}" 
                        class="btn btn-primary w-100">
@@ -48,11 +52,47 @@
                                 class="btn btn-success w-100">
                             Начать курс
                         </button>
+                        <img src="{% if course.image %}{{ course.image.url }}{% else %}{% static 'imgs/default.jpg' %}{% endif %}" alt="Course Image" id="course_detail_img">
                     </form>
                     {% endif %}
                 </div>
+                {% if user.is_authenticated and user.is_staff %}
+                <div class="course-actions">
+                    <a href="{% url 'create_lesson' course.slug %}" class="btn btn-success">Добавить урок</a>
+                    <form method="POST" action="{% url 'delete_course' course.slug %}" style="display: inline;">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-danger" 
+                                onclick="return confirm('Вы уверены, что хотите удалить этот курс? Все уроки будут удалены!')">
+                            Удалить курс
+                        </button>
+                    </form>
+                </div>
+            {% endif %}
             </div>
         </div>
     </div>
+</div>
+
+<div class="content-section course-detail-content">
+    <!-- <h2>Название: {{ course.title }}</h2>
+    <p>Описание: {{ course.description }}</p> -->
+    <!-- <h3>Редактирование уроков:</h3> -->
+    <ul>
+        {% for lesson in lessons %}
+            <li>
+                <a href="{% url 'lesson_detail' course.slug lesson.id %}">{{ lesson.title }}</a>
+                {% if user.is_authenticated and user.is_staff %}
+                    <form method="POST" action="{% url 'delete_lesson' lesson.id %}" style="display: inline;">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-sm btn-danger" 
+                                onclick="return confirm('Вы уверены, что хотите удалить этот урок?')">
+                            ✕
+                        </button>
+                    </form>
+                {% endif %}
+            </li>
+        {% endfor %}
+    </ul>
+
 </div>
 {% endblock %}

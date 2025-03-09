@@ -32,10 +32,14 @@ def course_detail(request, slug):
             ).count()
             progress = int((completed_lessons / total_lessons) * 100) if total_lessons > 0 else 0
 
-    if request.method == 'POST' and 'start_course' in request.POST:
-        if not has_started:
-            UserCourse.objects.create(user=request.user, course=course)
-            return redirect('course_detail', slug=slug)
+    # else:
+    #     return render(request, "404.html")
+        if request.method == 'POST' and 'start_course' in request.POST:
+            if not has_started:
+                UserCourse.objects.create(user=request.user, course=course)
+                return redirect('course_detail', slug=slug)
+    else:
+        return redirect('login')
 
     return render(request, 'course_detail.html', {
         'course': course,
@@ -55,7 +59,7 @@ def lesson_detail(request, course_slug, lesson_id):
         return redirect('login')
     
     course = get_object_or_404(Course, slug=course_slug)
-    lesson = get_object_or_404(Lesson, id=lesson_id, course=course)
+    lesson = get_object_or_404(Lesson, order=lesson_id, course=course)
     
     # Проверка доступа
     if not UserCourse.objects.filter(user=request.user, course=course).exists():
@@ -70,7 +74,8 @@ def lesson_detail(request, course_slug, lesson_id):
     
     return render(request, 'lesson_detail.html', {
         'lesson': lesson,
-        'course_slug': course_slug
+        'course_slug': course_slug,
+        'course': course
     })
 
 

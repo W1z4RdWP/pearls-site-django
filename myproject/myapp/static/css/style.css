@@ -100,6 +100,7 @@ main > section > .text-block {
     border-color: #1e7e34;
 }
 
+
 .list-group-item-action {
     transition: all 0.3s ease;
 }
@@ -122,11 +123,28 @@ main > section > .text-block {
     min-width: 200px;
 }
 
+.lesson-actions {
+    display: flex;
+    justify-content: space-around;
+    flex-direction: column;
+}
+
+.lesson-actions form{
+    display: inline-block;
+}
+
 .lesson-actions .btn-success {
     width: 100%;
     padding: 12px;
     font-size: 1.1rem;
 }
+
+
+#btn-finish-lesson{
+    width: 200px;
+    margin-top: 20px;
+}
+
 
 footer {
     display: flex;
@@ -211,7 +229,9 @@ footer {
 }
 
 #course_detail_img{
-    width: 500px;
+    width: 350px;
+    margin-left: 15px;
+    margin-top: 10px;
 }
 
 .course-detail-content{
@@ -225,6 +245,11 @@ footer {
 /* Для правильного отображения кнопок */
 .course-actions, .lesson-actions {
     margin: 20px 0;
+}
+
+.course-actions {
+    display: flex;
+    justify-content: space-around;
 }
 /* Кнопка удаления */
 .btn-danger {
@@ -361,6 +386,11 @@ footer {
     .content-section{
         place-self: center;
         width: 350px;
+    }
+    
+    #btn-finish-lesson{
+        width: 100px;
+        margin-top: 10px;
     }
     
 }

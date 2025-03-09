@@ -1,0 +1,51 @@
+{% extends 'layout.html' %}
+{% load static %}
+{% block content %}
+
+
+<div class="content-section">
+    <h2>{{ lesson.title }}</h2>
+    
+    <div class="lesson-content mb-4">
+        {{ lesson.content|safe }}
+    </div>
+    
+    <div class="lesson-actions">
+        <form method="POST" action="{% url 'complete_lesson' course_slug=lesson.course.slug lesson_id=lesson.id %}">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-success">
+                ✔ Завершить урок
+            </button>
+        </form>
+    </div>
+
+    <div class="lesson-navigation mt-4">
+        {% with prev_lesson=lesson.get_previous_lesson next_lesson=lesson.get_next_lesson %}
+            {% if prev_lesson %}
+                <a href="{% url 'lesson_detail' course_slug=course_slug lesson_id=prev_lesson.id %}" 
+                   class="btn btn-outline-primary">
+                    ← Предыдущий урок
+                </a>
+            {% endif %}
+            
+            {% if next_lesson %}
+                <a href="{% url 'lesson_detail' course_slug=course_slug lesson_id=next_lesson.id %}" 
+                   class="btn btn-primary float-end">
+                    Следующий урок →
+                </a>
+            {% else %}
+                {% if course_slug %}
+                    <a href="{% url 'course_detail' slug=course_slug %}" 
+                    class="btn btn-success float-end">
+                        Завершить курс
+                    </a>
+                {% else %}
+                <p>Курс недоступен.</p>
+                <p>Course slug: {{ course_slug }}</p>
+                <p>Lesson title: {{ lesson.title }}</p>
+                {% endif %}
+            {% endif %}
+        {% endwith %}
+    </div>
+</div>
+{% endblock %}
