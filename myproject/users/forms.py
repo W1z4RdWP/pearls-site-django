@@ -2,6 +2,7 @@ from django import forms
 from django.contrib.auth.models import User
 from django.contrib.auth.forms import UserCreationForm
 from .models import Profile
+from captcha.fields import CaptchaField
 
 
 class UserRegisterForm(UserCreationForm):
@@ -9,9 +10,10 @@ class UserRegisterForm(UserCreationForm):
     Форма для регистрации пользователя.
 
     Attributes:
+        captcha (CaptchaField): Поле требующее ввести текст с картинки перед тем как подтвердить регистрацию.
         email (EmailField): Поле для ввода email.
     """
-        
+    captcha = CaptchaField() 
     email = forms.EmailField()
 
     class Meta:

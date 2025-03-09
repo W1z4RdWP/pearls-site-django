@@ -16,7 +16,7 @@
         <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
             <div class="container-fluid">
                 <a class="navbar-brand" href="{% url 'home' %}" id="logolink">
-                    <img src="{% static 'imgs/logo.png' %}" alt="" id='logopng'>
+                    <img src="{% static 'imgs/logo_lc.png' %}" alt="Logo" id='logopng'>
                 </a>
                 <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
                     <span class="navbar-toggler-icon"></span>
@@ -31,9 +31,11 @@
                             <a class="nav-link" href="{% url 'about' %}">О нас</a>
                         </li>
                         {% if user.is_authenticated %}
-                            <li class="nav-item">
-                                <a class="nav-link" href="{% url 'create-course' %}">Создать курс</a>
-                            </li>
+                            {% if user.is_staff %}
+                                <li class="nav-item">
+                                    <a class="nav-link" href="{% url 'create-course' %}">Создать курс</a>
+                                </li>
+                            {% endif %}
                             <li class="nav-item">
                                 <a class="nav-link" href="{% url 'profile' %}">Профиль</a>
                             </li>
@@ -73,7 +75,7 @@
 
     <footer>
         <div class="footer-content">
-            <a href="{% url 'home' %}"><img src="{% static 'imgs/logo_lc.png' %}" alt="Logo" class="footer-logo"></a>
+            <a href="{% url 'home' %}"><img src="{% static 'imgs/logo.png' %}" alt="" class="footer-logo"></a>
             <p class="footer-text">The site was created by w1z4rdWP</p>
         </div>
     </footer>
