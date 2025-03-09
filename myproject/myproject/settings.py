@@ -40,6 +40,7 @@ INSTALLED_APPS = [
     'captcha',
     'crispy_forms',
     'crispy_bootstrap5',
+    'django_ckeditor_5',
     'myapp',
     'users'
 ]
@@ -113,7 +114,7 @@ AUTH_PASSWORD_VALIDATORS = [
 
 LANGUAGE_CODE = 'en-us'
 
-TIME_ZONE = 'UTC+04'
+TIME_ZONE = 'Europe/Saratov'
 
 USE_I18N = True
 
@@ -122,8 +123,8 @@ USE_TZ = True
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.1/howto/static-files/
-
-STATIC_URL = 'static/'
+STATIC_ROOT = BASE_DIR / "staticfiles"
+STATIC_URL = '/static/'
 STATICFILES_DIRS = [
     BASE_DIR / "static",
 ]
@@ -139,6 +140,54 @@ CRISPY_TEMPLATE_PACK = 'bootstrap5'
 
 LOGIN_REDIRECT_URL = 'home'
 LOGIN_URL = 'login'
+
+
+
+CKEDITOR_5_CONFIGS = {
+    'default': {
+        'toolbar': [
+            'heading', '|', 
+            'bold', 'italic', 'link', 
+            'bulletedList', 'numberedList', 
+            'blockQuote', 'imageUpload'
+        ],
+        'height': '300px',
+        'width': '100%',
+        'language': 'ru',
+        'image': {
+            'toolbar': ['imageTextAlternative', '|', 'imageStyle:alignLeft', 'imageStyle:full', 'imageStyle:alignRight'],
+            'styles': [
+                'full',
+                'alignLeft',
+                'alignRight'
+            ],
+            'uploadUrl': '/ckeditor5/upload/'  # ⚠️ Обязательно добавьте
+        },
+        'uiColor': '#FFFFFF',  # Цвет фона редактора
+        'contentsCss': ['body { color: #333; }'],  # Цвет текста
+    },
+    'extends': {
+        'blockToolbar': [
+            'paragraph', 'heading1', 'heading2', 'heading3',
+            '|', 'bulletedList', 'numberedList',
+            '|', 'blockQuote', 'imageUpload'
+        ],
+        'toolbar': [
+            'heading', '|', 
+            'bold', 'italic', 'link', 'underline',
+            'strikethrough', 'code', 'subscript', 'superscript',
+            'highlight', '|', 'codeBlock', 'sourceEditing', '|',
+            'bulletedList', 'numberedList', 'todoList', '|',
+            'blockQuote', 'imageUpload', '|', 'undo', 'redo'
+        ],
+        'language': 'ru',
+        'image': {
+            'uploadUrl': '/ckeditor5/upload/'  # ⚠️ Обязательно
+        }
+    }
+}
+
+
 
 # RECAPTCHA_PUBLIC_KEY = '6LfNMusqAAAAAL3yAV9YTv3ttE73agpGFzKRddT0'
 # RECAPTCHA_PRIVATE_KEY = '6LfNMusqAAAAAEGfgQJZbg1SYVanSZrrxjskbdC9'

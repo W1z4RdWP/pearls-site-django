@@ -1,0 +1,58 @@
+{% extends 'layout.html' %}
+{% block content %}
+<div class="container mt-4">
+    <h1>{{ course.title }}</h1>
+    <p class="lead">{{ course.description }}</p>
+    
+    {% if has_started %}
+    <div class="progress mb-4">
+        <div class="progress-bar" role="progressbar" 
+             style="width: {{ progress }}%" 
+             aria-valuenow="{{ progress }}" 
+             aria-valuemin="0" 
+             aria-valuemax="100">
+            {{ completed_lessons }}/{{ total_lessons }} ({{ progress }}%)
+        </div>
+    </div>
+    {% endif %}
+    
+    <div class="row">
+        <div class="col-md-8">
+            <h3>Уроки курса</h3>
+            <div class="list-group">
+                {% for lesson in course.lessons.all %}
+                <a href="{% url 'lesson_detail' course.slug lesson.id %}" 
+                   class="list-group-item list-group-item-action">
+                    {{ lesson.title }}
+                    {% if has_started and lesson in completed_lessons %}
+                    <span class="badge bg-success float-end">✓</span>
+                    {% endif %}
+                </a>
+                {% endfor %}
+            </div>
+        </div>
+        
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-body">
+                    {% if has_started %}
+                    <p class="text-success">Вы начали этот курс {{ user_course.start_date|date:"d.m.Y" }}</p>
+                    <a href="{% url 'lesson_detail' course.slug course.lessons.first.id %}" 
+                       class="btn btn-primary w-100">
+                        Продолжить обучение
+                    </a>
+                    {% else %}
+                    <form method="POST">
+                        {% csrf_token %}
+                        <button type="submit" name="start_course" 
+                                class="btn btn-success w-100">
+                            Начать курс
+                        </button>
+                    </form>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
