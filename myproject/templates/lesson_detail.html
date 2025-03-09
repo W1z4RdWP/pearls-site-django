@@ -14,7 +14,7 @@
         {% if user.is_authenticated and user.is_staff %}
                 <form method="POST" action="{% url 'delete_lesson' lesson.id %}">
                     {% csrf_token %}
-                    <button type="submit" class="btn btn-danger" 
+                    <button type="submit" class="btn btn-danger lesson-btns" 
                             onclick="return confirm('Вы уверены, что хотите удалить этот урок?')">
                         Удалить урок
                     </button>
@@ -22,9 +22,23 @@
         {% endif %}
         <form method="POST" action="{% url 'complete_lesson' course_slug=lesson.course.slug lesson_id=lesson.id %}">
             {% csrf_token %}
-            <button type="submit" class="btn btn-success" id="btn-finish-lesson">
+            <button type="submit" class="btn btn-success lesson-btns" style="text-align: center;">
                 ✔ Завершить урок
             </button>
         </form>
+        <button class="btn btn-outline-info lesson-btns" id="edit-lesson-btn">Редактировать</button>
     </div>
+
+    <script>
+        document.getElementById('edit-profile-btn').addEventListener('click', function() {
+            document.getElementById('edit-profile-form').style.display = 'block';
+            this.style.display = 'none';
+        });
+
+        document.getElementById('cancel-edit-btn').addEventListener('click', function(event) {
+            event.preventDefault();
+            document.getElementById('edit-profile-form').style.display = 'none';
+            document.getElementById('edit-profile-btn').style.display = 'block';
+        });
+    </script>
 {% endblock %}

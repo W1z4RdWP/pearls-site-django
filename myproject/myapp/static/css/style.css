@@ -1,8 +1,15 @@
+:root{
+    --btn-width-at-lesson-detail: 140px;
+    --btn-height-at-lesson-detail: 45px;
+}
+
+
 * {
     padding: 0;
     margin: 0;
     box-sizing: border-box;
 }
+
 
 body {
     display: flex;
@@ -247,8 +254,9 @@ footer {
     margin: 20px 0;
 }
 
-.course-actions {
+.lesson-actions{
     display: flex;
+    flex-direction: row;
     justify-content: space-around;
 }
 /* Кнопка удаления */
@@ -268,6 +276,10 @@ footer {
     background-color: white !important;
 }
 
+.lesson-btns{
+    height: var(--btn-height-at-lesson-detail);
+    width: var(--btn-width-at-lesson-detail);
+}
 
 /* во вкладке регистрации текст с информацией о требованиях к имени пользователя */
 #id_username_helptext{
@@ -388,10 +400,6 @@ footer {
         width: 350px;
     }
     
-    #btn-finish-lesson{
-        width: 100px;
-        margin-top: 10px;
-    }
     
 }
 
