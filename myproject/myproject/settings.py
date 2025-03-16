@@ -42,7 +42,7 @@ INSTALLED_APPS = [
     'crispy_bootstrap5',
     'django_ckeditor_5',
     'myapp',
-    'users'
+    'users',
 ]
 
 MIDDLEWARE = [

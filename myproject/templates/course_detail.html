@@ -39,7 +39,7 @@
         <div class="col-md-4">
             <div class="card">
                 <div class="card-body">
-                    {% if has_started and lessons %}
+                    {% if request.user.is_authenticated and has_started %}
                     <p class="text-success">Вы начали этот курс {{ user_course.start_date|date:"d.m.Y" }}</p>
                     <a href="{% url 'lesson_detail' course.slug course.lessons.first.id %}" 
                        class="btn btn-primary w-100">

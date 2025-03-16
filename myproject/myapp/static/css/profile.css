@@ -67,3 +67,12 @@ legend{
     border-radius: 12px;
     overflow: visible;
 }
+
+/* Блок с кнопками "Перейти к курсу" и "Курс завершен" */
+.btn-group {
+    display: flex;
+    width: 100%;
+    /* background-color: red; */
+    justify-content: space-between;
+    gap: 25%;
+}

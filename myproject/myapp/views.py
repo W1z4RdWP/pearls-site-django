@@ -52,7 +52,7 @@ def lesson_detail(request, course_slug, lesson_id):
         return redirect('login')
     
     course = get_object_or_404(Course, slug=course_slug)
-    lesson = get_object_or_404(Lesson, order=lesson_id, course=course)
+    lesson = get_object_or_404(Lesson, id=lesson_id, course=course)
     
     # Проверка доступа
     if not UserCourse.objects.filter(user=request.user, course=course).exists():
@@ -64,12 +64,12 @@ def lesson_detail(request, course_slug, lesson_id):
         lesson=lesson,
         defaults={'course': course}
     )
-    
-    return render(request, 'lesson_detail.html', {
-        'lesson': lesson,
-        'course_slug': course_slug,
-        'course': course
-    })
+    return render(request, 'lesson_detail.html', {'lesson': lesson})
+    # return render(request, 'lesson_detail.html', {
+    #     'lesson': lesson,
+    #     'course_slug': course_slug,
+    #     'course': course
+    # })
 
 
 def about(request: HttpRequest) -> HttpResponse:
@@ -158,20 +158,12 @@ def delete_lesson(request, lesson_id):
     return redirect('course_detail', course_slug)
 
 
-def lesson_detail(request, course_slug, lesson_id):
-    course = get_object_or_404(Course, slug=course_slug)
-    lesson = get_object_or_404(Lesson, id=lesson_id, course=course)
-    
-    # # Отмечаем урок как пройденный
-    # if not UserProgress.objects.filter(user=request.user, lesson=lesson).exists():
-    #     UserProgress.objects.create(
-    #         user=request.user,
-    #         course=course,
-    #         lesson=lesson,
-    #         completed=True
-    #     )
-    
-    return render(request, 'lesson_detail.html', {'lesson': lesson})
+@login_required
+@user_passes_test(is_admin, login_url='/')
+def edit_lesson(request, lesson_id):
+    lesson = get_object_or_404(Lesson, id=lesson_id)
+    return render("404.html")
+
 
 
 @require_POST

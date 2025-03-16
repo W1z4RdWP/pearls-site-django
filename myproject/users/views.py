@@ -2,6 +2,8 @@ from django.shortcuts import render, redirect
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.http import HttpRequest, HttpResponse
+
+from myapp.models import UserCourse, UserProgress
 from .forms import UserRegisterForm
 from .forms import UserUpdateForm, ProfileUpdateForm
 
@@ -28,17 +30,42 @@ def register(request: HttpRequest) -> HttpResponse:
     return render(request, 'users/register.html', {'form': form})
 
 
+
 @login_required
 def profile(request: HttpRequest) -> HttpResponse:
     """
-    Отображает страницу профиля пользователя.
+    Отображает страницу профиля пользователя, а также его прогресс
+    по начатым курсам.
 
     Args:
         request (HttpRequest): Объект запроса.
 
     Returns:
         HttpResponse: Ответ с отрендеренным шаблоном профиля.
+        Шаблон включает формы для редактирования профиля и список курсов с прогрессом.
     """
+
+    user = request.user
+    started_courses = UserCourse.objects.filter(user=user).select_related('course')
+    
+    course_progress = []
+    for user_course in started_courses:
+        course = user_course.course
+        completed = UserProgress.objects.filter(
+            user=user,
+            course=course,
+            completed=True
+        ).count()
+        total = course.lessons.count()
+        
+        course_progress.append({
+            'course': course,
+            'completed': completed,
+            'total': total,
+            'percent': int((completed / total) * 100) if total > 0 else 0
+        })
+    
+
     if request.method == 'POST':
         user_form = UserUpdateForm(request.POST, instance=request.user)
         profile_form = ProfileUpdateForm(request.POST, request.FILES, instance=request.user.profile)
@@ -53,5 +80,6 @@ def profile(request: HttpRequest) -> HttpResponse:
 
     return render(request, 'users/profile.html', {
         'user_form': user_form,
-        'profile_form': profile_form
+        'profile_form': profile_form,
+        'course_progress': course_progress
     })
