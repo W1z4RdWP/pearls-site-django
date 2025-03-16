@@ -81,10 +81,20 @@ WSGI_APPLICATION = 'myproject.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/5.1/ref/settings/#databases
 
+# DATABASES = {
+#     'default': {
+#         'ENGINE': 'django.db.backends.sqlite3',
+#         'NAME': BASE_DIR / 'db.sqlite3',
+#     }
+# }
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+            'ENGINE': 'django.db.backends.postgresql',
+            'NAME': '32PEARLs-project',
+            'USER': 'admin0',
+            'PASSWORD': 'Pa$$w0rd2023',
+            'HOST': 'localhost',
+            'PORT': '5433',
     }
 }
 
@@ -113,7 +123,7 @@ AUTH_PASSWORD_VALIDATORS = [
 
 LANGUAGE_CODE = 'en-us'
 
-TIME_ZONE = 'UTC+04'
+TIME_ZONE = 'Europe/Saratov'
 
 USE_I18N = True
 
