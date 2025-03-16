@@ -76,33 +76,6 @@ def about(request: HttpRequest) -> HttpResponse:
     return render(request, 'about.html')
 
 
-def profile(request):
-    user = request.user
-    started_courses = UserCourse.objects.filter(user=user).select_related('course')
-    
-    course_progress = []
-    for user_course in started_courses:
-        course = user_course.course
-        completed = UserProgress.objects.filter(
-            user=user,
-            course=course,
-            completed=True
-        ).count()
-        total = course.lessons.count()
-        
-        course_progress.append({
-            'course': course,
-            'completed': completed,
-            'total': total,
-            'percent': int((completed / total) * 100) if total > 0 else 0
-        })
-    
-    context = {
-        'course_progress': course_progress
-    }
-    return render(request, 'profile.html', context)
-
-
 def is_admin(user) -> bool:
     return user.is_staff
 

@@ -84,10 +84,18 @@ WSGI_APPLICATION = 'myproject.wsgi.application'
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+            'ENGINE': 'django.db.backends.postgresql',
+            'NAME': '32PEARLs-project',
+            'USER': 'admin0',
+            'PASSWORD': 'Pa$$w0rd2023',
+            'HOST': 'localhost',
+            'PORT': '5433',
+            'OPTIONS' :{
+                'client_encoding': 'UTF8',
+            }
     }
 }
+
 
 
 # Password validation
