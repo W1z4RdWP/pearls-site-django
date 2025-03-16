@@ -43,7 +43,6 @@ urlpatterns = [
     path('lesson/<int:lesson_id>/delete/', views.delete_lesson, name='delete_lesson'),
     path('course/<slug:course_slug>/lesson/<int:lesson_id>/complete/', views.complete_lesson, name='complete_lesson'),
     path('ckeditor5/', include('django_ckeditor_5.urls')),
-    
 ]
 
 handler404 = 'myapp.views.page_not_found_view'

@@ -22,9 +22,9 @@
         {% endif %}
         <form method="POST" action="{% url 'complete_lesson' course_slug=lesson.course.slug lesson_id=lesson.id %}">
             {% csrf_token %}
-            <button type="submit" class="btn btn-success lesson-btns" style="text-align: center;">
-                ✔ Завершить урок
-            </button>
+                <button type="submit" class="btn btn-success lesson-btns" style="text-align: center;">
+                    ✔ Завершить урок
+                </button>
         </form>
         <button class="btn btn-outline-info lesson-btns" id="edit-lesson-btn">Редактировать</button>
     </div>

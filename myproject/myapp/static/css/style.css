@@ -52,6 +52,12 @@ header{
     color: rgb(227, 92, 121) !important; /* Цвет текста при наведении */
 }
 
+.form-group{
+    width: 50%;
+    place-self: center;
+    margin-bottom: 10px;
+}
+
 main {
     flex: 1;
     place-content: center;
@@ -153,6 +159,7 @@ main > section > .text-block {
 }
 
 
+
 footer {
     display: flex;
     align-items: center; /* Выравниваем элементы по вертикали */
@@ -236,7 +243,8 @@ footer {
 }
 
 #course_detail_img{
-    width: 350px;
+    width: 90%;
+    max-height: 400px;
     margin-left: 15px;
     margin-top: 10px;
 }
@@ -252,6 +260,16 @@ footer {
 /* Для правильного отображения кнопок */
 .course-actions, .lesson-actions {
     margin: 20px 0;
+}
+
+.course-actions{
+    display: flex;
+    flex-direction: row;
+    justify-content: space-around;
+}
+
+.card .btn{
+    width: 100px;
 }
 
 .lesson-actions{
@@ -310,6 +328,11 @@ footer {
 
     .navbar #logopng{
         width: 100px;
+    }
+
+    /* Карточка с действиями курса в course-details */
+    .card{
+        margin-top: 1vh;
     }
 
     main {

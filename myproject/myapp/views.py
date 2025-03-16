@@ -10,10 +10,7 @@ def index(request: HttpRequest) -> HttpResponse:
     courses = Course.objects.all()
     return render(request, 'home.html', {'courses': courses})
 
-# def course_detail(request, slug):
-#     course = get_object_or_404(Course, slug=slug)
-#     lessons = course.lessons.all()
-#     return render(request, 'course_detail.html', {'course': course, 'lessons': lessons})
+
 def course_detail(request, slug):
     course = get_object_or_404(Course, slug=slug)
     has_started = False
@@ -32,8 +29,7 @@ def course_detail(request, slug):
             ).count()
             progress = int((completed_lessons / total_lessons) * 100) if total_lessons > 0 else 0
 
-    # else:
-    #     return render(request, "404.html")
+        # Обработка POST запроса должна быть внутри authenticated блока
         if request.method == 'POST' and 'start_course' in request.POST:
             if not has_started:
                 UserCourse.objects.create(user=request.user, course=course)
@@ -49,10 +45,7 @@ def course_detail(request, slug):
         'total_lessons': total_lessons
     })
 
-# def lesson_detail(request, course_slug, lesson_id):
-#     course = get_object_or_404(Course, slug=course_slug)
-#     lesson = get_object_or_404(Lesson, id=lesson_id, course=course)
-#     return render(request, 'lesson_detail.html', {'lesson': lesson})
+
 
 def lesson_detail(request, course_slug, lesson_id):
     if not request.user.is_authenticated:
@@ -169,14 +162,14 @@ def lesson_detail(request, course_slug, lesson_id):
     course = get_object_or_404(Course, slug=course_slug)
     lesson = get_object_or_404(Lesson, id=lesson_id, course=course)
     
-    # Отмечаем урок как пройденный
-    if not UserProgress.objects.filter(user=request.user, lesson=lesson).exists():
-        UserProgress.objects.create(
-            user=request.user,
-            course=course,
-            lesson=lesson,
-            completed=True
-        )
+    # # Отмечаем урок как пройденный
+    # if not UserProgress.objects.filter(user=request.user, lesson=lesson).exists():
+    #     UserProgress.objects.create(
+    #         user=request.user,
+    #         course=course,
+    #         lesson=lesson,
+    #         completed=True
+    #     )
     
     return render(request, 'lesson_detail.html', {'lesson': lesson})
 
@@ -200,4 +193,4 @@ def complete_lesson(request, course_slug, lesson_id):
         defaults={'completed': True, 'course': course}
     )
     
-    return redirect('lesson_detail', course_slug=course_slug, lesson_id=lesson_id)
+    return redirect('course_detail', slug=course_slug)
