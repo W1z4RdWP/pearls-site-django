@@ -15,6 +15,7 @@ def index(request: HttpRequest) -> HttpResponse:
 def course_detail(request, slug):
     course = get_object_or_404(Course, slug=slug)
     has_started = False
+    user_course = None
     progress = 0
     completed_lessons = 0
     total_lessons = course.lessons.count()
@@ -22,6 +23,7 @@ def course_detail(request, slug):
     all_completed = False
 
     if request.user.is_authenticated:
+        user_course = UserCourse.objects.filter(user=request.user, course=course).first()
         has_started = UserCourse.objects.filter(user=request.user, course=course).exists()
         
         if has_started:
@@ -65,6 +67,7 @@ def course_detail(request, slug):
 
     return render(request, 'course_detail.html', {
         'course': course,
+        'user_course': user_course,
         'has_started': has_started,
         'progress': progress,
         'completed_lessons': completed_lessons,

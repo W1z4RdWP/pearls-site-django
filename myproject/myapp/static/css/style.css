@@ -24,6 +24,10 @@ body {
     color: rgb(255, 0, 0);
 }
 
+button{
+    cursor: default;
+}
+
 header{
     display: flex;
     place-content: center;
@@ -125,6 +129,13 @@ main > section > .text-block {
 
 
 /* --- */
+
+.content-section h1{
+    text-align: center;
+    margin-bottom: 2vh;
+    padding-bottom: 2vh;
+    border-bottom: 1px solid #706f6f;
+}
 
 .lesson-navigation {
     display: flex;
