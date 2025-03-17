@@ -59,6 +59,9 @@
                 {% if user.is_authenticated and user.is_staff %}
                 <div class="course-actions">
                     <a href="{% url 'create_lesson' course.slug %}" class="btn btn-success">Добавить урок</a>
+                    <a href="{% url 'edit_course' course.slug %}" class="btn btn-warning">
+                        Редактировать
+                    </a>
                     <form method="POST" action="{% url 'delete_course' course.slug %}" style="display: inline;">
                         {% csrf_token %}
                         <button type="submit" class="btn btn-danger" 

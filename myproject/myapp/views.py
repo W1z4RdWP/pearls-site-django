@@ -21,6 +21,7 @@ def course_detail(request, slug):
     total_lessons = course.lessons.count()
     next_lesson = None
     all_completed = False
+    completed_lessons_ids = None
 
     if request.user.is_authenticated:
         user_course = UserCourse.objects.filter(user=request.user, course=course).first()
@@ -106,6 +107,9 @@ def about(request: HttpRequest) -> HttpResponse:
 def is_admin(user) -> bool:
     return user.is_staff
 
+def is_author_or_admin(user, course):
+    return user.is_staff or user == course.author
+
 def page_not_found_view(request, exception):
     return render(request, '404.html', status=404)
 
@@ -159,11 +163,44 @@ def delete_lesson(request, lesson_id):
 
 
 @login_required
+@user_passes_test(lambda u: is_author_or_admin(u, Course), login_url='/')
+def edit_course(request, slug):
+    course = get_object_or_404(Course, slug=slug)
+    
+    if request.method == 'POST':
+        form = CourseForm(request.POST, request.FILES, instance=course)
+        if form.is_valid():
+            form.save()
+            return redirect('course_detail', slug=course.slug)
+    else:
+        form = CourseForm(instance=course)
+    
+    return render(request, 'edit_course.html', {
+        'form': form,
+        'course': course
+    })
+
+
+
+@login_required
 @user_passes_test(is_admin, login_url='/')
 def edit_lesson(request, lesson_id):
     lesson = get_object_or_404(Lesson, id=lesson_id)
-    return render("404.html")
-
+    course = lesson.course
+    
+    if request.method == 'POST':
+        form = LessonForm(request.POST, instance=lesson)
+        if form.is_valid():
+            form.save()
+            return redirect('lesson_detail', course_slug=course.slug, lesson_id=lesson.id)
+    else:
+        form = LessonForm(instance=lesson)
+    
+    return render(request, 'edit_lesson.html', {
+        'form': form,
+        'course': lesson.course,
+        'lesson': lesson
+    })
 
 
 @require_POST

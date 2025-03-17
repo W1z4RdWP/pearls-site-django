@@ -17,6 +17,10 @@ class CourseForm(forms.ModelForm):
         if slug and not re.match(r'^[-a-zA-Z0-9_]+$', slug):
             raise forms.ValidationError("ЧПУ может содержать только латинские буквы, цифры, дефисы и подчеркивания")
         return slug
+    
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['image'].help_text = "Рекомендуемый размер: 1200x600 пикселей"
 
 class LessonForm(forms.ModelForm):
     class Meta:
@@ -28,3 +32,9 @@ class LessonForm(forms.ModelForm):
                 config_name='extends'
             )
         }
+        def __init__(self, *args, **kwargs):
+            super().__init__(*args, **kwargs)
+            if not self.instance.pk:  # Только для новых уроков
+                self.fields['order'].queryset = Lesson.objects.filter(
+                    course=self.initial['course']
+                ).order_by('order')
