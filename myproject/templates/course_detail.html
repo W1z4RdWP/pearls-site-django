@@ -28,7 +28,7 @@
                 <a href="{% url 'lesson_detail' course.slug lesson.id %}" 
                    class="list-group-item list-group-item-action">
                     {{ lesson.title }}
-                    {% if has_started and lesson in completed_lessons %}
+                    {% if has_started and lesson.id in completed_lessons_ids %}
                         <span class="badge bg-success float-end">✓</span>
                     {% endif %}
                 </a>
@@ -41,7 +41,7 @@
                 <div class="card-body">
                     {% if request.user.is_authenticated and has_started %}
                     <p class="text-success">Вы начали этот курс {{ user_course.start_date|date:"d.m.Y" }}</p>
-                    <a href="{% url 'lesson_detail' course.slug course.lessons.first.id %}" 
+                    <a href="{% url 'lesson_detail' course.slug next_lesson.id %}" 
                        class="btn btn-primary w-100">
                         Продолжить обучение
                     </a>

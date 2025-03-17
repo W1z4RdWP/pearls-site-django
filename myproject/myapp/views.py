@@ -1,5 +1,6 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.http import HttpResponse, HttpRequest
+from django.db.models import Max
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.views.decorators.http import require_POST
 from .forms import CourseForm, LessonForm
@@ -17,6 +18,8 @@ def course_detail(request, slug):
     progress = 0
     completed_lessons = 0
     total_lessons = course.lessons.count()
+    next_lesson = None
+    all_completed = False
 
     if request.user.is_authenticated:
         has_started = UserCourse.objects.filter(user=request.user, course=course).exists()
@@ -28,6 +31,29 @@ def course_detail(request, slug):
                 completed=True
             ).count()
             progress = int((completed_lessons / total_lessons) * 100) if total_lessons > 0 else 0
+
+            completed_lessons_ids = UserProgress.objects.filter(
+                user=request.user,
+                course=course,
+                completed=True
+            ).values_list('lesson_id', flat=True)
+
+        # Получаем максимальный порядок завершенных уроков
+            max_completed_order = UserProgress.objects.filter(
+                user=request.user,
+                course=course,
+                completed=True
+            ).aggregate(max_order=Max('lesson__order'))['max_order'] or 0
+
+            # Находим следующий урок
+            next_lesson = Lesson.objects.filter(
+                course=course,
+                order__gt=max_completed_order
+            ).order_by('order').first()
+
+            # Если все уроки завершены, берем первый урок
+            if not next_lesson:
+                next_lesson = course.lessons.first()
 
         # Обработка POST запроса должна быть внутри authenticated блока
         if request.method == 'POST' and 'start_course' in request.POST:
@@ -42,7 +68,10 @@ def course_detail(request, slug):
         'has_started': has_started,
         'progress': progress,
         'completed_lessons': completed_lessons,
-        'total_lessons': total_lessons
+        'completed_lessons_ids': completed_lessons_ids,
+        'total_lessons': total_lessons,
+        'next_lesson': next_lesson,
+        'all_completed': all_completed
     })
 
 
@@ -65,11 +94,6 @@ def lesson_detail(request, course_slug, lesson_id):
         defaults={'course': course}
     )
     return render(request, 'lesson_detail.html', {'lesson': lesson})
-    # return render(request, 'lesson_detail.html', {
-    #     'lesson': lesson,
-    #     'course_slug': course_slug,
-    #     'course': course
-    # })
 
 
 def about(request: HttpRequest) -> HttpResponse:

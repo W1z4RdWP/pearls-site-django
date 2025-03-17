@@ -32,6 +32,9 @@ class Lesson(models.Model):
     content = CKEditor5Field('Content', config_name='extends')
     order = models.PositiveIntegerField(verbose_name="Порядок урока")
 
+    class Meta:
+        ordering = ['order']
+
     def get_previous_lesson(self):
         return Lesson.objects.filter(
             course=self.course, 
@@ -47,19 +50,6 @@ class Lesson(models.Model):
     def __str__(self):
         return self.title
     
-
-# class UserProgress(models.Model):
-#     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='progress')
-#     course = models.ForeignKey(Course, on_delete=models.CASCADE)
-#     lesson = models.ForeignKey(Lesson, on_delete=models.CASCADE)
-#     completed = models.BooleanField(default=False)
-#     completed_at = models.DateTimeField(auto_now_add=True)
-
-#     class Meta:
-#         unique_together = ('user', 'lesson')  # Один прогресс на урок для пользователя
-
-#     def __str__(self):
-#         return f"{self.user.username} - {self.course.title}: {self.lesson.title}"
     
 class UserProgress(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)

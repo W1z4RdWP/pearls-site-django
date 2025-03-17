@@ -272,6 +272,14 @@ footer {
     width: 100px;
 }
 
+.card-body a{
+    cursor: default;
+}
+
+.course-actions a, .course-actions .btn {
+    cursor: default;
+}
+
 .lesson-actions{
     display: flex;
     flex-direction: row;
