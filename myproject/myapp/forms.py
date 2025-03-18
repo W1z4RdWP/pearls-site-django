@@ -8,9 +8,12 @@ class CourseForm(forms.ModelForm):
     # captcha = CaptchaField()
     class Meta:
         model = Course
-        fields = ['title', 'description', 'image', 'slug']
+        fields = ['title', 'category', 'stage', 'is_required', 'description', 'image', 'slug']
         labels = {'slug': 'ЧПУ (оставьте пустым для автогенерации)'}
         required = {'slug': False}  # Поле slug не обязательно
+        widgets = {
+            'category': forms.Select(attrs={'class': 'select2'})
+        }
 
     def clean_slug(self):
         slug = self.cleaned_data.get('slug')

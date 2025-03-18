@@ -1,7 +1,35 @@
 from django.db import models
 from django.contrib.auth.models import User
+from django.urls import reverse
 from django.utils.text import slugify
 from django_ckeditor_5.fields import CKEditor5Field
+
+
+
+
+class Category(models.Model):
+    name = models.CharField("Название категории", max_length=100)
+    slug = models.SlugField(unique=True)
+    parent = models.ForeignKey('self', on_delete=models.CASCADE,
+                               null=True, blank=True,
+                               related_name='subcategories')
+    order = models.PositiveBigIntegerField("Порядок отображения", default=0)
+    icon = models.CharField("Иконка", max_length=50, blank=True)
+
+    class Meta:
+        ordering = ['order']
+        verbose_name = "Категория"
+        verbose_name_plural = "Категории"
+
+    
+    def __str__(self):
+        return self.name
+    
+    def get_absolute_url(self):
+        return reverse("category_detail", kwargs={"slug": self.slug})
+    
+
+
 
 class Course(models.Model):
     title = models.CharField(max_length=200, verbose_name="Название курса")
@@ -10,6 +38,16 @@ class Course(models.Model):
     created_at = models.DateTimeField(auto_now_add=True, verbose_name="Дата создания")
     image = models.ImageField(upload_to='course_images/', blank=True, null=True, verbose_name="Изображение курса")
     slug = models.SlugField(max_length=200, unique=True, blank=True)
+    category = models.ForeignKey(Category, on_delete=models.SET_NULL,
+                                 null=True, blank=True,
+                                 verbose_name="Категория")
+    stage = models.PositiveBigIntegerField("Этап обучения", default=1)
+    is_required = models.BooleanField("Обязательный курс", default=True)
+
+    
+    class Meta:
+        ordering = ['stage']
+
 
     def save(self, *args, **kwargs):
         if not self.slug:  # Генерируем slug только если он пустой
@@ -78,3 +116,5 @@ class UserCourse(models.Model):
 
     def __str__(self):
         return f"{self.user.username} - {self.course.title}"
+    
+

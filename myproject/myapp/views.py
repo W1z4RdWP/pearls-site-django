@@ -4,7 +4,7 @@ from django.db.models import Max
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.views.decorators.http import require_POST
 from .forms import CourseForm, LessonForm
-from .models import Course, Lesson, UserProgress, UserCourse
+from .models import Course, Lesson, UserProgress, UserCourse, Category
 
 
 def index(request: HttpRequest) -> HttpResponse:
@@ -77,6 +77,20 @@ def course_detail(request, slug):
         'next_lesson': next_lesson,
         'all_completed': all_completed
     })
+
+
+
+def category_detail(request, slug):
+    category = get_object_or_404(Category, slug=slug)
+    courses = category.course_set.all().order_by('stage')
+    subcategories = category.subcategories.all()
+
+    return render(request, 'category_detail.html', {
+        'category': category,
+        'courses': courses,
+        'subcategories': subcategories
+    })
+
 
 
 

@@ -1,0 +1,42 @@
+{% extends 'layout.html' %}
+{% block content %}
+<div class="container mt-4">
+    <h1>{{ category.name }}</h1>
+    
+    {% if subcategories %}
+    <div class="row mb-4">
+        {% for subcat in subcategories %}
+        <div class="col-md-4">
+            <div class="card category-card">
+                <div class="card-body">
+                    <h5 class="card-title">
+                        <i class="{{ subcat.icon }}"></i> 
+                        {{ subcat.name }}
+                    </h5>
+                    <a href="{{ subcat.get_absolute_url }}" class="btn btn-primary">
+                        Перейти → 
+                    </a>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+    
+    <div class="course-stages">
+        {% regroup courses by stage as stages %}
+        {% for stage in stages %}
+        <div class="stage-block mb-5">
+            <h3>Этап {{ stage.grouper }}</h3>
+            <div class="row">
+                {% for course in stage.list %}
+                <div class="col-md-4 mb-3">
+                    {% include 'courses/course_card.html' %}
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}
