@@ -57,13 +57,15 @@ def profile(request: HttpRequest) -> HttpResponse:
             completed=True
         ).count()
         total = course.lessons.count()
+        percent = int((completed / total) * 100) if total > 0 else 0
         
-        course_progress.append({
-            'course': course,
-            'completed': completed,
-            'total': total,
-            'percent': int((completed / total) * 100) if total > 0 else 0
-        })
+        if percent != 100:
+            course_progress.append({
+                'course': course,
+                'completed': completed,
+                'total': total,
+                'percent': percent
+            })
     
 
     if request.method == 'POST':
@@ -82,4 +84,51 @@ def profile(request: HttpRequest) -> HttpResponse:
         'user_form': user_form,
         'profile_form': profile_form,
         'course_progress': course_progress
+    })
+
+
+
+@login_required
+def profile_finished_courses(request: HttpRequest) -> HttpResponse:
+    """
+    Отображает страницу профиля пользователя, а также его завершенные курсы.
+    """
+    user = request.user
+    started_courses = UserCourse.objects.filter(user=user).select_related('course')
+    
+    finished_courses = []
+    for user_course in started_courses:
+        course = user_course.course
+        completed = UserProgress.objects.filter(
+            user=user,
+            course=course,
+            completed=True
+        ).count()
+        total = course.lessons.count()
+        percent = int((completed / total) * 100) if total > 0 else 0
+
+        if percent == 100:  # Проверяем, завершен ли курс
+            finished_courses.append({
+                'course': course,
+                'completed': completed,
+                'total': total,
+                'percent': percent
+            })
+    
+    if request.method == 'POST':
+        user_form = UserUpdateForm(request.POST, instance=request.user)
+        profile_form = ProfileUpdateForm(request.POST, request.FILES, instance=request.user.profile)
+
+        if user_form.is_valid() and profile_form.is_valid():
+            user_form.save()
+            profile_form.save()
+            return redirect('profile_finished_courses')
+    else:
+        user_form = UserUpdateForm(instance=request.user)
+        profile_form = ProfileUpdateForm(instance=request.user.profile)
+
+    return render(request, 'users/finished_courses.html', {
+        'user_form': user_form,
+        'profile_form': profile_form,
+        'course_progress': finished_courses  # Передаем только завершенные курсы
     })

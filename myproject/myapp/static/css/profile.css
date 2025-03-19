@@ -49,6 +49,16 @@ legend{
     color: #fff;
 }
 
+.profile-actions{
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+}
+
+#check-finished-courses-btn{
+    margin-bottom: 20px;
+}
+
 #edit-profile-btn {
     margin-bottom: 20px;
 }

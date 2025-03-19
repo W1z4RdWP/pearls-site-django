@@ -15,7 +15,7 @@
         </div>
         <div class="profile-actions">
             <button class="btn btn-outline-info" id="edit-profile-btn">Редактировать</button>
-            <a href="{% url 'profile_finished_courses' %}"><button class="btn btn-outline-info" id="check-finished-courses-btn">Завершенные курсы</button></a>
+            <a href="{% url 'profile' %}"><button class="btn btn-outline-info" id="check-finished-courses-btn">Не завершенные курсы</button></a>
         </div>
         
         <!-- Форма для обновления профиля -->
@@ -38,43 +38,41 @@
         <h2>Ваш прогресс</h2>
         
         {% if course_progress %}
-            {% for progress in course_progress %}
-                {% if progress.percent != 100 %}
-                <div class="card mb-3">
-                    <div class="card-body">
-                        <h5 class="card-title">{{ progress.course.title }}</h5>
-                        <div class="progress">
-                            <div class="progress-bar" 
-                                style="width: {{ progress.percent }}%" 
-                                aria-valuenow="{{ progress.percent }}" 
-                                aria-valuemin="0" 
-                                aria-valuemax="100">
-                                {{ progress.percent }}%
-                            </div>
-                        </div>
-                        <p class="mt-2">
-                            Пройдено уроков: {{ progress.completed }} из {{ progress.total }}
-                        </p>
-                        <div class="btn-group">
-                            <a href="{% url 'course_detail' progress.course.slug %}" 
-                            class="btn btn-primary">
-                                Перейти к курсу
-                            </a>
-                            {% if progress.percent == 100 %}
-                            <span class="btn btn-success disabled">
-                                Курс завершен
-                            </span>
-                            {% endif %}
+        {% for progress in course_progress %}
+            {% if progress.percent == 100 %}
+            <div class="card mb-3">
+                <div class="card-body">
+                    <h5 class="card-title">{{ progress.course.title }}</h5>
+                    <div class="progress">
+                        <div class="progress-bar" 
+                             style="width: {{ progress.percent }}%" 
+                             aria-valuenow="{{ progress.percent }}" 
+                             aria-valuemin="0" 
+                             aria-valuemax="100">
+                            {{ progress.percent }}%
                         </div>
                     </div>
+                    <p class="mt-2">
+                        Пройдено уроков: {{ progress.completed }} из {{ progress.total }}
+                    </p>
+                    <div class="btn-group">
+                        <a href="{% url 'course_detail' progress.course.slug %}" 
+                           class="btn btn-primary">
+                            Перейти к курсу
+                        </a>
+                        <span class="btn btn-success disabled">
+                            Курс завершен
+                        </span>
+                    </div>
                 </div>
-                {% endif %}
-            {% endfor %}
-        {% else %}
-            <div class="alert alert-info">
-                Вы еще не начали ни одного курса
             </div>
-        {% endif %}
+            {% endif %}
+        {% endfor %}
+    {% else %}
+        <div class="alert alert-info">
+            Вы еще не завершили ни одного курса
+        </div>
+    {% endif %}
     </div>
     <script>
         document.getElementById('edit-profile-btn').addEventListener('click', function() {
