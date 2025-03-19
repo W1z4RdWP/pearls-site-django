@@ -4,6 +4,15 @@ from django.utils.text import slugify
 from django_ckeditor_5.fields import CKEditor5Field
 
 class Course(models.Model):
+    """
+    Модель представляющая таблицу myapp_course с курсами.
+
+    Attrs:
+        title (CharField) - заголовок курса
+        description (TextField) - описание курса
+        
+    
+    """
     title = models.CharField(max_length=200, verbose_name="Название курса")
     description = models.TextField(verbose_name="Описание курса")
     author = models.ForeignKey(User, on_delete=models.CASCADE, verbose_name="Автор")

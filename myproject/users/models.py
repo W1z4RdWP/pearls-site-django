@@ -11,6 +11,7 @@ class Profile(models.Model):
     Attributes:
         user (User): Связь один-к-одному с моделью User.
         image (ImageField): Изображение профиля. По умолчанию используется 'profile_pics/default.jpg'.
+        bio (TextField): Текстовое поле с информацией о пользователе.
     """
 
     user = models.OneToOneField(User, on_delete=models.CASCADE)
