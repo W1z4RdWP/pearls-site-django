@@ -11,8 +11,8 @@ class Course(models.Model):
         title (CharField) - заголовок курса
         description (TextField) - описание курса
         
-    
     """
+
     title = models.CharField(max_length=200, verbose_name="Название курса")
     description = models.TextField(verbose_name="Описание курса")
     author = models.ForeignKey(User, on_delete=models.CASCADE, verbose_name="Автор")
@@ -40,6 +40,7 @@ class Lesson(models.Model):
     title = models.CharField(max_length=200, verbose_name="Название урока")
     content = CKEditor5Field('Content', config_name='extends')
     order = models.PositiveIntegerField(verbose_name="Порядок урока")
+
 
     class Meta:
         ordering = ['order']

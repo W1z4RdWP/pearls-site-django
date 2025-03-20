@@ -12,11 +12,15 @@ class Profile(models.Model):
         user (User): Связь один-к-одному с моделью User.
         image (ImageField): Изображение профиля. По умолчанию используется 'profile_pics/default.jpg'.
         bio (TextField): Текстовое поле с информацией о пользователе.
+        exp (IntegerField): Поле с количеством опыта пользователя, с значением по умолчанию 0.
+        level (IntegerField): Поле с уровнем пользователя, с значением по умолчанию 1.
     """
 
     user = models.OneToOneField(User, on_delete=models.CASCADE)
     image = models.ImageField(default='profile_pics/default.jpg', upload_to='profile_pics')
     bio = models.TextField(max_length=500, blank=True, null=True, verbose_name="О себе")
+    exp = models.IntegerField(default=0)
+    level = models.IntegerField(default=1)
     
     def __str__(self) -> str:
         """

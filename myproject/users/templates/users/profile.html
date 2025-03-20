@@ -17,6 +17,13 @@
             <button class="btn btn-outline-info" id="edit-profile-btn">Редактировать</button>
             <button class="btn btn-outline-info" id="toggle-courses-btn">Показать завершенные курсы</button>
         </div>
+        <div class="progress-bar-user">
+            <h3>
+                Уровень: {{ level }} | Опыт: {{ exp }}
+            </h3>
+            <div class="inner" style="width: {{ progress }}%;"></div>
+        </div>
+        
         
         <!-- Форма для обновления профиля -->
         <div id="edit-profile-form" style="display: none;">
@@ -133,12 +140,16 @@
         document.getElementById('edit-profile-btn').addEventListener('click', function() {
             document.getElementById('edit-profile-form').style.display = 'block';
             this.style.display = 'none';
+            document.getElementById('toggle-courses-btn').style.display = 'none'
+            document.querySelector('.progress-bar-user').style.display = 'none'
         });
 
         document.getElementById('cancel-edit-btn').addEventListener('click', function(event) {
             event.preventDefault();
             document.getElementById('edit-profile-form').style.display = 'none';
             document.getElementById('edit-profile-btn').style.display = 'block';
+            document.getElementById('toggle-courses-btn').style.display = 'block'
+            document.querySelector('.progress-bar-user').style.display = 'block'
         });
     </script>
 {% endblock content %}

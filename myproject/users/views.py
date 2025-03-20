@@ -47,9 +47,19 @@ def profile(request: HttpRequest) -> HttpResponse:
 
     user = request.user
     started_courses = UserCourse.objects.filter(user=user).select_related('course')
-    
     unfinished_courses = []
     finished_courses = []
+    exp = 0
+    level = 1
+
+    # Функция для расчета уровня и прогресса
+    def count_exp(exp, level):
+        while exp >= level * 100:
+            level += 1
+        progress = ((exp - ((level - 1) * 100)) / 100) * 100
+        if progress > 100:
+            progress = 100
+        return level, progress
 
     for user_course in started_courses:
         course = user_course.course
@@ -70,10 +80,14 @@ def profile(request: HttpRequest) -> HttpResponse:
 
         if percent == 100:
             finished_courses.append(course_data)
+            exp += 165
         else:
             unfinished_courses.append(course_data)
+            exp += 15
 
     
+    # Рассчитываем уровень и прогресс
+    level, progress = count_exp(exp, level)
 
     if request.method == 'POST':
         user_form = UserUpdateForm(request.POST, instance=request.user)
@@ -91,6 +105,9 @@ def profile(request: HttpRequest) -> HttpResponse:
         'user_form': user_form,
         'profile_form': profile_form,
         'unfinished_courses': unfinished_courses,
-        'finished_courses': finished_courses
+        'finished_courses': finished_courses,
+        'exp': exp,
+        'progress':progress,
+        'level': level
     })
 

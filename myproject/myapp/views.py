@@ -5,6 +5,7 @@ from django.contrib.auth.decorators import login_required, user_passes_test
 from django.views.decorators.http import require_POST
 from .forms import CourseForm, LessonForm
 from .models import Course, Lesson, UserProgress, UserCourse
+from users.models import Profile
 
 
 def index(request: HttpRequest) -> HttpResponse:
@@ -205,6 +206,8 @@ def edit_lesson(request, lesson_id):
 
 @require_POST
 def complete_lesson(request, course_slug, lesson_id):
+    """Отмечает урок как завершенный и начисляет пользователю опыт"""
+
     if not request.user.is_authenticated:
         return redirect('login')
     
