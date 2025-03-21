@@ -19,8 +19,8 @@ class Profile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE)
     image = models.ImageField(default='profile_pics/default.jpg', upload_to='profile_pics')
     bio = models.TextField(max_length=500, blank=True, null=True, verbose_name="О себе")
-    exp = models.IntegerField(default=0)
-    level = models.IntegerField(default=1)
+    # exp = models.IntegerField(default=0)
+    # level = models.IntegerField(default=1)
     
     def __str__(self) -> str:
         """
@@ -57,6 +57,7 @@ def create_profile(sender: Any, instance: User, created: bool, **kwargs: Any) ->
 def save_profile(sender: Any, instance: User, **kwargs: Any) -> None:
     """
     Сигнал для автоматического сохранения профиля при сохранении пользователя.
+    
 
     Args:
         sender (Any): Модель, отправившая сигнал.
@@ -64,4 +65,5 @@ def save_profile(sender: Any, instance: User, **kwargs: Any) -> None:
         **kwargs (Any): Дополнительные аргументы.
     """
 
-    instance.profile.save()
+    profile = instance.profile
+    profile.save()

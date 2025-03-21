@@ -225,4 +225,9 @@ def complete_lesson(request, course_slug, lesson_id):
         defaults={'completed': True, 'course': course}
     )
     
+    # Начисляем опыт пользователю
+    # profile = Profile.objects.get(user=request.user)
+    # profile.exp += 20  # Например, 50 опыта за урок
+    # profile.save()
+
     return redirect('course_detail', slug=course_slug)

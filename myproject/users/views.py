@@ -46,20 +46,14 @@ def profile(request: HttpRequest) -> HttpResponse:
     """
 
     user = request.user
+    #profile = user.profile
     started_courses = UserCourse.objects.filter(user=user).select_related('course')
     unfinished_courses = []
     finished_courses = []
     exp = 0
     level = 1
+    
 
-    # Функция для расчета уровня и прогресса
-    def count_exp(exp, level):
-        while exp >= level * 100:
-            level += 1
-        progress = ((exp - ((level - 1) * 100)) / 100) * 100
-        if progress > 100:
-            progress = 100
-        return level, progress
 
     for user_course in started_courses:
         course = user_course.course
@@ -80,12 +74,21 @@ def profile(request: HttpRequest) -> HttpResponse:
 
         if percent == 100:
             finished_courses.append(course_data)
-            exp += 165
+            exp += 165 # начисляется 150 опыта, т.к. 15 дается за начало курса, а при его завершении эти 15 убираются.
         else:
             unfinished_courses.append(course_data)
             exp += 15
 
     
+        # Функция для расчета уровня и прогресса
+    def count_exp(exp, level):
+        while exp >= level * 100:
+            level += 1
+        progress = ((exp - ((level - 1) * 100)) / 100) * 100
+        if progress > 100:
+            progress = 100
+        return level, progress
+
     # Рассчитываем уровень и прогресс
     level, progress = count_exp(exp, level)
 

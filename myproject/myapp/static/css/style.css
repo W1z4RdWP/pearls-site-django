@@ -169,7 +169,16 @@ main > section > .text-block {
     margin-top: 20px;
 }
 
+.login-out-actions .btn {
+    border-radius: 20px; /* Закругленные края */
+    font-weight: bold;  /* Жирный текст */
+    transition: all 0.3s ease; /* Плавный переход при наведении */
+}
 
+.login-out-actions .btn:hover {
+    background-color: #0056b3; /* Цвет при наведении */
+    color: #fff; /* Цвет текста при наведении */
+}
 
 footer {
     display: flex;
@@ -377,6 +386,10 @@ footer {
         padding: 5px;
         max-width: 300px;
         font-size: 0.9em;
+    }
+
+    .login-out-actions{
+        margin-left: 2%;
     }
 
     footer {
