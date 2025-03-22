@@ -35,11 +35,12 @@ button{
 header{
     display: flex;
     place-content: center;
+    width: 100%;
 }
 
 .navbar {
     background-color: #333 !important; /* Переопределяем фон */
-    width: 80vw;
+    width: 100%;
     padding: 0.5rem 1rem;
 }
 
@@ -182,40 +183,29 @@ main > section > .text-block {
     color: #fff; /* Цвет текста при наведении */
 }
 
+/* Footer */
 footer {
-    display: flex;
-    align-items: center; /* Выравниваем элементы по вертикали */
-    justify-content: flex-start; /* Элементы начинаются с левого края */
-    background-color: #333; /* Цвет фона футера */
-    padding: 10px 20px; /* Отступы внутри футера */
-    border-top: 1px solid #444; /* Граница сверху */
-    position: relative;
-    width: 100%;
+    margin-top: auto;
+    padding: 1.5rem;
+    background-color: var(--primary-color);
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .footer-content {
     display: flex;
-    align-items: center; /* Выравниваем элементы по вертикали */
-    justify-content: space-between; /* Распределяем пространство между элементами */
-    width: 100%; /* Ширина контейнера */
-    max-width: 1200px; /* Максимальная ширина контейнера */
-    margin: 0 auto; /* Центрируем контейнер */
+    flex-direction: column;
+    align-items: center;
+    gap: 1rem;
 }
 
 .footer-logo {
-    width: 200px; /* Ширина логотипа */
-    height: auto; /* Сохраняем пропорции */
+    width: clamp(80px, 10vw, 150px);
 }
 
 .footer-text {
-    font-size: 0.8em;
-    font-style: italic;
-    color: whitesmoke;
-    margin: 0; /* Убираем отступы */
-    position: absolute; /* Позиционируем текст */
-    left: 50%; /* Сдвигаем текст на 50% вправо */
-    transform: translateX(-50%); /* Центрируем текст */
-    transform: translateY(120%);
+    font-size: 0.8rem;
+    text-align: center;
+    color: rgba(255, 255, 255, 0.7);
 }
 
 .warning-info-about{
@@ -461,6 +451,10 @@ footer {
         padding: 5%;
     }
 
+    .content-section .form-group{
+        width: 100%;
+    }
+
     .lesson-actions {
         display: flex;
         justify-content: center;
@@ -561,7 +555,7 @@ footer {
 
     .content-section{
         place-self: center;
-        width: 100%;
+        width: 90%;
         padding: 5%;
     }
 
