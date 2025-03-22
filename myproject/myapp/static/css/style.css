@@ -302,6 +302,7 @@ footer {
     display: flex;
     flex-direction: row;
     justify-content: space-around;
+    font: 1em sans-serif;
 }
 
 .card .btn{
