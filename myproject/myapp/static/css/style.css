@@ -1,6 +1,9 @@
 :root{
     --btn-width-at-lesson-detail: 140px;
     --btn-height-at-lesson-detail: 45px;
+    --primary-color: #333;
+    --secondary-color: #4CAF50;
+    --text-color: whitesmoke;
 }
 
 
@@ -13,10 +16,11 @@
 
 body {
     display: flex;
-    height: 100vh;
-    background-color: #333;
-    color: whitesmoke;
+    min-height: 100vh;
+    background-color: var(--primary-color);
+    color: var(--text-color);
     flex-direction: column;
+    font-family: 'Open Sans', sans-serif;
 }
 
 /* Цвет наименования полей во crispy form */
@@ -36,10 +40,12 @@ header{
 .navbar {
     background-color: #333 !important; /* Переопределяем фон */
     width: 80vw;
+    padding: 0.5rem 1rem;
 }
 
 .navbar #logopng{
-    width: 200px;
+    width: clamp(100px, 15vw, 200px);
+    transition: width 0.3s ease;
 }
 
 .navbar #logolink{
@@ -49,7 +55,8 @@ header{
 }
 
 .navbar-nav .nav-link {
-    color: whitesmoke !important; /* Цвет текста */
+    color: var(--text-color) !important; /* Цвет текста */
+    padding: 0.5rem 1rem !important;
 }
 
 .navbar-nav .nav-link:hover {
@@ -64,10 +71,10 @@ header{
 
 main {
     flex: 1;
-    place-content: center;
-    padding: 20px;
-    position: relative;
-
+    padding: 2rem 1rem;
+    width: 100%;
+    max-width: 1400px;
+    margin: 0 auto;
 }
 
 main section {
@@ -81,7 +88,7 @@ main section {
 
 
 main section #clinicajpg {
-    width: 500px;
+    width: 40%;
     position: absolute;
     bottom: 5%;
     right: 5%;
@@ -92,7 +99,7 @@ main > section > .text-block {
     top: 5%;
     left: 5%;
     padding: 10px;
-    max-width: 600px;
+    max-width: 50%;
     font-size: 1.3em;
 }
 
@@ -163,11 +170,6 @@ main > section > .text-block {
     font-size: 1.1rem;
 }
 
-
-#btn-finish-lesson{
-    width: 200px;
-    margin-top: 20px;
-}
 
 .login-out-actions .btn {
     border-radius: 20px; /* Закругленные края */
@@ -260,6 +262,8 @@ footer {
     max-width: 700px;
     height: 400px;
     object-fit: cover; /* Чтобы сохранить пропорции */
+    border-radius: 10%;
+    box-shadow: 3px 3px 10px whitesmoke;
 }
 
 #course_detail_img{
@@ -354,9 +358,9 @@ footer {
         font-size: smaller;
     }
 
-    .navbar #logopng{
+    /* .navbar #logopng{
         width: 100px;
-    }
+    } */
 
     /* Карточка с действиями курса в course-details */
     .card{
@@ -429,6 +433,7 @@ footer {
 
     .course-info-block {
         height: 75px;
+        font-size: 1.25rem;
         margin-top: 10px;
         padding: 10px;
         border-radius: 5px;
@@ -445,17 +450,55 @@ footer {
     }
 
     .carousel-item img {
-        max-width: 300px;
+        max-width: 70%;
         height: 200px;
         object-fit: cover; /* Чтобы сохранить пропорции */
     }
 
     .content-section{
         place-self: center;
-        width: 350px;
+        width: 100%;
+        padding: 5%;
+    }
+
+    .lesson-actions {
+        display: flex;
+        justify-content: center;
+        flex-wrap: wrap;
+        align-content: center;
+        flex-direction: column;
+        width: 100%;
+    }
+
+    .lesson-actions .lesson-btns{
+        width: 85%;
+        margin-top: 3%;
+    }
+    
+    .lesson-actions form{
+        display: inline-block;
+    }
+
+    .lesson-actions .btn-danger{
+        width: 100%;
+    }
+    
+    .lesson-actions .btn-success {
+        font-size: 1rem;
     }
     
     
+}
+
+@media (max-width: 512px){
+    main > section > .text-block{
+        font-size: 1rem;
+    }
+
+    main > section > .text-block > h1 {
+        margin-top: 15%;
+    }
+
 }
 
 
@@ -472,9 +515,9 @@ footer {
         font-size: smaller;
     }
 
-    .navbar #logopng{
+    /* .navbar #logopng{
         width: 100px;
-    }
+    } */
 
     .navbar-collapse {
         flex-direction: row !important;
@@ -515,10 +558,52 @@ footer {
         font-size: 0.9em;
     }
 
+
     .content-section{
         place-self: center;
-        width: 500px;
+        width: 100%;
+        padding: 5%;
     }
+
+    .lesson-actions {
+        display: flex;
+        flex-direction: row;
+        flex-wrap: nowrap;
+        gap: 2rem;
+        width: 100%;
+        max-height: 50px;
+        justify-content: center;
+        align-items: center;
+        align-content: center;
+        overflow: hidden;
+    }
+
+    .lesson-actions .lesson-btns{
+        width: 85%;
+        height: auto;
+        margin-top: 3%;
+    }
+    
+    .lesson-actions form{
+        display: inline-block;
+        height: auto;
+    }
+
+    .lesson-actions .btn-warning{
+        width: 20%;
+        margin-bottom: 30px;
+    }
+
+    .lesson-actions .btn-danger{
+        width: 100%;
+        margin-bottom: 13px;
+    }
+    
+    .lesson-actions .btn-success {
+        font-size: 1rem;
+        margin-top: 2px;
+    }
+    
 
     .carousel-arrows{
         margin-bottom: 25px;
@@ -561,6 +646,7 @@ footer {
 
     .course-info-block {
         height: 75px;
+        font-size: 1.3rem;
         margin-top: 10px;
         padding: 10px;
         border-radius: 5px;
