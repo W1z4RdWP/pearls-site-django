@@ -82,9 +82,14 @@ class UserCourse(models.Model):
     course = models.ForeignKey(Course, on_delete=models.CASCADE)
     start_date = models.DateTimeField(auto_now_add=True)
     is_completed = models.BooleanField(default=False)
+    course_complete_animation_shown = models.BooleanField(default=False)
 
     class Meta:
         unique_together = ('user', 'course')
+
+    def end_date(is_completed):
+        if is_completed == True:
+            end_date = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
         return f"{self.user.username} - {self.course.title}"

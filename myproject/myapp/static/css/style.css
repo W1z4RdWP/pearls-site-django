@@ -344,6 +344,66 @@ footer {
     width: var(--btn-width-at-lesson-detail);
 }
 
+/* Анимация завершения курса */
+.completion-animation {
+    /* Убираем display: none из стилей */
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.8);
+    display: flex; /* По умолчанию видим */
+    justify-content: center;
+    align-items: center;
+    z-index: 100;
+    animation: fadeIn 0.5s ease-in-out;
+    cursor: pointer;
+}
+
+.completion-message {
+    cursor: default;
+    pointer-events: none; 
+    text-align: center;
+    background: white;
+    padding: 2rem;
+    border-radius: 12px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+    animation: scaleUp 0.5s ease-in-out;
+}
+
+.completion-message h2 {
+    font-size: 2rem;
+    color: #4CAF50;
+    margin-bottom: 1rem;
+}
+
+.completion-message p {
+    font-size: 1.5rem;
+    color: #333;
+}
+
+.confetti {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    background: url('{% static "imgs/confetti.gif" %}') no-repeat center center;
+    background-size: cover;
+    z-index: -1;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes scaleUp {
+    from { transform: scale(0.8); }
+    to { transform: scale(1); }
+}
+/* ---- */
+
+
 /* во вкладке регистрации текст с информацией о требованиях к имени пользователя */
 #id_username_helptext{
     color: rgb(54, 85, 223);
@@ -358,6 +418,16 @@ footer {
 }
 /* Текст "Уже есть аккаунт" стилизуется непосредственно в templates/users/register.html */
 
+/* Для больших экранов */
+@media (min-width: 1500px){
+    main section #clinicajpg {
+        width: 750px;
+        position: absolute;
+        bottom: 5%;
+        right: 0;
+    }
+    
+}
 
 @media (max-width: 768px) {
     

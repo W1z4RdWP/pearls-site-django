@@ -23,6 +23,7 @@ def course_detail(request, slug):
     next_lesson = None
     all_completed = False
     completed_lessons_ids = None
+    exp_earned = 150
 
     if request.user.is_authenticated:
         user_course = UserCourse.objects.filter(user=request.user, course=course).first()
@@ -67,6 +68,11 @@ def course_detail(request, slug):
     else:
         return redirect('login')
 
+    all_completed = completed_lessons == total_lessons
+    if all_completed and not user_course.course_complete_animation_shown:
+        user_course.course_complete_animation_shown = True
+        user_course.save()
+
     return render(request, 'course_detail.html', {
         'course': course,
         'user_course': user_course,
@@ -76,7 +82,8 @@ def course_detail(request, slug):
         'completed_lessons_ids': completed_lessons_ids,
         'total_lessons': total_lessons,
         'next_lesson': next_lesson,
-        'all_completed': all_completed
+        'all_completed': all_completed and not user_course.course_complete_animation_shown,
+        'exp_earned': exp_earned
     })
 
 
