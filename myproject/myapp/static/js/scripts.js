@@ -23,3 +23,23 @@
         }
     });
 })();
+
+
+// Появление карточек при доскорле до них
+document.addEventListener('DOMContentLoaded', () => {
+    const boxes = document.querySelectorAll('.box');
+  
+    const observer = new IntersectionObserver(entries => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('show');
+        } else {
+          entry.target.classList.remove('show');
+        }
+      });
+    });
+  
+    boxes.forEach(box => {
+      observer.observe(box);
+    });
+  });

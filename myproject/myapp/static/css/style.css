@@ -81,19 +81,53 @@ main {
 main section {
     display: flex;
     position: relative;
-    width: 85%;
+    width: 95%;
     height: 80vh;
     /* border: 5px solid red; */
     justify-self: center;
 }
 
+section {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin-bottom: 50px;
+}
 
-main section #clinicajpg {
+
+#clinicajpg {
     width: 40%;
     position: absolute;
     bottom: 5%;
     right: 5%;
+
+    transition: all 0.5s ease 0s;
 }
+
+#doc1_image {
+    width: 260px;
+    height: 400px;
+    position: absolute;
+    bottom: 25%;
+    right: 60%;
+
+    transition: all 0.5s ease 0.5s;
+}
+
+#doc2_image {
+    width: 260px;
+    position: absolute;
+    bottom: 5%;
+    right: 0;
+
+    transition: all 0.5s ease 0s;
+}
+
+
+.scale_on_hover:hover{
+    scale: 1.5;
+}
+
 
 main > section > .text-block {
     position: absolute;
@@ -104,6 +138,61 @@ main > section > .text-block {
     font-size: 1.3em;
 }
 
+main > section > .text-block-2 {
+    position: absolute;
+    top: 10%;
+    left: 50%;
+    padding: 10px;
+    max-width: 50%;
+    font-size: 1.3em;
+}
+
+
+.cards-box{
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-top: 15%;
+    margin-bottom: 15%;
+}
+
+
+.cards-box .box{
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    width: 30vw;
+    height: 28vh;
+    border: 3px solid gray;
+    border-radius: 15%;
+}
+
+.cards-box > .box > svg{
+    margin: auto;
+}
+
+.box h5{
+    text-align: center;
+    font-size: 0.9em;
+    font-weight: bold;
+}
+
+.box p{
+    margin-bottom: 15%;
+    text-align: center;
+    font-size: 0.8em;
+    
+}
+.hidden {
+    opacity: 0;
+    transform: scale(0.8);
+    transition: all 1.2s ease-in-out 0.2s;
+}
+
+.show {
+    opacity: 1;
+    transform: scale(1);
+}
 /* course_detail.html styles */
 .progress {
     height: 25px;
@@ -419,13 +508,41 @@ footer {
 /* Текст "Уже есть аккаунт" стилизуется непосредственно в templates/users/register.html */
 
 /* Для больших экранов */
-@media (min-width: 1500px){
+@media (min-width: 1800px){
     main section #clinicajpg {
         width: 750px;
         position: absolute;
         bottom: 5%;
         right: 0;
     }
+
+    #doc1_image {
+        width: 460px;
+        height: 600px;
+        position: absolute;
+        bottom: 25%;
+        right: 60%;
+        transition: all 0s ease 0s;
+
+    }
+    
+    #doc2_image {
+        width: 460px;
+        position: absolute;
+        bottom: 5%;
+        right: 0;
+        transition: all 0s none 0s;
+
+    }
+
+    main > section > .text-block-2 {
+        position: absolute;
+        top: 10%;
+        left: 50%;
+        padding: 10px;
+        max-width: 50%;
+    }
+    
     
 }
 
@@ -458,14 +575,40 @@ footer {
     
     }
 
+    
 
-    main section #clinicajpg {
+    #clinicajpg {
         width: 260px;
         position: absolute;
         bottom: 5%;
         right: 0;
     }
     
+
+    #doc1_image {
+        width: 150px;
+        height: 280px;
+        position: absolute;
+        bottom: 20%;
+        right: 50%;
+    }
+    
+    #doc2_image {
+        width: 150px;
+        position: absolute;
+        bottom: 5%;
+        right: 0;
+    }
+
+    main > section > .text-block-2 {
+        position: absolute;
+        font-size: 1em;
+        top: 20%;
+        left: 50%;
+        padding: 10px;
+        max-width: 50%;
+    }
+
     main > section > .text-block {
         position: absolute;
         top: 0;
