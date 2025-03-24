@@ -86,7 +86,12 @@ def course_detail(request, slug):
         'exp_earned': exp_earned
     })
 
-
+def course_detail_all(request):
+    courses = Course.objects.all()  # Получаем все доступные курсы
+    context = {
+        'courses': courses
+    }
+    return render(request, 'all_courses_list.html', context)
 
 def lesson_detail(request, course_slug, lesson_id):
     if not request.user.is_authenticated:

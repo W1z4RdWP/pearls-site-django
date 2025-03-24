@@ -55,6 +55,7 @@
     </div>
 </section>
 <br><br><br>
+<a href="{% url 'course_detail_all' %}"><button class= "btn" id='show_all_courses_btn'>Все курсы</button></a>
 <div id="courseCarousel" class="carousel slide" data-bs-ride="carousel">
     <div class="carousel-inner">
         {% for course in courses %}

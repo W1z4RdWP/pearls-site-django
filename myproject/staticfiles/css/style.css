@@ -174,8 +174,8 @@ main > section > .text-block {
 
 main > section > .text-block-2 {
     position: absolute;
-    top: 10%;
-    left: 50%;
+    top: 20%;
+    left: 70%;
     padding: 10px;
     max-width: 50%;
     font-size: 1.3em;
@@ -365,6 +365,12 @@ footer {
     cursor: default;
 }
 
+#show_all_courses_btn{
+    background-color: #0056b3;
+    width: fit-content;
+    height: fit-content;
+}
+
 .course-info-block {
     place-self: center;
     text-align: center;
@@ -399,6 +405,12 @@ footer {
     object-fit: cover; /* Чтобы сохранить пропорции */
     border-radius: 10%;
     box-shadow: 3px 3px 10px whitesmoke;
+}
+
+.carousel-control-prev,
+.carousel-control-next{
+    height: 50%;
+    padding-top: 13%;
 }
 
 #course_detail_img{
@@ -578,6 +590,17 @@ footer {
     }
     
     
+}
+
+@media (min-width: 1700px){
+    main > section > .text-block-2 {
+        position: absolute;
+        top: 40%;
+        left: 70%;
+        padding: 10px;
+        max-width: 50%;
+        font-size: 1.3em;
+    }
 }
 
 @media (max-width: 768px) {

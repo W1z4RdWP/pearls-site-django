@@ -38,6 +38,7 @@ urlpatterns = [
     path('logout/', auth_views.LogoutView.as_view(template_name='users/logout.html'), name='logout'),
     path('create-course/', views.create_course, name='create-course'),
     path('course/<slug:slug>/', views.course_detail, name='course_detail'),
+    path('courses_list/', views.course_detail_all, name='course_detail_all'),
     path('course/<slug:course_slug>/lesson/<int:lesson_id>/', views.lesson_detail, name='lesson_detail'),
     path('course/<slug:course_slug>/create-lesson/', views.create_lesson, name='create_lesson'),
     path('course/<slug:slug>/delete/', views.delete_course, name='delete_course'),
