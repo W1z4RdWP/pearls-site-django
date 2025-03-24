@@ -108,13 +108,13 @@ section {
     width: 260px;
     height: 400px;
     position: absolute;
-    bottom: 25%;
+    bottom: 10%;
     right: 60%;
     border: 1px solid darkgoldenrod;
     border-radius: 10%;
     box-shadow: -5px 10px 5px -5px rgb(0 0 100 / 0.6);
 
-    transition: all 0.5s ease 0.5s;
+    /* transition: all 0.5s ease 0.5s; */
 }
 
 #doc2_image {
@@ -126,12 +126,40 @@ section {
     border-radius: 10%;
     box-shadow: -5px 10px 5px -5px rgb(0 0 100 / 0.6);
 
-    transition: all 0.5s ease 0s;
+    /* transition: all 0.5s ease 0.5s; */
 }
 
 
 .scale_on_hover:hover{
     scale: 1.5;
+}
+
+.fixed {
+	position: fixed;
+	width: 100%;
+	left: 0;
+	top: 0;
+    z-index: 500;
+}
+
+
+.persons__item {
+	opacity: 0;
+	transition: opacity 0.3s ease-in-out, transform 0.3s ease-in-out;
+}
+
+
+.persons__item.animation-class {
+	opacity: 1;
+	transform: translateX(-30px);
+	transition: opacity 0.3s ease-in-out, transform 1.3s ease-in-out;
+}
+
+
+
+.persons__item.animation-class:nth-child(2) {
+	transform: translateX(30px);
+    transition-delay: 1s;
 }
 
 

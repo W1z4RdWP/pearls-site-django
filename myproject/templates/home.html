@@ -3,7 +3,7 @@
 {% block title %}Домашняя страница{% endblock %}
 
 {% block content %}
-<section>
+<section class='hero'>
     <div class="text-block">
         <h5>Обучение персонала</h5>
         <h1>Каталог курсов</h1>
@@ -15,8 +15,8 @@
     <div class="text-block-2">
         <h5>Сотрудники клиники обучаются</h5>
     </div>
-    <img src="{% static 'imgs/doc1.png' %}" alt="clinica" id='doc1_image' class='scale_on_hover'>
-    <img src="{% static 'imgs/doc3.jpg' %}" alt="clinica" id='doc2_image' class='scale_on_hover'>
+    <img src="{% static 'imgs/doc1.png' %}" alt="clinica" id='doc1_image' class='scale_on_hover persons__item scroll-item'>
+    <img src="{% static 'imgs/doc3.jpg' %}" alt="clinica" id='doc2_image' class='scale_on_hover persons__item scroll-item'>
 </section>
 <section>
     <div class="cards-box">
