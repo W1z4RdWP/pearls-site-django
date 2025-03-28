@@ -41,7 +41,9 @@
                 <div class="card-body">
                     {% if request.user.is_authenticated and has_started %}
                     <p class="text-success">Вы начали этот курс {{ user_course.start_date|date:"d.m.Y" }}</p>
-                    <p class="text-success">Курс завершен: {{ user_course.end_date|date:"d.m.Y" }}</p>
+                    {% if all_completed %}
+                        <p class="text-success">Курс завершен: {{ user_course.end_date|date:"d.m.Y" }}</p>
+                    {% endif %}
                     <a href="{% url 'lesson_detail' course.slug next_lesson.id %}" 
                        class="btn btn-primary w-100">
                         Продолжить обучение
@@ -75,15 +77,14 @@
             </div>
         </div>
     </div>
-    {% if has_started and all_completed %}
-    <div id="course-completion-animation" class="completion-animation">
-        <div class="confetti"></div>
-        <div class="completion-message">
-            <h2>🎉 Курс завершен! 🎉</h2>
-            <p>Вы получили <span>{{ exp_earned }}</span> опыта!</p>
+    {% if all_completed %}
+        <div id="course-completion-animation" class="completion-animation">
+            <div class="confetti"></div>
+            <div class="completion-message">
+                <h2>🎉 Курс завершен! 🎉</h2>
+                <p>Вы получили <span>{{ exp_earned }}</span> опыта!</p>
+            </div>
         </div>
-    </div>
-
     {% endif %}
 </div>
 
@@ -109,4 +110,34 @@
     </ul>
 
 </div>
+{% comment %} <script>
+
+    (function() {
+        const animation = document.getElementById('course-completion-animation');
+        if (!animation) return;
+    
+        const completionMessage = animation.querySelector('.completion-message');
+        
+        // Таймер для автоматического закрытия через 5 секунд
+        let timeoutId = setTimeout(() => animation.remove(), 5000);
+    
+        // Закрытие при клике вне блока с сообщением
+        document.addEventListener('click', function(e) {
+            if (!completionMessage.contains(e.target)) {
+                animation.remove();
+                clearTimeout(timeoutId);
+            }
+        });
+    
+        // Закрытие при нажатии Esc
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                animation.remove();
+                clearTimeout(timeoutId);
+            }
+        });
+    })();
+</script> {% endcomment %}
+
+
 {% endblock %}

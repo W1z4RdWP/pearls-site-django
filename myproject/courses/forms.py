@@ -5,7 +5,7 @@ from captcha.fields import CaptchaField
 import re
 
 class CourseForm(forms.ModelForm):
-    # captcha = CaptchaField()
+    captcha = CaptchaField()
     class Meta:
         model = Course
         fields = ['title', 'description', 'image', 'slug']
