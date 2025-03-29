@@ -84,7 +84,7 @@ def course_detail(request, slug):
         'total_lessons': total_lessons,
         'next_lesson': next_lesson,
         'all_completed': all_completed,
-        'shown_animation': user_course.course_complete_animation_shown,
+        'shown_animation': user_course.course_complete_animation_shown if user_course else False,
         'exp_earned': exp_earned
     })
 

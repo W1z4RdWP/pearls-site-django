@@ -41,7 +41,7 @@
                 <div class="card-body">
                     {% if request.user.is_authenticated and has_started %}
                     <p class="text-success">Вы начали этот курс {{ user_course.start_date|date:"d.m.Y" }}</p>
-                    {% if all_completed %}
+                    {% if all_completed and user_course %}
                         <p class="text-success">Курс завершен: {{ user_course.end_date|date:"d.m.Y" }}</p>
                     {% endif %}
                     <a href="{% url 'lesson_detail' course.slug next_lesson.id %}" 
