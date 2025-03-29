@@ -15,9 +15,13 @@
     <link rel="stylesheet" href="{% static 'bootstrap/css/bootstrap.min.css' %}" >
     <!-- Bootstrap JS + Popper JS -->
     <script defer src="{% static 'bootstrap/js/bootstrap.bundle.min.js' %}"></script>
+    {% comment %} <script src="https://unpkg.com/htmx.org@1.9.10" 
+    integrity="sha384-D1Kt99CQMDuVetoL1lrYwg5t+9QdHe7NLX/SoJYkXDFfX37iInKRy5xLSi8nO7UC"
+    crossorigin="anonymous"></script> {% endcomment %}
 
     <link rel="stylesheet" href="{% static 'css/style.css' %}" />
     <script src="{% static 'js/scripts.js' %}" defer></script>
+    {% block specific_styles %} {% endblock %}
 </head>
 <body>
     <header class='header'>
@@ -37,6 +41,9 @@
                         </li>
                         <li class="nav-item">
                             <a class="nav-link" href="{% url 'about' %}">О нас</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="{% url 'quizzes' %}">Тесты</a>
                         </li>
                         {% if user.is_authenticated %}
                             {% if user.is_staff %}

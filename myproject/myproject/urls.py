@@ -23,8 +23,6 @@ from django.conf.urls.static import static
 from myapp import views
 from myapp.views import page_not_found_view
 from users import views as user_views
-from courses import views as course_views
-from courses import urls
 
 
 
@@ -38,6 +36,7 @@ urlpatterns = [
     path('login/', auth_views.LoginView.as_view(template_name='users/login.html'), name='login'),
     path('logout/', auth_views.LogoutView.as_view(template_name='users/logout.html'), name='logout'),
     path('courses/', include('courses.urls'), name='courses'),
+    path('quizzes/', include('quizzes.urls'), name='quizzes'),
     path('ckeditor5/', include('django_ckeditor_5.urls')),
 ]
 

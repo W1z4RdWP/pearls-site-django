@@ -45,7 +45,8 @@ INSTALLED_APPS = [
 
     'myapp',
     'users',
-    'courses'
+    'courses',
+    'quizzes'
 ]
 
 MIDDLEWARE = [

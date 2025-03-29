@@ -1,0 +1,39 @@
+{% extends "layout.html" %}
+{% block title %}Question{% endblock %}
+{% load static %}
+{% block specific_styles %}
+<link rel="stylesheet" href="{% static 'css/quiz_styles.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="card shadow">
+        <div class="card-header bg-primary text-white">
+            <h3 class="mb-0">{{ question.text }}</h3>
+        </div>
+        <div class="card-body">
+            <form method="POST" action="{% url 'get-answer' %}">
+                {% csrf_token %}
+                <input type="hidden" name="question_id" value="{{ question.id }}">
+                
+                <div class="list-group">
+                    {% for answer in answers %}
+                    <label class="list-group-item d-flex align-items-center">
+                        <input class="form-check-input me-3" 
+                               type="radio" 
+                               name="answer_id" 
+                               value="{{ answer.id }}" 
+                               required>
+                        <span>{{ answer.text }}</span>
+                    </label>
+                    {% endfor %}
+                </div>
+                
+                <button type="submit" class="btn btn-primary w-100 mt-4 py-2">
+                    {% if is_last %}Finish Test{% else %}Next Question →{% endif %}
+                </button>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

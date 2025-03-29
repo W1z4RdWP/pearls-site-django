@@ -1,0 +1,30 @@
+{% extends "layout.html" %}
+{% load static %}
+{% block specific_styles %}<link rel="stylesheet" href="{% static 'css/quiz_styles.css' %}"> {% endblock %}
+
+{% block content %}
+<div class="quiz-container">
+    <div class="quiz-header">
+        <h2>Test Completed!</h2>
+    </div>
+    <div class="result-summary">
+        <p>Your score: <span class="highlight">{{ score }}/{{ questions_count }}</span></p>
+        <p>Success rate: <span class="highlight">{{ percent_score }}%</span></p>
+        <div class="progress-bar">
+            <div class="progress" style="width: {{ percent_score }}%"></div>
+        </div>
+        <a href="{% url 'quizzes' %}" class="btn finish-btn">
+            ← Back to Quizzes
+        </a>
+    </div>
+</div>
+{% endblock %}
+
+
+{% comment %} <div>
+    <p>Quiz complete. You scored {{ percent_score }}%</p>
+    <p>({{ score }} correct / {{ questions_count }} questions)</p>
+  
+    <a class="btn" href="{% url 'start' %}"> Start another quiz </a>
+</div>
+   {% endcomment %}
