@@ -16,7 +16,7 @@
 }
 
 .rounded-circle.account-img {
-    width: 100px;
+    width: 180px;
     height: 100px;
     border: 3px solid #007bff;
     margin-right: 20px;
@@ -29,6 +29,8 @@
 
 .text-secondary {
     color: #6c757d;
+    max-height: 100px;
+    overflow:auto;
 }
 
 .form-group {
