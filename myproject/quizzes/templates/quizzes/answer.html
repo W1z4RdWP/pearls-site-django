@@ -7,11 +7,17 @@
 
 {% block content %}
 <div class="quiz-container">
+    <div class="progress mb-4" style="height: 25px;">
+        <div class="progress-bar bg-success" 
+             style="width: {{ progress_percent }}%">
+            Question {{ current_question_number }} of {{ total_questions }}
+        </div>
+    </div>
     <form method="POST" action="{% url 'get-questions' %}">
         {% csrf_token %}
         <input type="hidden" name="quiz_id" value="{{ correct_answer.question.quiz.id }}">
         
-        <div class="answer-result">
+        <div class="answer-result" style="color: black;">
             <h3 class="mb-4">{{ correct_answer.question.text }}</h3>
             
             <div class="card mb-4 {% if is_correct %}border-success{% else %}border-danger{% endif %}">
@@ -32,7 +38,7 @@
             </div>
             {% endif %}
             
-            <button type="submit" class="btn btn-primary w-100">
+            <button type="submit" class="btn-quiz btn-primary w-100">
                 {% if is_last %}Finish Test{% else %}Next Question →{% endif %}
             </button>
         </div>

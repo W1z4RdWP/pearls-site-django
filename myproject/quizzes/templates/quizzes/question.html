@@ -7,6 +7,19 @@
 
 {% block content %}
 <div class="container mt-5">
+
+     <!-- Progress bar -->
+     <div class="progress mb-4" style="height: 25px;">
+        <div class="progress-bar bg-success" 
+             role="progressbar" 
+             style="width: {{ progress_percent }}%"
+             aria-valuenow="{{ progress_percent }}" 
+             aria-valuemin="0" 
+             aria-valuemax="100">
+            Question {{ current_question_number }} of {{ total_questions }}
+        </div>
+    </div>
+
     <div class="card shadow">
         <div class="card-header bg-primary text-white">
             <h3 class="mb-0">{{ question.text }}</h3>
@@ -29,7 +42,7 @@
                     {% endfor %}
                 </div>
                 
-                <button type="submit" class="btn btn-primary w-100 mt-4 py-2">
+                <button type="submit" class="btn-quiz btn-primary w-100 mt-4 py-2">
                     {% if is_last %}Finish Test{% else %}Next Question →{% endif %}
                 </button>
             </form>

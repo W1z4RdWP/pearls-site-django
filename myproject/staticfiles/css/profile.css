@@ -15,11 +15,17 @@
     margin-bottom: 20px;
 }
 
+
+
 .rounded-circle.account-img {
-    width: 180px;
-    height: 100px;
-    border: 3px solid #007bff;
+    width: 100px !important;
+    height: 100px !important;
+    object-fit: cover;
+    min-width: 100px;
+    min-height: 100px;
+    border-radius: 15%;
     margin-right: 20px;
+    filter: drop-shadow(5px 0 5px rgb(119, 199, 219));
 }
 
 .account-heading {

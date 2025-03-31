@@ -32,11 +32,22 @@ def get_questions(request, is_start=False) -> HttpResponse:
         request.session['current_question_id'] = question.id
         answers = Answer.objects.filter(question=question)
         is_last = not Question.objects.filter(quiz_id=quiz_id, id__gt=question.id).exists()
+
+         # Расчет прогресса
+        all_questions_ids = list(Question.objects.filter(quiz_id=quiz_id)
+                               .order_by('id')
+                               .values_list('id', flat=True))
+        current_index = all_questions_ids.index(question.id) + 1
+        total_questions = len(all_questions_ids)
+        progress_percent = int((current_index / total_questions) * 100)
         
         return render(request, 'quizzes/question.html', {
             'question': question,
             'answers': answers,
-            'is_last': is_last
+            'is_last': is_last,
+            'current_question_number': current_index,
+            'total_questions': total_questions,
+            'progress_percent': progress_percent
         })
     
     return redirect('quizzes')
@@ -66,10 +77,21 @@ def get_answer(request) -> HttpResponse:
                 request.session['score'] = request.session.get('score', 0) + 1
                 request.session.modified = True
             
+             # Получаем данные для прогресса
+            quiz_id = request.session.get('quiz_id')
+            current_question_id = request.session.get('current_question_id')
+            all_questions = Question.objects.filter(quiz_id=quiz_id).order_by('id')
+            total_questions = all_questions.count()
+            current_index = list(all_questions.values_list('id', flat=True)).index(current_question_id) + 1
+            progress_percent = int((current_index / total_questions) * 100)
+
             return render(request, 'quizzes/answer.html', {
                 'submitted_answer': submitted_answer,
                 'correct_answer': correct_answer,
-                'is_correct': submitted_answer.is_correct
+                'is_correct': submitted_answer.is_correct,
+                'current_question_number': current_index,
+                'total_questions': total_questions,
+                'progress_percent': progress_percent
             })
         
         except (Answer.DoesNotExist, KeyError):
