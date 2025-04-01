@@ -335,6 +335,18 @@ footer {
     width: clamp(80px, 10vw, 200px);
 }
 
+
+.footer__social-media{
+    display: flex;
+    justify-content: space-between;
+    gap: 2rem;
+    margin-right: 1vw;
+}
+
+.footer__social-media-elem{
+    width: clamp(40px, 4vw, 100px);
+}
+
 .footer-text {
     position: absolute;
     bottom: 0;
