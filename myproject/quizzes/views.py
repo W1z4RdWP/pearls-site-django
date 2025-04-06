@@ -1,5 +1,6 @@
 from django.shortcuts import render, redirect
 from django.http import HttpRequest, HttpResponse
+from django.views.decorators.http import require_http_methods
 from django.db.models import Count, Exists, OuterRef
 from .models import Quiz, Question, Answer
 from typing import Optional

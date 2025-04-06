@@ -3,6 +3,7 @@ from django.contrib.auth.models import User
 from django.utils.text import slugify
 from django_ckeditor_5.fields import CKEditor5Field
 
+from unidecode import unidecode
 
 class Course(models.Model):
     """
@@ -13,7 +14,7 @@ class Course(models.Model):
         description (TextField) - описание курса
         
     """
-
+   
     title = models.CharField(max_length=200, verbose_name="Название курса")
     description = models.TextField(verbose_name="Описание курса")
     author = models.ForeignKey(User, on_delete=models.CASCADE, verbose_name="Автор")
@@ -21,9 +22,19 @@ class Course(models.Model):
     image = models.ImageField(upload_to='course_images/', blank=True, null=True, verbose_name="Изображение курса")
     slug = models.SlugField(max_length=200, unique=True, blank=True)
 
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=['title', 'author'],
+                name='unique_course_per_author'
+            )
+        ]
+
+
     def save(self, *args, **kwargs):
         if not self.slug:  # Генерируем slug только если он пустой
-            self.slug = slugify(self.title)
+            transliterated_slug = unidecode(self.title)
+            self.slug = slugify(transliterated_slug, allow_unicode=True)
             # Проверяем уникальность slug
             original_slug = self.slug
             counter = 1
