@@ -25,7 +25,7 @@ SECRET_KEY = 'django-insecure-o-ynuz!&fv)r6-sfe*%-dy#txo&nj#!f*ki8oo_5emm3z-p64(
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ["*"]
+ALLOWED_HOSTS = ["epicsite.smileterritory.ru", "localhost"]
 
 
 # Application definition
@@ -93,7 +93,7 @@ DATABASES = {
             'NAME': '32PEARLs-project',
             'USER': 'admin0',
             'PASSWORD': 'Pa$$w0rd2023',
-            'HOST': 'localhost',
+            'HOST': '10.0.1.100',
             'PORT': '5433',
             'OPTIONS' :{
                 'client_encoding': 'UTF8',
@@ -136,12 +136,12 @@ USE_TZ = True
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.1/howto/static-files/
-STATIC_ROOT = BASE_DIR / "staticfiles_root"
+
 STATIC_URL = '/static/'
 STATICFILES_DIRS = [
-    BASE_DIR / "static",
-    "staticfiles"
+    BASE_DIR / "staticfiles",
 ]
+STATIC_ROOT = BASE_DIR / "staticfiles_root"
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field
@@ -155,7 +155,11 @@ CRISPY_TEMPLATE_PACK = 'bootstrap5'
 LOGIN_REDIRECT_URL = 'home'
 LOGIN_URL = 'login'
 
+CKEDITOR_5_ALLOW_ALL_FILE_TYPES = True
+CKEDITOR_5_UPLOAD_FILE_TYPES = ['jpeg', 'pdf', 'png', 'jpg'] 
 
+CKEDITOR_5_UPLOAD_FILE_VIEW_NAME = "ckeditor5_custom_upload_file" # ?
+CKEDITOR_5_FILE_UPLOAD_PERMISSION = "staff" # ?
 
 CKEDITOR_5_CONFIGS = {
     'default': {
@@ -175,12 +179,14 @@ CKEDITOR_5_CONFIGS = {
                 'alignLeft',
                 'alignRight'
             ],
-            'uploadUrl': '/ckeditor5/upload/'  # ⚠️ Обязательно добавьте
+            'uploadUrl': '/ckeditor5/upload/' 
         },
         'uiColor': '#FFFFFF',  # Цвет фона редактора
         'contentsCss': ['body { color: #333; }'],  # Цвет текста
     },
     'extends': {
+        "mediaEmbed": {"previewsInData": "true"},
+        'simpleUpload': {'uploadUrl': '/ckeditor5/image_upload/'}, #??
         'blockToolbar': [
             'paragraph', 'heading1', 'heading2', 'heading3',
             '|', 'bulletedList', 'numberedList',
@@ -196,10 +202,28 @@ CKEDITOR_5_CONFIGS = {
         ],
         'language': 'ru',
         'image': {
-            'uploadUrl': '/ckeditor5/upload/'  # ⚠️ Обязательно
+            'uploadUrl': '/ckeditor5/upload/' 
         }
     }
 }
+
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'handlers': {
+        'file': {
+            'level': 'WARNING',
+            'class': 'logging.FileHandler',
+            'filename': '/var/log/django/errors.log',
+        },
+    },
+}
+
+CSRF_TRUSTED_ORIGINS = ['https://epicsite.smileterritory.ru']
+
+CSRF_COOKIE_SECURE = True
+SESSION_COOKIE_SECURE = True
+SECURE_HSTS_SECONDS = 31536000
 
 
 

@@ -4,6 +4,7 @@
 {% block content %}
 {% load static %}
     <link rel="stylesheet" href="{% static 'css/profile.css' %}">
+    <script src="{% static 'js/scripts.js' %}" defer></script>
     <div class="content-section">
         <div class="media">
             <img class="rounded-circle account-img" src="{{ user.profile.image.url|default:'https://via.placeholder.com/150' }}" alt="Profile Image">

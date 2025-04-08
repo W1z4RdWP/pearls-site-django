@@ -22,7 +22,8 @@ def get_questions(request, is_start=False) -> HttpResponse:
             question = _get_first_question(quiz_id)
         else:
             quiz_id = request.session.get('quiz_id')
-            if not quiz_id:
+            current_question_id = request.session.get('current_question_id')
+            if not quiz_id or not current_question_id:
                 return redirect('quizzes')
             
             question = _get_subsequent_question(quiz_id, request.session.get('current_question_id'))
