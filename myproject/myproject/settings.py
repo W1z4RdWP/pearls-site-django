@@ -238,7 +238,8 @@ CKEDITOR_5_CONFIGS = {
 CSRF_TRUSTED_ORIGINS = ['https://epicsite.smileterritory.ru']
 
 CSRF_COOKIE_SECURE = True
-SESSION_COOKIE_SECURE = True
+SESSION_COOKIE_SECURE = True # Браузеры будут передавать cookie файлы только по протоколу HTTPS
+SECURE_SSL_REDIRECT = True # HTTP запросы должны перенаправляться на HTTPS
 SECURE_HSTS_SECONDS = 31536000
 
 
