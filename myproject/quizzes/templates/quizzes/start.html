@@ -2,7 +2,7 @@
 {% block title %}Start Quiz{% endblock %}
 {% load static %}
 {% block specific_styles %}
-<link rel="stylesheet" href="{% static 'css/quiz_styles.css' %}">
+<link rel="stylesheet" href="{% static 'quizzes/css/quiz_styles.css' %}">
 {% endblock %}
 
 {% block content %}
@@ -34,9 +34,13 @@
                     </div>
                     {% endfor %}
                 </div>
-                <button type="submit" class="btn-quiz btn-success mt-4 w-100 py-2">
-                    Start Quiz
-                </button>
+                {% if user.is_authenticated %}
+                    <button type="submit" class="btn-quiz btn-success mt-4 w-100 py-2">
+                        Start Quiz
+                    </button>
+                {% else %}
+                    <h3>Чтобы приступить к тестированию, необходимо авторизоваться</h3>
+                {% endif %}
             </form>
         </div>
     </div>

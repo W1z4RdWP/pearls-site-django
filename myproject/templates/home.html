@@ -9,14 +9,14 @@
         <h1>Каталог курсов</h1>
         <p>Наш веб-сайт предназначен для обучения сотрудников клиники "Территория Улыбки" внутренним правилам и повышения квалификации. Здесь вы найдете каталог курсов для приобретения, а также, в профиле, Вы всегда можете отследить свой прогресс 😊</p>
     </div>
-    <img src="{% static 'imgs/clinica.jpg' %}" alt="clinica" id='clinicajpg' class='scale_on_hover'>
+    <img src="{% static 'global/imgs/clinica.jpg' %}" alt="clinica" id='clinicajpg' class='scale_on_hover'>
 </section>
 <section>
     <div class="text-block-2">
         <h5>Сотрудники клиники обучаются</h5>
     </div>
-    <img src="{% static 'imgs/doc1.png' %}" alt="clinica" id='doc1_image' class='scale_on_hover persons__item scroll-item'>
-    <img src="{% static 'imgs/doc3.jpg' %}" alt="clinica" id='doc2_image' class='scale_on_hover persons__item scroll-item'>
+    <img src="{% static 'global/imgs/doc1.png' %}" alt="Photo1" id='doc1_image' class='scale_on_hover persons__item scroll-item'>
+    <img src="{% static 'global/imgs/doc3.jpg' %}" alt="Photo2" id='doc2_image' class='scale_on_hover persons__item scroll-item'>
 </section>
 <section>
     <div class="cards-box">
@@ -61,7 +61,7 @@
         {% for course in courses %}
         <div class="carousel-item {% if forloop.first %}active{% endif %}">
             <!-- Если при создании курса загрузили картинку - используется она, иначе используется default.jpg -->
-            <a href="{% url 'course_detail' course.slug|default:'default-slug' %}"><img src="{% if course.image %}{{ course.image.url }}{% else %}{% static 'imgs/default.jpg' %}{% endif %}" class="d-block mx-auto" alt="{{ course.title }}" id="course_carousel_img"></a>
+            <a href="{% url 'course_detail' course.slug|default:'default-slug' %}"><img src="{% if course.image %}{{ course.image.url }}{% else %}{% static 'global/imgs/default.jpg' %}{% endif %}" class="d-block mx-auto" alt="{{ course.title }}" id="course_carousel_img"></a>
             <div class="course-info-block">
                 <a href="{% url 'course_detail' course.slug|default:'default-slug' %}"><h5>{{ course.title }}</h5></a>
                 <p>{{ course.description|truncatewords:50 }}</p>

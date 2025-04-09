@@ -89,9 +89,6 @@
 </div>
 
 <div class="content-section course-detail-content">
-    <!-- <h2>Название: {{ course.title }}</h2>
-    <p>Описание: {{ course.description }}</p> -->
-    <!-- <h3>Редактирование уроков:</h3> -->
     <ul>
         {% for lesson in lessons %}
             <li>
@@ -110,34 +107,5 @@
     </ul>
 
 </div>
-{% comment %} <script>
-
-    (function() {
-        const animation = document.getElementById('course-completion-animation');
-        if (!animation) return;
-    
-        const completionMessage = animation.querySelector('.completion-message');
-        
-        // Таймер для автоматического закрытия через 5 секунд
-        let timeoutId = setTimeout(() => animation.remove(), 5000);
-    
-        // Закрытие при клике вне блока с сообщением
-        document.addEventListener('click', function(e) {
-            if (!completionMessage.contains(e.target)) {
-                animation.remove();
-                clearTimeout(timeoutId);
-            }
-        });
-    
-        // Закрытие при нажатии Esc
-        document.addEventListener('keydown', function(e) {
-            if (e.key === 'Escape') {
-                animation.remove();
-                clearTimeout(timeoutId);
-            }
-        });
-    })();
-</script> {% endcomment %}
-
 
 {% endblock %}

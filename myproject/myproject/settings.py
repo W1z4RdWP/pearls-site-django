@@ -11,6 +11,7 @@ https://docs.djangoproject.com/en/5.1/ref/settings/
 """
 
 from pathlib import Path
+import os
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -23,9 +24,9 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = 'django-insecure-o-ynuz!&fv)r6-sfe*%-dy#txo&nj#!f*ki8oo_5emm3z-p64('
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = False
 
-ALLOWED_HOSTS = ["epicsite.smileterritory.ru", "localhost"]
+ALLOWED_HOSTS = ["epicsite.smileterritory.ru", "localhost", "127.0.0.1"]
 
 
 # Application definition
@@ -93,7 +94,7 @@ DATABASES = {
             'NAME': '32PEARLs-project',
             'USER': 'admin0',
             'PASSWORD': 'Pa$$w0rd2023',
-            'HOST': '10.0.1.100',
+            'HOST': 'localhost',
             'PORT': '5433',
             'OPTIONS' :{
                 'client_encoding': 'UTF8',
@@ -137,11 +138,26 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.1/howto/static-files/
 
+
+# Указывает URL для статических файлов
 STATIC_URL = '/static/'
+
+# Директория, куда collectstatic соберет файлы для продакшена
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+
+# Дополнительные директории со статикой (общие файлы проекта)
 STATICFILES_DIRS = [
-    BASE_DIR / "staticfiles",
+    os.path.join(BASE_DIR, 'static'),  # Папка с глобальными файлами
 ]
-STATIC_ROOT = BASE_DIR / "staticfiles_root"
+
+
+
+# STATIC_URL = '/static/'
+# STATICFILES_DIRS = [
+#     BASE_DIR / "staticfiles",
+# ]
+# STATIC_ROOT = BASE_DIR / "staticfiles_root"
+
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field
@@ -207,17 +223,17 @@ CKEDITOR_5_CONFIGS = {
     }
 }
 
-LOGGING = {
-    'version': 1,
-    'disable_existing_loggers': False,
-    'handlers': {
-        'file': {
-            'level': 'WARNING',
-            'class': 'logging.FileHandler',
-            'filename': '/var/log/django/errors.log',
-        },
-    },
-}
+# LOGGING = {
+#     'version': 1,
+#     'disable_existing_loggers': False,
+#     'handlers': {
+#         'file': {
+#             'level': 'WARNING',
+#             'class': 'logging.FileHandler',
+#             'filename': '/var/log/django/errors.log',
+#         },
+#     },
+# }
 
 CSRF_TRUSTED_ORIGINS = ['https://epicsite.smileterritory.ru']
 
