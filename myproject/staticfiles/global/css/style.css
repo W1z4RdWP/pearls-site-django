@@ -106,8 +106,8 @@ section {
 }
 
 #doc1_image {
-    width: 220px;
-    height: 360px;
+    width: 260px;
+    height: 380px;
     position: absolute;
     bottom: 10%;
     right: 60%;
@@ -119,7 +119,7 @@ section {
 }
 
 #doc2_image {
-    width: 220px;
+    width: 260px;
     position: absolute;
     bottom: 5%;
     right: 0;
@@ -567,9 +567,9 @@ footer {
 /* Текст "Уже есть аккаунт" стилизуется непосредственно в templates/users/register.html */
 
 /* Для больших экранов */
-@media (min-width: 2000px){
+@media (min-width: 2300px){
     main section #clinicajpg {
-        width: 750px;
+        width: 700px;
         position: absolute;
         bottom: 5%;
         right: 0;

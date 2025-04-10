@@ -26,7 +26,7 @@ SECRET_KEY = 'django-insecure-o-ynuz!&fv)r6-sfe*%-dy#txo&nj#!f*ki8oo_5emm3z-p64(
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = False
 
-ALLOWED_HOSTS = ["epicsite.smileterritory.ru", "localhost", "127.0.0.1"]
+ALLOWED_HOSTS = ["epicsite.smileterritory.ru"]
 
 
 # Application definition
@@ -43,6 +43,7 @@ INSTALLED_APPS = [
     'crispy_forms',
     'crispy_bootstrap5',
     'django_ckeditor_5',
+    
 
     'myapp',
     'users',
@@ -59,6 +60,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    
 ]
 
 ROOT_URLCONF = 'myproject.urls'
@@ -94,7 +96,7 @@ DATABASES = {
             'NAME': '32PEARLs-project',
             'USER': 'admin0',
             'PASSWORD': 'Pa$$w0rd2023',
-            'HOST': 'localhost',
+            'HOST': '10.0.1.100',
             'PORT': '5433',
             'OPTIONS' :{
                 'client_encoding': 'UTF8',

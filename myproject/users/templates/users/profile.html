@@ -22,7 +22,7 @@
             <h3>
                 Уровень: {{ level }} | Опыт: {{ exp }}
             </h3>
-            <div class="inner" style="width: {{ progress }}%;"></div>
+            <div class="inner" style="width: {{ progress }}%;" nonce="{{ request.csp_nonce }}" ></div>
         </div>
         
         
