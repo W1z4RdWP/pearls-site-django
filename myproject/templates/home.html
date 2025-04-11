@@ -12,6 +12,55 @@
     <img src="{% static 'global/imgs/clinica.jpg' %}" alt="clinica" id='clinicajpg' class='scale_on_hover'>
 </section>
 <section>
+    <div class="carousel-block">
+        <div id="staffCarousel" class="carousel slide" data-bs-ride="carousel">
+            <!-- Индикаторы -->
+            <div class="carousel-indicators staff-indicators">
+                <button type="button" data-bs-target="#staffCarousel" data-bs-slide-to="0" class="active"></button>
+                <button type="button" data-bs-target="#staffCarousel" data-bs-slide-to="1"></button>
+                <button type="button" data-bs-target="#staffCarousel" data-bs-slide-to="2"></button>
+            </div>
+
+            <div class="carousel-inner">
+                <div class="carousel-item active">
+                    <div class="text-overlay">
+                        <p>Гибридная образовательная среда нового поколения</p>
+                        <ul>
+                            <li>Глубокое усвоение материала за счет применения знаний в реальных ситуациях.</li>
+                            <li>Быстрое выявление и устранение пробелов в понимании теоретического материала.</li>
+                            <li>Повышение уверенности сотрудников в выполнении задач, требующих практических навыков.</li>
+                        </ul>
+                    </div>
+                    <img src="{% static 'global/imgs/staff1.png' %}" class="d-block" alt="Обучение">
+                </div>
+                <div class="carousel-item">
+                    <div class="text-overlay">
+                        <p>Доступ к обучающим материалам 24/7</p>
+                        <ul>
+                            <li>Возможность обучаться в удобное время, совмещая обучение с основной деятельностью.</li>
+                            <li>Ускорение адаптации новых сотрудников.</li>
+                            <li>Снижение потерь информации при передаче знаний внутри команды.</li>
+                        </ul>
+                    </div>
+                    <img src="{% static 'global/imgs/staff2.png' %}" class="d-block" alt="Тренинги">
+                </div>
+                <div class="carousel-item">
+                    <div class="text-overlay">
+                        <p>Единая база знаний</p>
+                        <ul>
+                            <li>Удобный доступ ко всем регламентам, инструкциям, материалам в одном месте.</li>
+                            <li>Быстрая адаптация новых сотрудников за счет готовых обучающих материалов.</li>
+                            <li>Снижение потерь информации при передаче знаний внутри команды.</li>
+                        </ul>
+                    </div>
+                    <img src="{% static 'global/imgs/staff3.png' %}" class="d-block" alt="Команда">
+                </div>
+            </div>
+        </div>
+    </div>
+
+</section>
+<section>
     <div class="text-block-2">
         <h5>Сотрудники клиники обучаются</h5>
     </div>
