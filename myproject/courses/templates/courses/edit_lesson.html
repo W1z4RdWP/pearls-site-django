@@ -3,10 +3,42 @@
 
 {% block title %}Редактирование урока{% endblock %}
 
+{% block extra_css %}
+{{ block.super }}
+<style>
+    /* Стили для адаптивных видео */
+    .video-wrapper {
+        position: relative;
+        padding-bottom: 56.25%; /* 16:9 соотношение */
+        height: 0;
+        overflow: hidden;
+        margin: 1rem 0;
+    }
+
+    .video-wrapper iframe {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        border: 0;
+    }
+
+    /* Стили для редактора */
+    .django-ckeditor-widget {
+        width: 100% !important;
+    }
+    
+    .ck-content {
+        min-height: 400px;
+    }
+</style>
+{% endblock %}
+
 {% block content %}
     <div class="content-section">
         <h2>Редактирование урока в курсе {{ course.title }}</h2>
-        <form method="POST">
+        <form method="POST" enctype="multipart/form-data">
             {% csrf_token %}
             {{ form.media }}
             
@@ -14,7 +46,9 @@
                 {% if field.name == "content" %}
                     <div class="mb-3">
                         {{ field.label_tag }}
-                        {{ field }}
+                        <div class="django-ckeditor-widget">
+                            {{ field }}
+                        </div>
                     </div>
                 {% else %}
                     {{ field|as_crispy_field }}

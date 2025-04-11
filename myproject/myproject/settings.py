@@ -24,9 +24,9 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = 'django-insecure-o-ynuz!&fv)r6-sfe*%-dy#txo&nj#!f*ki8oo_5emm3z-p64('
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = False
+DEBUG = True
 
-ALLOWED_HOSTS = ["epicsite.smileterritory.ru"]
+ALLOWED_HOSTS = ["*"]
 
 
 # Application definition
@@ -96,7 +96,7 @@ DATABASES = {
             'NAME': '32PEARLs-project',
             'USER': 'admin0',
             'PASSWORD': 'Pa$$w0rd2023',
-            'HOST': '10.0.1.100',
+            'HOST': 'localhost',
             'PORT': '5433',
             'OPTIONS' :{
                 'client_encoding': 'UTF8',
@@ -166,7 +166,14 @@ STATICFILES_DIRS = [
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-
+customColorPalette = [
+    {"color": "hsl(4, 90%, 58%)", "label": "Red"},
+    {"color": "hsl(340, 82%, 52%)", "label": "Pink"},
+    {"color": "hsl(291, 64%, 42%)", "label": "Purple"},
+    {"color": "hsl(262, 52%, 47%)", "label": "Deep Purple"},
+    {"color": "hsl(231, 48%, 48%)", "label": "Indigo"},
+    {"color": "hsl(207, 90%, 54%)", "label": "Blue"},
+]
 CRISPY_ALLOWED_TEMPLATE_PACKS = "bootstrap5"
 CRISPY_TEMPLATE_PACK = 'bootstrap5'
 
@@ -174,57 +181,170 @@ LOGIN_REDIRECT_URL = 'home'
 LOGIN_URL = 'login'
 
 CKEDITOR_5_ALLOW_ALL_FILE_TYPES = True
-CKEDITOR_5_UPLOAD_FILE_TYPES = ['jpeg', 'pdf', 'png', 'jpg'] 
+CKEDITOR_5_UPLOAD_FILE_TYPES = ['jpeg', 'pdf', 'png', 'jpg']
+
+CKEDITOR_5_FILE_STORAGE = "courses.storage.CustomStorage"
 
 CKEDITOR_5_UPLOAD_FILE_VIEW_NAME = "ckeditor5_custom_upload_file" # ?
 CKEDITOR_5_FILE_UPLOAD_PERMISSION = "staff" # ?
 
-CKEDITOR_5_CONFIGS = {
-    'default': {
-        'toolbar': [
-            'heading', '|', 
-            'bold', 'italic', 'link', 
-            'bulletedList', 'numberedList', 
-            'blockQuote', 'imageUpload'
-        ],
-        'height': '300px',
-        'width': '100%',
-        'language': 'ru',
-        'image': {
-            'toolbar': ['imageTextAlternative', '|', 'imageStyle:alignLeft', 'imageStyle:full', 'imageStyle:alignRight'],
-            'styles': [
-                'full',
-                'alignLeft',
-                'alignRight'
-            ],
-            'uploadUrl': '/ckeditor5/upload/' 
-        },
-        'uiColor': '#FFFFFF',  # Цвет фона редактора
-        'contentsCss': ['body { color: #333; }'],  # Цвет текста
-    },
-    'extends': {
-        "mediaEmbed": {"previewsInData": "true"},
-        'simpleUpload': {'uploadUrl': '/ckeditor5/image_upload/'}, #??
-        'blockToolbar': [
-            'paragraph', 'heading1', 'heading2', 'heading3',
-            '|', 'bulletedList', 'numberedList',
-            '|', 'blockQuote', 'imageUpload'
-        ],
-        'toolbar': [
-            'heading', '|', 
-            'bold', 'italic', 'link', 'underline',
-            'strikethrough', 'code', 'subscript', 'superscript',
-            'highlight', '|', 'codeBlock', 'sourceEditing', '|',
-            'bulletedList', 'numberedList', 'todoList', '|',
-            'blockQuote', 'imageUpload', '|', 'undo', 'redo'
-        ],
-        'language': 'ru',
-        'image': {
-            'uploadUrl': '/ckeditor5/upload/' 
-        }
-    }
-}
 
+CKEDITOR_5_CONFIGS = {
+    "extends": {
+
+        "language": "ru",
+        'mediaEmbed': {
+            'previewsInData': True,
+            'providers': [
+                {
+                    'name': 'rutube',
+                    'url': r'^https?://rutube\.ru/video/(?:embed/)?([a-zA-Z0-9_-]+)',
+                    'html': '''
+                        <div class="video-wrapper">
+                            <iframe 
+                                src="https://rutube.ru/video/embed/{id}"
+                                allowfullscreen
+                                frameborder="0"
+                                style="width:100%; height:400px;">
+                            </iframe>
+                        </div>
+                    '''
+                },
+                # Можно добавить другие провайдеры по аналогии
+                {
+                    'name': 'youtube',
+                    'url': r'^https?://(?:www\.)?(?:youtube\.com/watch\?v=|youtu\.be/)([a-zA-Z0-9_-]+)',
+                    'html': '''
+                        <div class="video-wrapper">
+                            <iframe 
+                                src="https://www.youtube.com/embed/{id}" 
+                                frameborder="0" 
+                                allowfullscreen>
+                            </iframe>
+                        </div>
+                    '''
+                }
+            ]
+        },
+        
+        # Добавляем разрешения для HTML
+        "htmlSupport": {
+            "allow": [
+                {
+                    "name": "iframe",
+                    "attributes": {
+                        "src": True,
+                        "allowfullscreen": True,
+                        "frameborder": True,
+                        "style": True
+                    }
+                },
+                {
+                    "name": "div",
+                    "attributes": {
+                        "class": True
+                    }
+                }
+            ]
+        },
+        'toolbar': {
+            'items': [
+                '|', 'heading',
+                '|', 'outdent', 'indent',
+                '|', 'bold', 'italic', 'link', 'underline', 'strikethrough', 'code', 'subscript', 'superscript',
+                'highlight',
+                '|', 'codeBlock', 'insertImage', 'bulletedList', 'numberedList', 'todoList',
+                '|', 'blockQuote',
+                '|', 'fontSize', 'fontFamily', 'fontColor', 'fontBackgroundColor', 'mediaEmbed', 'removeFormat',
+                'insertTable',
+                '|',
+            ],
+            'shouldNotGroupWhenFull': True
+        },
+        "image": {
+            "toolbar": [
+                '|', "imageTextAlternative",
+                "|", "imageStyle:alignLeft", "imageStyle:alignRight", "imageStyle:alignCenter", "imageStyle:side",
+                "|", "toggleImageCaption",
+                "|"
+            ],
+            "styles": [
+                "full",
+                "side",
+                "alignLeft",
+                "alignRight",
+                "alignCenter",
+            ],
+        },
+"table": {
+            "contentToolbar": [
+                "tableColumn",
+                "tableRow",
+                "mergeTableCells",
+                "tableProperties",
+                "tableCellProperties",
+                "toggleTableCaption"
+            ],
+            "tableProperties": {
+                "borderColors": customColorPalette,
+                "backgroundColors": customColorPalette,
+                "defaultProperties": {
+                    "width": "100%",
+                    "borderWidth": "1px"
+                }
+            },
+            "tableCellProperties": {
+                "borderColors": customColorPalette,
+                "backgroundColors": customColorPalette,
+                "defaultProperties": {
+                    "width": "auto",
+                    "height": "auto"
+                }
+            }
+        },
+        "list": {
+            "properties": {
+                "styles": True,
+                "startIndex": True,
+                "reversed": True,
+            }
+        },
+        'fontSize': {
+            'options': [
+                9, 10, 11, 12, 13, 14, 15, 16, 
+                'default', 18, 20, 22, 24, 28, 32, 36
+            ],
+            'supportAllValues': True
+        },
+        "htmlSupport": {
+            "allow": [
+                {
+                    "name": "img",
+                    "attributes": {
+                        "class": True,
+                        "style": True
+                    },
+                    "name": "span",
+                    "attributes": {
+                        "style": True
+                    }
+                },
+                {
+                    "name": "table",
+                    "attributes": ["style", "width", "height", "border"]
+                },
+                {
+                    "name": "td",
+                    "attributes": ["style", "width", "height", "colspan", "rowspan"]
+                },
+                {
+                    "name": "th",
+                    "attributes": ["style", "width", "height", "colspan", "rowspan"]
+                }
+            ]
+        }
+    },
+}
 # LOGGING = {
 #     'version': 1,
 #     'disable_existing_loggers': False,

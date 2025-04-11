@@ -487,6 +487,62 @@ footer {
     background-color: white !important;
 }
 
+    /* Стили для выравнивания изображений */
+    /* Выравнивание изображений */
+    .image-style-align-left {
+        float: left;
+        margin-right: 1.5rem;
+        margin-bottom: 1rem;
+        max-width: 50%;
+    }
+
+    .image-style-align-right {
+        float: right !important;
+        margin-left: 1.5rem !important;
+        margin-bottom: 1rem !important;
+        max-width: 50%;
+        clear: right;
+    }
+
+    .image-style-align-center {
+        display: block;
+        margin: 1rem auto;
+        max-width: 80%;
+    }
+
+    /* Очистка потока */
+    .lesson-content::after {
+        content: "";
+        display: table;
+        clear: both;
+    }
+
+    /* Размеры шрифта */
+    .ck-content {
+        font-size: 16px;
+        line-height: 1.6;
+    }
+
+    .ck-content p, .ck-content li {
+        font-size: inherit;
+    }
+
+    .ck-content h1 { font-size: 2.0em; }
+    .ck-content h2 { font-size: 1.8em; }
+    .ck-content h3 { font-size: 1.6em; }
+
+    /* Исправление конфликтов с Bootstrap */
+    .lesson-content p {
+        overflow: auto;
+    }
+
+    
+
+    .lesson-content img {
+        max-width: 100%;
+        height: auto;
+    }
+
 .lesson-btns{
     height: var(--btn-height-at-lesson-detail);
     width: var(--btn-width-at-lesson-detail);
