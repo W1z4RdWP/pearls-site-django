@@ -106,11 +106,11 @@ section {
 }
 
 #doc1_image {
-    width: 220px;
-    height: 320px;
+    width: 260px;
+    height: 360px;
     position: absolute;
     bottom: 10%;
-    right: 60%;
+    right: 70%;
     border: 1px solid darkgoldenrod;
     border-radius: 10%;
     box-shadow: -5px 10px 5px -5px rgb(0 0 100 / 0.6);
@@ -128,6 +128,14 @@ section {
     box-shadow: -5px 10px 5px -5px rgb(0 0 100 / 0.6);
 
     transition: all 0.5s ease 0.5s;
+}
+
+.section__inner-text{
+    position: absolute;
+    left: 37%;
+    top: 35%;
+    width: 400px;
+    height: 400px;
 }
 
 
@@ -499,6 +507,7 @@ footer {
     font-size: 1em;
     font-family: 'Open Sans', sans-serif; /* Хорошо читаемый шрифт */
     color: var(--text-color);
+    
 }
 
 .carousel-item img {

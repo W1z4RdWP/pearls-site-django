@@ -66,6 +66,12 @@
     </div>
     <img src="{% static 'global/imgs/doc1.png' %}" alt="Photo1" id='doc1_image' class='scale_on_hover persons__item scroll-item'>
     <img src="{% static 'global/imgs/doc3.jpg' %}" alt="Photo2" id='doc2_image' class='scale_on_hover persons__item scroll-item'>
+    <div class="section__inner-text">
+        <p>Lorem ipsum dolor sit amet consectetur adipisicing elit. Fugiat quo asperiores quia eos suscipit doloremque sunt eum laborum,
+             vel perspiciatis optio consequuntur cum, maiores esse. Numquam sit nulla quibusdam rem.</p>
+        <p>Lorem ipsum dolor sit amet consectetur adipisicing elit. Fugiat quo asperiores quia eos suscipit doloremque sunt eum laborum,
+             vel perspiciatis optio consequuntur cum, maiores esse. Numquam sit nulla quibusdam rem.</p>
+    </div>
 </section>
 <section>
     <div class="cards-box">
@@ -113,7 +119,7 @@
             <a href="{% url 'course_detail' course.slug|default:'default-slug' %}"><img src="{% if course.image %}{{ course.image.url }}{% else %}{% static 'global/imgs/default.jpg' %}{% endif %}" class="d-block mx-auto" alt="{{ course.title }}" id="course_carousel_img"></a>
             <div class="course-info-block">
                 <a href="{% url 'course_detail' course.slug|default:'default-slug' %}"><h5>{{ course.title }}</h5></a>
-                <p>{{ course.description|truncatewords:50 }}</p>
+                <p>{{ course.description|truncatewords:50|safe }}</p>
             </div>
         </div>
         {% endfor %}

@@ -11,6 +11,12 @@ class CourseForm(forms.ModelForm):
         fields = ['title', 'description', 'image', 'slug']
         labels = {'slug': 'ЧПУ (оставьте пустым для автогенерации)'}
         required = {'slug': False}  # Поле slug не обязательно
+        widgets = {
+            'description': CKEditor5Widget(
+                attrs={'class': 'django_ckeditor_5'},
+                config_name='extends'
+            )
+        }
 
     def clean_slug(self):
         slug = self.cleaned_data.get('slug')

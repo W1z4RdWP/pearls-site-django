@@ -4,7 +4,7 @@
 
 <div class="container mt-4">
     <h1>{{ course.title }}</h1>
-    <p class="lead">{{ course.description }}</p>
+    <p class="lead">{{ course.description|safe }}</p>
     
     
     {% if has_started %}
