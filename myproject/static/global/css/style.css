@@ -133,7 +133,7 @@ section {
 
     /* Стили только для новой карусели сотрудников */
     #staffCarousel {
-        width: 100vw;
+        width: 97vw;
         margin-left: calc(-50vw + 50%);
         height: 75vh;
         overflow: hidden;
@@ -157,7 +157,7 @@ section {
 
     /* Кастомные индикаторы только для этой карусели */
     #staffCarousel .staff-indicators {
-        bottom: 20px;
+        bottom: 20%;
         gap: 12px;
     }
 
@@ -183,7 +183,7 @@ section {
         left: 25%;
         transform: translate(-50%, -50%);
         width: 80%;
-        max-width: 600px;
+        max-width: 580px;
         max-height: 300px;
         background: rgba(50, 50, 50, 0.8);
         padding: 2rem;
