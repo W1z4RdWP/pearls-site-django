@@ -106,8 +106,8 @@ section {
 }
 
 #doc1_image {
-    width: 260px;
-    height: 380px;
+    width: 220px;
+    height: 320px;
     position: absolute;
     bottom: 10%;
     right: 60%;
@@ -119,7 +119,7 @@ section {
 }
 
 #doc2_image {
-    width: 260px;
+    width: 220px;
     position: absolute;
     bottom: 5%;
     right: 0;
@@ -130,6 +130,95 @@ section {
     transition: all 0.5s ease 0.5s;
 }
 
+
+    /* Стили только для новой карусели сотрудников */
+    #staffCarousel {
+        width: 97vw;
+        margin-left: calc(-50vw + 50%);
+        height: 75vh;
+        overflow: hidden;
+        position: relative;
+    }
+
+    #staffCarousel .carousel-inner,
+    #staffCarousel .carousel-item {
+        height: 100%;
+        
+    }
+
+    #staffCarousel .carousel-item img {
+        width: 90%;
+        place-self: center;
+        height: 50vh;
+        object-fit: cover;
+    }
+
+
+
+    /* Кастомные индикаторы только для этой карусели */
+    #staffCarousel .staff-indicators {
+        bottom: 20%;
+        gap: 12px;
+    }
+
+    #staffCarousel .staff-indicators button {
+        width: 14px;
+        height: 14px;
+        border: 2px solid #fff;
+        background: transparent;
+        opacity: 0.7;
+        transition: all 0.3s ease;
+    }
+
+    #staffCarousel .staff-indicators .active {
+        background: #fff;
+        opacity: 1;
+        transform: scale(1.2);
+    }
+
+    /* Стили для текстового блока */
+    #staffCarousel .text-overlay {
+        position: absolute;
+        top: 32%;
+        left: 25%;
+        transform: translate(-50%, -50%);
+        width: 80%;
+        max-width: 580px;
+        max-height: 300px;
+        background: rgba(50, 50, 50, 0.8);
+        padding: 2rem;
+        border-radius: 10px;
+        z-index: 2;
+        color: white;
+    }
+
+    #staffCarousel .text-overlay p {
+        font-size: 1.5rem;
+        font-weight: 600;
+        margin-bottom: 1.5rem;
+        text-align: center;
+    }
+
+    #staffCarousel .text-overlay ul {
+        list-style: none;
+        padding-left: 0;
+        margin-bottom: 0;
+    }
+
+    #staffCarousel .text-overlay li {
+        position: relative;
+        padding-left: 1.5rem;
+        margin-bottom: 0.8rem;
+        line-height: 1.4;
+    }
+
+    #staffCarousel .text-overlay li:before {
+        content: "•";
+        position: absolute;
+        left: 0;
+        color: #4CAF50;
+        font-size: 1.2rem;
+    }
 
 .scale_on_hover:hover{
     scale: 1.5;
@@ -166,8 +255,8 @@ section {
 
 main > section > .text-block {
     position: absolute;
-    top: 5%;
-    left: 5%;
+    top: 0;
+    left: 0;
     padding: 10px;
     max-width: 50%;
     font-size: 1.3em;
@@ -413,7 +502,7 @@ footer {
 }
 
 .carousel-item img {
-    max-width: 700px;
+    /* max-width: 700px; */
     height: 400px;
     object-fit: cover; /* Чтобы сохранить пропорции */
     border-radius: 10%;
@@ -486,6 +575,62 @@ footer {
     color: #333 !important;
     background-color: white !important;
 }
+
+    /* Стили для выравнивания изображений */
+    /* Выравнивание изображений */
+    .image-style-align-left {
+        float: left;
+        margin-right: 1.5rem;
+        margin-bottom: 1rem;
+        max-width: 50%;
+    }
+
+    .image-style-align-right {
+        float: right !important;
+        margin-left: 1.5rem !important;
+        margin-bottom: 1rem !important;
+        max-width: 50%;
+        clear: right;
+    }
+
+    .image-style-align-center {
+        display: block;
+        margin: 1rem auto;
+        max-width: 80%;
+    }
+
+    /* Очистка потока */
+    .lesson-content::after {
+        content: "";
+        display: table;
+        clear: both;
+    }
+
+    /* Размеры шрифта */
+    .ck-content {
+        font-size: 16px;
+        line-height: 1.6;
+    }
+
+    .ck-content p, .ck-content li {
+        font-size: inherit;
+    }
+
+    .ck-content h1 { font-size: 2.0em; }
+    .ck-content h2 { font-size: 1.8em; }
+    .ck-content h3 { font-size: 1.6em; }
+
+    /* Исправление конфликтов с Bootstrap */
+    .lesson-content p {
+        overflow: auto;
+    }
+
+    
+
+    .lesson-content img {
+        max-width: 100%;
+        height: auto;
+    }
 
 .lesson-btns{
     height: var(--btn-height-at-lesson-detail);
@@ -678,7 +823,15 @@ footer {
         scale: 1;
     }
 
-
+    .carousel-block {
+        margin-left: -15px;
+        width: calc(100% + 30px);
+    }
+    
+    #staticCarousel,
+    .carousel-item {
+        height: 70vh;
+    }
 
     main > section > .text-block {
         position: absolute;

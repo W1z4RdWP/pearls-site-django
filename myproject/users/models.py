@@ -19,15 +19,20 @@ class Profile(models.Model):
     image = models.ImageField(default='profile_pics/default.jpg', upload_to='profile_pics')
     bio = models.TextField(max_length=500, blank=True, null=True, verbose_name="О себе")
 
+    class Meta:
+        verbose_name = 'Пользователь'
+        verbose_name_plural = 'Пользователи'
+        ordering = ['user']
+
     def __str__(self) -> str:
         """
         Возвращает строковое представление профиля.
 
         Returns:
-            str: Имя пользователя и слово "Profile".
+            str: Учётная запись и имя пользователя.
         """
                 
-        return f'{self.user.username} Profile'
+        return f'Учётная запись {self.user.username}'
     
 
 

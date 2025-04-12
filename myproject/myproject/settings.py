@@ -32,6 +32,10 @@ ALLOWED_HOSTS = ["*"]
 # Application definition
 
 INSTALLED_APPS = [
+
+    "admin_interface",
+    "colorfield",
+
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -50,6 +54,9 @@ INSTALLED_APPS = [
     'courses',
     'quizzes'
 ]
+
+X_FRAME_OPTIONS = "SAMEORIGIN"              # allows you to use modals insated of popups
+SILENCED_SYSTEM_CHECKS = ["security.W019"]  # ignores redundant warning messages
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
@@ -193,60 +200,40 @@ CKEDITOR_5_CONFIGS = {
     "extends": {
 
         "language": "ru",
-        'mediaEmbed': {
-            'previewsInData': True,
-            'providers': [
-                {
-                    'name': 'rutube',
-                    'url': r'^https?://rutube\.ru/video/(?:embed/)?([a-zA-Z0-9_-]+)',
-                    'html': '''
-                        <div class="video-wrapper">
-                            <iframe 
-                                src="https://rutube.ru/video/embed/{id}"
-                                allowfullscreen
-                                frameborder="0"
-                                style="width:100%; height:400px;">
-                            </iframe>
-                        </div>
-                    '''
-                },
-                # Можно добавить другие провайдеры по аналогии
-                {
-                    'name': 'youtube',
-                    'url': r'^https?://(?:www\.)?(?:youtube\.com/watch\?v=|youtu\.be/)([a-zA-Z0-9_-]+)',
-                    'html': '''
-                        <div class="video-wrapper">
-                            <iframe 
-                                src="https://www.youtube.com/embed/{id}" 
-                                frameborder="0" 
-                                allowfullscreen>
-                            </iframe>
-                        </div>
-                    '''
-                }
-            ]
-        },
+        # 'mediaEmbed': {
+        #     'previewsInData': True,
+        #     'providers': [
+        #         {
+        #             'name': 'rutube',
+        #             'url': r'^https?://rutube\.ru/video/(?:embed/)?([a-zA-Z0-9_-]+)',
+        #             'html': '''
+        #                 <div class="video-wrapper">
+        #                     <iframe 
+        #                         src="https://rutube.ru/video/embed/{id}"
+        #                         allowfullscreen
+        #                         frameborder="0"
+        #                         style="width:100%; height:400px;">
+        #                     </iframe>
+        #                 </div>
+        #             '''
+        #         },
+        #         # Можно добавить другие провайдеры по аналогии
+        #         {
+        #             'name': 'youtube',
+        #             'url': r'^https?://(?:www\.)?(?:youtube\.com/watch\?v=|youtu\.be/)([a-zA-Z0-9_-]+)',
+        #             'html': '''
+        #                 <div class="video-wrapper">
+        #                     <iframe 
+        #                         src="https://www.youtube.com/embed/{id}" 
+        #                         frameborder="0" 
+        #                         allowfullscreen>
+        #                     </iframe>
+        #                 </div>
+        #             '''
+        #         }
+        #     ]
+        # },
         
-        # Добавляем разрешения для HTML
-        "htmlSupport": {
-            "allow": [
-                {
-                    "name": "iframe",
-                    "attributes": {
-                        "src": True,
-                        "allowfullscreen": True,
-                        "frameborder": True,
-                        "style": True
-                    }
-                },
-                {
-                    "name": "div",
-                    "attributes": {
-                        "class": True
-                    }
-                }
-            ]
-        },
         'toolbar': {
             'items': [
                 '|', 'heading',
@@ -255,7 +242,7 @@ CKEDITOR_5_CONFIGS = {
                 'highlight',
                 '|', 'codeBlock', 'insertImage', 'bulletedList', 'numberedList', 'todoList',
                 '|', 'blockQuote',
-                '|', 'fontSize', 'fontFamily', 'fontColor', 'fontBackgroundColor', 'mediaEmbed', 'removeFormat',
+                '|', 'fontSize', 'fontFamily', 'fontColor', 'fontBackgroundColor', 'removeFormat',
                 'insertTable',
                 '|',
             ],

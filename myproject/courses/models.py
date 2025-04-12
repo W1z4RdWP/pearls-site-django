@@ -23,6 +23,8 @@ class Course(models.Model):
     slug = models.SlugField(max_length=200, unique=True, blank=True)
 
     class Meta:
+        verbose_name = 'Курс'
+        verbose_name_plural = 'Курсы'
         constraints = [
             models.UniqueConstraint(
                 fields=['title', 'author'],
@@ -55,6 +57,8 @@ class Lesson(models.Model):
 
 
     class Meta:
+        verbose_name = 'Урок'
+        verbose_name_plural = 'Уроки'
         ordering = ['order']
 
     def get_previous_lesson(self):
