@@ -109,8 +109,8 @@ section {
     width: 260px;
     height: 360px;
     position: absolute;
-    bottom: 10%;
-    right: 70%;
+    bottom: 15%;
+    right: 75%;
     border: 1px solid darkgoldenrod;
     border-radius: 10%;
     box-shadow: -5px 10px 5px -5px rgb(0 0 100 / 0.6);
