@@ -10,6 +10,7 @@
         <form method="POST">
             {% csrf_token %}
             {{ form.media }}
+        
             {% for field in form %}
     {% if field.name == "content" %}
             <div class="mb-3">

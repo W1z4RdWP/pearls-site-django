@@ -228,6 +228,25 @@ section {
         font-size: 1.2rem;
     }
 
+
+    /* отображение видео в деталях урока */
+.video-wrapper {
+    position: relative;
+    padding-bottom: 56.25%; /* 16:9 соотношение */
+    height: 0;
+    overflow: hidden;
+    margin: 20px 0;
+}
+
+.video-wrapper iframe {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    border: 0;
+}
+
 .scale_on_hover:hover{
     scale: 1.5;
 }

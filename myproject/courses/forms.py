@@ -31,16 +31,43 @@ class CourseForm(forms.ModelForm):
 class LessonForm(forms.ModelForm):
     class Meta:
         model = Lesson
-        fields = ['title', 'content', 'order']
+        fields = ['title', 'content', 'video_id', 'order']
         widgets = {
             'content': CKEditor5Widget(
                 attrs={'class': 'django_ckeditor_5'}, 
                 config_name='extends'
             )
         }
+
+        labels = {
+            'video_id': 'Ссылка на видео с Rutube'
+        }
+
+        help_texts = {
+            'video_id': 'Введите полную ссылку на видео. Пример: https://rutube.ru/video/abcdef12345/'
+        }
+
+
         def __init__(self, *args, **kwargs):
             super().__init__(*args, **kwargs)
             if not self.instance.pk:  # Только для новых уроков
                 self.fields['order'].queryset = Lesson.objects.filter(
                     course=self.initial['course']
                 ).order_by('order')
+
+
+    def clean_video_id(self):
+        video_url = self.cleaned_data.get('video_id')
+        if not video_url:
+            return None
+            
+        # Извлекаем ID видео из URL
+        match = re.match(
+            r'^https?://rutube\.ru/video/(?:embed/)?([a-zA-Z0-9_-]{32})(?:/|\?|$)', 
+            video_url
+        )
+        
+        if not match:
+            raise forms.ValidationError("Некорректная ссылка на Rutube. Пример правильной ссылки: https://rutube.ru/video/abcdef12345/")
+            
+        return match.group(1)

@@ -10,6 +10,16 @@
         <h2>{{ lesson.title }}</h2>
         <div class="lesson-content ck-content">
             {{ lesson.content|safe }}
+
+            {% if lesson.video_id %}
+            <div class="video-wrapper">
+                <iframe src="https://rutube.ru/video/embed/{{ lesson.video_id }}/" 
+                        frameborder="0" 
+                        allowfullscreen>
+                </iframe>
+            </div>
+
+            {% endif %}
         </div>
     </div>
     <div class="lesson-actions">

@@ -50,9 +50,25 @@ class Course(models.Model):
     
 
 class Lesson(models.Model):
+    """
+    Класс отвечающий за таблицу уроков в БД.
+    Attrs:
+        course - Внешний ключ на курс к которому относится урок.
+        title - название урока.
+        content - содержимое урока. Заполняется администратором сайта.
+        video_id - идентификатор прикрепленного видео из рутуб. Максимальное количество символов для передачи в форму 
+                    задается параметром max_length.
+    """
     course = models.ForeignKey(Course, on_delete=models.CASCADE, related_name='lessons', verbose_name="Курс")
     title = models.CharField(max_length=200, verbose_name="Название урока")
     content = CKEditor5Field('Content', config_name='extends')
+    video_id = models.CharField(
+        max_length=100, 
+        verbose_name="ID видео с Rutube", 
+        blank=True, 
+        null=True,
+        help_text="Пример: https://rutube.ru/video/VIDEO_ID/ - вводите только VIDEO_ID"
+    )
     order = models.PositiveIntegerField(verbose_name="Порядок урока")
 
 
