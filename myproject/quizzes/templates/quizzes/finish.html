@@ -5,16 +5,16 @@
 {% block content %}
 <div class="quiz-container">
     <div class="quiz-header">
-        <h2>Test Completed!</h2>
+        <h2>тестирование завершено!</h2>
     </div>
     <div class="result-summary">
-        <p style="color: black;">Your score: <span class="highlight">{{ score }}/{{ questions_count }}</span></p>
-        <p style="color: black;">Success rate: <span class="highlight">{{ percent_score }}%</span></p>
+        <p style="color: black;">Количество правильных ответов: <span class="highlight">{{ score }}/{{ questions_count }}</span></p>
+        <p style="color: black;">Процент правильных ответов: <span class="highlight">{{ percent_score }}%</span></p>
         <div class="progress-bar-finish">
             <div class="progress-bar-finish__progress" style="width: {{ percent_score }}%"></div>
         </div>
         <a href="{% url 'quizzes' %}" class="btn-quiz finish-btn">
-            ← Back to Quizzes
+            ← Вернуться к списку тестов
         </a>
     </div>
 </div>

@@ -21,10 +21,10 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/5.1/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-o-ynuz!&fv)r6-sfe*%-dy#txo&nj#!f*ki8oo_5emm3z-p64('
+SECRET_KEY = os.getenv('SECRET_DJANGO')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = False
+DEBUG = True
 
 ALLOWED_HOSTS = ["*"]
 
@@ -100,11 +100,11 @@ WSGI_APPLICATION = 'myproject.wsgi.application'
 DATABASES = {
     'default': {
             'ENGINE': 'django.db.backends.postgresql',
-            'NAME': '32PEARLs-project',
-            'USER': 'admin0',
-            'PASSWORD': 'Pa$$w0rd2023',
-            'HOST': 'localhost',
-            'PORT': '5433',
+            'NAME': os.getenv('DJANGO_DB_NAME'),
+            'USER': os.getenv('DJANGO_DB_USER'),
+            'PASSWORD': os.getenv('DJANGO_DB_PASSWD'),
+            'HOST': os.getenv('DJANGO_DB_HOST'),
+            'PORT': os.getenv('DJANGO_DB_PORT'),
             'OPTIONS' :{
                 'client_encoding': 'UTF8',
             }
@@ -200,40 +200,6 @@ CKEDITOR_5_CONFIGS = {
     "extends": {
 
         "language": "ru",
-        # 'mediaEmbed': {
-        #     'previewsInData': True,
-        #     'providers': [
-        #         {
-        #             'name': 'rutube',
-        #             'url': r'^https?://rutube\.ru/video/(?:embed/)?([a-zA-Z0-9_-]+)',
-        #             'html': '''
-        #                 <div class="video-wrapper">
-        #                     <iframe 
-        #                         src="https://rutube.ru/video/embed/{id}"
-        #                         allowfullscreen
-        #                         frameborder="0"
-        #                         style="width:100%; height:400px;">
-        #                     </iframe>
-        #                 </div>
-        #             '''
-        #         },
-        #         # Можно добавить другие провайдеры по аналогии
-        #         {
-        #             'name': 'youtube',
-        #             'url': r'^https?://(?:www\.)?(?:youtube\.com/watch\?v=|youtu\.be/)([a-zA-Z0-9_-]+)',
-        #             'html': '''
-        #                 <div class="video-wrapper">
-        #                     <iframe 
-        #                         src="https://www.youtube.com/embed/{id}" 
-        #                         frameborder="0" 
-        #                         allowfullscreen>
-        #                     </iframe>
-        #                 </div>
-        #             '''
-        #         }
-        #     ]
-        # },
-        
         'toolbar': {
             'items': [
                 '|', 'heading',
@@ -332,23 +298,23 @@ CKEDITOR_5_CONFIGS = {
         }
     },
 }
-# LOGGING = {
-#     'version': 1,
-#     'disable_existing_loggers': False,
-#     'handlers': {
-#         'file': {
-#             'level': 'WARNING',
-#             'class': 'logging.FileHandler',
-#             'filename': '/var/log/django/errors.log',
-#         },
-#     },
-# }
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'handlers': {
+        'file': {
+            'level': 'WARNING',
+            'class': 'logging.FileHandler',
+            'filename': '/var/log/django/errors.log',
+        },
+    },
+}
 
-CSRF_TRUSTED_ORIGINS = ['https://epicsite.smileterritory.ru']
+#CSRF_TRUSTED_ORIGINS = ['https://epicsite.smileterritory.ru']
 
-CSRF_COOKIE_SECURE = True
-SESSION_COOKIE_SECURE = True
-SECURE_HSTS_SECONDS = 31536000
+# CSRF_COOKIE_SECURE = True
+# SESSION_COOKIE_SECURE = True
+# SECURE_HSTS_SECONDS = 31536000
 
 
 

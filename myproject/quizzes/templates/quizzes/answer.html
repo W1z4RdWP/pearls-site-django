@@ -1,5 +1,5 @@
 {% extends "layout.html" %}
-{% block title %}Answer{% endblock %}
+{% block title %}Ответ{% endblock %}
 {% load static %}
 {% block specific_styles %}
 <link rel="stylesheet" href="{% static 'quizzes/css/quiz_styles.css' %}">
@@ -10,7 +10,7 @@
     <div class="progress mb-4" style="height: 25px;">
         <div class="progress-bar bg-success" 
              style="width: {{ progress_percent }}%">
-            Question {{ current_question_number }} of {{ total_questions }}
+            Вопрос {{ current_question_number }} из {{ total_questions }}
         </div>
     </div>
     <form method="POST" action="{% url 'get-questions' %}">
@@ -22,24 +22,24 @@
             
             <div class="card mb-4 {% if is_correct %}border-success{% else %}border-danger{% endif %}">
                 <div class="card-body">
-                    <h5>Your answer:</h5>
+                    <h5>Ваш ответ:</h5>
                     <p class="mb-0">{{ submitted_answer.text }}</p>
                 </div>
             </div>
 
             {% if is_correct %}
             <div class="alert alert-success">
-                ✅ Correct Answer!
+                ✅ Правильный ответ!
             </div>
             {% else %}
             <div class="alert alert-danger">
-                ❌ Incorrect! Correct answer:
+                ❌ Неверно! Правильный ответ:
                 <p class="mb-0 mt-2">{{ correct_answer.text }}</p>
             </div>
             {% endif %}
             
             <button type="submit" class="btn-quiz btn-primary w-100">
-                {% if is_last %}Finish Test{% else %}Next Question →{% endif %}
+                {% if is_last %}Завершить тест{% else %}Следующий вопрос →{% endif %}
             </button>
         </div>
     </form>
