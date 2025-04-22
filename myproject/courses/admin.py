@@ -1,5 +1,6 @@
 from django.contrib import admin
-from .models import Course, Lesson
+from .models import Course, Lesson, UserLessonTrajectory
+from myapp.models import UserCourse
 
 @admin.register(Course)
 class CourseAdmin(admin.ModelAdmin):
@@ -10,3 +11,6 @@ class CourseAdmin(admin.ModelAdmin):
 @admin.register(Lesson)
 class LessonAdmin(admin.ModelAdmin):
     list_display = ['title', 'order', 'course']
+
+admin.site.register(UserCourse)
+admin.site.register(UserLessonTrajectory)

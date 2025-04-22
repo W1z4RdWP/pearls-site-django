@@ -5,7 +5,7 @@ from django.db import transaction
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.views.decorators.http import require_POST
 from .forms import CourseForm, LessonForm
-from .models import Course, Lesson
+from .models import Course, Lesson, UserLessonTrajectory
 from myapp.models import UserProgress, UserCourse
 from myapp.views import is_admin, is_author_or_admin
 
@@ -22,38 +22,77 @@ def course_detail(request, slug):
     all_completed = False
     completed_lessons_ids = None
     exp_earned = 150  # Можно вынести в модель курса
+    course_author = course.author.username
 
     if request.user.is_authenticated:
         user_course = UserCourse.objects.filter(user=request.user, course=course).first()
         has_started = user_course is not None  # Упрощенная проверка
-        
+
         if has_started:
-            completed_lessons = UserProgress.objects.filter(
-                user=request.user, 
-                course=course, 
-                completed=True
-            ).count()
+            # Получаем траекторию пользователя, если она есть
+            trajectory = UserLessonTrajectory.objects.filter(user=request.user, course=course).first()
+            if trajectory:
+                lessons = trajectory.lessons.all()
+                total_lessons = lessons.count()  # Обновляем количество уроков, если есть траектория
+                lesson_ids = lessons.values_list('id', flat=True)  # Получаем ID уроков в траектории
+
+                completed_lessons = UserProgress.objects.filter(
+                    user=request.user,
+                    course=course,
+                    completed=True,
+                    lesson_id__in=lesson_ids  # Учитываем только уроки из траектории
+                ).count()
+
+                completed_lessons_ids = UserProgress.objects.filter(
+                    user=request.user,
+                    course=course,
+                    completed=True,
+                    lesson_id__in=lesson_ids  # Учитываем только уроки из траектории
+                ).values_list('lesson_id', flat=True)
+
+                max_completed_order = UserProgress.objects.filter(
+                    user=request.user,
+                    course=course,
+                    completed=True,
+                    lesson_id__in=lesson_ids  # Учитываем только уроки из траектории
+                ).aggregate(max_order=Max('lesson__order'))['max_order'] or 0
+
+                next_lesson = Lesson.objects.filter(
+                    id__in=lesson_ids,  # Учитываем только уроки из траектории
+                    order__gt=max_completed_order
+                ).order_by('order').first()
+
+                if not next_lesson:
+                    next_lesson = lessons.first()  # Первый урок в траектории
+            else:
+                lessons = course.lessons.all()
+                completed_lessons = UserProgress.objects.filter(
+                    user=request.user,
+                    course=course,
+                    completed=True
+                ).count()
+                progress = int((completed_lessons / total_lessons) * 100) if total_lessons > 0 else 0
+
+                completed_lessons_ids = UserProgress.objects.filter(
+                    user=request.user,
+                    course=course,
+                    completed=True
+                ).values_list('lesson_id', flat=True)
+
+                max_completed_order = UserProgress.objects.filter(
+                    user=request.user,
+                    course=course,
+                    completed=True
+                ).aggregate(max_order=Max('lesson__order'))['max_order'] or 0
+
+                next_lesson = Lesson.objects.filter(
+                    course=course,
+                    order__gt=max_completed_order
+                ).order_by('order').first()
+
+                if not next_lesson:
+                    next_lesson = course.lessons.first()
             progress = int((completed_lessons / total_lessons) * 100) if total_lessons > 0 else 0
-
-            completed_lessons_ids = UserProgress.objects.filter(
-                user=request.user,
-                course=course,
-                completed=True
-            ).values_list('lesson_id', flat=True)
-
-            max_completed_order = UserProgress.objects.filter(
-                user=request.user,
-                course=course,
-                completed=True
-            ).aggregate(max_order=Max('lesson__order'))['max_order'] or 0
-
-            next_lesson = Lesson.objects.filter(
-                course=course,
-                order__gt=max_completed_order
-            ).order_by('order').first()
-
-            if not next_lesson:
-                next_lesson = course.lessons.first()
 
         if request.method == 'POST' and 'start_course' in request.POST:
             if not has_started:
@@ -63,7 +102,9 @@ def course_detail(request, slug):
         return redirect('login')
 
     all_completed = has_started and (completed_lessons == total_lessons)
-    
+    # Получаем траекторию пользователя, если она есть
+    trajectory = UserLessonTrajectory.objects.filter(user=request.user, course=course).first()
+
     # Обновляем флаг анимации
     if all_completed and user_course and not user_course.course_complete_animation_shown:
         with transaction.atomic():
@@ -73,9 +114,13 @@ def course_detail(request, slug):
                 user_course.is_completed = True
                 user_course.course_complete_animation_shown = True
                 user_course.save()
-
+    if trajectory:
+        lessons = trajectory.lessons.all()
+    else:
+         lessons = course.lessons.all()
     return render(request, 'courses/course_detail.html', {
         'course': course,
+        'course_author': course_author,
         'user_course': user_course,
         'has_started': has_started,
         'progress': progress,
@@ -85,7 +130,8 @@ def course_detail(request, slug):
         'next_lesson': next_lesson,
         'all_completed': all_completed,
         'shown_animation': user_course.course_complete_animation_shown if user_course else False,
-        'exp_earned': exp_earned
+        'exp_earned': exp_earned,
+        'lessons':lessons
     })
 
 def course_detail_all(request):
@@ -106,14 +152,22 @@ def course_detail_all(request):
 def lesson_detail(request, course_slug, lesson_id):
     if not request.user.is_authenticated:
         return redirect('login')
-    
+
     course = get_object_or_404(Course, slug=course_slug)
     lesson = get_object_or_404(Lesson, id=lesson_id, course=course)
-    
-    # Проверка доступа
-    if not UserCourse.objects.filter(user=request.user, course=course).exists():
+
+    # Проверка доступа к курсу
+    user_course = UserCourse.objects.filter(user=request.user, course=course).first()
+    if not user_course:
         return redirect('course_detail', slug=course.slug)
-    
+
+    # Проверка траектории
+    trajectory = UserLessonTrajectory.objects.filter(user=request.user, course=course).first()
+    if trajectory:
+        lessons_in_trajectory = trajectory.lessons.all()
+        if lesson not in lessons_in_trajectory:
+            return redirect('course_detail', slug=course.slug)  # Или вы можете отобразить страницу с ошибкой
+
     # Помечаем урок как просмотренный (но не завершенный)
     UserProgress.objects.get_or_create(
         user=request.user,

@@ -4,6 +4,7 @@ from django.contrib.auth.decorators import login_required
 from django.http import HttpRequest, HttpResponse
 
 from myapp.models import UserCourse, UserProgress
+from courses.models import UserLessonTrajectory
 from .forms import UserRegisterForm
 from .forms import UserUpdateForm, ProfileUpdateForm
 
@@ -46,14 +47,13 @@ def profile(request: HttpRequest) -> HttpResponse:
     """
 
     user = request.user
-    #profile = user.profile
     started_courses = UserCourse.objects.filter(user=user).select_related('course')
     unfinished_courses = []
     finished_courses = []
     exp = 0
     level = 1
     
-
+    
 
     for user_course in started_courses:
         course = user_course.course
@@ -62,7 +62,12 @@ def profile(request: HttpRequest) -> HttpResponse:
             course=course,
             completed=True
         ).count()
-        total = course.lessons.count()
+        # Получаем траекторию пользователя, если она есть
+        trajectory = UserLessonTrajectory.objects.filter(user=request.user, course=course).first()
+        if trajectory:
+            total = trajectory.lessons.all().count() # Общее количество уроков в траектории пользователя
+        else:
+            total = course.lessons.count() # Число всех существующих уроков курса, если траектория не задана
         percent = int((completed / total) * 100) if total > 0 else 0
         
         course_data = {
@@ -80,7 +85,7 @@ def profile(request: HttpRequest) -> HttpResponse:
             exp += 15
 
     
-        # Функция для расчета уровня и прогресса
+    # Функция для расчета уровня и прогресса
     def count_exp(exp, level):
         while exp >= level * 100:
             level += 1

@@ -5,8 +5,12 @@
 <div class="container mt-4">
     <h1>{{ course.title }}</h1>
     <p class="lead">{{ course.description|safe }}</p>
-    
-    
+    <hr>
+    <span>
+        <p class="lead">Автор курса: {{ course_author }}</p>
+        <p>{{ course.author.email }}</p>
+    </span>
+    <hr>
     {% if has_started %}
     <div class="progress mb-4">
         <div class="progress-bar" role="progressbar" 
@@ -24,7 +28,7 @@
         <div class="col-md-8">
             <h3>Уроки курса</h3>
             <div class="list-group">
-                {% for lesson in course.lessons.all %}
+                {% for lesson in lessons %}  {# Используем lessons, переданные из view #}
                 <a href="{% url 'lesson_detail' course.slug lesson.id %}" 
                    class="list-group-item list-group-item-action">
                     {{ lesson.title }}
@@ -87,25 +91,4 @@
         </div>
     {% endif %}
 </div>
-
-<div class="content-section course-detail-content">
-    <ul>
-        {% for lesson in lessons %}
-            <li>
-                <a href="{% url 'lesson_detail' course.slug lesson.id %}">{{ lesson.title }}</a>
-                {% if user.is_authenticated and user.is_staff %}
-                    <form method="POST" action="{% url 'delete_lesson' lesson.id %}" style="display: inline;">
-                        {% csrf_token %}
-                        <button type="submit" class="btn btn-sm btn-danger" 
-                                onclick="return confirm('Вы уверены, что хотите удалить этот урок?')">
-                            ✕
-                        </button>
-                    </form>
-                {% endif %}
-            </li>
-        {% endfor %}
-    </ul>
-
-</div>
-
 {% endblock %}

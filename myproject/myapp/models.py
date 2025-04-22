@@ -22,7 +22,11 @@ class UserProgress(models.Model):
         super().save(*args, **kwargs)
 
 
+
 class UserCourse(models.Model):
+    """
+    Модель связывает пользователя и курс, показывает, что курс назначен пользователю.
+    """
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='started_courses')
     course = models.ForeignKey(Course, on_delete=models.CASCADE)
     start_date = models.DateTimeField(auto_now_add=True)
@@ -34,8 +38,11 @@ class UserCourse(models.Model):
         unique_together = ('user', 'course')
 
     def end_date(is_completed):
+        completed_once = 0
         if is_completed == True:
-            end_date = models.DateTimeField(auto_now_add=True)
+            completed_once += 1
+            if completed_once == 1:
+                end_date = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
         return f"{self.user.username} - {self.course.title}"

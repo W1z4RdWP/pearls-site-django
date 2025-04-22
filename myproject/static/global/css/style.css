@@ -636,6 +636,11 @@ footer {
         max-width: 80%;
     }
 
+    figure.image img{
+        width: 100%;
+        height: auto;
+    }
+
     /* Очистка потока */
     .lesson-content::after {
         content: "";

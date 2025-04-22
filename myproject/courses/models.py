@@ -16,7 +16,7 @@ class Course(models.Model):
     """
    
     title = models.CharField(max_length=200, verbose_name="Название курса")
-    description = CKEditor5Field('Описание курса', config_name='extends')
+    description = CKEditor5Field('Описание курса', config_name='noTablesImages')
     author = models.ForeignKey(User, on_delete=models.CASCADE, verbose_name="Автор")
     created_at = models.DateTimeField(auto_now_add=True, verbose_name="Дата создания")
     image = models.ImageField(upload_to='course_images/', blank=True, null=True, verbose_name="Изображение курса")
@@ -91,3 +91,21 @@ class Lesson(models.Model):
 
     def __str__(self):
         return self.title
+    
+
+class UserLessonTrajectory(models.Model):
+    """
+    Модель для хранения траектории прохождения курса для каждого пользователя.
+    Связывает пользователя, курс и множество уроков, которые доступны этому пользователю.
+    """
+    user = models.ForeignKey(User, on_delete=models.CASCADE, verbose_name="Пользователь")
+    course = models.ForeignKey(Course, on_delete=models.CASCADE, verbose_name="Курс")
+    lessons = models.ManyToManyField(Lesson, verbose_name="Уроки в траектории")
+
+    class Meta:
+        verbose_name = 'Траектория уроков пользователя'
+        verbose_name_plural = 'Траектории уроков пользователей'
+        unique_together = ('user', 'course')
+
+    def __str__(self):
+        return f"Траектория {self.user.username} для {self.course.title}"

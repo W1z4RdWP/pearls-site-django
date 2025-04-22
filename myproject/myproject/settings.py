@@ -229,7 +229,7 @@ CKEDITOR_5_CONFIGS = {
                 "alignCenter",
             ],
         },
-"table": {
+        "table": {
             "contentToolbar": [
                 "tableColumn",
                 "tableRow",
@@ -297,7 +297,26 @@ CKEDITOR_5_CONFIGS = {
             ]
         }
     },
+    "noTablesImages": {
+        "language": "ru",
+        "toolbar": {
+            "items": [
+                '|', 'heading',
+                '|', 'outdent', 'indent',
+                '|', 'bold', 'italic', 'link', 'underline', 'strikethrough', 'code', 'subscript', 'superscript',
+                'highlight',
+                '|', 'codeBlock', 'bulletedList', 'numberedList', 'todoList',
+                '|', 'blockQuote',
+                '|', 'fontSize', 'fontFamily', 'fontColor', 'fontBackgroundColor', 'removeFormat',
+                '|',
+            ],
+            "shouldNotGroupWhenFull": True
+        },
+        # Можно не указывать image и table, чтобы они не были активны
+    },
 }
+
+
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
