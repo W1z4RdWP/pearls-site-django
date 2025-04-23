@@ -24,6 +24,11 @@ body {
     font-family: 'Open Sans', sans-serif;
 }
 
+.captcha{
+    width:clamp(50px,100px,200px);
+    height: clamp(30px, 50px, 100px);
+}
+
 /* Цвет наименования полей во crispy form */
 .form-label{
     color: rgb(255, 0, 0);
@@ -96,6 +101,7 @@ section {
 }
 
 
+
 #clinicajpg {
     width: 40%;
     position: absolute;
@@ -132,9 +138,10 @@ section {
 
 .section__inner-text{
     position: absolute;
+    font-size: .9rem;
     left: 37%;
     top: 35%;
-    width: 400px;
+    width: 30%;
     height: 400px;
 }
 
@@ -155,9 +162,9 @@ section {
     }
 
     #staffCarousel .carousel-item img {
-        width: 90%;
+        width: 80%;
         place-self: center;
-        height: 50vh;
+        height: 40vh;
         object-fit: cover;
     }
 
@@ -165,7 +172,7 @@ section {
 
     /* Кастомные индикаторы только для этой карусели */
     #staffCarousel .staff-indicators {
-        bottom: 20%;
+        bottom: 35%;
         gap: 12px;
     }
 
@@ -187,23 +194,25 @@ section {
     /* Стили для текстового блока */
     #staffCarousel .text-overlay {
         position: absolute;
-        top: 32%;
-        left: 25%;
+        top: 27%;
+        left: 29%;
         transform: translate(-50%, -50%);
-        width: 80%;
-        max-width: 580px;
-        max-height: 300px;
+        width: 70%;
+        max-width: 30%;
+        max-height: 50%;
         background: rgba(50, 50, 50, 0.8);
         padding: 2rem;
         border-radius: 10px;
         z-index: 2;
         color: white;
+
+        overflow: hidden;
     }
 
     #staffCarousel .text-overlay p {
-        font-size: 1.5rem;
+        font-size: 1.2rem;
         font-weight: 600;
-        margin-bottom: 1.5rem;
+        margin-bottom: 0.8rem;
         text-align: center;
     }
 
@@ -539,7 +548,7 @@ footer {
 
 .carousel-control-prev,
 .carousel-control-next{
-    height: 50%;
+    height: 35%;
     padding-top: 13%;
 }
 
@@ -625,6 +634,11 @@ footer {
         display: block;
         margin: 1rem auto;
         max-width: 80%;
+    }
+
+    figure.image img{
+        width: 100%;
+        height: auto;
     }
 
     /* Очистка потока */
@@ -748,22 +762,28 @@ footer {
         right: 0;
     }
 
+    .section__inner-text{
+        font-size: 1.3rem;
+    }
+
     #doc1_image {
-        width: 460px;
-        height: 600px;
+        width: 360px;
+        height: 500px;
         position: absolute;
         bottom: 25%;
-        right: 60%;
+        right: 80%;
+        
         
 
     }
     
     #doc2_image {
-        width: 460px;
+        width: 360px;
         position: absolute;
         bottom: 5%;
         right: 0;
-       
+        
+         z-index: 2;  /* Индекс для наложения поверх текста section__inner-text во время наведения курсора*/
 
     }
 
@@ -826,6 +846,88 @@ footer {
         bottom: 5%;
         right: 0;
     }
+
+    
+    /* Стили только для новой карусели сотрудников */
+    #staffCarousel {
+        width: 900px;
+        margin-left: calc(-50vw + 40%);
+        height: 75vh;
+        overflow: hidden;
+        position: relative;
+    }
+
+    #staffCarousel .carousel-inner,
+    #staffCarousel .carousel-item {
+        height: 100%;
+        
+    }
+
+    #staffCarousel .carousel-item img {
+        width: 100%;
+        place-self: center;
+        height: 20vh;
+        object-fit: cover;
+    }
+
+
+
+    /* Кастомные индикаторы только для этой карусели */
+    #staffCarousel .staff-indicators {
+        bottom: 55%;
+        gap: 12px;
+    }
+
+    #staffCarousel .staff-indicators button {
+        width: 7px;
+        height: 7px;
+        border: 2px solid #fff;
+        background: transparent;
+        opacity: 0.7;
+        transition: all 0.3s ease;
+    }
+
+    #staffCarousel .staff-indicators .active {
+        background: #fff;
+        opacity: 1;
+        transform: scale(1.2);
+    }
+
+    /* Стили для текстового блока */
+    #staffCarousel .text-overlay {
+        position: absolute;
+        top: 12%;
+        left: 38%;
+        transform: translate(-50%, -50%);
+        width: 40%;
+        height: 20%;
+        max-width: 580px;
+        max-height: 240px;
+        background: rgba(50, 50, 50, 0.8);
+        padding: 2rem;
+        border-radius: 10px;
+        z-index: 2;
+        color: white;
+        font-size: 0.5em;
+
+        overflow: scroll;
+    }
+
+    #staffCarousel .text-overlay p {
+        font-size: 1rem;
+        font-weight: 600;
+        margin-bottom: 1.5rem;
+        text-align: center;
+    }
+
+
+    .card .btn {
+        font-size: 0.6em;
+        width: 70px;
+        height: 40px;
+
+        overflow: hidden;
+    }
     
 
     #doc1_image {
@@ -833,7 +935,7 @@ footer {
         height: 280px;
         position: absolute;
         bottom: 20%;
-        right: 50%;
+        right: 70%;
 
         transition: all 0s ease 0s;
     }
