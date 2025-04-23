@@ -98,6 +98,7 @@ class UserLessonTrajectory(models.Model):
     Модель для хранения траектории прохождения курса для каждого пользователя.
     Связывает пользователя, курс и множество уроков, которые доступны этому пользователю.
     """
+    
     user = models.ForeignKey(User, on_delete=models.CASCADE, verbose_name="Пользователь")
     course = models.ForeignKey(Course, on_delete=models.CASCADE, verbose_name="Курс")
     lessons = models.ManyToManyField(Lesson, verbose_name="Уроки в траектории")

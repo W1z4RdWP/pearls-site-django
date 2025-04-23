@@ -24,6 +24,7 @@ def course_detail(request, slug):
     exp_earned = 150  # Можно вынести в модель курса
     course_author = course.author.username
 
+
     if request.user.is_authenticated:
         user_course = UserCourse.objects.filter(user=request.user, course=course).first()
         has_started = user_course is not None  # Упрощенная проверка
@@ -131,7 +132,7 @@ def course_detail(request, slug):
         'all_completed': all_completed,
         'shown_animation': user_course.course_complete_animation_shown if user_course else False,
         'exp_earned': exp_earned,
-        'lessons':lessons
+        'lessons':lessons,
     })
 
 def course_detail_all(request):

@@ -2,6 +2,7 @@ from django.db import models
 from django.contrib.auth.models import User
 from django.utils.text import slugify
 from django_ckeditor_5.fields import CKEditor5Field
+from django.utils import timezone 
 
 from courses.models import Course, Lesson
 
@@ -37,12 +38,12 @@ class UserCourse(models.Model):
     class Meta:
         unique_together = ('user', 'course')
 
-    def end_date(is_completed):
-        completed_once = 0
-        if is_completed == True:
-            completed_once += 1
-            if completed_once == 1:
-                end_date = models.DateTimeField(auto_now_add=True)
+
+    def save(self, *args, **kwargs):
+        """Устанавливаем end_date только при первом завершении курса"""
+        if self.is_completed and not self.end_date:
+            self.end_date = timezone.now()
+        super().save(*args, **kwargs)
 
     def __str__(self):
         return f"{self.user.username} - {self.course.title}"
