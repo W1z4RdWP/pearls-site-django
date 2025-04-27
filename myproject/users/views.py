@@ -5,8 +5,8 @@ from django.http import HttpRequest, HttpResponse
 
 from myapp.models import UserCourse, UserProgress
 from courses.models import UserLessonTrajectory
-from .forms import UserRegisterForm
-from .forms import UserUpdateForm, ProfileUpdateForm
+from .forms import UserRegisterForm, UserUpdateForm, ProfileUpdateForm
+ 
 
 def register(request: HttpRequest) -> HttpResponse:
     """
@@ -77,7 +77,7 @@ def profile(request: HttpRequest) -> HttpResponse:
             'percent': percent
         }
 
-        if percent >= 100:
+        if percent == 100:
             finished_courses.append(course_data)
             exp += 165 # начисляется 150 опыта, т.к. 15 дается за начало курса, а при его завершении эти 15 убираются.
         else:
@@ -115,7 +115,7 @@ def profile(request: HttpRequest) -> HttpResponse:
         'unfinished_courses': unfinished_courses,
         'finished_courses': finished_courses,
         'exp': exp,
-        'progress':progress,
+        'progress':int(progress),
         'level': level
     })
 
