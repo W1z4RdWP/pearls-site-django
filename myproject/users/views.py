@@ -2,6 +2,9 @@ from django.shortcuts import render, redirect
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.http import HttpRequest, HttpResponse
+from django.contrib.auth import login as auth_login
+from django.contrib.auth.models import User
+from django.contrib.auth.views import LoginView
 
 from myapp.models import UserCourse, UserProgress
 from courses.models import UserLessonTrajectory
@@ -119,3 +122,19 @@ def profile(request: HttpRequest) -> HttpResponse:
         'level': level
     })
 
+
+class CustomLoginView(LoginView):
+    """
+    Кастомный класс расширяющий функционал встроенной в Django функции авторизации.
+    Если пользователь зарегистрирован, но администратор сайта не поставил ему в админ панеле галочку - подтверждение,
+    то пользователю, при попытке входа, будет выводится сообщение "Ваш аккаунт ожидает подтверждения администратором."
+    """
+    template_name = "users/login.html"
+
+    def form_valid(self, form):
+        user = form.get_user()
+        if not user.profile.is_approved:
+            messages.error(self.request, "Ваш аккаунт ожидает подтверждения администратором.")
+            return redirect('login')
+        auth_login(self.request, user)
+        return redirect(self.get_success_url())
