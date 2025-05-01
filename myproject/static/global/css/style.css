@@ -4,6 +4,7 @@
     --primary-color: #333;
     --secondary-color: #4CAF50;
     --text-color: whitesmoke;
+    --primary-font: "Onest", sans-serif;
 }
 
 
@@ -307,6 +308,10 @@ main > section > .text-block-2 {
     font-size: 1.3em;
 }
 
+#id_image_helptext{
+    color: whitesmoke;
+}
+
 
 .cards-box{
     display: grid;
@@ -386,6 +391,9 @@ main > section > .text-block-2 {
 
 
 /* --- */
+.content-section{
+    font-family: var(--primary-font);
+}
 
 .content-section h1{
     text-align: center;

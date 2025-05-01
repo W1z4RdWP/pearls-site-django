@@ -26,7 +26,17 @@ SECRET_KEY = os.getenv('SECRET_DJANGO')
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
+# allowed_hosts = os.getenv('DJANGO_ALLOWED_HOSTS', '')
+# ALLOWED_HOSTS = [host.strip() for host in allowed_hosts.split(',')] if allowed_hosts else []
+
 ALLOWED_HOSTS = ["*"]
+
+# INTERNAL_IPS = [
+#     "0.0.0.0",
+#     "127.0.0.1",
+#     "10.0.1.100"
+# ]
+
 
 
 # Application definition
@@ -47,6 +57,7 @@ INSTALLED_APPS = [
     'crispy_forms',
     'crispy_bootstrap5',
     'django_ckeditor_5',
+    'debug_toolbar',
     
 
     'myapp',
@@ -59,6 +70,7 @@ X_FRAME_OPTIONS = "SAMEORIGIN"              # allows you to use modals insated o
 SILENCED_SYSTEM_CHECKS = ["security.W019"]  # ignores redundant warning messages
 
 MIDDLEWARE = [
+    'debug_toolbar.middleware.DebugToolbarMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -67,6 +79,8 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'django.middleware.locale.LocaleMiddleware',
+    
     
 ]
 
@@ -136,6 +150,8 @@ AUTHENTICATION_BACKENDS = [
     'users.backends.ApprovalBackend',
     'django.contrib.auth.backends.ModelBackend',
 ]
+
+
 
 # Internationalization
 # https://docs.djangoproject.com/en/5.1/topics/i18n/
@@ -334,7 +350,7 @@ LOGGING = {
     },
 }
 
-#CSRF_TRUSTED_ORIGINS = ['https://epicsite.smileterritory.ru']
+# CSRF_TRUSTED_ORIGINS = ['https://epicsite.smileterritory.ru']
 
 # CSRF_COOKIE_SECURE = True
 # SESSION_COOKIE_SECURE = True

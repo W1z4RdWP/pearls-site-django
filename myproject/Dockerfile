@@ -25,8 +25,8 @@ RUN python manage.py migrate
 # Collect static files for the Django application
 RUN python manage.py collectstatic --noinput
 
-# Expose port 8001 to allow traffic to the application
-EXPOSE 8001
+# Открыть порт 8000 на входящий к приложению трафик
+EXPOSE 8000
 
 # Define the command to run the application
-CMD ["gunicorn", "portfolio.wsgi:application", "--bind", "0.0.0.0:8001"]
+CMD ["gunicorn", "myproject.wsgi:application", "--bind", "0.0.0.0:8000"]
