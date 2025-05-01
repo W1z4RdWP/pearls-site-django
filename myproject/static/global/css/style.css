@@ -560,6 +560,10 @@ footer {
     padding-top: 13%;
 }
 
+#show_all_courses_btn:hover{
+    color:white;
+}
+
 #course_detail_img{
     width: 90%;
     max-height: 400px;

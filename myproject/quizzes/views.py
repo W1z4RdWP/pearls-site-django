@@ -1,7 +1,9 @@
-from django.shortcuts import render, redirect
+from django.shortcuts import render, redirect, get_object_or_404
 from django.http import HttpRequest, HttpResponse
 from django.views.decorators.http import require_http_methods
 from django.db.models import Count, Exists, OuterRef
+
+from myapp.models import QuizResult
 from .models import Quiz, Question, Answer
 from typing import Optional
 
@@ -102,18 +104,36 @@ def get_answer(request) -> HttpResponse:
     return redirect('quizzes')
 
 def get_finish(request) -> HttpResponse:
+    # Проверка аутентификации
+    if not request.user.is_authenticated:
+        return redirect('login')
+
     quiz_id = request.session.get('quiz_id')
     if not quiz_id:
         return redirect('quizzes')
     
-    questions_count = Question.objects.filter(quiz_id=quiz_id).count()
+    # Получаем объект теста
+    quiz = get_object_or_404(Quiz, id=quiz_id)
+    
+    # Рассчитываем показатели
+    questions_count = Question.objects.filter(quiz=quiz).count()
     score = request.session.get('score', 0)
     percent_score = int((score / questions_count) * 100) if questions_count > 0 else 0
-    
+
+    # Сохраняем результат теста
+    QuizResult.objects.create(
+        user=request.user,
+        quiz_title=quiz.name,  
+        score=score,
+        total_questions=questions_count,  # исправлено с total на questions_count
+        percent=percent_score
+    )
+
     context = {
         'score': score,
         'questions_count': questions_count,
-        'percent_score': percent_score
+        'percent_score': percent_score,
+        'quiz_title': quiz.name
     }
     
     _reset_quiz(request)

@@ -6,7 +6,7 @@ from django.contrib.auth import login as auth_login
 from django.contrib.auth.models import User
 from django.contrib.auth.views import LoginView
 
-from myapp.models import UserCourse, UserProgress
+from myapp.models import UserCourse, UserProgress, QuizResult
 from courses.models import UserLessonTrajectory
 from .forms import UserRegisterForm, UserUpdateForm, ProfileUpdateForm
  
@@ -55,7 +55,7 @@ def profile(request: HttpRequest) -> HttpResponse:
     finished_courses = []
     exp = 0
     level = 1
-    
+    quiz_results = QuizResult.objects.filter(user=request.user).order_by('-completed_at')
     
 
     for user_course in started_courses:
@@ -119,7 +119,8 @@ def profile(request: HttpRequest) -> HttpResponse:
         'finished_courses': finished_courses,
         'exp': exp,
         'progress':int(progress),
-        'level': level
+        'level': level,
+        'quiz_results': quiz_results,
     })
 
 

@@ -21,7 +21,9 @@ RUN pip install --upgrade pip && pip install -r requirements.txt
 # Copy the rest of the application code into the container
 COPY . .
 
-RUN python manage.py migrate
+# Создаем директорию для логов и даем права
+RUN mkdir -p /var/log/django && chown -R www-data:www-data /var/log/django
+
 # Collect static files for the Django application
 RUN python manage.py collectstatic --noinput
 

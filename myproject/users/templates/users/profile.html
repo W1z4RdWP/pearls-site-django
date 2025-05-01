@@ -16,6 +16,7 @@
         </div>
         <div class="profile-actions">
             <button class="btn btn-outline-info" id="edit-profile-btn">Редактировать</button>
+            <button class="btn btn-outline-info" id="toggle-quizzes-btn">Показать тесты</button>
             <button class="btn btn-outline-info" id="toggle-courses-btn">Показать завершенные курсы</button>
         </div>
         <div class="progress-bar-user">
@@ -121,6 +122,38 @@
  
 
     </div>
+
+    <div class="container mt-4">
+        <h2>История тестов</h2>
+        {% if quiz_results %}
+            <div class="row">
+                {% for result in quiz_results %}
+                <div class="col-md-6 mb-4">
+                    <div class="card h-100">
+                        <div class="card-header bg-primary text-white">
+                            {{ result.quiz_title }}
+                        </div>
+                        <div class="card-body">
+                            <div class="progress mb-3">
+                                <div class="progress-bar bg-success" 
+                                     style="width: {{ result.percent|stringformat:"d" }}%">
+                                    {{ result.percent|floatformat:0 }}%
+                                </div>
+                            </div>
+                            <p class="mb-1">Правильных ответов: {{ result.score }}/{{ result.total_questions }}</p>
+                            <small class="text-muted">
+                                Дата: {{ result.completed_at|date:"d.m.Y H:i" }}
+                            </small>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <div class="alert alert-info">Вы еще не проходили тесты</div>
+        {% endif %}
+    </div>
+
     <script>
         // Переключение между блоками курсов
         const toggleBtn = document.getElementById('toggle-courses-btn');
@@ -152,5 +185,21 @@
             document.getElementById('toggle-courses-btn').style.display = 'block'
             document.querySelector('.progress-bar-user').style.display = 'block'
         });
+
+            // Переключение между курсами и тестами
+    const toggleQuizzesBtn = document.getElementById('toggle-quizzes-btn');
+    const coursesSection = document.querySelector('#unfinished-courses, #finished-courses');
+    const quizzesSection = document.querySelector('.container.mt-4 > h2').parentElement;
+
+    toggleQuizzesBtn.addEventListener('click', () => {
+        const isQuizzesVisible = quizzesSection.style.display === 'block';
+        
+        quizzesSection.style.display = isQuizzesVisible ? 'none' : 'block';
+        coursesSection.style.display = isQuizzesVisible ? 'block' : 'none';
+        
+        toggleQuizzesBtn.textContent = isQuizzesVisible 
+            ? 'Показать тесты' 
+            : 'Показать курсы';
+    });
     </script>
 {% endblock content %}

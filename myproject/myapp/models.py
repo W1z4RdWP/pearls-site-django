@@ -47,3 +47,19 @@ class UserCourse(models.Model):
 
     def __str__(self):
         return f"{self.user.username} - {self.course.title}"
+    
+
+class QuizResult(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    quiz_title = models.CharField(max_length=200)
+    score = models.IntegerField()
+    total_questions = models.IntegerField()
+    percent = models.FloatField()
+    completed_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = 'Результат теста'
+        verbose_name_plural = 'Результаты тестов'
+
+    def __str__(self):
+        return f"{self.user.username} - {self.quiz_title} ({self.percent}%)"
