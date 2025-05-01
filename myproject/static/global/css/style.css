@@ -753,15 +753,15 @@ footer {
 
 /* во вкладке регистрации текст с информацией о требованиях к имени пользователя */
 #id_username_helptext{
-    color: rgb(54, 85, 223);
+    color: var(--text-color);
 }
 /* во вкладке регистрации текст с информацией о требованиях к паролю */
 #id_password1_helptext{
-    color: rgb(54, 85, 223);
+    color: var(--text-color);
 }
 /* во вкладке регистрации текст с информацией о подтверждении пароля */
 #id_password2_helptext{
-    color: rgb(54, 85, 223);
+    color: var(--text-color);
 }
 /* Текст "Уже есть аккаунт" стилизуется непосредственно в templates/users/register.html */
 
