@@ -51,6 +51,7 @@ INSTALLED_APPS = [
     'django.contrib.contenttypes',
     'django.contrib.sessions',
     'django.contrib.messages',
+    "whitenoise.runserver_nostatic",
     'django.contrib.staticfiles',
 
     'captcha',
@@ -72,6 +73,7 @@ SILENCED_SYSTEM_CHECKS = ["security.W019"]  # ignores redundant warning messages
 MIDDLEWARE = [
     'debug_toolbar.middleware.DebugToolbarMiddleware',
     'django.middleware.security.SecurityMiddleware',
+    "whitenoise.middleware.WhiteNoiseMiddleware",
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -104,6 +106,15 @@ TEMPLATES = [
 
 MEDIA_URL = '/media/'  # URL для доступа к медиафайлам
 MEDIA_ROOT = BASE_DIR / 'media'  # Папка для хранения медиафайлов
+
+STORAGES = {
+    "default": { 
+        "BACKEND": "django.core.files.storage.FileSystemStorage",
+    },
+    "staticfiles": {
+        "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
+    },
+}
 
 WSGI_APPLICATION = 'myproject.wsgi.application'
 
@@ -358,5 +369,5 @@ LOGGING = {
 
 
 
-# RECAPTCHA_PUBLIC_KEY = '6LfNMusqAAAAAL3yAV9YTv3ttE73agpGFzKRddT0'
-# RECAPTCHA_PRIVATE_KEY = '6LfNMusqAAAAAEGfgQJZbg1SYVanSZrrxjskbdC9'
+# RECAPTCHA_PUBLIC_KEY = os.getenv('RECAPTCHA_PUBLIC_KEY')
+# RECAPTCHA_PRIVATE_KEY = os.getenv('RECAPTCHA_PRIVATE_KEY')
