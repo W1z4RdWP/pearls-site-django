@@ -31,11 +31,12 @@ DEBUG = True
 
 ALLOWED_HOSTS = ["*"]
 
-# INTERNAL_IPS = [
-#     "0.0.0.0",
-#     "127.0.0.1",
-#     "10.0.1.100"
-# ]
+INTERNAL_IPS = [
+    "0.0.0.0",
+    "127.0.0.1",
+    "10.0.1.100",
+    "10.1.1.30",
+]
 
 
 
@@ -122,21 +123,26 @@ WSGI_APPLICATION = 'myproject.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/5.1/ref/settings/#databases
 
+# DATABASES = {
+#     'default': {
+#             'ENGINE': 'django.db.backends.postgresql',
+#             'NAME': os.getenv('DJANGO_DB_NAME'),
+#             'USER': os.getenv('DJANGO_DB_USER'),
+#             'PASSWORD': os.getenv('DJANGO_DB_PASSWD'),
+#             'HOST': os.getenv('DJANGO_DB_HOST'),
+#             'PORT': os.getenv('DJANGO_DB_PORT'),
+#             'OPTIONS' :{
+#                 'client_encoding': 'UTF8',
+#             }
+#     }
+# }
+
 DATABASES = {
-    'default': {
-            'ENGINE': 'django.db.backends.postgresql',
-            'NAME': os.getenv('DJANGO_DB_NAME'),
-            'USER': os.getenv('DJANGO_DB_USER'),
-            'PASSWORD': os.getenv('DJANGO_DB_PASSWD'),
-            'HOST': os.getenv('DJANGO_DB_HOST'),
-            'PORT': os.getenv('DJANGO_DB_PORT'),
-            'OPTIONS' :{
-                'client_encoding': 'UTF8',
-            }
+    "default": {
+        "ENGINE": "django.db.backends.sqlite3",
+        "NAME": "mydatabase",
     }
 }
-
-
 
 # Password validation
 # https://docs.djangoproject.com/en/5.1/ref/settings/#auth-password-validators
@@ -344,7 +350,7 @@ CKEDITOR_5_CONFIGS = {
             ],
             "shouldNotGroupWhenFull": True
         },
-        # Можно не указывать image и table, чтобы они не были активны
+        
     },
 }
 

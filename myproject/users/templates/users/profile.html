@@ -154,52 +154,5 @@
         {% endif %}
     </div>
 
-    <script>
-        // Переключение между блоками курсов
-        const toggleBtn = document.getElementById('toggle-courses-btn');
-        const unfinishedBlock = document.getElementById('unfinished-courses');
-        const finishedBlock = document.getElementById('finished-courses');
-        
-        toggleBtn.addEventListener('click', () => {
-            const isFinishedVisible = finishedBlock.style.display === 'block';
-            
-            finishedBlock.style.display = isFinishedVisible ? 'none' : 'block';
-            unfinishedBlock.style.display = isFinishedVisible ? 'block' : 'none';
-            
-            toggleBtn.textContent = isFinishedVisible 
-                ? 'Показать завершенные курсы' 
-                : 'Показать незавершенные курсы';
-        });
 
-        document.getElementById('edit-profile-btn').addEventListener('click', function() {
-            document.getElementById('edit-profile-form').style.display = 'block';
-            this.style.display = 'none';
-            document.getElementById('toggle-courses-btn').style.display = 'none'
-            document.querySelector('.progress-bar-user').style.display = 'none'
-        });
-
-        document.getElementById('cancel-edit-btn').addEventListener('click', function(event) {
-            event.preventDefault();
-            document.getElementById('edit-profile-form').style.display = 'none';
-            document.getElementById('edit-profile-btn').style.display = 'block';
-            document.getElementById('toggle-courses-btn').style.display = 'block'
-            document.querySelector('.progress-bar-user').style.display = 'block'
-        });
-
-            // Переключение между курсами и тестами
-    const toggleQuizzesBtn = document.getElementById('toggle-quizzes-btn');
-    const coursesSection = document.querySelector('#unfinished-courses, #finished-courses');
-    const quizzesSection = document.querySelector('.container.mt-4 > h2').parentElement;
-
-    toggleQuizzesBtn.addEventListener('click', () => {
-        const isQuizzesVisible = quizzesSection.style.display === 'block';
-        
-        quizzesSection.style.display = isQuizzesVisible ? 'none' : 'block';
-        coursesSection.style.display = isQuizzesVisible ? 'block' : 'none';
-        
-        toggleQuizzesBtn.textContent = isQuizzesVisible 
-            ? 'Показать тесты' 
-            : 'Показать курсы';
-    });
-    </script>
 {% endblock content %}

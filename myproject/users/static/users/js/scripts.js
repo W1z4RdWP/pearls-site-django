@@ -1,88 +1,52 @@
-// header
-document.addEventListener('DOMContentLoaded', () => {
-  const hero = document.querySelector('.hero');
-  const header = document.querySelector('.header');
-  const scrollItems = document.querySelectorAll('.scroll-item');
+// --- Переключение между курсами ---
+const toggleCoursesBtn = document.getElementById('toggle-courses-btn');
+const unfinishedBlock = document.getElementById('unfinished-courses');
+const finishedBlock = document.getElementById('finished-courses');
 
-	const scrollAnimation = () => {
-		let windowCenter = (window.innerHeight / 2) + window.scrollY;
-		scrollItems.forEach(el => {
-			let scrollOffset = el.offsetTop + (el.offsetHeight / 2) + 100;
-			if (windowCenter >= scrollOffset) {
-				el.classList.add('animation-class');
-			} else {
-				el.classList.remove('animation-class');
-			}
-		});
-	};
-
-  const headerFixed = () => {
-    let scrollTop = window.scrollY;
-    let heroCenter = hero.offsetHeight / 2;
-    
-    if (scrollTop >= heroCenter) {
-      header.classList.add('fixed');
-      hero.style.marginTop = `${header.offsetHeight}px`;
-    } else {
-      header.classList.remove('fixed')
-      hero.style.marginTop = `0px`;
-    }
-  }
-
-  headerFixed();
-  scrollAnimation();
-  window.addEventListener('scroll', () => {
-    headerFixed();
-    scrollAnimation();
-    
-  });
+toggleCoursesBtn.addEventListener('click', () => {
+    const isFinishedVisible = finishedBlock.style.display === 'block';
+    finishedBlock.style.display = isFinishedVisible ? 'none' : 'block';
+    unfinishedBlock.style.display = isFinishedVisible ? 'block' : 'none';
+    toggleCoursesBtn.textContent = isFinishedVisible 
+        ? 'Показать завершенные курсы' 
+        : 'Показать незавершенные курсы';
 });
 
+// --- Переключение между тестами и их отображением ---
+const toggleQuizzesBtn = document.getElementById('toggle-quizzes-btn');
+// Найдём нужный блок с тестами (вторая .container.mt-4)
+const containers = document.querySelectorAll('.container.mt-4');
+const quizzesSection = containers[1]; // второй блок - история тестов
 
+// По умолчанию скрываем блок с тестами
+quizzesSection.style.display = 'none';
+toggleQuizzesBtn.textContent = 'Показать тесты';
 
-(function() {
-    const animation = document.getElementById('course-completion-animation');
-    if (!animation) return;
+toggleQuizzesBtn.addEventListener('click', () => {
+    const isVisible = quizzesSection.style.display === 'block';
+    quizzesSection.style.display = isVisible ? 'none' : 'block';
+    toggleQuizzesBtn.textContent = isVisible ? 'Показать тесты' : 'Скрыть тесты';
+});
 
-    const completionMessage = animation.querySelector('.completion-message');
-    
-    // Таймер для автоматического закрытия через 5 секунд
-    let timeoutId = setTimeout(() => animation.remove(), 5000);
+// --- Переключение режимов редактирования профиля ---
+const editProfileBtn = document.getElementById('edit-profile-btn');
+const cancelEditBtn = document.getElementById('cancel-edit-btn');
+const editProfileForm = document.getElementById('edit-profile-form');
+const progressBar = document.querySelector('.progress-bar-user');
 
-    // Закрытие при клике вне блока с сообщением
-    document.addEventListener('click', function(e) {
-        if (!completionMessage.contains(e.target)) {
-            animation.remove();
-            clearTimeout(timeoutId);
-        }
-    });
+editProfileBtn.addEventListener('click', function() {
+    editProfileForm.style.display = 'block';
+    editProfileBtn.style.display = 'none';
+    toggleCoursesBtn.style.display = 'none';
+    toggleQuizzesBtn.style.display = 'none';
+    progressBar.style.display = 'none';
+});
 
-    // Закрытие при нажатии Esc
-    document.addEventListener('keydown', function(e) {
-        if (e.key === 'Escape') {
-            animation.remove();
-            clearTimeout(timeoutId);
-        }
-    });
-})();
-
-
-// Появление карточек при доскорле до них
-document.addEventListener('DOMContentLoaded', () => {
-    const boxes = document.querySelectorAll('.box');
-  
-    const observer = new IntersectionObserver(entries => {
-      entries.forEach(entry => {
-        if (entry.isIntersecting) {
-          entry.target.classList.add('show');
-        } else {
-          entry.target.classList.remove('show');
-        }
-      });
-    });
-  
-    boxes.forEach(box => {
-      observer.observe(box);
-    });
-  });
-
+cancelEditBtn.addEventListener('click', function(event) {
+    event.preventDefault();
+    editProfileForm.style.display = 'none';
+    editProfileBtn.style.display = 'block';
+    toggleCoursesBtn.style.display = 'block';
+    toggleQuizzesBtn.style.display = 'block';
+    progressBar.style.display = 'block';
+});

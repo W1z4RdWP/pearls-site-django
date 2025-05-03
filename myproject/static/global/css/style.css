@@ -312,10 +312,6 @@ main > section > .text-block-2 {
     font-size: 1.3em;
 }
 
-#id_image_helptext{
-    color: whitesmoke;
-}
-
 
 .cards-box{
     display: grid;
@@ -755,9 +751,18 @@ footer {
 /* ---- */
 
 
+#id_image_helptext{
+    color: whitesmoke;
+}
+
+
+#id_video_id_helptext{
+    color: var(--text-color);
+}
+
 /* во вкладке регистрации текст с информацией о требованиях к имени пользователя */
 #id_username_helptext{
-    color: var(--text-color);
+    color: #333;
 }
 /* во вкладке регистрации текст с информацией о требованиях к паролю */
 #id_password1_helptext{
