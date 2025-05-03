@@ -73,13 +73,6 @@ def profile(request: HttpRequest) -> HttpResponse:
             total = course.lessons.count() # Число всех существующих уроков курса, если траектория не задана
         percent = int((completed / total) * 100) if total > 0 else 0
         
-        if course.final_quiz:
-            quiz_passed = QuizResult.objects.filter(
-                user=request.user,
-                quiz_title=course.final_quiz,
-                passed=True
-            ).exists()
-            course_data['quiz_passed'] = quiz_passed
 
         course_data = {
             'course': course,
@@ -88,9 +81,26 @@ def profile(request: HttpRequest) -> HttpResponse:
             'percent': percent
         }
 
+        if course.final_quiz:
+            quiz_passed = QuizResult.objects.filter(
+                user=request.user,
+                quiz_title=course.final_quiz,
+                passed=True
+            ).exists()
+            course_data['quiz_passed'] = quiz_passed
+
+
+
         if percent == 100:
-            finished_courses.append(course_data)
-            exp += 165 # начисляется 150 опыта, т.к. 15 дается за начало курса, а при его завершении эти 15 убираются.
+            user_course_obj = UserCourse.objects.get(user=user, course=course)
+            # Проверяем, завершён ли курс и (если есть тест) пройден ли тест
+            user_course_obj = UserCourse.objects.get(user=user, course=course)
+            if user_course_obj.can_receive_exp():
+                finished_courses.append(course_data)
+                exp += user_course_obj.exp_reward()
+            else:
+                unfinished_courses.append(course_data)
+                exp += 15
         else:
             unfinished_courses.append(course_data)
             exp += 15

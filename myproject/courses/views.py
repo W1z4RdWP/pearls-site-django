@@ -21,7 +21,8 @@ def course_detail(request, slug):
     next_lesson = None
     all_completed = False
     completed_lessons_ids = None
-    exp_earned = 150  # Можно вынести в модель курса
+    user_course = UserCourse.objects.get(user=request.user, course=course)
+    exp_earned = user_course.exp_reward()
     course_author = course.author.username
 
 
@@ -103,8 +104,29 @@ def course_detail(request, slug):
         return redirect('login')
 
     all_completed = has_started and (completed_lessons == total_lessons)
+
+    # Логика показа финального теста
+    show_final_quiz = False
+    if request.user.is_authenticated and has_started:
+        # Если есть финальный тест
+        if course.final_quiz:
+            # Проверяем, завершил ли пользователь тестирование
+            quiz_passed = QuizResult.objects.filter(
+                user=request.user,
+                quiz_title=course.final_quiz.name,  # Важно: используем name, а не объект
+                passed=True
+            ).exists()
+            if quiz_passed:
+                show_final_quiz = True
+        else:
+            # Если теста нет, показываем после завершения всех уроков
+            if completed_lessons == total_lessons:
+                show_final_quiz = True
+    # Если не авторизован или не начал курс, show_final_quiz останется False
+
     # Получаем траекторию пользователя, если она есть
     trajectory = UserLessonTrajectory.objects.filter(user=request.user, course=course).first()
+    
 
     # Обновляем флаг анимации
     if all_completed and user_course and not user_course.course_complete_animation_shown:
@@ -133,6 +155,7 @@ def course_detail(request, slug):
         'shown_animation': user_course.course_complete_animation_shown if user_course else False,
         'exp_earned': exp_earned,
         'lessons':lessons,
+        'show_final_quiz':show_final_quiz,
     })
 
 def course_detail_all(request):

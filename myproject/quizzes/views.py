@@ -4,7 +4,7 @@ from django.views.decorators.http import require_http_methods
 from django.db.models import Count, Exists, OuterRef
 from django.contrib import messages  # Добавлен импорт
 
-from myapp.models import QuizResult
+from myapp.models import QuizResult, UserCourse
 from courses.models import Course  # Добавлен импорт модели Course
 from .models import Quiz, Question, Answer
 from typing import Optional
@@ -23,25 +23,31 @@ def get_questions(request, quiz_id: int = None, is_start: bool = False) -> HttpR
         # Если не стартовая страница, получаем quiz_id из сессии
         if not is_start:
             quiz_id = request.session.get('quiz_id')
-            if not quiz_id:
+            current_question_id = request.session.get('current_question_id')
+            if not quiz_id or not current_question_id:
                 return redirect('quizzes')
 
-        # Сброс сессии при старте нового теста
-        if is_start:
+            # Получаем следующий вопрос
+            question = _get_subsequent_question(quiz_id, current_question_id)
+        else:
+            # Сброс сессии при старте нового теста
             request.session['quiz_id'] = quiz_id
             request.session['score'] = 0
             request.session['current_question_id'] = None
+            
+            # Получаем первый вопрос
+            question = _get_first_question(quiz_id)
 
-        # Получение первого вопроса
-        question = _get_first_question(quiz_id)
-        
         if not question:
             return redirect('get-finish')
         
         # Обновление сессии
         request.session['current_question_id'] = question.id
         answers = Answer.objects.filter(question=question)
-        is_last = not Question.objects.filter(quiz_id=quiz_id, id__gt=question.id).exists()
+        is_last = not Question.objects.filter(
+            quiz_id=quiz_id, 
+            id__gt=question.id
+        ).exists()
 
         # Расчет прогресса
         all_questions_ids = list(Question.objects.filter(quiz_id=quiz_id)
@@ -126,7 +132,6 @@ def get_finish(request) -> HttpResponse:
     passed = percent_score >= 80
     quiz_result = QuizResult.objects.create(
         user=request.user,
-        quiz=quiz,
         quiz_title=quiz.name,
         score=score,
         total_questions=questions_count,

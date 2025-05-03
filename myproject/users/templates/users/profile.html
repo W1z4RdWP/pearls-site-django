@@ -82,7 +82,7 @@
                             class="btn btn-primary">
                                 Перейти к курсу
                             </a>
-                            {% if progress.percent == 100 %}
+                            {% if progress.percent == 100 and finished_courses %}
                             <span class="btn btn-success disabled">
                                 Курс завершен
                             </span>

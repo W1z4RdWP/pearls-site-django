@@ -38,6 +38,30 @@ class UserCourse(models.Model):
     class Meta:
         unique_together = ('user', 'course')
 
+    
+    def is_final_quiz_passed(self):
+        if self.course.final_quiz:
+            return QuizResult.objects.filter(
+                user=self.user,
+                quiz_title=self.course.final_quiz.name,
+                passed=True
+            ).exists()
+        return True  # Если теста нет, считаем что "пройдено"
+
+    def can_receive_exp(self):
+        # Опыт можно получить только если курс завершён и (если есть тест) тест пройден
+        if not self.is_completed:
+            return False
+        if self.course.final_quiz:
+            return self.is_final_quiz_passed()
+        return True
+
+    def exp_reward(self):
+        base_exp = 150
+        if self.course.final_quiz:
+            return int(base_exp * 1.1)  # +10%
+        return base_exp
+
 
     def save(self, *args, **kwargs):
         """Устанавливаем end_date только при первом завершении курса"""
