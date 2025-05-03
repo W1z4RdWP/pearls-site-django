@@ -65,6 +65,18 @@
                         <p class="mt-2">
                             Пройдено уроков: {{ progress.completed }} из {{ progress.total }}
                         </p>
+                        {% if progress.course.final_quiz %}
+                            <div class="quiz-status">
+                            {% if progress.quiz_passed %}
+                                <span class="badge bg-success">Тест пройден</span>
+                            {% else %}
+                                <span class="badge bg-warning">Требуется тест</span>
+                                <a href="{% url 'quiz_start' progress.course.final_quiz.id %}" 
+                                class="btn btn-sm btn-primary">
+                                Пройти тест</a>
+                            {% endif %}
+                            </div>
+                        {% endif %}
                         <div class="btn-group">
                             <a href="{% url 'course_detail' progress.course.slug %}" 
                             class="btn btn-primary">

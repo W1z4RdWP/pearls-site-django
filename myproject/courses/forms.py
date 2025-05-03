@@ -8,7 +8,7 @@ class CourseForm(forms.ModelForm):
     captcha = CaptchaField()
     class Meta:
         model = Course
-        fields = ['title', 'description', 'image', 'slug']
+        fields = ['title', 'description', 'image', 'slug', 'final_quiz']
         labels = {'slug': 'ЧПУ (оставьте пустым для автогенерации)'}
         required = {'slug': False}  # Поле slug не обязательно
         widgets = {

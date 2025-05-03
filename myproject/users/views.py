@@ -73,6 +73,14 @@ def profile(request: HttpRequest) -> HttpResponse:
             total = course.lessons.count() # Число всех существующих уроков курса, если траектория не задана
         percent = int((completed / total) * 100) if total > 0 else 0
         
+        if course.final_quiz:
+            quiz_passed = QuizResult.objects.filter(
+                user=request.user,
+                quiz_title=course.final_quiz,
+                passed=True
+            ).exists()
+            course_data['quiz_passed'] = quiz_passed
+
         course_data = {
             'course': course,
             'completed': completed,

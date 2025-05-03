@@ -4,8 +4,10 @@ from .models import Course, Lesson, UserLessonTrajectory
 
 @admin.register(Course)
 class CourseAdmin(admin.ModelAdmin):
-    list_display = ['title', 'description', 'image', 'slug']
+    list_display = ['title', 'description', 'image', 'slug', 'final_quiz']
     prepopulated_fields = {'slug': ('title',)}
+    autocomplete_fields = ['final_quiz']  # Для удобного поиска тестов
+
 
 
 @admin.register(Lesson)

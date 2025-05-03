@@ -6,7 +6,7 @@ from django.contrib.auth.decorators import login_required, user_passes_test
 from django.views.decorators.http import require_POST
 from .forms import CourseForm, LessonForm
 from .models import Course, Lesson, UserLessonTrajectory
-from myapp.models import UserProgress, UserCourse
+from myapp.models import UserProgress, UserCourse, QuizResult
 from myapp.views import is_admin, is_author_or_admin
 
 
@@ -271,27 +271,58 @@ def edit_lesson(request, lesson_id):
 @require_POST
 def complete_lesson(request, course_slug, lesson_id):
     """Отмечает урок как завершенный и начисляет пользователю опыт"""
-
     if not request.user.is_authenticated:
         return redirect('login')
     
     course = get_object_or_404(Course, slug=course_slug)
     lesson = get_object_or_404(Lesson, id=lesson_id, course=course)
     
-    # Проверяем, что пользователь начал курс
     if not UserCourse.objects.filter(user=request.user, course=course).exists():
         return redirect('course_detail', slug=course.slug)
     
-    # Обновляем прогресс
     UserProgress.objects.update_or_create(
         user=request.user,
         lesson=lesson,
         defaults={'completed': True, 'course': course}
     )
-    
-    # Начисляем опыт пользователю
-    # profile = Profile.objects.get(user=request.user)
-    # profile.exp += 20  # Например, 50 опыта за урок
-    # profile.save()
 
-    return redirect('course_detail', slug=course_slug)
+    # Проверка завершения всех уроков
+    user_course = UserCourse.objects.get(user=request.user, course=course)
+    completed_lessons = UserProgress.objects.filter(
+        user=request.user,
+        course=course,
+        completed=True
+    ).count()
+    all_completed = completed_lessons >= course.lessons.count()
+
+    if all_completed:
+        if course.final_quiz:
+            return redirect('quiz_start', quiz_id=course.final_quiz.id)
+        else:
+            user_course.is_completed = True
+            user_course.save()
+    
+    return redirect('course_detail', slug=course.slug)
+
+
+def complete_course(request, course_id):
+    course = get_object_or_404(Course, id=course_id)
+    user_course = UserCourse.objects.get(user=request.user, course=course)
+    
+    if course.final_quiz:
+        quiz_result = QuizResult.objects.filter(
+            user=request.user,
+            quiz=course.final_quiz,
+            passed=True
+        ).exists()
+        
+        if quiz_result:
+            user_course.is_completed = True
+            user_course.save()
+            return redirect('course_detail', slug=course.slug)
+        else:
+            return redirect('quiz_start', quiz_id=course.final_quiz.id)
+    else:
+        user_course.is_completed = True
+        user_course.save()
+        return redirect('course_detail', slug=course.slug)

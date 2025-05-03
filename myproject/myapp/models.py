@@ -56,6 +56,7 @@ class QuizResult(models.Model):
     total_questions = models.IntegerField()
     percent = models.FloatField()
     completed_at = models.DateTimeField(auto_now_add=True)
+    passed = models.BooleanField(default=False)
 
     class Meta:
         verbose_name = 'Результат теста'

@@ -46,7 +46,15 @@
                     {% if request.user.is_authenticated and has_started %}
                     <p class="text-success">Вы начали этот курс {{ user_course.start_date|date:"d.m.Y" }}</p>
                     {% if all_completed and user_course.end_date %}
-                        <p class="text-success">Курс завершен: {{ user_course.end_date|date:"d.m.Y" }}</p>
+                        {% if course.final_quiz %}
+                            <div class="alert alert-info">
+                                Для завершения курса необходимо пройти финальный тест
+                                <a href="{% url 'quiz_start' quiz_id=course.final_quiz.id %}" class="btn btn-primary">
+                                Пройти тест</a>
+                            </div>
+                        {% else %}
+                            <p class="text-success">Курс завершен: {{ user_course.end_date|date:"d.m.Y" }}</p>
+                        {% endif %}
                     {% endif %}
                     <a href="{% url 'lesson_detail' course.slug next_lesson.id %}" 
                        class="btn btn-primary w-100">
