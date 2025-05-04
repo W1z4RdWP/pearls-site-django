@@ -13,4 +13,5 @@ urlpatterns = [
     path('course/<slug:course_slug>/lesson/<int:lesson_id>/complete/', course_views.complete_lesson, name='complete_lesson'),
     path('course/<slug:slug>/edit/', course_views.edit_course, name='edit_course'),
     path('lesson/<int:lesson_id>/edit/', course_views.edit_lesson, name='edit_lesson'),
+    path('course/<slug:course_slug>/redir_to_quiz/', course_views.redir_to_quiz, name='redir_to_quiz')
 ]

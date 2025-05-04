@@ -114,7 +114,21 @@ legend{
     gap: 25%;
 }
 
+.quiz-status{
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    /* border: 1px solid gray; */
+    margin-bottom: 0.5%;
 
+}
+
+
+.quiz-status span{ /* Выравнивание текста "Требуется тест" по центру внутри своего контейнера */
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
 
 @media (max-width: 768px){
     .content-section {

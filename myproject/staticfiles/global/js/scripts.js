@@ -86,34 +86,3 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
 
-// Переключение между блоками курсов в профиле
-const toggleBtn = document.getElementById('toggle-courses-btn');
-const unfinishedBlock = document.getElementById('unfinished-courses');
-const finishedBlock = document.getElementById('finished-courses');
-
-toggleBtn.addEventListener('click', () => {
-    const isFinishedVisible = finishedBlock.style.display === 'block';
-    
-    finishedBlock.style.display = isFinishedVisible ? 'none' : 'block';
-    unfinishedBlock.style.display = isFinishedVisible ? 'block' : 'none';
-    
-    toggleBtn.textContent = isFinishedVisible 
-        ? 'Показать завершенные курсы' 
-        : 'Показать незавершенные курсы';
-});
-
-document.getElementById('edit-profile-btn').addEventListener('click', function() {
-    document.getElementById('edit-profile-form').style.display = 'block';
-    this.style.display = 'none';
-    document.getElementById('toggle-courses-btn').style.display = 'none'
-    document.querySelector('.progress-bar-user').style.display = 'none'
-});
-
-document.getElementById('cancel-edit-btn').addEventListener('click', function(event) {
-    event.preventDefault();
-    document.getElementById('edit-profile-form').style.display = 'none';
-    document.getElementById('edit-profile-btn').style.display = 'block';
-    document.getElementById('toggle-courses-btn').style.display = 'block'
-    document.querySelector('.progress-bar-user').style.display = 'block'
-});
-// конец блока профиля

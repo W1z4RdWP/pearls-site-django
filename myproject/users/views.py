@@ -6,6 +6,7 @@ from django.contrib.auth import login as auth_login
 from django.contrib.auth.models import User
 from django.contrib.auth.views import LoginView
 
+
 from myapp.models import UserCourse, UserProgress, QuizResult
 from courses.models import UserLessonTrajectory
 from .forms import UserRegisterForm, UserUpdateForm, ProfileUpdateForm
@@ -130,6 +131,8 @@ def profile(request: HttpRequest) -> HttpResponse:
         user_form = UserUpdateForm(instance=request.user)
         profile_form = ProfileUpdateForm(instance=request.user.profile)
 
+    all_lessons_completed = (percent == 100)
+
     return render(request, 'users/profile.html', {
         'user_form': user_form,
         'profile_form': profile_form,
@@ -139,6 +142,7 @@ def profile(request: HttpRequest) -> HttpResponse:
         'progress':int(progress),
         'level': level,
         'quiz_results': quiz_results,
+        'all_lessons_completed': all_lessons_completed,
     })
 
 

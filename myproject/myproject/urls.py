@@ -25,7 +25,7 @@ from debug_toolbar.toolbar import debug_toolbar_urls
 from myapp import views
 from myapp.views import page_not_found_view
 from users import views as user_views
-
+from quizzes.models import Answer
 
 
 urlpatterns = [
@@ -33,15 +33,16 @@ urlpatterns = [
     re_path(r'^static/(?P<path>.*)$', serve,{'document_root': settings.STATIC_ROOT}),
     path('admin/', admin.site.urls),
     path('register/', user_views.register, name='register'),
-    path('', views.index, name='home'),
+    path('', views.IndexView.as_view(), name='home'),
     path('captcha/', include('captcha.urls')),
-    path('about/', views.about, name='about'),
+    path('about/', views.AboutView.as_view(), name='about'),
     path('profile/', user_views.profile, name='profile'),
     path('login/', user_views.CustomLoginView.as_view(), name='login'),
     path('logout/', auth_views.LogoutView.as_view(template_name='users/logout.html'), name='logout'),
     path('courses/', include('courses.urls'), name='courses'),
     path('quizzes/', include('quizzes.urls'), name='quizzes'),
     path('ckeditor5/', include('django_ckeditor_5.urls')),
+    path('error_found/', views.page_not_found_view, {'exception': Answer.MultipleObjectsReturned}, name='error')
 ]
 
 handler404 = 'myapp.views.page_not_found_view'

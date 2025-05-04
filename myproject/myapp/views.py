@@ -1,14 +1,26 @@
 from django.shortcuts import render
 from django.http import HttpResponse, HttpRequest
+from django.views.generic import TemplateView
+
 from .models import Course
 
+class IndexView(TemplateView):
+    """ Класс представление домашней страницы
 
-def index(request: HttpRequest) -> HttpResponse:
-    courses = Course.objects.all()
-    return render(request, 'home.html', {'courses': courses})
+        Attrs:
+            template_name: имя файла для рендера
+            get_context_data: функция передает контекст в шаблон 
+    """
+    template_name = 'home.html'
 
-def about(request: HttpRequest) -> HttpResponse:
-    return render(request, 'about.html')
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['courses'] = Course.objects.all()
+        return context
+
+class AboutView(TemplateView):
+    """Класс представление страницы 'О нас' """
+    template_name = 'about.html'
 
 def is_admin(user) -> bool:
     return user.is_staff

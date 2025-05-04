@@ -112,6 +112,8 @@ def get_answer(request) -> HttpResponse:
         
         except (Answer.DoesNotExist, KeyError):
             return redirect('quizzes')
+        except (Answer.MultipleObjectsReturned):
+            return redirect('error')
     
     return redirect('quizzes')
 
@@ -168,3 +170,16 @@ def _reset_quiz(request) -> HttpRequest:
         if key in request.session:
             del request.session[key]
     return request
+
+def start_quiz_handler(request):
+    if request.method == 'POST':
+        quiz_id = request.POST.get('quiz_id')
+        if not quiz_id:
+            return redirect('quizzes')
+        
+        request.session['quiz_id'] = quiz_id
+        request.session['score'] = 0
+        request.session['current_question_id'] = None
+        return redirect('get-questions', quiz_id=quiz_id)
+    
+    return redirect('quizzes')

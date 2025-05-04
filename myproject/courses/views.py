@@ -3,7 +3,7 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.db.models import Max
 from django.db import transaction
 from django.contrib.auth.decorators import login_required, user_passes_test
-from django.views.decorators.http import require_POST
+from django.views.decorators.http import require_POST, require_http_methods
 from .forms import CourseForm, LessonForm
 from .models import Course, Lesson, UserLessonTrajectory
 from myapp.models import UserProgress, UserCourse, QuizResult
@@ -290,6 +290,20 @@ def edit_lesson(request, lesson_id):
         'lesson': lesson
     })
 
+@require_http_methods(["GET", "POST"])
+def redir_to_quiz(request, course_slug):
+    course = get_object_or_404(Course, slug=course_slug)
+
+    if request.method == 'POST':
+        # Проверяем, какую кнопку нажал пользователь
+        action = request.POST.get('action')
+        if action == 'start_quiz':
+            return redirect('quiz_start', quiz_id=course.final_quiz.id)
+        else:
+            return redirect('profile')
+
+    # GET-запрос - показываем страницу с подтверждением
+    return render(request, 'courses/redir_to_quiz.html', {'course': course})
 
 @require_POST
 def complete_lesson(request, course_slug, lesson_id):
@@ -320,7 +334,8 @@ def complete_lesson(request, course_slug, lesson_id):
 
     if all_completed:
         if course.final_quiz:
-            return redirect('quiz_start', quiz_id=course.final_quiz.id)
+            return redirect('redir_to_quiz', course_slug=course_slug)
+           # return redirect('quiz_start', quiz_id=course.final_quiz.id)
         else:
             user_course.is_completed = True
             user_course.save()
@@ -349,3 +364,5 @@ def complete_course(request, course_id):
         user_course.is_completed = True
         user_course.save()
         return redirect('course_detail', slug=course.slug)
+    
+

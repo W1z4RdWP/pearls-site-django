@@ -10,8 +10,10 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.1/ref/settings/
 """
 
+
 from pathlib import Path
 import os
+
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -59,7 +61,7 @@ INSTALLED_APPS = [
     'crispy_forms',
     'crispy_bootstrap5',
     'django_ckeditor_5',
-    'debug_toolbar',
+    #'debug_toolbar',
     
 
     'myapp',
@@ -72,7 +74,7 @@ X_FRAME_OPTIONS = "SAMEORIGIN"              # allows you to use modals insated o
 SILENCED_SYSTEM_CHECKS = ["security.W019"]  # ignores redundant warning messages
 
 MIDDLEWARE = [
-    'debug_toolbar.middleware.DebugToolbarMiddleware',
+    #'debug_toolbar.middleware.DebugToolbarMiddleware',
     'django.middleware.security.SecurityMiddleware',
     "whitenoise.middleware.WhiteNoiseMiddleware",
     'django.contrib.sessions.middleware.SessionMiddleware',
@@ -123,26 +125,26 @@ WSGI_APPLICATION = 'myproject.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/5.1/ref/settings/#databases
 
-# DATABASES = {
-#     'default': {
-#             'ENGINE': 'django.db.backends.postgresql',
-#             'NAME': os.getenv('DJANGO_DB_NAME'),
-#             'USER': os.getenv('DJANGO_DB_USER'),
-#             'PASSWORD': os.getenv('DJANGO_DB_PASSWD'),
-#             'HOST': os.getenv('DJANGO_DB_HOST'),
-#             'PORT': os.getenv('DJANGO_DB_PORT'),
-#             'OPTIONS' :{
-#                 'client_encoding': 'UTF8',
-#             }
-#     }
-# }
-
 DATABASES = {
-    "default": {
-        "ENGINE": "django.db.backends.sqlite3",
-        "NAME": "mydatabase",
+    'default': {
+            'ENGINE': 'django.db.backends.postgresql',
+            'NAME': os.getenv('DJANGO_DB_NAME'),
+            'USER': os.getenv('DJANGO_DB_USER'),
+            'PASSWORD': os.getenv('DJANGO_DB_PASSWD'),
+            'HOST': os.getenv('DJANGO_DB_HOST'),
+            'PORT': os.getenv('DJANGO_DB_PORT'),
+            'OPTIONS' :{
+                'client_encoding': 'UTF8',
+            }
     }
 }
+
+# DATABASES = {
+#     "default": {
+#         "ENGINE": "django.db.backends.sqlite3",
+#         "NAME": "mydatabase",
+#     }
+# }
 
 # Password validation
 # https://docs.djangoproject.com/en/5.1/ref/settings/#auth-password-validators
@@ -377,3 +379,4 @@ LOGGING = {
 
 # RECAPTCHA_PUBLIC_KEY = os.getenv('RECAPTCHA_PUBLIC_KEY')
 # RECAPTCHA_PRIVATE_KEY = os.getenv('RECAPTCHA_PRIVATE_KEY')
+
