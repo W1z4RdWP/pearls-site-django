@@ -63,10 +63,10 @@
                     {% else %}
                     <form method="POST">
                         {% csrf_token %}
-                        <button type="submit" name="start_course" 
+                        {% comment %} <button type="submit" name="start_course" 
                                 class="btn btn-success w-100">
                             Начать курс
-                        </button>
+                        </button> {% endcomment %}
                         <img src="{% if course.image %}{{ course.image.url }}{% else %}{% static 'imgs/default.jpg' %}{% endif %}" alt="Course Image" id="course_detail_img">
                     </form>
                     {% endif %}

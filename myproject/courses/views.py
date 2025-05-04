@@ -158,20 +158,27 @@ def course_detail(request, slug):
         'show_final_quiz':show_final_quiz,
     })
 
+
 def course_detail_all(request):
-    courses = Course.objects.all()  # Получаем все доступные курсы
+    courses = []
     completed_courses = []
 
     if request.user.is_authenticated:
-        # Получаем список завершенных курсов для текущего пользователя
-        completed_courses = UserCourse.objects.filter(user=request.user, is_completed=True).values_list('course_id', flat=True)
-
+        # Получаем курсы, назначенные пользователю
+        user_courses = UserCourse.objects.filter(user=request.user).values_list('course', flat=True)
+        courses = Course.objects.filter(id__in=user_courses)
+        # Получаем список завершенных курсов
+        completed_courses = UserCourse.objects.filter(
+            user=request.user, 
+            is_completed=True
+        ).values_list('course_id', flat=True)
 
     context = {
         'courses': courses,
         'completed_courses': completed_courses,
     }
     return render(request, 'courses/all_courses_list.html', context)
+
 
 def lesson_detail(request, course_slug, lesson_id):
     if not request.user.is_authenticated:

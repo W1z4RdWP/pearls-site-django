@@ -37,6 +37,8 @@ class UserCourse(models.Model):
 
     class Meta:
         unique_together = ('user', 'course')
+        verbose_name = 'Курс пользователя'
+        verbose_name_plural = 'Курсы пользователей'
 
     
     def is_final_quiz_passed(self):

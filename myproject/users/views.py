@@ -49,7 +49,6 @@ def profile(request: HttpRequest) -> HttpResponse:
         HttpResponse: Ответ с отрендеренным шаблоном профиля.
         Шаблон включает формы для редактирования профиля и список курсов с прогрессом.
     """
-
     user = request.user
     started_courses = UserCourse.objects.filter(user=user).select_related('course')
     unfinished_courses = []
@@ -57,7 +56,8 @@ def profile(request: HttpRequest) -> HttpResponse:
     exp = 0
     level = 1
     quiz_results = QuizResult.objects.filter(user=request.user).order_by('-completed_at')
-    
+    all_lessons_completed = False  # Инициализируем переменную значением по умолчанию
+    percent = 0  # Добавляем инициализацию переменной
 
     for user_course in started_courses:
         course = user_course.course
@@ -66,14 +66,10 @@ def profile(request: HttpRequest) -> HttpResponse:
             course=course,
             completed=True
         ).count()
-        # Получаем траекторию пользователя, если она есть
+
         trajectory = UserLessonTrajectory.objects.filter(user=request.user, course=course).first()
-        if trajectory:
-            total = trajectory.lessons.all().count() # Общее количество уроков в траектории пользователя
-        else:
-            total = course.lessons.count() # Число всех существующих уроков курса, если траектория не задана
+        total = trajectory.lessons.count() if trajectory else course.lessons.count()
         percent = int((completed / total) * 100) if total > 0 else 0
-        
 
         course_data = {
             'course': course,
@@ -90,11 +86,7 @@ def profile(request: HttpRequest) -> HttpResponse:
             ).exists()
             course_data['quiz_passed'] = quiz_passed
 
-
-
         if percent == 100:
-            user_course_obj = UserCourse.objects.get(user=user, course=course)
-            # Проверяем, завершён ли курс и (если есть тест) пройден ли тест
             user_course_obj = UserCourse.objects.get(user=user, course=course)
             if user_course_obj.can_receive_exp():
                 finished_courses.append(course_data)
@@ -106,32 +98,28 @@ def profile(request: HttpRequest) -> HttpResponse:
             unfinished_courses.append(course_data)
             exp += 15
 
-    
+        # Обновляем флаг завершения всех уроков
+        all_lessons_completed = (percent == 100) or all_lessons_completed
+
     # Функция для расчета уровня и прогресса
     def count_exp(exp, level):
         while exp >= level * 100:
             level += 1
         progress = ((exp - ((level - 1) * 100)) / 100) * 100
-        if progress > 100:
-            progress = 100
-        return level, progress
+        return level, min(progress, 100)
 
-    # Рассчитываем уровень и прогресс
     level, progress = count_exp(exp, level)
 
     if request.method == 'POST':
         user_form = UserUpdateForm(request.POST, instance=request.user)
         profile_form = ProfileUpdateForm(request.POST, request.FILES, instance=request.user.profile)
-
         if user_form.is_valid() and profile_form.is_valid():
             user_form.save()
             profile_form.save()
-            return redirect('profile')  # Перенаправление на страницу профиля
+            return redirect('profile')
     else:
         user_form = UserUpdateForm(instance=request.user)
         profile_form = ProfileUpdateForm(instance=request.user.profile)
-
-    all_lessons_completed = (percent == 100)
 
     return render(request, 'users/profile.html', {
         'user_form': user_form,
@@ -139,7 +127,7 @@ def profile(request: HttpRequest) -> HttpResponse:
         'unfinished_courses': unfinished_courses,
         'finished_courses': finished_courses,
         'exp': exp,
-        'progress':int(progress),
+        'progress': int(progress),
         'level': level,
         'quiz_results': quiz_results,
         'all_lessons_completed': all_lessons_completed,
