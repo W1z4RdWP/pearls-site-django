@@ -103,7 +103,21 @@ def course_detail(request, slug):
     else:
         return redirect('login')
 
-    all_completed = has_started and (completed_lessons == total_lessons)
+    if trajectory:
+        total_lessons = trajectory.lessons.count()
+        lesson_ids = trajectory.lessons.values_list('id', flat=True)
+    else:
+        total_lessons = course.lessons.count()
+        lesson_ids = course.lessons.values_list('id', flat=True)
+
+    completed_lessons = UserProgress.objects.filter(
+        user=request.user,
+        course=course,
+        completed=True,
+        lesson_id__in=lesson_ids
+    ).count()
+
+    all_completed = completed_lessons >= total_lessons
 
     # Логика показа финального теста
     show_final_quiz = False
@@ -324,25 +338,43 @@ def complete_lesson(request, course_slug, lesson_id):
     if not UserCourse.objects.filter(user=request.user, course=course).exists():
         return redirect('course_detail', slug=course.slug)
     
+    # Получаем траекторию пользователя
+    trajectory = UserLessonTrajectory.objects.filter(user=request.user, course=course).first()
+    
+    # Проверяем, что урок входит в траекторию пользователя (если траектория задана)
+    if trajectory and lesson not in trajectory.lessons.all():
+        return redirect('course_detail', slug=course.slug)
+
+    # Создаем или обновляем прогресс
     UserProgress.objects.update_or_create(
         user=request.user,
         lesson=lesson,
         defaults={'completed': True, 'course': course}
     )
 
-    # Проверка завершения всех уроков
-    user_course = UserCourse.objects.get(user=request.user, course=course)
+    # Получаем общее количество уроков для пользователя
+    if trajectory:
+        total_lessons = trajectory.lessons.count()
+        lesson_ids = trajectory.lessons.values_list('id', flat=True)
+    else:
+        total_lessons = course.lessons.count()
+        lesson_ids = course.lessons.values_list('id', flat=True)
+
+    # Считаем ТОЛЬКО уроки из траектории
     completed_lessons = UserProgress.objects.filter(
         user=request.user,
         course=course,
-        completed=True
+        completed=True,
+        lesson_id__in=lesson_ids
     ).count()
-    all_completed = completed_lessons >= course.lessons.count()
 
+    all_completed = completed_lessons >= total_lessons
+
+    user_course = UserCourse.objects.get(user=request.user, course=course)
+    
     if all_completed:
         if course.final_quiz:
             return redirect('redir_to_quiz', course_slug=course_slug)
-           # return redirect('quiz_start', quiz_id=course.final_quiz.id)
         else:
             user_course.is_completed = True
             user_course.save()

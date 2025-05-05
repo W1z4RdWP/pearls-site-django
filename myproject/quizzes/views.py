@@ -66,7 +66,7 @@ def get_questions(request, quiz_id: int = None, is_start: bool = False) -> HttpR
             'progress_percent': progress_percent
         })
     
-    return redirect('quizzes')
+    return redirect(request.META['HTTP_REFERER'])
 
 def _get_first_question(quiz_id: int) -> Optional[Question]:
     return Question.objects.filter(quiz_id=quiz_id).order_by('id').first()
@@ -177,9 +177,10 @@ def start_quiz_handler(request):
         if not quiz_id:
             return redirect('quizzes')
         
-        request.session['quiz_id'] = quiz_id
+        # Сохраняем в сессии и перенаправляем на тест
+        request.session['quiz_id'] = int(quiz_id)
         request.session['score'] = 0
         request.session['current_question_id'] = None
-        return redirect('get-questions', quiz_id=quiz_id)
+        return redirect('quiz_start', quiz_id=quiz_id)
     
     return redirect('quizzes')

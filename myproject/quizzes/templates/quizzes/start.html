@@ -13,27 +13,28 @@
             <h2 class="mb-0">Выберите тест</h2>
         </div>
         <div class="card-body">
-            <form method="POST" action="{% url 'get-questions' is_start=True %}">
+            <form method="POST" action="{% url 'quiz_start_handler' %}">
                 {% csrf_token %}
                 <div class="list-group">
                     {% for topic in topics %}
-                    <label class="list-group-item d-flex align-items-center">
-                        <input class="form-check-input me-3" 
-                               type="radio" 
-                               name="quiz_id" 
-                               value="{{ topic.id }}" 
-                               required>
-                        <div>
-                            <h5 class="mb-1">{{ topic.name }}</h5>
-                            <small class="text-muted">{{ topic.questions_count }} вопросов</small>
-                        </div>
-                    </label>
+                        <label class="list-group-item d-flex align-items-center">
+                            <input class="form-check-input me-3" 
+                                   type="radio" 
+                                   name="quiz_id" 
+                                   value="{{ topic.id }}" 
+                                   required>
+                            <div>
+                                <h5 class="mb-1">{{ topic.name }}</h5>
+                                <small class="text-muted">{{ topic.questions_count }} вопросов</small>
+                            </div>
+                        </label>
                     {% empty %}
-                    <div class="alert alert-warning">
-                        На данный момент нет доступных тестов
-                    </div>
+                        <div class="alert alert-warning">
+                            На данный момент нет доступных тестов
+                        </div>
                     {% endfor %}
                 </div>
+                
                 {% if user.is_authenticated %}
                     <button type="submit" class="btn-quiz btn-success mt-4 w-100 py-2">
                         Начать

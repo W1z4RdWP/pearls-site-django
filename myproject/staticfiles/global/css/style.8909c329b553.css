@@ -22,7 +22,7 @@ body {
     background-color: var(--primary-color);
     color: var(--text-color);
     flex-direction: column;
-    font-family: 'Open Sans', sans-serif;
+    font-family: var(--primary-font);
 }
 
 .captcha{
