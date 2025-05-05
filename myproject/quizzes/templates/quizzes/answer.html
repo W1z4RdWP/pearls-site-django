@@ -19,7 +19,30 @@
         
         <div class="answer-result" style="color: black;">
             <h3 class="mb-4">{{ correct_answer.question.text }}</h3>
-            
+
+            {% if question.question_type == 'multiple' %}
+                <div class="card mb-4 {% if is_correct %}border-success{% else %}border-danger{% endif %}">
+                    {% if is_correct %}
+                    <div class="alert alert-success">
+                        ✅ Правильный ответ!
+                    </div>
+                    {% else %}
+                    <div class="alert alert-danger">
+                        ❌ Неверно!
+                        <p class="mb-0 mt-2">{{ correct_answer.text }}</p>
+                    </div>
+                    <div class="card-body">
+                        <h5>Правильные ответы:</h5>
+                        {% for answer in correct_answers %}
+                            <ul>
+                                <li class="mb-0">{{ answer.text }}</li>
+                            </ul>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+
+                </div>
+            {% else %}
             <div class="card mb-4 {% if is_correct %}border-success{% else %}border-danger{% endif %}">
                 <div class="card-body">
                     <h5>Ваш ответ:</h5>
@@ -27,17 +50,17 @@
                 </div>
             </div>
 
-            {% if is_correct %}
-            <div class="alert alert-success">
-                ✅ Правильный ответ!
-            </div>
-            {% else %}
-            <div class="alert alert-danger">
-                ❌ Неверно! Правильный ответ:
-                <p class="mb-0 mt-2">{{ correct_answer.text }}</p>
-            </div>
+                {% if is_correct %}
+                <div class="alert alert-success">
+                    ✅ Правильный ответ!
+                </div>
+                {% else %}
+                <div class="alert alert-danger">
+                    ❌ Неверно! Правильный ответ:
+                    <p class="mb-0 mt-2">{{ correct_answer.text }}</p>
+                </div>
+                {% endif %}
             {% endif %}
-            
             <button type="submit" class="btn-quiz btn-primary w-100">
                 {% if is_last %}Завершить тест{% else %}Следующий вопрос →{% endif %}
             </button>

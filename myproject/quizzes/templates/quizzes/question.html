@@ -32,11 +32,18 @@
                 <div class="list-group">
                     {% for answer in answers %}
                     <label class="list-group-item d-flex align-items-center">
-                        <input class="form-check-input me-3" 
-                               type="radio" 
-                               name="answer_id" 
-                               value="{{ answer.id }}" 
-                               required>
+                        {% if question.question_type == 'multiple' %}
+                            <input class="form-check-input me-3" 
+                            type="checkbox" 
+                            name="answer_ids" 
+                            value="{{ answer.id }}">
+                        {% else %}
+                            <input class="form-check-input me-3" 
+                                type="radio" 
+                                name="answer_id" 
+                                value="{{ answer.id }}" 
+                                required>
+                        {% endif %}
                         <span>{{ answer.text }}</span>
                     </label>
                     {% endfor %}

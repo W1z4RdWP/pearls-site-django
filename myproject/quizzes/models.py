@@ -14,8 +14,20 @@ class Quiz(models.Model):
     return f"{self.name}" # Так будет отображаться в админ панели
 
 class Question(models.Model):
+  SINGLE = 'single'
+  MULTIPLE = 'multiple'
+  QUESTION_TYPES = [
+      (SINGLE, 'Один правильный ответ'),
+      (MULTIPLE, 'Несколько правильных ответов'),
+  ]
+
   quiz = models.ForeignKey(Quiz, on_delete=models.CASCADE)
   text = models.CharField(max_length=300)
+  question_type = models.CharField(
+      max_length=10,
+      choices=QUESTION_TYPES,
+      default=SINGLE
+  )
 
   class Meta:
     verbose_name = "Вопрос"
