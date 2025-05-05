@@ -26,6 +26,12 @@
                     <div class="alert alert-success">
                         ✅ Правильный ответ!
                     </div>
+                    <h5>Правильные ответы:</h5>
+                    {% for answer in correct_answers %}
+                        <ul>
+                            <li class="mb-0">{{ answer.text }}</li>
+                        </ul>
+                    {% endfor %}
                     {% else %}
                     <div class="alert alert-danger">
                         ❌ Неверно!

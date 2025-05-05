@@ -5,6 +5,7 @@ from django.http import HttpRequest, HttpResponse
 from django.contrib.auth import login as auth_login
 from django.contrib.auth.models import User
 from django.contrib.auth.views import LoginView
+from django.core.paginator import Paginator, PageNotAnInteger, EmptyPage
 
 
 from myapp.models import UserCourse, UserProgress, QuizResult
@@ -56,8 +57,23 @@ def profile(request: HttpRequest) -> HttpResponse:
     exp = 0
     level = 1
     quiz_results = QuizResult.objects.filter(user=request.user).order_by('-completed_at')
-    all_lessons_completed = False  # Инициализируем переменную значением по умолчанию
-    percent = 0  # Добавляем инициализацию переменной
+    # Пагинация для истории тестов
+    paginator = Paginator(quiz_results, 4)  # 4 элементов на странице
+    page_number = request.GET.get('page', 1)
+
+    try:
+        page_obj = paginator.page(page_number)
+    except PageNotAnInteger:
+        page_obj = paginator.page(1)
+    except EmptyPage:
+        page_obj = paginator.page(paginator.num_pages)
+
+        # Проверка на AJAX-запрос
+    if request.headers.get('x-requested-with') == 'XMLHttpRequest':
+        return render(request, 'users/_quiz_history.html', {'page_obj': page_obj})
+
+    all_lessons_completed = False
+    percent = 0 
 
     for user_course in started_courses:
         course = user_course.course
@@ -130,6 +146,7 @@ def profile(request: HttpRequest) -> HttpResponse:
         'progress': int(progress),
         'level': level,
         'quiz_results': quiz_results,
+        'page_obj': page_obj,
         'all_lessons_completed': all_lessons_completed,
     })
 
