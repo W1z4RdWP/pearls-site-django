@@ -693,7 +693,9 @@ footer {
 
 /* Форма обратной связи */
 .feedback-block{
-    border: 5px solid red;
+    border: 5px solid rgb(104, 104, 104);    
+    box-shadow: -7px -5px 7px #706f6f,
+                7px -1px 7px #706f6f;
     padding: 2%;
 }
 
@@ -807,9 +809,6 @@ footer {
         position: absolute;
         bottom: 25%;
         right: 80%;
-        
-        
-
     }
     
     #doc2_image {
@@ -818,8 +817,7 @@ footer {
         bottom: 5%;
         right: 0;
         
-         z-index: 2;  /* Индекс для наложения поверх текста section__inner-text во время наведения курсора*/
-
+        z-index: 2;  /* Индекс для наложения поверх текста section__inner-text во время наведения курсора*/
     }
 
     main > section > .text-block-2 {
