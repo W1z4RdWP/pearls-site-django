@@ -67,7 +67,8 @@ INSTALLED_APPS = [
     'myapp',
     'users',
     'courses',
-    'quizzes'
+    'quizzes',
+    'feedback'
 ]
 
 X_FRAME_OPTIONS = "SAMEORIGIN"              # allows you to use modals insated of popups
@@ -125,26 +126,26 @@ WSGI_APPLICATION = 'myproject.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/5.1/ref/settings/#databases
 
-DATABASES = {
-    'default': {
-            'ENGINE': 'django.db.backends.postgresql',
-            'NAME': os.getenv('DJANGO_DB_NAME'),
-            'USER': os.getenv('DJANGO_DB_USER'),
-            'PASSWORD': os.getenv('DJANGO_DB_PASSWD'),
-            'HOST': os.getenv('DJANGO_DB_HOST'),
-            'PORT': os.getenv('DJANGO_DB_PORT'),
-            'OPTIONS' :{
-                'client_encoding': 'UTF8',
-            }
-    }
-}
-
 # DATABASES = {
-#     "default": {
-#         "ENGINE": "django.db.backends.sqlite3",
-#         "NAME": "mydatabase",
+#     'default': {
+#             'ENGINE': 'django.db.backends.postgresql',
+#             'NAME': os.getenv('DJANGO_DB_NAME'),
+#             'USER': os.getenv('DJANGO_DB_USER'),
+#             'PASSWORD': os.getenv('DJANGO_DB_PASSWD'),
+#             'HOST': os.getenv('DJANGO_DB_HOST'),
+#             'PORT': os.getenv('DJANGO_DB_PORT'),
+#             'OPTIONS' :{
+#                 'client_encoding': 'UTF8',
+#             }
 #     }
 # }
+
+DATABASES = {
+    "default": {
+        "ENGINE": "django.db.backends.sqlite3",
+        "NAME": "mydatabase",
+    }
+}
 
 # Password validation
 # https://docs.djangoproject.com/en/5.1/ref/settings/#auth-password-validators

@@ -36,6 +36,7 @@ urlpatterns = [
     path('', views.IndexView.as_view(), name='home'),
     path('captcha/', include('captcha.urls')),
     path('about/', views.AboutView.as_view(), name='about'),
+    path('feedback/', include('feedback.urls'), name='feedback'),
     path('profile/', user_views.profile, name='profile'),
     path('login/', user_views.CustomLoginView.as_view(), name='login'),
     path('logout/', auth_views.LogoutView.as_view(template_name='users/logout.html'), name='logout'),

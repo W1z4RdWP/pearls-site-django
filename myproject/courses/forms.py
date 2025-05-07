@@ -71,3 +71,4 @@ class LessonForm(forms.ModelForm):
             raise forms.ValidationError("Некорректная ссылка на Rutube. Пример правильной ссылки: https://rutube.ru/video/abcdef12345/")
             
         return match.group(1)
+    

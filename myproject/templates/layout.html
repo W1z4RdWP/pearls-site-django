@@ -60,6 +60,12 @@
                                 </li>
                             {% endif %}
                             <li class="nav-item">
+                                <a class="nav-link" href="{% url 'notifications' %}">
+                                    Уведомления 
+                                    {% if unread_count %}<span class="badge bg-danger">{{ unread_count }}</span>{% endif %}
+                                </a>
+                            </li>
+                            <li class="nav-item">
                                 <a class="nav-link" href="{% url 'profile' %}">Профиль</a>
                             </li>
                             <li class="nav-item">

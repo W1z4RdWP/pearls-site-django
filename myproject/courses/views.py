@@ -1,6 +1,6 @@
 from django.utils import timezone
 from django.shortcuts import render, redirect, get_object_or_404
-from django.db.models import Max
+from django.db.models import Max, Q
 from django.db import transaction
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.views.decorators.http import require_POST, require_http_methods
@@ -8,6 +8,8 @@ from .forms import CourseForm, LessonForm
 from .models import Course, Lesson, UserLessonTrajectory
 from myapp.models import UserProgress, UserCourse, QuizResult
 from myapp.views import is_admin, is_author_or_admin
+from feedback.models import CourseMessage
+from feedback.forms import CourseMessageForm
 
 
 
@@ -155,6 +157,37 @@ def course_detail(request, slug):
         lessons = trajectory.lessons.all()
     else:
          lessons = course.lessons.all()
+
+    # Обработка сообщений
+    if request.user.is_authenticated:
+        course_messages = CourseMessage.objects.filter(
+                course=course
+            ).filter(
+                Q(sender=request.user) |  # Сообщения, которые студент отправил
+                Q(recipient=request.user)  # Сообщения, которые студент получил
+            ).order_by('-timestamp')
+    else:
+        course_messages = []
+    
+    if request.method == 'POST' and 'send_message' in request.POST:
+        form = CourseMessageForm(request.POST)
+        if form.is_valid():
+            message = form.save(commit=False)
+            message.course = course
+            message.sender = request.user
+            message.recipient = course.author
+                        # Определение получателя:
+            parent_id = request.POST.get('parent_id')
+            if parent_id:
+                parent = CourseMessage.objects.get(id=parent_id)
+                message.recipient = parent.sender  # Ответ отправляется отправителю исходного сообщения
+            else:
+                message.recipient = course.author  # Новое сообщение отправляется автору курса
+            message.save()
+            return redirect('course_detail', slug=slug)
+    else:
+        form = CourseMessageForm()
+
     return render(request, 'courses/course_detail.html', {
         'course': course,
         'course_author': course_author,
@@ -170,6 +203,8 @@ def course_detail(request, slug):
         'exp_earned': exp_earned,
         'lessons':lessons,
         'show_final_quiz':show_final_quiz,
+        'message_form':form,
+        'course_messages': course_messages,
     })
 
 
@@ -404,4 +439,5 @@ def complete_course(request, course_id):
         user_course.save()
         return redirect('course_detail', slug=course.slug)
     
+
 

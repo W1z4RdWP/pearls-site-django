@@ -1,0 +1,25 @@
+{% extends 'layout.html' %}
+{% block content %}
+<div class="container mt-4">
+    <h2>Входящие сообщения</h2>
+    <a href="{% url 'send_feedback' %}" class="btn btn-success mb-3">Новое сообщение</a>
+    
+    {% for message in messages %}
+    <div class="card mb-2 {% if not message.is_read %}border-primary{% endif %}">
+        <div class="card-body">
+            <h5 class="card-title">
+                От: {{ message.sender.get_full_name|default:message.sender.username }}
+                {% if message.course %} (Курс: {{ message.course.title }}){% endif %}
+            </h5>
+            <p class="card-text">{{ message.message|truncatechars:100 }}</p>
+            <a href="{% url 'message_detail' message.id %}" class="btn btn-sm btn-outline-primary">
+                Подробнее
+            </a>
+            <small class="text-muted float-end">{{ message.timestamp }}</small>
+        </div>
+    </div>
+    {% empty %}
+    <div class="alert alert-info">Нет сообщений</div>
+    {% endfor %}
+</div>
+{% endblock %}

@@ -691,6 +691,20 @@ footer {
     width: var(--btn-width-at-lesson-detail);
 }
 
+/* Форма обратной связи */
+.feedback-block{
+    border: 5px solid red;
+    padding: 2%;
+}
+
+.message-avatar {
+    width: 32px;
+    height: 32px;
+    object-fit: cover;
+    border-radius: 50%;
+}
+
+
 /* Анимация завершения курса */
 .completion-animation {
     /* Убираем display: none из стилей */

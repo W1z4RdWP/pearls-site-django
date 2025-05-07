@@ -1,0 +1,28 @@
+{% extends 'layout.html' %}
+{% block content %}
+<div class="container mt-4">
+    <h2>Уведомления</h2>
+    
+    {% for msg in messages %}
+    <div class="card mb-3">
+        <div class="card-body">
+            <h5 class="card-title">
+                Новое сообщение в курсе "{{ msg.course.title }}"
+            </h5>
+            <p class="card-text">{{ msg.message }}</p>
+            <div class="d-flex justify-content-between align-items-center">
+                <a href="{% url 'course_detail' msg.course.slug %}" class="btn btn-sm btn-primary">
+                    Перейти к курсу
+                </a>
+                <small class="text-muted">
+                    От: {{ msg.sender.get_full_name|default:msg.sender.username }}
+                    ({{ msg.timestamp|date:"d.m.Y H:i" }})
+                </small>
+            </div>
+        </div>
+    </div>
+    {% empty %}
+    <div class="alert alert-info">Нет новых уведомлений</div>
+    {% endfor %}
+</div>
+{% endblock %}

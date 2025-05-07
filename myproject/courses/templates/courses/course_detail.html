@@ -39,7 +39,8 @@
                 {% endfor %}
             </div>
         </div>
-        
+
+
         <div class="col-md-4">
             <div class="card">
                 <div class="card-body">
@@ -56,10 +57,13 @@
                             <p class="text-success">Курс завершен: {{ user_course.end_date|date:"d.m.Y" }}</p>
                         {% endif %}
                     {% endif %}
-                    <a href="{% url 'lesson_detail' course.slug next_lesson.id %}" 
-                       class="btn btn-primary w-100">
-                        Продолжить обучение
-                    </a>
+                        {% if next_lesson.id %}
+                            <a href="{% url 'lesson_detail' course.slug next_lesson.id %}" 
+                            class="btn btn-primary w-100">
+                                Продолжить обучение
+                            </a>
+                    
+                        {% endif %}
                     {% else %}
                     <form method="POST">
                         {% csrf_token %}
@@ -98,5 +102,110 @@
             </div>
         </div>
     {% endif %}
+</div>
+        
+<div class="feedback-block mt-5">
+    {% if not request.user.username == course_author %}
+        <!-- Форма отправки нового сообщения -->
+        {% if has_started %}
+        <form method="POST" class="mb-4">
+            {% csrf_token %}
+            <textarea name="message" class="form-control" rows="3" placeholder="Введите ваше сообщение..." required></textarea>
+            <button type="submit" name="send_message" class="btn btn-primary mt-2">
+                Отправить сообщение
+            </button>
+        </form>
+        {% endif %}
+        <h4>Общение с куратором</h4>
+    {% else %}
+        <h4>Общение со студентами</h4>
+    {% endif %}
+    
+    <!-- История переписки -->
+    <div class="message-history">
+        {% for msg in course_messages %}
+        <div class="card mb-3 {% if msg.recipient == request.user and not msg.is_read %}border-primary{% endif %}">
+            <div class="card-body">
+                <!-- Заголовок сообщения -->
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <div class="d-flex align-items-center gap-2">
+
+                        <div>
+                            <strong>
+                                {% if msg.sender == request.user %}
+                                    <!-- Аватарка отправителя -->
+                                    <img class="message-avatar" 
+                                    src="{{ msg.sender.profile.image.url|default:'https://via.placeholder.com/150' }}" 
+                                    alt="{{ msg.sender.username }}" 
+                                    style="width: 32px; height: 32px; object-fit: cover;">
+                                    Вы → {{ msg.recipient.get_full_name|default:msg.recipient.username }}
+                                     <!-- Аватарка получателя -->
+                                    <img class="rounded-circle" 
+                                    src="{{ msg.recipient.profile.image.url|default:'https://via.placeholder.com/150' }}" 
+                                    alt="{{ msg.recipient.username }}" 
+                                    style="width: 32px; height: 32px; object-fit: cover;">
+                                {% else %}
+                                    <!-- Аватарка отправителя -->
+                                    <img class="message-avatar" 
+                                    src="{{ msg.sender.profile.image.url|default:'https://via.placeholder.com/150' }}" 
+                                    alt="{{ msg.sender.username }}" 
+                                    style="width: 32px; height: 32px; object-fit: cover;">
+                                    {{ msg.sender.get_full_name|default:msg.sender.username }} → Вам                             
+                                    <!-- Аватарка получателя -->
+                                    <img class="message-avatar" 
+                                        src="{{ msg.recipient.profile.image.url|default:'https://via.placeholder.com/150' }}" 
+                                        alt="{{ msg.recipient.username }}" 
+                                        style="width: 32px; height: 32px; object-fit: cover;">
+                                {% endif %}
+                            </strong>
+                            <small class="text-muted ms-2">{{ msg.timestamp|date:"d.m.Y H:i" }}</small>
+                        </div>
+                    </div>
+                    
+                    {% if msg.recipient == request.user and not msg.is_read %}
+                        <span class="badge bg-primary">Новое</span>
+                    {% endif %}
+                </div>
+
+                <!-- Текст сообщения -->
+                <p class="mb-0">{{ msg.message }}</p>
+
+                <!-- Форма ответа -->
+                {% if msg.recipient == request.user %}
+                <form method="POST" class="mt-3">
+                    {% csrf_token %}
+                    <input type="hidden" name="parent_id" value="{{ msg.id }}">
+                    <textarea name="message" class="form-control" rows="2" placeholder="Введите ответ..." required></textarea>
+                    <button type="submit" name="send_message" class="btn btn-sm btn-outline-primary mt-2">
+                        Ответить
+                    </button>
+                </form>
+                {% endif %}
+
+                <!-- Ответы -->
+                {% for reply in msg.get_replies %}
+                <div class="ms-4 mt-3 border-start ps-3">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <small class="text-muted">
+                                {% if reply.sender == request.user %}
+                                    Вы ответили:
+                                {% else %}
+                                    {{ reply.sender.username }} ответил:
+                                {% endif %}
+                                <span>{{ reply.timestamp|date:"d.m.Y H:i" }}</span>
+                            </small>
+                            <p class="mt-1">{{ reply.message }}</p>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        {% empty %}
+            <div class="alert alert-info">Нет сообщений</div>
+        {% endfor %}
+    </div>
 </div>
 {% endblock %}
