@@ -41,13 +41,15 @@ INTERNAL_IPS = [
 ]
 
 
-
+1
 # Application definition
 
 INSTALLED_APPS = [
 
     "admin_interface",
     "colorfield",
+    'dal',
+    'dal_select2',
 
     'django.contrib.admin',
     'django.contrib.auth',
@@ -61,6 +63,7 @@ INSTALLED_APPS = [
     'crispy_forms',
     'crispy_bootstrap5',
     'django_ckeditor_5',
+    'nested_admin',
     #'debug_toolbar',
     
 
@@ -142,7 +145,7 @@ DATABASES = {
 # DATABASES = {
 #     "default": {
 #         "ENGINE": "django.db.backends.sqlite3",
-#         "NAME": "mydatabase",
+#         "NAME": "sqlite3.sql",
 #     }
 # }
 

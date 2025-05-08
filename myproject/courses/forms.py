@@ -1,5 +1,5 @@
 from django import forms
-from .models import Course, Lesson
+from .models import Course, Lesson, UserLessonTrajectory
 from django_ckeditor_5.fields import CKEditor5Widget
 from captcha.fields import CaptchaField
 import re
@@ -71,3 +71,30 @@ class LessonForm(forms.ModelForm):
             raise forms.ValidationError("Некорректная ссылка на Rutube. Пример правильной ссылки: https://rutube.ru/video/abcdef12345/")
             
         return match.group(1)
+    
+
+class UserLessonTrajectoryForm(forms.ModelForm):
+    class Meta:
+        model = UserLessonTrajectory
+        fields = '__all__'
+        widgets = {
+            'course': forms.Select(attrs={'onchange': 'this.form.submit();'})
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if self.instance and self.instance.pk:
+            self.fields['course'].disabled = True
+
+    def clean(self):
+        cleaned_data = super().clean()
+        course = cleaned_data.get('course')
+        lessons = cleaned_data.get('lessons')
+
+        if course and lessons:
+            for lesson in lessons:
+                if lesson.course != course:
+                    raise forms.ValidationError(
+                        f"Урок '{lesson.title}' не принадлежит выбранному курсу."
+                    )
+        return cleaned_data
