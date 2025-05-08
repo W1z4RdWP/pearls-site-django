@@ -32,7 +32,7 @@ urlpatterns = [
     re_path(r'^media/(?P<path>.*)$', serve,{'document_root': settings.MEDIA_ROOT}),
     re_path(r'^static/(?P<path>.*)$', serve,{'document_root': settings.STATIC_ROOT}),
     path('admin/', admin.site.urls),
-    path('register/', user_views.register, name='register'),
+    path('register/', user_views.RegisterView.as_view(), name='register'),
     path('', views.IndexView.as_view(), name='home'),
     path('captcha/', include('captcha.urls')),
     path('about/', views.AboutView.as_view(), name='about'),

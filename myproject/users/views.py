@@ -6,34 +6,24 @@ from django.contrib.auth import login as auth_login
 from django.contrib.auth.models import User
 from django.contrib.auth.views import LoginView
 from django.core.paginator import Paginator, PageNotAnInteger, EmptyPage
-
+from django.views.generic import FormView
+from django.urls import reverse_lazy
 
 from myapp.models import UserCourse, UserProgress, QuizResult
 from courses.models import UserLessonTrajectory
 from .forms import UserRegisterForm, UserUpdateForm, ProfileUpdateForm
  
 
-def register(request: HttpRequest) -> HttpResponse:
-    """
-    Обрабатывает регистрацию нового пользователя.
 
-    Args:
-        request (HttpRequest): Объект запроса.
+class RegisterView(FormView):
+    form_class = UserRegisterForm
+    template_name = 'users/register.html'
+    success_url = reverse_lazy('home')
 
-    Returns:
-        HttpResponse: Ответ с отрендеренным шаблоном или редирект на главную страницу.
-    """
-        
-    if request.method == 'POST':
-        form = UserRegisterForm(request.POST)
-        if form.is_valid():
-            form.save()
-            username = form.cleaned_data.get('username')
-            messages.success(request, f'Создан аккаунт {username}!')
-            return redirect('home')
-    else:
-        form = UserRegisterForm()
-    return render(request, 'users/register.html', {'form': form})
+    def form_valid(self, form):
+        form.save()
+        return super().form_valid(form)
+
 
 
 
