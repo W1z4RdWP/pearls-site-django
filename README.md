@@ -8,3 +8,6 @@
 6) Перейдите в папку проекта `cd myproject`
 7) Убедитесь что сделаны все актуальные миграции в БД. `python manage.py migrate`
 8) Запустите сервер: `python manage.py runserver 0.0.0.0:8080` или `gunicorn --bind 0.0.0.0:8000 myproject.wsgi`
+
+
+### Dockerized
