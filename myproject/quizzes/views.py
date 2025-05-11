@@ -3,16 +3,35 @@ from django.http import HttpRequest, HttpResponse
 from django.views.decorators.http import require_http_methods
 from django.db.models import Count, Exists, OuterRef
 from django.contrib import messages  # Добавлен импорт
+from django.views.generic import DetailView, TemplateView
 
 from myapp.models import QuizResult, UserCourse
 from courses.models import Course  # Добавлен импорт модели Course
 from .models import Quiz, Question, Answer
+from .utils import DataMixin
+
 from typing import Optional
 
 
-def start_quiz_view(request) -> HttpResponse:
-    topics = Quiz.objects.annotate(questions_count=Count('question'))
-    return render(request, 'quizzes/start.html', {'topics': topics})
+class StartQuizView(DataMixin, TemplateView):
+    """
+    Класс представление для рендера стартовой страницы тестов.
+
+    Атрибуты:
+     - template_name - путь к шаблону;
+     - get_context_data() - в шаблон передается переменная topics, которая возвращает количество вопросов в каждом тесте
+    """
+    template_name = 'quizzes/start.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        return self.get_mixin_context(context, topics=Quiz.objects.annotate(questions_count=Count('question')))
+        # context['topics'] = Quiz.objects.annotate(questions_count=Count('question'))
+        # return context
+
+# def start_quiz_view(request) -> HttpResponse:
+#     topics = Quiz.objects.annotate(questions_count=Count('question'))
+#     return render(request, 'quizzes/start.html', {'topics': topics})
 
 def get_questions(request, quiz_id: int = None, is_start: bool = False) -> HttpResponse:
     if request.method == 'POST' or is_start:

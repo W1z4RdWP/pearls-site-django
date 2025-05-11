@@ -28,16 +28,7 @@ class UserRegisterForm(UserCreationForm):
         model = User
         fields = ['username', 'email', 'password1', 'password2']
 
-
-        # TODO: Проверить будет ли работать регистрация/авторизация после следующих миграций. Если все работает - удалить закомментированную область. 
-    # def save(self, commit=True): 
-    #     user = super().save(commit=False)
-    #     user.is_active = True # Пользователь активен, но не подтвержден
-    #     if commit: 
-    #         user.save()
-    #         Profile.objects.get_or_create(user=user) # Создаем профиль
-    #     return user
-
+    
 
 
 
