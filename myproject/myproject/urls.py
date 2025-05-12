@@ -14,36 +14,39 @@ Including another URLconf
     1. Import the include() function: from django.urls import include, path
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
+
 from django.contrib import admin
 from django.contrib.auth import views as auth_views
-from django.urls import path, include
+from django.urls import path, include, re_path
+from django.views.static import serve
 from django.conf import settings
 from django.conf.urls.static import static
+from debug_toolbar.toolbar import debug_toolbar_urls
 from myapp import views
 from myapp.views import page_not_found_view
 from users import views as user_views
-
-
+from quizzes.models import Answer
 
 
 urlpatterns = [
+    re_path(r'^media/(?P<path>.*)$', serve,{'document_root': settings.MEDIA_ROOT}),
+    re_path(r'^static/(?P<path>.*)$', serve,{'document_root': settings.STATIC_ROOT}),
     path('admin/', admin.site.urls),
-    path('register/', user_views.register, name='register'),
-    path('', views.index, name='home'),
+    path('register/', user_views.RegisterView.as_view(), name='register'),
+    path('', views.IndexView.as_view(), name='home'),
     path('captcha/', include('captcha.urls')),
-    path('about/', views.about, name='about'),
+    path('about/', views.AboutView.as_view(), name='about'),
     path('profile/', user_views.profile, name='profile'),
-    path('login/', auth_views.LoginView.as_view(template_name='users/login.html'), name='login'),
+    path('login/', user_views.CustomLoginView.as_view(), name='login'),
     path('logout/', auth_views.LogoutView.as_view(template_name='users/logout.html'), name='logout'),
-    path('create-course/', views.create_course, name='create-course'),
-    path('course/<slug:slug>/', views.course_detail, name='course_detail'),
-    path('course/<slug:course_slug>/lesson/<int:lesson_id>/', views.lesson_detail, name='lesson_detail'),
-    path('course/<slug:course_slug>/create-lesson/', views.create_lesson, name='create_lesson'),
-    path('course/<slug:slug>/delete/', views.delete_course, name='delete_course'),
-    path('lesson/<int:lesson_id>/delete/', views.delete_lesson, name='delete_lesson'),
+    path('courses/', include('courses.urls'), name='courses'),
+    path('quizzes/', include('quizzes.urls'), name='quizzes'),
+    path('ckeditor5/', include('django_ckeditor_5.urls')),
+    path('error_found/', views.page_not_found_view, {'exception': Answer.MultipleObjectsReturned}, name='error')
 ]
 
 handler404 = 'myapp.views.page_not_found_view'
 
 if settings.DEBUG:
+    urlpatterns.extend(debug_toolbar_urls())
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

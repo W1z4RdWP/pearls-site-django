@@ -1,79 +1,41 @@
-from django.shortcuts import render, redirect, get_object_or_404
+from django.shortcuts import render
 from django.http import HttpResponse, HttpRequest
-from django.contrib.auth.decorators import login_required, user_passes_test
-from .forms import CourseForm, LessonForm
-from .models import Course, Lesson
+from django.views.generic import TemplateView
 
-def index(request: HttpRequest) -> HttpResponse:
-    courses = Course.objects.all()
-    return render(request, 'home.html', {'courses': courses})
+from .models import Course, UserCourse
+from courses.models import Course as CourseModel
 
-def course_detail(request, slug):
-    course = get_object_or_404(Course, slug=slug)
-    lessons = course.lessons.all()
-    return render(request, 'course_detail.html', {'course': course, 'lessons': lessons})
+class IndexView(TemplateView):
+    """Класс представление домашней страницы
 
-def lesson_detail(request, course_slug, lesson_id):
-    course = get_object_or_404(Course, slug=course_slug)
-    lesson = get_object_or_404(Lesson, id=lesson_id, course=course)
-    return render(request, 'lesson_detail.html', {'lesson': lesson})
+        Attrs:
+            template_name: имя файла для рендера
+            get_context_data: функция передает контекст в шаблон 
+    """
+    template_name = 'home.html'
 
-def about(request: HttpRequest) -> HttpResponse:
-    return render(request, 'about.html')
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        user = self.request.user
+        
+        if user.is_authenticated:
+            # Получаем курсы, назначенные пользователю через UserCourse
+            user_courses = UserCourse.objects.filter(user=user).values_list('course', flat=True)
+            context['courses'] = CourseModel.objects.filter(id__in=user_courses)
+        else:
+            context['courses'] = []
+            
+        return context
 
-def profile(request: HttpRequest) -> HttpResponse:
-    return render(request, 'profile.html')
+class AboutView(TemplateView):
+    """Класс представление страницы 'О нас' """
+    template_name = 'about.html'
 
 def is_admin(user) -> bool:
     return user.is_staff
 
+def is_author_or_admin(user, course):
+    return user.is_staff or user == course.author
+
 def page_not_found_view(request, exception):
     return render(request, '404.html', status=404)
-
-@login_required
-@user_passes_test(is_admin, login_url='/')
-def create_course(request):
-    if request.method == 'POST':
-        form = CourseForm(request.POST, request.FILES)
-        if form.is_valid():
-            course = form.save(commit=False)
-            course.author = request.user
-            course.save()
-            return redirect('home')
-    else:
-        form = CourseForm()
-    return render(request, 'create_course.html', {'form': form})
-
-@login_required
-def create_lesson(request, course_slug):
-    course = get_object_or_404(Course, slug=course_slug)
-    if request.method == 'POST':
-        form = LessonForm(request.POST)
-        if form.is_valid():
-            lesson = form.save(commit=False)
-            lesson.course = course
-            lesson.save()
-            return redirect('course_detail', course_slug)
-    else:
-        form = LessonForm()
-    return render(request, 'create_lesson.html', {'form': form, 'course': course})
-
-
-@login_required
-@user_passes_test(is_admin, login_url='/')
-def delete_course(request, slug):
-    course = get_object_or_404(Course, slug=slug)
-    if request.method == 'POST':
-        course.delete()
-        return redirect('home')
-    return redirect('course_detail', slug=slug)
-
-
-@login_required
-@user_passes_test(is_admin, login_url='/')
-def delete_lesson(request, lesson_id):
-    lesson = get_object_or_404(Lesson, id=lesson_id)
-    course_slug = lesson.course.slug
-    if request.method == 'POST':
-        lesson.delete()
-    return redirect('course_detail', course_slug)

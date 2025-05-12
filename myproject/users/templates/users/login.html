@@ -3,6 +3,7 @@
 
 {% load crispy_forms_tags %}
 {% block content %}
+
     <div class="content-section">
         <form method="POST">
             {% csrf_token %}
@@ -15,8 +16,11 @@
             </div>
         </form>
         <div class="border-top pt-3">
-            <small class="text-muted">
-                Нужен аккаунт? <a class="ml-2" href="{% url 'register' %}">Регистрация</a>
+            <small class="login-out-actions">
+                Нужен аккаунт? 
+                <a class="btn btn-primary btn-sm ml-2" href="{% url 'register' %}">
+                    Регистрация
+                </a>
             </small>
         </div>
     </div>

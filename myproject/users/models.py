@@ -11,21 +11,30 @@ class Profile(models.Model):
     Attributes:
         user (User): Связь один-к-одному с моделью User.
         image (ImageField): Изображение профиля. По умолчанию используется 'profile_pics/default.jpg'.
+        bio (TextField): Текстовое поле с информацией о пользователе.
+        is_approved (BooleanField): Провряет, подтвердил ли администратор регистрацию пользователя.
+
     """
 
     user = models.OneToOneField(User, on_delete=models.CASCADE)
     image = models.ImageField(default='profile_pics/default.jpg', upload_to='profile_pics')
-    bio = models.TextField(max_length=255, blank=True, null=True, verbose_name="О себе")
-    
+    bio = models.TextField(max_length=500, blank=True, null=True, verbose_name="О себе")
+    is_approved = models.BooleanField(default=False, verbose_name="Подвтерждение администратором")
+
+    class Meta:
+        verbose_name = 'Пользователь'
+        verbose_name_plural = 'Пользователи'
+        ordering = ['user']
+
     def __str__(self) -> str:
         """
         Возвращает строковое представление профиля.
 
         Returns:
-            str: Имя пользователя и слово "Profile".
+            str: Учётная запись и имя пользователя.
         """
                 
-        return f'{self.user.username} Profile'
+        return f'Учётная запись {self.user.username}'
     
 
 
@@ -52,6 +61,7 @@ def create_profile(sender: Any, instance: User, created: bool, **kwargs: Any) ->
 def save_profile(sender: Any, instance: User, **kwargs: Any) -> None:
     """
     Сигнал для автоматического сохранения профиля при сохранении пользователя.
+    
 
     Args:
         sender (Any): Модель, отправившая сигнал.
@@ -59,4 +69,5 @@ def save_profile(sender: Any, instance: User, **kwargs: Any) -> None:
         **kwargs (Any): Дополнительные аргументы.
     """
 
-    instance.profile.save()
+    profile = instance.profile
+    profile.save()
