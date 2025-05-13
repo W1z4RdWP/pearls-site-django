@@ -9,7 +9,8 @@ from django.core.paginator import Paginator, PageNotAnInteger, EmptyPage
 from django.views.generic import FormView
 from django.urls import reverse_lazy
 
-from myapp.models import UserCourse, UserProgress, QuizResult
+from myapp.models import UserCourse, UserProgress, QuizResult, UserAnswer
+from quizzes.models import Answer
 from courses.models import UserLessonTrajectory
 from .forms import UserRegisterForm, UserUpdateForm, ProfileUpdateForm
  
@@ -141,11 +142,25 @@ def profile(request: HttpRequest) -> HttpResponse:
     })
 
 
-def quiz_report(request, quiz_id:int=None):
-    quiz_results = QuizResult.objects.all()
+@login_required
+def quiz_report(request, quiz_id: int = None):
+    # quiz_id - это id QuizResult
+    result = get_object_or_404(QuizResult, id=quiz_id, user=request.user)
+    user_answers = UserAnswer.objects.filter(quiz_result=result).select_related('question', 'selected_answer')
+    questions = []
+    for ua in user_answers:
+        correct_answers = Answer.objects.filter(question=ua.question, is_correct=True)
+        questions.append({
+            'question': ua.question,
+            'selected': ua.selected_answer,
+            'correct_answers': correct_answers,
+            'is_correct': ua.is_correct,
+        })
+    return render(request, 'users/includes/_quiz_report.html', {
+        'result': result,
+        'questions': questions,
+    })
 
-    
-    return render(request, 'users/includes/_quiz_report.html', {'quiz_results':quiz_results,})
 
 class CustomLoginView(LoginView):
     """
