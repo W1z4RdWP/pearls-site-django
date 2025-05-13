@@ -1,4 +1,4 @@
-from django.shortcuts import render, redirect
+from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.http import HttpRequest, HttpResponse
@@ -140,6 +140,12 @@ def profile(request: HttpRequest) -> HttpResponse:
         'all_lessons_completed': all_lessons_completed,
     })
 
+
+def quiz_report(request, quiz_id:int=None):
+    quiz_results = QuizResult.objects.all()
+
+    
+    return render(request, 'users/includes/_quiz_report.html', {'quiz_results':quiz_results,})
 
 class CustomLoginView(LoginView):
     """

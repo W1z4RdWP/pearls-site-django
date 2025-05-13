@@ -1,0 +1,37 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<h1>Отчет по результатам тестов</h1>
+<table class="table table-bordered" border="1" cellpadding="5" cellspacing="0">
+    <thead>
+        <tr>
+            <th>Пользователь</th>
+            <th>Название теста</th>
+            <th>Баллы</th>
+            <th>Всего вопросов</th>
+            <th>Процент</th>
+            <th>Дата завершения</th>
+            <th>Статус</th>
+            <th>Детали</th>
+        </tr>
+    </thead>
+    <tbody>
+    {% for result in quiz_results %}
+        <tr>
+            <td>{{ result.user.username }}</td>
+            <td>{{ result.quiz_title }}</td>
+            <td>{{ result.score }}</td>
+            <td>{{ result.total_questions }}</td>
+            <td>{{ result.percent }}%</td>
+            <td>{{ result.completed_at|date:"d.m.Y H:i" }}</td>
+            <td>{% if result.passed %}Пройден{% else %}Не пройден{% endif %}</td>
+            <td><a href="{% url 'quiz_result_detail' result.id %}">Посмотреть ответы</a></td>
+        </tr>
+    {% empty %}
+        <tr>
+            <td colspan="8">Нет результатов</td>
+        </tr>
+    {% endfor %}
+    </tbody>
+</table>
+{% endblock %}

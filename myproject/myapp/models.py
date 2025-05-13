@@ -5,6 +5,7 @@ from django_ckeditor_5.fields import CKEditor5Field
 from django.utils import timezone 
 
 from courses.models import Course, Lesson
+from quizzes.models import Question
 
     
 class UserProgress(models.Model):
@@ -90,3 +91,10 @@ class QuizResult(models.Model):
 
     def __str__(self):
         return f"{self.user.username} - {self.quiz_title} ({self.percent}%)"
+    
+
+class UserQuizAnswer(models.Model):
+    quiz_result = models.ForeignKey(QuizResult, on_delete=models.CASCADE, related_name='user_answers')
+    question = models.ForeignKey(Question, on_delete=models.CASCADE)
+    user_answer = models.CharField(max_length=500)
+    is_correct = models.BooleanField()
