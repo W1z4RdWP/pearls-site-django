@@ -94,8 +94,12 @@ class QuizResult(models.Model):
     
 
 class UserAnswer(models.Model):
-    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='user_answers')
     quiz_result = models.ForeignKey('QuizResult', on_delete=models.CASCADE, related_name='answers')
     question = models.ForeignKey('quizzes.Question', on_delete=models.CASCADE)
     selected_answer = models.ForeignKey('quizzes.Answer', on_delete=models.SET_NULL, null=True, blank=True)
     is_correct = models.BooleanField()
+    answer_text = models.CharField(max_length=500, blank=True, null=True)  # опционально
+
+    def __str__(self):
+        return f"{self.user.username} - {self.question.text} ({'верно' if self.is_correct else 'неверно'})"

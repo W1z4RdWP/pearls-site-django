@@ -143,23 +143,15 @@ def profile(request: HttpRequest) -> HttpResponse:
 
 
 @login_required
-def quiz_report(request, quiz_id: int = None):
-    # quiz_id - это id QuizResult
-    result = get_object_or_404(QuizResult, id=quiz_id, user=request.user)
-    user_answers = UserAnswer.objects.filter(quiz_result=result).select_related('question', 'selected_answer')
-    questions = []
-    for ua in user_answers:
-        correct_answers = Answer.objects.filter(question=ua.question, is_correct=True)
-        questions.append({
-            'question': ua.question,
-            'selected': ua.selected_answer,
-            'correct_answers': correct_answers,
-            'is_correct': ua.is_correct,
-        })
-    return render(request, 'users/includes/_quiz_report.html', {
-        'result': result,
-        'questions': questions,
-    })
+def quiz_report(request, quiz_id):
+    quiz_result = get_object_or_404(QuizResult, id=quiz_id, user=request.user)
+    answers = quiz_result.answers.select_related('question', 'selected_answer').all()
+
+    context = {
+        'quiz_result': quiz_result,
+        'answers': answers,
+    }
+    return render(request, 'users/includes/_quiz_report.html', context)
 
 
 class CustomLoginView(LoginView):
