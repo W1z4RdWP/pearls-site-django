@@ -103,7 +103,6 @@ def get_answer(request) -> HttpResponse:
     if request.method == 'POST':
         current_question_id = request.session.get('current_question_id')
         quiz_id = request.session.get('quiz_id')
-        
         question = get_object_or_404(Question, id=current_question_id)
         is_correct = False
 
@@ -169,6 +168,7 @@ def get_answer(request) -> HttpResponse:
                     'question': question,
                     'submitted_answer': submitted_answer,
                     'correct_answer': Answer.objects.get(question=question, is_correct=True),
+                    
                 }
             else:
                 return redirect('quizzes')
@@ -197,16 +197,23 @@ def get_finish(request) -> HttpResponse:
         return redirect('quizzes')
     
     quiz = get_object_or_404(Quiz, id=quiz_id)
-    questions_count = Question.objects.filter(quiz=quiz).count()
+    questions_count = Question.objects.filter(quiz=quiz).count() # Количество вопросов в тесте всего
+    text_questions_count = Question.objects.filter(question_type='text').filter(quiz=quiz).count() # количество открытых вопросов в тесте
     score = request.session.get('score', 0)
-    percent_score = int((score / questions_count) * 100) if questions_count > 0 else 0
+    is_all_question_text = False
+    if questions_count == text_questions_count:
+        is_all_question_text = True
+        percent_score = 100
+    else: 
+        percent_score = int((score / (questions_count - text_questions_count)) * 100) if questions_count > 0 else 0 # Процент правильных ответов на вопросы, исключая открытые
+
 
     passed = percent_score >= 80
     quiz_result = QuizResult.objects.create(
         user=request.user,
         quiz_title=quiz.name,
         score=score,
-        total_questions=questions_count,
+        total_questions=questions_count - text_questions_count, # Всего вопросов без учёта открытых
         percent=percent_score,
         passed=passed
     )
@@ -264,7 +271,8 @@ def get_finish(request) -> HttpResponse:
         'score': score,
         'questions_count': questions_count,
         'percent_score': percent_score,
-        'quiz_title': quiz.name
+        'quiz_title': quiz.name,
+        'is_all_question_text': is_all_question_text
     }
     
     _reset_quiz(request)

@@ -150,9 +150,22 @@ def quiz_report(request, quiz_id):
     quiz_result = get_object_or_404(QuizResult, id=quiz_id, user=request.user)
     answers = quiz_result.answers.select_related('question', 'selected_answer').all()
 
+    # Создаем словарь, где ключ - вопрос, значение - список выбранных ответов
+    multiple_choice_answers = {}
+
+    for answer in answers:
+        if answer.question.question_type == 'multiple':
+            # Если вопрос еще не в словаре, добавляем с пустым списком
+            if answer.question not in multiple_choice_answers:
+                multiple_choice_answers[answer.question] = []
+            # Добавляем выбранный ответ (если он есть)
+            if answer.selected_answer:
+                multiple_choice_answers[answer.question].append(answer.selected_answer)
+
     context = {
         'quiz_result': quiz_result,
         'answers': answers,
+        'multiple_choice_answers': multiple_choice_answers,
     }
     return render(request, 'users/includes/_quiz_report.html', context)
 
