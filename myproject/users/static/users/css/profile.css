@@ -130,6 +130,12 @@ legend{
     justify-content: center;
 }
 
+.quiz_history-bottom_info{
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
 @media (max-width: 768px){
     .content-section {
         background: #dad7d7;

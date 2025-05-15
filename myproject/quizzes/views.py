@@ -5,7 +5,7 @@ from django.db.models import Count, Exists, OuterRef
 from django.contrib import messages  # Добавлен импорт
 from django.views.generic import DetailView, TemplateView
 
-from myapp.models import QuizResult, UserCourse
+from myapp.models import QuizResult, UserCourse, UserAnswer
 from courses.models import Course  # Добавлен импорт модели Course
 from .models import Quiz, Question, Answer
 from .utils import DataMixin
@@ -100,95 +100,91 @@ def _get_subsequent_question(quiz_id: int, current_id: int) -> Optional[Question
 
 
 def get_answer(request) -> HttpResponse:
-    """
-    Обрабатывает ответ пользователя на вопрос теста.
-    
-    Для вопросов с одним ответом (radio):
-    - Проверяет совпадение выбранного ответа с правильным
-    
-    Для вопросов с несколькими ответами (checkbox):
-    - Проверяет полное совпадение набора выбранных ответов
-      с правильными ответами
-    - Все правильные ответы должны быть выбраны
-    - Не должно быть лишних ответов
-    
-    Обновляет счет в сессии и возвращает страницу с результатом
-    """
     if request.method == 'POST':
         current_question_id = request.session.get('current_question_id')
         quiz_id = request.session.get('quiz_id')
-        
-        
-        question = Question.objects.get(id=current_question_id)
+        question = get_object_or_404(Question, id=current_question_id)
         is_correct = False
-        
-        # Обработка разных типов вопросов
+
+        # Получаем или инициализируем словарь ответов пользователя в сессии
+        quiz_answers = request.session.get('quiz_answers', {})
+
         if question.question_type == Question.MULTIPLE:
-            # Получаем список выбранных ID ответов
             submitted_ids = request.POST.getlist('answer_ids')
             submitted_ids = [int(id) for id in submitted_ids]
-            
-            # Получаем правильные ответы
-            correct_answers = Answer.objects.filter(
-                question=question,
-                is_correct=True
-            )
+            correct_answers = Answer.objects.filter(question=question, is_correct=True)
             correct_ids = set(correct_answers.values_list('id', flat=True))
             submitted_set = set(submitted_ids)
-            
-            # Проверяем полное совпадение
-            is_correct = (
-                submitted_set == correct_ids and 
-                len(submitted_ids) == len(correct_ids))
-            
-        else:  # Одиночный выбор
+            is_correct = (submitted_set == correct_ids and len(submitted_ids) == len(correct_ids))
+
+            # Сохраняем выбранные ответы в сессии
+            quiz_answers[str(question.id)] = {
+                'selected_ids': submitted_ids,
+                'is_correct': is_correct,
+                'question_type': 'multiple'
+            }
+
+            context = {
+                'current_question_number': list(Question.objects.filter(quiz_id=quiz_id).order_by('id').values_list('id', flat=True)).index(current_question_id) + 1,
+                'total_questions': Question.objects.filter(quiz_id=quiz_id).count(),
+                'progress_percent': int(((list(Question.objects.filter(quiz_id=quiz_id).order_by('id').values_list('id', flat=True)).index(current_question_id) + 1) / Question.objects.filter(quiz_id=quiz_id).count()) * 100),
+                'is_correct': is_correct,
+                'question': question,
+                'submitted_answers': Answer.objects.filter(id__in=submitted_ids),
+                'correct_answers': correct_answers,
+            }
+        elif question.question_type == Question.TEXT:
+            user_text = request.POST.get('answer_text', '').strip()
+            quiz_answers[str(question.id)] = {
+                'answer_text': user_text,
+                'question_type': 'text'
+            }
+            context = {
+                'current_question_number': ...,
+                'total_questions': ...,
+                'progress_percent': ...,
+                'is_correct': False,  # для текстовых не бывает "правильно"
+                'question': question,
+                'user_text': user_text,
+            }
+        else:
             submitted_answer_id = request.POST.get('answer_id')
             if submitted_answer_id:
-                submitted_answer = Answer.objects.get(id=submitted_answer_id)
+                submitted_answer = get_object_or_404(Answer, id=submitted_answer_id)
                 is_correct = submitted_answer.is_correct
-        
-        # Обновление счета
+
+                # Сохраняем выбранный ответ в сессии
+                quiz_answers[str(question.id)] = {
+                    'selected_id': int(submitted_answer_id),
+                    'is_correct': is_correct,
+                    'question_type': 'single'
+                }
+
+                context = {
+                    'current_question_number': list(Question.objects.filter(quiz_id=quiz_id).order_by('id').values_list('id', flat=True)).index(current_question_id) + 1,
+                    'total_questions': Question.objects.filter(quiz_id=quiz_id).count(),
+                    'progress_percent': int(((list(Question.objects.filter(quiz_id=quiz_id).order_by('id').values_list('id', flat=True)).index(current_question_id) + 1) / Question.objects.filter(quiz_id=quiz_id).count()) * 100),
+                    'is_correct': is_correct,
+                    'question': question,
+                    'submitted_answer': submitted_answer,
+                    'correct_answer': Answer.objects.get(question=question, is_correct=True),
+                    
+                }
+            else:
+                return redirect('quizzes')
+
+        # Сохраняем обновлённые ответы в сессии
+        request.session['quiz_answers'] = quiz_answers
+        request.session.modified = True
+
+        # Обновление счета (опционально, если нужен быстрый счёт)
         if is_correct:
             request.session['score'] = request.session.get('score', 0) + 1
             request.session.modified = True
-        
-        # Получение данных для прогресса
-        all_questions = Question.objects.filter(quiz_id=quiz_id).order_by('id')
-        total_questions = all_questions.count()
-        current_index = list(
-            all_questions.values_list('id', flat=True)
-        ).index(current_question_id) + 1
-        progress_percent = int((current_index / total_questions) * 100)
-
-        context = {
-            'current_question_number': current_index,
-            'total_questions': total_questions,
-            'progress_percent': progress_percent,
-            'is_correct': is_correct,
-            'question': question
-        }
-        
-        # Добавляем дополнительные данные в зависимости от типа вопроса
-        if question.question_type == Question.MULTIPLE:
-            context.update({
-                'submitted_answers': Answer.objects.filter(id__in=submitted_ids),
-                'correct_answers': correct_answers
-            })
-        else:
-            submitted_answer = Answer.objects.get(id=submitted_answer_id)
-            correct_answer = Answer.objects.get(
-                question=question,
-                is_correct=True
-            )
-            context.update({
-                'submitted_answer': submitted_answer,
-                'correct_answer': correct_answer
-            })
 
         return render(request, 'quizzes/answer.html', context)
     
     return redirect('quizzes')
-
 
 
 
@@ -201,23 +197,65 @@ def get_finish(request) -> HttpResponse:
         return redirect('quizzes')
     
     quiz = get_object_or_404(Quiz, id=quiz_id)
-    questions_count = Question.objects.filter(quiz=quiz).count()
+    questions_count = Question.objects.filter(quiz=quiz).count() # Количество вопросов в тесте всего
+    text_questions_count = Question.objects.filter(question_type='text').filter(quiz=quiz).count() # количество открытых вопросов в тесте
     score = request.session.get('score', 0)
-    percent_score = int((score / questions_count) * 100) if questions_count > 0 else 0
+    is_all_question_text = False
+    if questions_count == text_questions_count:
+        is_all_question_text = True
+        percent_score = 100
+    else: 
+        percent_score = int((score / (questions_count - text_questions_count)) * 100) if questions_count > 0 else 0 # Процент правильных ответов на вопросы, исключая открытые
 
-    # Исправлено: убрано дублирование создания QuizResult
+
     passed = percent_score >= 80
     quiz_result = QuizResult.objects.create(
         user=request.user,
         quiz_title=quiz.name,
         score=score,
-        total_questions=questions_count,
+        total_questions=questions_count - text_questions_count, # Всего вопросов без учёта открытых
         percent=percent_score,
         passed=passed
     )
 
+    # --- СОХРАНЯЕМ ОТВЕТЫ ПОЛЬЗОВАТЕЛЯ ---
+    quiz_answers = request.session.get('quiz_answers', {})
+    for q in Question.objects.filter(quiz=quiz):
+        ans_data = quiz_answers.get(str(q.id))
+        if not ans_data:
+            continue
+        if ans_data['question_type'] == 'multiple':
+            for ans_id in ans_data['selected_ids']:
+                ans = Answer.objects.get(id=ans_id)
+                UserAnswer.objects.create(
+                    user=request.user,
+                    quiz_result=quiz_result,
+                    question=q,
+                    selected_answer=ans,
+                    is_correct=ans.is_correct and ans_data['is_correct']
+                )
+        elif ans_data['question_type'] == 'text':
+            UserAnswer.objects.create(
+                user=request.user,
+                quiz_result=quiz_result,
+                question=q,
+                selected_answer=None,
+                is_correct=False,
+                answer_text=ans_data.get('answer_text', '')
+            )
+        else:
+            ans = Answer.objects.get(id=ans_data['selected_id'])
+            UserAnswer.objects.create(
+                user=request.user,
+                quiz_result=quiz_result,
+                question=q,
+                selected_answer=ans,
+                is_correct=ans.is_correct
+            )
+    # --------------------------------------------
+
     # Обработка привязки к курсу
-    if hasattr(quiz, 'course') and quiz.course:  # Проверяем связь с курсом
+    if hasattr(quiz, 'course') and quiz.course:
         course = quiz.course
         if passed:
             UserCourse.objects.filter(
@@ -233,7 +271,8 @@ def get_finish(request) -> HttpResponse:
         'score': score,
         'questions_count': questions_count,
         'percent_score': percent_score,
-        'quiz_title': quiz.name
+        'quiz_title': quiz.name,
+        'is_all_question_text': is_all_question_text
     }
     
     _reset_quiz(request)
