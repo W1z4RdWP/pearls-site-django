@@ -134,6 +134,20 @@ def get_answer(request) -> HttpResponse:
                 'submitted_answers': Answer.objects.filter(id__in=submitted_ids),
                 'correct_answers': correct_answers,
             }
+        elif question.question_type == Question.TEXT:
+            user_text = request.POST.get('answer_text', '').strip()
+            quiz_answers[str(question.id)] = {
+                'answer_text': user_text,
+                'question_type': 'text'
+            }
+            context = {
+                'current_question_number': ...,
+                'total_questions': ...,
+                'progress_percent': ...,
+                'is_correct': False,  # для текстовых не бывает "правильно"
+                'question': question,
+                'user_text': user_text,
+            }
         else:
             submitted_answer_id = request.POST.get('answer_id')
             if submitted_answer_id:
@@ -197,7 +211,7 @@ def get_finish(request) -> HttpResponse:
         passed=passed
     )
 
-    # --- ВАЖНО: СОХРАНЯЕМ ОТВЕТЫ ПОЛЬЗОВАТЕЛЯ ---
+    # --- СОХРАНЯЕМ ОТВЕТЫ ПОЛЬЗОВАТЕЛЯ ---
     quiz_answers = request.session.get('quiz_answers', {})
     for q in Question.objects.filter(quiz=quiz):
         ans_data = quiz_answers.get(str(q.id))
@@ -213,6 +227,15 @@ def get_finish(request) -> HttpResponse:
                     selected_answer=ans,
                     is_correct=ans.is_correct and ans_data['is_correct']
                 )
+        elif ans_data['question_type'] == 'text':
+            UserAnswer.objects.create(
+                user=request.user,
+                quiz_result=quiz_result,
+                question=q,
+                selected_answer=None,
+                is_correct=False,
+                answer_text=ans_data.get('answer_text', '')
+            )
         else:
             ans = Answer.objects.get(id=ans_data['selected_id'])
             UserAnswer.objects.create(

@@ -9,31 +9,45 @@
     <h4>Детализация по вопросам:</h4>
     <div class="list-group">
         {% for answer in answers %}
-        <div class="list-group-item mb-2 {% if answer.is_correct %}list-group-item-success{% else %}list-group-item-danger{% endif %}">
+            <div class="list-group-item mb-2 {% if answer.is_correct %}list-group-item-success {% elif answer.question.question_type == 'text' %}list-group-item-warning{% else %}list-group-item-danger{% endif %}">
             <strong>Вопрос {{ forloop.counter }}:</strong> {{ answer.question.text }}<br>
             <strong>Ваш ответ:</strong>
-            {% if answer.selected_answer %}
+            {% if answer.question.question_type == 'text' %}
+                {% if answer.answer_text %}
+                    {{ answer.answer_text }}
+            
+                {% else %}
+                    <em>Нет ответа</em>
+                {% endif %}
+            
+            {% elif answer.question.question_type == 'multiple' %}
+                {{answer.selected_answer.text}}
+            {% elif answer.selected_answer %}
                 {{ answer.selected_answer.text }}
             {% else %}
                 <em>Нет ответа</em>
             {% endif %}
             <br>
-            <strong>Правильный ответ:</strong>
-            {% for ans in answer.question.answer_set.all %}
-                {% if ans.is_correct %}
-                    {{ ans.text }}
-                {% endif %}
-            {% endfor %}
-            <br>
-            <span>
-                {% if answer.is_correct %}
-                    <span class="badge bg-success">Верно</span>
-                {% else %}
-                    <span class="badge bg-danger">Неверно</span>
-                {% endif %}
-            </span>
-        </div>
+            {% if answer.question.question_type != 'text' %}
+                <strong>Правильный ответ:</strong>
+                {% for ans in answer.question.answer_set.all %}
+                    {% if ans.is_correct %}
+                        {{ ans.text }}
+                    {% endif %}
+            
         {% endfor %}
+        <br>
+        Тип: {{ answer.question.question_type }}
+        <span>
+            {% if answer.is_correct %}
+                <span class="badge bg-success">Верно</span>
+            {% else %}
+                <span class="badge bg-danger">Неверно</span>
+            {% endif %}
+        </span>
+    {% endif %}
+</div>
+{% endfor %}
     </div>
     <a href="{% url 'profile' %}" class="btn btn-primary mt-3">Назад в профиль</a>
 </div>

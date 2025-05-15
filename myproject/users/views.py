@@ -1,3 +1,6 @@
+from collections import defaultdict
+
+
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
@@ -61,7 +64,7 @@ def profile(request: HttpRequest) -> HttpResponse:
 
         # Проверка на AJAX-запрос
     if request.headers.get('x-requested-with') == 'XMLHttpRequest':
-        return render(request, 'users/_quiz_history.html', {'page_obj': page_obj})
+        return render(request, 'users/includes/_quiz_history.html', {'page_obj': page_obj})
 
     all_lessons_completed = False
     percent = 0 
