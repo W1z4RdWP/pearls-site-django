@@ -1,5 +1,6 @@
 from django.db import models
 
+
 class Quiz(models.Model):
   name = models.CharField(max_length=300)
 
@@ -49,3 +50,4 @@ class Answer(models.Model):
 
   def __str__(self):
     return f"Ответ к вопросу: {self.question}"
+  
