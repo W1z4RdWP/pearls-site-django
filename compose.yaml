@@ -12,13 +12,24 @@ services:
    env_file:
      - .env
  
- django-web: # второй
+ redis:
+   restart: unless-stopped
+   image: redis:7.0.5-alpine 
+   ports:
+     - "6379:6379"  # Пробрасываем порт для внешнего доступа (опционально)
+   expose:
+     - 6379
+
+ django-web: # третий
    build: .
    container_name: django-docker
    ports:
      - "8005:8005"
+   volumes:  
+    - .:/app
    depends_on:
      - db
+     - redis
    command: sh -c "python manage.py migrate &&
          python manage.py runserver 0.0.0.0:8005" # выполняет миграции в БД и запускает тестовый инстанс на порту 8005
    environment: # переменные из .env файла

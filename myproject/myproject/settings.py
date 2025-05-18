@@ -23,8 +23,8 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/5.1/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = os.getenv('DJANGO_SECRET_KEY')
-
+SECRET_KEY = os.getenv('DJANGO_SECRET_KEY') # DJANGO_SECRET_KEY / SECRET_DJANGO
+ 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
@@ -38,6 +38,9 @@ INTERNAL_IPS = [
     "127.0.0.1",
     "10.0.1.100",
     "10.1.1.30",
+    "10.0.0.40",
+    "192.168.0.100",
+    "172.18.0.4"
 ]
 
 
@@ -64,7 +67,7 @@ INSTALLED_APPS = [
     'crispy_bootstrap5',
     'django_ckeditor_5',
     'nested_admin',
-    #'debug_toolbar',
+    'debug_toolbar',
     
 
     'myapp',
@@ -77,7 +80,8 @@ X_FRAME_OPTIONS = "SAMEORIGIN"              # allows you to use modals insated o
 SILENCED_SYSTEM_CHECKS = ["security.W019"]  # ignores redundant warning messages
 
 MIDDLEWARE = [
-    #'debug_toolbar.middleware.DebugToolbarMiddleware',
+    'debug_toolbar.middleware.DebugToolbarMiddleware', # django-debug toolbar = панель отладки djt
+    'django.middleware.cache.UpdateCacheMiddleware', # кэш
     'django.middleware.security.SecurityMiddleware',
     "whitenoise.middleware.WhiteNoiseMiddleware",
     'django.contrib.sessions.middleware.SessionMiddleware',
@@ -88,6 +92,7 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'django.middleware.locale.LocaleMiddleware',
+    'django.middleware.cache.FetchFromCacheMiddleware', # кэш
     
     
 ]
@@ -143,11 +148,43 @@ DATABASES = {
 }
 
 # DATABASES = {
-#     "default": {
-#         "ENGINE": "django.db.backends.sqlite3",
-#         "NAME": "sqlite3.sql",
+#     'default': {
+#             'ENGINE': 'django.db.backends.postgresql',
+#             'NAME': os.getenv('DJANGO_DB_NAME'), # DJANGO_DB_NAME /
+#             'USER': os.getenv('DJANGO_DB_USER'), # DJANGO_DB_USER /
+#             'PASSWORD': os.getenv('DJANGO_DB_PASSWD'), # DJANGO_DB_PASSWD /
+#             'HOST': os.getenv('DJANGO_DB_HOST'), # DJANGO_DB_HOST / 
+#             'PORT': os.getenv('DJANGO_DB_PORT'), # DJANGO_DB_PORT /
+#             'CONN_MAX_AGE': 60 * 10, # Не разрывать соединения пользователей с БД в течение 10 минут
+#             'OPTIONS' :{
+#                 'client_encoding': 'UTF8',
+#             }
 #     }
 # }
+
+DATABASES = {
+    "default": {
+        "ENGINE": "django.db.backends.sqlite3",
+        "NAME": "sqlite3.sql",
+    }
+}
+
+# CACHES = {
+#     "default": {
+#         "BACKEND": "django_redis.cache.RedisCache",
+#         "LOCATION": "redis://redis:6379/1",
+#         "OPTIONS": {
+#             "CLIENT_CLASS": "django_redis.client.DefaultClient",
+#         }
+#     }
+# }
+
+
+# CACHE_MIDDLEWARE_ALIAS  = 'default' # cache alias
+# CACHE_MIDDLEWARE_SECONDS = 600 # number of seconds each page should be cached.
+# CACHE_MIDDLEWARE_KEY_PREFIX = 'myproject'  # name of site if multiple sites are used
+
+
 
 # Password validation
 # https://docs.djangoproject.com/en/5.1/ref/settings/#auth-password-validators
@@ -359,18 +396,21 @@ CKEDITOR_5_CONFIGS = {
     },
 }
 
+## main logging conf
+# LOGGING = {
+#     'version': 1,
+#     'disable_existing_loggers': False,
+#     'handlers': {
+#         'file': {
+#             'level': 'DEBUG',
+#             'class': 'logging.FileHandler',
+#             'filename': '/var/log/django/errors.log',
+#         },
+#     },
+# }
 
-LOGGING = {
-    'version': 1,
-    'disable_existing_loggers': False,
-    'handlers': {
-        'file': {
-            'level': 'WARNING',
-            'class': 'logging.FileHandler',
-            'filename': '/var/log/django/errors.log',
-        },
-    },
-}
+
+
 
 # CSRF_TRUSTED_ORIGINS = ['https://epicsite.smileterritory.ru']
 
