@@ -1,7 +1,6 @@
 from django.shortcuts import render
 from django.http import HttpResponse, HttpRequest
 from django.views.generic import TemplateView
-
 from .models import Course, UserCourse
 from courses.models import Course as CourseModel
 

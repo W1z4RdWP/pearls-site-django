@@ -10,6 +10,7 @@ from django.contrib.auth.models import User
 from django.contrib.auth.views import LoginView
 from django.core.paginator import Paginator, PageNotAnInteger, EmptyPage
 from django.views.generic import FormView
+from django.views.decorators.cache import cache_page
 from django.urls import reverse_lazy
 
 from myapp.models import UserCourse, UserProgress, QuizResult, UserAnswer
@@ -30,7 +31,7 @@ class RegisterView(FormView):
 
 
 
-
+@cache_page(60*15)
 @login_required
 def profile(request: HttpRequest) -> HttpResponse:
     """
