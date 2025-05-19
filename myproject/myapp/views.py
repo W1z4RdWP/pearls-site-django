@@ -1,7 +1,7 @@
 from django.shortcuts import render
 from django.http import HttpResponse, HttpRequest
-from django.views.generic import TemplateView
-from .models import Course, UserCourse
+from django.views.generic import TemplateView, ListView
+from .models import Course, UserCourse, ChangeLog
 from courses.models import Course as CourseModel
 
 class IndexView(TemplateView):
@@ -38,3 +38,12 @@ def is_author_or_admin(user, course):
 
 def page_not_found_view(request, exception):
     return render(request, '404.html', status=404)
+
+
+class ChangelogListView(ListView):
+    model = ChangeLog
+    template_name = 'changelog.html'
+    context_object_name = 'changelog'
+
+    def get_queryset(self):
+        return ChangeLog.objects.filter(is_public=True)

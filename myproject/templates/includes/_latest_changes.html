@@ -1,0 +1,22 @@
+<!-- templates/includes/latest_changes.html -->
+<div class="card border-primary mb-4">
+    <div class="card-header bg-primary text-white">
+        Последние изменения
+    </div>
+    <div class="card-body">
+        <div class="list-group">
+            {% for change in latest_changes %}
+            <a href="{% url 'changelog' %}#{{ change.version }}" 
+               class="list-group-item list-group-item-action">
+                <div class="d-flex justify-content-between">
+                    <span class="fw-bold">{{ change.version }}</span>
+                    <small class="text-muted">{{ change.release_date|date:"d M Y" }}</small>
+                </div>
+                <div class="text-muted">{{ change.title }}</div>
+            </a>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+{% comment %} нигде не используется TODO: подумать как применить {% endcomment %}

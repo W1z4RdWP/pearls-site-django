@@ -1,0 +1,38 @@
+<!-- templates/changelog.html -->
+{% extends "layout.html" %}
+{% load static %}
+{% block specific_styles %} <link rel="stylesheet" href="{% static 'global/css/changelog.css' %}" />{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <h1 class="mb-4">История изменений</h1>
+    
+    <div class="timeline">
+        {% for change in changelog %}
+        <div class="timeline-card {% cycle 'left' 'right' %}">
+            <div class="card shadow-sm {{ change.type }}">
+                <div class="card-header">
+                    
+                    <div class="version-badge">
+                        <span class="version">Версия {{ change.version }}</span>
+                        <span class="date">{{ change.release_date|date:"d E Y" }}</span>
+                    </div>
+                    <span class="type-badge">{{ change.get_type_display }}</span>
+                </div>
+                <div class="card-body">
+                    <h5 class="card-title">{{ change.title }}</h5>
+                    <div class="card-text">{{ change.description|linebreaks }}</div>
+                    {% if change.related_link %}
+                    <a href="{{ change.related_link }}" 
+                       class="btn btn-outline-primary mt-3"
+                       target="_blank">
+                        Подробнее
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,56 @@
+
+.timeline {
+  position: relative;
+  max-width: 1200px;
+  margin: 0 auto;
+  &::after {
+    content: '';
+    position: absolute;
+    width: 6px;
+    background-color: #e9ecef;
+    top: 0;
+    bottom: 0;
+    left: 100%;
+    margin-left: -3px;
+  }
+}
+
+.timeline-card {
+  padding: 10px 40px;
+  position: relative;
+  width: 100%;
+  &.left { left: 0 }
+  &.right { left: 50% }
+}
+
+.card {
+  position: relative;
+  &.feature { border-left: 4px solid #4CAF50 }
+  &.bugfix { border-left: 4px solid #f44336 }
+  &.improvement { border-left: 4px solid #2196F3 }
+  &.security { border-left: 4px solid #FFC107 }
+}
+
+.version-badge {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  .version {
+    font-size: 1.25rem;
+    font-weight: 600;
+  }
+  .date {
+    color: #6c757d;
+    font-size: 0.9rem;
+  }
+}
+
+.type-badge {
+  position: absolute;
+  top: 15px;
+  right: 15px;
+  padding: 5px 10px;
+  border-radius: 20px;
+  font-size: 0.8rem;
+  background: rgba(0,0,0,0.1);
+}
