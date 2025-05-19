@@ -21,6 +21,7 @@ from django.urls import path, include, re_path
 from django.views.static import serve
 from django.conf import settings
 from django.conf.urls.static import static
+from django.views.decorators.cache import cache_page
 from debug_toolbar.toolbar import debug_toolbar_urls
 from myapp import views
 from myapp.views import page_not_found_view
@@ -33,7 +34,7 @@ urlpatterns = [
     re_path(r'^static/(?P<path>.*)$', serve,{'document_root': settings.STATIC_ROOT}),
     path('admin/', admin.site.urls),
     path('register/', user_views.RegisterView.as_view(), name='register'),
-    path('', views.IndexView.as_view(), name='home'),
+    path('', cache_page(60)(views.IndexView.as_view()), name='home'),
     path('captcha/', include('captcha.urls')),
     path('about/', views.AboutView.as_view(), name='about'),
     path('profile/', user_views.profile, name='profile'),

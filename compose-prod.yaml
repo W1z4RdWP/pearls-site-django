@@ -1,0 +1,35 @@
+services:
+ redis: # первый
+   restart: unless-stopped
+   image: redis:7.0.5-alpine 
+   ports:
+     - "6379:6379"  # Пробрасываем порт для внешнего доступа (опционально)
+   expose:
+     - 6379
+
+ django-web: # второй
+   build: .
+   container_name: django-docker
+   ports:
+     - "8000:8000"
+   volumes:  
+    - .:/app
+   depends_on:
+     - redis
+   command: sh -c "python manage.py migrate &&
+         gunicorn --bind 0.0.0.0:8000 myproject.wsgi" # выполняет миграции в БД и запускает тестовый инстанс на порту 8000
+   environment: # переменные из .env файла
+     DJANGO_SETTINGS_MODULE: ${DJANGO_SETTINGS_MODULE}
+     DJANGO_SECRET_KEY: ${DJANGO_SECRET_KEY}
+     DEBUG: ${DEBUG}
+     DJANGO_LOGLEVEL: ${DJANGO_LOGLEVEL}
+     DJANGO_ALLOWED_HOSTS: ${DJANGO_ALLOWED_HOSTS}
+     DATABASE_ENGINE: ${DATABASE_ENGINE}
+     DATABASE_NAME: ${DJANGO_DB_NAME}
+     DATABASE_USERNAME: ${DJANGO_DB_USER}
+  
+     DATABASE_PASSWORD: ${DJANGO_DB_PASSWD}
+     DATABASE_HOST: ${DJANGO_DB_HOST}
+     DATABASE_PORT: ${DJANGO_DB_PORT}
+   env_file: # имя файла откуда берутся переменные (путь до файла, должен быть на одном уровне в компоуз)
+     - .env
