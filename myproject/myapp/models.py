@@ -90,3 +90,33 @@ class QuizResult(models.Model):
 
     def __str__(self):
         return f"{self.user.username} - {self.quiz_title} ({self.percent}%)"
+    
+
+class ChangeLog(models.Model):
+    """
+    Модель для ведения истории изменений. 
+    В Админ панели можно выбрать что было добавлено в новой версии и дать подробное описание.
+    """
+    VERSION_TYPES = (
+        ('feature', '🎁 Новый функционал'),
+        ('bugfix', '🐞 Исправление ошибок'),
+        ('improvement', '⚡ Улучшение'),
+        ('security', '🔒 Безопасность'),
+    )
+
+    version = models.CharField('Версия', max_length=20)
+    release_date = models.DateField('Дата релиза', default=timezone.now)
+    type = models.CharField('Тип изменения', max_length=20, choices=VERSION_TYPES)
+    title = models.CharField('Заголовок', max_length=200)
+    description = models.TextField('Подробное описание')
+    related_link = models.URLField('Ссылка', blank=True)
+    is_public = models.BooleanField('Опубликовано', default=True)
+    order = models.PositiveIntegerField('Порядок', default=0)
+
+    class Meta:
+        ordering = ['-release_date', '-order']
+        verbose_name = 'Запись изменений'
+        verbose_name_plural = 'История изменений'
+
+    def __str__(self):
+        return f"{self.version} - {self.title}"

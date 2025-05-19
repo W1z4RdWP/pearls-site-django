@@ -43,6 +43,7 @@ urlpatterns = [
     path('courses/', include('courses.urls'), name='courses'),
     path('quizzes/', include('quizzes.urls'), name='quizzes'),
     path('ckeditor5/', include('django_ckeditor_5.urls')),
+    path('changelog/', views.ChangelogListView.as_view(), name='changelog'),
     path('error_found/', views.page_not_found_view, {'exception': Answer.MultipleObjectsReturned}, name='error')
 ]
 

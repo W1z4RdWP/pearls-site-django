@@ -1,8 +1,9 @@
 ## myproject/settings/local.py
 
 from .base import *
+from .local_envs import DJANGO_SECRET_KEY
 
-SECRET_KEY = os.getenv("DJANGO_SECRET_KEY")
+SECRET_KEY = os.getenv(DJANGO_SECRET_KEY, "default")
 
 DEBUG = True
 

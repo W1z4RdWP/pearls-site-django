@@ -5,9 +5,9 @@ import os
 
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
 
-SECRET_KEY = os.getenv('SECRET_DJANGO') # DJANGO_SECRET_KEY / SECRET_DJANGO
+#SECRET_KEY = os.getenv('SECRET_DJANGO') # DJANGO_SECRET_KEY / SECRET_DJANGO
  
-DEBUG = True
+#DEBUG = True
 
 # allowed_hosts = os.getenv('DJANGO_ALLOWED_HOSTS', '')
 # ALLOWED_HOSTS = [host.strip() for host in allowed_hosts.split(',')] if allowed_hosts else []
