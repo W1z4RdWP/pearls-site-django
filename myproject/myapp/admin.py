@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import UserCourse, ChangeLog
+from .models import UserCourse, QuizResult, UserAnswer, ChangeLog
 
 admin.site.site_header = "Kupryazha"
 admin.site.site_title = "Администрирование сайта"
@@ -17,3 +17,6 @@ class ChangeLogAdmin(admin.ModelAdmin):
     list_filter = ('type', 'is_public')
     search_fields = ('title', 'description')
     date_hierarchy = 'release_date'
+
+admin.site.register(QuizResult)
+admin.site.register(UserAnswer)

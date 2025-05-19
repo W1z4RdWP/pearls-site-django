@@ -5,6 +5,7 @@ from django_ckeditor_5.fields import CKEditor5Field
 from django.utils import timezone 
 
 from courses.models import Course, Lesson
+from quizzes.models import Question, Answer
 
     
 class UserProgress(models.Model):
@@ -76,6 +77,20 @@ class UserCourse(models.Model):
     
 
 class QuizResult(models.Model):
+    """
+    Модель отвечающая за сохранения данных о результате пройденного тестирования,
+    конкретным пользователем.
+
+    Attrs:
+        - user(ForeignKey) - ссылка на пользователя, который прошел тест;
+        - quiz_title(CharField) - название пройденного теста;
+        - score(Integer) - правильных ответов дано;
+        - total_questions(Integer) - всего было вопросов в данном тесте;
+        - percent(Float) - вычисление правильных ответов на вопросы данных пользователем в процентном соотношении;
+        - completed_at(DateTime) - Дата и время когда тест был завершен;
+        - passed(Bool) - Отмечает тест за пройденный по результатам пользователя или нет, если не соотв. условиям.
+
+    """
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     quiz_title = models.CharField(max_length=200)
     score = models.IntegerField()
@@ -91,6 +106,31 @@ class QuizResult(models.Model):
     def __str__(self):
         return f"{self.user.username} - {self.quiz_title} ({self.percent}%)"
     
+
+class UserAnswer(models.Model):
+    """
+    Ответы на вопросы при прохождении теста, которые дает пользователь.
+
+    Attrs:
+        - user(ForeignKey) - ссылка на пользователя, который дал ответ;
+        - quiz_result(ForeignKey) - ссылка на результат прохождения теста;
+        - question(ForeignKey) - ссылка на вопрос к которому относится ответ;
+        - selected_answer(ForeignKey) - ссылка на ответ, который дал пользователь при прохождении теста;
+        - is_correct(Bool) - правильно ли ответил пользователь;
+        - answer_text(CharField) - текст ответа.
+    
+    """
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='user_answers')
+    quiz_result = models.ForeignKey('QuizResult', on_delete=models.CASCADE, related_name='answers')
+    question = models.ForeignKey('quizzes.Question', on_delete=models.CASCADE)
+    selected_answer = models.ForeignKey('quizzes.Answer', on_delete=models.SET_NULL, null=True, blank=True)
+    is_correct = models.BooleanField()
+    answer_text = models.CharField(max_length=500, blank=True, null=True)
+    #text_answer = models.CharField(max_length=500, blank=True, null=True)
+
+    def __str__(self):
+        return f"{self.user.username} - {self.question.text} ({'верно' if self.is_correct else 'неверно'})"
+
 
 class ChangeLog(models.Model):
     """
