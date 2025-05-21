@@ -71,6 +71,11 @@ header{
     color: rgb(227, 92, 121) !important; /* Цвет текста при наведении */
 }
 
+.site-version {
+    position: absolute;
+    top: 50px;
+}
+
 .form-group{
     width: 50%;
     place-self: center;
