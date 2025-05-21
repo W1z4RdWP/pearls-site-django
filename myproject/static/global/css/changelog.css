@@ -20,7 +20,7 @@
   position: relative;
   width: 100%;
   &.left { left: 0 }
-  &.right { left: 50% }
+  &.right { left: 0 }
 }
 
 .card {

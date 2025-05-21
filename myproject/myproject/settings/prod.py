@@ -6,8 +6,9 @@ DEBUG = False
 
 SECRET_KEY = os.getenv("SECRET_DJANGO")
 
-allowed_hosts = os.getenv('DJANGO_ALLOWED_HOSTS', '')
-ALLOWED_HOSTS = [host.strip() for host in allowed_hosts.split(',')] if allowed_hosts else []
+# allowed_hosts = os.getenv('DJANGO_ALLOWED_HOSTS', '')
+# ALLOWED_HOSTS = [host.strip() for host in allowed_hosts.split(',')] if allowed_hosts else []
+ALLOWED_HOSTS = ["*"]
 
 DATABASES = {
     'default': {
@@ -24,21 +25,21 @@ DATABASES = {
     }
 }
 
-CACHES = {
-    "default": {
-        "BACKEND": "django_redis.cache.RedisCache",
-        "LOCATION": "redis://redis:6379/1",
-        "OPTIONS": {
-            "CLIENT_CLASS": "django_redis.client.DefaultClient",
-        }
-    }
-}
+# CACHES = {
+#     "default": {
+#         "BACKEND": "django_redis.cache.RedisCache",
+#         "LOCATION": "redis://redis:6379/1",
+#         "OPTIONS": {
+#             "CLIENT_CLASS": "django_redis.client.DefaultClient",
+#         }
+#     }
+# }
 
 
 
-CACHE_MIDDLEWARE_ALIAS  = 'default' # cache alias
-CACHE_MIDDLEWARE_SECONDS = 600 # number of seconds each page should be cached.
-CACHE_MIDDLEWARE_KEY_PREFIX = 'myproject'  # name of site if multiple sites are used
+# CACHE_MIDDLEWARE_ALIAS  = 'default' # cache alias
+# CACHE_MIDDLEWARE_SECONDS = 600 # number of seconds each page should be cached.
+# CACHE_MIDDLEWARE_KEY_PREFIX = 'myproject'  # name of site if multiple sites are used
 
 
 # CSRF_TRUSTED_ORIGINS = ['https://epicsite.smileterritory.ru']

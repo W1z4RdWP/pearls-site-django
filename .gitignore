@@ -7,6 +7,8 @@ db.sqlite3
 sqlite3.sql
 media
 myproject_cache
+staticfiles
+staticfiles_old
 
 # Backup files # 
 *.bak 
