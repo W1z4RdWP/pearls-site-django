@@ -25,7 +25,7 @@ INTERNAL_IPS = [
 ]
 
 
-1
+
 # Application definition
 
 INSTALLED_APPS = [
@@ -91,6 +91,7 @@ TEMPLATES = [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
+                'myapp.context_processors.get_changelog', # Кастомный контекстный процессор
             ],
         },
     },
