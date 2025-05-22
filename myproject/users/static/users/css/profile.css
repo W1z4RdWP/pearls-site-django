@@ -235,3 +235,96 @@ legend{
     }
     
 }
+
+
+@media (max-width: 512px) {
+  .content-section {
+    padding: 10px 5px;
+    margin-top: 10px;
+    border-radius: 6px;
+    font-size: 0.98em;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.08);
+  }
+
+  .media {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+    margin-bottom: 14px;
+  }
+
+  .rounded-circle.account-img {
+    width: 60px;
+    height: 60px;
+    margin-right: 0;
+    margin-bottom: 8px;
+    align-self: center;
+  }
+
+  .account-heading {
+    font-size: 1.25rem;
+    text-align: center;
+    width: 100%;
+  }
+
+  .form-group {
+    width: 100%;
+    margin-bottom: 10px;
+  }
+
+  .profile-actions {
+    flex-direction: column;
+    gap: 8px;
+    align-items: stretch;
+  }
+
+  #check-finished-courses-btn,
+  #edit-profile-btn,
+  #cancel-edit-btn,
+  #update-profile_info-btn {
+    width: 100%;
+    margin-bottom: 10px;
+    margin-left: 0;
+  }
+
+
+  .progress {
+    height: 18px;
+    border-radius: 8px;
+  }
+
+  .progress-bar-user {
+    height: 24px;
+    width: 98%;
+    margin-top: 8px;
+    font-size: 0.95em;
+  }
+  .progress-bar-user h3 {
+    left: 8px;
+    font-size: 1em;
+  }
+
+  .btn-group {
+    flex-direction: column;
+    gap: 8px;
+    width: 100%;
+  }
+
+  .quiz-status {
+    flex-direction: column;
+    gap: 4px;
+    align-items: flex-start;
+    margin-bottom: 8px;
+  }
+
+  .quiz-status span {
+    align-items: flex-start;
+    font-size: 0.95em;
+  }
+
+  .quiz_history-bottom_info {
+    flex-direction: column;
+    gap: 8px;
+    align-items: flex-start;
+  }
+}

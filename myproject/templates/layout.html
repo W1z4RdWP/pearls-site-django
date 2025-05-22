@@ -29,6 +29,7 @@
     {% block specific_styles %} {% endblock %}
 </head>
 <body>
+    
     <header class='header'>
         <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
             <div class="container-fluid">
@@ -38,9 +39,8 @@
                 <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
                     <span class="navbar-toggler-icon"></span>
                 </button>
-
+                
                 <div class="collapse navbar-collapse" id="navbarNav">
-                    <div class="site-version">Версия: {{ latest_version }}</div>
                     <ul class="navbar-nav ms-auto">
                         <li class="nav-item">
                             <a class="nav-link" href="{% url 'home' %}">Главная</a>
@@ -85,7 +85,6 @@
             </div>
         </nav>
     </header>
-
     <main>
         {% if messages %}
             {% for message in messages %}
@@ -94,7 +93,7 @@
                 </div>
             {% endfor %}
         {% endif %}
-
+                
         {% block content %}
         <!-- Уникальный контент каждой страницы будет здесь -->
         {% endblock %}
@@ -109,6 +108,8 @@
                 <a href="https://32cdi.ru/" target="_blank"><img src="{% static 'global/imgs/terr_smile.png' %}" alt="terr smile" class="footer__social-media-elem"></a>
             </div>
             <p class="footer-text">The site was created by w1z4rdWP</p>
+            <div class="site-version">Версия: {{ latest_version }}</div>
+
         </div>
     </footer>
 </body>
