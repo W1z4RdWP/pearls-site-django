@@ -1079,6 +1079,50 @@ footer {
         overflow-x: hidden;
     }
 
+    .site-version{
+        font-size: 0.6em!important;
+        position: absolute;
+        right: 0;
+    }
+
+
+    /* Hero section */
+    .hero {
+        padding: 2rem;
+        
+    }
+
+    section:first-child{
+        height: 20%;
+        width: 95vw;
+        
+    }
+
+    section:nth-child(2){
+        height: 15%;
+        width: 80vw;
+    }
+
+    section:nth-child(3){
+        font-size: smaller;
+        width: 80vw;
+    }
+
+    .text-block-2{
+        position: relative;
+        display: block;
+        width: 100px;
+        height: 100px;
+        text-align: center;
+    }
+
+    .text-block-2 h5{
+        position: absolute;
+        bottom: 25%;
+        right: 9%;
+        font-size: 0.8rem!important;
+    }
+
     /* Hero section */
     .hero {
         flex-direction: column;
@@ -1107,13 +1151,23 @@ footer {
     }
 
     #staffCarousel .text-overlay {
-        top: 45%!important;
+        top: 35%!important;
         left: 50%!important;
         width: 90%!important;
         height: auto;
         max-height: 50%;
         padding: 10px!important;
         transform: translateX(-50%)!important;
+    }
+
+    #staffCarousel .staff-indicators{
+        bottom: 70%;
+    }
+
+    #staffCarousel .staff-indicators button {
+        width: 4px;
+        height: 4px;
+        border: 1px solid #fff;
     }
 
     #staffCarousel .text-overlay p {
@@ -1167,17 +1221,35 @@ footer {
     }
 
     .cards-box .box {
-        width: 100%!important;
+        width: 80%!important;
         margin: 10px 0;
         padding: 15px!important;
     }
 
-    /* .cards-box svg {
-        width: 48px;
-        height: 48px;
-    } */
+    .cards-box .box h5{
+        font-size: 0.6em!important;
+        /* margin-top: 15px; */
+    }
+
+    .cards-box .box p{
+        font-size: 0.4em!important;
+        /* margin-top: 15px; */
+    }
+    
+    .cards-box svg {
+        width: 48px!important;
+        height: 48px!important;
+    }
 
     /* Courses Carousel */
+    #courseCarousel{
+        height: 20%;
+    }
+
+    #courseCarousel .carousel-item{
+        height: fit-content!important;
+    }
+
     #courseCarousel .course-info-block {
         padding: 5px!important;
         margin: 5px!important;
@@ -1205,6 +1277,7 @@ footer {
         width: 90%;
         margin: 10px auto;
         display: block;
+        text-decoration: none;
     }
 
     .carousel-control-prev,
@@ -1213,6 +1286,7 @@ footer {
     }
     /* Футер */
     footer {
+        margin-top: 10%;
         padding: 20px 0!important;
     }
 
