@@ -5,6 +5,25 @@
 
 {% block content %}
 
+    <div class="lesson-navigation">
+        {% if previous_lesson %}
+            <a href="{% url 'lesson_detail' course_slug=lesson.course.slug lesson_id=previous_lesson.id %}" 
+            class="btn btn-primary">
+                ← {{ previous_lesson.title }}
+            </a>
+        {% else %}
+            <button class="btn btn-secondary" disabled>← Это первый урок</button>
+        {% endif %}
+
+        {% if next_lesson %}
+            <a href="{% url 'lesson_detail' course_slug=lesson.course.slug lesson_id=next_lesson.id %}" 
+            class="btn btn-primary">
+                {{ next_lesson.title }} →
+            </a>
+        {% else %}
+            <button class="btn btn-secondary" disabled>Это последний урок →</button>
+        {% endif %}
+    </div>
 
     <div class="content-section">
         <h1>{{ lesson.course.title }}</h1>

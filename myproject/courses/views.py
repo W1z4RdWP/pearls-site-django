@@ -200,6 +200,8 @@ def lesson_detail(request, course_slug, lesson_id):
 
     course = get_object_or_404(Course, slug=course_slug)
     lesson = get_object_or_404(Lesson, id=lesson_id, course=course)
+    previous_lesson = lesson.get_previous_lesson()
+    next_lesson = lesson.get_next_lesson()
 
     # Проверка доступа к курсу
     user_course = UserCourse.objects.filter(user=request.user, course=course).first()
@@ -211,7 +213,24 @@ def lesson_detail(request, course_slug, lesson_id):
     if trajectory:
         lessons_in_trajectory = trajectory.lessons.all()
         if lesson not in lessons_in_trajectory:
-            return redirect('course_detail', slug=course.slug)  # Или вы можете отобразить страницу с ошибкой
+            return redirect('course_detail', slug=course.slug)
+    if trajectory:
+        # Уроки в траектории, упорядоченные по полю order
+        trajectory_lessons = trajectory.lessons.all().order_by('order').select_related('course') 
+        
+        # Предыдущий урок в траектории
+        previous_lesson = trajectory_lessons.filter(
+            order__lt=lesson.order
+        ).order_by('-order').first()
+
+        # Следующий урок в траектории
+        next_lesson = trajectory_lessons.filter(
+            order__gt=lesson.order
+        ).order_by('order').first()
+    else:
+        # Стандартная логика без траектории
+        previous_lesson = lesson.get_previous_lesson()
+        next_lesson = lesson.get_next_lesson()
 
     # Помечаем урок как просмотренный (но не завершенный)
     UserProgress.objects.get_or_create(
@@ -219,7 +238,9 @@ def lesson_detail(request, course_slug, lesson_id):
         lesson=lesson,
         defaults={'course': course}
     )
-    return render(request, 'courses/lesson_detail.html', {'lesson': lesson})
+    return render(request, 'courses/lesson_detail.html', {'lesson': lesson,
+                                                          'previous_lesson': previous_lesson,
+                                                          'next_lesson': next_lesson})
 
 
 @login_required
