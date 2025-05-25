@@ -25,7 +25,7 @@ DATABASES = {
             'PASSWORD': os.getenv('LOCAL_DJANGO_DB_PASSWD'), # DJANGO_DB_PASSWD /
             'HOST': os.getenv('LOCAL_DJANGO_DB_HOST'), # DJANGO_DB_HOST / 
             'PORT': os.getenv('LOCAL_DJANGO_DB_PORT'), # DJANGO_DB_PORT /
-            'CONN_MAX_AGE': 60 * 10, # Не разрывать соединения пользователей с БД в течение 10 минут
+            'CONN_MAX_AGE': 0, # Не разрывать соединения пользователей с БД в течение 0 минут
             'OPTIONS' :{
                 'client_encoding': 'UTF8',
             }

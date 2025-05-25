@@ -155,6 +155,14 @@ def course_detail(request, slug):
         lessons = trajectory.lessons.all()
     else:
          lessons = course.lessons.all()
+
+    show_completion_animation = False
+    if user_course and user_course.is_completed and not user_course.course_complete_animation_shown:
+        show_completion_animation = True
+        # Mark animation as shown immediately (or after rendering, see note below)
+        user_course.course_complete_animation_shown = True
+        user_course.save(update_fields=['course_complete_animation_shown'])
+
     return render(request, 'courses/course_detail.html', {
         'course': course,
         'course_author': course_author,
@@ -167,6 +175,7 @@ def course_detail(request, slug):
         'next_lesson': next_lesson,
         'all_completed': all_completed,
         'shown_animation': user_course.course_complete_animation_shown if user_course else False,
+        'show_completion_animation': show_completion_animation,
         'exp_earned': exp_earned,
         'lessons':lessons,
         'show_final_quiz':show_final_quiz,
