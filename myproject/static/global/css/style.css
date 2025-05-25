@@ -591,6 +591,24 @@ footer {
     margin: 20px 0;
 }
 
+/* Навигация в lesson_detail */
+.lesson-navigation {
+    display: flex;
+    gap: 15px;
+    margin: 20px 0;
+}
+
+.lesson-navigation .btn {
+    padding: 10px 20px;
+    font-size: 1rem;
+    border-radius: 5px;
+    transition: background-color 0.3s ease;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    flex: 1;
+    margin: 0 5px;
+}
 .course-actions{
     display: flex;
     flex-direction: row;
@@ -1216,6 +1234,22 @@ footer {
         overflow: auto;
     }
 
+    /* Навигация lesson_detail */
+    .lesson-navigation {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        margin: 15px 0;
+    }
+
+    .lesson-navigation .btn {
+        width: 100%;
+        font-size: 1rem;
+        padding: 12px 0;
+        text-align: center;
+        margin: 0;
+    }
+
     /* Cards grid */
     .cards-box {
         flex-direction: column;
@@ -1405,6 +1439,20 @@ footer {
         place-self: center;
         width: 90%;
         padding: 5%;
+    }
+
+    /* Навигация lesson_detail */
+    .lesson-navigation {
+        display: flex;
+        flex-direction: row;
+        justify-content: space-between;
+        gap: 10px;
+        margin: 15px 0;
+    }
+
+    .lesson-navigation .btn {
+        font-size: 0.9rem;
+        padding: 8px 15px;
     }
 
     .lesson-actions {

@@ -155,6 +155,14 @@ def course_detail(request, slug):
         lessons = trajectory.lessons.all()
     else:
          lessons = course.lessons.all()
+
+    show_completion_animation = False
+    if user_course and user_course.is_completed and not user_course.course_complete_animation_shown:
+        show_completion_animation = True
+        # Mark animation as shown immediately (or after rendering, see note below)
+        user_course.course_complete_animation_shown = True
+        user_course.save(update_fields=['course_complete_animation_shown'])
+
     return render(request, 'courses/course_detail.html', {
         'course': course,
         'course_author': course_author,
@@ -167,6 +175,7 @@ def course_detail(request, slug):
         'next_lesson': next_lesson,
         'all_completed': all_completed,
         'shown_animation': user_course.course_complete_animation_shown if user_course else False,
+        'show_completion_animation': show_completion_animation,
         'exp_earned': exp_earned,
         'lessons':lessons,
         'show_final_quiz':show_final_quiz,
@@ -200,6 +209,8 @@ def lesson_detail(request, course_slug, lesson_id):
 
     course = get_object_or_404(Course, slug=course_slug)
     lesson = get_object_or_404(Lesson, id=lesson_id, course=course)
+    previous_lesson = lesson.get_previous_lesson()
+    next_lesson = lesson.get_next_lesson()
 
     # Проверка доступа к курсу
     user_course = UserCourse.objects.filter(user=request.user, course=course).first()
@@ -211,7 +222,24 @@ def lesson_detail(request, course_slug, lesson_id):
     if trajectory:
         lessons_in_trajectory = trajectory.lessons.all()
         if lesson not in lessons_in_trajectory:
-            return redirect('course_detail', slug=course.slug)  # Или вы можете отобразить страницу с ошибкой
+            return redirect('course_detail', slug=course.slug)
+    if trajectory:
+        # Уроки в траектории, упорядоченные по полю order
+        trajectory_lessons = trajectory.lessons.all().order_by('order').select_related('course') 
+        
+        # Предыдущий урок в траектории
+        previous_lesson = trajectory_lessons.filter(
+            order__lt=lesson.order
+        ).order_by('-order').first()
+
+        # Следующий урок в траектории
+        next_lesson = trajectory_lessons.filter(
+            order__gt=lesson.order
+        ).order_by('order').first()
+    else:
+        # Стандартная логика без траектории
+        previous_lesson = lesson.get_previous_lesson()
+        next_lesson = lesson.get_next_lesson()
 
     # Помечаем урок как просмотренный (но не завершенный)
     UserProgress.objects.get_or_create(
@@ -219,7 +247,9 @@ def lesson_detail(request, course_slug, lesson_id):
         lesson=lesson,
         defaults={'course': course}
     )
-    return render(request, 'courses/lesson_detail.html', {'lesson': lesson})
+    return render(request, 'courses/lesson_detail.html', {'lesson': lesson,
+                                                          'previous_lesson': previous_lesson,
+                                                          'next_lesson': next_lesson})
 
 
 @login_required
