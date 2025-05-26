@@ -11,7 +11,10 @@ from .models import Quiz, Question, Answer
 from .utils import DataMixin
 
 from typing import Optional
+import logging
 
+
+audit_logger = logging.getLogger('audit')
 
 class StartQuizView(DataMixin, TemplateView):
     """
@@ -24,9 +27,10 @@ class StartQuizView(DataMixin, TemplateView):
     template_name = 'quizzes/start.html'
 
     def get_context_data(self, **kwargs):
+        
         context = super().get_context_data(**kwargs)
-        return self.get_mixin_context(context, topics=Quiz.objects.annotate(questions_count=Count('question')))
-        # context['topics'] = Quiz.objects.annotate(questions_count=Count('question'))
+        return self.get_mixin_context(context, topics=Quiz.objects.annotate(questions_count=Count('question'))) # Добавлено возвращение количества вопросов в каждом тесте
+        # context['topics'] = Quiz.objects.annotate(questions_count=Count('question')) 
         # return context
 
 # def start_quiz_view(request) -> HttpResponse:
@@ -34,6 +38,9 @@ class StartQuizView(DataMixin, TemplateView):
 #     return render(request, 'quizzes/start.html', {'topics': topics})
 
 def get_questions(request, quiz_id: int = None, is_start: bool = False) -> HttpResponse:
+    """
+    Функция получения вопроса для тестирования. В зависимости от is_start определяется, является ли запрос стартовым.
+    """
     if request.method == 'POST' or is_start:
         # Если is_start=True, quiz_id берется из URL
         if is_start and not quiz_id:
@@ -56,8 +63,20 @@ def get_questions(request, quiz_id: int = None, is_start: bool = False) -> HttpR
             
             # Получаем первый вопрос
             question = _get_first_question(quiz_id)
+            audit_logger.info(
+            f'Приступил к прохождению теста с id={quiz_id}. Тест: {Quiz.objects.get(id=quiz_id).name}', 
+            extra={
+                'user': request.user.username if request.user.is_authenticated else 'Anonymous'
+            }
+        )
 
         if not question:
+            audit_logger.info(
+            f'Заверишл тест "{Quiz.objects.get(id=quiz_id).name}" (quiz_id: {quiz_id})', 
+            extra={
+                'user': request.user.username if request.user.is_authenticated else 'Anonymous'
+            }
+        )
             return redirect('get-finish')
         
         # Обновление сессии
@@ -75,6 +94,8 @@ def get_questions(request, quiz_id: int = None, is_start: bool = False) -> HttpR
         current_index = all_questions_ids.index(question.id) + 1
         total_questions = len(all_questions_ids)
         progress_percent = int((current_index / total_questions) * 100)
+
+
         
         return render(request, 'quizzes/question.html', {
             'question': question,

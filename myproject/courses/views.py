@@ -8,8 +8,10 @@ from .forms import CourseForm, LessonForm
 from .models import Course, Lesson, UserLessonTrajectory
 from myapp.models import UserProgress, UserCourse, QuizResult
 from myapp.views import is_admin, is_author_or_admin
+import logging
 
-
+logger = logging.getLogger(__name__)
+audit_logger = logging.getLogger('audit')
 
 def course_detail(request, slug):
     course = get_object_or_404(Course, slug=slug)
@@ -24,7 +26,13 @@ def course_detail(request, slug):
     user_course = UserCourse.objects.get(user=request.user, course=course)
     exp_earned = user_course.exp_reward()
     course_author = course.author.username
-
+    
+    audit_logger.info(
+        f'Перешёл к курсу {course.title}', 
+        extra={
+            'user': request.user.username if request.user.is_authenticated else 'Anonymous'
+        }
+    )
 
     if request.user.is_authenticated:
         user_course = UserCourse.objects.filter(user=request.user, course=course).first()
