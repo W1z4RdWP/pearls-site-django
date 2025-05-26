@@ -1,4 +1,5 @@
 from collections import defaultdict
+import logging
 
 
 from django.shortcuts import render, redirect, get_object_or_404
@@ -18,7 +19,8 @@ from quizzes.models import Answer
 from courses.models import UserLessonTrajectory
 from .forms import UserRegisterForm, UserUpdateForm, ProfileUpdateForm
  
-
+# Получаем логгер для записи в журнал аудита
+audit_logger = logging.getLogger('audit')
 
 class RegisterView(FormView):
     form_class = UserRegisterForm
@@ -26,12 +28,20 @@ class RegisterView(FormView):
     success_url = reverse_lazy('home')
 
     def form_valid(self, form):
+        user = form.save()
+        # Логирование действия
+        audit_logger.info(
+            'Зарегистрировался на платформе', 
+            extra={
+                'user': user.username if user.is_authenticated else 'Anonymous'
+            }
+        )
+                
         form.save()
         return super().form_valid(form)
 
 
 
-@cache_page(60*15)
 @login_required
 def profile(request: HttpRequest) -> HttpResponse:
     """
@@ -65,6 +75,13 @@ def profile(request: HttpRequest) -> HttpResponse:
 
         # Проверка на AJAX-запрос
     if request.headers.get('x-requested-with') == 'XMLHttpRequest':
+        # Логирование действия
+        audit_logger.info(
+            'Смотрит истории своих тестов в профиле', 
+            extra={
+                'user': request.user.username if request.user.is_authenticated else 'Anonymous'
+            }
+        )
         return render(request, 'users/includes/_quiz_history.html', {'page_obj': page_obj})
 
     all_lessons_completed = False
@@ -132,6 +149,15 @@ def profile(request: HttpRequest) -> HttpResponse:
         user_form = UserUpdateForm(instance=request.user)
         profile_form = ProfileUpdateForm(instance=request.user.profile)
 
+
+    # Логирование действия
+    audit_logger.info(
+        'Перешёл в свой профиль', 
+        extra={
+            'user': request.user.username if request.user.is_authenticated else 'Anonymous'
+        }
+    )
+
     return render(request, 'users/profile.html', {
         'user_form': user_form,
         'profile_form': profile_form,
@@ -179,10 +205,25 @@ class CustomLoginView(LoginView):
     """
     template_name = "users/login.html"
 
+
     def form_valid(self, form):
         user = form.get_user()
         if not user.profile.is_approved:
+            # Логирование действия
+            audit_logger.info(
+                'Хочет авторизоваться, но профиль не подтверждён', 
+                extra={
+                    'user': user.username if user.is_authenticated else 'Anonymous'
+                }
+            )
             messages.error(self.request, "Ваш аккаунт ожидает подтверждения администратором.")
             return redirect('login')
+        
+        audit_logger.info(
+            'Вошёл в систему', 
+            extra={
+                'user': user.username if user.is_authenticated else 'Anonymous'
+            }
+        )
         auth_login(self.request, user)
         return redirect(self.get_success_url())

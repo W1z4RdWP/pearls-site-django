@@ -62,7 +62,7 @@ SILENCED_SYSTEM_CHECKS = ["security.W019"]  # ignores redundant warning messages
 
 MIDDLEWARE = [
     'debug_toolbar.middleware.DebugToolbarMiddleware', # django-debug toolbar = панель отладки djt
-    'django.middleware.cache.UpdateCacheMiddleware', # кэш
+    #'django.middleware.cache.UpdateCacheMiddleware', # кэш
     'django.middleware.security.SecurityMiddleware',
     "whitenoise.middleware.WhiteNoiseMiddleware",
     'django.contrib.sessions.middleware.SessionMiddleware',
@@ -73,7 +73,7 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'django.middleware.locale.LocaleMiddleware',
-    'django.middleware.cache.FetchFromCacheMiddleware', # кэш
+   # 'django.middleware.cache.FetchFromCacheMiddleware', # кэш
     
     
 ]
@@ -368,11 +368,47 @@ CKEDITOR_5_CONFIGS = {
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
+    'formatters': {
+        'verbose': {
+            'format': '{levelname} {asctime} {module} {process:d} {thread:d} {message}',
+            'style': '{',
+            'datefmt': '%Y-%m-%d %H:%M:%S'
+        },
+        'audit_format': {
+            'format': '{asctime} - USER: {user} - ACTION: {message}',
+            'style': '{',
+            'datefmt': '%Y-%m-%d %H:%M:%S'
+        }
+    },
     'handlers': {
-        'file': {
-            'level': 'DEBUG',
+        # Общий файл ошибок
+        'error_file': {
+            'level': 'WARNING',
             'class': 'logging.FileHandler',
             'filename': '/var/log/django/errors.log',
+            'formatter': 'verbose'
+        },
+        # Файл аудита действий пользователей
+        'audit_file': {
+            'level': 'INFO',
+            'class': 'logging.FileHandler',
+            'filename': '/var/log/django/audit.log',
+            'maxBytes': 1024*1024*10,
+            'formatter': 'audit_format'
+        },
+    },
+    'loggers': {
+        # Перехват всех ошибок проекта
+        'django': {
+            'handlers': ['error_file'],
+            'level': 'WARNING',
+            'propagate': True,
+        },
+        # Кастомный логгер для аудита
+        'audit': {
+            'handlers': ['audit_file'],
+            'level': 'INFO',
+            'propagate': False,
         },
     },
 }
