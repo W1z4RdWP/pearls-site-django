@@ -42,6 +42,7 @@ urlpatterns = [
     path('logout/', auth_views.LogoutView.as_view(template_name='users/logout.html'), name='logout'),
     path('courses/', include('courses.urls'), name='courses'),
     path('quizzes/', include('quizzes.urls'), name='quizzes'),
+    path('builder/', include('builder.urls'), name='builder'),
     path('profile/quiz_report/<int:quiz_id>/', user_views.quiz_report, name='quiz_report'),
     path('ckeditor5/', include('django_ckeditor_5.urls')),
     path('changelog/', views.ChangelogListView.as_view(), name='changelog'),

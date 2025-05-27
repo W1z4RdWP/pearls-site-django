@@ -1,0 +1,46 @@
+{% extends 'layout.html' %}
+{% load static %}
+
+{% block title %}База знаний{% endblock %}
+{% block specific_styles %}
+    <link rel="stylesheet" href="{% static 'builder/css/builder_style.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="master-detail-container">
+        <div class="sidebar">
+            <h3>Уроки</h3>
+            <div class="lesson-nav">
+                {% for lesson in lessons %}
+                    <a href="{% url 'builder:lesson_detail' lesson.id %}" class="lesson-link{% if selected_lesson and lesson.id == selected_lesson.id %} active{% endif %}">
+                        {{ lesson.title|default:"Без названия" }}
+                    </a>
+                {% empty %}
+                    <span class="lesson-link disabled">Нет уроков</span>
+                {% endfor %}
+            </div>
+            <a href="{% url 'builder:lesson_add' %}" class="btn btn-primary add-lesson-btn">Добавить урок</a>
+        </div>
+        <div class="detail">
+            {% if selected_lesson %}
+                <h2>
+                    {{ selected_lesson.title }}
+                    <a href="{% url 'builder:lesson_edit' selected_lesson.id %}" class="btn btn-outline-primary btn-sm edit-btn">Редактировать</a>
+                </h2>
+                <div class="lesson-content">
+                    {{ selected_lesson.content|safe|default:"Нет содержимого." }}
+                </div>
+                {% if selected_lesson.video_id %}
+                    <div class="lesson-video mt-4">
+                        <h5>Видео урок:</h5>
+                        <iframe width="560" height="315" src="https://rutube.ru/play/embed/{{ selected_lesson.video_id }}" frameborder="0" allowfullscreen></iframe>
+                    </div>
+                {% endif %}
+            {% else %}
+                <p>Выберите урок для просмотра.</p>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

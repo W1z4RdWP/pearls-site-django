@@ -1,0 +1,223 @@
+.lessons-container {
+    max-width: 700px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+.lesson-list {
+    list-style: none;
+    padding: 0;
+}
+
+.lesson-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 15px;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    margin-bottom: 10px;
+    background-color: #f9f9f9;
+}
+
+.lesson-title {
+    font-weight: 600;
+    font-size: 1.1em;
+}
+
+.lesson-actions .btn {
+    margin-left: 5px;
+}
+
+/* Кнопки */
+.btn {
+    padding: 6px 12px;
+    font-size: 0.9em;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.btn-primary {
+    background-color: #007bff;
+    color: white;
+}
+
+.btn-primary:hover {
+    background-color: #0056b3;
+}
+
+.btn-outline-secondary {
+    background-color: transparent;
+    border: 1px solid #6c757d;
+    color: #6c757d;
+}
+
+.btn-outline-secondary:hover {
+    background-color: #6c757d;
+    color: white;
+}
+
+.btn-success {
+    background-color: #28a745;
+    color: white;
+}
+
+.btn-success:hover {
+    background-color: #1e7e34;
+}
+
+/* Модальное окно */
+.modal {
+    display: none; /* Скрыто по умолчанию */
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    overflow: auto;
+    background-color: rgba(0,0,0,0.5);
+}
+
+.modal-content {
+    background-color: #fff;
+    margin: 10% auto;
+    padding: 20px;
+    border-radius: 8px;
+    width: 400px;
+    position: relative;
+}
+
+.modal-content h3 {
+    margin-top: 0;
+}
+
+.close {
+    position: absolute;
+    right: 15px;
+    top: 10px;
+    font-size: 28px;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+.close:hover {
+    color: red;
+}
+
+label{
+    color: black!important;
+}
+
+.modal-content label {
+    display: block;
+    margin-top: 15px;
+    font-weight: 600;
+}
+
+.modal-content input[type="text"],
+.modal-content textarea {
+    width: 100%;
+    padding: 8px;
+    margin-top: 5px;
+    border-radius: 4px;
+    border: 1px solid #ccc;
+    box-sizing: border-box;
+}
+
+.master-detail-container {
+    display: flex;
+    min-height: 75vh;
+    background: #383838;
+    border-radius: 10px;
+    margin-top: 32px;
+    box-shadow: 0 0 12px #2223;
+}
+.sidebar {
+    width: 320px;
+    background: #232323;
+    color: #fff;
+    border-radius: 10px 0 0 10px;
+    padding: 32px 0 32px 0;
+    display: flex;
+    flex-direction: column;
+}
+.sidebar h3 {
+    margin: 0 0 24px 32px;
+    font-size: 1.3rem;
+    font-weight: 600;
+}
+.lesson-nav {
+    flex: 1;
+    overflow-y: auto;
+}
+.lesson-link {
+    display: block;
+    color: #fff;
+    text-decoration: none;
+    padding: 12px 32px;
+    border-left: 4px solid transparent;
+    transition: background 0.2s, border-color 0.2s;
+    font-size: 1.1em;
+}
+.lesson-link.active, .lesson-link:hover {
+    background: #2c2c2c;
+    border-left: 4px solid #4d7cff;
+    color: #4d7cff;
+}
+.add-lesson-btn {
+    margin: 24px 32px 0 32px;
+    width: calc(100% - 64px);
+}
+.detail {
+    flex: 1;
+    padding: 40px 48px;
+    background: #fff;
+    border-radius: 0 10px 10px 0;
+    min-width: 0;
+}
+.detail h2 {
+    margin-top: 0;
+}
+.detail .edit-btn {
+    float: right;
+}
+
+.detail {
+    background-color: #ffffff; /* белый фон */
+    color: #212529; /* темный цвет текста (Bootstrap body color) */
+    padding: 40px 48px;
+    border-radius: 0 10px 10px 0;
+    min-width: 0;
+}
+
+.detail h2 {
+    color: #212529; /* заголовок тоже темный */
+}
+
+.lesson-content {
+    color: #212529;
+    font-size: 1rem;
+    line-height: 1.5;
+}
+
+/* Если в lesson-content есть ссылки, можно их стилизовать */
+.lesson-content a {
+    color: #0d6efd; /* стандартный синий Bootstrap */
+    text-decoration: underline;
+}
+
+.lesson-content a:hover {
+    color: #0a58ca;
+}
+
+
+
+
+@media (max-width: 900px) {
+    .master-detail-container { flex-direction: column; }
+    .sidebar, .detail { border-radius: 10px; width: 100%; }
+    .sidebar { padding: 24px 0; }
+    .detail { padding: 24px 12px; }
+}
