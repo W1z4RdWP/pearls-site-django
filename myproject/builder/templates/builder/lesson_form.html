@@ -1,4 +1,5 @@
 {% extends 'layout.html' %}
+{% load static %}
 {% load crispy_forms_tags %}
 
 {% block title %}
@@ -6,6 +7,7 @@
 {% endblock %}
 
 {% block specific_styles %}
+<link rel="stylesheet" href="{% static 'builder/css/builder_style.css' %}">
 <style>
     /* Переопределение цвета help_text для video_id */
     #id_video_id_helptext {
@@ -17,7 +19,7 @@
 {% block content %}
 <div class="container" style="max-width: 600px; margin-top: 48px;">
     <h2>{% if view.object %}Редактировать урок{% else %}Добавить урок{% endif %}</h2>
-    <form method="post" enctype="multipart/form-data" class="bg-light p-4 rounded shadow-sm" style="color: black;">
+    <form method="post" enctype="multipart/form-data" class="bg-light p-4 rounded shadow-sm" style="color: black;" id="edit_lesson_form__builder">
         {% csrf_token %}
         {{ form.media }}
         {% for field in form %}

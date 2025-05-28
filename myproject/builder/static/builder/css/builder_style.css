@@ -212,7 +212,10 @@ label{
     color: #0a58ca;
 }
 
-
+/* Основной контейнер с контентом уроков (Отображение списка уроков, редактирование, создание) */
+.container{
+    max-width: 1200px!important;
+}
 
 
 @media (max-width: 900px) {
@@ -220,4 +223,52 @@ label{
     .sidebar, .detail { border-radius: 10px; width: 100%; }
     .sidebar { padding: 24px 0; }
     .detail { padding: 24px 12px; }
+}
+
+/* TODO: Все переделать */
+@media only screen and (max-width: 512px) {
+    .master-detail-container {
+        flex-direction: column;
+    }
+    .sidebar {
+        width: 100% !important;
+        border-radius: 10px 10px 0 0;
+        padding: 20px 15px;
+    }
+    .detail {
+        width: 100% !important;
+        border-radius: 0 0 10px 10px;
+        padding: 20px 15px;
+    }
+    .lesson-nav {
+        max-height: 200px; /* чтобы список не занимал слишком много места */
+        overflow-y: auto;
+    }
+    .add-lesson-btn {
+        width: 100% !important;
+        margin: 15px 0 0 0;
+    }
+    /* Дополнительно можно уменьшить размеры шрифтов, отступы и т.п. */
+        .master-detail-container {
+        flex-direction: column;
+    }
+    .sidebar {
+        width: 100% !important;
+        border-radius: 10px 10px 0 0;
+        padding: 20px 15px;
+    }
+    .detail {
+        width: 100% !important;
+        border-radius: 0 0 10px 10px;
+        padding: 20px 15px;
+    }
+    .lesson-nav {
+        max-height: 200px;
+        overflow-y: auto;
+    }
+    .add-lesson-btn {
+        width: 100% !important;
+        margin: 15px 0 0 0;
+    }
+
 }

@@ -13,6 +13,22 @@
                 <h2 class="account-heading">{{ user.username }}</h2>
                 <p class="text-secondary">{{ user.email }}</p>
                 <p class="text-secondary">{{ user.profile.bio|default:'О себе: нет информации' }}</p>
+                <div class="media-body__user-groups">
+                    {% with user.groups.all as groups %}
+                        {% if groups|length == 1 %}
+                            <p>Вы состоите в группе: {{ groups.0.name }}</p>
+                        {% elif groups|length > 1 %}
+                            <p>Группы пользователя:</p>
+                            <ul>
+                                {% for group in groups %}
+                                    <li>{{ group.name }}</li>
+                                {% endfor %}
+                            </ul>
+                        {% else %}
+                            <p>Пользователь не состоит в группах</p>
+                        {% endif %}
+                    {% endwith %}
+                </div>
             </div>
         </div>
         <div class="profile-actions">
