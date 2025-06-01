@@ -1,4 +1,9 @@
 /* static/css/profile.css */
+:root{
+    --secondary-text-color: #6c757d;
+    --primary-text-color: #333;
+}
+
 
 .content-section {
     background: #dad7d7;
@@ -15,6 +20,11 @@
     margin-bottom: 20px;
 }
 
+
+.media-body__user-groups {
+    color: var(--secondary-text-color);
+}
+
 .rounded-circle.account-img {
     width: 100px;
     height: 100px;
@@ -24,7 +34,7 @@
 
 .account-heading {
     font-size: 2rem;
-    color: #333;
+    color: var(--primary-text-color);
 }
 
 .text-secondary {
@@ -36,7 +46,7 @@
 }
 
 legend{
-    color: #333;
+    color: var(--primary-text-color);
 }
 
 .btn-outline-info {
@@ -82,7 +92,7 @@ legend{
     place-self: center;
     height: 5vh;
     width: 90%;
-    border: 2px solid #333;
+    border: 2px solid var(--primary-text-color);
     margin-top: 1vh; 
     
     position: relative; /* Делаем контейнер относительным для позиционирования текста */
@@ -95,7 +105,7 @@ legend{
     transform: translateY(-50%); /* Смещаем текст вверх на половину его высоты */
     margin: 0; /* Убираем отступы */
     z-index: 2; /* Убедимся, что текст поверх .inner */
-    color: #333; /* Цвет текста */
+    color: var(--primary-text-color); /* Цвет текста */
 }
 
 .progress-bar-user .inner {
@@ -161,7 +171,7 @@ legend{
     
     .account-heading {
         font-size: 1.5rem;
-        color: #333;
+        color: var(--primary-text-color);
     }
     
     

@@ -6,6 +6,7 @@ from django_ckeditor_5.fields import CKEditor5Field
 from unidecode import unidecode
 
 from quizzes.models import Quiz
+from builder.models import CategoryName
 
 class Course(models.Model):
     """
@@ -68,7 +69,7 @@ class Lesson(models.Model):
         video_id - идентификатор прикрепленного видео из рутуб. Максимальное количество символов для передачи в форму 
                     задается параметром max_length.
     """
-    course = models.ForeignKey(Course, on_delete=models.CASCADE, related_name='lessons', verbose_name="Курс")
+    course = models.ForeignKey(Course, on_delete=models.CASCADE, null=True, blank=True, related_name='lessons', verbose_name="Курс")
     title = models.CharField(max_length=200, verbose_name="Название урока")
     content = CKEditor5Field('Content', config_name='extends')
     video_id = models.CharField(
@@ -79,6 +80,14 @@ class Lesson(models.Model):
         help_text="Пример: https://rutube.ru/video/VIDEO_ID/ - вводите только VIDEO_ID"
     )
     order = models.PositiveIntegerField(verbose_name="Порядок урока")
+    category = models.ForeignKey(
+        CategoryName,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='lessons',
+        verbose_name="Категория"
+    )
 
 
     class Meta:

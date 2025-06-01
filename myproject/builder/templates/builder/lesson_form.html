@@ -1,0 +1,49 @@
+{% extends 'layout.html' %}
+{% load static %}
+{% load crispy_forms_tags %}
+
+{% block title %}
+    {% if view.object %}Редактировать урок{% else %}Добавить урок{% endif %}
+{% endblock %}
+
+{% block specific_styles %}
+<link rel="stylesheet" href="{% static 'builder/css/builder_style.css' %}">
+<style>
+    /* Переопределение цвета help_text для video_id */
+    #id_video_id_helptext {
+        color: black !important;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container" style="max-width: 600px; margin-top: 48px;">
+    <h2>{% if view.object %}Редактировать урок{% else %}Добавить урок{% endif %}</h2>
+    <form method="post" enctype="multipart/form-data" class="bg-light p-4 rounded shadow-sm" style="color: black;" id="edit_lesson_form__builder">
+        {% csrf_token %}
+        {{ form.media }}
+        {% for field in form %}
+            {% if field.name == "content" %}
+                <div class="mb-3">
+                    {{ field.label_tag }}
+                    <div class="django-ckeditor-widget">
+                        {{ field }}
+                    </div>
+                    {% if field.help_text %}
+                        <small class="form-text text-muted">{{ field.help_text }}</small>
+                    {% endif %}
+                    {% for error in field.errors %}
+                        <div class="text-danger">{{ error }}</div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                {{ field|as_crispy_field }}
+            {% endif %}
+        {% endfor %}
+        <div class="button-group mt-4">
+            <button type="submit" class="btn btn-primary">Сохранить</button>
+            <a href="{% url 'builder:lesson_master' %}" class="btn btn-secondary">Отмена</a>
+        </div>
+    </form>
+</div>
+{% endblock %}

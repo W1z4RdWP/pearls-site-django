@@ -1,0 +1,16 @@
+{% extends 'layout.html' %}
+{% load static %}
+
+{% block title %}Удаление категории{% endblock %}
+
+{% block content %}
+<div class="container" style="max-width: 600px; margin-top: 48px;">
+    <h2>Удалить категорию "{{ object.name }}"?</h2>
+    <p>Это действие нельзя будет отменить.</p>
+    <form method="post" class="bg-light p-4 rounded shadow-sm" style="color: black;">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-danger">Подтвердить удаление</button>
+        <a href="{% url 'builder:lesson_master' %}" class="btn btn-secondary">Отмена</a>
+    </form>
+</div>
+{% endblock %}

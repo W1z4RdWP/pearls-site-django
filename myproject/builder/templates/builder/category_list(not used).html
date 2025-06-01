@@ -1,0 +1,36 @@
+{% extends 'layout.html' %}
+{% load static %}
+
+{% block title %}Список категорий{% endblock %}
+
+{% block specific_styles %}
+<link rel="stylesheet" href="{% static 'builder/css/builder_style.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="container" style="max-width: 800px; margin-top: 48px;">
+    <h2>Категории</h2>
+    <a href="{% url 'builder:category_add' %}" class="btn btn-primary mb-3">Добавить категорию</a>
+
+    {% if categories %}
+        <ul class="lesson-list">
+            {% for category in categories %}
+                <li class="lesson-item d-flex justify-content-between align-items-center">
+                    <div>
+                        {% if category.parent %}
+                            <small class="text-muted">Подкатегория: {{ category.parent.name }}</small><br>
+                        {% endif %}
+                        <strong>{{ category.name }}</strong>
+                    </div>
+                    <div>
+                        <a href="{% url 'builder:category_edit' category.id %}" class="btn btn-outline-secondary btn-sm me-2">Редактировать</a>
+                        <a href="{% url 'builder:category_delete' category.id %}" class="btn btn-outline-danger btn-sm">Удалить</a>
+                    </div>
+                </li>
+            {% endfor %}
+        </ul>
+    {% else %}
+        <p>Категории не найдены.</p>
+    {% endif %}
+</div>
+{% endblock %}

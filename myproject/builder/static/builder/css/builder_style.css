@@ -1,0 +1,290 @@
+/* --- Основные контейнеры --- */
+.container {
+    max-width: 1200px !important;
+}
+
+/* --- Master-detail layout --- */
+.master-detail-container {
+    display: flex;
+    min-height: 75vh;
+    background: #383838;
+    border-radius: 10px;
+    margin-top: 32px;
+    box-shadow: 0 0 12px #2223;
+}
+
+.sidebar {
+    width: 320px;
+    background: #232323;
+    color: #fff;
+    border-radius: 10px 0 0 10px;
+    padding: 32px 0;
+    display: flex;
+    flex-direction: column;
+}
+
+.sidebar h3 {
+    margin: 0 0 24px 32px;
+    font-size: 1.3rem;
+    font-weight: 600;
+}
+
+.add-lesson-btn {
+    margin: 24px 32px 0 32px;
+    width: calc(100% - 64px);
+}
+
+/* --- Категории и дерево --- */
+.category-list,
+.subcategory-list,
+.lesson-list {
+    list-style: none;
+    padding-left: 0;
+    margin: 0;
+}
+
+.category-block {
+    margin-bottom: 18px;
+    padding: 0;
+}
+
+.category-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 32px 4px 32px;
+}
+
+.category-title {
+    font-weight: 700;
+    font-size: 1.1em;
+    color: #ddd;
+}
+
+.delete-category {
+    color: #ff4d4f;
+    font-size: 1.2em;
+    text-decoration: none;
+    margin-left: 12px;
+    cursor: pointer;
+    background: none;
+    border: none;
+    padding: 0;
+    line-height: 1;
+    transition: color 0.2s;
+}
+.delete-category:hover {
+    color: #ff7875;
+}
+
+.toggle-arrow {
+    margin-left: 10px;
+    font-size: 1em;
+    cursor: pointer;
+    user-select: none;
+    transition: transform 0.2s;
+    color: #bbb;
+}
+.category-header.open .toggle-arrow {
+    color: #4d7cff;
+}
+
+.category-block > .lesson-list,
+.category-block > .subcategory-list {
+    margin-left: 24px;
+    margin-top: 4px;
+}
+
+/* --- Уроки --- */
+.lesson-list {
+    padding: 0;
+    margin: 0;
+}
+.lesson-list li {
+    margin-bottom: 4px;
+}
+.lesson-link, .lesson-list a {
+    display: block;
+    color: #fff;
+    text-decoration: none;
+    padding: 8px 0 8px 8px;
+    border-left: 4px solid transparent;
+    transition: background 0.2s, border-color 0.2s, color 0.2s;
+    font-size: 1.1em;
+    font-weight: 500;
+}
+.lesson-link.active,
+.lesson-link:hover,
+.lesson-list a.active,
+.lesson-list a:hover {
+    background: #2c2c2c;
+    border-left: 4px solid #4d7cff;
+    color: #4d7cff;
+}
+
+/* --- Детальная часть (контент урока) --- */
+.detail {
+    flex: 1;
+    padding: 40px 48px;
+    background: #fff;
+    border-radius: 0 10px 10px 0;
+    min-width: 0;
+    color: #212529;
+}
+.detail h2 {
+    margin-top: 0;
+    color: #212529;
+}
+.detail .edit-btn {
+    float: right;
+}
+.lesson-content {
+    color: #212529;
+    font-size: 1rem;
+    line-height: 1.5;
+}
+.lesson-content a {
+    color: #0d6efd;
+    text-decoration: underline;
+}
+.lesson-content a:hover {
+    color: #0a58ca;
+}
+
+/* --- Модальные окна (если используются) --- */
+.modal {
+    display: none;
+    position: fixed;
+    z-index: 1000;
+    left: 0; top: 0;
+    width: 100%; height: 100%;
+    overflow: auto;
+    background-color: rgba(0,0,0,0.5);
+}
+.modal-content {
+    background-color: #fff;
+    margin: 10% auto;
+    padding: 20px;
+    border-radius: 8px;
+    width: 400px;
+    position: relative;
+}
+.close {
+    position: absolute;
+    right: 15px;
+    top: 10px;
+    font-size: 28px;
+    font-weight: bold;
+    cursor: pointer;
+}
+.close:hover {
+    color: red;
+}
+.modal-content label {
+    display: block;
+    margin-top: 15px;
+    font-weight: 600;
+}
+.modal-content input[type="text"],
+.modal-content textarea {
+    width: 100%;
+    padding: 8px;
+    margin-top: 5px;
+    border-radius: 4px;
+    border: 1px solid #ccc;
+    box-sizing: border-box;
+}
+
+/* --- Кнопки --- */
+.btn {
+    padding: 6px 12px;
+    font-size: 0.9em;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+}
+.btn-primary {
+    background-color: #007bff;
+    color: white;
+}
+.btn-primary:hover {
+    background-color: #0056b3;
+}
+.btn-outline-secondary {
+    background-color: transparent;
+    border: 1px solid #6c757d;
+    color: #6c757d;
+}
+.btn-outline-secondary:hover {
+    background-color: #6c757d;
+    color: white;
+}
+.btn-success {
+    background-color: #28a745;
+    color: white;
+}
+.btn-success:hover {
+    background-color: #1e7e34;
+}
+.btn-danger {
+    background-color: #dc3545;
+    color: white;
+}
+.btn-danger:hover {
+    background-color: #b52a37;
+}
+.btn-secondary {
+    background-color: #6c757d;
+    color: white;
+}
+.btn-secondary:hover {
+    background-color: #565e64;
+}
+
+/* --- Формы --- */
+label {
+    color: black !important;
+}
+
+/* --- Адаптивность --- */
+@media (max-width: 900px) {
+    .master-detail-container {
+        flex-direction: column;
+    }
+    .sidebar, .detail {
+        border-radius: 10px;
+        width: 100%;
+    }
+    .sidebar {
+        padding: 24px 0;
+    }
+    .detail {
+        padding: 24px 12px;
+    }
+}
+
+@media (max-width: 512px) {
+    .master-detail-container {
+        flex-direction: column;
+    }
+    .sidebar {
+        width: 100% !important;
+        border-radius: 10px 10px 0 0;
+        padding: 20px 15px;
+    }
+    .detail {
+        width: 100% !important;
+        border-radius: 0 0 10px 10px;
+        padding: 20px 15px;
+    }
+    .add-lesson-btn {
+        width: 100% !important;
+        margin: 15px 0 0 0;
+    }
+    .lesson-nav {
+        max-height: 200px;
+        overflow-y: auto;
+    }
+}
+
+/* --- Конец --- */

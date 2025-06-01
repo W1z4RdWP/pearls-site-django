@@ -54,7 +54,8 @@ INSTALLED_APPS = [
     'myapp',
     'users',
     'courses',
-    'quizzes'
+    'quizzes',
+    'builder' # БЗ. Конструктор траекторий из уроков.
 ]
 
 X_FRAME_OPTIONS = "SAMEORIGIN"              # allows you to use modals insated of popups
@@ -393,7 +394,6 @@ LOGGING = {
             'level': 'INFO',
             'class': 'logging.FileHandler',
             'filename': '/var/log/django/audit.log',
-            'maxBytes': 1024*1024*10,
             'formatter': 'audit_format'
         },
     },
