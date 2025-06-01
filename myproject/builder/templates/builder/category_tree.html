@@ -1,0 +1,35 @@
+<li class="category-block">
+    <div class="category-header">
+        <span class="category-title">{{ category.name }}</span>
+        <a href="{% url 'builder:category_delete' category.id %}"
+           class="delete-category"
+           title="Удалить категорию"
+           onclick="return confirm('Вы уверены, что хотите удалить категорию {{ category.name }}?');">
+            &times;
+        </a>
+        {% if category.subcategories.all %}
+            <span class="toggle-arrow" onclick="toggleSubcat(this.parentElement)">
+                &#9654;
+            </span>
+        {% endif %}
+    </div>
+    {% if category.lessons.all %}
+        <ul class="lesson-list">
+            {% for lesson in category.lessons.all %}
+                <li>
+                    <a href="{% url 'builder:lesson_detail' lesson.id %}"
+                       class="{% if selected_lesson and lesson.id == selected_lesson.id %}active{% endif %}">
+                        {{ lesson.title }}
+                    </a>
+                </li>
+            {% endfor %}
+        </ul>
+    {% endif %}
+    {% if category.subcategories.all %}
+        <ul class="subcategory-list" style="display: none;">
+            {% for subcat in category.subcategories.all %}
+                {% include "builder/category_tree.html" with category=subcat selected_lesson=selected_lesson %}
+            {% endfor %}
+        </ul>
+    {% endif %}
+</li>

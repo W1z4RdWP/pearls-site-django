@@ -3,44 +3,59 @@
 
 {% block title %}База знаний{% endblock %}
 {% block specific_styles %}
-    <link rel="stylesheet" href="{% static 'builder/css/builder_style.css' %}">
+<link rel="stylesheet" href="{% static 'builder/css/builder_style.css' %}">
+<script src="{% static 'builder/js/builder.js' %}" defer></script>
+
 {% endblock %}
 
 {% block content %}
-<div class="container">
-    <div class="master-detail-container">
-        <div class="sidebar">
-            <h3>Уроки</h3>
-            <div class="lesson-nav">
-                {% for lesson in lessons %}
-                    <a href="{% url 'builder:lesson_detail' lesson.id %}" class="lesson-link{% if selected_lesson and lesson.id == selected_lesson.id %} active{% endif %}">
-                        {{ lesson.title|default:"Без названия" }}
-                    </a>
-                {% empty %}
-                    <span class="lesson-link disabled">Нет уроков</span>
-                {% endfor %}
-            </div>
-            <a href="{% url 'builder:lesson_add' %}" class="btn btn-primary add-lesson-btn">Добавить урок</a>
-        </div>
-        <div class="detail">
-            {% if selected_lesson %}
-                <h2>
-                    {{ selected_lesson.title }}
-                    <a href="{% url 'builder:lesson_edit' selected_lesson.id %}" class="btn btn-outline-primary btn-sm edit-btn">Редактировать</a>
-                </h2>
-                <div class="lesson-content">
-                    {{ selected_lesson.content|safe|default:"Нет содержимого." }}
-                </div>
-                {% if selected_lesson.video_id %}
-                    <div class="lesson-video mt-4">
-                        <h5>Видео урок:</h5>
-                        <iframe width="560" height="315" src="https://rutube.ru/play/embed/{{ selected_lesson.video_id }}" frameborder="0" allowfullscreen></iframe>
-                    </div>
+    <div class="container">
+        <div class="master-detail-container">
+            <div class="sidebar">
+                <h3>Категории</h3>
+<ul class="category-list">
+    {% for category in categories %}
+                {% include "builder/category_tree.html" with category=category selected_lesson=selected_lesson %}
+    {% endfor %}
+</ul>
+
+                {% if uncategorized_lessons %}
+                    <h4>Уроки без категории</h4>
+                    <ul>
+                        {% for lesson in uncategorized_lessons %}
+                            <li>
+                                <a href="{% url 'builder:lesson_detail' lesson.id %}"
+                                class="{% if selected_lesson and lesson.id == selected_lesson.id %}active{% endif %}">
+                                    {{ lesson.title }}
+                                </a>
+                            </li>
+                        {% endfor %}
+                    </ul>
                 {% endif %}
-            {% else %}
-                <p>Выберите урок для просмотра.</p>
-            {% endif %}
+                
+                <a href="{% url 'builder:category_add' %}" class="btn btn-primary add-lesson-btn mt-3">Добавить категорию</a>
+                <a href="{% url 'builder:lesson_add' %}" class="btn btn-success add-lesson-btn mt-2">Добавить урок</a>
+            </div>
+
+            <div class="detail">
+                {% if selected_lesson %}
+                    <h2>
+                        {{ selected_lesson.title }}
+                        <a href="{% url 'builder:lesson_edit' selected_lesson.id %}" class="btn btn-outline-primary btn-sm edit-btn">Редактировать</a>
+                    </h2>
+                    <div class="lesson-content">
+                        {{ selected_lesson.content|safe|default:"Нет содержимого." }}
+                    </div>
+                    {% if selected_lesson.video_id %}
+                        <div class="lesson-video mt-4">
+                            <h5>Видео урок:</h5>
+                            <iframe width="560" height="315" src="https://rutube.ru/play/embed/{{ selected_lesson.video_id }}" frameborder="0" allowfullscreen></iframe>
+                        </div>
+                    {% endif %}
+                {% else %}
+                    <p>Выберите урок для просмотра.</p>
+                {% endif %}
+            </div>
         </div>
     </div>
-</div>
 {% endblock %}

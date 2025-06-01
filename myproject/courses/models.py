@@ -6,6 +6,7 @@ from django_ckeditor_5.fields import CKEditor5Field
 from unidecode import unidecode
 
 from quizzes.models import Quiz
+from builder.models import CategoryName
 
 class Course(models.Model):
     """
@@ -79,6 +80,14 @@ class Lesson(models.Model):
         help_text="Пример: https://rutube.ru/video/VIDEO_ID/ - вводите только VIDEO_ID"
     )
     order = models.PositiveIntegerField(verbose_name="Порядок урока")
+    category = models.ForeignKey(
+        CategoryName,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='lessons',
+        verbose_name="Категория"
+    )
 
 
     class Meta:
