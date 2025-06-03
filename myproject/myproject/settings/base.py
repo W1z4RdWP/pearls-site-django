@@ -392,8 +392,10 @@ LOGGING = {
         # Файл аудита действий пользователей
         'audit_file': {
             'level': 'INFO',
-            'class': 'logging.FileHandler',
+            'class': 'logging.handlers.RotatingFileHandler',
             'filename': '/var/log/django/audit.log',
+            'maxBytes': 1024*1024*10,
+            'backupCount': 5,
             'formatter': 'audit_format'
         },
     },

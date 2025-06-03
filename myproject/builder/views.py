@@ -2,6 +2,8 @@ from django.views.generic import DetailView
 from django.shortcuts import get_object_or_404
 from courses.models import Course, Lesson
 from myapp.models import UserProgress
+from django.contrib.auth.decorators import login_required
+from django.utils.decorators import method_decorator
 from django.views.generic import ListView, CreateView, UpdateView, TemplateView, DeleteView
 from django.urls import reverse_lazy
 from .models import CategoryName
@@ -11,6 +13,7 @@ class LessonListView(ListView):
     template_name = 'builder/home.html'
     context_object_name = 'lessons'
 
+@method_decorator(login_required(login_url='/login/'), name='dispatch')
 class LessonMasterDetailView(TemplateView):
     template_name = 'builder/master_detail.html'
 

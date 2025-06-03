@@ -17,18 +17,18 @@ DATABASES = {
 }
 
 
-DATABASES = {
-    'default': {
-            'ENGINE': 'django.db.backends.postgresql',
-            'NAME': os.getenv('LOCAL_DJANGO_DB_NAME'), # LOCAL_DJANGO_DB_NAME /
-            'USER': os.getenv('LOCAL_DJANGO_DB_USER'), # DJANGO_DB_USER /
-            'PASSWORD': os.getenv('LOCAL_DJANGO_DB_PASSWD'), # DJANGO_DB_PASSWD /
-            'HOST': os.getenv('LOCAL_DJANGO_DB_HOST'), # DJANGO_DB_HOST / 
-            'PORT': os.getenv('LOCAL_DJANGO_DB_PORT'), # DJANGO_DB_PORT /
-            'CONN_MAX_AGE': 0, # Не разрывать соединения пользователей с БД в течение 0 минут
-            'OPTIONS' :{
-                'client_encoding': 'UTF8',
-            }
-    }
-}
+# DATABASES = {
+#     'default': {
+#             'ENGINE': 'django.db.backends.postgresql',
+#             'NAME': os.getenv('LOCAL_DJANGO_DB_NAME'), # LOCAL_DJANGO_DB_NAME /
+#             'USER': os.getenv('LOCAL_DJANGO_DB_USER'), # DJANGO_DB_USER /
+#             'PASSWORD': os.getenv('LOCAL_DJANGO_DB_PASSWD'), # DJANGO_DB_PASSWD /
+#             'HOST': os.getenv('LOCAL_DJANGO_DB_HOST'), # DJANGO_DB_HOST / 
+#             'PORT': os.getenv('LOCAL_DJANGO_DB_PORT'), # DJANGO_DB_PORT /
+#             'CONN_MAX_AGE': 0, # Не разрывать соединения пользователей с БД в течение 0 минут
+#             'OPTIONS' :{
+#                 'client_encoding': 'UTF8',
+#             }
+#     }
+# }
 
