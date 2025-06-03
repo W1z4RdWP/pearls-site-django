@@ -13,11 +13,11 @@
         <div class="master-detail-container">
             <div class="sidebar">
                 <h3>Категории</h3>
-<ul class="category-list">
-    {% for category in categories %}
-                {% include "builder/category_tree.html" with category=category selected_lesson=selected_lesson %}
-    {% endfor %}
-</ul>
+                <ul class="category-list">
+                    {% for category in categories %}
+                        {% include "builder/category_tree.html" with category=category selected_lesson=selected_lesson %}
+                    {% endfor %}
+                </ul>
 
                 {% if uncategorized_lessons %}
                     <h4>Уроки без категории</h4>
