@@ -16,11 +16,24 @@
     {% if category.lessons.all %}
         <ul class="lesson-list">
             {% for lesson in category.lessons.all %}
-                <li>
+                <li id='lesson-list__lesson' style="display: flex; align-items: center; justify-content: space-between;">
                     <a href="{% url 'builder:lesson_detail' lesson.id %}"
-                       class="{% if selected_lesson and lesson.id == selected_lesson.id %}active{% endif %}">
+                    class="{% if selected_lesson and lesson.id == selected_lesson.id %}active{% endif %}">
                         {{ lesson.title }}
                     </a>
+                    <div class="lesson-actions">
+                        <a href="{% url 'builder:lesson_edit' lesson.id %}" title="Редактировать урок" class="edit-lesson">✍</a>
+                        <form method="post"
+                            action="{% url 'builder:lesson_delete' lesson.id %}"
+                            style="display:inline;">
+                            {% csrf_token %}
+                            <button type="submit"
+                                    onclick="return confirm('Вы уверены, что хотите удалить этот урок?');"
+                                    title="Удалить урок">
+                                &#10060;
+                            </button>
+                        </form>
+                    </div>
                 </li>
             {% endfor %}
         </ul>

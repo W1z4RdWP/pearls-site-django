@@ -56,6 +56,11 @@ class LessonUpdateView(UpdateView):
     success_url = reverse_lazy('builder:lesson_master')
 
 
+class LessonDeleteView(DeleteView):
+    model = Lesson
+    success_url = reverse_lazy('builder:lesson_master')
+
+
 class CategoryListView(ListView):
     model = CategoryName
     template_name = 'builder/category_list.html'

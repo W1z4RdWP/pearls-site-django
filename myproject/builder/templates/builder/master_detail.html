@@ -23,11 +23,25 @@
                     <h4>Уроки без категории</h4>
                     <ul>
                         {% for lesson in uncategorized_lessons %}
-                            <li>
+                            <li style="display: flex; align-items: center; justify-content: space-between;">
                                 <a href="{% url 'builder:lesson_detail' lesson.id %}"
                                 class="{% if selected_lesson and lesson.id == selected_lesson.id %}active{% endif %}">
                                     {{ lesson.title }}
                                 </a>
+                                <div class="lesson-actions">
+                                    <a href="{% url 'builder:lesson_edit' lesson.id %}" title="Редактировать урок" class="edit-lesson">✍</a>
+                                    <form method="post"
+                                    action="{% url 'builder:lesson_delete' lesson.id %}"
+                                    style="display:inline;">
+                                        {% csrf_token %}
+                                        <button type="submit"
+                                                onclick="return confirm('Вы уверены, что хотите удалить этот урок?');"
+                                                title="Удалить урок"
+                                                style="background: none; border: none; color: red; cursor: pointer; font-size: 16px;">
+                                            &#10060;
+                                        </button>
+                                    </form>
+                                </div>
                             </li>
                         {% endfor %}
                     </ul>
@@ -41,7 +55,7 @@
                 {% if selected_lesson %}
                     <h2>
                         {{ selected_lesson.title }}
-                        <a href="{% url 'builder:lesson_edit' selected_lesson.id %}" class="btn btn-outline-primary btn-sm edit-btn">Редактировать</a>
+                        {% comment %} <a href="{% url 'builder:lesson_edit' selected_lesson.id %}" class="btn btn-outline-primary btn-sm edit-btn">Редактировать</a> {% endcomment %}
                     </h2>
                     <div class="lesson-content">
                         {{ selected_lesson.content|safe|default:"Нет содержимого." }}
