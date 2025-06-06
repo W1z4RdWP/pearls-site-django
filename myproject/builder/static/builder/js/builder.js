@@ -1,12 +1,24 @@
 function toggleSubcat(header) {
     header.classList.toggle('open');
-    const subcatList = header.parentElement.querySelector('.subcategory-list');
+    const categoryBlock = header.closest('.category-block'); // самый близкий родитель с классом category-block
+
+    if (!categoryBlock) return;
+
+    const subcatList = categoryBlock.querySelector('.subcategory-list');
+    const lessonList = categoryBlock.querySelector('.lesson-list');
     const arrow = header.querySelector('.toggle-arrow');
-    if (subcatList) {
-        const isOpen = subcatList.style.display === 'block';
-        subcatList.style.display = isOpen ? 'none' : 'block';
-        if (arrow) {
-            arrow.innerHTML = isOpen ? '&#9654;' : '&#9660;'; // ▶ ▼
-        }
+
+    function toggleDisplay(element) {
+        if (!element) return;
+        const isVisible = element.style.display === 'block';
+        element.style.display = isVisible ? 'none' : 'block';
+    }
+
+    toggleDisplay(subcatList);
+    toggleDisplay(lessonList);
+
+    if (arrow) {
+        const anyOpen = (subcatList && subcatList.style.display === 'block') || (lessonList && lessonList.style.display === 'block');
+        arrow.innerHTML = anyOpen ? '&#9660;' : '&#9654;'; // ▼ или ▶
     }
 }
