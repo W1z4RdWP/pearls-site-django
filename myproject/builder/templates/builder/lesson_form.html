@@ -23,7 +23,13 @@
         {% csrf_token %}
         {{ form.media }}
         {% for field in form %}
-            {% if field.name == "content" %}
+            {% if field.name == "category" and preselected_category %}
+                <div class="mb-3">
+                    <label class="form-label" for="{{ field.id_for_label }}">{{ field.label }}</label>
+                    <input type="text" class="form-control-plaintext" readonly value="{{ preselected_category.name }}">
+                    <input type="hidden" name="category" value="{{ preselected_category.id }}">
+                </div>
+            {% elif field.name == "content" %}
                 <div class="mb-3">
                     {{ field.label_tag }}
                     <div class="django-ckeditor-widget">

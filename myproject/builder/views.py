@@ -48,6 +48,21 @@ class LessonCreateView(CreateView):
     template_name = 'builder/lesson_form.html'
     success_url = reverse_lazy('builder:lesson_master')
 
+    def get_initial(self):
+        initial = super().get_initial()
+        category_id = self.kwargs.get('category_id')
+        if category_id:
+            category = get_object_or_404(CategoryName, pk=category_id)
+            initial['category'] = category
+        return initial
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        category_id = self.kwargs.get('category_id')
+        if category_id:
+            context['preselected_category'] = get_object_or_404(CategoryName, pk=category_id)
+        return context
+
 
 class LessonUpdateView(UpdateView):
     model = Lesson
