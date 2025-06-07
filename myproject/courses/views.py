@@ -291,6 +291,32 @@ def create_lesson(request, course_slug):
 
 @login_required
 @user_passes_test(is_admin, login_url='/')
+def add_lesson(request, course_slug):
+    course = get_object_or_404(Course, slug=course_slug)
+    # Получаем уроки, которые не входят в этот курс (закомментированный код)
+    existing_lessons = Lesson.objects.all() #Lesson.objects.exclude(course=course).filter(course__isnull=False)
+    if request.method == 'POST':
+        if 'create_new' in request.POST:
+            return redirect('create_lesson', course_slug=course.slug)
+        elif 'select_existing' in request.POST:
+            lesson_id = request.POST.get('lesson_id')
+            if lesson_id:
+                lesson = get_object_or_404(Lesson, id=lesson_id)
+                # Привязываем урок к курсу (меняем ForeignKey)
+                lesson.course = course
+                # Определяем порядок (order) — ставим после последнего
+                max_order = course.lessons.aggregate(Max('order'))['order__max'] or 0
+                lesson.order = max_order + 1
+                lesson.save()
+                return redirect('course_detail', slug=course.slug)
+    return render(request, 'courses/add_lesson.html', {
+        'course': course,
+        'existing_lessons': existing_lessons
+    })
+
+
+@login_required
+@user_passes_test(is_admin, login_url='/')
 def delete_course(request, slug):
     course = get_object_or_404(Course, slug=slug)
     if request.method == 'POST':

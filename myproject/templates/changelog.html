@@ -4,6 +4,23 @@
 {% block specific_styles %} <link rel="stylesheet" href="{% static 'global/css/changelog.css' %}" />{% endblock %}
 
 {% block content %}
+<div class="pagination">
+    <span class="step-links">
+        {% if page_obj.has_previous %}
+            <a href="?page=1">&laquo; Первая страница</a>
+            <a href="?page={{ page_obj.previous_page_number }}">Предыдущая</a>
+        {% endif %}
+
+        <span class="current">
+            Страница {{ page_obj.number }} из {{ page_obj.paginator.num_pages }}.
+        </span>
+
+        {% if page_obj.has_next %}
+            <a href="?page={{ page_obj.next_page_number }}">Следующая</a>
+            <a href="?page={{ page_obj.paginator.num_pages }}">Последняя страница &raquo;</a>
+        {% endif %}
+    </span>
+</div>
 <div class="container py-5">
     <h1 class="mb-4">История изменений</h1>
     
@@ -22,17 +39,34 @@
                 <div class="card-body">
                     <h5 class="card-title">{{ change.title }}</h5>
                     <div class="card-text">{{ change.description|linebreaks }}</div>
-                    {% if change.related_link %}
-                    <a href="{{ change.related_link }}" 
-                       class="btn btn-outline-primary mt-3"
-                       target="_blank">
-                        Подробнее
-                    </a>
+                     {% if change.related_link %}{% comment %} Если указана ссылка на подробное описание обновления (сторонний ресурс) {% endcomment %}
+                        <a href="{{ change.related_link }}" 
+                        class="btn btn-outline-primary mt-3" style="width: 120px;"
+                        target="_blank">
+                            Подробнее
+                        </a>
                     {% endif %}
                 </div>
             </div>
         </div>
         {% endfor %}
     </div>
+</div>
+<div class="pagination">
+    <span class="step-links">
+        {% if page_obj.has_previous %}
+            <a href="?page=1">&laquo; Первая страница</a>
+            <a href="?page={{ page_obj.previous_page_number }}">Предыдущая</a>
+        {% endif %}
+
+        <span class="current">
+            Страница {{ page_obj.number }} из {{ page_obj.paginator.num_pages }}.
+        </span>
+
+        {% if page_obj.has_next %}
+            <a href="?page={{ page_obj.next_page_number }}">Следующая</a>
+            <a href="?page={{ page_obj.paginator.num_pages }}">Последняя страница &raquo;</a>
+        {% endif %}
+    </span>
 </div>
 {% endblock %}

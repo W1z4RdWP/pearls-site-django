@@ -12,6 +12,7 @@
             <div class="media-body">
                 <h2 class="account-heading">{{ user.username }}</h2>
                 <p class="text-secondary">{{ user.email }}</p>
+                <p class="text-secondary">Дата регистрации: {{ user.date_joined|date:"d.m.Y H:i" }}</p>
                 <p class="text-secondary">{{ user.profile.bio|default:'О себе: нет информации' }}</p>
                 <div class="media-body__user-groups">
                     {% with user.groups.all as groups %}
