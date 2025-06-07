@@ -22,7 +22,7 @@
         {% endif %}
     </div>
     {% if category.lessons.all %}
-        <ul class="lesson-list">
+        <ul class="lesson-list" style='display: none;'>
             {% for lesson in category.lessons.all %}
                 <li id='lesson-list__lesson' style="display: flex; align-items: center; justify-content: space-between;">
                     <a href="{% url 'builder:lesson_detail' lesson.id %}"

@@ -12,6 +12,7 @@ class LessonListView(ListView):
     model = Lesson
     template_name = 'builder/home.html'
     context_object_name = 'lessons'
+    
 
 @method_decorator(login_required(login_url='/login/'), name='dispatch')
 class LessonMasterDetailView(TemplateView):
