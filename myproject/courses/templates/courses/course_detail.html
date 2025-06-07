@@ -56,10 +56,12 @@
                             <p class="text-success">Курс завершен: {{ user_course.end_date|date:"d.m.Y" }}</p>
                         {% endif %}
                     {% endif %}
-                    <a href="{% url 'lesson_detail' course.slug next_lesson.id %}" 
-                       class="btn btn-primary w-100">
-                        Продолжить обучение
-                    </a>
+                        {% if next_lesson.id %}
+                            <a href="{% url 'lesson_detail' course.slug next_lesson.id %}" 
+                            class="btn btn-primary w-100">
+                                Продолжить обучение
+                            </a>
+                        {% endif %}
                     {% else %}
                     <form method="POST">
                         {% csrf_token %}
@@ -73,7 +75,7 @@
                 </div>
                 {% if user.is_authenticated and user.is_staff %}
                 <div class="course-actions">
-                    <a href="{% url 'create_lesson' course.slug %}" class="btn btn-success">Добавить урок</a>
+                    <a href="{% url 'add_lesson' course.slug %}" class="btn btn-success">Добавить урок</a>
                     <a href="{% url 'edit_course' course.slug %}" class="btn btn-warning">
                         Редактировать
                     </a>
