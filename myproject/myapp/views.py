@@ -42,6 +42,7 @@ def page_not_found_view(request, exception):
 
 class ChangelogListView(ListView):
     model = ChangeLog
+    paginate_by = 5
     template_name = 'changelog.html'
     context_object_name = 'changelog'
 
