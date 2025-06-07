@@ -1,6 +1,6 @@
 <li class="category-block">
     <div class="category-header">
-        <span class="category-title">{{ category.name }}</span>
+        <span class="category-title">{{ category.order }}. {{ category.name }}</span>
         <div class="category-actions">
             <a href="{% url 'builder:lesson_add_with_category' category.id %}"
                class="delete-category"
