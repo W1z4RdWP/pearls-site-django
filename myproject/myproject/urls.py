@@ -44,6 +44,7 @@ urlpatterns = [
     path('quizzes/', include('quizzes.urls'), name='quizzes'),
     path('builder/', include('builder.urls'), name='builder'),
     path('profile/quiz_report/<int:quiz_id>/', user_views.quiz_report, name='quiz_report'),
+    path('i18n/', include('django.conf.urls.i18n')),
     path('ckeditor5/', include('django_ckeditor_5.urls')),
     path('changelog/', views.ChangelogListView.as_view(), name='changelog'),
     path('error_found/', views.page_not_found_view, {'exception': Answer.MultipleObjectsReturned}, name='error')
