@@ -2,7 +2,10 @@ from django.db import models
 from django.contrib.auth.models import User
 from django.utils.text import slugify
 from django_ckeditor_5.fields import CKEditor5Field
-from django.utils import timezone 
+from django.utils import timezone
+from django.db.models.signals import post_save, post_delete
+from django.dispatch import receiver
+
 
 from courses.models import Course, Lesson
 from quizzes.models import Question, Answer
