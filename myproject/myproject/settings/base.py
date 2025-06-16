@@ -38,7 +38,7 @@ INSTALLED_APPS = [
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
-    'django.contrib.sessions',
+    #'django.contrib.sessions',
     'django.contrib.messages',
     "whitenoise.runserver_nostatic",
     'django.contrib.staticfiles',
@@ -49,6 +49,7 @@ INSTALLED_APPS = [
     'django_ckeditor_5',
     'nested_admin',
     'debug_toolbar',
+    'qsessions',
     
 
     'myapp',
@@ -66,7 +67,8 @@ MIDDLEWARE = [
     #'django.middleware.cache.UpdateCacheMiddleware', # кэш
     'django.middleware.security.SecurityMiddleware',
     "whitenoise.middleware.WhiteNoiseMiddleware",
-    'django.contrib.sessions.middleware.SessionMiddleware',
+    'qsessions.middleware.SessionMiddleware',
+    #'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'quizzes.middleware.prevent_refresh.PreventRefreshMiddleware',
@@ -75,8 +77,6 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'django.middleware.locale.LocaleMiddleware',
    # 'django.middleware.cache.FetchFromCacheMiddleware', # кэш
-    
-    
 ]
 
 ROOT_URLCONF = 'myproject.urls'
@@ -233,7 +233,11 @@ customColorPalette = [
 CRISPY_ALLOWED_TEMPLATE_PACKS = "bootstrap5"
 CRISPY_TEMPLATE_PACK = 'bootstrap5'
 
+SESSION_ENGINE = 'qsessions.backends.db'
+SESSION_COOKIE_AGE = 7200 # Время сессии в секундах (2 часа)
+
 LOGIN_REDIRECT_URL = 'home'
+LOGOUT_REDIRECT_URL = 'login'
 LOGIN_URL = 'login'
 
 CKEDITOR_5_ALLOW_ALL_FILE_TYPES = True

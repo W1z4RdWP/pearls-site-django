@@ -191,25 +191,29 @@ def course_detail(request, slug):
 
 
 def course_detail_all(request):
-    courses = []
-    completed_courses = []
+    """
+    Отображает все курсы (траектории) доступные пользователю в шаблоне all_courses_list.html.
+    Передает в данный шаблон 2 списка с курсами:
+    1. Доступные (не пройденные)
+    2. Пройденные (завершенные)
+
+    """
+    available_courses = []
+    completed_courses_list = []
 
     if request.user.is_authenticated:
-        # Получаем курсы, назначенные пользователю
-        user_courses = UserCourse.objects.filter(user=request.user).values_list('course', flat=True)
-        courses = Course.objects.filter(id__in=user_courses)
-        # Получаем список завершенных курсов
-        completed_courses = UserCourse.objects.filter(
-            user=request.user, 
-            is_completed=True
-        ).values_list('course_id', flat=True)
+        # Получаем объекты UserCourse для пользователя
+        user_courses = UserCourse.objects.filter(user=request.user).select_related('course')
+
+        # Разделяем курсы по статусу завершения
+        available_courses = [uc.course for uc in user_courses if not uc.is_completed]
+        completed_courses_list = [uc.course for uc in user_courses if uc.is_completed]
 
     context = {
-        'courses': courses,
-        'completed_courses': completed_courses,
+        'available_courses': available_courses,
+        'completed_courses_list': completed_courses_list,
     }
     return render(request, 'courses/all_courses_list.html', context)
-
 
 def lesson_detail(request, course_slug, lesson_id):
     if not request.user.is_authenticated:

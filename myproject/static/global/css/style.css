@@ -1093,7 +1093,7 @@ footer {
     
 }
 
-@media (max-width: 512px) {
+ @media (max-width: 768px)/* Временно сменил на 768  (было 512) */{ 
     body {
         max-width: 100%;
         overflow-x: hidden;
@@ -1210,7 +1210,7 @@ footer {
         position: relative!important;
         width: 40%!important;
         height: auto!important;
-        margin-right: 110px;
+        margin-right: 70px;
         right: auto!important;
         bottom: auto!important;
         top: -20%;

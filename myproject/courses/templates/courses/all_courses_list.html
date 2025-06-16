@@ -7,37 +7,55 @@
     <h1>Список Курсов</h1>
 
     <div class="row">
-        <div class="col-md-12">
-            <h3>Доступные курсы</h3>
-            <div class="list-group">
-                {% if not user.course %}
-                    <p>Вам пока еще не назначили ни одного курса. Обратитесь к администрации сайта</p>
-                {% endif %}
-                {% for course in courses %}
-                    <a href="{% url 'course_detail' course.slug %}"
-                    class="list-group-item list-group-item-action">
-                        {{ course.title }}
-                        {% if user.is_authenticated and course.id in completed_courses %}
-                            <span class="badge bg-success float-end">Завершен</span>
-                        {% endif %}
-                    </a>
-                {% endfor %}
+        <!-- Доступные курсы -->
+        <div class="col-md-12 mb-5">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h3 class="mb-0">Доступные курсы</h3>
+                </div>
+                <div class="card-body">
+                    {% if available_courses %}
+                        <div class="list-group">
+                            {% for course in available_courses %}
+                                <a href="{% url 'course_detail' course.slug %}"
+                                   class="list-group-item list-group-item-action">
+                                    {{ course.title }}
+                                </a>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <p class="text-muted mb-0">
+                            Вам пока еще не назначили ни одного курса. Обратитесь к администрации сайта.
+                        </p>
+                    {% endif %}
+                </div>
             </div>
         </div>
-    </div>
-<br><br>
-    {% comment %} <div class="row">
-        <div class="col-md-4">
+
+        <!-- Пройденные курсы -->
+        <div class="col-md-12">
             <div class="card">
+                <div class="card-header bg-success text-white">
+                    <h3 class="mb-0">Пройденные курсы</h3>
+                </div>
                 <div class="card-body">
-                    {% if request.user.is_authenticated %}
-                        <p>Выберите курс</p>
+                    {% if completed_courses_list %}
+                        <div class="list-group">
+                            {% for course in completed_courses_list %}
+                                <a href="{% url 'course_detail' course.slug %}"
+                                   class="list-group-item list-group-item-action">
+                                    {{ course.title }}
+                                    <span class="badge bg-success float-end">Завершен</span>
+                                </a>
+                            {% endfor %}
+                        </div>
                     {% else %}
-                    <p>Чтобы начать курс, пожалуйста, войдите.</p>
+                        <p class="text-muted mb-0">Пока нет завершённых курсов.</p>
                     {% endif %}
                 </div>
             </div>
         </div>
     </div>
-</div> {% endcomment %}
+</div>
+
 {% endblock %}
