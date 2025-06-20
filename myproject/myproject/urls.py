@@ -34,7 +34,7 @@ urlpatterns = [
     re_path(r'^static/(?P<path>.*)$', serve,{'document_root': settings.STATIC_ROOT}),
     path('admin/', admin.site.urls),
     path('register/', user_views.RegisterView.as_view(), name='register'),
-    path('', cache_page(60)(views.IndexView.as_view()), name='home'),
+    path('', (views.IndexView.as_view()), name='home'),
     path('captcha/', include('captcha.urls')),
     path('about/', views.AboutView.as_view(), name='about'),
     path('profile/', user_views.profile, name='profile'),
