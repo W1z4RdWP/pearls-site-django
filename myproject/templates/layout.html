@@ -103,17 +103,50 @@
         {% endblock %}
     </main>
 
-    <footer>
-        <div class="footer-content">
-            <a href="{% url 'home' %}"><img src="{% static 'global/imgs/logo.png' %}" alt="" class="footer-logo"></a>
-            <div class="footer__social-media">
-                <a href="https://vk.com/territorysmile" target="_blank"><img src="{% static 'global/imgs/vk.png' %}" alt="vk_logo" class="footer__social-media-elem"></a>
-                <a href="https://telegram.me/Stomatologiya_saratov" target="_blank"><img src="{% static 'global/imgs/tg.png' %}" alt="tg_logo" class="footer__social-media-elem"></a>
-                <a href="https://32cdi.ru/" target="_blank"><img src="{% static 'global/imgs/terr_smile.png' %}" alt="terr smile" class="footer__social-media-elem"></a>
+    <footer class="footer-main">
+        <div class="footer-container">
+            <div class="footer-col footer-brand">
+                <a href="{% url 'home' %}">
+                    <img src="{% static 'global/imgs/logo_lc.png' %}" alt="Logo" class='footer-logo'>
+                </a>
+                <p class="footer-tagline">Территория улыбки — учись, вдохновляйся, совершенствуйся!</p>
             </div>
-            <p class="footer-text">The site was created by w1z4rdWP</p>
-            <div class="site-version">Версия: {{ latest_version }}</div>
-
+            <div class="footer-col footer-links">
+                <h5>Навигация</h5>
+                <ul>
+                    <li><a href="{% url 'home' %}">Главная</a></li>
+                    <li><a href="{% url 'about' %}">О нас</a></li>
+                    <li><a href="{% url 'changelog' %}">Изменения</a></li>
+                    <li><a href="{% url 'profile' %}">Профиль</a></li>
+                </ul>
+            </div>
+            <div class="footer-col footer-social">
+                <h5>Мы в соцсетях</h5>
+                <div class="footer__social-media">
+                    <a href="https://vk.com/territorysmile" target="_blank" aria-label="ВКонтакте">
+                        <img src="{% static 'global/imgs/vk.png' %}" alt="vk" class="footer__social-media-elem">
+                    </a>
+                    <a href="https://telegram.me/Stomatologiya_saratov" target="_blank" aria-label="Telegram">
+                        <img src="{% static 'global/imgs/tg.png' %}" alt="tg" class="footer__social-media-elem">
+                    </a>
+                    <a href="https://32cdi.ru/" target="_blank" aria-label="Территория улыбки">
+                        <img src="{% static 'global/imgs/terr_smile.png' %}" alt="terr smile" class="footer__social-media-elem">
+                    </a>
+                </div>
+            </div>
+            <div class="footer-col footer-contact">
+                <h5>Контакты</h5>
+                <ul>
+                    <li><a href="mailto:info@32cdi.ru">info@smileterritory.ru</a></li>
+                    <li><a href="tel:+78452725552">+7 (906) 307-43-32</a></li>
+                    <li><a href="https://32cdi.ru/contacts/" target="_blank">г. Саратов, ул. Огородная, 144/146</a></li>
+                </ul>
+            </div>
+        </div>
+        <div class="footer-bottom">
+            <span class="site-version">Версия: {{ latest_version }}</span>
+            <span class="footer-text">© 2025 Территория Улыбки &nbsp;|&nbsp; The site was created by w1z4rdWP</span>
+            <a href="#" class="footer-policy">Политика конфиденциальности</a>
         </div>
     </footer>
 </body>
