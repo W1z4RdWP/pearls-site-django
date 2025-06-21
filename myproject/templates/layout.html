@@ -99,7 +99,7 @@
         {% endif %}
                 
         {% block content %}
-        <!-- Уникальный контент каждой страницы будет здесь -->
+            <!-- Уникальный контент каждой страницы будет здесь -->
         {% endblock %}
     </main>
 
@@ -146,7 +146,9 @@
         <div class="footer-bottom">
             <span class="site-version">Версия: {{ latest_version }}</span>
             <span class="footer-text">© 2025 Территория Улыбки &nbsp;|&nbsp; The site was created by w1z4rdWP</span>
-            <a href="#" class="footer-policy">Политика конфиденциальности</a>
+            {% comment %} 
+            TODO: Исправить отображение в футере, чтобы не съезжало и можно использовать{% endcomment %}
+            <a href="#" class="footer-policy">Политика конфиденциальности</a> 
         </div>
     </footer>
 </body>

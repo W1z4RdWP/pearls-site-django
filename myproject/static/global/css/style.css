@@ -71,11 +71,6 @@ header{
     color: rgb(227, 92, 121) !important; /* Цвет текста при наведении */
 }
 
-.site-version {
-    position: absolute;
-    top: 5px;
-    left: 5px;
-}
 
 .form-group{
     width: 50%;
@@ -446,60 +441,6 @@ main > section > .text-block-2 {
     color: #fff; /* Цвет текста при наведении */
 }
 
-/* Footer */
-footer {
-    display: flex;
-    align-items: center; /* Выравниваем элементы по вертикали */
-    justify-content: flex-start; /* Элементы начинаются с левого края */
-    /* padding: 1.5rem; */
-    background-color: var(--primary-color);
-    border-top: 1px solid rgba(255, 255, 255, 0.1);
-    position: relative;
-    width: 100%;
-    
-}
-
-.footer-content {
-    display: flex;
-    flex-direction: row;
-    align-items: center;
-    justify-content: space-between; /* Распределяем пространство между элементами */
-    width: 100%; /* Ширина контейнера */
-    /* max-width: 1200px; Максимальная ширина контейнера */
-    margin: 0 auto; /* Центрируем контейнер */
-    gap: 1rem;
-    position: relative;
-}
-
-.footer-logo {
-    width: clamp(80px, 10vw, 200px);
-}
-
-
-.footer__social-media{
-    display: flex;
-    justify-content: space-between;
-    gap: 2rem;
-    margin-right: 1vw;
-}
-
-.footer__social-media-elem{
-    width: clamp(40px, 4vw, 100px);
-}
-
-.footer-text {
-    position: absolute;
-    bottom: 0;
-    left: 50%; /* Сдвигаем текст на 50% вправо */
-    transform: translateX(-50%); /* Центрируем текст */
-    transform: translateY(120%);
-
-
-    font-size: clamp(4px, 0.8em, 8px);
-    font-style: italic;
-    text-align: center;
-    color: rgba(255, 255, 255, 0.7);
-}
 
 .warning-info-about{
     position: relative;
@@ -799,7 +740,7 @@ footer {
 }
 /* Текст "Уже есть аккаунт" стилизуется непосредственно в templates/users/register.html */
 
-
+/* Footer new */
 .footer-main {
     background: #232323;
     color: #eee;
@@ -808,6 +749,7 @@ footer {
     border-top: 2px solid #353535;
     font-family: var(--primary-font);
     margin-top: 40px;
+    z-index: 100;
 }
 
 .footer-container {
