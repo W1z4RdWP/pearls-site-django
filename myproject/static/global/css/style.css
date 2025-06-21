@@ -71,11 +71,6 @@ header{
     color: rgb(227, 92, 121) !important; /* Цвет текста при наведении */
 }
 
-.site-version {
-    position: absolute;
-    top: 5px;
-    left: 5px;
-}
 
 .form-group{
     width: 50%;
@@ -446,60 +441,6 @@ main > section > .text-block-2 {
     color: #fff; /* Цвет текста при наведении */
 }
 
-/* Footer */
-footer {
-    display: flex;
-    align-items: center; /* Выравниваем элементы по вертикали */
-    justify-content: flex-start; /* Элементы начинаются с левого края */
-    /* padding: 1.5rem; */
-    background-color: var(--primary-color);
-    border-top: 1px solid rgba(255, 255, 255, 0.1);
-    position: relative;
-    width: 100%;
-    
-}
-
-.footer-content {
-    display: flex;
-    flex-direction: row;
-    align-items: center;
-    justify-content: space-between; /* Распределяем пространство между элементами */
-    width: 100%; /* Ширина контейнера */
-    /* max-width: 1200px; Максимальная ширина контейнера */
-    margin: 0 auto; /* Центрируем контейнер */
-    gap: 1rem;
-    position: relative;
-}
-
-.footer-logo {
-    width: clamp(80px, 10vw, 200px);
-}
-
-
-.footer__social-media{
-    display: flex;
-    justify-content: space-between;
-    gap: 2rem;
-    margin-right: 1vw;
-}
-
-.footer__social-media-elem{
-    width: clamp(40px, 4vw, 100px);
-}
-
-.footer-text {
-    position: absolute;
-    bottom: 0;
-    left: 50%; /* Сдвигаем текст на 50% вправо */
-    transform: translateX(-50%); /* Центрируем текст */
-    transform: translateY(120%);
-
-
-    font-size: clamp(4px, 0.8em, 8px);
-    font-style: italic;
-    text-align: center;
-    color: rgba(255, 255, 255, 0.7);
-}
 
 .warning-info-about{
     position: relative;
@@ -798,6 +739,176 @@ footer {
     color: var(--text-color);
 }
 /* Текст "Уже есть аккаунт" стилизуется непосредственно в templates/users/register.html */
+
+/* Footer new */
+.footer-main {
+    background: #232323;
+    color: #eee;
+    width: 100%;
+    padding: 40px 0 0 0;
+    border-top: 2px solid #353535;
+    font-family: var(--primary-font);
+    margin-top: 40px;
+    z-index: 100;
+}
+
+.footer-container {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: flex-start;
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 0 32px;
+    gap: 32px;
+}
+
+.footer-col {
+    flex: 1 1 200px;
+    min-width: 200px;
+    margin-bottom: 24px;
+}
+
+.footer-brand {
+    max-width: 260px;
+}
+.footer-logo {
+    width: 110px;
+    margin-bottom: 12px;
+    display: block;
+}
+.footer-tagline {
+    font-size: 1em;
+    color: #bdbdbd;
+    margin-top: 6px;
+    font-style: italic;
+}
+
+.footer-links h5,
+.footer-social h5,
+.footer-contact h5 {
+    font-size: 1.1em;
+    margin-bottom: 10px;
+    color: #4d7cff;
+    letter-spacing: 0.5px;
+}
+.footer-links ul,
+.footer-contact ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+.footer-links ul li,
+.footer-contact ul li {
+    margin-bottom: 7px;
+}
+.footer-links a,
+.footer-contact a {
+    color: #eee;
+    text-decoration: none;
+    transition: color 0.2s;
+}
+.footer-links a:hover,
+.footer-contact a:hover {
+    color: #4d7cff;
+    text-decoration: underline;
+}
+
+.footer__social-media {
+    display: flex;
+    gap: 18px;
+    align-items: center;
+    margin-top: 3px;
+}
+.footer__social-media-elem {
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    background: #333;
+    padding: 4px;
+    transition: background 0.2s, transform 0.2s;
+}
+.footer__social-media-elem:hover {
+    background: #4d7cff;
+    transform: scale(1.12);
+}
+
+.footer-bottom {
+    border-top: 1px solid #353535;
+    margin-top: 18px;
+    padding: 16px 32px 8px 32px;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.98em;
+    background: #1c1c1c;
+}
+.footer-text {
+    color: #bdbdbd;
+    font-size: 0.95em;
+    font-style: italic;
+    text-align: center;
+    flex: 1 1 200px;
+}
+.site-version {
+    color: #4d7cff;
+    font-size: 0.95em;
+    font-weight: 600;
+    margin-right: 18px;
+}
+.footer-policy {
+    color: #eee;
+    text-decoration: none;
+    margin-left: 18px;
+    transition: color 0.2s;
+    font-size: 0.95em;
+}
+.footer-policy:hover {
+    color: #4d7cff;
+    text-decoration: underline;
+}
+
+/* Адаптивность */
+@media (max-width: 900px) {
+    .footer-container {
+        flex-direction: column;
+        align-items: flex-start;
+        padding: 0 12px;
+        gap: 18px;
+    }
+    .footer-col {
+        width: 100%;
+        min-width: unset;
+        margin-bottom: 14px;
+    }
+    .footer-bottom {
+        flex-direction: column;
+        align-items: flex-start;
+        padding: 12px 12px 8px 12px;
+        gap: 8px;
+    }
+    .footer-policy, .site-version, .footer-text {
+        margin: 0;
+        font-size: 0.92em;
+    }
+}
+@media (max-width: 600px) {
+    .footer-main {
+        padding: 24px 0 0 0;
+    }
+    .footer-logo {
+        width: 70px;
+    }
+    .footer__social-media-elem {
+        width: 28px;
+        height: 28px;
+    }
+    .footer-bottom {
+        font-size: 0.85em;
+        padding: 10px 6px 5px 6px;
+    }
+}
 
 /* Для больших экранов */
 @media (min-width: 2300px){

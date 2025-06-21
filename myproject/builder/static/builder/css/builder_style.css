@@ -1,12 +1,12 @@
 /* --- Основные контейнеры --- */
 .container {
-    max-width: 1200px !important;
+    max-width: 1600px !important;
 }
 
 /* --- Master-detail layout --- */
 .master-detail-container {
     display: flex;
-    min-height: 75vh;
+    min-height: calc(100vh - 100px);
     background: #383838;
     border-radius: 10px;
     margin-top: 32px;
@@ -14,7 +14,7 @@
 }
 
 .sidebar {
-    width: 320px;
+    width: 400px;
     background: #232323;
     color: #fff;
     border-radius: 10px 0 0 10px;
@@ -51,14 +51,32 @@
 .category-header {
     display: flex;
     align-items: center;
-    justify-content: space-between;
-    padding: 8px 32px 4px 32px;
+    padding: 8px 32px;
+    background: #2c2c2c;
+    border-radius: 6px;
+    margin-bottom: 6px;
+    transition: background 0.2s;
+}
+
+.category-header:hover {
+    background: #3a3a3a;
 }
 
 .category-title {
+    flex: 1;
     font-weight: 700;
     font-size: 1.1em;
     color: #ddd;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    padding-right: 15px;
+}
+
+.category-actions {
+    display: flex;
+    gap: 8px;
+    flex-shrink: 0;
 }
 
 .delete-category {
@@ -101,8 +119,20 @@
     margin: 0;
 }
 .lesson-list li {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 15px;
     margin-bottom: 4px;
+    background: #2a2a2a;
+    border-radius: 5px;
+    transition: background 0.2s;
 }
+
+.lesson-list li:hover {
+    background: #3a3a3a;
+}
+
 .lesson-link, .lesson-list a {
     display: block;
     color: #fff;
@@ -113,6 +143,17 @@
     font-size: 1.1em;
     font-weight: 500;
 }
+
+.lesson-link {
+    flex: 1;
+    color: #fff;
+    text-decoration: none;
+    white-space: normal;
+    word-wrap: break-word;
+    padding-right: 15px;
+    line-height: 1.4;
+}
+
 .lesson-link.active,
 .lesson-link:hover,
 .lesson-list a.active,
@@ -137,8 +178,47 @@
 
 .lesson-actions {
     display: flex;
-    gap: 6px;
+    gap: 8px;
+    flex-shrink: 0;
+}
+
+/* --- Иконки действий --- */
+.category-actions a,
+.lesson-actions a,
+.lesson-actions button {
+    display: inline-flex;
     align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    transition: all 0.2s;
+}
+
+.category-actions a {
+    background: #444;
+    color: #ddd;
+}
+
+.category-actions a:hover {
+    background: #4d7cff;
+    color: white;
+}
+
+.lesson-actions a,
+.lesson-actions button {
+    background: #444;
+    color: #ddd;
+}
+
+.lesson-actions a:hover {
+    background: #4d7cff;
+    color: white;
+}
+
+.lesson-actions button:hover {
+    background: #ff4d4f;
+    color: white;
 }
 
 .edit-lesson {
@@ -294,6 +374,19 @@ label {
     color: black !important;
 }
 
+
+
+/* --- Анимации --- */
+.toggle-arrow {
+    transition: transform 0.2s;
+    margin-left: 8px;
+}
+
+.category-header.open .toggle-arrow {
+    transform: rotate(90deg);
+    color: #4d7cff;
+}
+
 /* --- Адаптивность --- */
 @media (max-width: 900px) {
     .master-detail-container {
@@ -308,6 +401,16 @@ label {
     }
     .detail {
         padding: 24px 12px;
+    }
+}
+
+@media (max-width: 768px) {
+    .category-header {
+        flex-wrap: wrap;
+    }
+    .category-title {
+        width: 100%;
+        margin-bottom: 8px;
     }
 }
 

@@ -11,6 +11,7 @@
 {% block content %}
     <div class="container">
         <div class="master-detail-container">
+
             <div class="sidebar">
                 <h3>Категории</h3>
                 <ul class="category-list">
@@ -18,26 +19,23 @@
                         {% include "builder/category_tree.html" with category=category selected_lesson=selected_lesson %}
                     {% endfor %}
                 </ul>
-
+                
                 {% if uncategorized_lessons %}
                     <h4>Уроки без категории</h4>
-                    <ul>
+                    <ul class="lesson-list">
                         {% for lesson in uncategorized_lessons %}
-                            <li style="display: flex; align-items: center; justify-content: space-between;">
+                            <li>
                                 <a href="{% url 'builder:lesson_detail' lesson.id %}"
-                                class="{% if selected_lesson and lesson.id == selected_lesson.id %}active{% endif %}">
+                                   class="lesson-link {% if selected_lesson and lesson.id == selected_lesson.id %}active{% endif %}">
                                     {{ lesson.title }}
                                 </a>
                                 <div class="lesson-actions">
-                                    <a href="{% url 'builder:lesson_edit' lesson.id %}" title="Редактировать урок" class="edit-lesson">✍</a>
-                                    <form method="post"
-                                    action="{% url 'builder:lesson_delete' lesson.id %}"
-                                    style="display:inline;">
+                                    <a href="{% url 'builder:lesson_edit' lesson.id %}" title="Редактировать урок">✍</a>
+                                    <form method="post" action="{% url 'builder:lesson_delete' lesson.id %}">
                                         {% csrf_token %}
                                         <button type="submit"
                                                 onclick="return confirm('Вы уверены, что хотите удалить этот урок?');"
-                                                title="Удалить урок"
-                                                style="background: none; border: none; color: red; cursor: pointer; font-size: 16px;">
+                                                title="Удалить урок">
                                             &#10060;
                                         </button>
                                     </form>
@@ -47,29 +45,39 @@
                     </ul>
                 {% endif %}
                 
-                <a href="{% url 'builder:category_add' %}" class="btn btn-primary add-lesson-btn mt-3">Добавить категорию</a>
-                <a href="{% url 'builder:lesson_add' %}" class="btn btn-success add-lesson-btn mt-2">Добавить урок</a>
-            </div>
-
-            <div class="detail">
-                {% if selected_lesson %}
-                    <h2>
-                        {{ selected_lesson.title }}
-                        {% comment %} <a href="{% url 'builder:lesson_edit' selected_lesson.id %}" class="btn btn-outline-primary btn-sm edit-btn">Редактировать</a> {% endcomment %}
-                    </h2>
-                    <div class="lesson-content">
-                        {{ selected_lesson.content|safe|default:"Нет содержимого." }}
+                    <div class="sidebar-buttons">
+                        <a href="{% url 'builder:category_add' %}" class="btn btn-primary add-lesson-btn">Добавить категорию</a>
+                        <a href="{% url 'builder:lesson_add' %}" class="btn btn-success add-lesson-btn">Добавить урок</a>
                     </div>
-                    {% if selected_lesson.video_id %}
-                        <div class="lesson-video mt-4">
-                            <h5>Видео урок:</h5>
-                            <iframe width="560" height="315" src="https://rutube.ru/play/embed/{{ selected_lesson.video_id }}" frameborder="0" allowfullscreen></iframe>
+                </div>
+                <div class="detail">
+                    {% if selected_lesson %}
+                        <h2>
+                            {{ selected_lesson.title }}
+                            {% comment %} <a href="{% url 'builder:lesson_edit' selected_lesson.id %}" class="btn btn-outline-primary btn-sm edit-btn">Редактировать</a> {% endcomment %}
+                        </h2>
+                        <div class="lesson-content">
+                            {{ selected_lesson.content|safe|default:"Нет содержимого." }}
                         </div>
+                        {% if selected_lesson.video_id %}
+                            <div class="lesson-video mt-4">
+                                <h5>Видео урок:</h5>
+                                <iframe width="560" height="315" src="https://rutube.ru/play/embed/{{ selected_lesson.video_id }}" frameborder="0" allowfullscreen></iframe>
+                            </div>
+                        {% endif %}
+                    {% else %}
+                        <p>Выберите урок для просмотра.</p>
                     {% endif %}
-                {% else %}
-                    <p>Выберите урок для просмотра.</p>
-                {% endif %}
-            </div>
+                </div>
+
         </div>
     </div>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Восстанавливаем состояния категорий
+            if (typeof restoreCategoryStates === 'function') {
+                restoreCategoryStates();
+            }
+        });
+    </script>
 {% endblock %}

@@ -1,39 +1,37 @@
-<li class="category-block">
+<li class="category-block" data-id="{{ category.id }}">
     <div class="category-header">
         <span class="category-title">{{ category.order }}. {{ category.name }}</span>
         <div class="category-actions">
             <a href="{% url 'builder:lesson_add_with_category' category.id %}"
-               class="delete-category"
-               title="Добавить запись в категорию"
-               >
+               title="Добавить запись в категорию">
                ➕
             </a>
+            <a href="{% url 'builder:category_edit' category.id %}"
+                title="Редактировать категорию">
+                📝
+            </a>
             <a href="{% url 'builder:category_delete' category.id %}"
-               class="delete-category"
                title="Удалить категорию"
                onclick="return confirm('Вы уверены, что хотите удалить категорию {{ category.name }}?');">
                 &times;
             </a>
         </div>
-        {% if category.subcategories.all %}
-            <span class="toggle-arrow" onclick="toggleSubcat(this.parentElement)">
-                &#9654;
-            </span>
+        {% if category.subcategories.all or category.lessons.all %}
+            <span class="toggle-arrow" onclick="toggleSubcat(this.parentElement)">&#9654;</span>
         {% endif %}
     </div>
+    
     {% if category.lessons.all %}
         <ul class="lesson-list" style='display: none;'>
             {% for lesson in category.lessons.all %}
-                <li id='lesson-list__lesson' style="display: flex; align-items: center; justify-content: space-between;">
+                <li>
                     <a href="{% url 'builder:lesson_detail' lesson.id %}"
-                    class="{% if selected_lesson and lesson.id == selected_lesson.id %}active{% endif %}">
+                       class="lesson-link {% if selected_lesson and lesson.id == selected_lesson.id %}active{% endif %}">
                         {{ lesson.title }}
                     </a>
                     <div class="lesson-actions">
-                        <a href="{% url 'builder:lesson_edit' lesson.id %}" title="Редактировать урок" class="edit-lesson">✍</a>
-                        <form method="post"
-                            action="{% url 'builder:lesson_delete' lesson.id %}"
-                            style="display:inline;">
+                        <a href="{% url 'builder:lesson_edit' lesson.id %}" title="Редактировать урок">✍</a>
+                        <form method="post" action="{% url 'builder:lesson_delete' lesson.id %}">
                             {% csrf_token %}
                             <button type="submit"
                                     onclick="return confirm('Вы уверены, что хотите удалить этот урок?');"
@@ -46,6 +44,7 @@
             {% endfor %}
         </ul>
     {% endif %}
+    
     {% if category.subcategories.all %}
         <ul class="subcategory-list" style="display: none;">
             {% for subcat in category.subcategories.all %}

@@ -4,6 +4,7 @@ from django.views.decorators.http import require_http_methods
 from django.db.models import Count, Exists, OuterRef
 from django.contrib import messages  # Добавлен импорт
 from django.views.generic import DetailView, TemplateView
+from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 
 from myapp.models import QuizResult, UserCourse, UserAnswer
 from courses.models import Course  # Добавлен импорт модели Course
@@ -16,15 +17,23 @@ import logging
 
 audit_logger = logging.getLogger('audit')
 
-class StartQuizView(DataMixin, TemplateView):
+class StartQuizView(LoginRequiredMixin, UserPassesTestMixin, DataMixin, TemplateView):
     """
     Класс представление для рендера стартовой страницы тестов.
+    Доступ разрешен только авторизованным пользователям с административными правами.
 
     Атрибуты:
      - template_name - путь к шаблону;
      - get_context_data() - в шаблон передается переменная topics, которая возвращает количество вопросов в каждом тесте
     """
     template_name = 'quizzes/start.html'
+    login_url = '/login/'  # URL для перенаправления неавторизованных пользователей
+    permission_denied_message = "Доступ разрешен только администраторам сайта"
+
+    
+    def test_func(self):
+        """Проверка административных привилегий"""
+        return self.request.user.is_authenticated and self.request.user.is_staff
 
     def get_context_data(self, **kwargs):
         
