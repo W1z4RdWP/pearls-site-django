@@ -11,7 +11,9 @@
         <p>{{ course.author.email }}</p>
     </span>
     <hr>
-    {% if has_started %}
+    
+    {# Прогресс-бар только для начатых/завершенных курсов #}
+    {% if user_course and user_course.status in 'started,completed' %}
     <div class="progress mb-4">
         <div class="progress-bar" role="progressbar" 
              style="width: {{ progress }}%" 
@@ -28,11 +30,11 @@
         <div class="col-md-8">
             <h3>Уроки курса</h3>
             <div class="list-group">
-                {% for lesson in lessons %}  {# Используем lessons, переданные из view #}
+                {% for lesson in lessons %} 
                 <a href="{% url 'lesson_detail' course.slug lesson.id %}" 
                    class="list-group-item list-group-item-action">
                     {{ lesson.title }}
-                    {% if has_started and lesson.id in completed_lessons_ids %}
+                    {% if user_course and user_course.status in 'started,completed' and lesson.id in completed_lessons_ids %}
                         <span class="badge bg-success float-end">✓</span>
                     {% endif %}
                 </a>
@@ -43,36 +45,52 @@
         <div class="col-md-4">
             <div class="card">
                 <div class="card-body">
-                    {% if request.user.is_authenticated and has_started %}
-                    <p class="text-success">Вы начали этот курс {{ user_course.start_date|date:"d.m.Y" }}</p>
-                    {% if all_completed and user_course.end_date %}
-                        {% if not show_final_quiz %}
-                                <div class="alert alert-info">
-                                    Для завершения курса необходимо пройти финальный тест
-                                    <a href="{% url 'quiz_start' quiz_id=course.final_quiz.id %}" class="btn btn-primary">
-                                    Пройти тест</a>
-                                </div>
-                        {% else %}
+                    {% if user_course %}
+                        {# Статус: Курс доступен #}
+                        {% if user_course.status == 'available' %}
+                            <form method="POST" action="{% url 'course_detail' slug=course.slug %}">
+                                {% csrf_token %}
+                                <button type="submit" name="start_course" class="btn btn-success w-100">
+                                    Начать курс
+                                </button>
+                            </form>
+                            <img src="{% if course.image %}{{ course.image.url }}{% else %}{% static 'imgs/default.jpg' %}{% endif %}" 
+                                 alt="Course Image" id="course_detail_img">
+                        
+                        {# Статус: Курс начат #}
+                        {% elif user_course.status == 'started' %}
+                            <p class="text-success">Вы начали этот курс {{ user_course.start_date|date:"d.m.Y" }}</p>
+                            
+                            {% if all_completed %}
+                                {% if course.final_quiz and not show_final_quiz %}
+                                    <div class="alert alert-info">
+                                        Для завершения курса необходимо пройти финальный тест
+                                        <a href="{% url 'quiz_start' quiz_id=course.final_quiz.id %}" class="btn btn-primary">
+                                        Пройти тест</a>
+                                    </div>
+                                {% endif %}
+                            {% endif %}
+                            
+                            {% if next_lesson.id %}
+                                <a href="{% url 'lesson_detail' course.slug next_lesson.id %}" 
+                                class="btn btn-primary w-100">
+                                    Продолжить обучение
+                                </a>
+                            {% endif %}
+                        
+                        {# Статус: Курс завершен #}
+                        {% elif user_course.status == 'completed' %}
+                            <p class="text-success">Вы начали этот курс {{ user_course.start_date|date:"d.m.Y" }}</p>
                             <p class="text-success">Курс завершен: {{ user_course.end_date|date:"d.m.Y" }}</p>
                         {% endif %}
-                    {% endif %}
-                        {% if next_lesson.id %}
-                            <a href="{% url 'lesson_detail' course.slug next_lesson.id %}" 
-                            class="btn btn-primary w-100">
-                                Продолжить обучение
-                            </a>
-                        {% endif %}
+                    
+                    {# Пользователь не аутентифицирован #}
                     {% else %}
-                    <form method="POST">
-                        {% csrf_token %}
-                        {% comment %} <button type="submit" name="start_course" 
-                                class="btn btn-success w-100">
-                            Начать курс
-                        </button> {% endcomment %}
-                        <img src="{% if course.image %}{{ course.image.url }}{% else %}{% static 'imgs/default.jpg' %}{% endif %}" alt="Course Image" id="course_detail_img">
-                    </form>
+                        <p>Чтобы начать курс, пожалуйста, <a href="{% url 'login' %}">войдите в систему</a>.</p>
                     {% endif %}
                 </div>
+                
+                {# Админ-панель #}
                 {% if user.is_authenticated and user.is_staff %}
                 <div class="course-actions">
                     <a href="{% url 'add_lesson' course.slug %}" class="btn btn-success">Добавить урок</a>
@@ -87,10 +105,12 @@
                         </button>
                     </form>
                 </div>
-            {% endif %}
+                {% endif %}
             </div>
         </div>
     </div>
+    
+    {# Анимация завершения курса #}
     {% if show_completion_animation %}
         <div id="course-completion-animation" class="completion-animation">
             <div class="confetti"></div>
