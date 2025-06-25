@@ -1,5 +1,5 @@
 from django.db import models
-from django.contrib.auth.models import User
+from django.contrib.auth.models import User, Group
 from django.utils.text import slugify
 from django_ckeditor_5.fields import CKEditor5Field
 
@@ -15,6 +15,7 @@ class Course(models.Model):
     Attrs:
         title (CharField) - заголовок курса
         description (TextField) - описание курса
+        allowed_groups (ManyToMany) - группы пользователей, которым автоматически назначентся выбранный курс.
         
     """
    
@@ -30,6 +31,12 @@ class Course(models.Model):
         null=True,
         blank=True,
         verbose_name="Финальный тест"
+    )
+    allowed_groups = models.ManyToManyField(
+        Group, 
+        blank=True,
+        verbose_name="Доступен для групп",
+        help_text="Группы, которым доступен этот курс"
     )
 
     class Meta:

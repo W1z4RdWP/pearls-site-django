@@ -33,6 +33,7 @@ class CourseAdmin(admin.ModelAdmin):
     search_fields = ['title']
     prepopulated_fields = {'slug': ('title',)}
     autocomplete_fields = ['final_quiz']  # Для удобного поиска тестов
+    filter_horizontal = ('allowed_groups',)
 
 
 

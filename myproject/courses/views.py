@@ -15,6 +15,21 @@ audit_logger = logging.getLogger('audit')
 
 def course_detail(request, slug):
     course = get_object_or_404(Course, slug=slug)
+
+        # ===== НАЧАЛО: НОВАЯ ПРОВЕРКА ДОСТУПА =====
+    if not request.user.is_authenticated:
+        return redirect('login')
+    
+    has_access = (
+        request.user.is_staff
+        or course.allowed_groups.filter(user=request.user).exists()
+        or UserCourse.objects.filter(user=request.user, course=course).exists()
+    )
+    
+    if not has_access:
+        return redirect('course_access_denied')
+    # ===== КОНЕЦ: НОВАЯ ПРОВЕРКА ДОСТУПА =====
+
     has_started = False
     user_course = None
     progress = 0
@@ -37,6 +52,12 @@ def course_detail(request, slug):
     if request.user.is_authenticated:
         user_course = UserCourse.objects.filter(user=request.user, course=course).first()
         has_started = user_course is not None  # Упрощенная проверка
+
+         # ===== НОВЫЙ БЛОК: АВТОСОЗДАНИЕ ДОСТУПА =====
+        if not user_course and course.allowed_groups.filter(user=request.user).exists():
+            user_course = UserCourse.objects.create(user=request.user, course=course)
+            has_started = True
+        # ==============================================
 
         if has_started:
             # Получаем траекторию пользователя, если она есть
