@@ -20,6 +20,16 @@
                                 <a href="{% url 'course_detail' course.slug %}"
                                    class="list-group-item list-group-item-action">
                                     {{ course.title }}
+                                    {% comment %}
+                                    Можно добавить индикацию статуса:
+                                    available — "Доступен"
+                                    started — "В процессе"
+                                    {% endcomment %}
+                                    {% if course.usercourse_set.first.status == 'available' %}
+                                        <span class="badge bg-secondary float-end">Доступен</span>
+                                    {% elif course.usercourse_set.first.status == 'started' %}
+                                        <span class="badge bg-warning float-end">В процессе</span>
+                                    {% endif %}
                                 </a>
                             {% endfor %}
                         </div>

@@ -32,17 +32,29 @@ class UserCourse(models.Model):
     """
     Модель связывает пользователя и курс, показывает, что курс назначен пользователю.
     """
+    STATUS_CHOICES = [
+        ('available', 'Доступен'),
+        ('started', 'Начат'),
+        ('completed', 'Завершен'),
+    ]
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='started_courses')
     course = models.ForeignKey(Course, on_delete=models.CASCADE)
     start_date = models.DateTimeField(auto_now_add=True)
     end_date = models.DateTimeField(null=True, blank=True)
-    is_completed = models.BooleanField(default=False)
+    status = models.CharField(
+        max_length=20, 
+        choices=STATUS_CHOICES, 
+        default='available'
+    )
     course_complete_animation_shown = models.BooleanField(default=False)
 
     class Meta:
         unique_together = ('user', 'course')
         verbose_name = 'Курс пользователя'
         verbose_name_plural = 'Курсы пользователей'
+        indexes = [
+            models.Index(fields=['status']),
+        ]
 
     
     def is_final_quiz_passed(self):
@@ -56,11 +68,7 @@ class UserCourse(models.Model):
 
     def can_receive_exp(self):
         # Опыт можно получить только если курс завершён и (если есть тест) тест пройден
-        if not self.is_completed:
-            return False
-        if self.course.final_quiz:
-            return self.is_final_quiz_passed()
-        return True
+        return self.status == 'completed' and self.is_final_quiz_passed()
 
     def exp_reward(self):
         base_exp = 150
@@ -71,12 +79,12 @@ class UserCourse(models.Model):
 
     def save(self, *args, **kwargs):
         """Устанавливаем end_date только при первом завершении курса"""
-        if self.is_completed and not self.end_date:
+        if self.status == 'completed' and not self.end_date:
             self.end_date = timezone.now()
         super().save(*args, **kwargs)
 
     def __str__(self):
-        return f"{self.user.username} - {self.course.title}"
+        return f"{self.user.username} - {self.course.title} ({self.get_status_display()})"
     
 
 class QuizResult(models.Model):
