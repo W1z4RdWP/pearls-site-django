@@ -1,0 +1,57 @@
+.lesson-actions {
+    display: flex;
+    justify-content: center;
+    gap: 32px;
+    margin: 36px 0 0 0;
+}
+
+.btn-lesson {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.08em;
+    font-weight: 500;
+    border: none;
+    border-radius: 18px;
+    padding: 12px 32px;
+    min-width: 170px;
+    cursor: pointer;
+    transition: background 0.2s, box-shadow 0.2s, color 0.2s;
+    box-shadow: 0 2px 12px rgba(60,60,60,0.08);
+    outline: none;
+    text-decoration: none;
+}
+
+.btn-lesson.complete {
+    background: linear-gradient(90deg, #43e97b 0%, #38f9d7 100%);
+    color: #fff;
+}
+.btn-lesson.complete:hover {
+    background: linear-gradient(90deg, #38f9d7 0%, #43e97b 100%);
+    box-shadow: 0 4px 16px rgba(67,233,123,0.12);
+}
+
+.btn-lesson.delete {
+    background: linear-gradient(90deg, #ff5858 0%, #f09819 100%);
+    color: #fff;
+}
+.btn-lesson.delete:hover {
+    background: linear-gradient(90deg, #f09819 0%, #ff5858 100%);
+    box-shadow: 0 4px 16px rgba(255,88,88,0.16);
+}
+
+.btn-lesson.edit {
+    background: linear-gradient(90deg, #ffb347 0%, #ffcc33 100%);
+    color: #333;
+}
+.btn-lesson.edit:hover {
+    background: linear-gradient(90deg, #ffcc33 0%, #ffb347 100%);
+    color: #222;
+    box-shadow: 0 4px 16px rgba(255,179,71,0.18);
+}
+
+/* Для иконок (если используете FontAwesome) */
+.btn-lesson i {
+    margin-right: 8px;
+    font-size: 1.15em;
+}

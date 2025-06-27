@@ -9,6 +9,7 @@ from django.http import HttpRequest, HttpResponse
 from django.contrib.auth import login as auth_login
 from django.contrib.auth.models import User
 from django.contrib.auth.views import LoginView
+from django.contrib.auth.mixins import LoginRequiredMixin
 from django.core.paginator import Paginator, PageNotAnInteger, EmptyPage
 from django.views.generic import FormView
 from django.views.decorators.cache import cache_page
@@ -22,7 +23,8 @@ from .forms import UserRegisterForm, UserUpdateForm, ProfileUpdateForm
 # Получаем логгер для записи в журнал аудита
 audit_logger = logging.getLogger('audit')
 
-class RegisterView(FormView):
+
+class RegisterView(LoginRequiredMixin, FormView):
     form_class = UserRegisterForm
     template_name = 'users/register.html'
     success_url = reverse_lazy('home')
@@ -103,7 +105,8 @@ def profile(request: HttpRequest) -> HttpResponse:
             'course': course,
             'completed': completed,
             'total': total,
-            'percent': percent
+            'percent': percent,
+            'status': user_course.status
         }
 
         if course.final_quiz:
@@ -121,10 +124,12 @@ def profile(request: HttpRequest) -> HttpResponse:
                 exp += user_course_obj.exp_reward()
             else:
                 unfinished_courses.append(course_data)
-                exp += 15
+                if user_course_obj.status == 'started':
+                    exp += 15
         else:
             unfinished_courses.append(course_data)
-            exp += 15
+            if user_course.status == 'started':
+                exp += 15
 
         # Обновляем флаг завершения всех уроков
         all_lessons_completed = (percent == 100) or all_lessons_completed

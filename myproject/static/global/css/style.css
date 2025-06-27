@@ -551,8 +551,8 @@ main > section > .text-block-2 {
     margin: 0 5px;
 }
 .course-actions{
-    display: flex;
-    flex-direction: row;
+    display: flex!important;
+    flex-direction: row!important;
     justify-content: space-around;
     font: 1em sans-serif;
 }
