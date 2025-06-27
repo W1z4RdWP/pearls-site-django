@@ -7,41 +7,54 @@
     <link rel="stylesheet" href="{% static 'users/css/profile.css' %}">
     <script src="{% static 'users/js/scripts.js' %}" defer></script>
     <div class="content-section">
-        <div class="media">
-            <img class="rounded-circle account-img" src="{{ user.profile.image.url|default:'https://via.placeholder.com/150' }}" alt="Profile Image">
-            <div class="media-body">
-                <h2 class="account-heading">{{ user.username }}</h2>
-                <p class="text-secondary">{{ user.email }}</p>
-                <p class="text-secondary">Дата регистрации: {{ user.date_joined|date:"d.m.Y H:i" }}</p>
-                <p class="text-secondary">{{ user.profile.bio|default:'О себе: нет информации' }}</p>
-                <p class="text-secondary">Имя: {{ user.profile.first_name }}</p>
-                <p class="text-secondary">Фамилия: {{ user.profile.last_name }}</p>
-                <p class="text-secondary">Отчество: {{ user.profile.middle_name|default:'Отсутствует' }}</p>
-                <p class="text-secondary">Дата рождения: {{ user.profile.date_of_birth|default:'Отсутствует' }}</p>
-                <p class="text-secondary">Имя телефона: {{ user.profile.phone_number|default:'Отсутствует' }}</p>
-                {% comment %} <p class="text-secondary">Группы: {{ user.profile.group|default:'Отсутствует' }}</p> {% endcomment %}
-                <div class="media-body__user-groups">
-                    {% with user.groups.all as groups %}
-                        {% if groups|length == 1 %}
-                            <p>Вы состоите в группе: {{ groups.0.name }}</p>
-                        {% elif groups|length > 1 %}
-                            <p>Группы пользователя:</p>
-                            <ul>
-                                {% for group in groups %}
-                                    <li>{{ group.name }}</li>
-                                {% endfor %}
-                            </ul>
-                        {% else %}
-                            <p>Пользователь не состоит в группах</p>
-                        {% endif %}
-                    {% endwith %}
+        <div class="profile-header">
+            <div class="profile-avatar">
+                <img class="rounded-circle account-img" src="{{ user.profile.image.url|default:'https://via.placeholder.com/150' }}" alt="Profile Image">
+            </div>
+            <div class="profile-main-info">
+                <div class="profile-top-row">
+                    <h2 class="account-heading">{{ user.username }}</h2>
+                    <span class="profile-registered">Дата регистрации: {{ user.date_joined|date:"d.m.Y H:i" }}</span>
+                </div>
+                <div class="profile-details">
+                    <p class="text-secondary">{{ user.email }}</p>
+                    <p class="text-secondary">{{ user.profile.bio|default:'О себе: нет информации' }}</p>
+                    <div class="profile-fields">
+                        <span>Имя: <b>{{ user.profile.first_name|default:'-' }}</b></span>
+                        <span>Фамилия: <b>{{ user.profile.last_name|default:'-' }}</b></span>
+                        <span>Отчество: <b>{{ user.profile.middle_name|default:'Отсутствует' }}</b></span>
+                        <span>Дата рождения: <b>{{ user.profile.date_of_birth|default:'Отсутствует' }}</b></span>
+                        <span>Телефон: <b>{{ user.profile.phone_number|default:'Отсутствует' }}</b></span>
+                    </div>
+                    <div class="media-body__user-groups">
+                        {% with user.groups.all as groups %}
+                            {% if groups|length == 1 %}
+                                <p>Вы состоите в группе: <b>{{ groups.0.name }}</b></p>
+                            {% elif groups|length > 1 %}
+                                <p>Группы пользователя:</p>
+                                <ul>
+                                    {% for group in groups %}
+                                        <li><b>{{ group.name }}</b></li>
+                                    {% endfor %}
+                                </ul>
+                            {% else %}
+                                <p>Пользователь не состоит в группах</p>
+                            {% endif %}
+                        {% endwith %}
+                    </div>
                 </div>
             </div>
         </div>
         <div class="profile-actions">
-            <button class="btn btn-outline-info" id="edit-profile-btn">Редактировать</button>
-            <button class="btn btn-outline-info" id="toggle-quizzes-btn">Показать тесты</button>
-            <button class="btn btn-outline-info" id="toggle-courses-btn">Показать завершенные курсы</button>
+            <button class="btn-modern" id="edit-profile-btn">
+                <i class="fa fa-edit"></i> Редактировать
+            </button>
+            <button class="btn-modern" id="toggle-quizzes-btn">
+                <i class="fa fa-list" aria-hidden="true"></i> Показать тесты
+            </button>
+            <button class="btn-modern" id="toggle-courses-btn">
+                <i class="fa fa-graduation-cap"></i> Показать завершенные курсы
+            </button>
         </div>
         <div class="progress-bar-user">
             <h3>

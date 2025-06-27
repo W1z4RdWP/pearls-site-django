@@ -59,6 +59,92 @@ legend{
     color: #fff;
 }
 
+
+.profile-header {
+    display: flex;
+    align-items: flex-start;
+    gap: 28px;
+    margin-bottom: 18px;
+    position: relative;
+}
+
+.profile-avatar {
+    flex-shrink: 0;
+}
+
+.profile-main-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.profile-top-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 16px;
+}
+
+.account-heading {
+    font-size: 2rem;
+    color: var(--primary-text-color);
+    margin-bottom: 2px;
+}
+
+.profile-registered {
+    font-size: 1em;
+    color: #fff;
+    background: #4e8cff;
+    padding: 4px 12px;
+    border-radius: 12px;
+    font-weight: 600;
+    align-self: flex-start;
+    margin-left: 12px;
+}
+
+.profile-details {
+    margin-top: 8px;
+}
+
+.profile-fields {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 18px 32px;
+    margin: 8px 0 6px 0;
+}
+.profile-fields span {
+    font-size: 1em;
+    color: #444;
+    background: #f3f6fa;
+    border-radius: 8px;
+    padding: 3px 10px;
+    margin-bottom: 2px;
+    display: inline-block;
+}
+
+.btn-modern {
+    background: linear-gradient(90deg, #4e8cff 0%, #38b6ff 100%);
+    color: #fff;
+    border: none;
+    border-radius: 22px;
+    padding: 10px 24px;
+    margin-right: 12px;
+    margin-bottom: 8px;
+    font-size: 1.1em;
+    font-weight: 500;
+    cursor: pointer;
+    box-shadow: 0 2px 8px rgba(78,140,255,0.08);
+    transition: background 0.2s, box-shadow 0.2s;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+.btn-modern:hover {
+    background: linear-gradient(90deg, #38b6ff 0%, #4e8cff 100%);
+    box-shadow: 0 4px 16px rgba(78,140,255,0.14);
+    color: #fff;
+}
+
+
 .profile-actions{
     display: flex;
     flex-direction: row;
@@ -186,8 +272,22 @@ legend{
         flex-direction: row;
         justify-content: space-between;
         gap: 10%;
-        
-        
+    }
+
+    .profile-header {
+        flex-direction: column;
+        gap: 14px;
+        align-items: center;
+    }
+    .profile-top-row {
+        flex-direction: column;
+        align-items: center;
+        gap: 6px;
+    }
+    .profile-fields {
+        flex-direction: column;
+        gap: 6px;
+        align-items: flex-start;
     }
     
 
