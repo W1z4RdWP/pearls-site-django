@@ -50,6 +50,7 @@ INSTALLED_APPS = [
     'nested_admin',
     'debug_toolbar',
     'qsessions',
+    'rangefilter',
     
 
     'myapp',

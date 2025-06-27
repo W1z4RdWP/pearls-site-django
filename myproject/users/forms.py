@@ -73,4 +73,5 @@ class ProfileUpdateForm(forms.ModelForm):
         """
         
         model = Profile
-        fields = ['image', 'bio']
+        fields = ['first_name', 'last_name', 'middle_name',
+        'date_of_birth', 'phone_number', 'image', 'bio']

@@ -14,6 +14,12 @@
                 <p class="text-secondary">{{ user.email }}</p>
                 <p class="text-secondary">Дата регистрации: {{ user.date_joined|date:"d.m.Y H:i" }}</p>
                 <p class="text-secondary">{{ user.profile.bio|default:'О себе: нет информации' }}</p>
+                <p class="text-secondary">Имя: {{ user.profile.first_name }}</p>
+                <p class="text-secondary">Фамилия: {{ user.profile.last_name }}</p>
+                <p class="text-secondary">Отчество: {{ user.profile.middle_name|default:'Отсутствует' }}</p>
+                <p class="text-secondary">Дата рождения: {{ user.profile.date_of_birth|default:'Отсутствует' }}</p>
+                <p class="text-secondary">Имя телефона: {{ user.profile.phone_number|default:'Отсутствует' }}</p>
+                {% comment %} <p class="text-secondary">Группы: {{ user.profile.group|default:'Отсутствует' }}</p> {% endcomment %}
                 <div class="media-body__user-groups">
                     {% with user.groups.all as groups %}
                         {% if groups|length == 1 %}
