@@ -1,5 +1,11 @@
 {% extends 'layout.html' %}
 {% load static %}
+
+
+{% block specific_styles %}
+    {% comment %} <link rel="stylesheet" href="{% static 'courses/css/course_custom_buttons.css' %}"> {% endcomment %}
+{% endblock %}
+
 {% block content %}
 
 <div class="container mt-4">
@@ -48,43 +54,41 @@
                     {% if user_course %}
                         {# Статус: Курс доступен #}
                         {% if user_course.status == 'available' %}
-                            <form method="POST" action="{% url 'course_detail' slug=course.slug %}">
+                            <form method="POST" action="{% url 'course_detail' slug=course.slug %}" style='text-align: center;'>
                                 {% csrf_token %}
-                                <button type="submit" name="start_course" class="btn btn-success w-100">
-                                    Начать курс
+                                <button type="submit" name="start_course" class="btn-modern">
+                                    <i class="fa fa-play"></i> Начать курс
                                 </button>
                             </form>
                             <img src="{% if course.image %}{{ course.image.url }}{% else %}{% static 'imgs/default.jpg' %}{% endif %}" 
-                                 alt="Course Image" id="course_detail_img">
-                        
+                                alt="Course Image" id="course_detail_img">
+
                         {# Статус: Курс начат #}
                         {% elif user_course.status == 'started' %}
                             <p class="text-success">Вы начали этот курс {{ user_course.start_date|date:"d.m.Y" }}</p>
-                            
                             {% if all_completed %}
                                 {% if course.final_quiz and not show_final_quiz %}
                                     <div class="alert alert-info">
                                         Для завершения курса необходимо пройти финальный тест
-                                        <a href="{% url 'quiz_start' quiz_id=course.final_quiz.id %}" class="btn btn-primary">
-                                        Пройти тест</a>
+                                        <a href="{% url 'quiz_start' quiz_id=course.final_quiz.id %}" class="btn-modern">
+                                            <i class="fa fa-check-circle"></i> Пройти тест
+                                        </a>
                                     </div>
                                 {% endif %}
                             {% endif %}
-                            
                             {% if next_lesson.id %}
                                 <a href="{% url 'lesson_detail' course.slug next_lesson.id %}" 
-                                class="btn btn-primary w-100">
-                                    Продолжить обучение
+                                class="btn-modern">
+                                    <i class="fa fa-arrow-right"></i> Продолжить обучение
                                 </a>
                             {% endif %}
-                        
+
                         {# Статус: Курс завершен #}
                         {% elif user_course.status == 'completed' %}
                             <p class="text-success">Вы начали этот курс {{ user_course.start_date|date:"d.m.Y" }}</p>
                             <p class="text-success">Курс завершен: {{ user_course.end_date|date:"d.m.Y" }}</p>
                         {% endif %}
-                    
-                    {# Пользователь не аутентифицирован #}
+
                     {% else %}
                         <p>Чтобы начать курс, пожалуйста, <a href="{% url 'login' %}">войдите в систему</a>.</p>
                     {% endif %}
@@ -92,16 +96,18 @@
                 
                 {# Админ-панель #}
                 {% if user.is_authenticated and user.is_staff %}
-                <div class="course-actions">
-                    <a href="{% url 'add_lesson' course.slug %}" class="btn btn-success">Добавить урок</a>
-                    <a href="{% url 'edit_course' course.slug %}" class="btn btn-warning">
-                        Редактировать
+                <div class="course-actions" style="display: flex; flex-direction: column; gap: 10px;">
+                    <a href="{% url 'add_lesson' course.slug %}" class="btn-modern add">
+                        <i class="fa fa-plus"></i> Добавить урок
+                    </a>
+                    <a href="{% url 'edit_course' course.slug %}" class="btn-modern edit">
+                        <i class="fa fa-edit"></i> Редактировать
                     </a>
                     <form method="POST" action="{% url 'delete_course' course.slug %}" style="display: inline;">
                         {% csrf_token %}
-                        <button type="submit" class="btn btn-danger" 
+                        <button type="submit" class="btn-modern delete"
                                 onclick="return confirm('Вы уверены, что хотите удалить этот курс? Все уроки будут удалены!')">
-                            Удалить курс
+                            <i class="fa fa-trash"></i> Удалить курс
                         </button>
                     </form>
                 </div>
