@@ -3,7 +3,7 @@
 
 
 {% block specific_styles %}
-    {% comment %} <link rel="stylesheet" href="{% static 'courses/css/course_custom_buttons.css' %}"> {% endcomment %}
+    <link rel="stylesheet" href="{% static 'courses/css/course_custom_buttons.css' %}">
 {% endblock %}
 
 {% block content %}
@@ -56,8 +56,8 @@
                         {% if user_course.status == 'available' %}
                             <form method="POST" action="{% url 'course_detail' slug=course.slug %}" style='text-align: center;'>
                                 {% csrf_token %}
-                                <button type="submit" name="start_course" class="btn-modern">
-                                    <i class="fa fa-play"></i> Начать курс
+                                <button type="submit" name="start_course" class="btn-mini add">
+                                    <i class="fa fa-play"></i> <span class="d-none d-sm-inline">Начать</span>
                                 </button>
                             </form>
                             <img src="{% if course.image %}{{ course.image.url }}{% else %}{% static 'imgs/default.jpg' %}{% endif %}" 
@@ -96,21 +96,25 @@
                 
                 {# Админ-панель #}
                 {% if user.is_authenticated and user.is_staff %}
-                <div class="course-actions" style="display: flex; flex-direction: column; gap: 10px;">
-                    <a href="{% url 'add_lesson' course.slug %}" class="btn-modern add">
-                        <i class="fa fa-plus"></i> Добавить урок
-                    </a>
-                    <a href="{% url 'edit_course' course.slug %}" class="btn-modern edit">
-                        <i class="fa fa-edit"></i> Редактировать
-                    </a>
-                    <form method="POST" action="{% url 'delete_course' course.slug %}" style="display: inline;">
-                        {% csrf_token %}
-                        <button type="submit" class="btn-modern delete"
-                                onclick="return confirm('Вы уверены, что хотите удалить этот курс? Все уроки будут удалены!')">
-                            <i class="fa fa-trash"></i> Удалить курс
-                        </button>
-                    </form>
-                </div>
+                    <div class="course-actions" style="display: flex; flex-wrap: wrap; gap: 4px;">
+                        <a href="{% url 'add_lesson' course.slug %}" class="btn-mini add" title="Добавить урок">
+                            <i class="fa fa-plus"></i>
+                            <span class="d-none d-sm-inline">Добавить</span>
+                        </a>
+                        <a href="{% url 'edit_course' course.slug %}" class="btn-mini edit" title="Редактировать">
+                            <i class="fa fa-edit"></i>
+                            <span class="d-none d-sm-inline">Редактировать</span>
+                        </a>
+                        <form method="POST" action="{% url 'delete_course' course.slug %}" style="display: inline;">
+                            {% csrf_token %}
+                            <button type="submit" class="btn-mini delete"
+                                    title="Удалить курс"
+                                    onclick="return confirm('Вы уверены, что хотите удалить этот курс? Все уроки будут удалены!')">
+                                <i class="fa fa-trash"></i>
+                                <span class="d-none d-sm-inline">Удалить</span>
+                            </button>
+                        </form>
+                    </div>
                 {% endif %}
             </div>
         </div>
