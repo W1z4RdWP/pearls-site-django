@@ -19,6 +19,7 @@ from myapp.models import UserCourse, UserProgress, QuizResult, UserAnswer
 from quizzes.models import Answer
 from courses.models import UserLessonTrajectory
 from .forms import UserRegisterForm, UserUpdateForm, ProfileUpdateForm
+from .models import Profile
  
 # Получаем логгер для записи в журнал аудита
 audit_logger = logging.getLogger('audit')
@@ -58,6 +59,12 @@ def profile(request: HttpRequest) -> HttpResponse:
         Шаблон включает формы для редактирования профиля и список курсов с прогрессом.
     """
     user = request.user
+    try:
+        profile = user.profile
+    except Profile.DoesNotExist:
+        return render(request, 'users/profile_error.html', {
+            'error_message': 'Профиль пользователя не найден. Пожалуйста, обратитесь к администратору.'
+        })
     started_courses = UserCourse.objects.filter(user=user).select_related('course')
     unfinished_courses = []
     finished_courses = []
@@ -145,14 +152,14 @@ def profile(request: HttpRequest) -> HttpResponse:
 
     if request.method == 'POST':
         user_form = UserUpdateForm(request.POST, instance=request.user)
-        profile_form = ProfileUpdateForm(request.POST, request.FILES, instance=request.user.profile)
+        profile_form = ProfileUpdateForm(request.POST, request.FILES, instance=profile)
         if user_form.is_valid() and profile_form.is_valid():
             user_form.save()
             profile_form.save()
             return redirect('profile')
     else:
         user_form = UserUpdateForm(instance=request.user)
-        profile_form = ProfileUpdateForm(instance=request.user.profile)
+        profile_form = ProfileUpdateForm(instance=profile)
 
 
     # Логирование действия
@@ -210,10 +217,20 @@ class CustomLoginView(LoginView):
     """
     template_name = "users/login.html"
 
+    def dispatch(self, request, *args, **kwargs):
+        if request.user.is_authenticated:
+            return redirect('profile')
+        return super().dispatch(request, *args, **kwargs)
 
     def form_valid(self, form):
         user = form.get_user()
-        if not user.profile.is_approved:
+        try:
+            profile = user.profile
+        except Profile.DoesNotExist:
+            return render(self.request, 'users/profile_error.html', {
+                'error_message': 'Профиль пользователя не найден. Пожалуйста, обратитесь к администратору.'
+            })
+        if not profile.is_approved:
             # Логирование действия
             audit_logger.info(
                 'Хочет авторизоваться, но профиль не подтверждён', 
@@ -223,7 +240,6 @@ class CustomLoginView(LoginView):
             )
             messages.error(self.request, "Ваш аккаунт ожидает подтверждения администратором.")
             return redirect('login')
-        
         audit_logger.info(
             'Вошёл в систему', 
             extra={
