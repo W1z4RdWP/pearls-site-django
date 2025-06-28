@@ -1,0 +1,140 @@
+.um-user-list-wrapper {
+    max-width: 1200px;
+    margin: 40px auto;
+    background: #fff;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+    padding: 32px 40px;
+    color: #222;
+}
+.um-user-list-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 24px;
+}
+.um-user-list-title {
+    font-size: 2rem;
+    font-weight: 600;
+}
+.um-user-list-filter {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 18px;
+}
+.um-user-list-filter input,
+.um-user-list-filter select {
+    padding: 8px 12px;
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    font-size: 1rem;
+    color: #222;
+    background: #fff;
+}
+.um-user-list-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 24px;
+}
+.um-user-list-table th,
+.um-user-list-table td {
+    padding: 12px 10px;
+    border-bottom: 1px solid #e5e7eb;
+    text-align: left;
+    font-size: 1rem;
+}
+.um-user-list-table th {
+    background: #f3f4f6;
+    font-weight: 600;
+    color: #444;
+}
+.um-user-list-table tr:last-child td {
+    border-bottom: none;
+}
+.um-btn {
+    padding: 8px 24px;
+    border-radius: 6px;
+    font-size: 1rem;
+    font-weight: 500;
+    border: none;
+    cursor: pointer;
+    color: #fff;
+    background: #5b3cc4;
+    transition: background 0.2s;
+    text-decoration: none;
+    display: inline-block;
+}
+.um-btn:hover {
+    background: #43269a;
+}
+.um-btn-secondary {
+    background: #f3f4f6;
+    color: #222;
+}
+.um-btn-secondary:hover {
+    background: #e5e7eb;
+}
+.um-user-avatar-name {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+.um-user-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    object-fit: cover;
+    background: #e5e7eb;
+    border: 2px solid #d1d5db;
+}
+.um-user-name-email {
+    display: flex;
+    flex-direction: column;
+}
+.um-user-email {
+    color: #888;
+    font-size: 0.95em;
+}
+@media (max-width: 600px) {
+    .um-user-list-wrapper {
+        max-width: 100vw;
+        padding: 10px 2px;
+        box-shadow: none;
+        border-radius: 0;
+    }
+    .um-user-list-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 8px;
+    }
+    .um-user-list-title {
+        font-size: 1.2rem;
+    }
+    .um-user-list-filter {
+        flex-direction: column;
+        gap: 8px;
+    }
+    .um-user-list-table th, .um-user-list-table td {
+        padding: 8px 4px;
+        font-size: 0.95rem;
+    }
+    .um-user-list-table {
+        font-size: 0.95rem;
+        display: block;
+        overflow-x: auto;
+        width: 100%;
+    }
+    .um-btn, .um-btn-secondary {
+        width: 100%;
+        font-size: 1rem;
+        padding: 10px 0;
+        margin-bottom: 6px;
+    }
+    .um-user-avatar {
+        width: 32px;
+        height: 32px;
+    }
+    .um-user-avatar-name {
+        gap: 8px;
+    }
+} 

@@ -65,8 +65,13 @@
                                 <li class="nav-item">
                                     <a class="nav-link" href="{% url 'quizzes' %}">Тесты</a>
                                 </li>
+                                {% if user.is_superuser %}
                                 <li class="nav-item">
                                     <a class="nav-link" href="/admin">Админ панель</a>
+                                </li>
+                                {% endif %}
+                                <li class="nav-item">
+                                    <a class="nav-link" href="{% url 'user_management:user_list' %}">Пользователи</a>
                                 </li>
                             {% endif %}
                             <li class="nav-item">

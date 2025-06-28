@@ -43,6 +43,7 @@ urlpatterns = [
     path('courses/', include('courses.urls'), name='courses'),
     path('quizzes/', include('quizzes.urls'), name='quizzes'),
     path('builder/', include('builder.urls'), name='builder'),
+    path('user_management/', include('user_management.urls'), name='user_management'),
     path('profile/quiz_report/<int:quiz_id>/', user_views.quiz_report, name='quiz_report'),
     path('i18n/', include('django.conf.urls.i18n')),
     path('ckeditor5/', include('django_ckeditor_5.urls')),
