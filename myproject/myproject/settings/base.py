@@ -57,7 +57,8 @@ INSTALLED_APPS = [
     'users',
     'courses',
     'quizzes',
-    'builder' # БЗ. Конструктор траекторий из уроков.
+    'builder', # БЗ. Конструктор траекторий из уроков.
+    'user_management',
 ]
 
 X_FRAME_OPTIONS = "SAMEORIGIN"              # allows you to use modals insated of popups

@@ -22,8 +22,8 @@ class Profile(models.Model):
     """
 
     user = models.OneToOneField(User, on_delete=models.CASCADE)
-    first_name = models.CharField(max_length=200, blank=True, null=True, verbose_name="Имя")
-    last_name = models.CharField(max_length=200, blank=True, null=True, verbose_name="Фамилия")
+    # first_name = models.CharField(max_length=200, blank=True, null=True, verbose_name="Имя")
+    # last_name = models.CharField(max_length=200, blank=True, null=True, verbose_name="Фамилия")
     middle_name = models.CharField(max_length=200, blank=True, null=True, verbose_name="Отчество")
     date_of_birth = models.DateField(verbose_name="Дата рождения", blank=True, null=True)
     phone_number = models.CharField(
@@ -33,13 +33,6 @@ class Profile(models.Model):
         null=True,
         help_text="Введите номер в формате +7XXXXXXXXXX"
     )
-    # group = models.ForeignKey(
-    #     Group,
-    #     on_delete=models.SET_NULL,
-    #     blank=True,
-    #     null=True,
-    #     verbose_name="Группа (роль)"
-    # )
     image = models.ImageField(default='profile_pics/default.jpg', upload_to='profile_pics')
     bio = models.TextField(max_length=500, blank=True, null=True, verbose_name="О себе")
     is_approved = models.BooleanField(default=False, verbose_name="Подвтерждение администратором")

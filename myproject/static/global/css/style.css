@@ -893,22 +893,7 @@ main > section > .text-block-2 {
         font-size: 0.92em;
     }
 }
-@media (max-width: 600px) {
-    .footer-main {
-        padding: 24px 0 0 0;
-    }
-    .footer-logo {
-        width: 70px;
-    }
-    .footer__social-media-elem {
-        width: 28px;
-        height: 28px;
-    }
-    .footer-bottom {
-        font-size: 0.85em;
-        padding: 10px 6px 5px 6px;
-    }
-}
+
 
 /* Для больших экранов */
 @media (min-width: 2300px){
@@ -1204,7 +1189,44 @@ main > section > .text-block-2 {
     
 }
 
- @media (max-width: 768px)/* Временно сменил на 768  (было 512) */{ 
+@media (max-width: 600px) {
+    .footer-main {
+        padding: 24px 0 0 0;
+    }
+    .footer-logo {
+        width: 70px;
+    }
+    .footer__social-media-elem {
+        width: 28px;
+        height: 28px;
+    }
+    .footer-bottom {
+        flex-direction: column;
+        align-items: center;
+        padding: 12px 4px 8px 4px;
+        gap: 8px;
+        width: 100%;
+        box-sizing: border-box;
+    }
+    .footer-policy {
+        margin-left: 0;
+        margin-top: 8px;
+        display: block;
+        text-align: center;
+        width: 100%;
+        word-break: break-word;
+        font-size: 0.95em;
+    }
+    
+    .footer-text, .site-version {
+        text-align: center;
+        width: 100%;
+        font-size: 0.92em;
+    }
+}
+
+
+ @media (max-width: 512px)/* Временно сменил на 768  (было 512) */{ 
     body {
         max-width: 100%;
         overflow-x: hidden;
@@ -1504,7 +1526,7 @@ main > section > .text-block-2 {
     gap: 2px;
     margin-top: 8px;
     font-size: 0.85rem;
-    max-height: 32vh;
+    max-height: 45vh;
   }
 
   .footer-text {

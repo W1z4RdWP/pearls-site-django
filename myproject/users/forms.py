@@ -73,12 +73,8 @@ class ProfileUpdateForm(forms.ModelForm):
         """
         
         model = Profile
-        fields = ['first_name', 'last_name', 'middle_name',
-        'date_of_birth', 'phone_number', 'image', 'bio']
+        fields = ['middle_name', 'date_of_birth', 'phone_number', 'image', 'bio']
         widgets = {
-            'first_name': forms.TextInput(attrs={'class': 'form-control'}),
-            'last_name': forms.TextInput(attrs={'class': 'form-control'}),
-            'middle_name': forms.TextInput(attrs={'class': 'form-control'}),
             'date_of_birth': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
             'phone_number': forms.TextInput(attrs={'class': 'form-control'}),
             'group': forms.Select(attrs={'class': 'form-select'}),

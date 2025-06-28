@@ -1,0 +1,37 @@
+{% extends 'layout.html' %}
+{% load static %}
+{% block specific_styles %} 
+    <link rel="stylesheet" href="{% static 'user_management/css/user_form.css' %}">
+{% endblock %}
+
+
+{% block content %}
+<div class="user-form-wrapper">
+    <div class="user-form-header">
+        <a href="{% url 'user_management:user_list' %}" class="back-link">&larr; Назад</a>
+        <h1 class="form-title">{% if object %}Редактировать пользователя{% else %}Новый пользователь{% endif %}</h1>
+    </div>
+    <form method="post" enctype="multipart/form-data" class="user-form">
+        {% csrf_token %}
+        <div class="form-section">
+            <!-- <h2 class="section-title">Общая информация о пользователе</h2> -->
+            {{ form.username.label_tag }}{{ form.username }}
+            {{ form.email.label_tag }}{{ form.email }}
+            {{ form.first_name.label_tag }}{{ form.first_name }}
+            {{ form.last_name.label_tag }}{{ form.last_name }}
+            {{ profile_form.middle_name.label_tag }}{{ profile_form.middle_name }}
+            {{ form.groups.label_tag }}{{ form.groups }}
+            {{ profile_form.date_of_birth.label_tag }}{{ profile_form.date_of_birth }}
+            {{ profile_form.phone_number.label_tag }}{{ profile_form.phone_number }}
+            {{ profile_form.bio.label_tag }}{{ profile_form.bio }}
+            {{ profile_form.image.label_tag }}{{ profile_form.image }}
+            {{ form.is_active.label_tag }}{{ form.is_active }}
+            {{ profile_form.is_approved.label_tag }}{{ profile_form.is_approved }}
+        </div>
+        <div class="form-actions">
+            <button type="submit" class="btn btn-primary">Сохранить</button>
+            <a href="{% url 'user_management:user_list' %}" class="btn btn-secondary">Отмена</a>
+        </div>
+    </form>
+</div>
+{% endblock %}
