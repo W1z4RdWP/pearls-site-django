@@ -1,0 +1,35 @@
+stages:
+  - test
+  - deploy
+
+test:
+  stage: test
+  image: python:3.12
+  before_script:
+    - pip install -r /home/django-user/pearls-site-django/myproject/requirements.txt
+  script:
+    - cd /home/django-user/pearls-site-django/myproject
+    - python manage.py test
+  only:
+    - main
+    - develop
+
+production_deploy:
+  stage: deploy
+  only:
+    - main
+  script:
+    - cd /home/django-user/pearls-site-django/myproject
+    - git fetch origin
+    - git reset --hard origin/main
+    - source ../.venv/bin/activate
+    - pip install -r requirements.txt
+    - python manage.py migrate
+    - python manage.py collectstatic --noinput
+    - sudo chown -R django-user:django-user staticfiles/
+    - sudo systemctl restart gunicorn
+  tags:
+    - production
+  when: on_success
+  dependencies:
+    - test

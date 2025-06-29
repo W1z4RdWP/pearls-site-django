@@ -71,6 +71,7 @@ header{
     color: rgb(227, 92, 121) !important; /* Цвет текста при наведении */
 }
 
+
 .form-group{
     width: 50%;
     place-self: center;
@@ -440,59 +441,6 @@ main > section > .text-block-2 {
     color: #fff; /* Цвет текста при наведении */
 }
 
-/* Footer */
-footer {
-    display: flex;
-    align-items: center; /* Выравниваем элементы по вертикали */
-    justify-content: flex-start; /* Элементы начинаются с левого края */
-    /* padding: 1.5rem; */
-    background-color: var(--primary-color);
-    border-top: 1px solid rgba(255, 255, 255, 0.1);
-    position: relative;
-    width: 100%;
-    
-}
-
-.footer-content {
-    display: flex;
-    flex-direction: row;
-    align-items: center;
-    justify-content: space-between; /* Распределяем пространство между элементами */
-    width: 100%; /* Ширина контейнера */
-    /* max-width: 1200px; Максимальная ширина контейнера */
-    margin: 0 auto; /* Центрируем контейнер */
-    gap: 1rem;
-}
-
-.footer-logo {
-    width: clamp(80px, 10vw, 200px);
-}
-
-
-.footer__social-media{
-    display: flex;
-    justify-content: space-between;
-    gap: 2rem;
-    margin-right: 1vw;
-}
-
-.footer__social-media-elem{
-    width: clamp(40px, 4vw, 100px);
-}
-
-.footer-text {
-    position: absolute;
-    bottom: 0;
-    left: 50%; /* Сдвигаем текст на 50% вправо */
-    transform: translateX(-50%); /* Центрируем текст */
-    transform: translateY(120%);
-
-
-    font-size: clamp(4px, 0.8em, 8px);
-    font-style: italic;
-    text-align: center;
-    color: rgba(255, 255, 255, 0.7);
-}
 
 .warning-info-about{
     position: relative;
@@ -584,9 +532,27 @@ footer {
     margin: 20px 0;
 }
 
-.course-actions{
+/* Навигация в lesson_detail */
+.lesson-navigation {
     display: flex;
-    flex-direction: row;
+    gap: 15px;
+    margin: 20px 0;
+}
+
+.lesson-navigation .btn {
+    padding: 10px 20px;
+    font-size: 1rem;
+    border-radius: 5px;
+    transition: background-color 0.3s ease;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    flex: 1;
+    margin: 0 5px;
+}
+.course-actions{
+    display: flex!important;
+    flex-direction: row!important;
     justify-content: space-around;
     font: 1em sans-serif;
 }
@@ -773,6 +739,161 @@ footer {
     color: var(--text-color);
 }
 /* Текст "Уже есть аккаунт" стилизуется непосредственно в templates/users/register.html */
+
+/* Footer new */
+.footer-main {
+    background: #232323;
+    color: #eee;
+    width: 100%;
+    padding: 40px 0 0 0;
+    border-top: 2px solid #353535;
+    font-family: var(--primary-font);
+    margin-top: 40px;
+    z-index: 100;
+}
+
+.footer-container {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: flex-start;
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 0 32px;
+    gap: 32px;
+}
+
+.footer-col {
+    flex: 1 1 200px;
+    min-width: 200px;
+    margin-bottom: 24px;
+}
+
+.footer-brand {
+    max-width: 260px;
+}
+.footer-logo {
+    width: 110px;
+    margin-bottom: 12px;
+    display: block;
+}
+.footer-tagline {
+    font-size: 1em;
+    color: #bdbdbd;
+    margin-top: 6px;
+    font-style: italic;
+}
+
+.footer-links h5,
+.footer-social h5,
+.footer-contact h5 {
+    font-size: 1.1em;
+    margin-bottom: 10px;
+    color: #4d7cff;
+    letter-spacing: 0.5px;
+}
+.footer-links ul,
+.footer-contact ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+.footer-links ul li,
+.footer-contact ul li {
+    margin-bottom: 7px;
+}
+.footer-links a,
+.footer-contact a {
+    color: #eee;
+    text-decoration: none;
+    transition: color 0.2s;
+}
+.footer-links a:hover,
+.footer-contact a:hover {
+    color: #4d7cff;
+    text-decoration: underline;
+}
+
+.footer__social-media {
+    display: flex;
+    gap: 18px;
+    align-items: center;
+    margin-top: 3px;
+}
+.footer__social-media-elem {
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    background: #333;
+    padding: 4px;
+    transition: background 0.2s, transform 0.2s;
+}
+.footer__social-media-elem:hover {
+    background: #4d7cff;
+    transform: scale(1.12);
+}
+
+.footer-bottom {
+    border-top: 1px solid #353535;
+    margin-top: 18px;
+    padding: 16px 32px 8px 32px;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.98em;
+    background: #1c1c1c;
+}
+.footer-text {
+    color: #bdbdbd;
+    font-size: 0.95em;
+    font-style: italic;
+    text-align: center;
+    flex: 1 1 200px;
+}
+.site-version {
+    color: #4d7cff;
+    font-size: 0.95em;
+    font-weight: 600;
+    margin-right: 18px;
+}
+.footer-policy {
+    color: #eee;
+    text-decoration: none;
+    margin-left: 18px;
+    transition: color 0.2s;
+    font-size: 0.95em;
+}
+.footer-policy:hover {
+    color: #4d7cff;
+    text-decoration: underline;
+}
+
+/* Адаптивность */
+@media (max-width: 900px) {
+    .footer-container {
+        flex-direction: column;
+        align-items: flex-start;
+        padding: 0 12px;
+        gap: 18px;
+    }
+    .footer-col {
+        width: 100%;
+        min-width: unset;
+        margin-bottom: 14px;
+    }
+    .footer-bottom {
+        flex-direction: column;
+        align-items: flex-start;
+        padding: 12px 12px 8px 12px;
+        gap: 8px;
+    }
+    .footer-policy, .site-version, .footer-text {
+        margin: 0;
+        font-size: 0.92em;
+    }
+}
+
 
 /* Для больших экранов */
 @media (min-width: 2300px){
@@ -1068,10 +1189,91 @@ footer {
     
 }
 
-@media (max-width: 512px) {
+@media (max-width: 600px) {
+    .footer-main {
+        padding: 24px 0 0 0;
+    }
+    .footer-logo {
+        width: 70px;
+    }
+    .footer__social-media-elem {
+        width: 28px;
+        height: 28px;
+    }
+    .footer-bottom {
+        flex-direction: column;
+        align-items: center;
+        padding: 12px 4px 8px 4px;
+        gap: 8px;
+        width: 100%;
+        box-sizing: border-box;
+    }
+    .footer-policy {
+        margin-left: 0;
+        margin-top: 8px;
+        display: block;
+        text-align: center;
+        width: 100%;
+        word-break: break-word;
+        font-size: 0.95em;
+    }
+    
+    .footer-text, .site-version {
+        text-align: center;
+        width: 100%;
+        font-size: 0.92em;
+    }
+}
+
+
+ @media (max-width: 512px)/* Временно сменил на 768  (было 512) */{ 
     body {
         max-width: 100%;
         overflow-x: hidden;
+    }
+
+    .site-version{
+        font-size: 0.6em!important;
+        position: absolute;
+        left: 1%;
+    }
+
+
+    /* Hero section */
+    .hero {
+        padding: 2rem;
+        
+    }
+
+    section:first-child{
+        height: 20%;
+        width: 95vw;
+        
+    }
+
+    section:nth-child(2){
+        height: 15%;
+        width: 80vw;
+    }
+
+    section:nth-child(3){
+        font-size: smaller;
+        width: 80vw;
+    }
+
+    .text-block-2{
+        position: relative;
+        display: block;
+        width: 100px;
+        height: 100px;
+        text-align: center;
+    }
+
+    .text-block-2 h5{
+        position: absolute;
+        bottom: 25%;
+        right: 9%;
+        font-size: 0.8rem!important;
     }
 
     /* Hero section */
@@ -1102,13 +1304,23 @@ footer {
     }
 
     #staffCarousel .text-overlay {
-        top: 45%!important;
+        top: 35%!important;
         left: 50%!important;
         width: 90%!important;
         height: auto;
         max-height: 50%;
         padding: 10px!important;
         transform: translateX(-50%)!important;
+    }
+
+    #staffCarousel .staff-indicators{
+        bottom: 70%;
+    }
+
+    #staffCarousel .staff-indicators button {
+        width: 4px;
+        height: 4px;
+        border: 1px solid #fff;
     }
 
     #staffCarousel .text-overlay p {
@@ -1131,7 +1343,7 @@ footer {
         position: relative!important;
         width: 40%!important;
         height: auto!important;
-        margin-right: 110px;
+        margin-right: 70px;
         right: auto!important;
         bottom: auto!important;
         top: -20%;
@@ -1155,6 +1367,22 @@ footer {
         overflow: auto;
     }
 
+    /* Навигация lesson_detail */
+    .lesson-navigation {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        margin: 15px 0;
+    }
+
+    .lesson-navigation .btn {
+        width: 100%;
+        font-size: 1rem;
+        padding: 12px 0;
+        text-align: center;
+        margin: 0;
+    }
+
     /* Cards grid */
     .cards-box {
         flex-direction: column;
@@ -1162,17 +1390,35 @@ footer {
     }
 
     .cards-box .box {
-        width: 100%!important;
+        width: 80%!important;
         margin: 10px 0;
         padding: 15px!important;
     }
 
-    /* .cards-box svg {
-        width: 48px;
-        height: 48px;
-    } */
+    .cards-box .box h5{
+        font-size: 0.6em!important;
+        /* margin-top: 15px; */
+    }
+
+    .cards-box .box p{
+        font-size: 0.4em!important;
+        /* margin-top: 15px; */
+    }
+    
+    .cards-box svg {
+        width: 48px!important;
+        height: 48px!important;
+    }
 
     /* Courses Carousel */
+    #courseCarousel{
+        height: 20%;
+    }
+
+    #courseCarousel .carousel-item{
+        height: fit-content!important;
+    }
+
     #courseCarousel .course-info-block {
         padding: 5px!important;
         margin: 5px!important;
@@ -1200,6 +1446,7 @@ footer {
         width: 90%;
         margin: 10px auto;
         display: block;
+        text-decoration: none;
     }
 
     .carousel-control-prev,
@@ -1208,36 +1455,89 @@ footer {
     }
     /* Футер */
     footer {
-        padding: 20px 0!important;
-    }
+    width: 100%;
+    background-color: var(--primary-color);
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    padding: 20px 0 10px 0 !important;
+    /* margin-top: 30%; */
+  }
 
-    .footer-content {
-        flex-direction: column;
-        align-items: center;
-        gap: 15px;
-    }
+  .footer-container {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+    max-width: 100%;
+    padding: 0 8px;
+  }
 
-    .footer-logo {
-        width: 100px;
-        margin-bottom: 10px;
-    }
+  .footer-col {
+    width: 100%;
+    margin-bottom: 8px;
+    text-align: center;
+  }
 
-    .footer__social-media {
-        flex-wrap: wrap;
-        justify-content: center;
-        gap: 8px;
-    }
+  .footer-logo {
+    width: 60px;
+    margin-bottom: 4px;
+  }
 
-    .footer__social-media-elem {
-        width: 32px;
-        height: 32px;
-    }
+  .footer-tagline {
+    font-size: 0.95rem;
+    margin-bottom: 8px;
+  }
 
-    .footer-text {
-        font-size: 0.8rem!important;
-        text-align: center;
-        margin-top: 10px;
-    }
+  .footer-col h5 {
+    font-size: 1rem;
+    margin-bottom: 4px;
+  }
+
+  .footer-col ul {
+    padding: 0;
+    margin: 0;
+    list-style: none;
+  }
+
+  .footer-col ul li {
+    margin-bottom: 2px;
+    font-size: 0.97rem;
+  }
+
+  .footer__social-media {
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+    gap: 10px;
+    width: 100%;
+    margin: 0 0 8px 0;
+    flex-wrap: wrap;
+  }
+
+  .footer__social-media-elem {
+    width: 28px;
+    height: 28px;
+  }
+
+  .footer-bottom {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    margin-top: 8px;
+    font-size: 0.85rem;
+    max-height: 45vh;
+  }
+
+  .footer-text {
+    font-size: 0.85rem !important;
+    color: rgba(255, 255, 255, 0.7);
+    text-align: center;
+    margin-top: 22px;
+    width: 100%;
+    line-height: 1.3;
+    font-style: italic;
+  }
     
 }
 
@@ -1302,6 +1602,20 @@ footer {
         place-self: center;
         width: 90%;
         padding: 5%;
+    }
+
+    /* Навигация lesson_detail */
+    .lesson-navigation {
+        display: flex;
+        flex-direction: row;
+        justify-content: space-between;
+        gap: 10px;
+        margin: 15px 0;
+    }
+
+    .lesson-navigation .btn {
+        font-size: 0.9rem;
+        padding: 8px 15px;
     }
 
     .lesson-actions {
