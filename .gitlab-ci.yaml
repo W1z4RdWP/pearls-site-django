@@ -1,5 +1,18 @@
 stages:
+  - test
   - deploy
+
+test:
+  stage: test
+  image: python:3.12
+  before_script:
+    - pip install -r /home/django-user/pearls-site-django/myproject/requirements.txt
+  script:
+    - cd /home/django-user/pearls-site-django/myproject
+    - python manage.py test
+  only:
+    - main
+    - develop
 
 production_deploy:
   stage: deploy
@@ -17,3 +30,6 @@ production_deploy:
     - sudo systemctl restart gunicorn
   tags:
     - production
+  when: on_success
+  dependencies:
+    - test
