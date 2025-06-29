@@ -26,7 +26,7 @@
 Также убедитесь что установлены все пакеты:
 `pip install -r requirements.txt`
 
-# Dockerized
+# --Dockerized--
 1) Склонируйте репозиторий на свой Linux сервер.
 2) Перейдите в каталог проекта `cd pearls-site-django/`
 3) Сформируйте **.env** файл
