@@ -42,6 +42,9 @@ def page_not_found_view(request, exception):
 def permission_denied_view(request, exception=None):
     return render(request, '403.html', status=403)
 
+def method_not_allowed_view(request, exception=None):
+    return render(request, '405.html', status=405)
+
 class ChangelogListView(ListView):
     model = ChangeLog
     paginate_by = 5

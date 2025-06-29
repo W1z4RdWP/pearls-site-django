@@ -53,6 +53,7 @@ urlpatterns = [
 
 handler404 = 'myapp.views.page_not_found_view'
 handler403 = 'myapp.views.permission_denied_view'
+handler405 = 'myapp.views.method_not_allowed_view'
 
 if settings.DEBUG:
     urlpatterns.extend(debug_toolbar_urls())
