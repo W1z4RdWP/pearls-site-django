@@ -1,0 +1,19 @@
+stages:
+  - deploy
+
+production_deploy:
+  stage: deploy
+  only:
+    - main
+  script:
+    - cd /home/django-user/pearls-site-django/myproject
+    - git fetch origin
+    - git reset --hard origin/main
+    - source ../.venv/bin/activate
+    - pip install -r requirements.txt
+    - python manage.py migrate
+    - python manage.py collectstatic --noinput
+    - sudo chown -R django-user:django-user staticfiles/
+    - sudo systemctl restart gunicorn
+  tags:
+    - production
