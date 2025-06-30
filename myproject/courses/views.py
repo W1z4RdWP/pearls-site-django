@@ -437,6 +437,7 @@ def redir_to_quiz(request, course_slug):
         # Проверяем, какую кнопку нажал пользователь
         action = request.POST.get('action')
         if action == 'start_quiz':
+            request.session['course_slug'] = course.slug
             return redirect('quiz_start', quiz_id=course.final_quiz.id)
         else:
             return redirect('profile')
