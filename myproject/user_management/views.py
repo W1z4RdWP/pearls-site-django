@@ -35,6 +35,11 @@ class UserListView(ListView):
                 Q(first_name__icontains=q) |
                 Q(last_name__icontains=q)
             )
+        approved = self.request.GET.get('approved')
+        if approved == '1':
+            queryset = queryset.filter(profile__is_approved=True)
+        elif approved == '0':
+            queryset = queryset.filter(profile__is_approved=False)
         return queryset
 
 
