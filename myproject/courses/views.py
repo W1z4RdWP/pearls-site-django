@@ -260,27 +260,25 @@ def lesson_detail(request, course_slug, lesson_id):
     if not user_course:
         return redirect('course_detail', slug=course.slug)
 
+    # Блокируем доступ к уроку, если курс не начат
+    if user_course.status not in ['started', 'completed']:
+        return render(request, 'courses/lesson_start_required.html', {'course': course, 'lesson': lesson})
+
     # Проверка траектории
     trajectory = UserLessonTrajectory.objects.filter(user=request.user, course=course).first()
     if trajectory:
         lessons_in_trajectory = trajectory.lessons.all()
         if lesson not in lessons_in_trajectory:
-            return redirect('course_detail', slug=course.slug)
+            return render(request, 'courses/lesson_access_denied.html', {'course': course, 'lesson': lesson})
     if trajectory:
-        # Уроки в траектории, упорядоченные по полю order
         trajectory_lessons = trajectory.lessons.all().order_by('order').select_related('course') 
-        
-        # Предыдущий урок в траектории
         previous_lesson = trajectory_lessons.filter(
             order__lt=lesson.order
         ).order_by('-order').first()
-
-        # Следующий урок в траектории
         next_lesson = trajectory_lessons.filter(
             order__gt=lesson.order
         ).order_by('order').first()
     else:
-        # Стандартная логика без траектории
         previous_lesson = lesson.get_previous_lesson()
         next_lesson = lesson.get_next_lesson()
 
