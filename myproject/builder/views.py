@@ -1,18 +1,13 @@
-from django.views.generic import DetailView
+from django.views.generic import DetailView, TemplateView
 from django.shortcuts import get_object_or_404
 from courses.models import Course, Lesson
 from myapp.models import UserProgress
 from django.contrib.auth.decorators import login_required
 from django.utils.decorators import method_decorator
-from django.views.generic import ListView, CreateView, UpdateView, TemplateView, DeleteView
+from django.views.generic import ListView, CreateView, UpdateView, DeleteView
 from django.urls import reverse_lazy
 from .models import CategoryName
 
-class LessonListView(ListView):
-    model = Lesson
-    template_name = 'builder/home.html'
-    context_object_name = 'lessons'
-    
 
 @method_decorator(login_required(login_url='/login/'), name='dispatch')
 class LessonMasterDetailView(TemplateView):
@@ -98,3 +93,11 @@ class CategoryDeleteView(DeleteView):
     model = CategoryName
     template_name = 'builder/category_confirm_delete.html'
     success_url = reverse_lazy('builder:lesson_master')
+
+class DashboardView(TemplateView):
+    template_name = 'builder/dashboard.html'
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        # Можно добавить статистику по базе знаний, если потребуется
+        return context
