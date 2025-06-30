@@ -79,6 +79,8 @@ class UserUpdateView(UpdateView):
     success_url = reverse_lazy('user_management:user_list')
 
     def dispatch(self, request, *args, **kwargs):
+        if not request.user.is_authenticated or not (request.user.is_staff or request.user.is_superuser):
+            raise PermissionDenied("У вас нет доступа к управлению пользователями.")
         user_to_edit = self.get_object()
         if get_user_privilege_level(request.user) < get_user_privilege_level(user_to_edit):
             self.readonly = True
