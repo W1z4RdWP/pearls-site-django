@@ -11,6 +11,7 @@ from .models import Course, Lesson, UserLessonTrajectory
 from myapp.models import UserProgress, UserCourse, QuizResult
 from myapp.views import is_admin, is_author_or_admin
 import logging
+from builder.models import CategoryName
 
 logger = logging.getLogger(__name__)
 audit_logger = logging.getLogger('audit')
@@ -323,12 +324,23 @@ def create_lesson(request, course_slug):
     return render(request, 'courses/create_lesson.html', {'form': form, 'course': course})
 
 
+def get_category_full_path(category):
+    path = [category.name]
+    parent = category.parent
+    while parent:
+        path.append(parent.name)
+        parent = parent.parent
+    return '/'.join(reversed(path))
+
 @login_required
 @user_passes_test(is_admin, login_url='/')
 def add_lesson(request, course_slug):
     course = get_object_or_404(Course, slug=course_slug)
-    # Получаем уроки, которые не входят в этот курс (закомментированный код)
-    existing_lessons = Lesson.objects.all() #Lesson.objects.exclude(course=course).filter(course__isnull=False)
+    existing_lessons = Lesson.objects.all()
+    categories = CategoryName.objects.all()
+    categories_with_path = [
+        {'id': c.id, 'path': get_category_full_path(c)} for c in categories
+    ]
     if request.method == 'POST':
         if 'create_new' in request.POST:
             return redirect('create_lesson', course_slug=course.slug)
@@ -336,16 +348,26 @@ def add_lesson(request, course_slug):
             lesson_id = request.POST.get('lesson_id')
             if lesson_id:
                 lesson = get_object_or_404(Lesson, id=lesson_id)
-                # Привязываем урок к курсу (меняем ForeignKey)
                 lesson.course = course
-                # Определяем порядок (order) — ставим после последнего
                 max_order = course.lessons.aggregate(Max('order'))['order__max'] or 0
                 lesson.order = max_order + 1
                 lesson.save()
                 return redirect('course_detail', slug=course.slug)
+        elif 'add_category_lessons' in request.POST:
+            category_id = request.POST.get('category_id')
+            if category_id:
+                lessons = Lesson.objects.filter(category_id=category_id)
+                max_order = course.lessons.aggregate(Max('order'))['order__max'] or 0
+                for i, lesson in enumerate(lessons, start=1):
+                    lesson.course = course
+                    lesson.order = max_order + i
+                    lesson.save()
+                return redirect('course_detail', slug=course.slug)
     return render(request, 'courses/add_lesson.html', {
         'course': course,
-        'existing_lessons': existing_lessons
+        'existing_lessons': existing_lessons,
+        'categories': categories,
+        'categories_with_path': categories_with_path,
     })
 
 
