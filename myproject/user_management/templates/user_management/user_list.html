@@ -16,7 +16,7 @@
 <div class="um-user-list-wrapper">
     <div class="um-user-list-header">
         <h1 class="um-user-list-title">Пользователи</h1>
-        <a href="{% url 'user_management:user_create' %}" class="um-btn">Добавить пользователя</a>
+        <a href="{% url 'user_management:user_create_step1' %}" class="um-btn">Добавить пользователя</a>
     </div>
     <form method="get" class="um-user-list-filter">
         <input type="text" name="q" placeholder="Поиск по имени или email" value="{{ request.GET.q }}">
