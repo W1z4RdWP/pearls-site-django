@@ -11,11 +11,13 @@ from courses.models import Course, Lesson, UserLessonTrajectory
 from django.core.paginator import Paginator, PageNotAnInteger, EmptyPage
 from django.utils.decorators import method_decorator
 from django.contrib.admin.views.decorators import staff_member_required
+from .forms import UserProfileForm
 
 class UserListView(ListView):
     model = User
     template_name = 'user_management/user_list.html'
     context_object_name = 'users'
+    paginate_by = 10
 
     def dispatch(self, request, *args, **kwargs):
         if not request.user.is_authenticated or not (request.user.is_staff or request.user.is_superuser):
@@ -23,7 +25,7 @@ class UserListView(ListView):
         return super().dispatch(request, *args, **kwargs)
 
     def get_queryset(self):
-        queryset = super().get_queryset()
+        queryset = super().get_queryset().order_by('username')
         q = self.request.GET.get('q')
         if q:
             queryset = queryset.filter(
@@ -34,13 +36,6 @@ class UserListView(ListView):
             )
         return queryset
 
-class UserProfileForm(forms.ModelForm):
-    class Meta:
-        model = Profile
-        fields = ['middle_name', 'date_of_birth', 'phone_number', 'image', 'bio', 'is_approved']
-        widgets = {
-            'date_of_birth': forms.DateInput(attrs={'type': 'date'}),
-        }
 
 class UserCreateView(CreateView):
     model = User
@@ -58,11 +53,16 @@ class UserCreateView(CreateView):
 
     def form_valid(self, form):
         response = super().form_valid(form)
-        profile_form = UserProfileForm(self.request.POST, self.request.FILES)
+        # Убеждаемся, что профиль существует
+        try:
+            profile = self.object.profile
+        except Profile.DoesNotExist:
+            # Если профиль не создался сигналом, создаем его вручную
+            profile = Profile.objects.create(user=self.object)
+        
+        profile_form = UserProfileForm(self.request.POST, self.request.FILES, instance=profile)
         if profile_form.is_valid():
-            profile = profile_form.save(commit=False)
-            profile.user = self.object
-            profile.save()
+            profile_form.save()
         return response
 
 def get_user_privilege_level(user):
