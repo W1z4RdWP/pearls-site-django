@@ -1775,9 +1775,9 @@ main > section > .text-block-2 {
     }
 }
 /* Delight: логотип анимируется при наведении */
-#logopng {
+/* #logopng {
     transition: transform 0.3s cubic-bezier(.68,-0.55,.27,1.55);
 }
 #logolink:hover #logopng {
     transform: rotate(-8deg) scale(1.08);
-}
+} */
