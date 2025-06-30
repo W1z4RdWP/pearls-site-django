@@ -16,16 +16,6 @@ class IndexView(TemplateView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         user = self.request.user
-        context['nav_public'] = [
-            {'url': 'home', 'label': 'Главная', 'icon': 'fa-solid fa-house'},
-            {'url': 'changelog', 'label': 'Список изменений', 'icon': 'fa-solid fa-list-check'},
-            {'url': 'about', 'label': 'О нас', 'icon': 'fa-solid fa-circle-info'},
-        ]
-        context['nav_staff'] = [
-            {'url': 'create-course', 'label': 'Создать курс', 'icon': 'fa-solid fa-plus'},
-            {'url': 'builder:dashboard', 'label': 'База знаний', 'icon': 'fa-solid fa-database'},
-            {'url': 'quizzes', 'label': 'Тесты', 'icon': 'fa-solid fa-clipboard-question'},
-        ]
         if user.is_authenticated:
             # Получаем курсы, назначенные пользователю через UserCourse
             user_courses = UserCourse.objects.filter(user=user).values_list('course', flat=True)

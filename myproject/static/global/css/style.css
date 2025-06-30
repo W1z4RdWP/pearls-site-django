@@ -1702,7 +1702,7 @@ main > section > .text-block-2 {
     position: sticky;
     top: 0;
     z-index: 100;
-    background: #222 !important;
+    background: var(--primary-color) !important;
     transition: box-shadow 0.3s;
 }
 .custom-nav-list {
