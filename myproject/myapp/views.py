@@ -16,14 +16,12 @@ class IndexView(TemplateView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         user = self.request.user
-        
         if user.is_authenticated:
             # Получаем курсы, назначенные пользователю через UserCourse
             user_courses = UserCourse.objects.filter(user=user).values_list('course', flat=True)
             context['courses'] = CourseModel.objects.filter(id__in=user_courses)
         else:
             context['courses'] = []
-            
         return context
 
 class AboutView(TemplateView):

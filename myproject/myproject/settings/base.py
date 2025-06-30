@@ -96,6 +96,7 @@ TEMPLATES = [
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
                 'myapp.context_processors.get_changelog', # Кастомный контекстный процессор
+                'myapp.context_processors.nav_menu',
             ],
         },
     },

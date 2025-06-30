@@ -33,7 +33,7 @@
 <body>
     
     <header class='header'>
-        <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <nav class="navbar navbar-expand-lg navbar-dark bg-dark custom-navbar">
             <div class="container-fluid">
                 <a class="navbar-brand" href="{% url 'home' %}" id="logolink">
                     <img src="{% static 'global/imgs/logo_lc.png' %}" alt="Logo" id='logopng'>
@@ -41,52 +41,41 @@
                 <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
                     <span class="navbar-toggler-icon"></span>
                 </button>
-                
                 <div class="collapse navbar-collapse" id="navbarNav">
-                    <ul class="navbar-nav ms-auto">
+                    <ul class="navbar-nav ms-auto custom-nav-list">
+                        {% for item in nav_public %}
                         <li class="nav-item">
-                            <a class="nav-link" href="{% url 'home' %}">Главная</a>
+                            <a class="nav-link custom-nav-link" href="{% url item.url %}"><i class="{{ item.icon }}"></i> {{ item.label }}</a>
                         </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="{% url 'changelog' %}">Список изменений</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="{% url 'about' %}">О нас</a>
-                        </li>
-
+                        {% endfor %}
                         {% if user.is_authenticated %}
+                            <li><hr class="dropdown-divider custom-divider"></li>
                             {% if user.is_staff %}
+                                {% for item in nav_staff %}
                                 <li class="nav-item">
-                                    <a class="nav-link" href="{% url 'create-course' %}">Создать курс</a>
+                                    <a class="nav-link custom-nav-link" href="{% url item.url %}"><i class="{{ item.icon }}"></i> {{ item.label }}</a>
                                 </li>
-                                <li class="nav-item">
-                                    <a class="nav-link" href="{% url 'builder:lesson_master' %}">База знаний</a>
-                                </li>
-                                <li class="nav-item">
-                                    <a class="nav-link" href="{% url 'quizzes' %}">Тесты</a>
-                                </li>
+                                {% endfor %}
                                 {% if user.is_superuser %}
                                 <li class="nav-item">
-                                    <a class="nav-link" href="/admin">Админ панель</a>
+                                    <a class="nav-link custom-nav-link" href="/admin"><i class="fa-solid fa-screwdriver-wrench"></i> Админ панель</a>
                                 </li>
                                 {% endif %}
                             {% endif %}
+                            <li><hr class="dropdown-divider custom-divider"></li>
                             <li class="nav-item">
-                                <a class="nav-link" href="{% url 'profile' %}">Профиль</a>
+                                <a class="nav-link custom-nav-link" href="{% url 'profile' %}"><i class="fa-solid fa-user"></i> Профиль</a>
                             </li>
                             <li class="nav-item">
                                 <form action="{% url 'logout' %}" method="post" style="display: inline;">
                                     {% csrf_token %}
-                                    <button type="submit" class="btn btn-link nav-link">Выход</button>
+                                    <button type="submit" class="btn btn-link nav-link custom-nav-link"><i class="fa-solid fa-arrow-right-from-bracket"></i> Выход</button>
                                 </form>
                             </li>
                         {% else %}
                             <li class="nav-item">
-                                <a class="nav-link" href="{% url 'login' %}">Вход</a>
+                                <a class="nav-link custom-nav-link" href="{% url 'login' %}"><i class="fa-solid fa-right-to-bracket"></i> Вход</a>
                             </li>
-                            {% comment %} <li class="nav-item">
-                                <a class="nav-link" href="{% url 'register' %}">Регистрация</a>
-                            </li> {% endcomment %}
                         {% endif %}
                     </ul>
                 </div>
