@@ -2,32 +2,47 @@
 {% load static %}
 {% block specific_styles %}
 <link rel="stylesheet" href="{% static 'user_management/css/user_list.css' %}">
+<style>
+.um-btn-wide {
+    min-width: 180px;
+    width: 180px;
+    text-align: center;
+}
+</style>
 {% endblock %}
 
 {% block content %}
+<a href="{% url 'builder:dashboard' %}" class="btn btn-outline-primary mb-3">← Вернуться в панель управленияй</a>
 <div class="um-user-list-wrapper">
     <div class="um-user-list-header">
         <h1 class="um-user-list-title">Пользователи</h1>
-        <a href="{% url 'user_management:user_create' %}" class="um-btn">Добавить пользователя</a>
+        <a href="{% url 'user_management:user_create_step1' %}" class="um-btn">Добавить пользователя</a>
     </div>
     <form method="get" class="um-user-list-filter">
         <input type="text" name="q" placeholder="Поиск по имени или email" value="{{ request.GET.q }}">
+        <select name="approved" class="um-user-list-status-filter">
+            <option value="">Все</option>
+            <option value="1" {% if request.GET.approved == '1' %}selected{% endif %}>Только подтверждённые</option>
+            <option value="0" {% if request.GET.approved == '0' %}selected{% endif %}>Только не подтверждённые</option>
+        </select>
         <button type="submit" class="um-btn um-btn-secondary">Фильтровать</button>
     </form>
     <table class="um-user-list-table">
         <thead>
             <tr>
+                <th>#</th>
                 <th>Имя пользователя</th>
-                <th>Имя</th>
                 <th>Дата рождения</th>
                 <th>Email</th>
                 <th>Группы</th>
+                <th>Статус</th>
                 <th>Действия</th>
             </tr>
         </thead>
         <tbody>
             {% for user in users %}
             <tr>
+                <td>{{ forloop.counter }}</td>
                 <td>
                     <div class="um-user-avatar-name">
                         <img src="{{ user.profile.image.url }}" alt="avatar" class="um-user-avatar">
@@ -37,18 +52,57 @@
                         </div>
                     </div>
                 </td>
-                <td>{{ user.first_name }}</td>
                 <td>{{ user.profile.date_of_birth|date:'d.m.Y' }}</td>
                 <td>{{ user.email }}</td>
                 <td>{% for group in user.groups.all %}{{ group.name }}{% if not forloop.last %}, {% endif %}{% endfor %}</td>
                 <td>
-                    <a href="{% url 'user_management:user_edit' user.pk %}" class="um-btn um-btn-secondary">Редактировать</a>
+                    {% if user.profile.is_approved %}
+                        <span class="um-status um-status-approved" title="Подтверждён">✔️ Подтверждён</span>
+                    {% else %}
+                        <span class="um-status um-status-unapproved" title="Не подтверждён">⏳ Не подтверждён</span>
+                    {% endif %}
                 </td>
+                <td>
+                    <a href="{% url 'user_management:user_edit' user.pk %}" class="um-btn um-btn-secondary um-btn-wide">Редактировать</a>
+                    <a href="{% url 'user_management:user_progress' user.pk %}" class="um-btn um-btn-primary um-btn-wide">Прогресс обучения</a>
+                </td>
+
             </tr>
             {% empty %}
-            <tr><td colspan="4">Нет пользователей</td></tr>
+            <tr><td colspan="7">Нет пользователей</td></tr>
             {% endfor %}
         </tbody>
     </table>
+    {% if is_paginated %}
+    <nav aria-label="Page navigation" class="mt-4">
+        <ul class="pagination justify-content-center">
+            {% if page_obj.has_previous %}
+                <li class="page-item">
+                    <a class="page-link" href="?page=1{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}">Первая</a>
+                </li>
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}">Назад</a>
+                </li>
+            {% endif %}
+            {% for num in page_obj.paginator.page_range %}
+                {% if num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                    {% if page_obj.number == num %}
+                        <li class="page-item active"><span class="page-link">{{ num }}</span></li>
+                    {% else %}
+                        <li class="page-item"><a class="page-link" href="?page={{ num }}{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}">{{ num }}</a></li>
+                    {% endif %}
+                {% endif %}
+            {% endfor %}
+            {% if page_obj.has_next %}
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}">Вперед</a>
+                </li>
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}">Последняя</a>
+                </li>
+            {% endif %}
+        </ul>
+    </nav>
+    {% endif %}
 </div>
 {% endblock %}

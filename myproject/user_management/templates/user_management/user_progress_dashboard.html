@@ -1,0 +1,186 @@
+{% extends 'layout.html' %}
+{% load static %}
+
+{% block specific_styles %}
+<link rel="stylesheet" href="{% static 'user_management/css/user_progress_dashboard.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="um-progress-dashboard-wrapper">
+    <div class="um-progress-dashboard-header">
+        <div class="um-progress-user-info">
+            <img src="{{ target_user.profile.image.url }}" alt="avatar" class="um-progress-user-avatar">
+            <div class="um-progress-user-details">
+                <h1 class="um-progress-user-name">{{ target_user.get_full_name|default:target_user.username }}</h1>
+                <p class="um-progress-user-email">{{ target_user.email }}</p>
+                <p class="um-progress-user-groups">
+                    Группы: {% for group in target_user.groups.all %}{{ group.name }}{% if not forloop.last %}, {% endif %}{% endfor %}
+                </p>
+            </div>
+        </div>
+        <a href="{% url 'user_management:user_list' %}" class="um-btn um-btn-secondary">← Назад к списку</a>
+    </div>
+
+    <!-- Общая статистика -->
+    <div class="um-progress-overview">
+        <div class="um-progress-stats-grid">
+            <div class="um-progress-stat-card">
+                <h3>Общий прогресс</h3>
+                <div class="um-progress-stat-value">{{ overall_progress }}%</div>
+                <div class="um-progress-stat-desc">
+                    {{ total_lessons_completed }} из {{ total_lessons_available }} уроков
+                </div>
+            </div>
+            <div class="um-progress-stat-card">
+                <h3>Всего курсов</h3>
+                <div class="um-progress-stat-value">{{ total_courses }}</div>
+                <div class="um-progress-stat-desc">
+                    {{ completed_courses }} завершено, {{ started_courses }} в процессе
+                </div>
+            </div>
+            <div class="um-progress-stat-card">
+                <h3>Завершенные курсы</h3>
+                <div class="um-progress-stat-value">{{ completed_courses }}</div>
+                    <div class="um-progress-stat-desc">
+                        {% if total_courses > 0 %}
+                            {% widthratio completed_courses total_courses 100 %}% от общего числа
+                        {% else %}
+                            Нет курсов
+                        {% endif %}
+                    </div>
+                </div>
+            <div class="um-progress-stat-card">
+                <h3>Курсы в процессе</h3>
+                <div class="um-progress-stat-value">{{ started_courses }}</div>
+                <div class="um-progress-stat-desc">
+                    Активно изучаются
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Детальный прогресс по курсам -->
+    <div class="um-progress-courses">
+        <h2>Детальный прогресс по курсам</h2>
+        {% if page_obj_courses and page_obj_courses.object_list %}
+            {% for course_progress in page_obj_courses %}
+            <div class="um-progress-course-card">
+                <div class="um-progress-course-header">
+                    <div class="um-progress-course-info">
+                        <h3 class="um-progress-course-title">{{ course_progress.course.title }}</h3>
+                        <div class="um-progress-course-meta">
+                            <span class="um-progress-course-status um-status-{{ course_progress.user_course.status }}">
+                                {% if course_progress.user_course.status == 'completed' %}
+                                    Завершен
+                                {% elif course_progress.user_course.status == 'started' %}
+                                    В процессе
+                                {% else %}
+                                    Доступен
+                                {% endif %}
+                            </span>
+                            <span class="um-progress-course-date">
+                                Начат: {{ course_progress.user_course.start_date|date:'d.m.Y' }}
+                            </span>
+                            {% if course_progress.user_course.end_date %}
+                                <span class="um-progress-course-date">
+                                    Завершен: {{ course_progress.user_course.end_date|date:'d.m.Y' }}
+                                </span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="um-progress-course-stats">
+                        <div class="um-progress-course-progress">
+                            <div class="um-progress-bar">
+                                <div class="um-progress-bar-fill" style="width: {{ course_progress.progress_percent }}%"></div>
+                            </div>
+                            <span class="um-progress-percent">{{ course_progress.progress_percent }}%</span>
+                        </div>
+                        <div class="um-progress-lessons-count">
+                            {{ course_progress.completed_lessons }} из {{ course_progress.total_lessons }} уроков
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Информация о финальном тесте -->
+                {% if course_progress.course.final_quiz %}
+                <div class="um-progress-quiz-info">
+                    <h4>Финальный тест: {{ course_progress.course.final_quiz.name }}</h4>
+                    <div class="um-progress-quiz-status">
+                        {% if course_progress.quiz_passed %}
+                            <span class="um-quiz-passed">✓ Пройден</span>
+                        {% else %}
+                            <span class="um-quiz-not-passed">✗ Не пройден</span>
+                        {% endif %}
+                        {% if course_progress.best_attempt %}
+                            <a href="{% url 'user_management:user_quiz_report' course_progress.best_attempt.id %}" class="btn btn-outline-info ms-3">Отчёт</a>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endif %}
+
+                <!-- Детали по урокам -->
+                <div class="um-progress-lessons-detail">
+                    <h4>Уроки курса</h4>
+                    <div class="um-progress-lessons-list">
+                        {% for lesson_detail in course_progress.lessons_detail %}
+                        <div class="um-progress-lesson-item {% if lesson_detail.completed %}um-lesson-completed{% endif %}">
+                            <div class="um-progress-lesson-info">
+                                <span class="um-progress-lesson-order">{{ lesson_detail.order }}.</span>
+                                <span class="um-progress-lesson-title">{{ lesson_detail.lesson.title }}</span>
+                            </div>
+                            <div class="um-progress-lesson-status">
+                                {% if lesson_detail.completed %}
+                                    <span class="um-lesson-completed-badge">✓</span>
+                                    <span class="um-lesson-completed-date">
+                                        {{ lesson_detail.completed_at|date:'d.m.Y H:i' }}
+                                    </span>
+                                {% else %}
+                                    <span class="um-lesson-not-completed-badge">○</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <!-- Информация о наградах -->
+                {% if course_progress.user_course.status == 'completed' %}
+                <div class="um-progress-rewards">
+                    <h4>Награды за курс</h4>
+                    <div class="um-progress-reward-item">
+                        <span class="um-reward-icon">⭐</span>
+                        <span class="um-reward-text">{{ course_progress.exp_reward }} опыта</span>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+            {% endfor %}
+            <nav aria-label="Page navigation">
+                <ul class="pagination justify-content-center">
+                    {% if page_obj_courses.has_previous %}
+                        <li class="page-item">
+                            <a class="page-link" href="?courses_page={{ page_obj_courses.previous_page_number }}">Назад</a>
+                        </li>
+                    {% endif %}
+                    {% for num in page_obj_courses.paginator.page_range %}
+                        {% if page_obj_courses.has_other_pages %}
+                            <li class="page-item {% if page_obj_courses.number == num %}active{% endif %}">
+                                <a class="page-link" href="?courses_page={{ num }}">{{ num }}</a>
+                            </li>
+                        {% endif %}
+                    {% endfor %}
+                    {% if page_obj_courses.has_next %}
+                        <li class="page-item">
+                            <a class="page-link" href="?courses_page={{ page_obj_courses.next_page_number }}">Вперед</a>
+                        </li>
+                    {% endif %}
+                </ul>
+            </nav>
+        {% else %}
+            <div class="um-progress-no-courses">
+                <p>У пользователя нет назначенных курсов.</p>
+            </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %} 

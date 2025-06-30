@@ -1,0 +1,61 @@
+{% extends 'layout.html' %}
+{% block content %}
+<div class="container mt-4">
+    <h2>Отчёт по тесту: {{ quiz_result.quiz_title }}</h2>
+    <p>Правильных ответов: {{ quiz_result.score }} из {{ quiz_result.total_questions }} ({{ quiz_result.percent|floatformat:0 }}%)</p>
+    <p>Дата прохождения: {{ quiz_result.completed_at|date:"d.m.Y H:i" }}</p>
+    <hr>
+    <h4>Детализация по вопросам:</h4>
+    <div class="list-group">
+        {% for question, answers in grouped_answers.items %}
+            <div class="list-group-item mb-2
+                {% if question.question_type == 'text' %}list-group-item-warning
+                {% elif answers.0.is_correct %}list-group-item-success
+                {% else %}list-group-item-danger
+                {% endif %}">
+                <strong>Вопрос {{ forloop.counter }}:</strong> {{ question.text }}<br>
+                <strong>Ваш ответ:</strong>
+                {% if question.question_type == 'multiple' %}
+                    {% for ans in answers %}
+                        {{ ans.selected_answer.text }}{% if not forloop.last %}, {% endif %}
+                    {% endfor %}
+                {% elif question.question_type == 'text' %}
+                    {{ answers.0.answer_text|default:'<em>Нет ответа</em>' }}
+                {% else %}
+                    {{ answers.0.selected_answer.text|default:'<em>Нет ответа</em>' }}
+                {% endif %}
+                <br>
+                {% if question.question_type != 'text' %}
+                    <strong>Правильный ответ:</strong>
+                    {% for correct_ans in question.answer_set.all %}
+                        {% if correct_ans.is_correct %}
+                            {{ correct_ans.text }}{% if not forloop.last %}, {% endif %}
+                        {% endif %}
+                    {% endfor %}
+                {% endif %}
+                <br>
+                {% if question.question_type == 'text' %}
+                    <form method="post" action="">
+                        {% csrf_token %}
+                        <div class="mt-2">
+                            <label>Оценка администратора:</label>
+                            <select name="text_eval_{{ answers.0.id }}" class="form-select" style="width:auto;display:inline-block;">
+                                <option value="" {% if answers.0.is_correct is None %}selected{% endif %}>Не оценено</option>
+                                <option value="true" {% if answers.0.is_correct %}selected{% endif %}>Правильно</option>
+                                <option value="false" {% if answers.0.is_correct is not None and not answers.0.is_correct %}selected{% endif %}>Неправильно</option>
+                            </select>
+                            <button type="submit" class="btn btn-sm btn-outline-primary">Сохранить</button>
+                        </div>
+                    </form>
+                    <span class="badge bg-info">Пользователь дал ответ</span>
+                {% else %}
+                    <span class="badge {% if answers.0.is_correct %}bg-success{% else %}bg-danger{% endif %}">
+                        {% if answers.0.is_correct %}Верно{% else %}Неверно{% endif %}
+                    </span>
+                {% endif %}
+            </div>
+        {% endfor %}
+    </div>
+    <a href="javascript:history.back()" class="btn btn-primary mt-3">Назад</a>
+</div>
+{% endblock %} 

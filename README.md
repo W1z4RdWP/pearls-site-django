@@ -7,8 +7,24 @@
 5) Установите зависимости `pip install -r requirements.txt`
 6) Перейдите в папку проекта `cd myproject`
 7) Убедитесь что сделаны все актуальные миграции в БД. `python manage.py migrate`
-8) Запустите сервер: `python manage.py runserver 0.0.0.0:8080` или `gunicorn --bind 0.0.0.0:8000 myproject.wsgi`
+8) Запустите сервер: `python manage.py runserver 0.0.0.0:8080` или `gunicorn --workers 8 --bind 0.0.0.0:8000 myproject.wsgi`
 
+
+# Обновление версии
+Чтобы обновить версию в продакшен среде, необходимо, прежде всего сделать Merge в ветку main.
+После того, как вы смерджили код из dev в main, необходимо перейти к продакшен серверу (на котором работает платформа) и сделать на нем pull.
+После этого, если в новом обновлении были сделаны правки в стили CSS, скрипты JS или прочие статические категории, то обновите staticfiles. Для этого лучше всего сначала удалить существующий каталог и сформировать новый. Проделайте следующие шаги: 
+1) sudo chown django-user.django-user -R staticfiles/
+2) rm -rf staticfiles/
+3) python manage.py collectstatic --noinput
+4) sudo chown www-data.www-data -R staticfiles/
+
+Обновив статические файлы, следующим этапом убдитесь что выполнены все миграции:
+1) python manage.py showmigrations
+2) python manage.py migrate
+
+Также убедитесь что установлены все пакеты:
+`pip install -r requirements.txt`
 
 # Dockerized
 1) Склонируйте репозиторий на свой Linux сервер.

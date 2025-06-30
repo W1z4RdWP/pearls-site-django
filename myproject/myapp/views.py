@@ -16,14 +16,12 @@ class IndexView(TemplateView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         user = self.request.user
-        
         if user.is_authenticated:
             # Получаем курсы, назначенные пользователю через UserCourse
             user_courses = UserCourse.objects.filter(user=user).values_list('course', flat=True)
             context['courses'] = CourseModel.objects.filter(id__in=user_courses)
         else:
             context['courses'] = []
-            
         return context
 
 class AboutView(TemplateView):
@@ -39,6 +37,11 @@ def is_author_or_admin(user, course):
 def page_not_found_view(request, exception):
     return render(request, '404.html', status=404)
 
+def permission_denied_view(request, exception=None):
+    return render(request, '403.html', status=403)
+
+def method_not_allowed_view(request, exception=None):
+    return render(request, '405.html', status=405)
 
 class ChangelogListView(ListView):
     model = ChangeLog

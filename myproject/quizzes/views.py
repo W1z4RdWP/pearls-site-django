@@ -169,13 +169,18 @@ def get_answer(request) -> HttpResponse:
                 'answer_text': user_text,
                 'question_type': 'text'
             }
+            all_questions_ids = list(Question.objects.filter(quiz_id=quiz_id).order_by('id').values_list('id', flat=True))
+            current_index = all_questions_ids.index(question.id) + 1
+            total_questions = len(all_questions_ids)
+            is_last = not Question.objects.filter(quiz_id=quiz_id, id__gt=question.id).exists()
             context = {
-                'current_question_number': ...,
-                'total_questions': ...,
-                'progress_percent': ...,
+                'current_question_number': current_index,
+                'total_questions': total_questions,
+                'progress_percent': int((current_index / total_questions) * 100),
                 'is_correct': False,  # для текстовых не бывает "правильно"
                 'question': question,
                 'user_text': user_text,
+                'is_last': is_last,
             }
         else:
             submitted_answer_id = request.POST.get('answer_id')
@@ -302,8 +307,11 @@ def get_finish(request) -> HttpResponse:
         'questions_count': questions_count,
         'percent_score': percent_score,
         'quiz_title': quiz.name,
-        'is_all_question_text': is_all_question_text
+        'is_all_question_text': is_all_question_text,
     }
+    course_slug = request.session.pop('course_slug', None)
+    if course_slug:
+        context['course_slug'] = course_slug
     
     _reset_quiz(request)
     return render(request, 'quizzes/finish.html', context)

@@ -1,0 +1,11 @@
+{% extends 'layout.html' %}
+{% load static %}
+{% block title %}Метод не разрешён{% endblock %}
+
+{% block content %}
+    <div class="alert alert-danger text-center">
+        <h1>Ошибка 405</h1>
+        <p>Данный метод запроса не разрешён для этой страницы.</p>
+        <a href="{% url 'home' %}" class="btn btn-primary">Вернуться на главную</a>
+    </div>
+{% endblock %} 

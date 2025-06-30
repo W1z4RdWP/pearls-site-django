@@ -1,0 +1,11 @@
+{% extends 'layout.html' %}
+{% load static %}
+{% block title %}Доступ запрещён{% endblock %}
+
+{% block content %}
+    <div class="alert alert-danger text-center">
+        <h1>Ошибка 403</h1>
+        <p>У вас нет прав для просмотра этой страницы.</p>
+        <a href="{% url 'home' %}" class="btn btn-primary">Вернуться на главную</a>
+    </div>
+{% endblock %} 

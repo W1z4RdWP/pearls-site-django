@@ -1695,3 +1695,89 @@ main > section > .text-block-2 {
     }
     
 }
+
+/* --- CUSTOM NAVIGATION STYLES --- */
+.custom-navbar {
+    box-shadow: 0 2px 16px 0 rgba(0,0,0,0.08);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background: var(--primary-color) !important;
+    transition: box-shadow 0.3s;
+}
+.custom-nav-list {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.2rem;
+    scrollbar-width: thin;
+    scrollbar-color: #ffb300 #222;
+}
+.custom-nav-list::-webkit-scrollbar {
+    height: 6px;
+}
+.custom-nav-list::-webkit-scrollbar-thumb {
+    background: #ffb300;
+    border-radius: 4px;
+}
+.custom-nav-link {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    font-weight: 600;
+    color: var(--text-color) !important;
+    position: relative;
+    transition: color 0.2s, transform 0.2s;
+    border-radius: 8px;
+    padding: 0.5rem 1rem !important;
+    background: transparent;
+}
+.custom-nav-link i {
+    font-size: 1.1em;
+    transition: color 0.2s, transform 0.2s;
+}
+.custom-nav-link:hover, .custom-nav-link:focus {
+    color: #ffb300 !important;
+    background: rgba(255,179,0,0.08);
+    transform: translateY(-2px) scale(1.06);
+    text-shadow: 0 2px 8px rgba(255,179,0,0.12);
+}
+.custom-nav-link:hover i, .custom-nav-link:focus i {
+    color: #ffb300;
+    transform: scale(1.2) rotate(-8deg);
+}
+.custom-divider {
+    border-top: 2px dashed #ffb300;
+    margin: 0 0.5rem;
+    opacity: 0.5;
+}
+@media (max-width: 900px) {
+    .custom-nav-list {
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        gap: 0.1rem;
+    }
+    .custom-nav-link {
+        font-size: 0.98em;
+        padding: 0.5rem 0.7rem !important;
+    }
+}
+@media (max-width: 600px) {
+    .custom-navbar {
+        padding: 0.2rem 0.2rem;
+    }
+    .custom-nav-link {
+        font-size: 0.93em;
+        padding: 0.4rem 0.5rem !important;
+    }
+    .custom-nav-list {
+        overflow-x: auto;
+    }
+}
+/* Delight: логотип анимируется при наведении */
+/* #logopng {
+    transition: transform 0.3s cubic-bezier(.68,-0.55,.27,1.55);
+}
+#logolink:hover #logopng {
+    transform: rotate(-8deg) scale(1.08);
+} */
