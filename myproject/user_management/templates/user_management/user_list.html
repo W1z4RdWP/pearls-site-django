@@ -12,6 +12,7 @@
 {% endblock %}
 
 {% block content %}
+<a href="{% url 'builder:dashboard' %}" class="btn btn-outline-primary mb-3">← Вернуться в панель управленияй</a>
 <div class="um-user-list-wrapper">
     <div class="um-user-list-header">
         <h1 class="um-user-list-title">Пользователи</h1>
@@ -24,8 +25,8 @@
     <table class="um-user-list-table">
         <thead>
             <tr>
+                <th>#</th>
                 <th>Имя пользователя</th>
-                <th>Имя</th>
                 <th>Дата рождения</th>
                 <th>Email</th>
                 <th>Группы</th>
@@ -35,6 +36,7 @@
         <tbody>
             {% for user in users %}
             <tr>
+                <td>{{ forloop.counter }}</td>
                 <td>
                     <div class="um-user-avatar-name">
                         <img src="{{ user.profile.image.url }}" alt="avatar" class="um-user-avatar">
@@ -44,7 +46,6 @@
                         </div>
                     </div>
                 </td>
-                <td>{{ user.first_name }}</td>
                 <td>{{ user.profile.date_of_birth|date:'d.m.Y' }}</td>
                 <td>{{ user.email }}</td>
                 <td>{% for group in user.groups.all %}{{ group.name }}{% if not forloop.last %}, {% endif %}{% endfor %}</td>
@@ -54,9 +55,40 @@
                 </td>
             </tr>
             {% empty %}
-            <tr><td colspan="4">Нет пользователей</td></tr>
+            <tr><td colspan="6">Нет пользователей</td></tr>
             {% endfor %}
         </tbody>
     </table>
+    {% if is_paginated %}
+    <nav aria-label="Page navigation" class="mt-4">
+        <ul class="pagination justify-content-center">
+            {% if page_obj.has_previous %}
+                <li class="page-item">
+                    <a class="page-link" href="?page=1{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}">Первая</a>
+                </li>
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}">Назад</a>
+                </li>
+            {% endif %}
+            {% for num in page_obj.paginator.page_range %}
+                {% if num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                    {% if page_obj.number == num %}
+                        <li class="page-item active"><span class="page-link">{{ num }}</span></li>
+                    {% else %}
+                        <li class="page-item"><a class="page-link" href="?page={{ num }}{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}">{{ num }}</a></li>
+                    {% endif %}
+                {% endif %}
+            {% endfor %}
+            {% if page_obj.has_next %}
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}">Вперед</a>
+                </li>
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}">Последняя</a>
+                </li>
+            {% endif %}
+        </ul>
+    </nav>
+    {% endif %}
 </div>
 {% endblock %}

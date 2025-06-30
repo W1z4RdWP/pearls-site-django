@@ -41,14 +41,14 @@
             <div class="um-progress-stat-card">
                 <h3>Завершенные курсы</h3>
                 <div class="um-progress-stat-value">{{ completed_courses }}</div>
-                <div class="um-progress-stat-desc">
-                    {% if total_courses > 0 %}
-                        {{ completed_courses|floatformat:0 }}% от общего числа
-                    {% else %}
-                        Нет курсов
-                    {% endif %}
+                    <div class="um-progress-stat-desc">
+                        {% if total_courses > 0 %}
+                            {% widthratio completed_courses total_courses 100 %}% от общего числа
+                        {% else %}
+                            Нет курсов
+                        {% endif %}
+                    </div>
                 </div>
-            </div>
             <div class="um-progress-stat-card">
                 <h3>Курсы в процессе</h3>
                 <div class="um-progress-stat-value">{{ started_courses }}</div>
