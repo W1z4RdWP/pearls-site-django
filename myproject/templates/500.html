@@ -1,0 +1,8 @@
+{% extends 'layout.html' %}
+{% block content %}
+<div class="alert alert-danger text-center">
+    <h1>Ошибка 500</h1>
+    <p>Не удалось определить изображение курса или возникла другая внутренняя ошибка сервера.</p>
+    <a href="{% url 'home' %}" class="btn btn-primary">На главную</a>
+</div>
+{% endblock %}

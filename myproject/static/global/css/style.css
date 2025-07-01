@@ -1484,6 +1484,7 @@ main > section > .text-block-2 {
   }
 
   .footer-tagline {
+    display: none; /* Скрываем теглайн для мобильных устройств */
     font-size: 0.95rem;
     margin-bottom: 8px;
   }

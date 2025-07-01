@@ -28,8 +28,16 @@ class UserRegisterForm(UserCreationForm):
         model = User
         fields = ['username', 'email', 'password1', 'password2']
 
-    
 
+class UserRegisterNoCaptchaForm(UserCreationForm):
+    """
+    Форма для регистрации пользователя без капчи (для дэшборда).
+    """
+    email = forms.EmailField()
+
+    class Meta:
+        model = User
+        fields = ['username', 'email', 'password1', 'password2']
 
 
 class UserUpdateForm(forms.ModelForm):
