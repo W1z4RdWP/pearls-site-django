@@ -6,9 +6,9 @@ from django.contrib.auth.decorators import login_required
 from django.utils.decorators import method_decorator
 from django.views.generic import ListView, CreateView, UpdateView, DeleteView, FormView
 from django.urls import reverse_lazy, reverse
-from .models import CategoryName, Document
+from .models import CategoryName, Document, Incident
 from django.core.exceptions import PermissionDenied
-from .forms import DocumentForm
+from .forms import DocumentForm, IncidentForm
 
 
 @method_decorator(login_required(login_url='/login/'), name='dispatch')
@@ -172,3 +172,23 @@ class DocumentListView(ListView, FormView):
         context = super().get_context_data(**kwargs)
         context['form'] = self.get_form()
         return context
+
+
+class IncidentListView(ListView):
+    """
+    Список инцидентов с фильтрацией и быстрым просмотром.
+    """
+    model = Incident
+    template_name = 'builder/incidents.html'
+    context_object_name = 'incidents'
+    ordering = ['-created_at']
+
+
+class IncidentCreateView(CreateView):
+    """
+    Создание инцидента (ручное или автоматическое).
+    """
+    model = Incident
+    form_class = IncidentForm
+    template_name = 'builder/incident_form.html'
+    success_url = '/builder/incidents/'
