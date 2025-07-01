@@ -8,14 +8,15 @@ class CourseForm(forms.ModelForm):
     captcha = CaptchaField()
     class Meta:
         model = Course
-        fields = ['title', 'description', 'image', 'slug', 'final_quiz']
+        fields = ['title', 'description', 'image', 'slug', 'final_quiz', 'allowed_groups']
         labels = {'slug': 'ЧПУ (оставьте пустым для автогенерации)'}
         required = {'slug': False}  # Поле slug не обязательно
         widgets = {
             'description': CKEditor5Widget(
                 attrs={'class': 'django_ckeditor_5'},
                 config_name='extends'
-            )
+            ),
+            'allowed_groups': forms.SelectMultiple(attrs={'class': 'form-select'}),
         }
 
     def clean_slug(self):

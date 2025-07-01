@@ -1,0 +1,35 @@
+{% extends 'layout.html' %}
+{% load static %}
+{% block specific_styles %}
+    <link rel="stylesheet" href="{% static 'user_management/css/user_form.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="user-form-wrapper">
+    <div class="user-form-header">
+        <a href="{% url 'user_management:user_list' %}" class="back-link">&larr; Назад</a>
+        <h1 class="form-title">Новый пользователь — шаг 1</h1>
+    </div>
+    <form method="post" class="user-form">
+        {% csrf_token %}
+        <div class="form-section">
+            <h2 class="section-title">Основные данные</h2>
+            {{ form.username.label_tag }}{{ form.username }}
+            {% if form.username.help_text %}<div class="um-help-text">{{ form.username.help_text }}</div>{% endif %}
+            {{ form.email.label_tag }}{{ form.email }}
+            {% if form.email.help_text %}<div class="um-help-text">{{ form.email.help_text }}</div>{% endif %}
+            {{ form.password1.label_tag }}{{ form.password1 }}
+            {% if form.password1.help_text %}<div class="um-help-text">{{ form.password1.help_text }}</div>{% else %}<div class="um-help-text">Минимум 8 символов, не слишком распространённый пароль</div>{% endif %}
+            {{ form.password2.label_tag }}{{ form.password2 }}
+            {% if form.password2.help_text %}<div class="um-help-text">{{ form.password2.help_text }}</div>{% endif %}
+            {% if form.errors %}
+                <div class="um-user-warning">{{ form.errors }}</div>
+            {% endif %}
+        </div>
+        <div class="form-actions">
+            <button type="submit" class="btn btn-primary">Продолжить</button>
+            <a href="{% url 'user_management:user_list' %}" class="btn btn-secondary">Отмена</a>
+        </div>
+    </form>
+</div>
+{% endblock %} 

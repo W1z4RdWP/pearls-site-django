@@ -1,4 +1,4 @@
-from django.shortcuts import render
+from django.shortcuts import render, redirect
 from django.views.generic import ListView, CreateView, UpdateView, DetailView
 from django.contrib.auth.models import User
 from django.db.models import Q, Count, Max
@@ -12,6 +12,7 @@ from django.core.paginator import Paginator, PageNotAnInteger, EmptyPage
 from django.utils.decorators import method_decorator
 from django.contrib.admin.views.decorators import staff_member_required
 from .forms import UserProfileForm
+from users.forms import UserRegisterNoCaptchaForm
 
 class UserListView(ListView):
     model = User
@@ -34,36 +35,46 @@ class UserListView(ListView):
                 Q(first_name__icontains=q) |
                 Q(last_name__icontains=q)
             )
+        approved = self.request.GET.get('approved')
+        if approved == '1':
+            queryset = queryset.filter(profile__is_approved=True)
+        elif approved == '0':
+            queryset = queryset.filter(profile__is_approved=False)
         return queryset
 
 
-class UserCreateView(CreateView):
-    model = User
-    template_name = 'user_management/user_form.html'
-    fields = ['username', 'email', 'first_name', 'last_name', 'groups', 'is_active']
-    success_url = reverse_lazy('user_management:user_list')
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        if self.request.POST:
-            context['profile_form'] = UserProfileForm(self.request.POST, self.request.FILES)
-        else:
-            context['profile_form'] = UserProfileForm()
-        return context
+class UserCreateStep1View(CreateView):
+    template_name = 'user_management/user_create_step1.html'
+    form_class = UserRegisterNoCaptchaForm
+    success_url = reverse_lazy('user_management:user_create_step2')
 
     def form_valid(self, form):
-        response = super().form_valid(form)
-        # Убеждаемся, что профиль существует
-        try:
-            profile = self.object.profile
-        except Profile.DoesNotExist:
-            # Если профиль не создался сигналом, создаем его вручную
-            profile = Profile.objects.create(user=self.object)
-        
-        profile_form = UserProfileForm(self.request.POST, self.request.FILES, instance=profile)
-        if profile_form.is_valid():
-            profile_form.save()
-        return response
+        user = form.save()
+        self.request.session['user_create_step1_user_id'] = user.id
+        return redirect(self.success_url)
+
+class UserCreateStep2View(CreateView):
+    template_name = 'user_management/user_create_step2.html'
+    form_class = UserProfileForm
+    success_url = reverse_lazy('user_management:user_list')
+
+    def dispatch(self, request, *args, **kwargs):
+        if 'user_create_step1_user_id' not in request.session:
+            return redirect('user_management:user_create_step1')
+        return super().dispatch(request, *args, **kwargs)
+
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        user_id = self.request.session.get('user_create_step1_user_id')
+        user = User.objects.get(id=user_id)
+        kwargs['instance'] = user.profile
+        kwargs['user_instance'] = user
+        return kwargs
+
+    def form_valid(self, form):
+        form.save()
+        del self.request.session['user_create_step1_user_id']
+        return redirect(self.success_url)
 
 def get_user_privilege_level(user):
     if user.is_superuser:
@@ -79,6 +90,8 @@ class UserUpdateView(UpdateView):
     success_url = reverse_lazy('user_management:user_list')
 
     def dispatch(self, request, *args, **kwargs):
+        if not request.user.is_authenticated or not (request.user.is_staff or request.user.is_superuser):
+            raise PermissionDenied("У вас нет доступа к управлению пользователями.")
         user_to_edit = self.get_object()
         if get_user_privilege_level(request.user) < get_user_privilege_level(user_to_edit):
             self.readonly = True

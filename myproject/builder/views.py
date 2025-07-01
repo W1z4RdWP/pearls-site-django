@@ -4,14 +4,21 @@ from courses.models import Course, Lesson
 from myapp.models import UserProgress
 from django.contrib.auth.decorators import login_required
 from django.utils.decorators import method_decorator
-from django.views.generic import ListView, CreateView, UpdateView, DeleteView
-from django.urls import reverse_lazy
-from .models import CategoryName
+from django.views.generic import ListView, CreateView, UpdateView, DeleteView, FormView
+from django.urls import reverse_lazy, reverse
+from .models import CategoryName, Document, Incident
+from django.core.exceptions import PermissionDenied
+from .forms import DocumentForm, IncidentForm
 
 
 @method_decorator(login_required(login_url='/login/'), name='dispatch')
 class LessonMasterDetailView(TemplateView):
     template_name = 'builder/master_detail.html'
+
+    def dispatch(self, request, *args, **kwargs):
+        if not request.user.is_authenticated or not (request.user.is_staff or request.user.is_superuser):
+            raise PermissionDenied("Доступ разрешён только для сотрудников или суперпользователей.")
+        return super().dispatch(request, *args, **kwargs)
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -44,6 +51,11 @@ class LessonCreateView(CreateView):
     template_name = 'builder/lesson_form.html'
     success_url = reverse_lazy('builder:lesson_master')
 
+    def dispatch(self, request, *args, **kwargs):
+        if not request.user.is_authenticated or not (request.user.is_staff or request.user.is_superuser):
+            raise PermissionDenied("Доступ разрешён только для сотрудников или суперпользователей.")
+        return super().dispatch(request, *args, **kwargs)
+
     def get_initial(self):
         initial = super().get_initial()
         category_id = self.kwargs.get('category_id')
@@ -66,10 +78,20 @@ class LessonUpdateView(UpdateView):
     template_name = 'builder/lesson_form.html'
     success_url = reverse_lazy('builder:lesson_master')
 
+    def dispatch(self, request, *args, **kwargs):
+        if not request.user.is_authenticated or not (request.user.is_staff or request.user.is_superuser):
+            raise PermissionDenied("Доступ разрешён только для сотрудников или суперпользователей.")
+        return super().dispatch(request, *args, **kwargs)
+
 
 class LessonDeleteView(DeleteView):
     model = Lesson
     success_url = reverse_lazy('builder:lesson_master')
+
+    def dispatch(self, request, *args, **kwargs):
+        if not request.user.is_authenticated or not (request.user.is_staff or request.user.is_superuser):
+            raise PermissionDenied("Доступ разрешён только для сотрудников или суперпользователей.")
+        return super().dispatch(request, *args, **kwargs)
 
 
 class CategoryListView(ListView):
@@ -77,11 +99,23 @@ class CategoryListView(ListView):
     template_name = 'builder/category_list.html'
     context_object_name = 'categories'
 
+    def dispatch(self, request, *args, **kwargs):
+        if not request.user.is_authenticated or not (request.user.is_staff or request.user.is_superuser):
+            raise PermissionDenied("Доступ разрешён только для сотрудников или суперпользователей.")
+        return super().dispatch(request, *args, **kwargs)
+
+
 class CategoryCreateView(CreateView):
     model = CategoryName
     fields = ['name', 'parent', 'order']
     template_name = 'builder/category_form.html'
     success_url = reverse_lazy('builder:lesson_master')
+
+    def dispatch(self, request, *args, **kwargs):
+        if not request.user.is_authenticated or not (request.user.is_staff or request.user.is_superuser):
+            raise PermissionDenied("Доступ разрешён только для сотрудников или суперпользователей.")
+        return super().dispatch(request, *args, **kwargs)
+
 
 class CategoryUpdateView(UpdateView):
     model = CategoryName
@@ -89,15 +123,72 @@ class CategoryUpdateView(UpdateView):
     template_name = 'builder/category_form.html'
     success_url = reverse_lazy('builder:lesson_master')
 
+    def dispatch(self, request, *args, **kwargs):
+        if not request.user.is_authenticated or not (request.user.is_staff or request.user.is_superuser):
+            raise PermissionDenied("Доступ разрешён только для сотрудников или суперпользователей.")
+        return super().dispatch(request, *args, **kwargs)
+
+
 class CategoryDeleteView(DeleteView):
     model = CategoryName
     template_name = 'builder/category_confirm_delete.html'
     success_url = reverse_lazy('builder:lesson_master')
 
+    def dispatch(self, request, *args, **kwargs):
+        if not request.user.is_authenticated or not (request.user.is_staff or request.user.is_superuser):
+            raise PermissionDenied("Доступ разрешён только для сотрудников или суперпользователей.")
+        return super().dispatch(request, *args, **kwargs)
+
+
 class DashboardView(TemplateView):
     template_name = 'builder/dashboard.html'
+    
+    def dispatch(self, request, *args, **kwargs):
+        if not request.user.is_authenticated or not (request.user.is_staff or request.user.is_superuser):
+            raise PermissionDenied("Доступ разрешён только для сотрудников или суперпользователей.")
+        return super().dispatch(request, *args, **kwargs)
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         # Можно добавить статистику по базе знаний, если потребуется
         return context
+
+
+class DocumentListView(ListView, FormView):
+    """
+    Страница для просмотра и загрузки документов в базу знаний.
+    """
+    model = Document
+    template_name = 'builder/documents.html'
+    context_object_name = 'documents'
+    form_class = DocumentForm
+    success_url = '/builder/documents/'
+
+    def form_valid(self, form):
+        form.save()
+        return super().form_valid(form)
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['form'] = self.get_form()
+        return context
+
+
+class IncidentListView(ListView):
+    """
+    Список инцидентов с фильтрацией и быстрым просмотром.
+    """
+    model = Incident
+    template_name = 'builder/incidents.html'
+    context_object_name = 'incidents'
+    ordering = ['-created_at']
+
+
+class IncidentCreateView(CreateView):
+    """
+    Создание инцидента (ручное или автоматическое).
+    """
+    model = Incident
+    form_class = IncidentForm
+    template_name = 'builder/incident_form.html'
+    success_url = '/builder/incidents/'

@@ -42,6 +42,8 @@
     border-bottom: 1px solid #e5e7eb;
     text-align: left;
     font-size: 1rem;
+    overflow: hidden;
+    max-width: 250px;
 }
 .um-user-list-table th {
     background: #f3f4f6;
@@ -94,6 +96,25 @@
 .um-user-email {
     color: #888;
     font-size: 0.95em;
+}
+.um-status {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-weight: 500;
+    border-radius: 5px;
+    padding: 2px 10px;
+    font-size: 0.98em;
+}
+.um-status-approved {
+    background: #e6fbe6;
+    color: #15803d;
+    border: 1px solid #bbf7d0;
+}
+.um-status-unapproved {
+    background: #f3f4f6;
+    color: #888;
+    border: 1px solid #e5e7eb;
 }
 @media (max-width: 600px) {
     .um-user-list-wrapper {

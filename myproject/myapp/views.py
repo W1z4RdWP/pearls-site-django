@@ -43,6 +43,9 @@ def permission_denied_view(request, exception=None):
 def method_not_allowed_view(request, exception=None):
     return render(request, '405.html', status=405)
 
+def custom_error_500(request):
+    return render(request, '500.html', status=500)
+
 class ChangelogListView(ListView):
     model = ChangeLog
     paginate_by = 5
