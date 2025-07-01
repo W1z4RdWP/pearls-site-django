@@ -4,10 +4,11 @@ from courses.models import Course, Lesson
 from myapp.models import UserProgress
 from django.contrib.auth.decorators import login_required
 from django.utils.decorators import method_decorator
-from django.views.generic import ListView, CreateView, UpdateView, DeleteView
-from django.urls import reverse_lazy
-from .models import CategoryName
+from django.views.generic import ListView, CreateView, UpdateView, DeleteView, FormView
+from django.urls import reverse_lazy, reverse
+from .models import CategoryName, Document
 from django.core.exceptions import PermissionDenied
+from .forms import DocumentForm
 
 
 @method_decorator(login_required(login_url='/login/'), name='dispatch')
@@ -150,4 +151,24 @@ class DashboardView(TemplateView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         # Можно добавить статистику по базе знаний, если потребуется
+        return context
+
+
+class DocumentListView(ListView, FormView):
+    """
+    Страница для просмотра и загрузки документов в базу знаний.
+    """
+    model = Document
+    template_name = 'builder/documents.html'
+    context_object_name = 'documents'
+    form_class = DocumentForm
+    success_url = '/builder/documents/'
+
+    def form_valid(self, form):
+        form.save()
+        return super().form_valid(form)
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['form'] = self.get_form()
         return context

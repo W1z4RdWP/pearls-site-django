@@ -25,3 +25,14 @@ class CategoryName(models.Model):
             full_path.append(k.name)
             k = k.parent
         return ' / '.join(full_path[::-1])
+
+class Document(models.Model):
+    """
+    Документ для базы знаний. Может быть привязан к уроку или использоваться отдельно.
+    """
+    title = models.CharField(max_length=255, verbose_name='Название документа')
+    file = models.FileField(upload_to='documents/', verbose_name='Файл')
+    uploaded_at = models.DateTimeField(auto_now_add=True, verbose_name='Загружен')
+
+    def __str__(self) -> str:
+        return self.title
