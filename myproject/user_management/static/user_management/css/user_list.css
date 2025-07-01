@@ -42,6 +42,8 @@
     border-bottom: 1px solid #e5e7eb;
     text-align: left;
     font-size: 1rem;
+    overflow: hidden;
+    max-width: 250px;
 }
 .um-user-list-table th {
     background: #f3f4f6;

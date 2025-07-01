@@ -22,7 +22,6 @@
             {% if form.password1.help_text %}<div class="um-help-text">{{ form.password1.help_text }}</div>{% else %}<div class="um-help-text">Минимум 8 символов, не слишком распространённый пароль</div>{% endif %}
             {{ form.password2.label_tag }}{{ form.password2 }}
             {% if form.password2.help_text %}<div class="um-help-text">{{ form.password2.help_text }}</div>{% endif %}
-            {{ form.captcha.label_tag }}{{ form.captcha }}
             {% if form.errors %}
                 <div class="um-user-warning">{{ form.errors }}</div>
             {% endif %}
