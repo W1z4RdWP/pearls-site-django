@@ -14,6 +14,12 @@
             <a href="{% url 'builder:lesson_master' %}" class="list-group-item list-group-item-action {% if request.resolver_match.url_name == 'lesson_master' %}active{% endif %}">
                 <i class="fas fa-book"></i> Содержание
             </a>
+            <a href="{% url 'builder:documents' %}" class="list-group-item list-group-item-action {% if request.resolver_match.url_name == 'documents' %}active{% endif %}">
+                <i class="fas fa-file-alt"></i> Документы
+            </a>
+            <a href="{% url 'builder:incidents' %}" class="list-group-item list-group-item-action {% if request.resolver_match.url_name == 'incidents' %}active{% endif %}">
+                <i class="fas fa-exclamation-triangle"></i> Инциденты
+            </a>
         </div>
     </div>
     <div class="col-md-9">

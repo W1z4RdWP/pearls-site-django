@@ -1,4 +1,6 @@
 from django.urls import path
+from django.http import HttpResponseRedirect
+from django.urls import reverse
 
 from . import views
 from .views import DashboardView
@@ -6,7 +8,7 @@ from .views import DashboardView
 app_name = 'builder'
 
 urlpatterns = [
-    path('', DashboardView.as_view(), name='dashboard'),
+    path('', lambda request: HttpResponseRedirect(reverse('builder:lesson_master')) if not (request.user.is_authenticated and (request.user.is_staff or request.user.is_superuser)) else DashboardView.as_view()(request), name='dashboard'),
     path('content/', views.LessonMasterDetailView.as_view(), name='lesson_master'),
     path('lesson/<int:pk>/', views.LessonMasterDetailView.as_view(), name='lesson_detail'),
     path('lesson/<int:pk>/delete/', views.LessonDeleteView.as_view(), name='lesson_delete'),
@@ -17,4 +19,7 @@ urlpatterns = [
     path('categories/add/', views.CategoryCreateView.as_view(), name='category_add'),
     path('categories/<int:pk>/edit/', views.CategoryUpdateView.as_view(), name='category_edit'),
     path('categories/<int:pk>/delete/', views.CategoryDeleteView.as_view(), name='category_delete'),
+    path('documents/', views.DocumentListView.as_view(), name='documents'),
+    path('incidents/', views.IncidentListView.as_view(), name='incidents'),
+    path('incidents/add/', views.IncidentCreateView.as_view(), name='incident_add'),
 ]

@@ -12,7 +12,7 @@ from django.core.paginator import Paginator, PageNotAnInteger, EmptyPage
 from django.utils.decorators import method_decorator
 from django.contrib.admin.views.decorators import staff_member_required
 from .forms import UserProfileForm
-from users.forms import UserRegisterForm
+from users.forms import UserRegisterNoCaptchaForm
 
 class UserListView(ListView):
     model = User
@@ -45,7 +45,7 @@ class UserListView(ListView):
 
 class UserCreateStep1View(CreateView):
     template_name = 'user_management/user_create_step1.html'
-    form_class = UserRegisterForm
+    form_class = UserRegisterNoCaptchaForm
     success_url = reverse_lazy('user_management:user_create_step2')
 
     def form_valid(self, form):
@@ -63,13 +63,16 @@ class UserCreateStep2View(CreateView):
             return redirect('user_management:user_create_step1')
         return super().dispatch(request, *args, **kwargs)
 
-    def form_valid(self, form):
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
         user_id = self.request.session.get('user_create_step1_user_id')
         user = User.objects.get(id=user_id)
-        profile = user.profile
-        for field, value in form.cleaned_data.items():
-            setattr(profile, field, value)
-        profile.save()
+        kwargs['instance'] = user.profile
+        kwargs['user_instance'] = user
+        return kwargs
+
+    def form_valid(self, form):
+        form.save()
         del self.request.session['user_create_step1_user_id']
         return redirect(self.success_url)
 

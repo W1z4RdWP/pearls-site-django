@@ -14,6 +14,8 @@
         {% csrf_token %}
         <div class="form-section">
             <h2 class="section-title">Профиль пользователя</h2>
+            {{ form.first_name.label_tag }}{{ form.first_name }}
+            {{ form.last_name.label_tag }}{{ form.last_name }}
             {{ form.middle_name.label_tag }}{{ form.middle_name }}
             {{ form.date_of_birth.label_tag }}{{ form.date_of_birth }}
             {{ form.phone_number.label_tag }}{{ form.phone_number }}
