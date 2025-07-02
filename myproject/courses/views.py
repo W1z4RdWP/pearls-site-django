@@ -13,7 +13,6 @@ from myapp.views import is_admin, is_author_or_admin
 import logging
 from builder.models import CategoryName
 from django.contrib.auth import get_user_model
-from django.core.exceptions import PermissionDenied
 
 logger = logging.getLogger(__name__)
 audit_logger = logging.getLogger('audit')
@@ -23,12 +22,6 @@ class CourseDetailView(DetailView):
     slug_url_kwarg = 'slug'
     template_name = 'courses/course_detail.html'
     context_object_name = 'course'
-
-    def dispatch(self, request, *args, **kwargs):
-        if not request.user.is_authenticated or not (request.user.is_staff or request.user.is_superuser):
-            raise PermissionDenied
-        return super().dispatch(request, *args, **kwargs)
-
 
     def get(self, request, *args, **kwargs):
         self.object = self.get_object()
