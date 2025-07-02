@@ -8,14 +8,16 @@
 {% endblock %}
 
 {% block content %}
+{% if not is_readonly %}
 <a href="{% url 'builder:dashboard' %}" class="btn btn-outline-primary mb-3">← Вернуться в панель управления</a>
+{% endif %}
 <div class="container">
     <div class="master-detail-container">
         <div class="sidebar">
             <h3>Категории</h3>
             <ul class="category-list">
                 {% for category in categories %}
-                    {% include "builder/category_tree.html" with category=category selected_lesson=selected_lesson %}
+                    {% include "builder/category_tree.html" with category=category selected_lesson=selected_lesson is_readonly=is_readonly %}
                 {% endfor %}
             </ul>
             {% if uncategorized_lessons %}
@@ -27,6 +29,7 @@
                                class="lesson-link {% if selected_lesson and lesson.id == selected_lesson.id %}active{% endif %}">
                                 {{ lesson.title }}
                             </a>
+                            {% if not is_readonly %}
                             <div class="lesson-actions">
                                 <a href="{% url 'builder:lesson_edit' lesson.id %}" title="Редактировать урок">✍</a>
                                 <form method="post" action="{% url 'builder:lesson_delete' lesson.id %}">
@@ -38,13 +41,16 @@
                                     </button>
                                 </form>
                             </div>
+                            {% endif %}
                         </li>
                     {% endfor %}
                 </ul>
             {% endif %}
             <div class="sidebar-buttons">
+                {% if not is_readonly %}
                 <a href="{% url 'builder:category_add' %}" class="btn btn-primary add-lesson-btn">Добавить категорию</a>
                 <a href="{% url 'builder:lesson_add' %}" class="btn btn-success add-lesson-btn">Добавить урок</a>
+                {% endif %}
             </div>
         </div>
         <div class="detail">
