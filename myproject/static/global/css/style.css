@@ -1246,9 +1246,10 @@ main > section > .text-block-2 {
     }
 
     section:first-child{
-        height: 20%;
+        height: 50%;
         width: 95vw;
-        
+        font-size: smaller;
+        margin-bottom: 10%;
     }
 
     section:nth-child(2){
@@ -1762,6 +1763,7 @@ main > section > .text-block-2 {
         font-size: 0.98em;
         padding: 0.5rem 0.7rem !important;
     }
+    
 }
 @media (max-width: 600px) {
     .custom-navbar {
