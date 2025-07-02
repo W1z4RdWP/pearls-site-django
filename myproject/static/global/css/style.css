@@ -2,7 +2,7 @@
     --btn-width-at-lesson-detail: 140px;
     --btn-height-at-lesson-detail: 45px;
     --primary-color: #333;
-    --secondary-color: #4CAF50;
+    --secondary-color: #5473B5;
     --text-color: whitesmoke;
     --primary-font: "Onest", sans-serif;
 }
@@ -1782,3 +1782,64 @@ main > section > .text-block-2 {
 #logolink:hover #logopng {
     transform: rotate(-8deg) scale(1.08);
 } */
+
+/* --- HERO LANDING (Skillbox style, адаптация под палитру сайта) --- */
+.hero-landing {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  background: linear-gradient(280deg, rgba(51,51,51,0.97) 60%, rgba(76, 175, 170, 0.1) 100%);
+  border-radius: 24px;
+  padding: 48px 32px;
+  margin-bottom: 32px;
+  color: var(--text-color);
+}
+.hero-landing__left { flex: 1 1 320px; min-width: 300px; }
+.hero-landing__right { flex: 1 1 420px; min-width: 320px; display: flex; justify-content: center; }
+.hero-landing__stats { display: flex; gap: 32px; margin: 24px 0; }
+.hero-landing__stat-num { font-size: 2.2rem; font-weight: bold; color: var(--secondary-color); }
+.hero-landing__stat-label { display: block; font-size: 1rem; color: #bdbdbd; }
+.hero-landing__categories { display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 24px; }
+.hero-landing__categories button {
+  background: #232323; border: none; border-radius: 20px; padding: 8px 20px; font-size: 1rem; color: var(--text-color); cursor: pointer; transition: background 0.2s, color 0.2s;
+}
+.hero-landing__categories button:hover { background: var(--secondary-color); color: #fff; }
+.hero-landing__cta {
+  display: inline-block; margin-top: 12px; background: var(--secondary-color); color: #fff; padding: 10px 28px; border-radius: 24px; text-decoration: none; font-weight: 500; transition: background 0.2s;
+}
+.hero-landing__cta:hover { background: #2dabc4; }
+.hero-landing__faces {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 24px 32px;
+  justify-content: flex-end;
+  align-items: flex-end;
+  max-width: 420px;
+}
+.hero-face-block {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+.hero-face {
+  width: 110px;
+  height: 110px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 3px solid var(--secondary-color);
+  box-shadow: 0 2px 12px rgba(0,0,0,0.10);
+  background: #222;
+}
+.hero-face-label {
+  font-size: 0.95rem;
+  color: #bdbdbd;
+  text-align: center;
+}
+.hero-emoji { font-size: 3.2rem; }
+@media (max-width: 900px) {
+  .hero-landing { flex-direction: column; padding: 32px 12px; }
+  .hero-landing__right, .hero-landing__left { min-width: unset; width: 100%; }
+  .hero-landing__faces { justify-content: center; }
+}
