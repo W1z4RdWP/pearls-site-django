@@ -16,7 +16,8 @@ class LessonMasterDetailView(TemplateView):
     template_name = 'builder/master_detail.html'
 
     def dispatch(self, request, *args, **kwargs):
-        if not request.user.is_authenticated or not (request.user.is_staff or request.user.is_superuser):
+        # Разрешаем просмотр всем аутентифицированным, но только staff/superuser могут редактировать
+        if not request.user.is_authenticated:
             return render(request, '403.html', status=403)
         return super().dispatch(request, *args, **kwargs)
 
@@ -42,6 +43,9 @@ class LessonMasterDetailView(TemplateView):
             if not first_lesson and uncategorized_lessons.exists():
                 first_lesson = uncategorized_lessons.first()
             context['selected_lesson'] = first_lesson
+        # Добавляем флаг только для чтения
+        user = self.request.user
+        context['is_readonly'] = not (user.is_staff or user.is_superuser)
         return context
 
 
@@ -144,6 +148,7 @@ class DashboardView(TemplateView):
     template_name = 'builder/dashboard.html'
     
     def dispatch(self, request, *args, **kwargs):
+        # Только staff/superuser
         if not request.user.is_authenticated or not (request.user.is_staff or request.user.is_superuser):
             return render(request, '403.html', status=403)
         return super().dispatch(request, *args, **kwargs)
@@ -166,6 +171,7 @@ class DocumentListView(ListView, FormView):
     success_url = '/builder/documents/'
 
     def dispatch(self, request, *args, **kwargs):
+        # Только staff/superuser
         if not request.user.is_authenticated or not (request.user.is_staff or request.user.is_superuser):
             return render(request, '403.html', status=403)
         return super().dispatch(request, *args, **kwargs)
@@ -189,6 +195,7 @@ class IncidentListView(ListView):
     context_object_name = 'incidents'
     ordering = ['-created_at']
     def dispatch(self, request, *args, **kwargs):
+        # Только staff/superuser
         if not request.user.is_authenticated or not (request.user.is_staff or request.user.is_superuser):
             return render(request, '403.html', status=403)
         return super().dispatch(request, *args, **kwargs)
