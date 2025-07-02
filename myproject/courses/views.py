@@ -3,7 +3,7 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.db.models import Max
 from django.views.generic import DetailView, ListView
 from django.contrib.auth.models import User
-from django.db import transaction
+from django.db import transaction, models
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.views.decorators.http import require_POST, require_http_methods
 from .forms import CourseForm, LessonForm
@@ -12,6 +12,8 @@ from myapp.models import UserProgress, UserCourse, QuizResult
 from myapp.views import is_admin, is_author_or_admin
 import logging
 from builder.models import CategoryName
+from django.contrib.auth import get_user_model
+from django.core.exceptions import PermissionDenied
 
 logger = logging.getLogger(__name__)
 audit_logger = logging.getLogger('audit')
@@ -21,6 +23,12 @@ class CourseDetailView(DetailView):
     slug_url_kwarg = 'slug'
     template_name = 'courses/course_detail.html'
     context_object_name = 'course'
+
+    def dispatch(self, request, *args, **kwargs):
+        if not request.user.is_authenticated or not (request.user.is_staff or request.user.is_superuser):
+            raise PermissionDenied
+        return super().dispatch(request, *args, **kwargs)
+
 
     def get(self, request, *args, **kwargs):
         self.object = self.get_object()
@@ -222,24 +230,25 @@ class CourseListView(ListView):
         context = super().get_context_data(**kwargs)
         available_courses = []
         completed_courses_list = []
-
-        if self.request.user.is_authenticated:
-            # Получаем объекты UserCourse для пользователя
-            user_courses = UserCourse.objects.filter(
-                user=self.request.user
-            ).select_related('course')
-
-            # Разделяем курсы по статусу
-            available_courses = [
-                uc.course for uc in user_courses 
-                if uc.status in ['available', 'started']
-            ]
-            
-            completed_courses_list = [
-                uc.course for uc in user_courses 
-                if uc.status == 'completed'
-            ]
-
+        user = self.request.user
+        if user.is_authenticated:
+            if user.is_staff or user.is_superuser:
+                # staff/superuser видят все курсы как доступные
+                all_courses = Course.objects.all()
+                available_courses = list(all_courses)
+                completed_courses_list = [uc.course for uc in UserCourse.objects.filter(user=user, status='completed')]
+                # Исключаем завершённые из доступных
+                available_courses = [c for c in available_courses if c not in completed_courses_list]
+            else:
+                user_courses = UserCourse.objects.filter(user=user).select_related('course')
+                available_courses = [
+                    uc.course for uc in user_courses 
+                    if uc.status in ['available', 'started']
+                ]
+                completed_courses_list = [
+                    uc.course for uc in user_courses 
+                    if uc.status == 'completed'
+                ]
         context.update({
             'available_courses': available_courses,
             'completed_courses_list': completed_courses_list,
@@ -302,6 +311,14 @@ def create_course(request):
             course = form.save(commit=False)
             course.author = request.user
             course.save()
+            form.save_m2m()
+            # --- назначаем курс всем staff/superuser ---
+            User = get_user_model()
+            staff_users = User.objects.filter(is_active=True).filter(models.Q(is_staff=True) | models.Q(is_superuser=True)).distinct()
+            from myapp.models import UserCourse
+            for user in staff_users:
+                UserCourse.objects.get_or_create(user=user, course=course, defaults={'status': 'available'})
+            # ---
             return redirect('home')
     else:
         form = CourseForm()

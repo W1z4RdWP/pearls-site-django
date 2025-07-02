@@ -1,6 +1,7 @@
 <li class="category-block" data-id="{{ category.id }}">
     <div class="category-header">
         <span class="category-title">{{ category.order }}. {{ category.name }}</span>
+        {% if not is_readonly %}
         <div class="category-actions">
             <a href="{% url 'builder:lesson_add_with_category' category.id %}"
                title="Добавить запись в категорию">
@@ -16,6 +17,7 @@
                 &times;
             </a>
         </div>
+        {% endif %}
         {% if category.subcategories.all or category.lessons.all %}
             <span class="toggle-arrow" onclick="toggleSubcat(this.parentElement)">&#9654;</span>
         {% endif %}
@@ -29,6 +31,7 @@
                        class="lesson-link {% if selected_lesson and lesson.id == selected_lesson.id %}active{% endif %}">
                         {{ lesson.title }}
                     </a>
+                    {% if not is_readonly %}
                     <div class="lesson-actions">
                         <a href="{% url 'builder:lesson_edit' lesson.id %}" title="Редактировать урок">✍</a>
                         <form method="post" action="{% url 'builder:lesson_delete' lesson.id %}">
@@ -40,6 +43,7 @@
                             </button>
                         </form>
                     </div>
+                    {% endif %}
                 </li>
             {% endfor %}
         </ul>
@@ -48,7 +52,7 @@
     {% if category.subcategories.all %}
         <ul class="subcategory-list" style="display: none;">
             {% for subcat in category.subcategories.all %}
-                {% include "builder/category_tree.html" with category=subcat selected_lesson=selected_lesson %}
+                {% include "builder/category_tree.html" with category=subcat selected_lesson=selected_lesson is_readonly=is_readonly %}
             {% endfor %}
         </ul>
     {% endif %}

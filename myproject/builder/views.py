@@ -16,8 +16,9 @@ class LessonMasterDetailView(TemplateView):
     template_name = 'builder/master_detail.html'
 
     def dispatch(self, request, *args, **kwargs):
-        if not request.user.is_authenticated or not (request.user.is_staff or request.user.is_superuser):
-            return render(request, '403.html', status=403)
+        # Разрешаем просмотр всем аутентифицированным, но только staff/superuser могут редактировать
+        if not request.user.is_authenticated:
+            raise PermissionDenied
         return super().dispatch(request, *args, **kwargs)
 
     def get_context_data(self, **kwargs):
@@ -42,6 +43,9 @@ class LessonMasterDetailView(TemplateView):
             if not first_lesson and uncategorized_lessons.exists():
                 first_lesson = uncategorized_lessons.first()
             context['selected_lesson'] = first_lesson
+        # Добавляем флаг только для чтения
+        user = self.request.user
+        context['is_readonly'] = not (user.is_staff or user.is_superuser)
         return context
 
 
@@ -53,7 +57,7 @@ class LessonCreateView(CreateView):
 
     def dispatch(self, request, *args, **kwargs):
         if not request.user.is_authenticated or not (request.user.is_staff or request.user.is_superuser):
-            return render(request, '403.html', status=403)
+            raise PermissionDenied
         return super().dispatch(request, *args, **kwargs)
 
     def get_initial(self):
@@ -80,7 +84,7 @@ class LessonUpdateView(UpdateView):
 
     def dispatch(self, request, *args, **kwargs):
         if not request.user.is_authenticated or not (request.user.is_staff or request.user.is_superuser):
-            return render(request, '403.html', status=403)
+            raise PermissionDenied
         return super().dispatch(request, *args, **kwargs)
 
 
@@ -90,7 +94,7 @@ class LessonDeleteView(DeleteView):
 
     def dispatch(self, request, *args, **kwargs):
         if not request.user.is_authenticated or not (request.user.is_staff or request.user.is_superuser):
-            return render(request, '403.html', status=403)
+            raise PermissionDenied
         return super().dispatch(request, *args, **kwargs)
 
 
@@ -101,7 +105,7 @@ class CategoryListView(ListView):
 
     def dispatch(self, request, *args, **kwargs):
         if not request.user.is_authenticated or not (request.user.is_staff or request.user.is_superuser):
-            return render(request, '403.html', status=403)
+            raise PermissionDenied
         return super().dispatch(request, *args, **kwargs)
 
 
@@ -113,7 +117,7 @@ class CategoryCreateView(CreateView):
 
     def dispatch(self, request, *args, **kwargs):
         if not request.user.is_authenticated or not (request.user.is_staff or request.user.is_superuser):
-            return render(request, '403.html', status=403)
+            raise PermissionDenied
         return super().dispatch(request, *args, **kwargs)
 
 
@@ -125,7 +129,7 @@ class CategoryUpdateView(UpdateView):
 
     def dispatch(self, request, *args, **kwargs):
         if not request.user.is_authenticated or not (request.user.is_staff or request.user.is_superuser):
-            return render(request, '403.html', status=403)
+            raise PermissionDenied
         return super().dispatch(request, *args, **kwargs)
 
 
@@ -136,7 +140,7 @@ class CategoryDeleteView(DeleteView):
 
     def dispatch(self, request, *args, **kwargs):
         if not request.user.is_authenticated or not (request.user.is_staff or request.user.is_superuser):
-            return render(request, '403.html', status=403)
+            raise PermissionDenied
         return super().dispatch(request, *args, **kwargs)
 
 
@@ -144,8 +148,9 @@ class DashboardView(TemplateView):
     template_name = 'builder/dashboard.html'
     
     def dispatch(self, request, *args, **kwargs):
+        # Только staff/superuser
         if not request.user.is_authenticated or not (request.user.is_staff or request.user.is_superuser):
-            return render(request, '403.html', status=403)
+            raise PermissionDenied
         return super().dispatch(request, *args, **kwargs)
     
     def get_context_data(self, **kwargs):
@@ -166,8 +171,9 @@ class DocumentListView(ListView, FormView):
     success_url = '/builder/documents/'
 
     def dispatch(self, request, *args, **kwargs):
+        # Только staff/superuser
         if not request.user.is_authenticated or not (request.user.is_staff or request.user.is_superuser):
-            return render(request, '403.html', status=403)
+            raise PermissionDenied
         return super().dispatch(request, *args, **kwargs)
 
     def form_valid(self, form):
@@ -189,8 +195,9 @@ class IncidentListView(ListView):
     context_object_name = 'incidents'
     ordering = ['-created_at']
     def dispatch(self, request, *args, **kwargs):
+        # Только staff/superuser
         if not request.user.is_authenticated or not (request.user.is_staff or request.user.is_superuser):
-            return render(request, '403.html', status=403)
+            raise PermissionDenied
         return super().dispatch(request, *args, **kwargs)
 
 class IncidentCreateView(CreateView):
@@ -199,7 +206,7 @@ class IncidentCreateView(CreateView):
     """
     def dispatch(self, request, *args, **kwargs):
         if not request.user.is_authenticated or not (request.user.is_staff or request.user.is_superuser):
-            return render(request, '403.html', status=403)
+            raise PermissionDenied
         return super().dispatch(request, *args, **kwargs)
     model = Incident
     form_class = IncidentForm
