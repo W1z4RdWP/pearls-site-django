@@ -49,35 +49,61 @@ function toggleSubcat(header) {
 // Восстанавливаем состояния при загрузке страницы
 document.addEventListener('DOMContentLoaded', restoreCategoryStates);
 
-// --- Перемещение боковой панели ---
 document.addEventListener('DOMContentLoaded', function() {
     const sidebar = document.getElementById('sidebar');
-    const resizer = document.getElementById('sidebar-resizer');
-    let isResizing = false;
+    const detail = document.getElementById('detail');
+    const toggleBtn = document.getElementById('toggle-sidebar-btn');
+    const masterDetail = document.querySelector('.master-detail-container');
 
-    if (!sidebar || !resizer) return;
+    function isMobile() {
+        return window.innerWidth <= 900;
+    }
 
-    resizer.addEventListener('mousedown', function(e) {
-        isResizing = true;
-        document.body.style.cursor = 'ew-resize';
-        document.body.style.userSelect = 'none'; // Отключаем выделение текста
-        e.preventDefault();
-    });
-
-    document.addEventListener('mousemove', function(e) {
-        if (!isResizing) return;
-        let newWidth = e.clientX - sidebar.getBoundingClientRect().left;
-        newWidth = Math.max(180, Math.min(600, newWidth));
-        sidebar.style.width = newWidth + 'px';
-        e.preventDefault();
-    });
-
-    document.addEventListener('mouseup', function() {
-        if (isResizing) {
-            isResizing = false;
-            document.body.style.cursor = '';
-            document.body.style.userSelect = ''; // Включаем обратно выделение текста
-
+    function setToggleBtnInDetail(show) {
+        if (!detail || !toggleBtn) return;
+        if (show) {
+            detail.insertBefore(toggleBtn, detail.firstChild);
+            toggleBtn.classList.add('sidebar-toggle-floating');
+        } else {
+            sidebar.insertBefore(toggleBtn, sidebar.firstChild);
+            toggleBtn.classList.remove('sidebar-toggle-floating');
         }
-    });
+    }
+
+    if (toggleBtn && sidebar && detail && masterDetail) {
+        toggleBtn.addEventListener('click', function() {
+            if (isMobile()) {
+                if (!masterDetail.classList.contains('sidebar-hidden')) {
+                    masterDetail.classList.add('sidebar-hidden');
+                    toggleBtn.innerHTML = '<span id="toggle-sidebar-icon">⮞</span> Показать меню';
+                    setToggleBtnInDetail(true);
+                } else {
+                    masterDetail.classList.remove('sidebar-hidden');
+                    toggleBtn.innerHTML = '<span id="toggle-sidebar-icon">⮜</span> Скрыть меню';
+                    setToggleBtnInDetail(false);
+                }
+            } else {
+                if (!masterDetail.classList.contains('sidebar-collapsed')) {
+                    masterDetail.classList.add('sidebar-collapsed');
+                    toggleBtn.innerHTML = '<span id="toggle-sidebar-icon">⮞</span> >';
+                } else {
+                    masterDetail.classList.remove('sidebar-collapsed');
+                    toggleBtn.innerHTML = '<span id="toggle-sidebar-icon">⮜</span> <';
+                }
+            }
+        });
+
+        // При изменении размера окна возвращаем кнопку на место
+        window.addEventListener('resize', function() {
+            if (isMobile()) {
+                if (masterDetail.classList.contains('sidebar-hidden')) {
+                    setToggleBtnInDetail(true);
+                } else {
+                    setToggleBtnInDetail(false);
+                }
+            } else {
+                setToggleBtnInDetail(false);
+            }
+        });
+    }
 });
