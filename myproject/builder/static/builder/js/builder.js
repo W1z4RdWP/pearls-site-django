@@ -48,3 +48,36 @@ function toggleSubcat(header) {
 
 // Восстанавливаем состояния при загрузке страницы
 document.addEventListener('DOMContentLoaded', restoreCategoryStates);
+
+// --- Перемещение боковой панели ---
+document.addEventListener('DOMContentLoaded', function() {
+    const sidebar = document.getElementById('sidebar');
+    const resizer = document.getElementById('sidebar-resizer');
+    let isResizing = false;
+
+    if (!sidebar || !resizer) return;
+
+    resizer.addEventListener('mousedown', function(e) {
+        isResizing = true;
+        document.body.style.cursor = 'ew-resize';
+        document.body.style.userSelect = 'none'; // Отключаем выделение текста
+        e.preventDefault();
+    });
+
+    document.addEventListener('mousemove', function(e) {
+        if (!isResizing) return;
+        let newWidth = e.clientX - sidebar.getBoundingClientRect().left;
+        newWidth = Math.max(180, Math.min(600, newWidth));
+        sidebar.style.width = newWidth + 'px';
+        e.preventDefault();
+    });
+
+    document.addEventListener('mouseup', function() {
+        if (isResizing) {
+            isResizing = false;
+            document.body.style.cursor = '';
+            document.body.style.userSelect = ''; // Включаем обратно выделение текста
+
+        }
+    });
+});
