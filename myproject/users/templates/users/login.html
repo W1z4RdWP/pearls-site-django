@@ -1,9 +1,10 @@
 {% extends "layout.html" %}
+{% load static %}
 {% block title %}Вход в учетную запись{% endblock %}
 
 {% load crispy_forms_tags %}
 {% block content %}
-
+    <script src="{% static 'users/js/scripts.js' %}" defer></script>
     <div class="content-section">
         <form method="POST">
             {% csrf_token %}
