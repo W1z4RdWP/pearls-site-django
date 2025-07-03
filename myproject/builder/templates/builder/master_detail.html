@@ -9,11 +9,11 @@
 
 {% block content %}
 {% if not is_readonly %}
-<a href="{% url 'builder:dashboard' %}" class="btn btn-outline-primary mb-3">← Вернуться в панель управления</a>
+<!-- <a href="{% url 'builder:dashboard' %}" class="btn btn-outline-primary mb-3">← Вернуться в панель управления</a> -->
 {% endif %}
 <div class="container">
-    <div class="master-detail-container">
-        <div class="sidebar">
+    <div class="master-detail-container" style="min-height: 600px;">
+        <div class="sidebar" id="sidebar">
             <h3>Категории</h3>
             <ul class="category-list">
                 {% for category in categories %}
@@ -53,6 +53,7 @@
                 {% endif %}
             </div>
         </div>
+        <div id="sidebar-resizer"></div>
         <div class="detail">
             {% if selected_lesson %}
                 <h2>

@@ -66,6 +66,9 @@
         </div>
         <div class="form-actions">
             {% if not readonly %}
+            <a href="{% url 'user_management:user_password_change' object.pk %}" class="btn btn-outline-info">
+                Сменить пароль
+            </a>
                 <button type="submit" class="btn btn-primary">Сохранить</button>
             {% endif %}
             <a href="{% url 'user_management:user_list' %}" class="btn btn-secondary">Отмена</a>

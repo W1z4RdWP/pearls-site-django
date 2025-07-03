@@ -12,7 +12,7 @@
                 <i class="fas fa-users"></i> Пользователи
             </a>
             <a href="{% url 'builder:lesson_master' %}" class="list-group-item list-group-item-action {% if request.resolver_match.url_name == 'lesson_master' %}active{% endif %}">
-                <i class="fas fa-book"></i> Содержание
+                <i class="fas fa-book"></i> База знаний
             </a>
             <a href="{% url 'builder:documents' %}" class="list-group-item list-group-item-action {% if request.resolver_match.url_name == 'documents' %}active{% endif %}">
                 <i class="fas fa-file-alt"></i> Документы

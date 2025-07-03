@@ -1,5 +1,5 @@
 from django.shortcuts import render, redirect
-from django.views.generic import ListView, CreateView, UpdateView, DetailView
+from django.views.generic import ListView, CreateView, UpdateView, DetailView, FormView
 from django.contrib.auth.models import User
 from django.db.models import Q, Count, Max
 from users.models import Profile
@@ -13,6 +13,7 @@ from django.utils.decorators import method_decorator
 from django.contrib.admin.views.decorators import staff_member_required
 from .forms import UserProfileForm
 from users.forms import UserRegisterNoCaptchaForm
+from django.contrib.auth.forms import SetPasswordForm
 
 class UserListView(ListView):
     model = User
@@ -316,4 +317,24 @@ class UserQuizReportView(DetailView):
         for ans in answers:
             grouped.setdefault(ans.question, []).append(ans)
         context['grouped_answers'] = grouped
+        return context
+
+
+class UserPasswordChangeView(FormView):
+    template_name = 'user_management/user_password_change.html'
+    form_class = SetPasswordForm
+    success_url = reverse_lazy('user_management:user_list')
+
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs['user'] = User.objects.get(pk=self.kwargs['pk'])
+        return kwargs
+
+    def form_valid(self, form):
+        form.save()  # set_password + save
+        return super().form_valid(form)
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['object'] = User.objects.get(pk=self.kwargs['pk'])
         return context
