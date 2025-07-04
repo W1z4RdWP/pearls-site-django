@@ -21,6 +21,7 @@ urlpatterns = [
     path('categories/<int:pk>/delete/', views.CategoryDeleteView.as_view(), name='category_delete'),
     path('categories/ajax_add_root/', views.ajax_add_root_category, name='category_ajax_add_root'),
     path('categories/ajax_add_sub/', views.ajax_add_subcategory, name='category_ajax_add_sub'),
+    path('categories/ajax_rename/', views.ajax_rename_category, name='category_ajax_rename'),
     path('documents/', views.DocumentListView.as_view(), name='documents'),
     path('incidents/', views.IncidentListView.as_view(), name='incidents'),
     path('incidents/add/', views.IncidentCreateView.as_view(), name='incident_add'),

@@ -256,3 +256,27 @@ def ajax_add_subcategory(request):
     max_order = parent.subcategories.aggregate(Max('order'))['order__max'] or 0
     cat = CategoryName.objects.create(name=name, parent=parent, order=max_order+1)
     return JsonResponse({'id': cat.id, 'name': cat.name, 'order': cat.order, 'parent': parent.id})
+
+@csrf_exempt
+@login_required
+def ajax_rename_category(request):
+    """
+    AJAX endpoint для переименования категории.
+    POST: id, name
+    Меняет только name. Возвращает: id, name
+    """
+    if not (request.user.is_staff or request.user.is_superuser):
+        return JsonResponse({'error': 'forbidden'}, status=403)
+    if request.method != 'POST':
+        return JsonResponse({'error': 'method not allowed'}, status=405)
+    cat_id = request.POST.get('id')
+    name = request.POST.get('name', '').strip()
+    if not cat_id or not name:
+        return JsonResponse({'error': 'empty id or name'}, status=400)
+    try:
+        cat = CategoryName.objects.get(pk=cat_id)
+    except CategoryName.DoesNotExist:
+        return JsonResponse({'error': 'not found'}, status=404)
+    cat.name = name
+    cat.save(update_fields=['name'])
+    return JsonResponse({'id': cat.id, 'name': cat.name})

@@ -226,11 +226,66 @@ document.addEventListener('DOMContentLoaded', function() {
         input.addEventListener('blur', function() { setTimeout(() => li && li.remove(), 200); });
     });
 
-    // v — редактировать выделенную категорию
+    // v — редактировать выделенную категорию или урок
     document.getElementById('edit-category')?.addEventListener('click', function() {
         const catId = getSelectedCategoryId();
-        if (!catId) { alert('Выделите категорию!'); return; }
-        window.location.href = `/builder/categories/${catId}/edit/`;
+        const lessonId = getSelectedLessonId();
+        if (lessonId) {
+            window.location.href = `/builder/lesson/${lessonId}/edit/`;
+            return;
+        }
+        if (!catId) { alert('Выделите категорию или урок!'); return; }
+        // Inline-редактирование названия категории
+        const block = document.querySelector(`.category-block[data-id='${catId}']`);
+        if (!block) return;
+        const header = block.querySelector('.category-header');
+        const titleSpan = header.querySelector('.category-title');
+        if (!titleSpan) return;
+        // Если уже редактируется — не дублируем
+        if (header.querySelector('.inline-cat-rename')) return;
+        const oldName = titleSpan.textContent.replace(/^\d+\.\s*/, '');
+        const order = titleSpan.textContent.match(/^\d+/)?.[0] || '';
+        // Скрыть span, вставить input
+        titleSpan.style.display = 'none';
+        const input = document.createElement('input');
+        input.type = 'text';
+        input.value = oldName;
+        input.className = 'inline-cat-rename';
+        input.style = 'flex:1; min-width:80px; font-size:1.1em; padding:2px 8px; border-radius:4px; border:1px solid #4d7cff; outline:none; margin-left:0;';
+        header.insertBefore(input, titleSpan.nextSibling);
+        input.focus();
+        function finish(save) {
+            if (!save) {
+                input.remove();
+                titleSpan.style.display = '';
+                return;
+            }
+            const newName = input.value.trim();
+            if (!newName || newName === oldName) {
+                input.remove();
+                titleSpan.style.display = '';
+                return;
+            }
+            input.disabled = true;
+            fetch('/builder/categories/ajax_rename/', {
+                method: 'POST',
+                headers: { 'X-CSRFToken': (document.querySelector('[name=csrfmiddlewaretoken]')||{}).value || '', },
+                body: new URLSearchParams({ id: catId, name: newName })
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (data.error) { alert('Ошибка: ' + data.error); input.remove(); titleSpan.style.display = ''; return; }
+                titleSpan.textContent = order ? `${order}. ${data.name}` : data.name;
+                input.remove();
+                titleSpan.style.display = '';
+            })
+            .catch(() => { alert('Ошибка сети'); input.remove(); titleSpan.style.display = ''; });
+        }
+        input.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter') finish(true);
+            if (e.key === 'Escape') finish(false);
+        });
+        input.addEventListener('blur', function() { setTimeout(() => finish(true), 200); });
     });
 
     // x — удалить выделенную категорию или урок
@@ -310,7 +365,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const catId = document.querySelector('.category-select:checked');
         const lessonId = document.querySelector('.lesson-select:checked');
         document.getElementById('add-subcategory').disabled = !catId;
-        document.getElementById('edit-category').disabled = !catId;
+        document.getElementById('edit-category').disabled = !(catId || lessonId);
         document.getElementById('delete-category').disabled = !(catId || lessonId);
         document.getElementById('add-lesson').disabled = !catId;
     }
