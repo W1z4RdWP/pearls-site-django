@@ -9,6 +9,9 @@ from django.urls import reverse_lazy, reverse
 from .models import CategoryName, Document, Incident
 from django.core.exceptions import PermissionDenied
 from .forms import DocumentForm, IncidentForm
+from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
+from django.db.models import Max
 
 
 @method_decorator(login_required(login_url='/login/'), name='dispatch')
@@ -90,6 +93,7 @@ class LessonUpdateView(UpdateView):
 
 class LessonDeleteView(DeleteView):
     model = Lesson
+    template_name = 'builder/lesson_confirm_delete.html'
     success_url = reverse_lazy('builder:lesson_master')
 
     def dispatch(self, request, *args, **kwargs):
@@ -212,3 +216,17 @@ class IncidentCreateView(CreateView):
     form_class = IncidentForm
     template_name = 'builder/incident_form.html'
     success_url = '/builder/incidents/'
+
+@csrf_exempt
+@login_required
+def ajax_add_root_category(request):
+    if not (request.user.is_staff or request.user.is_superuser):
+        return JsonResponse({'error': 'forbidden'}, status=403)
+    if request.method != 'POST':
+        return JsonResponse({'error': 'method not allowed'}, status=405)
+    name = request.POST.get('name', '').strip()
+    if not name:
+        return JsonResponse({'error': 'empty name'}, status=400)
+    max_order = CategoryName.objects.filter(parent__isnull=True).aggregate(Max('order'))['order__max'] or 0
+    cat = CategoryName.objects.create(name=name, parent=None, order=max_order+1)
+    return JsonResponse({'id': cat.id, 'name': cat.name, 'order': cat.order})

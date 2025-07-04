@@ -23,6 +23,14 @@
                     {% include "builder/category_tree.html" with category=category selected_lesson=selected_lesson is_readonly=is_readonly %}
                 {% endfor %}
             </ul>
+            <!-- Новый блок действий -->
+            <div id="category-actions-block" style="display: flex; gap: 8px; margin: 18px 32px 0 32px;">
+                <button id="add-root-category" title="Добавить корневую категорию">+|</button>
+                <button id="add-subcategory" title="Добавить подкатегорию/документ">+</button>
+                <button id="edit-category" title="Изменить название">v</button>
+                <button id="delete-category" title="Удалить">x</button>
+                <button id="add-lesson" title="Добавить урок">📄</button>
+            </div>
             {% if uncategorized_lessons %}
                 <h4>Уроки без категории</h4>
                 <ul class="lesson-list">
@@ -50,10 +58,6 @@
                 </ul>
             {% endif %}
             <div class="sidebar-buttons">
-                {% if not is_readonly %}
-                <a href="{% url 'builder:category_add' %}" class="btn btn-primary add-lesson-btn">Добавить категорию</a>
-                <a href="{% url 'builder:lesson_add' %}" class="btn btn-success add-lesson-btn">Добавить урок</a>
-                {% endif %}
             </div>
         </div>
         <div class="detail" id="detail">

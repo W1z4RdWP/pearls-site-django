@@ -106,4 +106,159 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     }
+
+    // === КНОПКИ ДЕЙСТВИЙ ДЛЯ КАТЕГОРИЙ/УРОКОВ ===
+    function getSelectedCategoryId() {
+        const checked = document.querySelector('.category-select:checked');
+        return checked ? checked.value : null;
+    }
+    function getSelectedLessonId() {
+        const checked = document.querySelector('.lesson-select:checked');
+        return checked ? checked.value : null;
+    }
+
+    // --- Inline-добавление корневой категории ---
+    document.getElementById('add-root-category')?.addEventListener('click', function() {
+        // Если уже есть инпут — не дублируем
+        if (document.getElementById('inline-root-cat-input')) return;
+        const ul = document.querySelector('.category-list');
+        if (!ul) return;
+        // Создаём li с инпутом
+        const li = document.createElement('li');
+        li.className = 'category-block';
+        li.style.background = '#232a3a';
+        li.style.padding = '8px 32px';
+        li.style.borderRadius = '6px';
+        li.style.marginBottom = '6px';
+        li.innerHTML = `<div class="category-header"><input id="inline-root-cat-input" type="text" placeholder="Название категории..." style="flex:1; min-width:120px; font-size:1.1em; padding:4px 8px; border-radius:4px; border:1px solid #4d7cff; outline:none;"></div>`;
+        ul.prepend(li);
+        const input = li.querySelector('#inline-root-cat-input');
+        input.focus();
+        // Обработчик подтверждения
+        function submit() {
+            const name = input.value.trim();
+            if (!name) { li.remove(); return; }
+            input.disabled = true;
+            fetch('/builder/categories/ajax_add_root/', {
+                method: 'POST',
+                headers: { 'X-CSRFToken': (document.querySelector('[name=csrfmiddlewaretoken]')||{}).value || '', },
+                body: new URLSearchParams({ name })
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (data.error) { alert('Ошибка: ' + data.error); li.remove(); return; }
+                // Вставляем новую категорию в DOM
+                const newLi = document.createElement('li');
+                newLi.className = 'category-block';
+                newLi.setAttribute('data-id', data.id);
+                newLi.innerHTML = `<div class='category-header'><input type='checkbox' class='category-select' value='${data.id}' style='margin-right:8px;'><span class='category-title'>${data.order}. ${data.name}</span></div>`;
+                ul.insertBefore(newLi, li.nextSibling);
+                initCategoryCheckboxHandlers(newLi); // навесить обработчик на новый чекбокс
+                li.remove();
+            })
+            .catch(() => { alert('Ошибка сети'); li.remove(); });
+        }
+        input.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter') submit();
+            if (e.key === 'Escape') li.remove();
+        });
+        input.addEventListener('blur', function() { setTimeout(() => li && li.remove(), 200); });
+    });
+
+    // + — добавить подкатегорию к выделенной
+    document.getElementById('add-subcategory')?.addEventListener('click', function() {
+        const catId = getSelectedCategoryId();
+        if (!catId) { alert('Выделите категорию!'); return; }
+        window.location.href = `/builder/categories/add/?parent=${catId}`;
+    });
+
+    // v — редактировать выделенную категорию
+    document.getElementById('edit-category')?.addEventListener('click', function() {
+        const catId = getSelectedCategoryId();
+        if (!catId) { alert('Выделите категорию!'); return; }
+        window.location.href = `/builder/categories/${catId}/edit/`;
+    });
+
+    // x — удалить выделенную категорию или урок
+    document.getElementById('delete-category')?.addEventListener('click', function() {
+        const catId = getSelectedCategoryId();
+        const lessonId = getSelectedLessonId();
+        if (catId) {
+            if (confirm('Удалить категорию?')) {
+                window.location.href = `/builder/categories/${catId}/delete/`;
+            }
+        } else if (lessonId) {
+            if (confirm('Удалить урок?')) {
+                window.location.href = `/builder/lesson/${lessonId}/delete/`;
+            }
+        } else {
+            alert('Выделите категорию или урок!');
+        }
+    });
+
+    // 📄 — добавить урок в выделенную категорию
+    document.getElementById('add-lesson')?.addEventListener('click', function() {
+        const catId = getSelectedCategoryId();
+        if (!catId) { alert('Выделите категорию!'); return; }
+        window.location.href = `/builder/lesson/add/?category=${catId}`;
+    });
+
+    // --- Логика одиночного выбора и подсветки ---
+    function initCategoryCheckboxHandlers(root=document) {
+        // Одиночный выбор категории
+        root.querySelectorAll('.category-select').forEach(cb => {
+            if (cb._inited) return; cb._inited = true;
+            cb.addEventListener('change', function() {
+                document.querySelectorAll('.category-select').forEach(other => {
+                    if (other !== cb) other.checked = false;
+                });
+                document.querySelectorAll('.category-block').forEach(block => {
+                    block.classList.remove('selected');
+                });
+                if (cb.checked) {
+                    cb.closest('.category-block').classList.add('selected');
+                }
+                updateActionButtons();
+            });
+        });
+    }
+    function initLessonCheckboxHandlers(root=document) {
+        root.querySelectorAll('.lesson-select').forEach(cb => {
+            if (cb._inited) return; cb._inited = true;
+            cb.addEventListener('change', function() {
+                document.querySelectorAll('.lesson-select').forEach(other => {
+                    if (other !== cb) other.checked = false;
+                });
+                document.querySelectorAll('.lesson-list li').forEach(li => {
+                    li.classList.remove('selected');
+                });
+                if (cb.checked) {
+                    cb.closest('li').classList.add('selected');
+                }
+                updateActionButtons();
+            });
+        });
+    }
+    initCategoryCheckboxHandlers();
+    initLessonCheckboxHandlers();
+
+    // Сброс выделения при клике вне чекбоксов
+    document.addEventListener('click', function(e) {
+        if (!e.target.classList.contains('category-select') && !e.target.classList.contains('lesson-select')) {
+            document.querySelectorAll('.category-select, .lesson-select').forEach(cb => cb.checked = false);
+            document.querySelectorAll('.category-block').forEach(block => block.classList.remove('selected'));
+            document.querySelectorAll('.lesson-list li').forEach(li => li.classList.remove('selected'));
+            updateActionButtons();
+        }
+    });
+    // Кнопки активны только при выборе
+    function updateActionButtons() {
+        const catId = document.querySelector('.category-select:checked');
+        const lessonId = document.querySelector('.lesson-select:checked');
+        document.getElementById('add-subcategory').disabled = !catId;
+        document.getElementById('edit-category').disabled = !catId;
+        document.getElementById('delete-category').disabled = !(catId || lessonId);
+        document.getElementById('add-lesson').disabled = !catId;
+    }
+    updateActionButtons();
 });
