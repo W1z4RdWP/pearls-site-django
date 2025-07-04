@@ -49,17 +49,19 @@
 }
 
 .category-block {
-    margin-bottom: -1%;
+    margin-bottom: 0;
 }
 
 .category-header {
     display: flex;
     align-items: center;
-    padding: 8px 32px;
+    padding: 4px 16px;
     background: #2c2c2c;
     border-radius: 6px;
-    margin-bottom: 6px;
-    transition: background 0.2s;
+    margin-bottom: 2px;
+    min-height: 28px;
+    font-size: 0.98em;
+    line-height: 1.2;
 }
 
 .category-header:hover {
@@ -68,13 +70,13 @@
 
 .category-title {
     flex: 1;
-    font-weight: 700;
-    font-size: 1.1em;
+    font-weight: 600;
+    font-size: 1em;
     color: #ddd;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    padding-right: 15px;
+    padding-right: 8px;
 }
 
 .category-actions {
@@ -125,12 +127,14 @@
 .lesson-list li {
     display: flex;
     align-items: center;
-    justify-content: space-between;
-    padding: 8px 15px;
-    margin-bottom: 4px;
-    background: #2a2a2a;
+    justify-content: flex-start;
+    padding: 4px 12px;
+    margin-bottom: 2px;
+    background: #232323;
     border-radius: 5px;
-    transition: background 0.2s;
+    font-size: 0.97em;
+    min-height: 26px;
+    line-height: 1.2;
 }
 
 .lesson-list li:hover {
@@ -154,8 +158,9 @@
     text-decoration: none;
     white-space: normal;
     word-wrap: break-word;
-    padding-right: 15px;
-    line-height: 1.4;
+    padding-right: 8px;
+    line-height: 1.2;
+    font-size: 1em;
 }
 
 .lesson-link.active,
@@ -580,4 +585,25 @@ label {
 }
 .lesson-list li.selected .lesson-link {
     color: #fff;
+}
+
+.category-icon.folder-icon svg {
+    display: inline-block;
+    vertical-align: middle;
+    color: #bbb;
+    width: 18px;
+    height: 18px;
+}
+.lesson-icon svg {
+    display: inline-block;
+    vertical-align: middle;
+    color: #bbb;
+    width: 16px;
+    height: 16px;
+}
+.category-icon.folder-icon {
+    margin-right: 8px;
+}
+.lesson-icon {
+    margin-right: 8px;
 }
