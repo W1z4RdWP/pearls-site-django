@@ -18,7 +18,14 @@
             {{ form.last_name.label_tag }}{{ form.last_name }}
             {{ form.middle_name.label_tag }}{{ form.middle_name }}
             {{ form.date_of_birth.label_tag }}{{ form.date_of_birth }}
-            {{ form.phone_number.label_tag }}{{ form.phone_number }}
+            <div class="phone-field-wrapper">
+                <label for="id_phone_number">{{ form.phone_number.label }}</label>
+                <input type="text" id="id_phone_number" name="phone_number" class="form-control" maxlength="12" autocomplete="off" value="{{ form.phone_number.value|default:'' }}"/>
+                <div class="form-check">
+                    <input type="checkbox" id="arbitrary_format_checkbox" class="form-check-input"/>
+                    <label for="arbitrary_format_checkbox" class="form-check-label">Произвольный формат</label>
+                </div>
+            </div>
             {{ form.bio.label_tag }}{{ form.bio }}
             {{ form.image.label_tag }}{{ form.image }}
             {{ form.is_approved.label_tag }}{{ form.is_approved }}
@@ -32,4 +39,6 @@
         </div>
     </form>
 </div>
-{% endblock %} 
+<script src="{% static 'user_management/js/phone_field.js' %}" defer></script>
+{% endblock %}
+    

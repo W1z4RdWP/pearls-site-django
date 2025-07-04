@@ -320,15 +320,17 @@ def create_course(request):
 @login_required
 def create_lesson(request, course_slug):
     course = get_object_or_404(Course, slug=course_slug)
+    max_order = course.lessons.aggregate(models.Max('order'))['order__max'] or 0
     if request.method == 'POST':
-        form = LessonForm(request.POST)
+        form = LessonForm(request.POST, initial={'order': max_order + 1}, hide_order=True)
         if form.is_valid():
             lesson = form.save(commit=False)
             lesson.course = course
+            lesson.order = max_order + 1
             lesson.save()
             return redirect('course_detail', course_slug)
     else:
-        form = LessonForm()
+        form = LessonForm(initial={'order': max_order + 1}, hide_order=True)
     return render(request, 'courses/create_lesson.html', {'form': form, 'course': course})
 
 

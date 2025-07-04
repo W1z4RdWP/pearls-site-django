@@ -8,9 +8,9 @@
 {% endblock %}
 
 {% block content %}
-{% if not is_readonly %}
-<!-- <a href="{% url 'builder:dashboard' %}" class="btn btn-outline-primary mb-3">← Вернуться в панель управления</a> -->
-{% endif %}
+<!-- {% if not is_readonly %}
+<a href="{% url 'builder:dashboard' %}" class="btn btn-outline-primary mb-3">← Вернуться в панель управления</a>
+{% endif %} -->
 <div class="container">
     <div class="master-detail-container" style="min-height: 600px;">
         <div class="sidebar" id="sidebar">
@@ -26,7 +26,9 @@
                 {% for lesson in uncategorized_lessons %}
                 <li class="category-block" data-id="uncat-{{ lesson.id }}">
                     <div class="category-header">
-                        <input type="checkbox" class="lesson-select" value="{{ lesson.id }}" style="margin-right: 8px;">
+                        {% if not is_readonly %}
+                            <input type="checkbox" class="lesson-select" value="{{ lesson.id }}" style="margin-right: 8px;">
+                        {% endif %}
                         <span class="lesson-icon" style="margin-right: 8px; display: flex; align-items: center;">
                             <svg width="16" height="16" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
                                 <rect x="4" y="3" width="12" height="14" rx="2" fill="#222" stroke="#bbb" stroke-width="1.2"/>
@@ -44,15 +46,17 @@
                 {% endfor %}
             </ul>
             <!-- Новый блок действий -->
-            <div id="category-actions-block" style="display: flex; gap: 8px; margin: 18px 32px 0 32px;">
-                <button id="add-root-category" title="Добавить корневую категорию">+|</button>
-                <button id="add-subcategory" title="Добавить подкатегорию/документ">+</button>
-                <button id="edit-category" title="Изменить название">v</button>
-                <button id="delete-category" title="Удалить">x</button>
-                <button id="add-lesson" title="Добавить урок">📄</button>
-            </div>
-            <div class="sidebar-buttons">
-            </div>
+            {% if not is_readonly %}
+                <div id="category-actions-block" style="display: flex; gap: 8px; margin: 18px 32px 0 32px;">
+                    <button id="add-root-category" title="Добавить корневую категорию">+|</button>
+                    <button id="add-subcategory" title="Добавить подкатегорию/документ">+</button>
+                    <button id="edit-category" title="Изменить название">v</button>
+                    <button id="delete-category" title="Удалить">x</button>
+                    <button id="add-lesson" title="Добавить урок">📄</button>
+                </div>
+                <div class="sidebar-buttons">
+                </div>
+            {% endif %}
         </div>
         <div class="detail" id="detail">
             {% if selected_lesson %}
