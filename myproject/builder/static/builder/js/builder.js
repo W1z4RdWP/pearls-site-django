@@ -305,11 +305,14 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
-    // 📄 — добавить урок в выделенную категорию
+    // 📄 — добавить урок (теперь всегда активна)
     document.getElementById('add-lesson')?.addEventListener('click', function() {
         const catId = getSelectedCategoryId();
-        if (!catId) { alert('Выделите категорию!'); return; }
-        window.location.href = `/builder/add/${catId}/`;
+        if (catId) {
+            window.location.href = `/builder/add/${catId}/`;
+        } else {
+            window.location.href = '/builder/add/';
+        }
     });
 
     // --- Логика одиночного выбора и подсветки ---
@@ -367,7 +370,7 @@ document.addEventListener('DOMContentLoaded', function() {
         document.getElementById('add-subcategory').disabled = !catId;
         document.getElementById('edit-category').disabled = !(catId || lessonId);
         document.getElementById('delete-category').disabled = !(catId || lessonId);
-        document.getElementById('add-lesson').disabled = !catId;
+        document.getElementById('add-lesson').disabled = false;
     }
     updateActionButtons();
 });
