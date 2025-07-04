@@ -18,11 +18,11 @@
             <h2 class="section-title">Общая информация о пользователе</h2>
             {% if readonly %}
                 <p class="um-user-warning">Вы не можете редактировать этого пользователя</p>
-                {{ form.username.label_tag }}{{ form.username|attr:'readonly:readonly,disabled:disabled' }}
-                {{ form.email.label_tag }}{{ form.email|attr:'readonly:readonly,disabled:disabled' }}
                 {{ form.first_name.label_tag }}{{ form.first_name|attr:'readonly:readonly,disabled:disabled' }}
                 {{ form.last_name.label_tag }}{{ form.last_name|attr:'readonly:readonly,disabled:disabled' }}
                 {{ profile_form.middle_name.label_tag }}{{ profile_form.middle_name|attr:'readonly:readonly,disabled:disabled' }}
+                {{ form.username.label_tag }}{{ form.username|attr:'readonly:readonly,disabled:disabled' }}
+                {{ form.email.label_tag }}{{ form.email|attr:'readonly:readonly,disabled:disabled' }}
                 {{ form.groups.label_tag }}
                 {% with form.instance.groups.all as groups %}
                     {% if groups|length == 1 %}
@@ -42,11 +42,11 @@
                 {{ profile_form.phone_number.label_tag }}{{ profile_form.phone_number|attr:'readonly:readonly,disabled:disabled' }}
                 {{ profile_form.bio.label_tag }}{{ profile_form.bio|attr:'readonly:readonly,disabled:disabled' }}
             {% else %}
-                {{ form.username.label_tag }}{{ form.username }}
-                {{ form.email.label_tag }}{{ form.email }}
                 {{ form.first_name.label_tag }}{{ form.first_name }}
                 {{ form.last_name.label_tag }}{{ form.last_name }}
                 {{ profile_form.middle_name.label_tag }}{{ profile_form.middle_name }}
+                {{ form.username.label_tag }}{{ form.username }}
+                {{ form.email.label_tag }}{{ form.email }}
                 <label for="id_groups">Группы пользователя</label>
                 <div class="um-user-groups-checkboxes">
                     {% for group in form.groups.field.queryset %}
