@@ -1,6 +1,8 @@
 <li class="category-block" data-id="{{ category.id }}">
     <div class="category-header">
-        <input type="checkbox" class="category-select" value="{{ category.id }}" style="margin-right: 8px;">
+        {% if not is_readonly %}
+            <input type="checkbox" class="category-select" value="{{ category.id }}" style="margin-right: 8px;">
+        {% endif %}
         <span class="category-icon folder-icon" style="margin-right: 8px; display: flex; align-items: center;">
             <!-- SVG папка -->
             <svg width="18" height="18" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -17,7 +19,9 @@
         <ul class="lesson-list" style='display: none;'>
             {% for lesson in category.lessons.all %}
                 <li>
-                    <input type="checkbox" class="lesson-select" value="{{ lesson.id }}" style="margin-right: 8px;">
+                    {% if not is_readonly %}
+                        <input type="checkbox" class="lesson-select" value="{{ lesson.id }}" style="margin-right: 8px;">
+                    {% endif %}
                     <span class="lesson-icon" style="margin-right: 8px; display: flex; align-items: center;">
                         <!-- SVG лист бумаги -->
                         <svg width="16" height="16" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -44,15 +48,15 @@
         </ul>
     {% endif %}
 </li>
-
-{% if forloop.first and forloop.parentloop is None %}
+<!-- {% if forloop.first and forloop.parentloop is None %} -->
 <!-- Блок действий под списком категорий -->
-<li style="list-style: none; margin-top: 16px;">
-    <div id="category-actions-block">
-        <button id="add-root-category" title="Добавить корневую категорию">+|</button>
-        <button id="add-subcategory" title="Добавить подкатегорию/документ">+</button>
-        <button id="edit-category" title="Изменить название">v</button>
-        <button id="delete-category" title="Удалить">x</button>
-    </div>
-</li>
-{% endif %}
+    <!-- <li style="list-style: none; margin-top: 16px;">
+        <div id="category-actions-block">
+            <button id="add-root-category" title="Добавить корневую категорию">+|</button>
+            <button id="add-subcategory" title="Добавить подкатегорию/документ">+</button>
+            <button id="edit-category" title="Изменить название">v</button>
+            <button id="delete-category" title="Удалить">x</button>
+        </div>
+    </li>
+
+{% endif %} -->

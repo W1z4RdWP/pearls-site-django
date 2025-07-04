@@ -885,6 +885,10 @@ main > section > .text-block-2 {
 
 /* Адаптивность */
 @media (max-width: 900px) {
+    .footer-main {
+        margin-top: 210px;
+    }
+
     .footer-container {
         flex-direction: column;
         align-items: flex-start;
@@ -980,6 +984,15 @@ main > section > .text-block-2 {
     /* .navbar #logopng{
         width: 100px;
     } */
+
+
+    .nav-profile-actions, .custom-nav-list .nav-item.staff-icons-row {
+        display: flex !important;
+        flex-direction: row;
+        justify-content: center;
+        align-items: flex-start;
+        gap: 0px;
+    }
 
     /* Карточка с действиями курса в course-details */
     .card{

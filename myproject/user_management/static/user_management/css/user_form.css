@@ -137,6 +137,32 @@
     position: static;
 }
 
+.phone-field-wrapper {
+    margin-bottom: 18px;
+}
+.phone-field-wrapper label {
+    font-weight: 500;
+    color: #222;
+    margin-bottom: 6px;
+    display: block;
+}
+.phone-field-wrapper .form-control {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    font-size: 1rem;
+    color: #222;
+    background: #fff;
+    margin-bottom: 8px;
+}
+.phone-field-wrapper .form-check {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 0;
+}
+
 @media (max-width: 600px) {
     .user-form-wrapper {
         max-width: 100vw;
@@ -173,5 +199,9 @@
         width: 100%;
         font-size: 1rem;
         padding: 10px 0;
+    }
+    .phone-field-wrapper .form-control {
+        font-size: 0.95rem;
+        padding: 8px 8px;
     }
 } 
