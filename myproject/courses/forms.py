@@ -48,14 +48,10 @@ class LessonForm(forms.ModelForm):
             'video_id': 'Введите полную ссылку на видео. Пример: https://rutube.ru/video/abcdef12345/'
         }
 
-
-        def __init__(self, *args, **kwargs):
-            super().__init__(*args, **kwargs)
-            if not self.instance.pk:  # Только для новых уроков
-                self.fields['order'].queryset = Lesson.objects.filter(
-                    course=self.initial['course']
-                ).order_by('order')
-
+    def __init__(self, *args, hide_order=False, **kwargs):
+        super().__init__(*args, **kwargs)
+        if hide_order:
+            self.fields.pop('order', None)
 
     def clean_video_id(self):
         video_url = self.cleaned_data.get('video_id')
