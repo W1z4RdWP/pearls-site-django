@@ -71,6 +71,20 @@ header{
     color: rgb(227, 92, 121) !important; /* Цвет текста при наведении */
 }
 
+.nav-profile-actions {
+    position: absolute;
+    right: 30px;
+    top: 0;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    z-index: 10;
+}
+
+.custom-navbar .navbar-nav {
+    margin-right: 120px; /* чтобы не налезали на profile-actions */
+}
 
 .form-group{
     width: 50%;

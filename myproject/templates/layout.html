@@ -53,28 +53,30 @@
                             {% if user.is_staff %}
                                 {% for item in nav_staff %}
                                 <li class="nav-item">
-                                    <a class="nav-link custom-nav-link" href="{% url item.url %}"><i class="{{ item.icon }}"></i> {{ item.label }}</a>
+                                    <a class="nav-link custom-nav-link" href="{% url item.url %}" title="{{ item.label }}"><i class="{{ item.icon }}"></i></a>
                                 </li>
                                 {% endfor %}
                                 {% if user.is_superuser %}
                                 <li class="nav-item">
-                                    <a class="nav-link custom-nav-link" href="/admin"><i class="fa-solid fa-screwdriver-wrench"></i> Админ панель</a>
+                                    <a class="nav-link custom-nav-link" href="/admin" title="Админ панель"><i class="fa-solid fa-screwdriver-wrench"></i></a>
                                 </li>
                                 {% endif %}
                             {% endif %}
                             <li><hr class="dropdown-divider custom-divider"></li>
-                            <li class="nav-item">
-                                <a class="nav-link custom-nav-link" href="{% url 'profile' %}"><i class="fa-solid fa-user"></i> Профиль</a>
-                            </li>
-                            <li class="nav-item">
-                                <form action="{% url 'logout' %}" method="post" style="display: inline;">
-                                    {% csrf_token %}
-                                    <button type="submit" class="btn btn-link nav-link custom-nav-link"><i class="fa-solid fa-arrow-right-from-bracket"></i> Выход</button>
-                                </form>
-                            </li>
+                            <div class="nav-profile-actions">
+                                <li class="nav-item">
+                                    <a class="nav-link custom-nav-link" href="{% url 'profile' %}" title="Профиль"><i class="fa-solid fa-user"></i></a>
+                                </li>
+                                <li class="nav-item">
+                                    <form action="{% url 'logout' %}" method="post" style="display: inline;">
+                                        {% csrf_token %}
+                                        <button type="submit" class="btn btn-link nav-link custom-nav-link" title="Выход"><i class="fa-solid fa-arrow-right-from-bracket"></i></button>
+                                    </form>
+                                </li>
+                            </div>
                         {% else %}
                             <li class="nav-item">
-                                <a class="nav-link custom-nav-link" href="{% url 'login' %}"><i class="fa-solid fa-right-to-bracket"></i> Вход</a>
+                                <a class="nav-link custom-nav-link" href="{% url 'login' %}" title="Вход"><i class="fa-solid fa-right-to-bracket"></i></a>
                             </li>
                         {% endif %}
                     </ul>

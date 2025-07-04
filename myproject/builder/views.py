@@ -9,6 +9,9 @@ from django.urls import reverse_lazy, reverse
 from .models import CategoryName, Document, Incident
 from django.core.exceptions import PermissionDenied
 from .forms import DocumentForm, IncidentForm
+from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
+from django.db.models import Max, Q
 
 
 @method_decorator(login_required(login_url='/login/'), name='dispatch')
@@ -51,7 +54,7 @@ class LessonMasterDetailView(TemplateView):
 
 class LessonCreateView(CreateView):
     model = Lesson
-    fields = ['title', 'content', 'video_id', 'order', 'course', 'category']
+    fields = ['title', 'content', 'video_id', 'course', 'category']
     template_name = 'builder/lesson_form.html'
     success_url = reverse_lazy('builder:lesson_master')
 
@@ -75,6 +78,21 @@ class LessonCreateView(CreateView):
             context['preselected_category'] = get_object_or_404(CategoryName, pk=category_id)
         return context
 
+    def form_valid(self, form):
+        """
+        При создании урока порядковый номер (order) назначается автоматически:
+        - если выбрана категория — последний среди уроков в этой категории
+        - если категория не выбрана — последний среди уроков без категории
+        """
+        lesson = form.save(commit=False)
+        if lesson.category:
+            max_order = Lesson.objects.filter(category=lesson.category).aggregate(Max('order'))['order__max'] or 0
+        else:
+            max_order = Lesson.objects.filter(category__isnull=True).aggregate(Max('order'))['order__max'] or 0
+        lesson.order = max_order + 1
+        lesson.save()
+        return super().form_valid(form)
+
 
 class LessonUpdateView(UpdateView):
     model = Lesson
@@ -90,6 +108,7 @@ class LessonUpdateView(UpdateView):
 
 class LessonDeleteView(DeleteView):
     model = Lesson
+    template_name = 'builder/lesson_confirm_delete.html'
     success_url = reverse_lazy('builder:lesson_master')
 
     def dispatch(self, request, *args, **kwargs):
@@ -212,3 +231,88 @@ class IncidentCreateView(CreateView):
     form_class = IncidentForm
     template_name = 'builder/incident_form.html'
     success_url = '/builder/incidents/'
+
+@csrf_exempt
+@login_required
+def ajax_add_root_category(request):
+    if not (request.user.is_staff or request.user.is_superuser):
+        return JsonResponse({'error': 'forbidden'}, status=403)
+    if request.method != 'POST':
+        return JsonResponse({'error': 'method not allowed'}, status=405)
+    name = request.POST.get('name', '').strip()
+    if not name:
+        return JsonResponse({'error': 'empty name'}, status=400)
+    max_order = CategoryName.objects.filter(parent__isnull=True).aggregate(Max('order'))['order__max'] or 0
+    cat = CategoryName.objects.create(name=name, parent=None, order=max_order+1)
+    return JsonResponse({'id': cat.id, 'name': cat.name, 'order': cat.order})
+
+@csrf_exempt
+@login_required
+def ajax_add_subcategory(request):
+    """
+    AJAX endpoint для создания подкатегории.
+    POST: name, parent_id
+    parent_id — id родительской категории
+    name — название подкатегории
+    Возвращает: id, name, order, parent
+    """
+    if not (request.user.is_staff or request.user.is_superuser):
+        return JsonResponse({'error': 'forbidden'}, status=403)
+    if request.method != 'POST':
+        return JsonResponse({'error': 'method not allowed'}, status=405)
+    name = request.POST.get('name', '').strip()
+    parent_id = request.POST.get('parent_id')
+    if not name or not parent_id:
+        return JsonResponse({'error': 'empty name or parent'}, status=400)
+    try:
+        parent = CategoryName.objects.get(pk=parent_id)
+    except CategoryName.DoesNotExist:
+        return JsonResponse({'error': 'parent not found'}, status=404)
+    max_order = parent.subcategories.aggregate(Max('order'))['order__max'] or 0
+    cat = CategoryName.objects.create(name=name, parent=parent, order=max_order+1)
+    return JsonResponse({'id': cat.id, 'name': cat.name, 'order': cat.order, 'parent': parent.id})
+
+@csrf_exempt
+@login_required
+def ajax_rename_category(request):
+    """
+    AJAX endpoint для переименования категории.
+    POST: id, name
+    Меняет только name. Возвращает: id, name
+    """
+    if not (request.user.is_staff or request.user.is_superuser):
+        return JsonResponse({'error': 'forbidden'}, status=403)
+    if request.method != 'POST':
+        return JsonResponse({'error': 'method not allowed'}, status=405)
+    cat_id = request.POST.get('id')
+    name = request.POST.get('name', '').strip()
+    if not cat_id or not name:
+        return JsonResponse({'error': 'empty id or name'}, status=400)
+    try:
+        cat = CategoryName.objects.get(pk=cat_id)
+    except CategoryName.DoesNotExist:
+        return JsonResponse({'error': 'not found'}, status=404)
+    cat.name = name
+    cat.save(update_fields=['name'])
+    return JsonResponse({'id': cat.id, 'name': cat.name})
+
+@csrf_exempt
+@login_required
+def ajax_search_tree(request):
+    """
+    AJAX endpoint для поиска по названиям категорий и уроков (fuzzy, регистр не важен).
+    GET/POST: query
+    Возвращает: {'categories': [id, ...], 'lessons': [id, ...]}
+    """
+    if not (request.user.is_staff or request.user.is_superuser):
+        return JsonResponse({'error': 'forbidden'}, status=403)
+    q = request.GET.get('query') or request.POST.get('query')
+    if not q:
+        return JsonResponse({'categories': [], 'lessons': []})
+    q = q.strip()
+    if not q:
+        return JsonResponse({'categories': [], 'lessons': []})
+    # Fuzzy поиск по названию (можно доработать под более сложный)
+    categories = CategoryName.objects.filter(name__icontains=q).values_list('id', flat=True)
+    lessons = Lesson.objects.filter(title__icontains=q).values_list('id', flat=True)
+    return JsonResponse({'categories': list(categories), 'lessons': list(lessons)})
