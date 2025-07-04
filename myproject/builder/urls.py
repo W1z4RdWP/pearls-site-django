@@ -25,4 +25,5 @@ urlpatterns = [
     path('documents/', views.DocumentListView.as_view(), name='documents'),
     path('incidents/', views.IncidentListView.as_view(), name='incidents'),
     path('incidents/add/', views.IncidentCreateView.as_view(), name='incident_add'),
+    path('search/', views.ajax_search_tree, name='search_tree'),
 ]

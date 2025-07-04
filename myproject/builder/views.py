@@ -11,7 +11,7 @@ from django.core.exceptions import PermissionDenied
 from .forms import DocumentForm, IncidentForm
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
-from django.db.models import Max
+from django.db.models import Max, Q
 
 
 @method_decorator(login_required(login_url='/login/'), name='dispatch')
@@ -295,3 +295,24 @@ def ajax_rename_category(request):
     cat.name = name
     cat.save(update_fields=['name'])
     return JsonResponse({'id': cat.id, 'name': cat.name})
+
+@csrf_exempt
+@login_required
+def ajax_search_tree(request):
+    """
+    AJAX endpoint для поиска по названиям категорий и уроков (fuzzy, регистр не важен).
+    GET/POST: query
+    Возвращает: {'categories': [id, ...], 'lessons': [id, ...]}
+    """
+    if not (request.user.is_staff or request.user.is_superuser):
+        return JsonResponse({'error': 'forbidden'}, status=403)
+    q = request.GET.get('query') or request.POST.get('query')
+    if not q:
+        return JsonResponse({'categories': [], 'lessons': []})
+    q = q.strip()
+    if not q:
+        return JsonResponse({'categories': [], 'lessons': []})
+    # Fuzzy поиск по названию (можно доработать под более сложный)
+    categories = CategoryName.objects.filter(name__icontains=q).values_list('id', flat=True)
+    lessons = Lesson.objects.filter(title__icontains=q).values_list('id', flat=True)
+    return JsonResponse({'categories': list(categories), 'lessons': list(lessons)})

@@ -373,4 +373,57 @@ document.addEventListener('DOMContentLoaded', function() {
         document.getElementById('add-lesson').disabled = false;
     }
     updateActionButtons();
+
+    // --- Поиск по дереву категорий и уроков ---
+    document.getElementById('tree-search-input')?.addEventListener('input', function() {
+        const q = this.value.trim();
+        const allCatBlocks = document.querySelectorAll('.category-block');
+        const allLessonLis = document.querySelectorAll('.lesson-list li, .category-list > .category-block');
+        if (!q) {
+            // Показать всё
+            allCatBlocks.forEach(el => el.style.display = '');
+            document.querySelectorAll('.lesson-list li').forEach(el => el.style.display = '');
+            return;
+        }
+        fetch('/builder/search/?query=' + encodeURIComponent(q))
+            .then(r => r.json())
+            .then(data => {
+                const catIds = new Set((data.categories||[]).map(String));
+                const lessonIds = new Set((data.lessons||[]).map(String));
+                // Скрыть всё
+                allCatBlocks.forEach(el => el.style.display = 'none');
+                document.querySelectorAll('.lesson-list li').forEach(el => el.style.display = 'none');
+                // Показать совпавшие категории
+                catIds.forEach(id => {
+                    const el = document.querySelector(`.category-block[data-id='${id}']`);
+                    if (el) {
+                        el.style.display = '';
+                        // Показать родителей
+                        let parent = el.parentElement;
+                        while (parent && !parent.classList.contains('category-list')) {
+                            if (parent.classList.contains('category-block')) parent.style.display = '';
+                            parent = parent.parentElement;
+                        }
+                    }
+                });
+                // Показать совпавшие уроки
+                lessonIds.forEach(id => {
+                    // В категориях
+                    const li = document.querySelector(`.lesson-select[value='${id}']`);
+                    if (li) {
+                        const lessonLi = li.closest('li');
+                        if (lessonLi) lessonLi.style.display = '';
+                        // Показать родителей
+                        let parent = lessonLi?.parentElement;
+                        while (parent && !parent.classList.contains('category-list')) {
+                            if (parent.classList.contains('category-block')) parent.style.display = '';
+                            parent = parent.parentElement;
+                        }
+                    }
+                    // В корне
+                    const rootLi = document.querySelector(`.category-block[data-id='uncat-${id}']`);
+                    if (rootLi) rootLi.style.display = '';
+                });
+            });
+    });
 });
