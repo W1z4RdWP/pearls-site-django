@@ -42,6 +42,10 @@
                         <div class="text-danger">{{ error }}</div>
                     {% endfor %}
                 </div>
+            {% elif field.name == "order" %}
+                {% if form.instance.pk %}
+                    {{ field|as_crispy_field }}
+                {% endif %}
             {% else %}
                 {{ field|as_crispy_field }}
             {% endif %}

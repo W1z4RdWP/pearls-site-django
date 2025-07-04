@@ -54,7 +54,7 @@ class LessonMasterDetailView(TemplateView):
 
 class LessonCreateView(CreateView):
     model = Lesson
-    fields = ['title', 'content', 'video_id', 'order', 'course', 'category']
+    fields = ['title', 'content', 'video_id', 'course', 'category']
     template_name = 'builder/lesson_form.html'
     success_url = reverse_lazy('builder:lesson_master')
 
@@ -77,6 +77,21 @@ class LessonCreateView(CreateView):
         if category_id:
             context['preselected_category'] = get_object_or_404(CategoryName, pk=category_id)
         return context
+
+    def form_valid(self, form):
+        """
+        При создании урока порядковый номер (order) назначается автоматически:
+        - если выбрана категория — последний среди уроков в этой категории
+        - если категория не выбрана — последний среди уроков без категории
+        """
+        lesson = form.save(commit=False)
+        if lesson.category:
+            max_order = Lesson.objects.filter(category=lesson.category).aggregate(Max('order'))['order__max'] or 0
+        else:
+            max_order = Lesson.objects.filter(category__isnull=True).aggregate(Max('order'))['order__max'] or 0
+        lesson.order = max_order + 1
+        lesson.save()
+        return super().form_valid(form)
 
 
 class LessonUpdateView(UpdateView):
