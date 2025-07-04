@@ -14,47 +14,47 @@
 <div class="container">
     <div class="master-detail-container" style="min-height: 600px;">
         <div class="sidebar" id="sidebar">
+            <input type="text" id="tree-search-input" class="search-input" placeholder="Поиск по категориям и урокам..." style="width:90%;margin:0 5% 12px 5%;padding:6px 12px;border-radius:6px;border:1px solid #444;background:#232323;color:#fff;outline:none;">
+            <button id="toggle-sidebar-btn" class="btn btn-outline-secondary mb-2" type="button" title="Скрыть/показать категории">
+                <span id="toggle-sidebar-icon">⮜</span> Скрыть категории
+            </button>
             <h3>Категории</h3>
             <ul class="category-list">
                 {% for category in categories %}
                     {% include "builder/category_tree.html" with category=category selected_lesson=selected_lesson is_readonly=is_readonly %}
                 {% endfor %}
+                {% for lesson in uncategorized_lessons %}
+                <li class="category-block" data-id="uncat-{{ lesson.id }}">
+                    <div class="category-header">
+                        <input type="checkbox" class="lesson-select" value="{{ lesson.id }}" style="margin-right: 8px;">
+                        <span class="lesson-icon" style="margin-right: 8px; display: flex; align-items: center;">
+                            <svg width="16" height="16" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <rect x="4" y="3" width="12" height="14" rx="2" fill="#222" stroke="#bbb" stroke-width="1.2"/>
+                                <line x1="6.5" y1="7.5" x2="13.5" y2="7.5" stroke="#bbb" stroke-width="1.1"/>
+                                <line x1="6.5" y1="10.5" x2="13.5" y2="10.5" stroke="#bbb" stroke-width="1.1"/>
+                                <line x1="6.5" y1="13.5" x2="11.5" y2="13.5" stroke="#bbb" stroke-width="1.1"/>
+                            </svg>
+                        </span>
+                        <a href="{% url 'builder:lesson_detail' lesson.id %}"
+                           class="lesson-link {% if selected_lesson and lesson.id == selected_lesson.id %}active{% endif %}">
+                            {{ lesson.title }}
+                        </a>
+                    </div>
+                </li>
+                {% endfor %}
             </ul>
-            {% if uncategorized_lessons %}
-                <h4>Уроки без категории</h4>
-                <ul class="lesson-list">
-                    {% for lesson in uncategorized_lessons %}
-                        <li>
-                            <a href="{% url 'builder:lesson_detail' lesson.id %}"
-                               class="lesson-link {% if selected_lesson and lesson.id == selected_lesson.id %}active{% endif %}">
-                                {{ lesson.title }}
-                            </a>
-                            {% if not is_readonly %}
-                            <div class="lesson-actions">
-                                <a href="{% url 'builder:lesson_edit' lesson.id %}" title="Редактировать урок">✍</a>
-                                <form method="post" action="{% url 'builder:lesson_delete' lesson.id %}">
-                                    {% csrf_token %}
-                                    <button type="submit"
-                                            onclick="return confirm('Вы уверены, что хотите удалить этот урок?');"
-                                            title="Удалить урок">
-                                        &#10060;
-                                    </button>
-                                </form>
-                            </div>
-                            {% endif %}
-                        </li>
-                    {% endfor %}
-                </ul>
-            {% endif %}
+            <!-- Новый блок действий -->
+            <div id="category-actions-block" style="display: flex; gap: 8px; margin: 18px 32px 0 32px;">
+                <button id="add-root-category" title="Добавить корневую категорию">+|</button>
+                <button id="add-subcategory" title="Добавить подкатегорию/документ">+</button>
+                <button id="edit-category" title="Изменить название">v</button>
+                <button id="delete-category" title="Удалить">x</button>
+                <button id="add-lesson" title="Добавить урок">📄</button>
+            </div>
             <div class="sidebar-buttons">
-                {% if not is_readonly %}
-                <a href="{% url 'builder:category_add' %}" class="btn btn-primary add-lesson-btn">Добавить категорию</a>
-                <a href="{% url 'builder:lesson_add' %}" class="btn btn-success add-lesson-btn">Добавить урок</a>
-                {% endif %}
             </div>
         </div>
-        <div id="sidebar-resizer"></div>
-        <div class="detail">
+        <div class="detail" id="detail">
             {% if selected_lesson %}
                 <h2>
                     {{ selected_lesson.title }}

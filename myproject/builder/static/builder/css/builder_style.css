@@ -1,6 +1,7 @@
 /* --- Основные контейнеры --- */
 .container {
-    max-width: 1600px !important;
+    width: 100% !important;
+    max-width: none !important;
 }
 
 /* --- Master-detail layout --- */
@@ -11,13 +12,14 @@
     border-radius: 10px;
     margin-top: 32px;
     box-shadow: 0 0 12px #2223;
+    transition: all 0.3s;
 }
 
 .sidebar {
     width: 320px;
     min-width: 180px;
     max-width: 600px;
-    transition: width 0.2s;
+    transition: all 0.3s;
     background: #232323;
     color: #fff;
     border-radius: 10px 0 0 10px;
@@ -47,18 +49,19 @@
 }
 
 .category-block {
-    margin-bottom: 18px;
-    padding: 0;
+    margin-bottom: 0;
 }
 
 .category-header {
     display: flex;
     align-items: center;
-    padding: 8px 32px;
+    padding: 4px 16px;
     background: #2c2c2c;
     border-radius: 6px;
-    margin-bottom: 6px;
-    transition: background 0.2s;
+    margin-bottom: 2px;
+    min-height: 28px;
+    font-size: 0.98em;
+    line-height: 1.2;
 }
 
 .category-header:hover {
@@ -67,13 +70,13 @@
 
 .category-title {
     flex: 1;
-    font-weight: 700;
-    font-size: 1.1em;
+    font-weight: 600;
+    font-size: 1em;
     color: #ddd;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    padding-right: 15px;
+    padding-right: 8px;
 }
 
 .category-actions {
@@ -124,12 +127,14 @@
 .lesson-list li {
     display: flex;
     align-items: center;
-    justify-content: space-between;
-    padding: 8px 15px;
-    margin-bottom: 4px;
-    background: #2a2a2a;
+    justify-content: flex-start;
+    padding: 4px 12px;
+    margin-bottom: 2px;
+    background: #232323;
     border-radius: 5px;
-    transition: background 0.2s;
+    font-size: 0.97em;
+    min-height: 26px;
+    line-height: 1.2;
 }
 
 .lesson-list li:hover {
@@ -153,8 +158,9 @@
     text-decoration: none;
     white-space: normal;
     word-wrap: break-word;
-    padding-right: 15px;
-    line-height: 1.4;
+    padding-right: 8px;
+    line-height: 1.2;
+    font-size: 1em;
 }
 
 .lesson-link.active,
@@ -260,6 +266,7 @@
     background: #fff;
     border-radius: 0 10px 10px 0;
     color: #212529;
+    transition: all 0.3s;
 }
 .detail h2 {
     margin-top: 0;
@@ -405,6 +412,25 @@ label {
     .detail {
         padding: 24px 12px;
     }
+    .sidebar-toggle-floating {
+        display: block !important;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100vw !important;
+        min-width: 100vw !important;
+        margin-bottom: 0;
+        border-radius: 0 0 8px 8px;
+        box-shadow: 0 2px 8px #0002;
+        z-index: 1001;
+        text-align: left;
+        font-size: 1.1em;
+        padding: 16px 18px 14px 18px;
+        background: #232323;
+    }
+    .master-detail-container.sidebar-hidden .detail {
+        padding-top: 56px !important;
+    }
 }
 
 @media (max-width: 768px) {
@@ -443,13 +469,141 @@ label {
 
 /* --- Конец --- */
 
-/* --- sidebar resizer --- */
-#sidebar-resizer {
-    width: 6px;
-    cursor: ew-resize;
-    background: #eee;
-    border-right: 1px solid #ccc;
-    z-index: 2;
-    height: auto;
-    min-height: 100%;
+.master-detail-container.sidebar-hidden .sidebar {
+    display: none !important;
+}
+.master-detail-container.sidebar-hidden .detail {
+    flex: 1 1 100% !important;
+    width: 100% !important;
+    max-width: 100% !important;
+}
+
+.master-detail-container.sidebar-collapsed .sidebar {
+    width: 60px !important;
+    min-width: 60px !important;
+    max-width: 60px !important;
+    overflow-x: hidden;
+    padding: 32px 0 32px 0;
+}
+.master-detail-container.sidebar-collapsed .sidebar *:not(#toggle-sidebar-btn):not(.toggle-arrow) {
+    opacity: 0;
+    pointer-events: none;
+    height: 0;
+    margin: 0;
+    padding: 0;
+}
+.master-detail-container.sidebar-collapsed .sidebar #toggle-sidebar-btn {
+    opacity: 1;
+    pointer-events: auto;
+    width: 100%;
+    margin-left: 0;
+    margin-right: 0;
+}
+.master-detail-container.sidebar-collapsed .detail {
+    flex: 1 1 100% !important;
+    width: 100% !important;
+    max-width: 100% !important;
+}
+
+.sidebar-toggle-floating {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    z-index: 10;
+    width: auto !important;
+    min-width: 44px;
+    min-height: 44px;
+    background: #232323;
+    color: #fff;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px #0002;
+    font-size: 1.1em;
+    padding: 6px 12px;
+    opacity: 0.95;
+}
+@media (max-width: 900px) {
+    .master-detail-container.sidebar-hidden .sidebar {
+        display: none !important;
+    }
+    .master-detail-container.sidebar-hidden .detail {
+        width: 100% !important;
+        max-width: 100% !important;
+        flex: 1 1 100% !important;
+        position: relative;
+    }
+    .sidebar-toggle-floating {
+        display: block !important;
+    }
+}
+
+/* --- Кнопки действий под деревом категорий --- */
+#category-actions-block button {
+    background: #232a3a;
+    color: #fff;
+    border: none;
+    border-radius: 6px;
+    padding: 8px 16px;
+    font-size: 1.1em;
+    font-weight: 600;
+    margin-right: 4px;
+    transition: background 0.18s, color 0.18s, box-shadow 0.18s;
+    box-shadow: 0 2px 8px #0002;
+    outline: none;
+    cursor: pointer;
+    min-width: 38px;
+    min-height: 38px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+#category-actions-block button:last-child {
+    margin-right: 0;
+}
+#category-actions-block button:hover:not(:disabled) {
+    background: #4d7cff;
+    color: #fff;
+    box-shadow: 0 4px 16px #4d7cff33;
+}
+#category-actions-block button:disabled {
+    background: #232a3a;
+    color: #888;
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* --- Выделение выбранной категории/урока --- */
+.category-block.selected > .category-header {
+    background: #4d7cff !important;
+    color: #fff;
+}
+.category-block.selected > .category-header .category-title {
+    color: #fff;
+}
+.lesson-list li.selected {
+    background: #4d7cff !important;
+    color: #fff;
+}
+.lesson-list li.selected .lesson-link {
+    color: #fff;
+}
+
+.category-icon.folder-icon svg {
+    display: inline-block;
+    vertical-align: middle;
+    color: #bbb;
+    width: 18px;
+    height: 18px;
+}
+.lesson-icon svg {
+    display: inline-block;
+    vertical-align: middle;
+    color: #bbb;
+    width: 16px;
+    height: 16px;
+}
+.category-icon.folder-icon {
+    margin-right: 8px;
+}
+.lesson-icon {
+    margin-right: 8px;
 }
