@@ -165,11 +165,65 @@ document.addEventListener('DOMContentLoaded', function() {
         input.addEventListener('blur', function() { setTimeout(() => li && li.remove(), 200); });
     });
 
-    // + — добавить подкатегорию к выделенной
+    // --- Inline-добавление подкатегории ---
     document.getElementById('add-subcategory')?.addEventListener('click', function() {
         const catId = getSelectedCategoryId();
         if (!catId) { alert('Выделите категорию!'); return; }
-        window.location.href = `/builder/categories/add/?parent=${catId}`;
+        // Найти блок выбранной категории
+        const parentBlock = document.querySelector(`.category-block[data-id='${catId}']`);
+        if (!parentBlock) return;
+        // Найти или создать ul.subcategory-list
+        let subUl = parentBlock.querySelector('.subcategory-list');
+        if (!subUl) {
+            subUl = document.createElement('ul');
+            subUl.className = 'subcategory-list';
+            subUl.style.display = 'block';
+            parentBlock.appendChild(subUl);
+        } else {
+            subUl.style.display = 'block';
+        }
+        // Если уже есть инпут — не дублируем
+        if (subUl.querySelector('#inline-subcat-input')) return;
+        // Создаём li с инпутом
+        const li = document.createElement('li');
+        li.className = 'category-block';
+        li.style.background = '#232a3a';
+        li.style.padding = '8px 32px';
+        li.style.borderRadius = '6px';
+        li.style.marginBottom = '6px';
+        li.innerHTML = `<div class=\"category-header\"><input id=\"inline-subcat-input\" type=\"text\" placeholder=\"Название подкатегории...\" style=\"flex:1; min-width:120px; font-size:1.1em; padding:4px 8px; border-radius:4px; border:1px solid #4d7cff; outline:none;\"></div>`;
+        subUl.appendChild(li);
+        const input = li.querySelector('#inline-subcat-input');
+        input.focus();
+        // Обработчик подтверждения
+        function submit() {
+            const name = input.value.trim();
+            if (!name) { li.remove(); return; }
+            input.disabled = true;
+            fetch('/builder/categories/ajax_add_sub/', {
+                method: 'POST',
+                headers: { 'X-CSRFToken': (document.querySelector('[name=csrfmiddlewaretoken]')||{}).value || '', },
+                body: new URLSearchParams({ name, parent_id: catId })
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (data.error) { alert('Ошибка: ' + data.error); li.remove(); return; }
+                // Вставляем новую подкатегорию в DOM
+                const newLi = document.createElement('li');
+                newLi.className = 'category-block';
+                newLi.setAttribute('data-id', data.id);
+                newLi.innerHTML = `<div class='category-header'><input type='checkbox' class='category-select' value='${data.id}' style='margin-right:8px;'><span class='category-title'>${data.order}. ${data.name}</span></div>`;
+                subUl.insertBefore(newLi, li.nextSibling);
+                initCategoryCheckboxHandlers(newLi); // навесить обработчик на новый чекбокс
+                li.remove();
+            })
+            .catch(() => { alert('Ошибка сети'); li.remove(); });
+        }
+        input.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter') submit();
+            if (e.key === 'Escape') li.remove();
+        });
+        input.addEventListener('blur', function() { setTimeout(() => li && li.remove(), 200); });
     });
 
     // v — редактировать выделенную категорию
@@ -200,7 +254,7 @@ document.addEventListener('DOMContentLoaded', function() {
     document.getElementById('add-lesson')?.addEventListener('click', function() {
         const catId = getSelectedCategoryId();
         if (!catId) { alert('Выделите категорию!'); return; }
-        window.location.href = `/builder/lesson/add/?category=${catId}`;
+        window.location.href = `/builder/add/${catId}/`;
     });
 
     // --- Логика одиночного выбора и подсветки ---

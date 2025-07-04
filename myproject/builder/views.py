@@ -230,3 +230,29 @@ def ajax_add_root_category(request):
     max_order = CategoryName.objects.filter(parent__isnull=True).aggregate(Max('order'))['order__max'] or 0
     cat = CategoryName.objects.create(name=name, parent=None, order=max_order+1)
     return JsonResponse({'id': cat.id, 'name': cat.name, 'order': cat.order})
+
+@csrf_exempt
+@login_required
+def ajax_add_subcategory(request):
+    """
+    AJAX endpoint для создания подкатегории.
+    POST: name, parent_id
+    parent_id — id родительской категории
+    name — название подкатегории
+    Возвращает: id, name, order, parent
+    """
+    if not (request.user.is_staff or request.user.is_superuser):
+        return JsonResponse({'error': 'forbidden'}, status=403)
+    if request.method != 'POST':
+        return JsonResponse({'error': 'method not allowed'}, status=405)
+    name = request.POST.get('name', '').strip()
+    parent_id = request.POST.get('parent_id')
+    if not name or not parent_id:
+        return JsonResponse({'error': 'empty name or parent'}, status=400)
+    try:
+        parent = CategoryName.objects.get(pk=parent_id)
+    except CategoryName.DoesNotExist:
+        return JsonResponse({'error': 'parent not found'}, status=404)
+    max_order = parent.subcategories.aggregate(Max('order'))['order__max'] or 0
+    cat = CategoryName.objects.create(name=name, parent=parent, order=max_order+1)
+    return JsonResponse({'id': cat.id, 'name': cat.name, 'order': cat.order, 'parent': parent.id})
