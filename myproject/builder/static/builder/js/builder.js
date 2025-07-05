@@ -151,7 +151,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 const newLi = document.createElement('li');
                 newLi.className = 'category-block';
                 newLi.setAttribute('data-id', data.id);
-                newLi.innerHTML = `<div class='category-header'><input type='checkbox' class='category-select' value='${data.id}' style='margin-right:8px;'><span class='category-title'>${data.order}. ${data.name}</span></div>`;
+                newLi.innerHTML = `<div class='category-header'><input type='radio' class='category-select' value='${data.id}' style='display: none;'><span class='category-icon folder-icon' style='margin-right: 8px; display: flex; align-items: center;'><svg width='18' height='18' viewBox='0 0 20 20' fill='none' xmlns='http://www.w3.org/2000/svg'><path d='M2 5.5A1.5 1.5 0 0 1 3.5 4h3.672a1.5 1.5 0 0 1 1.06.44l1.414 1.414A1.5 1.5 0 0 0 10.707 6H16.5A1.5 1.5 0 0 1 18 7.5v7A1.5 1.5 0 0 1 16.5 16h-13A1.5 1.5 0 0 1 2 14.5v-9z' stroke='#bbb' stroke-width='1.2' fill='#222'/></svg></span><span class='category-title'>${data.order}. ${data.name}</span></div>`;
                 ul.insertBefore(newLi, li.nextSibling);
                 initCategoryCheckboxHandlers(newLi); // навесить обработчик на новый чекбокс
                 li.remove();
@@ -212,7 +212,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 const newLi = document.createElement('li');
                 newLi.className = 'category-block';
                 newLi.setAttribute('data-id', data.id);
-                newLi.innerHTML = `<div class='category-header'><input type='checkbox' class='category-select' value='${data.id}' style='margin-right:8px;'><span class='category-title'>${data.order}. ${data.name}</span></div>`;
+                newLi.innerHTML = `<div class='category-header'><input type='radio' class='category-select' value='${data.id}' style='display: none;'><span class='category-icon folder-icon' style='margin-right: 8px; display: flex; align-items: center;'><svg width='18' height='18' viewBox='0 0 20 20' fill='none' xmlns='http://www.w3.org/2000/svg'><path d='M2 5.5A1.5 1.5 0 0 1 3.5 4h3.672a1.5 1.5 0 0 1 1.06.44l1.414 1.414A1.5 1.5 0 0 0 10.707 6H16.5A1.5 1.5 0 0 1 18 7.5v7A1.5 1.5 0 0 1 16.5 16h-13A1.5 1.5 0 0 1 2 14.5v-9z' stroke='#bbb' stroke-width='1.2' fill='#222'/></svg></span><span class='category-title'>${data.order}. ${data.name}</span></div>`;
                 subUl.insertBefore(newLi, li.nextSibling);
                 initCategoryCheckboxHandlers(newLi); // навесить обработчик на новый чекбокс
                 li.remove();
@@ -321,56 +321,122 @@ document.addEventListener('DOMContentLoaded', function() {
         root.querySelectorAll('.category-select').forEach(cb => {
             if (cb._inited) return; cb._inited = true;
             cb.addEventListener('change', function() {
-                // Сбрасываем все категории
-                document.querySelectorAll('.category-select').forEach(other => {
-                    if (other !== cb) other.checked = false;
-                });
-                document.querySelectorAll('.category-block').forEach(block => {
-                    block.classList.remove('selected');
-                });
-                
-                // Сбрасываем все уроки при выборе категории
-                document.querySelectorAll('.lesson-select').forEach(lessonCb => {
-                    lessonCb.checked = false;
-                });
-                document.querySelectorAll('.lesson-list li').forEach(li => {
-                    li.classList.remove('selected');
-                });
-                
-                if (cb.checked) {
-                    cb.closest('.category-block').classList.add('selected');
+                selectCategory(cb);
+            });
+        });
+        
+        // Обработчики кликов по заголовкам категорий
+        root.querySelectorAll('.category-header').forEach(header => {
+            if (header._inited) return; header._inited = true;
+            header.addEventListener('click', function(e) {
+                // Не обрабатываем клики по стрелке и ссылкам
+                if (e.target.classList.contains('toggle-arrow') || 
+                    e.target.closest('.toggle-arrow') || 
+                    e.target.tagName === 'A' || 
+                    e.target.closest('a')) {
+                    return;
                 }
-                updateActionButtons();
+                
+                const categoryBlock = this.closest('.category-block');
+                const radio = categoryBlock.querySelector('.category-select');
+                if (radio) {
+                    radio.checked = true;
+                    selectCategory(radio);
+                }
             });
         });
     }
+    
     function initLessonCheckboxHandlers(root=document) {
         root.querySelectorAll('.lesson-select').forEach(cb => {
             if (cb._inited) return; cb._inited = true;
             cb.addEventListener('change', function() {
-                // Сбрасываем все уроки
-                document.querySelectorAll('.lesson-select').forEach(other => {
-                    if (other !== cb) other.checked = false;
-                });
-                document.querySelectorAll('.lesson-list li').forEach(li => {
-                    li.classList.remove('selected');
-                });
-                
-                // Сбрасываем все категории при выборе урока
-                document.querySelectorAll('.category-select').forEach(catCb => {
-                    catCb.checked = false;
-                });
-                document.querySelectorAll('.category-block').forEach(block => {
-                    block.classList.remove('selected');
-                });
-                
-                if (cb.checked) {
-                    cb.closest('li').classList.add('selected');
+                selectLesson(cb);
+            });
+        });
+        
+        // Обработчики кликов по элементам уроков
+        root.querySelectorAll('.lesson-list li').forEach(li => {
+            if (li._inited) return; li._inited = true;
+            li.addEventListener('click', function(e) {
+                // Не обрабатываем клики по ссылкам
+                if (e.target.tagName === 'A' || e.target.closest('a')) {
+                    return;
                 }
-                updateActionButtons();
+                
+                const radio = this.querySelector('.lesson-select');
+                if (radio) {
+                    radio.checked = true;
+                    selectLesson(radio);
+                }
+            });
+        });
+        
+        // Обработчики кликов по урокам без категории
+        root.querySelectorAll('.category-block[data-id^="uncat-"]').forEach(block => {
+            if (block._inited) return; block._inited = true;
+            block.addEventListener('click', function(e) {
+                // Не обрабатываем клики по ссылкам
+                if (e.target.tagName === 'A' || e.target.closest('a')) {
+                    return;
+                }
+                
+                const radio = this.querySelector('.lesson-select');
+                if (radio) {
+                    radio.checked = true;
+                    selectLesson(radio);
+                }
             });
         });
     }
+    
+    function selectCategory(radio) {
+        // Сбрасываем все категории
+        document.querySelectorAll('.category-select').forEach(other => {
+            if (other !== radio) other.checked = false;
+        });
+        document.querySelectorAll('.category-block').forEach(block => {
+            block.classList.remove('selected');
+        });
+        
+        // Сбрасываем все уроки при выборе категории
+        document.querySelectorAll('.lesson-select').forEach(lessonCb => {
+            lessonCb.checked = false;
+        });
+        document.querySelectorAll('.lesson-list li').forEach(li => {
+            li.classList.remove('selected');
+        });
+        
+        // Добавляем выделение к выбранной категории
+        radio.closest('.category-block').classList.add('selected');
+        updateActionButtons();
+    }
+    
+    function selectLesson(radio) {
+        // Сбрасываем все уроки
+        document.querySelectorAll('.lesson-select').forEach(other => {
+            if (other !== radio) other.checked = false;
+        });
+        document.querySelectorAll('.lesson-list li').forEach(li => {
+            li.classList.remove('selected');
+        });
+        
+        // Сбрасываем все категории при выборе урока
+        document.querySelectorAll('.category-select').forEach(catCb => {
+            catCb.checked = false;
+        });
+        document.querySelectorAll('.category-block').forEach(block => {
+            block.classList.remove('selected');
+        });
+        
+        // Добавляем выделение к выбранному уроку
+        const lessonElement = radio.closest('li') || radio.closest('.category-block[data-id^="uncat-"]');
+        if (lessonElement) {
+            lessonElement.classList.add('selected');
+        }
+        updateActionButtons();
+    }
+    
     initCategoryCheckboxHandlers();
     initLessonCheckboxHandlers();
     
@@ -379,16 +445,23 @@ document.addEventListener('DOMContentLoaded', function() {
     document.querySelectorAll('.category-block').forEach(block => block.classList.remove('selected'));
     document.querySelectorAll('.lesson-list li').forEach(li => li.classList.remove('selected'));
 
-    // Сброс выделения при клике вне чекбоксов
+    // Сброс выделения при клике вне элементов
     document.addEventListener('click', function(e) {
-        if (!e.target.classList.contains('category-select') && !e.target.classList.contains('lesson-select')) {
-            // Сбрасываем все чекбоксы
-            document.querySelectorAll('.category-select, .lesson-select').forEach(cb => cb.checked = false);
-            // Сбрасываем все выделения
-            document.querySelectorAll('.category-block').forEach(block => block.classList.remove('selected'));
-            document.querySelectorAll('.lesson-list li').forEach(li => li.classList.remove('selected'));
-            updateActionButtons();
+        // Не сбрасываем если кликнули на элементы, которые должны активировать выделение
+        if (e.target.closest('.category-header') || 
+            e.target.closest('.lesson-list li') || 
+            e.target.closest('.category-block[data-id^="uncat-"]') ||
+            e.target.closest('#custom-context-menu') ||
+            e.target.closest('.toggle-arrow')) {
+            return;
         }
+        
+        // Сбрасываем все чекбоксы
+        document.querySelectorAll('.category-select, .lesson-select').forEach(cb => cb.checked = false);
+        // Сбрасываем все выделения
+        document.querySelectorAll('.category-block').forEach(block => block.classList.remove('selected'));
+        document.querySelectorAll('.lesson-list li').forEach(li => li.classList.remove('selected'));
+        updateActionButtons();
     });
     // Кнопки активны только при выборе
     function updateActionButtons() {
