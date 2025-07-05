@@ -321,12 +321,22 @@ document.addEventListener('DOMContentLoaded', function() {
         root.querySelectorAll('.category-select').forEach(cb => {
             if (cb._inited) return; cb._inited = true;
             cb.addEventListener('change', function() {
+                // Сбрасываем все категории
                 document.querySelectorAll('.category-select').forEach(other => {
                     if (other !== cb) other.checked = false;
                 });
                 document.querySelectorAll('.category-block').forEach(block => {
                     block.classList.remove('selected');
                 });
+                
+                // Сбрасываем все уроки при выборе категории
+                document.querySelectorAll('.lesson-select').forEach(lessonCb => {
+                    lessonCb.checked = false;
+                });
+                document.querySelectorAll('.lesson-list li').forEach(li => {
+                    li.classList.remove('selected');
+                });
+                
                 if (cb.checked) {
                     cb.closest('.category-block').classList.add('selected');
                 }
@@ -338,12 +348,22 @@ document.addEventListener('DOMContentLoaded', function() {
         root.querySelectorAll('.lesson-select').forEach(cb => {
             if (cb._inited) return; cb._inited = true;
             cb.addEventListener('change', function() {
+                // Сбрасываем все уроки
                 document.querySelectorAll('.lesson-select').forEach(other => {
                     if (other !== cb) other.checked = false;
                 });
                 document.querySelectorAll('.lesson-list li').forEach(li => {
                     li.classList.remove('selected');
                 });
+                
+                // Сбрасываем все категории при выборе урока
+                document.querySelectorAll('.category-select').forEach(catCb => {
+                    catCb.checked = false;
+                });
+                document.querySelectorAll('.category-block').forEach(block => {
+                    block.classList.remove('selected');
+                });
+                
                 if (cb.checked) {
                     cb.closest('li').classList.add('selected');
                 }
@@ -353,11 +373,18 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     initCategoryCheckboxHandlers();
     initLessonCheckboxHandlers();
+    
+    // Инициализация: сбрасываем все выделения при загрузке
+    document.querySelectorAll('.category-select, .lesson-select').forEach(cb => cb.checked = false);
+    document.querySelectorAll('.category-block').forEach(block => block.classList.remove('selected'));
+    document.querySelectorAll('.lesson-list li').forEach(li => li.classList.remove('selected'));
 
     // Сброс выделения при клике вне чекбоксов
     document.addEventListener('click', function(e) {
         if (!e.target.classList.contains('category-select') && !e.target.classList.contains('lesson-select')) {
+            // Сбрасываем все чекбоксы
             document.querySelectorAll('.category-select, .lesson-select').forEach(cb => cb.checked = false);
+            // Сбрасываем все выделения
             document.querySelectorAll('.category-block').forEach(block => block.classList.remove('selected'));
             document.querySelectorAll('.lesson-list li').forEach(li => li.classList.remove('selected'));
             updateActionButtons();
@@ -367,10 +394,37 @@ document.addEventListener('DOMContentLoaded', function() {
     function updateActionButtons() {
         const catId = document.querySelector('.category-select:checked');
         const lessonId = document.querySelector('.lesson-select:checked');
-        document.getElementById('add-subcategory').disabled = !catId;
-        document.getElementById('edit-category').disabled = !(catId || lessonId);
-        document.getElementById('delete-category').disabled = !(catId || lessonId);
-        document.getElementById('add-lesson').disabled = false;
+        
+        // Обновляем состояние кнопок
+        const addSubBtn = document.getElementById('add-subcategory');
+        const editBtn = document.getElementById('edit-category');
+        const deleteBtn = document.getElementById('delete-category');
+        const addLessonBtn = document.getElementById('add-lesson');
+        
+        if (addSubBtn) addSubBtn.disabled = !catId;
+        if (editBtn) {
+            editBtn.disabled = !(catId || lessonId);
+            // Обновляем подсказку в зависимости от выбранного элемента
+            if (lessonId) {
+                editBtn.title = 'Редактировать урок';
+            } else if (catId) {
+                editBtn.title = 'Переименовать категорию';
+            } else {
+                editBtn.title = 'Изменить название';
+            }
+        }
+        if (deleteBtn) {
+            deleteBtn.disabled = !(catId || lessonId);
+            // Обновляем подсказку в зависимости от выбранного элемента
+            if (lessonId) {
+                deleteBtn.title = 'Удалить урок';
+            } else if (catId) {
+                deleteBtn.title = 'Удалить категорию';
+            } else {
+                deleteBtn.title = 'Удалить';
+            }
+        }
+        if (addLessonBtn) addLessonBtn.disabled = false;
     }
     updateActionButtons();
 
