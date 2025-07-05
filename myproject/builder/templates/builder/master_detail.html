@@ -87,6 +87,20 @@
         </div>
     </div>
 </div>
+<!-- Контекстное меню -->
+<div id="custom-context-menu" style="display:none; position:absolute; z-index:9999; background:#232323; color:#fff; border:1px solid #444; border-radius:6px; min-width:160px; box-shadow:0 2px 8px #0005;">
+    <div id="move-menu-item" style="padding:10px 18px; cursor:pointer;">Переместить в...</div>
+</div>
+<!-- Модальное окно для перемещения -->
+<div id="move-modal" class="modal">
+    <div class="modal-content">
+        <span class="close" id="move-modal-close">&times;</span>
+        <h4>Переместить в категорию</h4>
+        <label for="move-target-select">Выберите категорию:</label>
+        <select id="move-target-select" style="width:100%;margin-top:8px;margin-bottom:18px;"></select>
+        <button id="move-confirm-btn" class="btn btn-primary" style="width:100%;">Переместить</button>
+    </div>
+</div>
 <script>
     document.addEventListener('DOMContentLoaded', function() {
         if (typeof restoreCategoryStates === 'function') {
@@ -106,5 +120,67 @@
         document.getElementById('categories-block').style.display = 'none';
         document.getElementById('uncategorized-block').style.display = '';
     });
+    // === Кастомное контекстное меню для перемещения ===
+    let contextTarget = null;
+    document.addEventListener('contextmenu', function(e) {
+        let li = e.target.closest('.draggable-lesson, .draggable-category');
+        if (li) {
+            e.preventDefault();
+            contextTarget = li;
+            const menu = document.getElementById('custom-context-menu');
+            menu.style.display = 'block';
+            menu.style.left = e.pageX + 'px';
+            menu.style.top = e.pageY + 'px';
+        } else {
+            document.getElementById('custom-context-menu').style.display = 'none';
+        }
+    });
+    document.addEventListener('click', function(e) {
+        if (!e.target.closest('#custom-context-menu')) {
+            document.getElementById('custom-context-menu').style.display = 'none';
+        }
+    });
+    document.getElementById('move-menu-item').addEventListener('click', function() {
+        document.getElementById('custom-context-menu').style.display = 'none';
+        // Открыть модалку
+        const modal = document.getElementById('move-modal');
+        modal.style.display = 'block';
+        // Заполнить select категориями
+        const select = document.getElementById('move-target-select');
+        select.innerHTML = '';
+        document.querySelectorAll('.category-block[data-id]').forEach(cat => {
+            // Не добавлять саму подкатегорию, если двигаем категорию
+            if (contextTarget.classList.contains('draggable-category') && cat.dataset.id === contextTarget.dataset.id) return;
+            const option = document.createElement('option');
+            option.value = cat.dataset.id;
+            option.textContent = cat.querySelector('.category-title')?.textContent || 'Без названия';
+            select.appendChild(option);
+        });
+    });
+    document.getElementById('move-modal-close').onclick = function() {
+        document.getElementById('move-modal').style.display = 'none';
+    };
+    document.getElementById('move-confirm-btn').onclick = function() {
+        const targetCatId = document.getElementById('move-target-select').value;
+        if (!targetCatId || !contextTarget) return;
+        const itemId = contextTarget.dataset.id;
+        const itemType = contextTarget.dataset.type;
+        fetch('/builder/move/', {
+            method: 'POST',
+            headers: { 'X-CSRFToken': (document.querySelector('[name=csrfmiddlewaretoken]')||{}).value || '', 'Content-Type': 'application/json' },
+            body: JSON.stringify({ id: itemId, type: itemType, target_category: targetCatId })
+        }).then(r => r.json()).then(data => {
+            if (data.error) { alert('Ошибка: ' + data.error); return; }
+            // Удаляем элемент из DOM (или можно перерисовать дерево)
+            contextTarget.remove();
+            document.getElementById('move-modal').style.display = 'none';
+        });
+    };
+    // Закрытие модалки по клику вне
+    window.onclick = function(event) {
+        if (event.target == document.getElementById('move-modal')) {
+            document.getElementById('move-modal').style.display = 'none';
+        }
+    };
 </script>
 {% endblock %}

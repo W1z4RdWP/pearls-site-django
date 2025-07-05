@@ -480,4 +480,98 @@ document.addEventListener('DOMContentLoaded', function() {
                 });
             });
     });
+
+    // === Кастомное контекстное меню для перемещения ===
+    let contextTarget = null;
+    document.addEventListener('contextmenu', function(e) {
+        let li = e.target.closest('li');
+        if (li && (li.querySelector('.lesson-link') || li.querySelector('.category-title'))) {
+            e.preventDefault();
+            contextTarget = li;
+            const menu = document.getElementById('custom-context-menu');
+            menu.style.display = 'block';
+            menu.style.left = e.pageX + 'px';
+            menu.style.top = e.pageY + 'px';
+        } else {
+            document.getElementById('custom-context-menu').style.display = 'none';
+        }
+    });
+    document.addEventListener('click', function(e) {
+        if (!e.target.closest('#custom-context-menu')) {
+            document.getElementById('custom-context-menu').style.display = 'none';
+        }
+    });
+    document.getElementById('move-menu-item').addEventListener('click', function() {
+        document.getElementById('custom-context-menu').style.display = 'none';
+        // Открыть модалку
+        const modal = document.getElementById('move-modal');
+        modal.style.display = 'block';
+        // Заполнить select категориями
+        const select = document.getElementById('move-target-select');
+        select.innerHTML = '';
+        // Добавить пункт "Без категории"
+        const rootOption = document.createElement('option');
+        rootOption.value = '';
+        rootOption.textContent = 'Без категории';
+        select.appendChild(rootOption);
+        document.querySelectorAll('.category-block[data-id]').forEach(cat => {
+            // Только настоящие категории (id — только число)
+            if (!/^[0-9]+$/.test(cat.dataset.id)) return;
+            // Не добавлять саму подкатегорию, если двигаем категорию
+            if (contextTarget.classList.contains('category-block') && cat === contextTarget) return;
+            const option = document.createElement('option');
+            option.value = cat.dataset.id;
+            option.textContent = cat.querySelector('.category-title')?.textContent || 'Без названия';
+            select.appendChild(option);
+        });
+    });
+    document.getElementById('move-modal-close').onclick = function() {
+        document.getElementById('move-modal').style.display = 'none';
+    };
+    document.getElementById('move-confirm-btn').onclick = function() {
+        const targetCatId = document.getElementById('move-target-select').value;
+        if (!targetCatId || !contextTarget) return;
+        // Определяем тип и id
+        let itemId, itemType;
+        if (contextTarget.querySelector('.lesson-link')) {
+            itemType = 'lesson';
+            itemId = contextTarget.querySelector('.lesson-select')?.value;
+        } else if (contextTarget.querySelector('.category-title')) {
+            itemType = 'category';
+            itemId = contextTarget.dataset.id;
+        }
+        fetch('/builder/move/', {
+            method: 'POST',
+            headers: { 'X-CSRFToken': (document.querySelector('[name=csrfmiddlewaretoken]')||{}).value || '', 'Content-Type': 'application/json' },
+            body: JSON.stringify({ id: itemId, type: itemType, target_category: targetCatId })
+        }).then(r => r.json()).then(data => {
+            if (data.error) { alert('Ошибка: ' + data.error); return; }
+            // Перемещаем элемент в DOM
+            const targetCatBlock = document.querySelector('.category-block[data-id="'+targetCatId+'"]');
+            if (itemType === 'lesson') {
+                let lessonList = targetCatBlock.querySelector('.lesson-list');
+                if (!lessonList) {
+                    lessonList = document.createElement('ul');
+                    lessonList.className = 'lesson-list';
+                    targetCatBlock.appendChild(lessonList);
+                }
+                lessonList.appendChild(contextTarget);
+            } else if (itemType === 'category') {
+                let subcatList = targetCatBlock.querySelector('.subcategory-list');
+                if (!subcatList) {
+                    subcatList = document.createElement('ul');
+                    subcatList.className = 'subcategory-list';
+                    targetCatBlock.appendChild(subcatList);
+                }
+                subcatList.appendChild(contextTarget);
+            }
+            document.getElementById('move-modal').style.display = 'none';
+        });
+    };
+    // Закрытие модалки по клику вне
+    window.onclick = function(event) {
+        if (event.target == document.getElementById('move-modal')) {
+            document.getElementById('move-modal').style.display = 'none';
+        }
+    };
 });

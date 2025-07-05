@@ -650,3 +650,13 @@ label {
     color: #fff;
     border-color: #4d7cff;
 }
+
+#move-modal .modal-content label,
+#move-modal .modal-content select,
+#move-modal .modal-content h4 {
+    color: #222 !important;
+}
+#move-modal .modal-content select {
+    background: #fff;
+    border: 1px solid #ccc;
+}

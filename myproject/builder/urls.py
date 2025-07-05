@@ -26,4 +26,6 @@ urlpatterns = [
     path('incidents/', views.IncidentListView.as_view(), name='incidents'),
     path('incidents/add/', views.IncidentCreateView.as_view(), name='incident_add'),
     path('search/', views.ajax_search_tree, name='search_tree'),
+    path('reorder/', views.ajax_reorder, name='reorder'),
+    path('move/', views.ajax_move, name='move'),
 ]
