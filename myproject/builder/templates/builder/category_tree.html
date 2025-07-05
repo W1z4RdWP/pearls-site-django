@@ -1,7 +1,7 @@
 <li class="category-block" data-id="{{ category.id }}">
     <div class="category-header">
         {% if not is_readonly %}
-            <input type="checkbox" class="category-select" value="{{ category.id }}" style="margin-right: 8px;">
+            <input type="radio" class="category-select" value="{{ category.id }}" style="margin-right: 8px;">
         {% endif %}
         <span class="category-icon folder-icon" style="margin-right: 8px; display: flex; align-items: center;">
             <!-- SVG папка -->
@@ -20,7 +20,7 @@
             {% for lesson in category.lessons.all %}
                 <li>
                     {% if not is_readonly %}
-                        <input type="checkbox" class="lesson-select" value="{{ lesson.id }}" style="margin-right: 8px;">
+                        <input type="radio" class="lesson-select" value="{{ lesson.id }}" style="margin-right: 8px;">
                     {% endif %}
                     <span class="lesson-icon" style="margin-right: 8px; display: flex; align-items: center;">
                         <!-- SVG лист бумаги -->
