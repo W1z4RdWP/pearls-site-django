@@ -36,50 +36,62 @@
         <nav class="navbar navbar-expand-lg navbar-dark bg-dark custom-navbar">
             <div class="container-fluid">
                 <a class="navbar-brand" href="{% url 'home' %}" id="logolink">
-                    <img src="{% static 'global/imgs/logo_lc.png' %}" alt="Logo" id='logopng'>
+                    <img src="{% static 'global/imgs/logo_lc.png' %}" alt="Logo" id="logopng">
                 </a>
-                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
-                    <span class="navbar-toggler-icon"></span>
+                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav"
+                  aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+                  <span class="navbar-toggler-icon"></span>
                 </button>
                 <div class="collapse navbar-collapse" id="navbarNav">
-                    <ul class="navbar-nav ms-auto custom-nav-list">
-                        {% for item in nav_public %}
-                        <li class="nav-item">
-                            <a class="nav-link custom-nav-link" href="{% url item.url %}"><i class="{{ item.icon }}"></i> {{ item.label }}</a>
-                        </li>
-                        {% endfor %}
-                        {% if user.is_authenticated %}
-                            <li><hr class="dropdown-divider custom-divider"></li>
-                            {% if user.is_staff %}
-                                {% for item in nav_staff %}
-                                <li class="nav-item">
-                                    <a class="nav-link custom-nav-link" href="{% url item.url %}" title="{{ item.label }}"><i class="{{ item.icon }}"></i></a>
-                                </li>
-                                {% endfor %}
-                                {% if user.is_superuser %}
-                                <li class="nav-item">
-                                    <a class="nav-link custom-nav-link" href="/admin" title="Админ панель"><i class="fa-solid fa-screwdriver-wrench"></i></a>
-                                </li>
-                                {% endif %}
-                            {% endif %}
-                            <li><hr class="dropdown-divider custom-divider"></li>
-                            <div class="nav-profile-actions">
-                                <li class="nav-item">
-                                    <a class="nav-link custom-nav-link" href="{% url 'profile' %}" title="Профиль"><i class="fa-solid fa-user"></i></a>
-                                </li>
-                                <li class="nav-item">
-                                    <form action="{% url 'logout' %}" method="post" style="display: inline;">
-                                        {% csrf_token %}
-                                        <button type="submit" class="btn btn-link nav-link custom-nav-link" title="Выход"><i class="fa-solid fa-arrow-right-from-bracket"></i></button>
-                                    </form>
-                                </li>
-                            </div>
-                        {% else %}
-                            <li class="nav-item">
-                                <a class="nav-link custom-nav-link" href="{% url 'login' %}" title="Вход"><i class="fa-solid fa-right-to-bracket"></i></a>
-                            </li>
-                        {% endif %}
-                    </ul>
+                  <ul class="navbar-nav ms-auto custom-nav-list">
+                    {% for item in nav_public %}
+                    <li class="nav-item">
+                      <a class="nav-link custom-nav-link" href="{% url item.url %}">
+                        <i class="{{ item.icon }}"></i> {{ item.label }}
+                      </a>
+                    </li>
+                    {% endfor %}
+                    {% if user.is_authenticated %}
+                    {% if user.is_staff %}
+                    {% for item in nav_staff %}
+                      <li class="nav-item">
+                        <a class="nav-link custom-nav-link" href="{% url item.url %}" title="{{ item.label }}">
+                          <i class="{{ item.icon }}"></i>
+                        </a>
+                      </li>
+                    {% endfor %}
+                    {% if user.is_superuser %}
+                      <li class="nav-item">
+                        <a class="nav-link custom-nav-link" href="/admin" title="Админ панель">
+                          <i class="fa-solid fa-screwdriver-wrench"></i>
+                        </a>
+                      </li>
+                    {% endif %}
+                  {% endif %}
+                      <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle d-flex align-items-center" href="#" id="profileDropdown" role="button"
+                          data-bs-toggle="dropdown" aria-expanded="false">
+                          <img src="{{ user.profile.image.url|default:'/media/profile_pics/default.jpg' }}" alt="Аватар"
+                            class="navbar-avatar">
+                        </a>
+                        <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="profileDropdown">
+                          <li><a class="dropdown-item" href="{% url 'profile' %}">Профиль</a></li>
+                          <li>
+                            <form action="{% url 'logout' %}" method="post" style="display: inline;">
+                              {% csrf_token %}
+                              <button type="submit" class="dropdown-item">Выйти</button>
+                            </form>
+                          </li>
+                        </ul>
+                      </li>
+                    {% else %}
+                      <li class="nav-item">
+                        <a class="nav-link custom-nav-link" href="{% url 'login' %}" title="Вход">
+                          <i class="fa-solid fa-right-to-bracket"></i>
+                        </a>
+                      </li>
+                    {% endif %}
+                  </ul>
                 </div>
             </div>
         </nav>
@@ -141,8 +153,8 @@
         <div class="footer-bottom">
             <span class="site-version">Версия: {{ latest_version }}</span>
             <span class="footer-text">© 2025 Территория Улыбки &nbsp;|&nbsp; The site was created by w1z4rdWP</span>
-            {% comment %} 
-            TODO: Исправить отображение в футере, чтобы не съезжало и можно использовать{% endcomment %}
+            <!-- Дублированный логотип для мобильных устройств -->
+            <img src="{% static 'global/imgs/logo_lc.png' %}" alt="Logo" class='footer-logo-mobile'>
             <a href="#" class="footer-policy">Политика конфиденциальности</a> 
         </div>
     </footer>
