@@ -141,8 +141,8 @@
         <div class="footer-bottom">
             <span class="site-version">Версия: {{ latest_version }}</span>
             <span class="footer-text">© 2025 Территория Улыбки &nbsp;|&nbsp; The site was created by w1z4rdWP</span>
-            {% comment %} 
-            TODO: Исправить отображение в футере, чтобы не съезжало и можно использовать{% endcomment %}
+            <!-- Дублированный логотип для мобильных устройств -->
+            <img src="{% static 'global/imgs/logo_lc.png' %}" alt="Logo" class='footer-logo-mobile'>
             <a href="#" class="footer-policy">Политика конфиденциальности</a> 
         </div>
     </footer>
