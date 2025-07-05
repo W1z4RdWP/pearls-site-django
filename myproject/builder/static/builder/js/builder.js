@@ -321,12 +321,22 @@ document.addEventListener('DOMContentLoaded', function() {
         root.querySelectorAll('.category-select').forEach(cb => {
             if (cb._inited) return; cb._inited = true;
             cb.addEventListener('change', function() {
+                // Сбрасываем все категории
                 document.querySelectorAll('.category-select').forEach(other => {
                     if (other !== cb) other.checked = false;
                 });
                 document.querySelectorAll('.category-block').forEach(block => {
                     block.classList.remove('selected');
                 });
+                
+                // Сбрасываем все уроки при выборе категории
+                document.querySelectorAll('.lesson-select').forEach(lessonCb => {
+                    lessonCb.checked = false;
+                });
+                document.querySelectorAll('.lesson-list li').forEach(li => {
+                    li.classList.remove('selected');
+                });
+                
                 if (cb.checked) {
                     cb.closest('.category-block').classList.add('selected');
                 }
@@ -338,12 +348,22 @@ document.addEventListener('DOMContentLoaded', function() {
         root.querySelectorAll('.lesson-select').forEach(cb => {
             if (cb._inited) return; cb._inited = true;
             cb.addEventListener('change', function() {
+                // Сбрасываем все уроки
                 document.querySelectorAll('.lesson-select').forEach(other => {
                     if (other !== cb) other.checked = false;
                 });
                 document.querySelectorAll('.lesson-list li').forEach(li => {
                     li.classList.remove('selected');
                 });
+                
+                // Сбрасываем все категории при выборе урока
+                document.querySelectorAll('.category-select').forEach(catCb => {
+                    catCb.checked = false;
+                });
+                document.querySelectorAll('.category-block').forEach(block => {
+                    block.classList.remove('selected');
+                });
+                
                 if (cb.checked) {
                     cb.closest('li').classList.add('selected');
                 }
@@ -353,11 +373,18 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     initCategoryCheckboxHandlers();
     initLessonCheckboxHandlers();
+    
+    // Инициализация: сбрасываем все выделения при загрузке
+    document.querySelectorAll('.category-select, .lesson-select').forEach(cb => cb.checked = false);
+    document.querySelectorAll('.category-block').forEach(block => block.classList.remove('selected'));
+    document.querySelectorAll('.lesson-list li').forEach(li => li.classList.remove('selected'));
 
     // Сброс выделения при клике вне чекбоксов
     document.addEventListener('click', function(e) {
         if (!e.target.classList.contains('category-select') && !e.target.classList.contains('lesson-select')) {
+            // Сбрасываем все чекбоксы
             document.querySelectorAll('.category-select, .lesson-select').forEach(cb => cb.checked = false);
+            // Сбрасываем все выделения
             document.querySelectorAll('.category-block').forEach(block => block.classList.remove('selected'));
             document.querySelectorAll('.lesson-list li').forEach(li => li.classList.remove('selected'));
             updateActionButtons();
@@ -367,10 +394,37 @@ document.addEventListener('DOMContentLoaded', function() {
     function updateActionButtons() {
         const catId = document.querySelector('.category-select:checked');
         const lessonId = document.querySelector('.lesson-select:checked');
-        document.getElementById('add-subcategory').disabled = !catId;
-        document.getElementById('edit-category').disabled = !(catId || lessonId);
-        document.getElementById('delete-category').disabled = !(catId || lessonId);
-        document.getElementById('add-lesson').disabled = false;
+        
+        // Обновляем состояние кнопок
+        const addSubBtn = document.getElementById('add-subcategory');
+        const editBtn = document.getElementById('edit-category');
+        const deleteBtn = document.getElementById('delete-category');
+        const addLessonBtn = document.getElementById('add-lesson');
+        
+        if (addSubBtn) addSubBtn.disabled = !catId;
+        if (editBtn) {
+            editBtn.disabled = !(catId || lessonId);
+            // Обновляем подсказку в зависимости от выбранного элемента
+            if (lessonId) {
+                editBtn.title = 'Редактировать урок';
+            } else if (catId) {
+                editBtn.title = 'Переименовать категорию';
+            } else {
+                editBtn.title = 'Изменить название';
+            }
+        }
+        if (deleteBtn) {
+            deleteBtn.disabled = !(catId || lessonId);
+            // Обновляем подсказку в зависимости от выбранного элемента
+            if (lessonId) {
+                deleteBtn.title = 'Удалить урок';
+            } else if (catId) {
+                deleteBtn.title = 'Удалить категорию';
+            } else {
+                deleteBtn.title = 'Удалить';
+            }
+        }
+        if (addLessonBtn) addLessonBtn.disabled = false;
     }
     updateActionButtons();
 
@@ -426,4 +480,98 @@ document.addEventListener('DOMContentLoaded', function() {
                 });
             });
     });
+
+    // === Кастомное контекстное меню для перемещения ===
+    let contextTarget = null;
+    document.addEventListener('contextmenu', function(e) {
+        let li = e.target.closest('li');
+        if (li && (li.querySelector('.lesson-link') || li.querySelector('.category-title'))) {
+            e.preventDefault();
+            contextTarget = li;
+            const menu = document.getElementById('custom-context-menu');
+            menu.style.display = 'block';
+            menu.style.left = e.pageX + 'px';
+            menu.style.top = e.pageY + 'px';
+        } else {
+            document.getElementById('custom-context-menu').style.display = 'none';
+        }
+    });
+    document.addEventListener('click', function(e) {
+        if (!e.target.closest('#custom-context-menu')) {
+            document.getElementById('custom-context-menu').style.display = 'none';
+        }
+    });
+    document.getElementById('move-menu-item').addEventListener('click', function() {
+        document.getElementById('custom-context-menu').style.display = 'none';
+        // Открыть модалку
+        const modal = document.getElementById('move-modal');
+        modal.style.display = 'block';
+        // Заполнить select категориями
+        const select = document.getElementById('move-target-select');
+        select.innerHTML = '';
+        // Добавить пункт "Без категории"
+        const rootOption = document.createElement('option');
+        rootOption.value = '';
+        rootOption.textContent = 'Без категории';
+        select.appendChild(rootOption);
+        document.querySelectorAll('.category-block[data-id]').forEach(cat => {
+            // Только настоящие категории (id — только число)
+            if (!/^[0-9]+$/.test(cat.dataset.id)) return;
+            // Не добавлять саму подкатегорию, если двигаем категорию
+            if (contextTarget.classList.contains('category-block') && cat === contextTarget) return;
+            const option = document.createElement('option');
+            option.value = cat.dataset.id;
+            option.textContent = cat.querySelector('.category-title')?.textContent || 'Без названия';
+            select.appendChild(option);
+        });
+    });
+    document.getElementById('move-modal-close').onclick = function() {
+        document.getElementById('move-modal').style.display = 'none';
+    };
+    document.getElementById('move-confirm-btn').onclick = function() {
+        const targetCatId = document.getElementById('move-target-select').value;
+        if (!targetCatId || !contextTarget) return;
+        // Определяем тип и id
+        let itemId, itemType;
+        if (contextTarget.querySelector('.lesson-link')) {
+            itemType = 'lesson';
+            itemId = contextTarget.querySelector('.lesson-select')?.value;
+        } else if (contextTarget.querySelector('.category-title')) {
+            itemType = 'category';
+            itemId = contextTarget.dataset.id;
+        }
+        fetch('/builder/move/', {
+            method: 'POST',
+            headers: { 'X-CSRFToken': (document.querySelector('[name=csrfmiddlewaretoken]')||{}).value || '', 'Content-Type': 'application/json' },
+            body: JSON.stringify({ id: itemId, type: itemType, target_category: targetCatId })
+        }).then(r => r.json()).then(data => {
+            if (data.error) { alert('Ошибка: ' + data.error); return; }
+            // Перемещаем элемент в DOM
+            const targetCatBlock = document.querySelector('.category-block[data-id="'+targetCatId+'"]');
+            if (itemType === 'lesson') {
+                let lessonList = targetCatBlock.querySelector('.lesson-list');
+                if (!lessonList) {
+                    lessonList = document.createElement('ul');
+                    lessonList.className = 'lesson-list';
+                    targetCatBlock.appendChild(lessonList);
+                }
+                lessonList.appendChild(contextTarget);
+            } else if (itemType === 'category') {
+                let subcatList = targetCatBlock.querySelector('.subcategory-list');
+                if (!subcatList) {
+                    subcatList = document.createElement('ul');
+                    subcatList.className = 'subcategory-list';
+                    targetCatBlock.appendChild(subcatList);
+                }
+                subcatList.appendChild(contextTarget);
+            }
+            document.getElementById('move-modal').style.display = 'none';
+        });
+    };
+    // Закрытие модалки по клику вне
+    window.onclick = function(event) {
+        if (event.target == document.getElementById('move-modal')) {
+            document.getElementById('move-modal').style.display = 'none';
+        }
+    };
 });

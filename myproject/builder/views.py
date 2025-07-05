@@ -12,6 +12,8 @@ from .forms import DocumentForm, IncidentForm
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.db.models import Max, Q
+from django.views.decorators.http import require_POST
+import json
 
 
 @method_decorator(login_required(login_url='/login/'), name='dispatch')
@@ -316,3 +318,87 @@ def ajax_search_tree(request):
     categories = CategoryName.objects.filter(name__icontains=q).values_list('id', flat=True)
     lessons = Lesson.objects.filter(title__icontains=q).values_list('id', flat=True)
     return JsonResponse({'categories': list(categories), 'lessons': list(lessons)})
+
+@csrf_exempt
+@login_required
+def ajax_reorder(request):
+    if not (request.user.is_staff or request.user.is_superuser):
+        return JsonResponse({'error': 'forbidden'}, status=403)
+    if request.method != 'POST':
+        return JsonResponse({'error': 'method not allowed'}, status=405)
+    try:
+        data = json.loads(request.body.decode('utf-8'))
+        parent_id = data.get('parent_id')
+        items = data.get('items', [])
+    except Exception as e:
+        return JsonResponse({'error': 'bad json'}, status=400)
+    # Для корневых категорий parent_id может быть None
+    for idx, item in enumerate(items):
+        if item['type'] == 'lesson':
+            try:
+                lesson = Lesson.objects.get(pk=item['id'])
+                # Проверяем, что lesson принадлежит этому parent
+                if (parent_id and str(lesson.category_id) == str(parent_id)) or (not parent_id and lesson.category is None):
+                    lesson.order = idx + 1
+                    lesson.save(update_fields=['order'])
+            except Lesson.DoesNotExist:
+                continue
+        elif item['type'] == 'category':
+            try:
+                cat = CategoryName.objects.get(pk=item['id'])
+                # Проверяем, что cat.parent соответствует parent_id
+                if (parent_id and str(cat.parent_id) == str(parent_id)) or (not parent_id and cat.parent is None):
+                    cat.order = idx + 1
+                    cat.save(update_fields=['order'])
+            except CategoryName.DoesNotExist:
+                continue
+    return JsonResponse({'ok': True})
+
+@csrf_exempt
+@login_required
+def ajax_move(request):
+    if not (request.user.is_staff or request.user.is_superuser):
+        return JsonResponse({'error': 'forbidden'}, status=403)
+    if request.method != 'POST':
+        return JsonResponse({'error': 'method not allowed'}, status=405)
+    try:
+        data = json.loads(request.body.decode('utf-8'))
+        item_id = data.get('id')
+        item_type = data.get('type')
+        target_category = data.get('target_category')
+    except Exception as e:
+        return JsonResponse({'error': 'bad json'}, status=400)
+    if not item_id or not item_type or not target_category:
+        return JsonResponse({'error': 'missing params'}, status=400)
+    if item_type == 'lesson':
+        try:
+            lesson = Lesson.objects.get(pk=item_id)
+            if not target_category:
+                lesson.category = None
+                max_order = Lesson.objects.filter(category__isnull=True).aggregate(Max('order'))['order__max'] or 0
+            else:
+                lesson.category_id = target_category
+                max_order = Lesson.objects.filter(category_id=target_category).aggregate(Max('order'))['order__max'] or 0
+            lesson.order = max_order + 1
+            lesson.save(update_fields=['category', 'order'])
+            return JsonResponse({'ok': True})
+        except Lesson.DoesNotExist:
+            return JsonResponse({'error': 'lesson not found'}, status=404)
+    elif item_type == 'category':
+        try:
+            cat = CategoryName.objects.get(pk=item_id)
+            # Запретить перемещать категорию в саму себя
+            if target_category and str(cat.id) == str(target_category):
+                return JsonResponse({'error': 'cannot move to self'}, status=400)
+            if not target_category:
+                cat.parent = None
+                max_order = CategoryName.objects.filter(parent__isnull=True).aggregate(Max('order'))['order__max'] or 0
+            else:
+                cat.parent_id = target_category
+                max_order = CategoryName.objects.filter(parent_id=target_category).aggregate(Max('order'))['order__max'] or 0
+            cat.order = max_order + 1
+            cat.save(update_fields=['parent', 'order'])
+            return JsonResponse({'ok': True})
+        except CategoryName.DoesNotExist:
+            return JsonResponse({'error': 'category not found'}, status=404)
+    return JsonResponse({'error': 'bad type'}, status=400)
