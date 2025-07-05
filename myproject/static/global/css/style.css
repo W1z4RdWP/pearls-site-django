@@ -1908,3 +1908,40 @@ main > section > .text-block-2 {
   .hero-landing__right, .hero-landing__left { min-width: unset; width: 100%; }
   .hero-landing__faces { justify-content: center; }
 }
+
+.navbar-avatar {
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid #4d7cff;
+    margin-left: 8px;
+    transition: box-shadow 0.2s;
+}
+.navbar-avatar:hover, .navbar-avatar:focus {
+    box-shadow: 0 0 0 2px #ffb300;
+}
+@media (max-width: 900px) {
+    .navbar-avatar {
+        width: 32px;
+        height: 32px;
+        margin-left: 0;
+    }
+    .nav-item.dropdown {
+        width: 100%;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+    }
+    .navbar-avatar {
+        margin: 0 auto;
+        display: block;
+        float: none;
+    }
+    .dropdown-menu {
+        left: 50% !important;
+        transform: translateX(-50%) !important;
+        right: auto !important;
+        min-width: 140px;
+    }
+}
