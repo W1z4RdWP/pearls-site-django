@@ -2,7 +2,7 @@
 
 set -e  # Прервать выполнение при ошибке
 
-git pill
+git pull
 
 source .venv/bin/activate # Активация виртуального окружения
 cd myproject # Переход в директорию проекта
