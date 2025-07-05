@@ -24,7 +24,7 @@ from django.conf.urls.static import static
 from django.views.decorators.cache import cache_page
 from debug_toolbar.toolbar import debug_toolbar_urls
 from myapp import views
-from myapp.views import page_not_found_view
+from myapp.views import page_not_found_view, PrivacyPolicyView
 from users import views as user_views
 from quizzes.models import Answer
 
@@ -48,6 +48,7 @@ urlpatterns = [
     path('i18n/', include('django.conf.urls.i18n')),
     path('ckeditor5/', include('django_ckeditor_5.urls')),
     path('changelog/', views.ChangelogListView.as_view(), name='changelog'),
+    path('privacy-policy/', PrivacyPolicyView.as_view(), name='privacy_policy'),
     path('error_found/', views.page_not_found_view, {'exception': Answer.MultipleObjectsReturned}, name='error')
 ]
 

@@ -1,0 +1,260 @@
+{% extends 'layout.html' %}
+
+{% block title %}Политика конфиденциальности{% endblock %}
+
+{% block specific_styles %}
+<style>
+    .privacy-container {
+        max-width: 800px;
+        margin: 0 auto;
+        padding: 2rem;
+        background: #fff;
+        border-radius: 15px;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+        margin-top: 2rem;
+        margin-bottom: 2rem;
+    }
+
+    .privacy-header {
+        text-align: center;
+        margin-bottom: 3rem;
+        padding-bottom: 2rem;
+        border-bottom: 2px solid #f0f0f0;
+    }
+
+    .privacy-header h1 {
+        color: #2c3e50;
+        font-size: 2.5rem;
+        font-weight: 700;
+        margin-bottom: 1rem;
+        font-family: 'Onest', sans-serif;
+    }
+
+    .privacy-header p {
+        color: #7f8c8d;
+        font-size: 1.1rem;
+        margin: 0;
+    }
+
+    .privacy-section {
+        margin-bottom: 2.5rem;
+        animation: fadeInUp 0.6s ease-out;
+    }
+
+    .privacy-section h2 {
+        color: #34495e;
+        font-size: 1.8rem;
+        font-weight: 600;
+        margin-bottom: 1rem;
+        padding-bottom: 0.5rem;
+        border-bottom: 2px solid #3498db;
+        font-family: 'Onest', sans-serif;
+    }
+
+    .privacy-section h3 {
+        color: #2c3e50;
+        font-size: 1.4rem;
+        font-weight: 600;
+        margin: 1.5rem 0 1rem 0;
+        font-family: 'Onest', sans-serif;
+    }
+
+    .privacy-section p {
+        color: #555;
+        line-height: 1.8;
+        margin-bottom: 1rem;
+        font-size: 1rem;
+    }
+
+    .privacy-section ul {
+        margin: 1rem 0;
+        padding-left: 2rem;
+    }
+
+    .privacy-section li {
+        color: #555;
+        line-height: 1.8;
+        margin-bottom: 0.5rem;
+    }
+
+    .highlight-box {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 1.5rem;
+        border-radius: 10px;
+        margin: 2rem 0;
+        box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
+    }
+
+    .highlight-box h3 {
+        color: white;
+        margin-top: 0;
+        border-bottom: none;
+    }
+
+    .contact-info {
+        background: #f8f9fa;
+        border-left: 4px solid #3498db;
+        padding: 1.5rem;
+        border-radius: 0 10px 10px 0;
+        margin: 2rem 0;
+    }
+
+    .contact-info h3 {
+        color: #2c3e50;
+        margin-top: 0;
+        border-bottom: none;
+    }
+
+    .contact-info p {
+        margin-bottom: 0.5rem;
+    }
+
+    .contact-info a {
+        color: #3498db;
+        text-decoration: none;
+        font-weight: 500;
+    }
+
+    .contact-info a:hover {
+        text-decoration: underline;
+    }
+
+    .last-updated {
+        text-align: center;
+        color: #7f8c8d;
+        font-style: italic;
+        margin-top: 3rem;
+        padding-top: 2rem;
+        border-top: 1px solid #ecf0f1;
+    }
+
+    @keyframes fadeInUp {
+        from {
+            opacity: 0;
+            transform: translateY(30px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    @media (max-width: 768px) {
+        .privacy-container {
+            margin: 1rem;
+            padding: 1.5rem;
+        }
+
+        .privacy-header h1 {
+            font-size: 2rem;
+        }
+
+        .privacy-section h2 {
+            font-size: 1.5rem;
+        }
+
+        .privacy-section h3 {
+            font-size: 1.2rem;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="privacy-container">
+    <div class="privacy-header">
+        <h1>Политика конфиденциальности</h1>
+        <p>Защита ваших персональных данных — наш приоритет</p>
+    </div>
+
+    <div class="privacy-section">
+        <h2>1. Общие положения</h2>
+        <p>Настоящая Политика конфиденциальности описывает, как мы собираем, используем и защищаем вашу персональную информацию при использовании нашего образовательного портала "Территория улыбки".</p>
+        <p>Используя наш сайт, вы соглашаетесь с условиями данной политики конфиденциальности.</p>
+    </div>
+
+    <div class="privacy-section">
+        <h2>2. Сбор информации</h2>
+        <h3>2.1 Персональные данные</h3>
+        <p>Мы собираем следующие виды персональной информации:</p>
+        <ul>
+            <li>Имя и фамилия</li>
+            <li>Адрес электронной почты</li>
+            <li>Номер телефона (при необходимости)</li>
+            <li>Профессиональная информация (должность, место работы)</li>
+            <li>Фотография профиля (по желанию)</li>
+        </ul>
+
+        <h3>2.2 Автоматически собираемые данные</h3>
+        <p>При посещении нашего сайта мы автоматически собираем:</p>
+        <ul>
+            <li>IP-адрес и геолокацию</li>
+            <li>Тип браузера и операционной системы</li>
+            <li>Страницы, которые вы посещаете</li>
+            <li>Время, проведенное на сайте</li>
+            <li>Источник перехода на сайт</li>
+        </ul>
+    </div>
+
+    <div class="privacy-section">
+        <h2>3. Использование информации</h2>
+        <p>Собранная информация используется для:</p>
+        <ul>
+            <li>Предоставления образовательных услуг</li>
+            <li>Персонализации контента и рекомендаций</li>
+            <li>Улучшения качества наших услуг</li>
+            <li>Связи с пользователями по важным вопросам</li>
+            <li>Анализа использования сайта</li>
+            <li>Предотвращения мошенничества и обеспечения безопасности</li>
+        </ul>
+    </div>
+
+    <div class="highlight-box">
+        <h3>Ваши права</h3>
+        <p>Вы имеете право на доступ, исправление, удаление и ограничение обработки ваших персональных данных. Для реализации этих прав свяжитесь с нами.</p>
+    </div>
+
+    <div class="privacy-section">
+        <h2>4. Безопасность данных</h2>
+        <p>Мы принимаем все необходимые меры для защиты ваших персональных данных:</p>
+        <ul>
+            <li>Используем шифрование данных при передаче</li>
+            <li>Регулярно обновляем системы безопасности</li>
+            <li>Ограничиваем доступ к персональным данным</li>
+            <li>Проводим регулярные аудиты безопасности</li>
+        </ul>
+    </div>
+
+    <div class="privacy-section">
+        <h2>5. Передача данных третьим лицам</h2>
+        <p>Мы не продаем, не обмениваем и не передаем ваши персональные данные третьим лицам, за исключением случаев:</p>
+        <ul>
+            <li>Когда это необходимо для предоставления услуг</li>
+            <li>По требованию закона</li>
+            <li>С вашего явного согласия</li>
+        </ul>
+    </div>
+
+    <div class="privacy-section">
+        <h2>6. Файлы cookie</h2>
+        <p>Наш сайт использует файлы cookie для улучшения пользовательского опыта. Вы можете отключить cookies в настройках вашего браузера, но это может повлиять на функциональность сайта.</p>
+    </div>
+
+    <div class="contact-info">
+        <h3>Контакты для вопросов о конфиденциальности</h3>
+        <p><strong>Email:</strong> <a href="mailto:privacy@smileterritory.ru">privacy@smileterritory.ru</a></p>
+        <p><strong>Телефон:</strong> <a href="tel:+78452725552">+7 (906) 307-43-32</a></p>
+        <p><strong>Адрес:</strong> г. Саратов, ул. Огородная, 144/146</p>
+    </div>
+
+    <div class="privacy-section">
+        <h2>7. Изменения в политике конфиденциальности</h2>
+        <p>Мы оставляем за собой право вносить изменения в данную политику конфиденциальности. О любых существенных изменениях мы будем уведомлять вас по электронной почте или через уведомления на сайте.</p>
+    </div>
+
+    <div class="last-updated">
+        <p>Последнее обновление: {{ current_date|date:"d.m.Y" }}</p>
+    </div>
+</div>
+{% endblock %} 
