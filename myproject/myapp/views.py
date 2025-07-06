@@ -3,6 +3,7 @@ from django.http import HttpResponse, HttpRequest
 from django.views.generic import TemplateView, ListView
 from .models import Course, UserCourse, ChangeLog
 from courses.models import Course as CourseModel
+from datetime import date
 
 class IndexView(TemplateView):
     """Класс представление домашней страницы
@@ -54,3 +55,13 @@ class ChangelogListView(ListView):
 
     def get_queryset(self):
         return ChangeLog.objects.filter(is_public=True)
+
+class PrivacyPolicyView(TemplateView):
+    """Класс представление страницы политики конфиденциальности"""
+    template_name = 'privacy_policy.html'
+
+    def get_context_data(self, **kwargs):
+        """Добавляет текущую дату в контекст шаблона"""
+        context = super().get_context_data(**kwargs)
+        context['current_date'] = date.today()
+        return context
