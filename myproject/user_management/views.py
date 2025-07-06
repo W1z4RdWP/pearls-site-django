@@ -103,9 +103,9 @@ class UserUpdateView(UpdateView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         if self.request.POST:
-            context['profile_form'] = UserProfileForm(self.request.POST, self.request.FILES, instance=self.object.profile)
+            context['profile_form'] = UserProfileForm(self.request.POST, self.request.FILES, instance=self.object.profile, user_instance=self.object)
         else:
-            context['profile_form'] = UserProfileForm(instance=self.object.profile)
+            context['profile_form'] = UserProfileForm(instance=self.object.profile, user_instance=self.object)
         context['readonly'] = getattr(self, 'readonly', False)
         return context
 
@@ -113,7 +113,7 @@ class UserUpdateView(UpdateView):
         if getattr(self, 'readonly', False):
             raise PermissionDenied("Недостаточно прав для редактирования этого пользователя.")
         response = super().form_valid(form)
-        profile_form = UserProfileForm(self.request.POST, self.request.FILES, instance=self.object.profile)
+        profile_form = UserProfileForm(self.request.POST, self.request.FILES, instance=self.object.profile, user_instance=self.object)
         if profile_form.is_valid():
             profile_form.save()
         return response
