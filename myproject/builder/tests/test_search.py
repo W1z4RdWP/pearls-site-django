@@ -45,4 +45,46 @@ class SearchTreeAjaxTest(TestCase):
         self.assertEqual(resp.status_code, 200)
         data = resp.json()
         self.assertEqual(data['categories'], [])
-        self.assertEqual(data['lessons'], []) 
+        self.assertEqual(data['lessons'], [])
+    
+    def test_search_regular_user(self):
+        """Тест что обычные пользователи (не staff) могут использовать поиск"""
+        # Создаем обычного пользователя
+        User = get_user_model()
+        regular_user = User.objects.create_user(username='user', password='123', is_staff=False)
+        self.client.login(username='user', password='123')
+        
+        # Проверяем что поиск работает
+        resp = self.client.get('/builder/search/', {'query': 'back'})
+        self.assertEqual(resp.status_code, 200)
+        data = resp.json()
+        self.assertIn(self.cat1.id, data['categories'])
+    
+    def test_search_unauthenticated_user(self):
+        """Тест что неаутентифицированные пользователи не могут использовать поиск"""
+        self.client.logout()
+        
+        resp = self.client.get('/builder/search/', {'query': 'back'})
+        self.assertEqual(resp.status_code, 302)  # Редирект на страницу входа
+    
+    def test_search_lessons_in_categories(self):
+        """Тест поиска уроков в категориях"""
+        resp = self.client.get('/builder/search/', {'query': 'django'})
+        self.assertEqual(resp.status_code, 200)
+        data = resp.json()
+        self.assertIn(self.lesson1.id, data['lessons'])
+        self.assertNotIn(self.lesson2.id, data['lessons'])
+    
+    def test_search_uncategorized_lessons(self):
+        """Тест поиска уроков без категории"""
+        resp = self.client.get('/builder/search/', {'query': 'категории'})
+        self.assertEqual(resp.status_code, 200)
+        data = resp.json()
+        self.assertIn(self.lesson3.id, data['lessons'])
+    
+    def test_search_partial_match(self):
+        """Тест частичного совпадения в поиске"""
+        resp = self.client.get('/builder/search/', {'query': 'basics'})
+        self.assertEqual(resp.status_code, 200)
+        data = resp.json()
+        self.assertIn(self.lesson1.id, data['lessons']) 

@@ -18,7 +18,7 @@
     {% if category.lessons.all %}
         <ul class="lesson-list" style='display: none;'>
             {% for lesson in category.lessons.all %}
-                <li>
+                <li class="lesson-li" data-lesson-id="{{ lesson.id }}">
                     {% if not is_readonly %}
                         <input type="radio" class="lesson-select" value="{{ lesson.id }}" style="display: none;">
                     {% endif %}
