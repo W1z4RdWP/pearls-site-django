@@ -112,7 +112,7 @@
     color: #bbb;
 }
 .category-header.open .toggle-arrow {
-    color: #4d7cff;
+    color: #0dcaf0;
 }
 
 .category-block > .lesson-list,
@@ -409,7 +409,7 @@ label {
 
 .category-header.open .toggle-arrow {
     transform: rotate(90deg);
-    color: #4d7cff;
+    color: #0dcaf0;
 }
 
 /* --- Адаптивность --- */

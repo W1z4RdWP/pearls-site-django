@@ -616,6 +616,7 @@ def ajax_paste(request):
                     order=max_order + 1
                 )
                 result = {'id': new_lesson.id, 'title': new_lesson.title}
+                # Не очищаем буфер при copy
             else:  # cut
                 # Перемещаем урок
                 if target_category:
