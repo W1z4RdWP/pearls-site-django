@@ -1,6 +1,6 @@
 from django.contrib import admin
 from django import forms
-from .models import Course, Lesson, UserLessonTrajectory
+from .models import Course, Lesson, UserLessonTrajectory, Trajectory, TrajectoryCourse, UserCourseTrajectory
 
 class LessonInlineForm(forms.ModelForm):
     class Meta:
@@ -56,6 +56,37 @@ class UserLessonTrajectoryAdmin(admin.ModelAdmin):
     def get_lessons_count(self, obj):
         return obj.lessons.count()
     get_lessons_count.short_description = 'Кол-во уроков'
+
+class TrajectoryCourseInline(admin.TabularInline):
+    model = TrajectoryCourse
+    extra = 1
+    autocomplete_fields = ['course']
+    ordering = ['order']
+    fields = ['course', 'order']
+    verbose_name = "Курс в траектории"
+    verbose_name_plural = "Курсы в траектории"
+
+@admin.register(Trajectory)
+class TrajectoryAdmin(admin.ModelAdmin):
+    list_display = ('name', 'description')
+    search_fields = ('name',)
+    filter_horizontal = ('groups',)
+    inlines = [TrajectoryCourseInline]
+    autocomplete_fields = ['groups']
+
+@admin.register(UserCourseTrajectory)
+class UserCourseTrajectoryAdmin(admin.ModelAdmin):
+    list_display = ('user', 'trajectory', 'current_course', 'completed', 'started_at')
+    list_filter = ('trajectory', 'completed')
+    search_fields = ('user__username', 'trajectory__name')
+    autocomplete_fields = ['user', 'trajectory', 'current_course']
+
+@admin.register(TrajectoryCourse)
+class TrajectoryCourseAdmin(admin.ModelAdmin):
+    list_display = ('trajectory', 'course', 'order')
+    list_filter = ('trajectory',)
+    search_fields = ('trajectory__name', 'course__title')
+    autocomplete_fields = ['trajectory', 'course']
 
 
 

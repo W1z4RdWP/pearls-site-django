@@ -513,7 +513,12 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
         }
         fetch('/builder/search/?query=' + encodeURIComponent(q))
-            .then(r => r.json())
+            .then(r => {
+                if (!r.ok) {
+                    throw new Error(`HTTP ${r.status}: ${r.statusText}`);
+                }
+                return r.json();
+            })
             .then(data => {
                 const catIds = new Set((data.categories||[]).map(String));
                 const lessonIds = new Set((data.lessons||[]).map(String));
@@ -536,21 +541,39 @@ document.addEventListener('DOMContentLoaded', function() {
                 // Показать совпавшие уроки
                 lessonIds.forEach(id => {
                     // В категориях
-                    const li = document.querySelector(`.lesson-select[value='${id}']`);
-                    if (li) {
-                        const lessonLi = li.closest('li');
-                        if (lessonLi) lessonLi.style.display = '';
-                        // Показать родителей
-                        let parent = lessonLi?.parentElement;
+                    let lessonLi = null;
+                    const lessonSelect = document.querySelector(`.lesson-select[value='${id}']`);
+                    if (lessonSelect) {
+                        lessonLi = lessonSelect.closest('li');
+                    } else {
+                        lessonLi = document.querySelector(`.lesson-li[data-lesson-id='${id}']`);
+                    }
+                    if (lessonLi) {
+                        lessonLi.style.display = '';
+                        // Показать родительский список уроков
+                        const lessonList = lessonLi.closest('.lesson-list');
+                        if (lessonList) {
+                            lessonList.style.display = 'block';
+                        }
+                        // Показать родителей (категории)
+                        let parent = lessonLi.parentElement;
                         while (parent && !parent.classList.contains('category-list')) {
-                            if (parent.classList.contains('category-block')) parent.style.display = '';
+                            if (parent.classList.contains('category-block')) {
+                                parent.style.display = '';
+                            }
                             parent = parent.parentElement;
                         }
                     }
-                    // В корне
+                    // В корне (уроки без категории)
                     const rootLi = document.querySelector(`.category-block[data-id='uncat-${id}']`);
                     if (rootLi) rootLi.style.display = '';
                 });
+            })
+            .catch(error => {
+                console.error('Ошибка поиска:', error);
+                // При ошибке показываем все элементы
+                allCatBlocks.forEach(el => el.style.display = '');
+                document.querySelectorAll('.lesson-list li').forEach(el => el.style.display = '');
             });
     });
 

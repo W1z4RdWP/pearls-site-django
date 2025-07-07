@@ -1,3 +1,7 @@
+// Show password functionality
+// This file is required for password change forms
+console.log('Show password JS loaded');
+
 // --- Показ/скрытие пароля ---
 document.addEventListener('DOMContentLoaded', function() {
     const passwordInputs = document.querySelectorAll('input[type="password"], input[type="text"][name*="password"]');
