@@ -70,4 +70,8 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     }
-}); 
+});
+
+// Phone field functionality
+// This file is required for user management forms
+console.log('Phone field JS loaded'); 
