@@ -7,15 +7,61 @@ from django.db import transaction, models
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.views.decorators.http import require_POST, require_http_methods
 from .forms import CourseForm, LessonForm
-from .models import Course, Lesson, UserLessonTrajectory
+from .models import Course, Lesson, UserLessonTrajectory, Trajectory, UserCourseTrajectory, TrajectoryCourse
 from myapp.models import UserProgress, UserCourse, QuizResult
 from myapp.views import is_admin, is_author_or_admin
 import logging
 from builder.models import CategoryName
 from django.contrib.auth import get_user_model
+from django.utils.decorators import method_decorator
 
 logger = logging.getLogger(__name__)
 audit_logger = logging.getLogger('audit')
+
+@method_decorator(login_required, name='dispatch')
+class UserCourseTrajectoryDetailView(DetailView):
+    """
+    Деталка по траектории пользователя: показывает прогресс по курсам в траектории.
+    """
+    model = UserCourseTrajectory
+    template_name = 'courses/user_course_trajectory_detail.html'
+    context_object_name = 'user_trajectory'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        user_trajectory: UserCourseTrajectory = self.object
+        trajectory_courses = TrajectoryCourse.objects.filter(trajectory=user_trajectory.trajectory).order_by('order')
+        user_courses = {uc.course_id: uc for uc in user_trajectory.user.started_courses.all()}
+        progress = []
+        all_completed = True
+        for tc in trajectory_courses:
+            uc = user_courses.get(tc.course_id)
+            if not (uc and uc.status == 'completed'):
+                all_completed = False
+            progress.append({
+                'course': tc.course,
+                'order': tc.order,
+                'user_course': uc,
+                'available': self._is_course_available(user_trajectory, tc, user_courses)
+            })
+        # --- автоапдейт статуса и опыта ---
+        if all_completed and not user_trajectory.completed:
+            user_trajectory.completed = True
+            user_trajectory.save(update_fields=['completed'])
+        context['trajectory_progress'] = progress
+        return context
+
+    def _is_course_available(self, user_trajectory, tc, user_courses):
+        """
+        Курс доступен, если он первый в траектории или предыдущий завершён.
+        """
+        if tc.order == 1:
+            return True
+        prev_tc = TrajectoryCourse.objects.filter(trajectory=tc.trajectory, order=tc.order-1).first()
+        if not prev_tc:
+            return True
+        prev_uc = user_courses.get(prev_tc.course_id)
+        return prev_uc and prev_uc.status == 'completed'
 
 class CourseDetailView(DetailView):
     model = Course
@@ -25,6 +71,19 @@ class CourseDetailView(DetailView):
 
     def get(self, request, *args, **kwargs):
         self.object = self.get_object()
+        # --- Блокировка доступа к курсу вне очереди траектории ---
+        user = request.user
+        if user.is_authenticated:
+            user_trajectories = UserCourseTrajectory.objects.filter(user=user, trajectory__courses=self.object)
+            for ut in user_trajectories:
+                tc = TrajectoryCourse.objects.filter(trajectory=ut.trajectory, course=self.object).first()
+                if tc and tc.order > 1:
+                    prev_tc = TrajectoryCourse.objects.filter(trajectory=ut.trajectory, order=tc.order-1).first()
+                    if prev_tc:
+                        from myapp.models import UserCourse
+                        prev_uc = UserCourse.objects.filter(user=user, course=prev_tc.course).first()
+                        if not prev_uc or prev_uc.status != 'completed':
+                            return render(request, 'courses/course_access_denied.html', {'course': self.object, 'reason': 'Курс недоступен. Сначала завершите предыдущий курс в траектории.'})
         return self.render_to_response(self.get_context_data())
 
     def post(self, request, *args, **kwargs):
@@ -66,6 +125,7 @@ class CourseDetailView(DetailView):
         trajectory = None
         show_final_quiz = False
         show_completion_animation = False
+        exp_earned = None
         
         # Аудит
         audit_logger.info(
@@ -178,6 +238,10 @@ class CourseDetailView(DetailView):
                     show_completion_animation = True
                     user_course.course_complete_animation_shown = True
                     user_course.save(update_fields=['course_complete_animation_shown'])
+                    # --- вычисляем опыт для модалки ---
+                    exp_earned = 150
+                    if course.final_quiz:
+                        exp_earned = int(exp_earned * 1.1)
             else:
                 # Для статуса 'available' используем все уроки курса
                 lessons = course.lessons.all()
@@ -196,7 +260,7 @@ class CourseDetailView(DetailView):
             'next_lesson': next_lesson,
             'all_completed': all_completed,
             'show_completion_animation': show_completion_animation,
-            'exp_earned': user_course.exp_reward() if user_course and user_course.status == 'completed' else 0,
+            'exp_earned': exp_earned,
             'lessons': lessons,
             'show_final_quiz': show_final_quiz,
         })
@@ -534,5 +598,23 @@ def complete_course(request, course_id):
         user_course.is_completed = True
         user_course.save()
         return redirect('course_detail', slug=course.slug)
+    
+
+@method_decorator(login_required, name='dispatch')
+class UserCourseTrajectoryListView(ListView):
+    """
+    Список всех траекторий пользователя.
+    """
+    model = UserCourseTrajectory
+    template_name = 'courses/user_course_trajectory_list.html'
+    context_object_name = 'user_trajectories'
+
+    def get_queryset(self):
+        return UserCourseTrajectory.objects.filter(user=self.request.user).select_related('trajectory')
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['user'] = self.request.user
+        return context
     
 

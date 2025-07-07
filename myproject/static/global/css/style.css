@@ -731,11 +731,8 @@ main > section > .text-block-2 {
 /* ---- */
 
 
-#id_image_helptext{
-    color: whitesmoke;
-}
 
-
+#id_image_helptext, #id_allowed_groups_helptext,
 #id_video_id_helptext{
     color: var(--text-color);
 }

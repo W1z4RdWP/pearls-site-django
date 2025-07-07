@@ -14,8 +14,8 @@ class UserProfileForm(forms.ModelForm):
         self.fields['middle_name'].required = False
         self.fields['date_of_birth'].required = False
         self.fields['phone_number'].required = True
-        self.fields['image'].required = True
-        self.fields['is_approved'].required = True
+        self.fields['image'].required = False
+        self.fields['is_approved'].required = False
         self.fields['bio'].required = False
 
     def save(self, commit=True):

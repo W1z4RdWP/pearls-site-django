@@ -422,8 +422,6 @@ def ajax_search_tree(request):
     GET/POST: query
     Возвращает: {'categories': [id, ...], 'lessons': [id, ...]}
     """
-    if not (request.user.is_staff or request.user.is_superuser):
-        return JsonResponse({'error': 'forbidden'}, status=403)
     q = request.GET.get('query') or request.POST.get('query')
     if not q:
         return JsonResponse({'categories': [], 'lessons': []})
@@ -618,6 +616,7 @@ def ajax_paste(request):
                     order=max_order + 1
                 )
                 result = {'id': new_lesson.id, 'title': new_lesson.title}
+                # Не очищаем буфер при copy
             else:  # cut
                 # Перемещаем урок
                 if target_category:

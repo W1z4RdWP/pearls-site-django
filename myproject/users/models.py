@@ -52,8 +52,26 @@ class Profile(models.Model):
                 
         return f'Учётная запись {self.user.username}'
     
-
-
+    @property
+    def exp(self) -> int:
+        """
+        Динамически считает опыт пользователя:
+        +150 за каждый завершённый курс (+10% если есть финальный тест)
+        +500 за каждую завершённую траекторию
+        """
+        from myapp.models import UserCourse
+        from courses.models import UserCourseTrajectory
+        exp = 0
+        # Курсы
+        for uc in UserCourse.objects.filter(user=self.user, status='completed'):
+            base = 150
+            if getattr(uc.course, 'final_quiz', None):
+                base = int(base * 1.1)
+            exp += base
+        # Траектории
+        for ut in UserCourseTrajectory.objects.filter(user=self.user, completed=True):
+            exp += 500
+        return exp
 
 @receiver(post_save, sender=User)
 def create_profile(sender: Any, instance: User, created: bool, **kwargs: Any) -> None:

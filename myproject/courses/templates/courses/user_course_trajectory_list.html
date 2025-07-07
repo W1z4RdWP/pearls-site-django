@@ -1,0 +1,58 @@
+{% extends 'layout.html' %}
+{% load static %}
+
+{% block specific_styles %}
+<link rel="stylesheet" href="{% static 'courses/css/trajectory_list.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h1>Список ваших траекторий</h1>
+    {% if user_trajectories %}
+        <div class="row">
+            {% for ut in user_trajectories %}
+            <div class="col-md-6 col-lg-4 mb-4">
+                <div class="card trajectory-card">
+                    <div class="card-body">
+                        <h4 class="card-title">{{ ut.trajectory.name }}</h4>
+                        <p class="card-text text-muted">{{ ut.trajectory.description|default:'Без описания' }}</p>
+                        <ul class="list-unstyled mb-2">
+                            <li><b>Статус:</b> {% if ut.completed %}<span class="badge bg-success">Завершена</span>{% else %}<span class="badge bg-primary">В процессе</span>{% endif %}</li>
+                            <li><b>Дата назначения:</b> {{ ut.started_at|date:"d.m.Y H:i" }}</li>
+                        </ul>
+                        <a href="{% url 'user_course_trajectory_detail' ut.pk %}" class="btn btn-modern w-100">Перейти к траектории</a>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <div class="alert alert-info">Вам не назначено ни одной траектории. Обратитесь к администрации.</div>
+    {% endif %}
+</div>
+<style>
+.trajectory-card {
+    border-radius: 16px;
+    box-shadow: 0 2px 12px rgba(60,60,60,0.08);
+    transition: box-shadow 0.2s;
+}
+.trajectory-card:hover {
+    box-shadow: 0 4px 24px rgba(60,60,60,0.16);
+}
+.btn-modern {
+    background: linear-gradient(90deg, #43e97b 0%, #38f9d7 100%);
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    padding: 10px 24px;
+    font-weight: 500;
+    font-size: 1.1em;
+    transition: background 0.2s, box-shadow 0.2s;
+}
+.btn-modern:hover {
+    background: linear-gradient(90deg, #38f9d7 0%, #43e97b 100%);
+    box-shadow: 0 4px 16px rgba(67,233,123,0.12);
+    color: #fff;
+}
+</style>
+{% endblock %} 

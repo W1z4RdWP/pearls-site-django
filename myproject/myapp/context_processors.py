@@ -4,7 +4,10 @@ def get_changelog(request):
     """
     Возвращает список изменений для отображения в шаблонах.
     """
-    latest_version = ChangeLog.objects.latest('version').version
+    try:
+        latest_version = ChangeLog.objects.latest('version').version
+    except ChangeLog.DoesNotExist:
+        latest_version = None
 
     return {
         'changelog': ChangeLog.objects.all(),

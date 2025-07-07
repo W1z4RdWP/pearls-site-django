@@ -1,5 +1,5 @@
 from django import forms
-from .models import Course, Lesson, UserLessonTrajectory
+from .models import Course, Lesson, UserLessonTrajectory, Trajectory, UserCourseTrajectory
 from django_ckeditor_5.fields import CKEditor5Widget
 from captcha.fields import CaptchaField
 import re
@@ -95,3 +95,27 @@ class UserLessonTrajectoryForm(forms.ModelForm):
                         f"Урок '{lesson.title}' не принадлежит выбранному курсу."
                     )
         return cleaned_data
+
+class TrajectoryForm(forms.ModelForm):
+    """
+    Форма для создания/редактирования траектории курсов.
+    """
+    class Meta:
+        model = Trajectory
+        fields = ['name', 'description', 'groups', 'courses']
+        widgets = {
+            'groups': forms.SelectMultiple(attrs={'class': 'form-select'}),
+            'courses': forms.SelectMultiple(attrs={'class': 'form-select'}),
+        }
+
+class UserCourseTrajectoryForm(forms.ModelForm):
+    """
+    Форма для индивидуальной траектории пользователя.
+    """
+    class Meta:
+        model = UserCourseTrajectory
+        fields = ['user', 'trajectory', 'current_course', 'completed']
+        widgets = {
+            'trajectory': forms.Select(attrs={'class': 'form-select'}),
+            'current_course': forms.Select(attrs={'class': 'form-select'}),
+        }

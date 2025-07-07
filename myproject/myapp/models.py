@@ -56,27 +56,6 @@ class UserCourse(models.Model):
             models.Index(fields=['status']),
         ]
 
-    
-    def is_final_quiz_passed(self):
-        if self.course.final_quiz:
-            return QuizResult.objects.filter(
-                user=self.user,
-                quiz_title=self.course.final_quiz.name,
-                passed=True
-            ).exists()
-        return True  # Если теста нет, считаем что "пройдено"
-
-    def can_receive_exp(self):
-        # Опыт можно получить только если курс завершён и (если есть тест) тест пройден
-        return self.status == 'completed' and self.is_final_quiz_passed()
-
-    def exp_reward(self):
-        base_exp = 150
-        if self.course.final_quiz:
-            return int(base_exp * 1.1)  # +10%
-        return base_exp
-
-
     def save(self, *args, **kwargs):
         """Устанавливаем end_date только при первом завершении курса"""
         if self.status == 'completed' and not self.end_date:

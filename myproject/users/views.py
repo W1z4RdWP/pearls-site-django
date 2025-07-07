@@ -68,7 +68,7 @@ def profile(request: HttpRequest) -> HttpResponse:
     started_courses = UserCourse.objects.filter(user=user).select_related('course')
     unfinished_courses = []
     finished_courses = []
-    exp = 0
+    exp = profile.exp
     level = 1
     quiz_results = QuizResult.objects.filter(user=request.user).order_by('-completed_at')
     # Пагинация для истории тестов
@@ -125,18 +125,9 @@ def profile(request: HttpRequest) -> HttpResponse:
             course_data['quiz_passed'] = quiz_passed
 
         if percent == 100:
-            user_course_obj = UserCourse.objects.get(user=user, course=course)
-            if user_course_obj.can_receive_exp():
-                finished_courses.append(course_data)
-                exp += user_course_obj.exp_reward()
-            else:
-                unfinished_courses.append(course_data)
-                if user_course_obj.status == 'started':
-                    exp += 15
+            finished_courses.append(course_data)
         else:
             unfinished_courses.append(course_data)
-            if user_course.status == 'started':
-                exp += 15
 
         # Обновляем флаг завершения всех уроков
         all_lessons_completed = (percent == 100) or all_lessons_completed

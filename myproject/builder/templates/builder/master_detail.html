@@ -24,42 +24,46 @@
             </div>
             <input type="text" id="tree-search-input" class="search-input" placeholder="Поиск по категориям и урокам..." style="width:90%;margin:0 5% 12px 5%;padding:6px 12px;border-radius:6px;border:1px solid #444;background:#232323;color:#fff;outline:none;">
             <div id="categories-block">
-                <ul class="category-list">
-                    {% for category in categories %}
-                        {% include "builder/category_tree.html" with category=category selected_lesson=selected_lesson is_readonly=is_readonly %}
-                    {% endfor %}
-                </ul>
+                <div class="category-scroll">
+                    <ul class="category-list">
+                        {% for category in categories %}
+                            {% include "builder/category_tree.html" with category=category selected_lesson=selected_lesson is_readonly=is_readonly %}
+                        {% endfor %}
+                    </ul>
+                </div>
             </div>
             <div id="uncategorized-block" style="display:none;">
-                <ul class="category-list">
-                    {% for lesson in uncategorized_lessons %}
-                    <li class="category-block" data-id="uncat-{{ lesson.id }}">
-                        <div class="category-header">
-                            {% if not is_readonly %}
-                                <input type="radio" class="lesson-select" value="{{ lesson.id }}" style="display: none;">
-                            {% endif %}
-                            <span class="lesson-icon" style="margin-right: 8px; display: flex; align-items: center;">
-                                <svg width="16" height="16" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                    <rect x="4" y="3" width="12" height="14" rx="2" fill="#222" stroke="#bbb" stroke-width="1.2"/>
-                                    <line x1="6.5" y1="7.5" x2="13.5" y2="7.5" stroke="#bbb" stroke-width="1.1"/>
-                                    <line x1="6.5" y1="10.5" x2="13.5" y2="10.5" stroke="#bbb" stroke-width="1.1"/>
-                                    <line x1="6.5" y1="13.5" x2="11.5" y2="13.5" stroke="#bbb" stroke-width="1.1"/>
-                                </svg>
-                            </span>
-                            <a href="{% url 'builder:lesson_detail' lesson.id %}"
-                               class="lesson-link {% if selected_lesson and lesson.id == selected_lesson.id %}active{% endif %}">
-                                {{ lesson.title }}
-                            </a>
-                        </div>
-                    </li>
-                    {% endfor %}
-                </ul>
+                <div class="category-scroll">
+                    <ul class="category-list">
+                        {% for lesson in uncategorized_lessons %}
+                        <li class="category-block" data-id="uncat-{{ lesson.id }}">
+                            <div class="category-header">
+                                {% if not is_readonly %}
+                                    <input type="radio" class="lesson-select" value="{{ lesson.id }}" style="display: none;">
+                                {% endif %}
+                                <span class="lesson-icon" style="margin-right: 8px; display: flex; align-items: center;">
+                                    <svg width="16" height="16" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                        <rect x="4" y="3" width="12" height="14" rx="2" fill="#222" stroke="#bbb" stroke-width="1.2"/>
+                                        <line x1="6.5" y1="7.5" x2="13.5" y2="7.5" stroke="#bbb" stroke-width="1.1"/>
+                                        <line x1="6.5" y1="10.5" x2="13.5" y2="10.5" stroke="#bbb" stroke-width="1.1"/>
+                                        <line x1="6.5" y1="13.5" x2="11.5" y2="13.5" stroke="#bbb" stroke-width="1.1"/>
+                                    </svg>
+                                </span>
+                                <a href="{% url 'builder:lesson_detail' lesson.id %}"
+                                   class="lesson-link {% if selected_lesson and lesson.id == selected_lesson.id %}active{% endif %}">
+                                    {{ lesson.title }}
+                                </a>
+                            </div>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                </div>
             </div>
             <!-- Новый блок действий -->
             {% if not is_readonly %}
                 <div id="category-actions-block" style="display: flex; gap: 8px; margin: 18px 32px 0 32px;">
                     <button id="add-root-category" title="Добавить корневую категорию">+|</button>
-                    <button id="add-subcategory" title="Добавить подкатегорию/документ">+</button>
+                    <button id="add-subcategory" title="Добавить подкатегорию">+</button>
                     <button id="edit-category" title="Изменить название">v</button>
                     <button id="delete-category" title="Удалить">x</button>
                     <button id="add-lesson" title="Добавить урок">📄</button>
