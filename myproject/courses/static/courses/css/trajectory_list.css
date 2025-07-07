@@ -1,0 +1,104 @@
+/* Стили для списка траекторий */
+
+.trajectory-card {
+    border-radius: 16px;
+    box-shadow: 0 2px 12px rgba(60,60,60,0.08);
+    transition: box-shadow 0.2s;
+}
+
+.trajectory-card:hover {
+    box-shadow: 0 4px 24px rgba(60,60,60,0.16);
+}
+
+.btn-modern {
+    background: linear-gradient(90deg, #43e97b 0%, #38f9d7 100%);
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    padding: 10px 24px;
+    font-weight: 500;
+    font-size: 1.1em;
+    transition: background 0.2s, box-shadow 0.2s;
+}
+
+.btn-modern:hover {
+    background: linear-gradient(90deg, #38f9d7 0%, #43e97b 100%);
+    box-shadow: 0 4px 16px rgba(67,233,123,0.12);
+    color: #fff;
+}
+
+/* Стили для детальной страницы траектории */
+.trajectory-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+}
+
+.trajectory-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: #f8f9fa;
+    border-radius: 12px;
+    padding: 18px 24px;
+    box-shadow: 0 2px 8px rgba(60,60,60,0.06);
+    transition: box-shadow 0.2s, background 0.2s;
+}
+
+.trajectory-item.completed {
+    background: linear-gradient(90deg, #43e97b 0%, #38f9d7 100%);
+    color: #fff;
+}
+
+.trajectory-item.available {
+    background: linear-gradient(90deg, #ffb347 0%, #ffcc33 100%);
+    color: #333;
+}
+
+.trajectory-item.locked {
+    background: #e9ecef;
+    color: #aaa;
+    opacity: 0.7;
+}
+
+.trajectory-course-title {
+    font-size: 1.15em;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.trajectory-course-title .order {
+    font-size: 1.1em;
+    color: #888;
+}
+
+.trajectory-course-status {
+    margin-right: 18px;
+}
+
+.trajectory-completed-anim {
+    margin-top: 32px;
+    text-align: center;
+    animation: pop-in 0.7s cubic-bezier(.68,-0.55,.27,1.55) both;
+}
+
+@keyframes pop-in {
+    0% { transform: scale(0.7); opacity: 0; }
+    100% { transform: scale(1); opacity: 1; }
+}
+
+@media (max-width: 600px) {
+    .trajectory-item { 
+        flex-direction: column; 
+        align-items: flex-start; 
+        gap: 8px; 
+    }
+    .trajectory-course-status { 
+        margin-right: 0; 
+    }
+} 
