@@ -24,11 +24,13 @@
             </div>
             <input type="text" id="tree-search-input" class="search-input" placeholder="Поиск по категориям и урокам..." style="width:90%;margin:0 5% 12px 5%;padding:6px 12px;border-radius:6px;border:1px solid #444;background:#232323;color:#fff;outline:none;">
             <div id="categories-block">
-                <ul class="category-list">
-                    {% for category in categories %}
-                        {% include "builder/category_tree.html" with category=category selected_lesson=selected_lesson is_readonly=is_readonly %}
-                    {% endfor %}
-                </ul>
+                <div class="category-scroll">
+                    <ul class="category-list">
+                        {% for category in categories %}
+                            {% include "builder/category_tree.html" with category=category selected_lesson=selected_lesson is_readonly=is_readonly %}
+                        {% endfor %}
+                    </ul>
+                </div>
             </div>
             <div id="uncategorized-block" style="display:none;">
                 <ul class="category-list">
