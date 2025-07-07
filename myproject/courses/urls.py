@@ -1,5 +1,6 @@
 from django.urls import path
 from . import views as course_views
+from .views import UserCourseTrajectoryDetailView, UserCourseTrajectoryListView
 
 urlpatterns = [
     path('', course_views.CourseDetailView.as_view(), name='course-detail'),
@@ -14,5 +15,7 @@ urlpatterns = [
     path('course/<slug:course_slug>/lesson/<int:lesson_id>/complete/', course_views.complete_lesson, name='complete_lesson'),
     path('course/<slug:slug>/edit/', course_views.edit_course, name='edit_course'),
     path('lesson/<int:lesson_id>/edit/', course_views.edit_lesson, name='edit_lesson'),
-    path('course/<slug:course_slug>/redir_to_quiz/', course_views.redir_to_quiz, name='redir_to_quiz')
+    path('course/<slug:course_slug>/redir_to_quiz/', course_views.redir_to_quiz, name='redir_to_quiz'),
+    path('trajectory/<int:pk>/', UserCourseTrajectoryDetailView.as_view(), name='user_course_trajectory_detail'),
+    path('trajectories/', UserCourseTrajectoryListView.as_view(), name='user_course_trajectory_list'),
 ]
