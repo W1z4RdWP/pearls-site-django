@@ -765,6 +765,7 @@ def ajax_paste(request):
                 )
                 result = {'id': new_lesson.id, 'title': new_lesson.title}
                 # Не очищаем буфер при copy
+                return JsonResponse({'ok': True, 'result': result})
             else:  # cut
                 # Перемещаем урок
                 if target_category:
@@ -777,7 +778,7 @@ def ajax_paste(request):
                 result = {'id': lesson.id, 'title': lesson.title}
                 # Очищаем буфер после вырезания
                 del request.session['clipboard']
-            return JsonResponse({'ok': True, 'result': result})
+                return JsonResponse({'ok': True, 'result': result})
         except Lesson.DoesNotExist:
             return JsonResponse({'error': 'lesson not found'}, status=404)
     elif item_type == 'category':
