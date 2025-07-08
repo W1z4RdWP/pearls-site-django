@@ -15,6 +15,8 @@ from django.db.models import Max, Q
 from django.db import transaction
 from django.views.decorators.http import require_POST
 import json
+from myapp.models import UserCourse
+from courses.models import UserLessonTrajectory
 
 
 def get_category_tree_data(category_id):
@@ -132,6 +134,51 @@ def get_category_descendants(category_id):
     return descendants
 
 
+def filter_categories_and_lessons_for_user(user, categories, uncategorized_lessons):
+    """
+    Фильтрует дерево категорий и список уроков без категории для read-only пользователя,
+    чтобы показывать только те уроки, которые входят в доступные для пользователя курсы.
+    Если у пользователя есть траектория по курсу — показываются только уроки из траектории.
+    """
+    # Получаем все курсы, доступные пользователю
+    user_courses = UserCourse.objects.filter(user=user).select_related('course')
+    allowed_courses = [uc.course for uc in user_courses if uc.status in ['available', 'started', 'completed']]
+    allowed_course_ids = set(c.id for c in allowed_courses)
+
+    # Собираем все разрешённые уроки (с учётом траекторий)
+    allowed_lesson_ids = set()
+    for course in allowed_courses:
+        trajectory = UserLessonTrajectory.objects.filter(user=user, course=course).first()
+        if trajectory:
+            allowed_lesson_ids.update(trajectory.lessons.values_list('id', flat=True))
+        else:
+            allowed_lesson_ids.update(course.lessons.values_list('id', flat=True))
+
+    # Фильтруем уроки без категории
+    filtered_uncat = uncategorized_lessons.filter(id__in=allowed_lesson_ids)
+
+    # Рекурсивно фильтруем дерево категорий
+    def filter_category(cat):
+        # Фильтруем уроки в категории
+        filtered_lessons = cat.lessons.filter(id__in=allowed_lesson_ids)
+        # Рекурсивно фильтруем подкатегории
+        filtered_subcats = [filter_category(subcat) for subcat in cat.subcategories.all()]
+        # Оставляем только те подкатегории, где есть уроки или подкатегории с уроками
+        filtered_subcats = [sc for sc in filtered_subcats if sc is not None]
+        if filtered_lessons.exists() or filtered_subcats:
+            cat.filtered_lessons = filtered_lessons
+            cat.filtered_subcategories = filtered_subcats
+            return cat
+        return None
+
+    filtered_categories = []
+    for cat in categories:
+        filtered = filter_category(cat)
+        if filtered:
+            filtered_categories.append(filtered)
+    return filtered_categories, filtered_uncat
+
+
 @method_decorator(login_required(login_url='/login/'), name='dispatch')
 class LessonMasterDetailView(TemplateView):
     template_name = 'builder/master_detail.html'
@@ -145,11 +192,19 @@ class LessonMasterDetailView(TemplateView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         categories = CategoryName.objects.filter(parent__isnull=True).prefetch_related('subcategories', 'lessons')
-        context['categories'] = categories
-
-        # Уроки без категории
         uncategorized_lessons = Lesson.objects.filter(category__isnull=True)
-        context['uncategorized_lessons'] = uncategorized_lessons
+        user = self.request.user
+        is_readonly = not (user.is_staff or user.is_superuser)
+        context['is_readonly'] = is_readonly
+
+        if is_readonly:
+            # Фильтруем дерево и уроки для read-only
+            filtered_categories, filtered_uncat = filter_categories_and_lessons_for_user(user, categories, uncategorized_lessons)
+            context['categories'] = filtered_categories
+            context['uncategorized_lessons'] = filtered_uncat
+        else:
+            context['categories'] = categories
+            context['uncategorized_lessons'] = uncategorized_lessons
 
         pk = self.kwargs.get('pk')
         if pk:
@@ -157,16 +212,16 @@ class LessonMasterDetailView(TemplateView):
         else:
             # Выбираем первый урок из категорий или из uncategorized
             first_lesson = None
-            for cat in categories:
-                if cat.lessons.exists():
-                    first_lesson = cat.lessons.first()
+            cats = context['categories']
+            # Для read-only: ищем по filtered_lessons, иначе обычный lessons
+            for cat in cats:
+                lessons = getattr(cat, 'filtered_lessons', cat.lessons)
+                if lessons.exists():
+                    first_lesson = lessons.first()
                     break
-            if not first_lesson and uncategorized_lessons.exists():
-                first_lesson = uncategorized_lessons.first()
+            if not first_lesson and context['uncategorized_lessons'].exists():
+                first_lesson = context['uncategorized_lessons'].first()
             context['selected_lesson'] = first_lesson
-        # Добавляем флаг только для чтения
-        user = self.request.user
-        context['is_readonly'] = not (user.is_staff or user.is_superuser)
         return context
 
 
