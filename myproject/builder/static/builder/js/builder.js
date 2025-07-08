@@ -478,6 +478,7 @@ document.addEventListener('DOMContentLoaded', function() {
             })
             .then(html => {
                 document.getElementById('detail').innerHTML = html;
+                initVersionHistoryDropdown(); // <-- добавлено!
             })
             .catch(e => {
                 alert('Ошибка загрузки урока: ' + e.message);
@@ -829,3 +830,32 @@ document.addEventListener('DOMContentLoaded', function() {
     // Инициализация буфера обмена
     checkClipboard();
 });
+
+function initVersionHistoryDropdown() {
+    const versionBtn = document.getElementById('version-history-btn');
+    const versionDropdown = document.getElementById('version-history-dropdown');
+    if (versionBtn && versionDropdown) {
+        versionBtn.onclick = function(e) {
+            versionDropdown.style.display = versionDropdown.style.display === 'none' ? 'block' : 'none';
+        };
+        document.addEventListener('click', function handler(e) {
+            if (!versionBtn.contains(e.target) && !versionDropdown.contains(e.target)) {
+                versionDropdown.style.display = 'none';
+                document.removeEventListener('click', handler);
+            }
+        });
+        versionDropdown.querySelectorAll('.version-item').forEach(function(item) {
+            item.onclick = function() {
+                document.querySelector('h2').textContent = item.dataset.title;
+                document.getElementById('lesson-content-block').innerHTML = item.dataset.content;
+                if (item.dataset.video) {
+                    document.getElementById('lesson-video-block').innerHTML = `<h5>Видео урок:</h5><iframe width="560" height="315" src="https://rutube.ru/play/embed/${item.dataset.video}" frameborder="0" allowfullscreen></iframe>`;
+                } else {
+                    const vblock = document.getElementById('lesson-video-block');
+                    if (vblock) vblock.innerHTML = '';
+                }
+                versionDropdown.style.display = 'none';
+            };
+        });
+    }
+}
