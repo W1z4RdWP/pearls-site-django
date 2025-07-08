@@ -65,6 +65,22 @@ class UserCourse(models.Model):
     def __str__(self):
         return f"{self.user.username} - {self.course.title} ({self.get_status_display()})"
     
+    def can_receive_exp(self) -> bool:
+        """
+        Всегда False, т.к. exp теперь считается динамически и не начисляется вручную.
+        Оставлено для обратной совместимости с шаблонами/старым кодом.
+        """
+        return False
+
+    def exp_reward(self) -> int:
+        """
+        Возвращает количество опыта за этот курс: 150 (+10% если есть финальный тест).
+        """
+        base = 150
+        if getattr(self.course, 'final_quiz', None):
+            base = int(base * 1.1)
+        return base
+
 
 class QuizResult(models.Model):
     """
