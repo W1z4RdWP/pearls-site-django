@@ -20,6 +20,15 @@
         </div>
         <a href="{% url 'user_management:user_list' %}" class="um-btn um-btn-secondary">← Назад к списку</a>
     </div>
+    <div class="um-progress-level-block">
+        <div class="um-progress-level-info">
+            <span class="um-progress-level">Уровень: <b>{{ level }}</b></span>
+            <span class="um-progress-exp">Опыт: <b>{{ exp }}</b></span>
+        </div>
+        <div class="um-progress-level-bar">
+            <div class="um-progress-level-bar-inner" style="width: {{ progress }}%;"></div>
+        </div>
+    </div>
 
     <!-- Общая статистика -->
     <div class="um-progress-overview">
