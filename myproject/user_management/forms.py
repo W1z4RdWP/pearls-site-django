@@ -12,6 +12,7 @@ class UserProfileForm(forms.ModelForm):
             self.fields['first_name'] = forms.CharField(label='Имя', required=True)
             self.fields['last_name'] = forms.CharField(label='Фамилия', required=True)
         self.fields['middle_name'].required = False
+        self.fields['role'].required = False
         self.fields['date_of_birth'].required = False
         self.fields['phone_number'].required = True
         self.fields['image'].required = False
@@ -31,7 +32,7 @@ class UserProfileForm(forms.ModelForm):
 
     class Meta:
         model = Profile
-        fields = ['middle_name', 'date_of_birth', 'phone_number', 'image', 'bio', 'is_approved']
+        fields = ['middle_name', 'role', 'date_of_birth', 'phone_number', 'image', 'bio', 'is_approved']
         widgets = {
             'date_of_birth': forms.DateInput(attrs={'type': 'date'}),
         }

@@ -117,6 +117,33 @@ document.addEventListener('DOMContentLoaded', function() {
         return checked ? checked.value : null;
     }
 
+    // === МОДАЛКА ПОДТВЕРЖДЕНИЯ СОЗДАНИЯ КАТЕГОРИИ ===
+    function showCategoryCreateConfirm({onYes, onNo}) {
+        let modal = document.getElementById('category-create-confirm-modal');
+        if (!modal) {
+            modal = document.createElement('div');
+            modal.id = 'category-create-confirm-modal';
+            modal.innerHTML = `
+            <div style="position:fixed;z-index:99999;left:0;top:0;width:100vw;height:100vh;background:rgba(0,0,0,0.35);display:flex;align-items:center;justify-content:center;">
+                <div style="background:#232a3a;color:#fff;padding:32px 32px 24px 32px;border-radius:12px;box-shadow:0 2px 16px #0007;min-width:320px;max-width:90vw;text-align:center;">
+                    <div style="font-size:1.15em;margin-bottom:18px;">Вы хотите создать категорию?</div>
+                    <div style="display:flex;gap:18px;justify-content:center;">
+                        <button id="cat-create-yes" style="padding:8px 24px;font-size:1em;border-radius:6px;border:none;background:#4d7cff;color:#fff;cursor:pointer;">Да</button>
+                        <button id="cat-create-no" style="padding:8px 24px;font-size:1em;border-radius:6px;border:none;background:#444;color:#fff;cursor:pointer;">Нет</button>
+                    </div>
+                </div>
+            </div>`;
+            document.body.appendChild(modal);
+        } else {
+            modal.style.display = '';
+        }
+        function cleanup() {
+            modal.style.display = 'none';
+        }
+        modal.querySelector('#cat-create-yes').onclick = function() { cleanup(); onYes && onYes(); };
+        modal.querySelector('#cat-create-no').onclick = function() { cleanup(); onNo && onNo(); };
+    }
+
     // --- Inline-добавление корневой категории ---
     document.getElementById('add-root-category')?.addEventListener('click', function() {
         // Если уже есть инпут — не дублируем
@@ -162,7 +189,13 @@ document.addEventListener('DOMContentLoaded', function() {
             if (e.key === 'Enter') submit();
             if (e.key === 'Escape') li.remove();
         });
-        input.addEventListener('blur', function() { setTimeout(() => li && li.remove(), 200); });
+        input.addEventListener('blur', function() {
+            if (!input.value.trim()) { li && li.remove(); return; }
+            showCategoryCreateConfirm({
+                onYes: submit,
+                onNo: function() { li && li.remove(); }
+            });
+        });
     });
 
     // --- Inline-добавление подкатегории ---
@@ -223,7 +256,13 @@ document.addEventListener('DOMContentLoaded', function() {
             if (e.key === 'Enter') submit();
             if (e.key === 'Escape') li.remove();
         });
-        input.addEventListener('blur', function() { setTimeout(() => li && li.remove(), 200); });
+        input.addEventListener('blur', function() {
+            if (!input.value.trim()) { li && li.remove(); return; }
+            showCategoryCreateConfirm({
+                onYes: submit,
+                onNo: function() { li && li.remove(); }
+            });
+        });
     });
 
     // v — редактировать выделенную категорию или урок

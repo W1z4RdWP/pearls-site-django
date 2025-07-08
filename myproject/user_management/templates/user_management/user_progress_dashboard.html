@@ -13,6 +13,7 @@
             <div class="um-progress-user-details">
                 <h1 class="um-progress-user-name">{{ target_user.get_full_name|default:target_user.username }}</h1>
                 <p class="um-progress-user-email">{{ target_user.email }}</p>
+                <p class="um-progress-user-role">{{ target_user.profile.role }}</p>
                 <p class="um-progress-user-groups">
                     Группы: {% for group in target_user.groups.all %}{{ group.name }}{% if not forloop.last %}, {% endif %}{% endfor %}
                 </p>

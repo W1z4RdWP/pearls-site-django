@@ -6,9 +6,9 @@ from django.contrib.auth.decorators import login_required, permission_required
 from django.utils.decorators import method_decorator
 from django.views.generic import ListView, CreateView, UpdateView, DeleteView, FormView
 from django.urls import reverse_lazy, reverse
-from .models import CategoryName, Document, Incident
+from .models import CategoryName, Document, Incident, LessonVersion
 from django.core.exceptions import PermissionDenied
-from .forms import DocumentForm, IncidentForm
+from .forms import DocumentForm, IncidentForm, LessonUpdateControlForm
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.db.models import Max, Q
@@ -17,6 +17,8 @@ from django.views.decorators.http import require_POST
 import json
 from myapp.models import UserCourse
 from courses.models import UserLessonTrajectory
+from .models import LessonUpdateControl
+from django.utils import timezone
 
 
 def get_category_tree_data(category_id):
@@ -208,7 +210,10 @@ class LessonMasterDetailView(TemplateView):
 
         pk = self.kwargs.get('pk')
         if pk:
-            context['selected_lesson'] = Lesson.objects.get(pk=pk)
+            selected_lesson = Lesson.objects.get(pk=pk)
+            context['selected_lesson'] = selected_lesson
+            # --- История версий ---
+            context['lesson_versions'] = selected_lesson.versions.order_by('-version')
         else:
             # Выбираем первый урок из категорий или из uncategorized
             first_lesson = None
@@ -222,6 +227,7 @@ class LessonMasterDetailView(TemplateView):
             if not first_lesson and context['uncategorized_lessons'].exists():
                 first_lesson = context['uncategorized_lessons'].first()
             context['selected_lesson'] = first_lesson
+            context['lesson_versions'] = first_lesson.versions.order_by('-version') if first_lesson else []
         return context
 
 
@@ -264,6 +270,15 @@ class LessonCreateView(CreateView):
             max_order = Lesson.objects.filter(category__isnull=True).aggregate(Max('order'))['order__max'] or 0
         lesson.order = max_order + 1
         lesson.save()
+        # --- Создаём первую версию ---
+        LessonVersion.objects.create(
+            lesson=lesson,
+            version=1,
+            title=lesson.title,
+            content=lesson.content,
+            video_id=lesson.video_id,
+            updated_by=self.request.user
+        )
         return super().form_valid(form)
 
 
@@ -277,6 +292,22 @@ class LessonUpdateView(UpdateView):
         if not request.user.is_authenticated or not (request.user.is_staff or request.user.is_superuser):
             return render(request, '403.html', status=403)
         return super().dispatch(request, *args, **kwargs)
+
+    def form_valid(self, form):
+        response = super().form_valid(form)
+        lesson = self.object
+        # --- Определяем следующий номер версии ---
+        last_version = LessonVersion.objects.filter(lesson=lesson).order_by('-version').first()
+        next_version = (last_version.version + 1) if last_version else 1
+        LessonVersion.objects.create(
+            lesson=lesson,
+            version=next_version,
+            title=lesson.title,
+            content=lesson.content,
+            video_id=lesson.video_id,
+            updated_by=self.request.user
+        )
+        return response
 
 
 class LessonDeleteView(DeleteView):
@@ -404,6 +435,55 @@ class IncidentCreateView(CreateView):
     form_class = IncidentForm
     template_name = 'builder/incident_form.html'
     success_url = '/builder/incidents/'
+
+class LessonUpdateControlCreateView(CreateView):
+    model = LessonUpdateControl
+    form_class = LessonUpdateControlForm
+    template_name = 'builder/lesson_update_control_form.html'
+
+    def dispatch(self, request, *args, **kwargs):
+        if not request.user.is_authenticated or not (request.user.is_staff or request.user.is_superuser):
+            return render(request, '403.html', status=403)
+        return super().dispatch(request, *args, **kwargs)
+
+    def get_initial(self):
+        initial = super().get_initial()
+        lesson_id = self.kwargs.get('lesson_id')
+        lesson = get_object_or_404(Lesson, pk=lesson_id)
+        # Определяем номер версии
+        last = LessonUpdateControl.objects.filter(lesson=lesson).order_by('-version_number').first()
+        next_version = (last.version_number + 1) if last else 1
+        today = timezone.now().date()
+        initial['update_date'] = today
+        initial['standard_period'] = 180
+        initial['next_update_date'] = today + timezone.timedelta(days=initial['standard_period'])
+        initial['period_between_updates'] = (today - last.update_date).days if last else 0
+        initial['responsible_fio'] = self.request.user.get_full_name() or self.request.user.username
+        # Можно добавить определение роли
+        return initial
+
+    def form_valid(self, form):
+        lesson_id = self.kwargs.get('lesson_id')
+        lesson = get_object_or_404(Lesson, pk=lesson_id)
+        last = LessonUpdateControl.objects.filter(lesson=lesson).order_by('-version_number').first()
+        next_version = (last.version_number + 1) if last else 1
+        form.instance.lesson = lesson
+        form.instance.version_number = next_version
+        if not form.instance.period_between_updates:
+            form.instance.period_between_updates = (form.instance.update_date - last.update_date).days if last else 0
+        if not form.instance.responsible_fio:
+            form.instance.responsible_fio = self.request.user.get_full_name() or self.request.user.username
+        return super().form_valid(form)
+
+    def get_success_url(self):
+        return reverse('builder:lesson_detail', args=[self.object.lesson.id])
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        lesson_id = self.kwargs.get('lesson_id')
+        context['lesson'] = get_object_or_404(Lesson, pk=lesson_id)
+        return context
+
 
 @csrf_exempt
 @login_required
