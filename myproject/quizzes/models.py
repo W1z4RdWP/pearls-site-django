@@ -35,6 +35,9 @@ class Question(models.Model):
   class Meta:
     verbose_name = "Вопрос"
     verbose_name_plural = "Вопросы"
+    indexes = [
+        models.Index(fields=['quiz'], name='question_quiz_idx'),
+    ]
 
   def __str__(self):
     return f"Вопрос {self.text} из теста: {self.quiz}"
@@ -47,6 +50,9 @@ class Answer(models.Model):
   class Meta:
     verbose_name = "Ответ"
     verbose_name_plural = "Ответы"
+    indexes = [
+        models.Index(fields=['question'], name='answer_question_idx'),
+    ]
 
   def __str__(self):
     return f"Ответ к вопросу: {self.question}"

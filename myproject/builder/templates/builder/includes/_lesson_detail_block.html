@@ -1,0 +1,25 @@
+{% if lesson %}
+    <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+        <h2 style="margin-bottom: 0;">{{ lesson.title }}</h2>
+        {# Можно добавить блок истории версий, если нужно #}
+    </div>
+    <div class="lesson-content" id="lesson-content-block">
+        {{ lesson.content|safe|default:"Нет содержимого." }}
+    </div>
+    {% if lesson.video_id %}
+        <div class="lesson-video mt-4" id="lesson-video-block">
+            <h5>Видео урок:</h5>
+            <iframe width="560" height="315" src="https://rutube.ru/play/embed/{{ lesson.video_id }}" frameborder="0" allowfullscreen></iframe>
+        </div>
+    {% endif %}
+    <div class="lesson-nav mt-4" style="display:flex;gap:16px;">
+        {% if previous_lesson %}
+            <a href="?lesson_id={{ previous_lesson.id }}" class="btn btn-outline-secondary">← {{ previous_lesson.title }}</a>
+        {% endif %}
+        {% if next_lesson %}
+            <a href="?lesson_id={{ next_lesson.id }}" class="btn btn-outline-secondary">{{ next_lesson.title }} →</a>
+        {% endif %}
+    </div>
+{% else %}
+    <p>Выберите урок для просмотра.</p>
+{% endif %} 

@@ -4,6 +4,7 @@ from django.urls import reverse
 
 from . import views
 from .views import DashboardView
+from .views import LessonUpdateControlCreateView
 
 app_name = 'builder'
 
@@ -32,4 +33,8 @@ urlpatterns = [
     path('cut/', views.ajax_cut, name='cut'),
     path('paste/', views.ajax_paste, name='paste'),
     path('clipboard/', views.ajax_get_clipboard, name='get_clipboard'),
+]
+
+urlpatterns += [
+    path('lesson/<int:lesson_id>/update_control/new/', LessonUpdateControlCreateView.as_view(), name='lesson_update_control_create'),
 ]

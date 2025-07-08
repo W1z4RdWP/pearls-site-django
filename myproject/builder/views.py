@@ -6,15 +6,19 @@ from django.contrib.auth.decorators import login_required, permission_required
 from django.utils.decorators import method_decorator
 from django.views.generic import ListView, CreateView, UpdateView, DeleteView, FormView
 from django.urls import reverse_lazy, reverse
-from .models import CategoryName, Document, Incident
+from .models import CategoryName, Document, Incident, LessonVersion
 from django.core.exceptions import PermissionDenied
-from .forms import DocumentForm, IncidentForm
+from .forms import DocumentForm, IncidentForm, LessonUpdateControlForm
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.db.models import Max, Q
 from django.db import transaction
 from django.views.decorators.http import require_POST
 import json
+from myapp.models import UserCourse
+from courses.models import UserLessonTrajectory
+from .models import LessonUpdateControl
+from django.utils import timezone
 
 
 def get_category_tree_data(category_id):
@@ -132,6 +136,51 @@ def get_category_descendants(category_id):
     return descendants
 
 
+def filter_categories_and_lessons_for_user(user, categories, uncategorized_lessons):
+    """
+    Фильтрует дерево категорий и список уроков без категории для read-only пользователя,
+    чтобы показывать только те уроки, которые входят в доступные для пользователя курсы.
+    Если у пользователя есть траектория по курсу — показываются только уроки из траектории.
+    """
+    # Получаем все курсы, доступные пользователю
+    user_courses = UserCourse.objects.filter(user=user).select_related('course')
+    allowed_courses = [uc.course for uc in user_courses if uc.status in ['available', 'started', 'completed']]
+    allowed_course_ids = set(c.id for c in allowed_courses)
+
+    # Собираем все разрешённые уроки (с учётом траекторий)
+    allowed_lesson_ids = set()
+    for course in allowed_courses:
+        trajectory = UserLessonTrajectory.objects.filter(user=user, course=course).first()
+        if trajectory:
+            allowed_lesson_ids.update(trajectory.lessons.values_list('id', flat=True))
+        else:
+            allowed_lesson_ids.update(course.lessons.values_list('id', flat=True))
+
+    # Фильтруем уроки без категории
+    filtered_uncat = uncategorized_lessons.filter(id__in=allowed_lesson_ids)
+
+    # Рекурсивно фильтруем дерево категорий
+    def filter_category(cat):
+        # Фильтруем уроки в категории
+        filtered_lessons = cat.lessons.filter(id__in=allowed_lesson_ids)
+        # Рекурсивно фильтруем подкатегории
+        filtered_subcats = [filter_category(subcat) for subcat in cat.subcategories.all()]
+        # Оставляем только те подкатегории, где есть уроки или подкатегории с уроками
+        filtered_subcats = [sc for sc in filtered_subcats if sc is not None]
+        if filtered_lessons.exists() or filtered_subcats:
+            cat.filtered_lessons = filtered_lessons
+            cat.filtered_subcategories = filtered_subcats
+            return cat
+        return None
+
+    filtered_categories = []
+    for cat in categories:
+        filtered = filter_category(cat)
+        if filtered:
+            filtered_categories.append(filtered)
+    return filtered_categories, filtered_uncat
+
+
 @method_decorator(login_required(login_url='/login/'), name='dispatch')
 class LessonMasterDetailView(TemplateView):
     template_name = 'builder/master_detail.html'
@@ -145,29 +194,54 @@ class LessonMasterDetailView(TemplateView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         categories = CategoryName.objects.filter(parent__isnull=True).prefetch_related('subcategories', 'lessons')
-        context['categories'] = categories
-
-        # Уроки без категории
         uncategorized_lessons = Lesson.objects.filter(category__isnull=True)
-        context['uncategorized_lessons'] = uncategorized_lessons
+        user = self.request.user
+        is_readonly = not (user.is_staff or user.is_superuser)
+        context['is_readonly'] = is_readonly
+
+        if is_readonly:
+            # Фильтруем дерево и уроки для read-only
+            filtered_categories, filtered_uncat = filter_categories_and_lessons_for_user(user, categories, uncategorized_lessons)
+            context['categories'] = filtered_categories
+            context['uncategorized_lessons'] = filtered_uncat
+        else:
+            context['categories'] = categories
+            context['uncategorized_lessons'] = uncategorized_lessons
 
         pk = self.kwargs.get('pk')
         if pk:
-            context['selected_lesson'] = Lesson.objects.get(pk=pk)
+            selected_lesson = Lesson.objects.get(pk=pk)
+            context['selected_lesson'] = selected_lesson
+            # --- История версий ---
+            context['lesson_versions'] = selected_lesson.versions.order_by('-version')
         else:
             # Выбираем первый урок из категорий или из uncategorized
             first_lesson = None
-            for cat in categories:
-                if cat.lessons.exists():
-                    first_lesson = cat.lessons.first()
+            cats = context['categories']
+            # Для read-only: ищем по filtered_lessons, иначе обычный lessons
+            for cat in cats:
+                lessons = getattr(cat, 'filtered_lessons', cat.lessons)
+                if lessons.exists():
+                    first_lesson = lessons.first()
                     break
-            if not first_lesson and uncategorized_lessons.exists():
-                first_lesson = uncategorized_lessons.first()
+            if not first_lesson and context['uncategorized_lessons'].exists():
+                first_lesson = context['uncategorized_lessons'].first()
             context['selected_lesson'] = first_lesson
-        # Добавляем флаг только для чтения
-        user = self.request.user
-        context['is_readonly'] = not (user.is_staff or user.is_superuser)
+            context['lesson_versions'] = first_lesson.versions.order_by('-version') if first_lesson else []
         return context
+
+    def get(self, request, *args, **kwargs):
+        context = self.get_context_data(**kwargs)
+        if request.GET.get('ajax') == '1':
+            from django.template.loader import render_to_string
+            from django.http import HttpResponse
+            # detail-блок для AJAX: передаём lesson=selected_lesson, lesson_versions
+            return HttpResponse(render_to_string('builder/includes/_lesson_detail_block.html', {
+                'lesson': context.get('selected_lesson'),
+                'lesson_versions': context.get('lesson_versions'),
+                'is_readonly': context.get('is_readonly'),
+            }, request=request))
+        return self.render_to_response(context)
 
 
 class LessonCreateView(CreateView):
@@ -209,6 +283,15 @@ class LessonCreateView(CreateView):
             max_order = Lesson.objects.filter(category__isnull=True).aggregate(Max('order'))['order__max'] or 0
         lesson.order = max_order + 1
         lesson.save()
+        # --- Создаём первую версию ---
+        LessonVersion.objects.create(
+            lesson=lesson,
+            version=1,
+            title=lesson.title,
+            content=lesson.content,
+            video_id=lesson.video_id,
+            updated_by=self.request.user
+        )
         return super().form_valid(form)
 
 
@@ -222,6 +305,22 @@ class LessonUpdateView(UpdateView):
         if not request.user.is_authenticated or not (request.user.is_staff or request.user.is_superuser):
             return render(request, '403.html', status=403)
         return super().dispatch(request, *args, **kwargs)
+
+    def form_valid(self, form):
+        response = super().form_valid(form)
+        lesson = self.object
+        # --- Определяем следующий номер версии ---
+        last_version = LessonVersion.objects.filter(lesson=lesson).order_by('-version').first()
+        next_version = (last_version.version + 1) if last_version else 1
+        LessonVersion.objects.create(
+            lesson=lesson,
+            version=next_version,
+            title=lesson.title,
+            content=lesson.content,
+            video_id=lesson.video_id,
+            updated_by=self.request.user
+        )
+        return response
 
 
 class LessonDeleteView(DeleteView):
@@ -349,6 +448,55 @@ class IncidentCreateView(CreateView):
     form_class = IncidentForm
     template_name = 'builder/incident_form.html'
     success_url = '/builder/incidents/'
+
+class LessonUpdateControlCreateView(CreateView):
+    model = LessonUpdateControl
+    form_class = LessonUpdateControlForm
+    template_name = 'builder/lesson_update_control_form.html'
+
+    def dispatch(self, request, *args, **kwargs):
+        if not request.user.is_authenticated or not (request.user.is_staff or request.user.is_superuser):
+            return render(request, '403.html', status=403)
+        return super().dispatch(request, *args, **kwargs)
+
+    def get_initial(self):
+        initial = super().get_initial()
+        lesson_id = self.kwargs.get('lesson_id')
+        lesson = get_object_or_404(Lesson, pk=lesson_id)
+        # Определяем номер версии
+        last = LessonUpdateControl.objects.filter(lesson=lesson).order_by('-version_number').first()
+        next_version = (last.version_number + 1) if last else 1
+        today = timezone.now().date()
+        initial['update_date'] = today
+        initial['standard_period'] = 180
+        initial['next_update_date'] = today + timezone.timedelta(days=initial['standard_period'])
+        initial['period_between_updates'] = (today - last.update_date).days if last else 0
+        initial['responsible_fio'] = self.request.user.get_full_name() or self.request.user.username
+        # Можно добавить определение роли
+        return initial
+
+    def form_valid(self, form):
+        lesson_id = self.kwargs.get('lesson_id')
+        lesson = get_object_or_404(Lesson, pk=lesson_id)
+        last = LessonUpdateControl.objects.filter(lesson=lesson).order_by('-version_number').first()
+        next_version = (last.version_number + 1) if last else 1
+        form.instance.lesson = lesson
+        form.instance.version_number = next_version
+        if not form.instance.period_between_updates:
+            form.instance.period_between_updates = (form.instance.update_date - last.update_date).days if last else 0
+        if not form.instance.responsible_fio:
+            form.instance.responsible_fio = self.request.user.get_full_name() or self.request.user.username
+        return super().form_valid(form)
+
+    def get_success_url(self):
+        return reverse('builder:lesson_detail', args=[self.object.lesson.id])
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        lesson_id = self.kwargs.get('lesson_id')
+        context['lesson'] = get_object_or_404(Lesson, pk=lesson_id)
+        return context
+
 
 @csrf_exempt
 @login_required

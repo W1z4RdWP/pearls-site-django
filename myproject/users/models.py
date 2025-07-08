@@ -22,9 +22,8 @@ class Profile(models.Model):
     """
 
     user = models.OneToOneField(User, on_delete=models.CASCADE)
-    # first_name = models.CharField(max_length=200, blank=True, null=True, verbose_name="Имя")
-    # last_name = models.CharField(max_length=200, blank=True, null=True, verbose_name="Фамилия")
     middle_name = models.CharField(max_length=200, blank=True, null=True, verbose_name="Отчество")
+    role = models.CharField(max_length=200, blank=True, null=True, verbose_name="Должность")
     date_of_birth = models.DateField(verbose_name="Дата рождения", blank=True, null=True)
     phone_number = models.CharField(
         max_length=20,

@@ -1,0 +1,84 @@
+{% extends 'layout.html' %}
+{% load static %}
+
+{% block title %}Контроль обновлений{% endblock %}
+{% block specific_styles %}
+<link rel="stylesheet" href="{% static 'builder/css/builder_style.css' %}">
+<style>
+    .update-control-form-bg { background: #383838; min-height: 100vh; padding: 40px 0; }
+    .update-control-form-card { background: #fff; border-radius: 10px; box-shadow: 0 2px 8px #0002; padding: 32px 32px 24px 32px; max-width: 700px; margin: 0 auto; }
+    .update-control-form-card h2 { color: #232323; font-weight: 700; margin-bottom: 32px; letter-spacing: 0.5px; }
+    .update-control-form-card form label { font-weight: 600; color: #232323; margin-bottom: 6px; }
+    .update-control-form-card form input, .update-control-form-card form select, .update-control-form-card form textarea {
+        width: 100%;
+        border-radius: 6px;
+        border: 1px solid #d1d5db;
+        padding: 10px 12px;
+        margin-bottom: 18px;
+        font-size: 1.05em;
+        background: #f8f9fa;
+        transition: border 0.2s;
+    }
+    .update-control-form-card form input:focus, .update-control-form-card form select:focus, .update-control-form-card form textarea:focus {
+        border: 1.5px solid #4d7cff;
+        outline: none;
+        background: #fff;
+    }
+    .update-control-form-card .btn {
+        min-width: 120px;
+        font-size: 1.05em;
+        margin-right: 10px;
+        margin-top: 8px;
+    }
+    @media (max-width: 768px) { .update-control-form-card { padding: 18px 8px; max-width: 100%; } }
+</style>
+{% endblock %}
+{% block content %}
+<div class="update-control-form-bg">
+    <div class="update-control-form-card">
+        <h2>Контроль обновлений для урока: <span style="font-weight: 400;">{% if object %}{{ object.lesson.title }}{% else %}{{ lesson.title }}{% endif %}</span></h2>
+        <form method="post">
+            {% csrf_token %}
+            <div class="mb-3">
+                <label class="form-label">Дата создания</label>
+                <input type="text" class="form-control" value="{% if object %}{{ object.created_at|date:'d.m.Y' }}{% else %}—{% endif %}" readonly>
+            </div>
+            <div class="mb-3">
+                <label class="form-label">№ версии</label>
+                <input type="text" class="form-control" value="{% if object %}{{ object.version_number }}{% else %}—{% endif %}" readonly>
+            </div>
+            {{ form.non_field_errors }}
+            <div class="mb-3">
+                {{ form.update_date.label_tag }}
+                {{ form.update_date }}
+            </div>
+            <div class="mb-3">
+                {{ form.next_update_date.label_tag }}
+                {{ form.next_update_date }}
+            </div>
+            <div class="mb-3">
+                {{ form.period_between_updates.label_tag }}
+                {{ form.period_between_updates }}
+            </div>
+            <div class="mb-3">
+                {{ form.standard_period.label_tag }}
+                {{ form.standard_period }}
+            </div>
+            <div class="mb-3">
+                {{ form.responsible_role.label_tag }}
+                {{ form.responsible_role }}
+            </div>
+            <div class="mb-3">
+                {{ form.responsible_fio.label_tag }}
+                {{ form.responsible_fio }}
+            </div>
+            <div class="mb-3">
+                {{ form.comment.label_tag }}
+                {{ form.comment }}
+            </div>
+            <button type="submit" class="btn btn-primary">Сохранить</button>
+            <a href="{% if object %}{% url 'builder:lesson_detail' object.lesson.id %}{% else %}{% url 'builder:lesson_detail' lesson.id %}{% endif %}" class="btn btn-secondary ms-2">Отмена</a>
+        </form>
+    </div>
+</div>
+{% endblock %} 

@@ -11,7 +11,7 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 30px;
+    margin-bottom: 10px;
     padding: 20px;
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     border-radius: 12px;
@@ -715,6 +715,38 @@
 .um-btn-secondary:hover {
     background: #4b5563;
     transform: translateY(-1px);
+}
+
+.um-progress-level-block {
+    margin: 10px 0 10px 0;
+    padding: 12px 20px;
+    background: #f8f9fa;
+    color: #374151;
+    border-radius: 10px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.03);
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    max-width: 100vw;
+}
+.um-progress-level-info {
+    font-size: 1.1em;
+    margin-bottom: 8px;
+    display: flex;
+    gap: 18px;
+}
+.um-progress-level-bar {
+    width: 100%;
+    height: 8px;
+    background: #e4e7ec;
+    border-radius: 4px;
+    overflow: hidden;
+}
+.um-progress-level-bar-inner {
+    height: 100%;
+    background: linear-gradient(90deg, #4f8cff, #38d39f);
+    width: 0;
+    transition: width 0.5s;
 }
 
 /* Адаптивность */

@@ -20,6 +20,9 @@ class UserProgress(models.Model):
 
     class Meta:
         unique_together = ('user', 'lesson')
+        indexes = [
+            models.Index(fields=['user'], name='userprogress_user_idx'),
+        ]
 
     def save(self, *args, **kwargs):
         if not self.course_id:
@@ -54,6 +57,7 @@ class UserCourse(models.Model):
         verbose_name_plural = 'Курсы пользователей'
         indexes = [
             models.Index(fields=['status']),
+            models.Index(fields=['user'], name='usercourse_user_idx'),
         ]
 
     def save(self, *args, **kwargs):
@@ -65,6 +69,22 @@ class UserCourse(models.Model):
     def __str__(self):
         return f"{self.user.username} - {self.course.title} ({self.get_status_display()})"
     
+    def can_receive_exp(self) -> bool:
+        """
+        Всегда False, т.к. exp теперь считается динамически и не начисляется вручную.
+        Оставлено для обратной совместимости с шаблонами/старым кодом.
+        """
+        return False
+
+    def exp_reward(self) -> int:
+        """
+        Возвращает количество опыта за этот курс: 150 (+10% если есть финальный тест).
+        """
+        base = 150
+        if getattr(self.course, 'final_quiz', None):
+            base = int(base * 1.1)
+        return base
+
 
 class QuizResult(models.Model):
     """
@@ -92,6 +112,9 @@ class QuizResult(models.Model):
     class Meta:
         verbose_name = 'Результат теста'
         verbose_name_plural = 'Результаты тестов'
+        indexes = [
+            models.Index(fields=['user'], name='quizresult_user_idx'),
+        ]
 
     def __str__(self):
         return f"{self.user.username} - {self.quiz_title} ({self.percent}%)"
@@ -117,6 +140,12 @@ class UserAnswer(models.Model):
     is_correct = models.BooleanField()
     answer_text = models.CharField(max_length=500, blank=True, null=True)
     #text_answer = models.CharField(max_length=500, blank=True, null=True)
+
+    class Meta:
+        indexes = [
+            models.Index(fields=['user'], name='useranswer_user_idx'),
+            models.Index(fields=['quiz_result'], name='useranswer_quizresult_idx'),
+        ]
 
     def __str__(self):
         return f"{self.user.username} - {self.question.text} ({'верно' if self.is_correct else 'неверно'})"

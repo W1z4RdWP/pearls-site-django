@@ -102,6 +102,9 @@ class Lesson(models.Model):
         verbose_name = 'Урок'
         verbose_name_plural = 'Уроки'
         ordering = ['order']
+        indexes = [
+            models.Index(fields=['course', 'order'], name='lesson_course_order_idx'),
+        ]
 
     def get_previous_lesson(self):
         return Lesson.objects.filter(
@@ -133,6 +136,9 @@ class UserLessonTrajectory(models.Model):
         verbose_name = 'Траектория уроков пользователя'
         verbose_name_plural = 'Траектории уроков пользователей'
         unique_together = ('user', 'course')
+        indexes = [
+            models.Index(fields=['user', 'course'], name='ult_user_course_idx'),
+        ]
 
     def __str__(self):
         return f"Траектория {self.user.username} для {self.course.title}"
@@ -175,6 +181,9 @@ class TrajectoryCourse(models.Model):
         ordering = ['order']
         verbose_name = 'Курс в траектории'
         verbose_name_plural = 'Курсы в траектории'
+        indexes = [
+            models.Index(fields=['trajectory', 'order'], name='tc_trajectory_order_idx'),
+        ]
 
     def __str__(self) -> str:
         return f"{self.trajectory.name}: {self.course.title} (#{self.order})"
@@ -193,6 +202,9 @@ class UserCourseTrajectory(models.Model):
         unique_together = ('user', 'trajectory')
         verbose_name = 'Траектория пользователя'
         verbose_name_plural = 'Траектории пользователей'
+        indexes = [
+            models.Index(fields=['user', 'trajectory'], name='uct_user_trajectory_idx'),
+        ]
 
     def __str__(self) -> str:
         return f"{self.user.username} — {self.trajectory.name}"
