@@ -18,6 +18,9 @@ class CategoryName(models.Model):
         verbose_name = "Категория"
         verbose_name_plural = "Категории"
         ordering = ['order', 'name']
+        indexes = [
+            models.Index(fields=['parent'], name='categoryname_parent_idx'),
+        ]
 
     def __str__(self):
         full_path = [self.name]
@@ -63,6 +66,12 @@ class Incident(models.Model):
     status = models.CharField(max_length=32, choices=STATUS_CHOICES, default='new', verbose_name='Статус')
     created_at = models.DateTimeField(auto_now_add=True, verbose_name='Создан')
     updated_at = models.DateTimeField(auto_now=True, verbose_name='Обновлён')
+
+    class Meta:
+        indexes = [
+            models.Index(fields=['user'], name='incident_user_idx'),
+            models.Index(fields=['status'], name='incident_status_idx'),
+        ]
 
     def __str__(self) -> str:
         return f"{self.title} ({self.get_incident_type_display()})"
