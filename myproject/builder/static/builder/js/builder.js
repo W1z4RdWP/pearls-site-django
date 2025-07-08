@@ -700,24 +700,24 @@ document.addEventListener('DOMContentLoaded', function() {
     // Копировать
     document.getElementById('copy-menu-item').addEventListener('click', function() {
         if (!contextTarget) return;
-        
+
         let itemId, itemType;
-        if (contextTarget.classList.contains('category-block')) {
-            // Если это блок категории, то это категория
-            itemType = 'category';
-            itemId = contextTarget.dataset.id;
-        } else if (contextTarget.querySelector('.lesson-link')) {
-            // Если это урок (не категория)
-            itemType = 'lesson';
-            itemId = contextTarget.querySelector('.lesson-select')?.value;
-        } else if (contextTarget.dataset.id && contextTarget.dataset.id.startsWith('uncat-')) {
+        if (contextTarget.dataset.id && contextTarget.dataset.id.startsWith('uncat-')) {
             // Урок без категории
             itemType = 'lesson';
             itemId = contextTarget.dataset.id.replace('uncat-', '');
+        } else if (contextTarget.classList.contains('category-block')) {
+            // Категория
+            itemType = 'category';
+            itemId = contextTarget.dataset.id;
+        } else if (contextTarget.querySelector('.lesson-link')) {
+            // Обычный урок
+            itemType = 'lesson';
+            itemId = contextTarget.querySelector('.lesson-select')?.value;
         }
-        
+
         if (!itemId || !itemType) return;
-        
+
         fetch('/builder/copy/', {
             method: 'POST',
             headers: { 'X-CSRFToken': (document.querySelector('[name=csrfmiddlewaretoken]')||{}).value || '', 'Content-Type': 'application/json' },
@@ -735,24 +735,24 @@ document.addEventListener('DOMContentLoaded', function() {
     // Вырезать
     document.getElementById('cut-menu-item').addEventListener('click', function() {
         if (!contextTarget) return;
-        
+
         let itemId, itemType;
-        if (contextTarget.classList.contains('category-block')) {
-            // Если это блок категории, то это категория
-            itemType = 'category';
-            itemId = contextTarget.dataset.id;
-        } else if (contextTarget.querySelector('.lesson-link')) {
-            // Если это урок (не категория)
-            itemType = 'lesson';
-            itemId = contextTarget.querySelector('.lesson-select')?.value;
-        } else if (contextTarget.dataset.id && contextTarget.dataset.id.startsWith('uncat-')) {
+        if (contextTarget.dataset.id && contextTarget.dataset.id.startsWith('uncat-')) {
             // Урок без категории
             itemType = 'lesson';
             itemId = contextTarget.dataset.id.replace('uncat-', '');
+        } else if (contextTarget.classList.contains('category-block')) {
+            // Категория
+            itemType = 'category';
+            itemId = contextTarget.dataset.id;
+        } else if (contextTarget.querySelector('.lesson-link')) {
+            // Обычный урок
+            itemType = 'lesson';
+            itemId = contextTarget.querySelector('.lesson-select')?.value;
         }
-        
+
         if (!itemId || !itemType) return;
-        
+
         fetch('/builder/cut/', {
             method: 'POST',
             headers: { 'X-CSRFToken': (document.querySelector('[name=csrfmiddlewaretoken]')||{}).value || '', 'Content-Type': 'application/json' },
