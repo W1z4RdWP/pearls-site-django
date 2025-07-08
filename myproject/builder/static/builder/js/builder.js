@@ -161,6 +161,7 @@ document.addEventListener('DOMContentLoaded', function() {
         ul.prepend(li);
         const input = li.querySelector('#inline-root-cat-input');
         input.focus();
+        let enterPressed = false;
         // Обработчик подтверждения
         function submit() {
             const name = input.value.trim();
@@ -174,23 +175,20 @@ document.addEventListener('DOMContentLoaded', function() {
             .then(r => r.json())
             .then(data => {
                 if (data.error) { alert('Ошибка: ' + data.error); li.remove(); return; }
-                // Вставляем новую категорию в DOM
-                const newLi = document.createElement('li');
-                newLi.className = 'category-block';
-                newLi.setAttribute('data-id', data.id);
-                newLi.innerHTML = `<div class='category-header'><input type='radio' class='category-select' value='${data.id}' style='display: none;'><span class='category-icon folder-icon' style='margin-right: 8px; display: flex; align-items: center;'><svg width='18' height='18' viewBox='0 0 20 20' fill='none' xmlns='http://www.w3.org/2000/svg'><path d='M2 5.5A1.5 1.5 0 0 1 3.5 4h3.672a1.5 1.5 0 0 1 1.06.44l1.414 1.414A1.5 1.5 0 0 0 10.707 6H16.5A1.5 1.5 0 0 1 18 7.5v7A1.5 1.5 0 0 1 16.5 16h-13A1.5 1.5 0 0 1 2 14.5v-9z' stroke='#bbb' stroke-width='1.2' fill='#222'/></svg></span><span class='category-title'>${data.order}. ${data.name}</span></div>`;
-                ul.insertBefore(newLi, li.nextSibling);
-                initCategoryCheckboxHandlers(newLi); // навесить обработчик на новый чекбокс
-                li.remove();
+                window.location.reload();
             })
             .catch(() => { alert('Ошибка сети'); li.remove(); });
         }
         input.addEventListener('keydown', function(e) {
-            if (e.key === 'Enter') submit();
+            if (e.key === 'Enter') {
+                enterPressed = true;
+                submit();
+            }
             if (e.key === 'Escape') li.remove();
         });
         input.addEventListener('blur', function() {
             if (!input.value.trim()) { li && li.remove(); return; }
+            if (enterPressed) return;
             showCategoryCreateConfirm({
                 onYes: submit,
                 onNo: function() { li && li.remove(); }
@@ -228,6 +226,7 @@ document.addEventListener('DOMContentLoaded', function() {
         subUl.appendChild(li);
         const input = li.querySelector('#inline-subcat-input');
         input.focus();
+        let enterPressed = false;
         // Обработчик подтверждения
         function submit() {
             const name = input.value.trim();
@@ -241,23 +240,20 @@ document.addEventListener('DOMContentLoaded', function() {
             .then(r => r.json())
             .then(data => {
                 if (data.error) { alert('Ошибка: ' + data.error); li.remove(); return; }
-                // Вставляем новую подкатегорию в DOM
-                const newLi = document.createElement('li');
-                newLi.className = 'category-block';
-                newLi.setAttribute('data-id', data.id);
-                newLi.innerHTML = `<div class='category-header'><input type='radio' class='category-select' value='${data.id}' style='display: none;'><span class='category-icon folder-icon' style='margin-right: 8px; display: flex; align-items: center;'><svg width='18' height='18' viewBox='0 0 20 20' fill='none' xmlns='http://www.w3.org/2000/svg'><path d='M2 5.5A1.5 1.5 0 0 1 3.5 4h3.672a1.5 1.5 0 0 1 1.06.44l1.414 1.414A1.5 1.5 0 0 0 10.707 6H16.5A1.5 1.5 0 0 1 18 7.5v7A1.5 1.5 0 0 1 16.5 16h-13A1.5 1.5 0 0 1 2 14.5v-9z' stroke='#bbb' stroke-width='1.2' fill='#222'/></svg></span><span class='category-title'>${data.order}. ${data.name}</span></div>`;
-                subUl.insertBefore(newLi, li.nextSibling);
-                initCategoryCheckboxHandlers(newLi); // навесить обработчик на новый чекбокс
-                li.remove();
+                window.location.reload();
             })
             .catch(() => { alert('Ошибка сети'); li.remove(); });
         }
         input.addEventListener('keydown', function(e) {
-            if (e.key === 'Enter') submit();
+            if (e.key === 'Enter') {
+                enterPressed = true;
+                submit();
+            }
             if (e.key === 'Escape') li.remove();
         });
         input.addEventListener('blur', function() {
             if (!input.value.trim()) { li && li.remove(); return; }
+            if (enterPressed) return;
             showCategoryCreateConfirm({
                 onYes: submit,
                 onNo: function() { li && li.remove(); }
