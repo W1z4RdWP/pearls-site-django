@@ -770,55 +770,43 @@ document.addEventListener('DOMContentLoaded', function() {
     // Вставить
     document.getElementById('paste-menu-item').addEventListener('click', function() {
         if (!clipboardData || !contextTarget) return;
-        
-        // Определяем целевую категорию
+
         let targetCategory = '';
-        if (contextTarget.classList.contains('category-list')) {
-            // Если кликнули на корневой список категорий, вставляем в корень
+        // Если клик по уроку без категории — всегда вставляем в корень (без категории)
+        if (contextTarget.dataset && contextTarget.dataset.id && contextTarget.dataset.id.startsWith('uncat-')) {
+            targetCategory = '';
+        } else if (contextTarget.classList.contains('category-list')) {
             targetCategory = '';
         } else if (contextTarget.classList.contains('category-block')) {
             targetCategory = contextTarget.dataset.id;
-        } else if (contextTarget.dataset.id && contextTarget.dataset.id.startsWith('uncat-')) {
-            // Если кликнули на урок без категории, вставляем в корень
-            targetCategory = '';
         } else {
-            // Если кликнули на урок, берем его родительскую категорию
             const parentCategory = contextTarget.closest('.category-block');
             targetCategory = parentCategory ? parentCategory.dataset.id : '';
         }
-        
+
         fetch('/builder/paste/', {
             method: 'POST',
             headers: { 'X-CSRFToken': (document.querySelector('[name=csrfmiddlewaretoken]')||{}).value || '', 'Content-Type': 'application/json' },
             body: JSON.stringify({ target_category: targetCategory })
         }).then(r => r.json()).then(data => {
             if (data.error) { alert('Ошибка: ' + data.error); return; }
-            
-            // Обновляем DOM
+
             if (data.result) {
                 if (clipboardData.action === 'cut') {
-                    // Удаляем оригинальный элемент при вырезании
                     let originalElement = null;
                     if (clipboardData.type === 'lesson') {
-                        // Ищем урок в категориях или в корне
                         originalElement = document.querySelector(`.lesson-select[value="${clipboardData.id}"]`)?.closest('li');
                         if (!originalElement) {
                             originalElement = document.querySelector(`[data-id="uncat-${clipboardData.id}"]`);
                         }
                     } else if (clipboardData.type === 'category') {
-                        // Для категорий удаляем весь блок категории со всем содержимым
                         originalElement = document.querySelector(`[data-id="${clipboardData.id}"]`);
-                        if (originalElement) {
-                            // Удаляем весь li с категорией и всем её содержимым
-                            originalElement.remove();
-                        }
+                        if (originalElement) originalElement.remove();
                     }
                 }
-                
-                // Перезагружаем страницу для отображения изменений
                 window.location.reload();
             }
-            
+
             clipboardData = null;
             updatePasteButton();
             document.getElementById('custom-context-menu').style.display = 'none';
