@@ -215,19 +215,9 @@ class LessonMasterDetailView(TemplateView):
             # --- История версий ---
             context['lesson_versions'] = selected_lesson.versions.order_by('-version')
         else:
-            # Выбираем первый урок из категорий или из uncategorized
-            first_lesson = None
-            cats = context['categories']
-            # Для read-only: ищем по filtered_lessons, иначе обычный lessons
-            for cat in cats:
-                lessons = getattr(cat, 'filtered_lessons', cat.lessons)
-                if lessons.exists():
-                    first_lesson = lessons.first()
-                    break
-            if not first_lesson and context['uncategorized_lessons'].exists():
-                first_lesson = context['uncategorized_lessons'].first()
-            context['selected_lesson'] = first_lesson
-            context['lesson_versions'] = first_lesson.versions.order_by('-version') if first_lesson else []
+            # Не подгружаем первый урок по умолчанию, detail будет пустым
+            context['selected_lesson'] = None
+            context['lesson_versions'] = []
         return context
 
     def get(self, request, *args, **kwargs):
