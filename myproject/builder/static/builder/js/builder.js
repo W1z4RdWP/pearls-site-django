@@ -767,52 +767,99 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
     
+    // --- Контекстное меню на вкладках ---
+    document.getElementById('tab-categories')?.addEventListener('contextmenu', function(e) {
+        e.preventDefault();
+        contextTarget = { tab: 'categories' };
+        const menu = document.getElementById('custom-context-menu');
+        menu.style.display = 'block';
+        menu.style.left = e.pageX + 'px';
+        menu.style.top = e.pageY + 'px';
+        updatePasteButton();
+    });
+    document.getElementById('tab-uncat')?.addEventListener('contextmenu', function(e) {
+        e.preventDefault();
+        contextTarget = { tab: 'uncat' };
+        const menu = document.getElementById('custom-context-menu');
+        menu.style.display = 'block';
+        menu.style.left = e.pageX + 'px';
+        menu.style.top = e.pageY + 'px';
+        updatePasteButton();
+    });
+    
     // Вставить
     document.getElementById('paste-menu-item').addEventListener('click', function() {
         if (!clipboardData || !contextTarget) return;
 
         let targetCategory = '';
-        // Если клик по уроку без категории — всегда вставляем в корень (без категории)
-        if (contextTarget.dataset && contextTarget.dataset.id && contextTarget.dataset.id.startsWith('uncat-')) {
+        let isCategory = clipboardData.type === 'category';
+        let isUncatLesson = contextTarget.dataset && contextTarget.dataset.id && contextTarget.dataset.id.startsWith('uncat-');
+        let isLesson = (contextTarget.classList && contextTarget.classList.contains('lesson-li')) || (contextTarget.dataset && contextTarget.dataset.id && contextTarget.dataset.id.startsWith('uncat-'));
+
+        // Контекстное меню на вкладках
+        if (contextTarget.tab === 'categories') {
             targetCategory = '';
-        } else if (contextTarget.classList.contains('category-list')) {
+        } else if (contextTarget.tab === 'uncat') {
             targetCategory = '';
-        } else if (contextTarget.classList.contains('category-block')) {
+        } else if (isUncatLesson) {
+            targetCategory = '';
+        } else if (contextTarget.classList && contextTarget.classList.contains('category-list')) {
+            targetCategory = '';
+        } else if (contextTarget.classList && contextTarget.classList.contains('category-block')) {
             targetCategory = contextTarget.dataset.id;
         } else {
-            const parentCategory = contextTarget.closest('.category-block');
+            const parentCategory = contextTarget.closest && contextTarget.closest('.category-block');
             targetCategory = parentCategory ? parentCategory.dataset.id : '';
         }
 
-        fetch('/builder/paste/', {
-            method: 'POST',
-            headers: { 'X-CSRFToken': (document.querySelector('[name=csrfmiddlewaretoken]')||{}).value || '', 'Content-Type': 'application/json' },
-            body: JSON.stringify({ target_category: targetCategory })
-        }).then(r => r.json()).then(data => {
-            if (data.error) { alert('Ошибка: ' + data.error); return; }
-
-            if (data.result) {
-                if (clipboardData.action === 'cut') {
-                    let originalElement = null;
-                    if (clipboardData.type === 'lesson') {
-                        originalElement = document.querySelector(`.lesson-select[value="${clipboardData.id}"]`)?.closest('li');
-                        if (!originalElement) {
-                            originalElement = document.querySelector(`[data-id="uncat-${clipboardData.id}"]`);
-                        }
-                    } else if (clipboardData.type === 'category') {
-                        originalElement = document.querySelector(`[data-id="${clipboardData.id}"]`);
-                        if (originalElement) originalElement.remove();
+        // Если вставляем категорию в урок или в "Без категории" — предупреждение
+        if (isCategory && (isUncatLesson || isLesson || contextTarget.tab === 'uncat')) {
+            showCategoryPasteWarning({
+                onYes: () => {
+                    // Проверка: если категория уже в корне, ничего не делать
+                    const catElem = document.querySelector(`[data-id='${clipboardData.id}']`);
+                    if (catElem && (!catElem.dataset.parent || catElem.dataset.parent === '')) {
+                        // Уже в корне — просто закрыть окно
+                        return;
                     }
-                }
-                window.location.reload();
-            }
+                    doPaste('');
+                },
+                onNo: () => {}
+            });
+            return;
+        }
 
-            clipboardData = null;
-            updatePasteButton();
-            document.getElementById('custom-context-menu').style.display = 'none';
-        }).catch(error => {
-            alert('Ошибка сети: ' + error.message);
-        });
+        doPaste(targetCategory);
+
+        function doPaste(targetCategory) {
+            fetch('/builder/paste/', {
+                method: 'POST',
+                headers: { 'X-CSRFToken': (document.querySelector('[name=csrfmiddlewaretoken]')||{}).value || '', 'Content-Type': 'application/json' },
+                body: JSON.stringify({ target_category: targetCategory })
+            }).then(r => r.json()).then(data => {
+                if (data.error) { alert('Ошибка: ' + data.error); return; }
+                if (data.result) {
+                    if (clipboardData.action === 'cut') {
+                        let originalElement = null;
+                        if (clipboardData.type === 'lesson') {
+                            originalElement = document.querySelector(`.lesson-select[value="${clipboardData.id}"]`)?.closest('li');
+                            if (!originalElement) {
+                                originalElement = document.querySelector(`[data-id="uncat-${clipboardData.id}"]`);
+                            }
+                        } else if (clipboardData.type === 'category') {
+                            originalElement = document.querySelector(`[data-id="${clipboardData.id}"]`);
+                            if (originalElement) originalElement.remove();
+                        }
+                    }
+                    window.location.reload();
+                }
+                clipboardData = null;
+                updatePasteButton();
+                document.getElementById('custom-context-menu').style.display = 'none';
+            }).catch(error => {
+                alert('Ошибка сети: ' + error.message);
+            });
+        }
     });
     
     // Инициализация буфера обмена
@@ -846,4 +893,30 @@ function initVersionHistoryDropdown() {
             };
         });
     }
+}
+
+function showCategoryPasteWarning({onYes, onNo}) {
+    let modal = document.getElementById('category-paste-warning-modal');
+    if (!modal) {
+        modal = document.createElement('div');
+        modal.id = 'category-paste-warning-modal';
+        modal.innerHTML = `
+        <div style="position:fixed;z-index:99999;left:0;top:0;width:100vw;height:100vh;background:rgba(0,0,0,0.35);display:flex;align-items:center;justify-content:center;">
+            <div style="background:#232a3a;color:#fff;padding:32px 32px 24px 32px;border-radius:12px;box-shadow:0 2px 16px #0007;min-width:320px;max-width:90vw;text-align:center;">
+                <div style="font-size:1.15em;margin-bottom:18px;">Категория будет создана в корне дерева. Продолжить?</div>
+                <div style="display:flex;gap:18px;justify-content:center;">
+                    <button id="cat-paste-yes" style="padding:8px 24px;font-size:1em;border-radius:6px;border:none;background:#4d7cff;color:#fff;cursor:pointer;">Да</button>
+                    <button id="cat-paste-no" style="padding:8px 24px;font-size:1em;border-radius:6px;border:none;background:#444;color:#fff;cursor:pointer;">Нет</button>
+                </div>
+            </div>
+        </div>`;
+        document.body.appendChild(modal);
+    } else {
+        modal.style.display = '';
+    }
+    function cleanup() {
+        modal.style.display = 'none';
+    }
+    modal.querySelector('#cat-paste-yes').onclick = function() { cleanup(); onYes && onYes(); };
+    modal.querySelector('#cat-paste-no').onclick = function() { cleanup(); onNo && onNo(); };
 }
