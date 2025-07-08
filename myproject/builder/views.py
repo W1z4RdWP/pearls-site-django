@@ -230,6 +230,19 @@ class LessonMasterDetailView(TemplateView):
             context['lesson_versions'] = first_lesson.versions.order_by('-version') if first_lesson else []
         return context
 
+    def get(self, request, *args, **kwargs):
+        context = self.get_context_data(**kwargs)
+        if request.GET.get('ajax') == '1':
+            from django.template.loader import render_to_string
+            from django.http import HttpResponse
+            # detail-блок для AJAX: передаём lesson=selected_lesson, lesson_versions
+            return HttpResponse(render_to_string('builder/includes/_lesson_detail_block.html', {
+                'lesson': context.get('selected_lesson'),
+                'lesson_versions': context.get('lesson_versions'),
+                'is_readonly': context.get('is_readonly'),
+            }, request=request))
+        return self.render_to_response(context)
+
 
 class LessonCreateView(CreateView):
     model = Lesson

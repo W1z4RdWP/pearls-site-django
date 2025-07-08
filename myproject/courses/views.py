@@ -354,9 +354,19 @@ def lesson_detail(request, course_slug, lesson_id):
         lesson=lesson,
         defaults={'course': course}
     )
-    return render(request, 'courses/lesson_detail.html', {'lesson': lesson,
-                                                          'previous_lesson': previous_lesson,
-                                                          'next_lesson': next_lesson})
+
+    context = {
+        'lesson': lesson,
+        'previous_lesson': previous_lesson,
+        'next_lesson': next_lesson,
+    }
+
+    if request.GET.get('ajax') == '1':
+        from django.template.loader import render_to_string
+        html = render_to_string('builder/includes/_lesson_detail_block.html', context, request=request)
+        from django.http import HttpResponse
+        return HttpResponse(html)
+    return render(request, 'courses/lesson_detail.html', context)
 
 
 @login_required

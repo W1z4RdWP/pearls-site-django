@@ -368,11 +368,9 @@ document.addEventListener('DOMContentLoaded', function() {
         root.querySelectorAll('.category-header').forEach(header => {
             if (header._inited) return; header._inited = true;
             header.addEventListener('click', function(e) {
-                // Не обрабатываем клики по стрелке и ссылкам
+                // Не обрабатываем клики по стрелке
                 if (e.target.classList.contains('toggle-arrow') || 
-                    e.target.closest('.toggle-arrow') || 
-                    e.target.tagName === 'A' || 
-                    e.target.closest('a')) {
+                    e.target.closest('.toggle-arrow')) {
                     return;
                 }
                 
@@ -398,8 +396,8 @@ document.addEventListener('DOMContentLoaded', function() {
         root.querySelectorAll('.lesson-list li').forEach(li => {
             if (li._inited) return; li._inited = true;
             li.addEventListener('click', function(e) {
-                // Не обрабатываем клики по ссылкам
-                if (e.target.tagName === 'A' || e.target.closest('a')) {
+                // Не обрабатываем клики по svg и иконкам
+                if (e.target.closest('svg') || e.target.classList.contains('lesson-icon')) {
                     return;
                 }
                 
@@ -415,8 +413,8 @@ document.addEventListener('DOMContentLoaded', function() {
         root.querySelectorAll('.category-block[data-id^="uncat-"]').forEach(block => {
             if (block._inited) return; block._inited = true;
             block.addEventListener('click', function(e) {
-                // Не обрабатываем клики по ссылкам
-                if (e.target.tagName === 'A' || e.target.closest('a')) {
+                // Не обрабатываем клики по svg и иконкам
+                if (e.target.closest('svg') || e.target.classList.contains('lesson-icon')) {
                     return;
                 }
                 
@@ -474,6 +472,21 @@ document.addEventListener('DOMContentLoaded', function() {
             lessonElement.classList.add('selected');
         }
         updateActionButtons();
+
+        // Переход к detail view выбранного урока
+        if (radio && radio.value) {
+            fetch('/builder/lesson/' + radio.value + '/?ajax=1')
+            .then(r => {
+                if (!r.ok) throw new Error('Ошибка загрузки');
+                return r.text();
+            })
+            .then(html => {
+                document.getElementById('detail').innerHTML = html;
+            })
+            .catch(e => {
+                alert('Ошибка загрузки урока: ' + e.message);
+            });
+        }
     }
     
     initCategoryCheckboxHandlers();

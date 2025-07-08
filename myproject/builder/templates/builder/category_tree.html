@@ -38,8 +38,7 @@
                                 <line x1="6.5" y1="13.5" x2="11.5" y2="13.5" stroke="#bbb" stroke-width="1.1"/>
                             </svg>
                         </span>
-                        <a href="{% url 'builder:lesson_detail' lesson.id %}"
-                           class="lesson-link {% if selected_lesson and lesson.id == selected_lesson.id %}active{% endif %}">
+                        <a class="lesson-link">
                             {{ lesson.title }}
                         </a>
                     </li>
@@ -70,8 +69,7 @@
                                 <line x1="6.5" y1="13.5" x2="11.5" y2="13.5" stroke="#bbb" stroke-width="1.1"/>
                             </svg>
                         </span>
-                        <a href="{% url 'builder:lesson_detail' lesson.id %}"
-                           class="lesson-link {% if selected_lesson and lesson.id == selected_lesson.id %}active{% endif %}">
+                        <a class="lesson-link {% if selected_lesson and lesson.id == selected_lesson.id %}active{% endif %}">
                             {{ lesson.title }}
                         </a>
                     </li>

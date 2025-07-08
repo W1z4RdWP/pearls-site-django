@@ -167,15 +167,6 @@
     font-size: 1em;
 }
 
-.lesson-link.active,
-.lesson-link:hover,
-.lesson-list a.active,
-.lesson-list a:not(.edit-lesson):hover {
-    background: #2c2c2c;
-    border-left: 4px solid #4d7cff;
-    color: #4d7cff;
-}
-
 /* Стили для уроков без категории */
 .category-block[data-id^="uncat-"] {
     cursor: pointer;
