@@ -2,6 +2,7 @@ from django.db import models
 from django.contrib.auth.models import User, Group
 from django.utils.text import slugify
 from django_ckeditor_5.fields import CKEditor5Field
+from django.utils import timezone
 
 from unidecode import unidecode
 
@@ -101,6 +102,9 @@ class Lesson(models.Model):
         verbose_name = 'Урок'
         verbose_name_plural = 'Уроки'
         ordering = ['order']
+        indexes = [
+            models.Index(fields=['course', 'order'], name='lesson_course_order_idx'),
+        ]
 
     def get_previous_lesson(self):
         return Lesson.objects.filter(
@@ -132,6 +136,75 @@ class UserLessonTrajectory(models.Model):
         verbose_name = 'Траектория уроков пользователя'
         verbose_name_plural = 'Траектории уроков пользователей'
         unique_together = ('user', 'course')
+        indexes = [
+            models.Index(fields=['user', 'course'], name='ult_user_course_idx'),
+        ]
 
     def __str__(self):
         return f"Траектория {self.user.username} для {self.course.title}"
+
+class Trajectory(models.Model):
+    """
+    Траектория курсов. Может быть назначена нескольким группам и содержать курсы в определённом порядке.
+    """
+    name: str = models.CharField(max_length=255, verbose_name="Название траектории")
+    description: str = models.TextField(blank=True, verbose_name="Описание")
+    groups: models.ManyToManyField = models.ManyToManyField(
+        Group,
+        blank=True,
+        verbose_name="Группы",
+        help_text="Группы пользователей, которым назначается эта траектория"
+    )
+    courses: models.ManyToManyField = models.ManyToManyField(
+        'Course',
+        through='TrajectoryCourse',
+        verbose_name="Курсы в траектории"
+    )
+
+    class Meta:
+        verbose_name = 'Траектория курсов'
+        verbose_name_plural = 'Траектории курсов'
+
+    def __str__(self) -> str:
+        return self.name
+
+class TrajectoryCourse(models.Model):
+    """
+    Промежуточная модель для связи Trajectory и Course с порядком (order).
+    """
+    trajectory: Trajectory = models.ForeignKey(Trajectory, on_delete=models.CASCADE)
+    course: Course = models.ForeignKey(Course, on_delete=models.CASCADE)
+    order: int = models.PositiveIntegerField(verbose_name="Порядок курса в траектории")
+
+    class Meta:
+        unique_together = ('trajectory', 'course')
+        ordering = ['order']
+        verbose_name = 'Курс в траектории'
+        verbose_name_plural = 'Курсы в траектории'
+        indexes = [
+            models.Index(fields=['trajectory', 'order'], name='tc_trajectory_order_idx'),
+        ]
+
+    def __str__(self) -> str:
+        return f"{self.trajectory.name}: {self.course.title} (#{self.order})"
+
+class UserCourseTrajectory(models.Model):
+    """
+    Индивидуальная траектория пользователя: к какой Trajectory он привязан, и прогресс по курсам.
+    """
+    user: User = models.ForeignKey(User, on_delete=models.CASCADE, verbose_name="Пользователь")
+    trajectory: Trajectory = models.ForeignKey(Trajectory, on_delete=models.CASCADE, verbose_name="Траектория")
+    current_course: Course = models.ForeignKey(Course, on_delete=models.SET_NULL, null=True, blank=True, verbose_name="Текущий курс")
+    started_at: timezone.datetime = models.DateTimeField(auto_now_add=True, verbose_name="Дата назначения")
+    completed: bool = models.BooleanField(default=False, verbose_name="Завершена ли траектория")
+
+    class Meta:
+        unique_together = ('user', 'trajectory')
+        verbose_name = 'Траектория пользователя'
+        verbose_name_plural = 'Траектории пользователей'
+        indexes = [
+            models.Index(fields=['user', 'trajectory'], name='uct_user_trajectory_idx'),
+        ]
+
+    def __str__(self) -> str:
+        return f"{self.user.username} — {self.trajectory.name}"

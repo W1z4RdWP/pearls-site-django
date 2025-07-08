@@ -4,7 +4,10 @@ def get_changelog(request):
     """
     Возвращает список изменений для отображения в шаблонах.
     """
-    latest_version = ChangeLog.objects.latest('version').version
+    try:
+        latest_version = ChangeLog.objects.latest('version').version
+    except ChangeLog.DoesNotExist:
+        latest_version = None
 
     return {
         'changelog': ChangeLog.objects.all(),
@@ -16,10 +19,11 @@ def nav_menu(request):
         {'url': 'home', 'label': 'Главная', 'icon': 'fa-solid fa-house'},
         {'url': 'changelog', 'label': 'Список изменений', 'icon': 'fa-solid fa-list-check'},
         {'url': 'about', 'label': 'О нас', 'icon': 'fa-solid fa-circle-info'},
-        {'url': 'builder:dashboard', 'label': 'База знаний', 'icon': 'fa-solid fa-database'},
+        {'url': 'builder:lesson_master', 'label': 'База знаний', 'icon': 'fa-solid fa-book'},
     ]
     nav_staff = [
         {'url': 'create-course', 'label': 'Создать курс', 'icon': 'fa-solid fa-plus'},
         {'url': 'quizzes', 'label': 'Тесты', 'icon': 'fa-solid fa-clipboard-question'},
+        {'url': 'builder:dashboard', 'label': 'Панель управления', 'icon': 'fa-solid fa-cog'},
     ]
     return {'nav_public': nav_public, 'nav_staff': nav_staff}

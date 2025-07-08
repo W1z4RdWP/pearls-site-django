@@ -2,14 +2,20 @@
 
 set -e  # Прервать выполнение при ошибке
 
+git pull
+
 source .venv/bin/activate # Активация виртуального окружения
 cd myproject # Переход в директорию проекта
 
-echo "Меняем владельца staticfiles/ на django-user"
-sudo chown django-user:django-user -R staticfiles/
+if [ -d staticfiles ]; then
+    echo "Меняем владельца staticfiles/ на django-user"
+    sudo chown django-user:django-user -R staticfiles/
 
-echo "Удаляем папку staticfiles/"
-sudo rm -rf staticfiles
+    echo "Удаляем папку staticfiles/"
+    sudo rm -rf staticfiles
+else
+    echo "Папка staticfiles не найдена, пропускаю chown и удаление."
+fi
 
 echo "Собираем статику Django"
 python manage.py collectstatic --noinput

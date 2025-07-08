@@ -3,13 +3,60 @@
 {% block title %}Домашняя страница{% endblock %}
 
 {% block content %}
-<section class='hero'>
-    <div class="text-block">
-        <h5>Обучение персонала</h5>
-        <h1>Каталог курсов</h1>
-        <p>Наш веб-сайт предназначен для обучения сотрудников клиники "Территория Улыбки" внутренним правилам и повышения квалификации. Здесь вы найдете каталог курсов для приобретения, а также, в профиле, Вы всегда можете отследить свой прогресс 😊</p>
+<section class="hero-landing">
+  <div class="hero-landing__left">
+    <h1>Найди себя и прокачайся в<br>«Территории Улыбки»</h1>
+    <div class="hero-landing__stats">
+      <div>
+        <span class="hero-landing__stat-num">120+</span>
+        <span class="hero-landing__stat-label">сотрудников обучено</span>
+      </div>
+      <div>
+        <span class="hero-landing__stat-num">15</span>
+        <span class="hero-landing__stat-label">актуальных курсов</span>
+      </div>
+      <div>
+        <span class="hero-landing__stat-num">98%</span>
+        <span class="hero-landing__stat-label">завершили обучение</span>
+      </div>
     </div>
-    <img src="{% static 'global/imgs/clinica.jpg' %}" alt="clinica" id='clinicajpg' class='scale_on_hover'>
+    <div class="hero-landing__categories">
+      <button>Популярное</button>
+      <button>Внутренний регламент</button>
+      <button>Квалификация</button>
+      <button>Психология</button>
+      <button>Все курсы</button>
+    </div>
+    <a href="#courseCarousel" class="hero-landing__cta">Выбрать курс</a>
+  </div>
+  <div class="hero-landing__right">
+    <div class="hero-landing__faces">
+      <div class="hero-face-block">
+        <img src="{% static 'global/imgs/hero_das.jpg' %}" alt="Сотрудник 1" class="hero-face">
+        <span class="hero-face-label">Главный врач</span>
+      </div>
+      <div class="hero-face-block">
+        <img src="{% static 'global/imgs/hero_dentist.jpg' %}" alt="Сотрудник 2" class="hero-face">
+        <span class="hero-face-label">Стоматолог</span>
+      </div>
+      <div class="hero-face-block">
+        <img src="{% static 'global/imgs/doc1.png' %}" alt="Обучение" class="hero-face">
+        <span class="hero-face-label">Обучение</span>
+      </div>
+      <div class="hero-face-block">
+        <span class="hero-emoji">🏆</span>
+        <span class="hero-face-label">Наставничество</span>
+      </div>
+      <div class="hero-face-block">
+        <span class="hero-emoji">🔥</span>
+        <span class="hero-face-label">Вдохновение</span>
+      </div>
+      <div class="hero-face-block">
+        <span class="hero-emoji">😊</span>
+        <span class="hero-face-label">Дружелюбие</span>
+      </div>
+    </div>
+  </div>
 </section>
 <section>
     <div class="carousel-block">
@@ -69,7 +116,7 @@
     </div>
 
 </section>
-<section id="section-3">
+<!-- <section id="section-3">
     {% comment %} <div class="text-block-2">
         <h5>Сотрудники клиники обучаются</h5>
     </div> {% endcomment %}
@@ -81,7 +128,7 @@
         <p>Lorem ipsum dolor sit amet consectetur adipisicing elit. Fugiat quo asperiores quia eos suscipit doloremque sunt eum laborum,
              vel perspiciatis optio consequuntur cum, maiores esse. Numquam sit nulla quibusdam rem.</p>
     </div>
-</section>
+</section> -->
 <section>
     <div class="cards-box">
         <div class="box hidden">

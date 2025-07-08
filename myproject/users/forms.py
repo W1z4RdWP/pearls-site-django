@@ -81,7 +81,7 @@ class ProfileUpdateForm(forms.ModelForm):
         """
         
         model = Profile
-        fields = ['middle_name', 'date_of_birth', 'phone_number', 'image', 'bio']
+        fields = ['middle_name', 'role', 'date_of_birth', 'phone_number', 'image', 'bio']
         widgets = {
             'date_of_birth': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
             'phone_number': forms.TextInput(attrs={'class': 'form-control'}),

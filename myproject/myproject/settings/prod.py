@@ -42,7 +42,7 @@ DATABASES = {
 # CACHE_MIDDLEWARE_KEY_PREFIX = 'myproject'  # name of site if multiple sites are used
 
 
-CSRF_TRUSTED_ORIGINS = ['https://epicsite.smileterritory.ru']
+CSRF_TRUSTED_ORIGINS = ['https://lc.smileterritory.ru']
 
 CSRF_COOKIE_SECURE = True
 SESSION_COOKIE_SECURE = True

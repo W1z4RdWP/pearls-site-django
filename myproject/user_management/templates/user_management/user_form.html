@@ -18,11 +18,12 @@
             <h2 class="section-title">Общая информация о пользователе</h2>
             {% if readonly %}
                 <p class="um-user-warning">Вы не можете редактировать этого пользователя</p>
-                {{ form.username.label_tag }}{{ form.username|attr:'readonly:readonly,disabled:disabled' }}
-                {{ form.email.label_tag }}{{ form.email|attr:'readonly:readonly,disabled:disabled' }}
                 {{ form.first_name.label_tag }}{{ form.first_name|attr:'readonly:readonly,disabled:disabled' }}
                 {{ form.last_name.label_tag }}{{ form.last_name|attr:'readonly:readonly,disabled:disabled' }}
                 {{ profile_form.middle_name.label_tag }}{{ profile_form.middle_name|attr:'readonly:readonly,disabled:disabled' }}
+                {{ profile_form.role.label_tag }}{{ profile_form.role|attr:'readonly:readonly,disabled:disabled' }}
+                {{ form.username.label_tag }}{{ form.username|attr:'readonly:readonly,disabled:disabled' }}
+                {{ form.email.label_tag }}{{ form.email|attr:'readonly:readonly,disabled:disabled' }}
                 {{ form.groups.label_tag }}
                 {% with form.instance.groups.all as groups %}
                     {% if groups|length == 1 %}
@@ -42,11 +43,12 @@
                 {{ profile_form.phone_number.label_tag }}{{ profile_form.phone_number|attr:'readonly:readonly,disabled:disabled' }}
                 {{ profile_form.bio.label_tag }}{{ profile_form.bio|attr:'readonly:readonly,disabled:disabled' }}
             {% else %}
-                {{ form.username.label_tag }}{{ form.username }}
-                {{ form.email.label_tag }}{{ form.email }}
                 {{ form.first_name.label_tag }}{{ form.first_name }}
                 {{ form.last_name.label_tag }}{{ form.last_name }}
                 {{ profile_form.middle_name.label_tag }}{{ profile_form.middle_name }}
+                {{ profile_form.role.label_tag }}{{ profile_form.role }}
+                {{ form.username.label_tag }}{{ form.username }}
+                {{ form.email.label_tag }}{{ form.email }}
                 <label for="id_groups">Группы пользователя</label>
                 <div class="um-user-groups-checkboxes">
                     {% for group in form.groups.field.queryset %}
@@ -57,7 +59,14 @@
                     {% endfor %}
                 </div>
                 {{ profile_form.date_of_birth.label_tag }}{{ profile_form.date_of_birth }}
-                {{ profile_form.phone_number.label_tag }}{{ profile_form.phone_number }}
+                <div class="phone-field-wrapper">
+                    <label for="id_phone_number">{{ profile_form.phone_number.label }}</label>
+                    <input type="text" id="id_phone_number" name="phone_number" class="form-control" maxlength="12" autocomplete="off" value="{{ profile_form.phone_number.value|default:'' }}"/>
+                    <div class="form-check">
+                        <input type="checkbox" id="arbitrary_format_checkbox" class="form-check-input"/>
+                        <label for="arbitrary_format_checkbox" class="form-check-label">Произвольный формат</label>
+                    </div>
+                </div>
                 {{ profile_form.bio.label_tag }}{{ profile_form.bio }}
                 {{ profile_form.image.label_tag }}{{ profile_form.image }}
                 {{ form.is_active.label_tag }}{{ form.is_active }}
@@ -66,10 +75,15 @@
         </div>
         <div class="form-actions">
             {% if not readonly %}
+            <a href="{% url 'user_management:user_password_change' object.pk %}" class="btn btn-outline-info">
+                Сменить пароль
+            </a>
                 <button type="submit" class="btn btn-primary">Сохранить</button>
             {% endif %}
             <a href="{% url 'user_management:user_list' %}" class="btn btn-secondary">Отмена</a>
         </div>
     </form>
 </div>
+<script src="{% static 'user_management/js/phone_field.js' %}" defer></script>
 {% endblock %}
+

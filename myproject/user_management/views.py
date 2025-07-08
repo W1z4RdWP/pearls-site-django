@@ -1,5 +1,5 @@
 from django.shortcuts import render, redirect
-from django.views.generic import ListView, CreateView, UpdateView, DetailView
+from django.views.generic import ListView, CreateView, UpdateView, DetailView, FormView
 from django.contrib.auth.models import User
 from django.db.models import Q, Count, Max
 from users.models import Profile
@@ -13,6 +13,7 @@ from django.utils.decorators import method_decorator
 from django.contrib.admin.views.decorators import staff_member_required
 from .forms import UserProfileForm
 from users.forms import UserRegisterNoCaptchaForm
+from django.contrib.auth.forms import SetPasswordForm
 
 class UserListView(ListView):
     model = User
@@ -102,9 +103,9 @@ class UserUpdateView(UpdateView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         if self.request.POST:
-            context['profile_form'] = UserProfileForm(self.request.POST, self.request.FILES, instance=self.object.profile)
+            context['profile_form'] = UserProfileForm(self.request.POST, self.request.FILES, instance=self.object.profile, user_instance=self.object)
         else:
-            context['profile_form'] = UserProfileForm(instance=self.object.profile)
+            context['profile_form'] = UserProfileForm(instance=self.object.profile, user_instance=self.object)
         context['readonly'] = getattr(self, 'readonly', False)
         return context
 
@@ -112,7 +113,7 @@ class UserUpdateView(UpdateView):
         if getattr(self, 'readonly', False):
             raise PermissionDenied("Недостаточно прав для редактирования этого пользователя.")
         response = super().form_valid(form)
-        profile_form = UserProfileForm(self.request.POST, self.request.FILES, instance=self.object.profile)
+        profile_form = UserProfileForm(self.request.POST, self.request.FILES, instance=self.object.profile, user_instance=self.object)
         if profile_form.is_valid():
             profile_form.save()
         return response
@@ -130,6 +131,8 @@ class UserProgressDashboardView(DetailView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         user = self.get_object()
+        profile = user.profile
+        exp = profile.exp 
         
         # Получаем все курсы пользователя
         user_courses = UserCourse.objects.filter(user=user).select_related('course')
@@ -225,6 +228,13 @@ class UserProgressDashboardView(DetailView):
         total_lessons_available = sum(cp['total_lessons'] for cp in courses_progress)
         overall_progress = int((total_lessons_completed / total_lessons_available) * 100) if total_lessons_available > 0 else 0
         
+        def count_exp(exp, level=1):
+            while exp >= level * 100:
+                level += 1
+            progress = ((exp - ((level - 1) * 100)) / 100) * 100
+            return level, min(progress, 100)
+        level, progress = count_exp(exp)
+
         # Детальная информация о результатах тестов
         detailed_quiz_results = []
         for quiz_result in quiz_results:
@@ -282,6 +292,9 @@ class UserProgressDashboardView(DetailView):
             page_obj_courses = paginator_courses.page(paginator_courses.num_pages)
         
         context.update({
+            'exp': exp,
+            'level': level,
+            'progress': int(progress),
             'courses_progress': courses_progress,
             'total_courses': total_courses,
             'completed_courses': completed_courses,
@@ -316,4 +329,24 @@ class UserQuizReportView(DetailView):
         for ans in answers:
             grouped.setdefault(ans.question, []).append(ans)
         context['grouped_answers'] = grouped
+        return context
+
+
+class UserPasswordChangeView(FormView):
+    template_name = 'user_management/user_password_change.html'
+    form_class = SetPasswordForm
+    success_url = reverse_lazy('user_management:user_list')
+
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs['user'] = User.objects.get(pk=self.kwargs['pk'])
+        return kwargs
+
+    def form_valid(self, form):
+        form.save()  # set_password + save
+        return super().form_valid(form)
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['object'] = User.objects.get(pk=self.kwargs['pk'])
         return context
