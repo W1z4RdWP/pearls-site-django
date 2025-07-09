@@ -280,6 +280,8 @@
 .detail .edit-btn {
     float: right;
 }
+
+/* CKEditor content */
 .lesson-content {
     color: #212529;
     font-size: 1rem;
@@ -293,6 +295,58 @@
 .lesson-content a:hover {
     color: #0a58ca;
 }
+
+.lesson-content table {
+    border-collapse: collapse;
+    width: 100%;
+    /* margin: 16px 0; */
+    background: #fafbfc;
+    font-size: 1em;
+}
+.lesson-content th, .lesson-content td {
+    border: 1px solid #bbb;
+    padding: 8px 12px;
+    text-align: left;
+}
+.lesson-content th {
+    background: #f3f3f3;
+    font-weight: 600;
+    text-align: center;
+}
+.lesson-content tr:nth-child(even) {
+    background: #f7f7f7;
+}
+/* Подпись к таблице */
+.lesson-content figcaption {
+    caption-side: top;
+    font-size: 1.1em;
+    font-weight: 600;
+    margin-bottom: 8px;
+    text-align: center;
+    color: #444;
+    background: #f3f3f3;
+    padding: 8px 0 8px 0;
+    border-radius: 4px 4px 0 0;
+    letter-spacing: 0.02em;
+}
+.lesson-content p {
+    margin: 0 0 12px 0;
+}
+.lesson-content h1, .lesson-content h2, .lesson-content h3 {
+    margin: 18px 0 10px 0;
+    font-weight: 700;
+}
+.lesson-content ul, .lesson-content ol {
+    margin: 0 0 12px 24px;
+}
+.lesson-content img {
+    max-width: 100%;
+    height: auto;
+    display: block;
+    /* margin: 12px 0; */
+}
+
+/* END CKEditor content */
 
 /* --- Модальные окна (если используются) --- */
 .modal {
