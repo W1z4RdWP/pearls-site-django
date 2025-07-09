@@ -34,4 +34,6 @@ urlpatterns = [
     path('cut/', views.ajax_cut, name='cut'),
     path('paste/', views.ajax_paste, name='paste'),
     path('clipboard/', views.ajax_get_clipboard, name='get_clipboard'),
+    path('mirror/', views.ajax_mirror, name='mirror'),
+    path('category_tree_json/', views.ajax_category_tree_json, name='category_tree_json'),
 ]

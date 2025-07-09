@@ -6,7 +6,7 @@ from django.contrib.auth.decorators import login_required, permission_required
 from django.utils.decorators import method_decorator
 from django.views.generic import ListView, CreateView, UpdateView, DeleteView, FormView
 from django.urls import reverse_lazy, reverse
-from .models import CategoryName, Document, Incident, LessonVersion
+from .models import CategoryName, Document, Incident, LessonVersion, LessonCategoryMirror
 from django.core.exceptions import PermissionDenied
 from .forms import DocumentForm, IncidentForm, LessonUpdateControlForm
 from django.http import JsonResponse
@@ -22,7 +22,7 @@ from django.utils import timezone
 
 
 def get_category_tree_data(category_id):
-    """Получить полное дерево категории со всеми подкатегориями и уроками"""
+    """Получить полное дерево категории со всеми подкатегориями, уроками и зеркалами"""
     try:
         category = CategoryName.objects.get(pk=category_id)
     except CategoryName.DoesNotExist:
@@ -42,16 +42,31 @@ def get_category_tree_data(category_id):
         for subcat in cat.subcategories.all().order_by('order'):
             data['subcategories'].append(collect_category_data(subcat))
         
-        # Собираем уроки
+        # Собираем обычные уроки
         for lesson in cat.lessons.all().order_by('order'):
             data['lessons'].append({
                 'id': lesson.id,
                 'title': lesson.title,
                 'content': lesson.content,
                 'video_id': lesson.video_id,
-                'order': lesson.order
+                'order': lesson.order,
+                'is_mirror': False,
+                'original_category': None,
             })
-        
+        # Собираем зеркала
+        for mirror in cat.mirrored_lessons.select_related('lesson').order_by('order'):
+            lesson = mirror.lesson
+            data['lessons'].append({
+                'id': lesson.id,
+                'title': lesson.title,
+                'content': lesson.content,
+                'video_id': lesson.video_id,
+                'order': mirror.order,
+                'is_mirror': True,
+                'original_category': lesson.category.id if lesson.category else None,
+            })
+        # Сортируем по order (зеркала и обычные уроки вместе)
+        data['lessons'].sort(key=lambda l: l['order'])
         return data
     
     return collect_category_data(category)
@@ -193,20 +208,17 @@ class LessonMasterDetailView(TemplateView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        categories = CategoryName.objects.filter(parent__isnull=True).prefetch_related('subcategories', 'lessons')
+        # Корневые категории
+        root_cats = CategoryName.objects.filter(parent__isnull=True)
+        # Формируем дерево для каждой корневой категории
+        context['categories'] = [get_category_tree_data(cat.id) for cat in root_cats]
         uncategorized_lessons = Lesson.objects.filter(category__isnull=True)
         user = self.request.user
         is_readonly = not (user.is_staff or user.is_superuser)
         context['is_readonly'] = is_readonly
 
-        if is_readonly:
-            # Фильтруем дерево и уроки для read-only
-            filtered_categories, filtered_uncat = filter_categories_and_lessons_for_user(user, categories, uncategorized_lessons)
-            context['categories'] = filtered_categories
-            context['uncategorized_lessons'] = filtered_uncat
-        else:
-            context['categories'] = categories
-            context['uncategorized_lessons'] = uncategorized_lessons
+        # uncategorized_lessons оставляем как есть (можно доработать аналогично)
+        context['uncategorized_lessons'] = uncategorized_lessons
 
         pk = self.kwargs.get('pk')
         if pk:
@@ -215,7 +227,6 @@ class LessonMasterDetailView(TemplateView):
             # --- История версий ---
             context['lesson_versions'] = selected_lesson.versions.order_by('-version')
         else:
-            # Не подгружаем первый урок по умолчанию, detail будет пустым
             context['selected_lesson'] = None
             context['lesson_versions'] = []
         return context
@@ -799,6 +810,7 @@ def ajax_paste(request):
     
     return JsonResponse({'error': 'bad type'}, status=400)
 
+
 @csrf_exempt
 @login_required
 def ajax_get_clipboard(request):
@@ -813,3 +825,51 @@ def ajax_get_clipboard(request):
         return JsonResponse({'empty': True})
     
     return JsonResponse(clipboard)
+
+
+@csrf_exempt
+@login_required
+def ajax_mirror(request):
+    if not (request.user.is_staff or request.user.is_superuser):
+        return JsonResponse({'error': 'forbidden'}, status=403)
+    if request.method != 'POST':
+        return JsonResponse({'error': 'method not allowed'}, status=405)
+    try:
+        data = json.loads(request.body.decode('utf-8'))
+        lesson_id = data.get('lesson_id')
+        category_id = data.get('category_id')
+    except Exception as e:
+        return JsonResponse({'error': f'bad json: {str(e)}'}, status=400)
+    if not lesson_id or not category_id:
+        return JsonResponse({'error': 'missing params'}, status=400)
+    from courses.models import Lesson
+    try:
+        lesson = Lesson.objects.get(pk=lesson_id)
+        category = CategoryName.objects.get(pk=category_id)
+        # Проверка на уникальность
+        if LessonCategoryMirror.objects.filter(lesson=lesson, category=category).exists():
+            return JsonResponse({'error': 'Зеркало уже существует'}, status=400)
+        # Определяем порядок
+        max_order = LessonCategoryMirror.objects.filter(category=category).aggregate(Max('order'))['order__max'] or 0
+        mirror = LessonCategoryMirror.objects.create(
+            lesson=lesson,
+            category=category,
+            order=max_order + 1
+        )
+        return JsonResponse({'ok': True, 'mirror_id': mirror.id})
+    except Lesson.DoesNotExist:
+        return JsonResponse({'error': 'lesson not found'}, status=404)
+    except CategoryName.DoesNotExist:
+        return JsonResponse({'error': 'category not found'}, status=404)
+    except Exception as e:
+        return JsonResponse({'error': f'unexpected error: {str(e)}'}, status=500)
+
+@csrf_exempt
+@login_required
+def ajax_category_tree_json(request):
+    """Отдаёт всё дерево категорий для выбора в модалке зеркала (использует get_category_tree_data)"""
+    if not (request.user.is_staff or request.user.is_superuser):
+        return JsonResponse({'error': 'forbidden'}, status=403)
+    root_cats = CategoryName.objects.filter(parent__isnull=True)
+    categories = [get_category_tree_data(cat.id) for cat in root_cats]
+    return JsonResponse({'categories': categories})
