@@ -546,7 +546,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 deleteBtn.title = 'Удалить';
             }
         }
-        if (addLessonBtn) addLessonBtn.disabled = false;
+        if (addLessonBtn) addLessonBtn.disabled = !!lessonId;
     }
     updateActionButtons();
 
@@ -864,6 +864,74 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Инициализация буфера обмена
     checkClipboard();
+
+    // --- Переключение вкладок Категории/Без категории ---
+    document.getElementById('tab-categories')?.addEventListener('click', function() {
+        this.classList.add('active');
+        document.getElementById('tab-uncat').classList.remove('active');
+        document.getElementById('categories-block').style.display = '';
+        document.getElementById('uncategorized-block').style.display = 'none';
+    });
+    document.getElementById('tab-uncat')?.addEventListener('click', function() {
+        this.classList.add('active');
+        document.getElementById('tab-categories').classList.remove('active');
+        document.getElementById('categories-block').style.display = 'none';
+        document.getElementById('uncategorized-block').style.display = '';
+    });
+
+    // --- История версий ---
+    const versionBtn = document.getElementById('version-history-btn');
+    const versionDropdown = document.getElementById('version-history-dropdown');
+    if (versionBtn && versionDropdown) {
+        versionBtn.addEventListener('click', function(e) {
+            versionDropdown.style.display = versionDropdown.style.display === 'none' ? 'block' : 'none';
+        });
+        document.addEventListener('click', function(e) {
+            if (!versionBtn.contains(e.target) && !versionDropdown.contains(e.target)) {
+                versionDropdown.style.display = 'none';
+            }
+        });
+        versionDropdown.querySelectorAll('.version-item').forEach(function(item) {
+            item.addEventListener('click', function() {
+                // Показываем детали выбранной версии
+                document.querySelector('h2').textContent = item.dataset.title;
+                document.getElementById('lesson-content-block').innerHTML = item.dataset.content;
+                if (item.dataset.video) {
+                    document.getElementById('lesson-video-block').innerHTML = `<h5>Видео урок:</h5><iframe width=\"560\" height=\"315\" src=\"https://rutube.ru/play/embed/${item.dataset.video}\" frameborder=\"0\" allowfullscreen></iframe>`;
+                } else {
+                    const vblock = document.getElementById('lesson-video-block');
+                    if (vblock) vblock.innerHTML = '';
+                }
+                versionDropdown.style.display = 'none';
+            });
+        });
+    }
+
+    // --- Кнопка Контроль обновлений ---
+    const updateControlBtn = document.getElementById('update-control-btn');
+    function getSelectedLessonIdForUpdateBtn() {
+        // Просто ищем выбранный radio .lesson-select
+        const checked = document.querySelector('.lesson-select:checked');
+        return checked ? checked.value : null;
+    }
+    function updateUpdateControlBtnState() {
+        if (!updateControlBtn) return;
+        const lessonId = getSelectedLessonIdForUpdateBtn();
+        updateControlBtn.disabled = !lessonId;
+        if (lessonId) {
+            updateControlBtn.onclick = function() {
+                window.location.href = `/builder/lesson/${lessonId}/update_control/new/`;
+            };
+        } else {
+            updateControlBtn.onclick = null;
+        }
+    }
+    if (updateControlBtn) {
+        updateUpdateControlBtnState();
+        document.addEventListener('click', function(e) {
+            setTimeout(updateUpdateControlBtnState, 100); // после клика по дереву
+        });
+    }
 });
 
 function initVersionHistoryDropdown() {
