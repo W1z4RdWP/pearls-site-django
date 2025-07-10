@@ -649,10 +649,35 @@ document.addEventListener('DOMContentLoaded', function() {
         const pasteBtn = document.getElementById('paste-menu-item');
         const copyBtn = document.getElementById('copy-menu-item');
         const cutBtn = document.getElementById('cut-menu-item');
-        
+        const mirrorBtn = document.getElementById('mirror-menu-item');
+
         if (pasteBtn) {
             pasteBtn.style.opacity = clipboardData ? '1' : '0.5';
             pasteBtn.style.cursor = clipboardData ? 'pointer' : 'not-allowed';
+            pasteBtn.style.pointerEvents = clipboardData ? '' : 'none';
+        }
+
+        // Mirror: только если contextTarget — урок
+        let mirrorActive = false;
+        if (contextTarget) {
+            if (contextTarget.dataset && contextTarget.dataset.id && contextTarget.dataset.id.startsWith('uncat-')) {
+                mirrorActive = true;
+            } else if (
+                contextTarget.classList.contains('.lesson-li') || 
+                (contextTarget.classList.contains('category-block') && contextTarget.querySelector('.lesson-link') && !contextTarget.classList.contains('category-block'))
+             ) { mirrorActive = true;
+            } else if (
+                contextTarget.classList.contains('lesson-li') || 
+                (contextTarget.classList.contains('category-block') && contextTarget.querySelector('.lesson-link') && !contextTarget.classList.contains('category-block'))
+            ) {
+                mirrorActive = true;
+            }
+
+        }
+        if (mirrorBtn) {
+            mirrorBtn.style.opacity = mirrorActive ? '1' : '0.5';
+            mirrorBtn.style.cursor = mirrorActive ? 'pointer' : 'not-allowed';
+            mirrorBtn.style.pointerEvents = mirrorActive ? '' : 'none';
         }
         
         // Скрываем кнопки копирования/вырезания если контекстное меню открыто на корневом списке
@@ -769,6 +794,7 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Зеркало
     document.getElementById('mirror-menu-item').addEventListener('click', function() {
+        if (this.style.pointerEvents === 'none') return;
         if (!contextTarget) return;
         
         let itemId, itemType;
