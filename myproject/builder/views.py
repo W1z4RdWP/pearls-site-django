@@ -450,6 +450,7 @@ class IncidentCreateView(CreateView):
     template_name = 'builder/incident_form.html'
     success_url = '/builder/incidents/'
 
+
 class LessonUpdateControlCreateView(CreateView):
     model = LessonUpdateControl
     form_class = LessonUpdateControlForm
