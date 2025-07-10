@@ -478,6 +478,7 @@ document.addEventListener('DOMContentLoaded', function() {
             })
             .then(html => {
                 document.getElementById('detail').innerHTML = html;
+                initVersionHistoryDropdown(); // <-- добавлено!
             })
             .catch(e => {
                 alert('Ошибка загрузки урока: ' + e.message);
@@ -545,7 +546,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 deleteBtn.title = 'Удалить';
             }
         }
-        if (addLessonBtn) addLessonBtn.disabled = false;
+        if (addLessonBtn) addLessonBtn.disabled = !!lessonId;
     }
     updateActionButtons();
 
@@ -699,24 +700,24 @@ document.addEventListener('DOMContentLoaded', function() {
     // Копировать
     document.getElementById('copy-menu-item').addEventListener('click', function() {
         if (!contextTarget) return;
-        
+
         let itemId, itemType;
-        if (contextTarget.classList.contains('category-block')) {
-            // Если это блок категории, то это категория
-            itemType = 'category';
-            itemId = contextTarget.dataset.id;
-        } else if (contextTarget.querySelector('.lesson-link')) {
-            // Если это урок (не категория)
-            itemType = 'lesson';
-            itemId = contextTarget.querySelector('.lesson-select')?.value;
-        } else if (contextTarget.dataset.id && contextTarget.dataset.id.startsWith('uncat-')) {
+        if (contextTarget.dataset.id && contextTarget.dataset.id.startsWith('uncat-')) {
             // Урок без категории
             itemType = 'lesson';
             itemId = contextTarget.dataset.id.replace('uncat-', '');
+        } else if (contextTarget.classList.contains('category-block')) {
+            // Категория
+            itemType = 'category';
+            itemId = contextTarget.dataset.id;
+        } else if (contextTarget.querySelector('.lesson-link')) {
+            // Обычный урок
+            itemType = 'lesson';
+            itemId = contextTarget.querySelector('.lesson-select')?.value;
         }
-        
+
         if (!itemId || !itemType) return;
-        
+
         fetch('/builder/copy/', {
             method: 'POST',
             headers: { 'X-CSRFToken': (document.querySelector('[name=csrfmiddlewaretoken]')||{}).value || '', 'Content-Type': 'application/json' },
@@ -734,24 +735,24 @@ document.addEventListener('DOMContentLoaded', function() {
     // Вырезать
     document.getElementById('cut-menu-item').addEventListener('click', function() {
         if (!contextTarget) return;
-        
+
         let itemId, itemType;
-        if (contextTarget.classList.contains('category-block')) {
-            // Если это блок категории, то это категория
-            itemType = 'category';
-            itemId = contextTarget.dataset.id;
-        } else if (contextTarget.querySelector('.lesson-link')) {
-            // Если это урок (не категория)
-            itemType = 'lesson';
-            itemId = contextTarget.querySelector('.lesson-select')?.value;
-        } else if (contextTarget.dataset.id && contextTarget.dataset.id.startsWith('uncat-')) {
+        if (contextTarget.dataset.id && contextTarget.dataset.id.startsWith('uncat-')) {
             // Урок без категории
             itemType = 'lesson';
             itemId = contextTarget.dataset.id.replace('uncat-', '');
+        } else if (contextTarget.classList.contains('category-block')) {
+            // Категория
+            itemType = 'category';
+            itemId = contextTarget.dataset.id;
+        } else if (contextTarget.querySelector('.lesson-link')) {
+            // Обычный урок
+            itemType = 'lesson';
+            itemId = contextTarget.querySelector('.lesson-select')?.value;
         }
-        
+
         if (!itemId || !itemType) return;
-        
+
         fetch('/builder/cut/', {
             method: 'POST',
             headers: { 'X-CSRFToken': (document.querySelector('[name=csrfmiddlewaretoken]')||{}).value || '', 'Content-Type': 'application/json' },
@@ -766,66 +767,337 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
     
+    // Зеркало
+    document.getElementById('mirror-menu-item').addEventListener('click', function() {
+        if (!contextTarget) return;
+        
+        let itemId, itemType;
+        if (contextTarget.dataset.id && contextTarget.dataset.id.startsWith('uncat-')) {
+            itemType = 'lesson';
+            itemId = contextTarget.dataset.id.replace('uncat-', '');
+        } else if (contextTarget.classList.contains('category-block')) {
+            // Категории зеркалировать не надо
+            return;
+        } else if (contextTarget.querySelector('.lesson-link')) {
+            itemType = 'lesson';
+            itemId = contextTarget.querySelector('.lesson-select')?.value;
+        }
+    
+        if (!itemId || itemType !== 'lesson') return;
+    
+        // Показываем модалку выбора категории
+        function doMirror(targetCategory) {
+            fetch('/builder/mirror/', {
+                method: 'POST',
+                headers: { 'X-CSRFToken': (document.querySelector('[name=csrfmiddlewaretoken]')||{}).value || '', 'Content-Type': 'application/json' },
+                body: JSON.stringify({ lesson_id: itemId, category_id: targetCategory })
+            }).then(r => r.json()).then(data => {
+                if (data.error) { alert('Ошибка: ' + data.error); return; }
+                alert('Зеркало создано!');
+                window.location.reload();
+            }).catch(error => {
+                alert('Ошибка сети: ' + error.message);
+            });
+        }
+        // Если дерево уже загружено — сразу показываем
+        if (window.categoryTreeData) {
+            showMirrorCategorySelect({
+                onSelect: doMirror,
+                onCancel: null,
+                categories: window.categoryTreeData
+            });
+        } else {
+            fetchCategoryTreeForMirror().then(() => {
+                showMirrorCategorySelect({
+                    onSelect: doMirror,
+                    onCancel: null,
+                    categories: window.categoryTreeData
+                });
+            });
+        }
+    });
+
+
+    // --- Контекстное меню на вкладках ---
+    document.getElementById('tab-categories')?.addEventListener('contextmenu', function(e) {
+        e.preventDefault();
+        contextTarget = { tab: 'categories' };
+        const menu = document.getElementById('custom-context-menu');
+        menu.style.display = 'block';
+        menu.style.left = e.pageX + 'px';
+        menu.style.top = e.pageY + 'px';
+        updatePasteButton();
+    });
+    document.getElementById('tab-uncat')?.addEventListener('contextmenu', function(e) {
+        e.preventDefault();
+        contextTarget = { tab: 'uncat' };
+        const menu = document.getElementById('custom-context-menu');
+        menu.style.display = 'block';
+        menu.style.left = e.pageX + 'px';
+        menu.style.top = e.pageY + 'px';
+        updatePasteButton();
+    });
+    
     // Вставить
     document.getElementById('paste-menu-item').addEventListener('click', function() {
         if (!clipboardData || !contextTarget) return;
-        
-        // Определяем целевую категорию
+
         let targetCategory = '';
-        if (contextTarget.classList.contains('category-list')) {
-            // Если кликнули на корневой список категорий, вставляем в корень
+        let isCategory = clipboardData.type === 'category';
+        let isUncatLesson = contextTarget.dataset && contextTarget.dataset.id && contextTarget.dataset.id.startsWith('uncat-');
+        let isLesson = (contextTarget.classList && contextTarget.classList.contains('lesson-li')) || (contextTarget.dataset && contextTarget.dataset.id && contextTarget.dataset.id.startsWith('uncat-'));
+
+        // Контекстное меню на вкладках
+        if (contextTarget.tab === 'categories') {
             targetCategory = '';
-        } else if (contextTarget.classList.contains('category-block')) {
+        } else if (contextTarget.tab === 'uncat') {
+            targetCategory = '';
+        } else if (isUncatLesson) {
+            targetCategory = '';
+        } else if (contextTarget.classList && contextTarget.classList.contains('category-list')) {
+            targetCategory = '';
+        } else if (contextTarget.classList && contextTarget.classList.contains('category-block')) {
             targetCategory = contextTarget.dataset.id;
-        } else if (contextTarget.dataset.id && contextTarget.dataset.id.startsWith('uncat-')) {
-            // Если кликнули на урок без категории, вставляем в корень
-            targetCategory = '';
         } else {
-            // Если кликнули на урок, берем его родительскую категорию
-            const parentCategory = contextTarget.closest('.category-block');
+            const parentCategory = contextTarget.closest && contextTarget.closest('.category-block');
             targetCategory = parentCategory ? parentCategory.dataset.id : '';
         }
-        
-        fetch('/builder/paste/', {
-            method: 'POST',
-            headers: { 'X-CSRFToken': (document.querySelector('[name=csrfmiddlewaretoken]')||{}).value || '', 'Content-Type': 'application/json' },
-            body: JSON.stringify({ target_category: targetCategory })
-        }).then(r => r.json()).then(data => {
-            if (data.error) { alert('Ошибка: ' + data.error); return; }
-            
-            // Обновляем DOM
-            if (data.result) {
-                if (clipboardData.action === 'cut') {
-                    // Удаляем оригинальный элемент при вырезании
-                    let originalElement = null;
-                    if (clipboardData.type === 'lesson') {
-                        // Ищем урок в категориях или в корне
-                        originalElement = document.querySelector(`.lesson-select[value="${clipboardData.id}"]`)?.closest('li');
-                        if (!originalElement) {
-                            originalElement = document.querySelector(`[data-id="uncat-${clipboardData.id}"]`);
-                        }
-                    } else if (clipboardData.type === 'category') {
-                        // Для категорий удаляем весь блок категории со всем содержимым
-                        originalElement = document.querySelector(`[data-id="${clipboardData.id}"]`);
-                        if (originalElement) {
-                            // Удаляем весь li с категорией и всем её содержимым
-                            originalElement.remove();
+
+        // Если вставляем категорию в урок или в "Без категории" — предупреждение
+        if (isCategory && (isUncatLesson || isLesson || contextTarget.tab === 'uncat')) {
+            showCategoryPasteWarning({
+                onYes: () => {
+                    // Проверка: если категория уже в корне, ничего не делать
+                    const catElem = document.querySelector(`[data-id='${clipboardData.id}']`);
+                    if (catElem && (!catElem.dataset.parent || catElem.dataset.parent === '')) {
+                        // Уже в корне — просто закрыть окно
+                        return;
+                    }
+                    doPaste('');
+                },
+                onNo: () => {}
+            });
+            return;
+        }
+
+        doPaste(targetCategory);
+
+        function doPaste(targetCategory) {
+            fetch('/builder/paste/', {
+                method: 'POST',
+                headers: { 'X-CSRFToken': (document.querySelector('[name=csrfmiddlewaretoken]')||{}).value || '', 'Content-Type': 'application/json' },
+                body: JSON.stringify({ target_category: targetCategory })
+            }).then(r => r.json()).then(data => {
+                if (data.error) { alert('Ошибка: ' + data.error); return; }
+                if (data.result) {
+                    if (clipboardData.action === 'cut') {
+                        let originalElement = null;
+                        if (clipboardData.type === 'lesson') {
+                            originalElement = document.querySelector(`.lesson-select[value="${clipboardData.id}"]`)?.closest('li');
+                            if (!originalElement) {
+                                originalElement = document.querySelector(`[data-id="uncat-${clipboardData.id}"]`);
+                            }
+                        } else if (clipboardData.type === 'category') {
+                            originalElement = document.querySelector(`[data-id="${clipboardData.id}"]`);
+                            if (originalElement) originalElement.remove();
                         }
                     }
+                    window.location.reload();
                 }
-                
-                // Перезагружаем страницу для отображения изменений
-                window.location.reload();
-            }
-            
-            clipboardData = null;
-            updatePasteButton();
-            document.getElementById('custom-context-menu').style.display = 'none';
-        }).catch(error => {
-            alert('Ошибка сети: ' + error.message);
-        });
+                clipboardData = null;
+                updatePasteButton();
+                document.getElementById('custom-context-menu').style.display = 'none';
+            }).catch(error => {
+                alert('Ошибка сети: ' + error.message);
+            });
+        }
     });
     
     // Инициализация буфера обмена
     checkClipboard();
+
+    // --- Переключение вкладок Категории/Без категории ---
+    document.getElementById('tab-categories')?.addEventListener('click', function() {
+        this.classList.add('active');
+        document.getElementById('tab-uncat').classList.remove('active');
+        document.getElementById('categories-block').style.display = '';
+        document.getElementById('uncategorized-block').style.display = 'none';
+    });
+    document.getElementById('tab-uncat')?.addEventListener('click', function() {
+        this.classList.add('active');
+        document.getElementById('tab-categories').classList.remove('active');
+        document.getElementById('categories-block').style.display = 'none';
+        document.getElementById('uncategorized-block').style.display = '';
+    });
+
+    // --- История версий ---
+    const versionBtn = document.getElementById('version-history-btn');
+    const versionDropdown = document.getElementById('version-history-dropdown');
+    if (versionBtn && versionDropdown) {
+        versionBtn.addEventListener('click', function(e) {
+            versionDropdown.style.display = versionDropdown.style.display === 'none' ? 'block' : 'none';
+        });
+        document.addEventListener('click', function(e) {
+            if (!versionBtn.contains(e.target) && !versionDropdown.contains(e.target)) {
+                versionDropdown.style.display = 'none';
+            }
+        });
+        versionDropdown.querySelectorAll('.version-item').forEach(function(item) {
+            item.addEventListener('click', function() {
+                // Показываем детали выбранной версии
+                document.querySelector('h2').textContent = item.dataset.title;
+                document.getElementById('lesson-content-block').innerHTML = item.dataset.content;
+                if (item.dataset.video) {
+                    document.getElementById('lesson-video-block').innerHTML = `<h5>Видео урок:</h5><iframe width=\"560\" height=\"315\" src=\"https://rutube.ru/play/embed/${item.dataset.video}\" frameborder=\"0\" allowfullscreen></iframe>`;
+                } else {
+                    const vblock = document.getElementById('lesson-video-block');
+                    if (vblock) vblock.innerHTML = '';
+                }
+                versionDropdown.style.display = 'none';
+            });
+        });
+    }
+
+    // --- Кнопка Контроль обновлений ---
+    const updateControlBtn = document.getElementById('update-control-btn');
+    function getSelectedLessonIdForUpdateBtn() {
+        // Просто ищем выбранный radio .lesson-select
+        const checked = document.querySelector('.lesson-select:checked');
+        return checked ? checked.value : null;
+    }
+    function updateUpdateControlBtnState() {
+        if (!updateControlBtn) return;
+        const lessonId = getSelectedLessonIdForUpdateBtn();
+        updateControlBtn.disabled = !lessonId;
+        if (lessonId) {
+            updateControlBtn.onclick = function() {
+                window.location.href = `/builder/lesson/${lessonId}/update_control/new/`;
+            };
+        } else {
+            updateControlBtn.onclick = null;
+        }
+    }
+    if (updateControlBtn) {
+        updateUpdateControlBtnState();
+        document.addEventListener('click', function(e) {
+            setTimeout(updateUpdateControlBtnState, 100); // после клика по дереву
+        });
+    }
 });
+
+function initVersionHistoryDropdown() {
+    const versionBtn = document.getElementById('version-history-btn');
+    const versionDropdown = document.getElementById('version-history-dropdown');
+    if (versionBtn && versionDropdown) {
+        versionBtn.onclick = function(e) {
+            versionDropdown.style.display = versionDropdown.style.display === 'none' ? 'block' : 'none';
+        };
+        document.addEventListener('click', function handler(e) {
+            if (!versionBtn.contains(e.target) && !versionDropdown.contains(e.target)) {
+                versionDropdown.style.display = 'none';
+                document.removeEventListener('click', handler);
+            }
+        });
+        versionDropdown.querySelectorAll('.version-item').forEach(function(item) {
+            item.onclick = function() {
+                document.querySelector('h2').textContent = item.dataset.title;
+                document.getElementById('lesson-content-block').innerHTML = item.dataset.content;
+                if (item.dataset.video) {
+                    document.getElementById('lesson-video-block').innerHTML = `<h5>Видео урок:</h5><iframe width="560" height="315" src="https://rutube.ru/play/embed/${item.dataset.video}" frameborder="0" allowfullscreen></iframe>`;
+                } else {
+                    const vblock = document.getElementById('lesson-video-block');
+                    if (vblock) vblock.innerHTML = '';
+                }
+                versionDropdown.style.display = 'none';
+            };
+        });
+    }
+}
+
+function showCategoryPasteWarning({onYes, onNo}) {
+    let modal = document.getElementById('category-paste-warning-modal');
+    if (!modal) {
+        modal = document.createElement('div');
+        modal.id = 'category-paste-warning-modal';
+        modal.innerHTML = `
+        <div style="position:fixed;z-index:99999;left:0;top:0;width:100vw;height:100vh;background:rgba(0,0,0,0.35);display:flex;align-items:center;justify-content:center;">
+            <div style="background:#232a3a;color:#fff;padding:32px 32px 24px 32px;border-radius:12px;box-shadow:0 2px 16px #0007;min-width:320px;max-width:90vw;text-align:center;">
+                <div style="font-size:1.15em;margin-bottom:18px;">Категория будет создана в корне дерева. Продолжить?</div>
+                <div style="display:flex;gap:18px;justify-content:center;">
+                    <button id="cat-paste-yes" style="padding:8px 24px;font-size:1em;border-radius:6px;border:none;background:#4d7cff;color:#fff;cursor:pointer;">Да</button>
+                    <button id="cat-paste-no" style="padding:8px 24px;font-size:1em;border-radius:6px;border:none;background:#444;color:#fff;cursor:pointer;">Нет</button>
+                </div>
+            </div>
+        </div>`;
+        document.body.appendChild(modal);
+    } else {
+        modal.style.display = '';
+    }
+    function cleanup() {
+        modal.style.display = 'none';
+    }
+    modal.querySelector('#cat-paste-yes').onclick = function() { cleanup(); onYes && onYes(); };
+    modal.querySelector('#cat-paste-no').onclick = function() { cleanup(); onNo && onNo(); };
+}
+
+// --- Модалка выбора категории для зеркала ---
+function showMirrorCategorySelect({onSelect, onCancel, categories}) {
+    // Удаляем старую модалку если есть
+    let modal = document.getElementById('mirror-category-select-modal');
+    if (modal) modal.remove();
+    // Рекурсивная функция для отрисовки дерева
+    function renderTree(cats, level=0) {
+        let html = '<ul style="list-style:none;padding-left:'+(level*18)+'px;">';
+        for (const cat of cats) {
+            html += `<li style="margin-bottom:4px;">
+                <label style="cursor:pointer;">
+                    <input type="radio" name="mirror-cat-radio" value="${cat.id}" style="margin-right:8px;">${cat.name}
+                </label>`;
+            if (cat.subcategories && cat.subcategories.length) {
+                html += renderTree(cat.subcategories, level+1);
+            }
+            html += '</li>';
+        }
+        html += '</ul>';
+        return html;
+    }
+    // Получаем дерево категорий из window.categoryTreeData (или передать через параметр)
+    let cats = window.categoryTreeData || categories || [];
+    let html = `
+    <div style="position:fixed;z-index:99999;left:0;top:0;width:100vw;height:100vh;background:rgba(0,0,0,0.35);display:flex;align-items:center;justify-content:center;">
+        <div style="background:#232a3a;color:#fff;padding:32px 32px 24px 32px;border-radius:12px;box-shadow:0 2px 16px #0007;min-width:320px;max-width:90vw;text-align:center;">
+            <style>#mirror-category-select-modal * { color: #fff !important; }</style>
+            <div style="font-size:1.15em;margin-bottom:18px;">Выберите категорию для зеркала</div>
+            <div style="max-height:320px;overflow-y:auto;text-align:left;margin-bottom:18px;">${renderTree(cats)}</div>
+            <div style="display:flex;gap:18px;justify-content:center;">
+                <button id="mirror-cat-yes" style="padding:8px 24px;font-size:1em;border-radius:6px;border:none;background:#4d7cff;color:#fff;cursor:pointer;">Продолжить</button>
+                <button id="mirror-cat-no" style="padding:8px 24px;font-size:1em;border-radius:6px;border:none;background:#444;color:#fff;cursor:pointer;">Отмена</button>
+            </div>
+        </div>
+    </div>`;
+    modal = document.createElement('div');
+    modal.id = 'mirror-category-select-modal';
+    modal.innerHTML = html;
+    document.body.appendChild(modal);
+    modal.querySelector('#mirror-cat-yes').onclick = function() {
+        const val = modal.querySelector('input[name="mirror-cat-radio"]:checked');
+        if (!val) { alert('Выберите категорию!'); return; }
+        modal.remove();
+        onSelect && onSelect(val.value);
+    };
+    modal.querySelector('#mirror-cat-no').onclick = function() {
+        modal.remove();
+        onCancel && onCancel();
+    };
+}
+
+// --- Получение дерева категорий для модалки (один раз при загрузке) ---
+function fetchCategoryTreeForMirror() {
+    // Можно использовать существующий endpoint или сделать отдельный ajax
+    // Здесь предполагаем, что get_category_tree_data(0) отдаёт всё дерево
+    return fetch('/builder/category_tree_json/')
+        .then(r => r.json())
+        .then(data => {
+            window.categoryTreeData = data.categories || [];
+        });
+}

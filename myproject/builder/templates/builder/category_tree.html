@@ -15,85 +15,44 @@
                 <span class="toggle-arrow" onclick="toggleSubcat(this.parentElement)">&#9654;</span>
             {% endif %}
         {% else %}
-            {% if category.subcategories.all or category.lessons.all %}
+            {% if category.subcategories or category.lessons %}
                 <span class="toggle-arrow" onclick="toggleSubcat(this.parentElement)">&#9654;</span>
             {% endif %}
         {% endif %}
     </div>
     
-    {% if is_readonly %}
-        {% if category.filtered_lessons %}
-            <ul class="lesson-list" style='display: none;'>
-                {% for lesson in category.filtered_lessons %}
-                    <li class="lesson-li" data-lesson-id="{{ lesson.id }}">
-                        {% if not is_readonly %}
-                            <input type="radio" class="lesson-select" value="{{ lesson.id }}" style="display: none;">
+    {% if category.lessons %}
+        <ul class="lesson-list" style='display: none;'>
+            {% for lesson in category.lessons %}
+                <li class="lesson-li{% if lesson.is_mirror %} mirror{% endif %}" data-lesson-id="{{ lesson.id }}">
+                    {% if not is_readonly %}
+                        <input type="radio" class="lesson-select" value="{{ lesson.id }}" style="display: none;">
+                    {% endif %}
+                    <span class="lesson-icon" style="margin-right: 8px; display: flex; align-items: center;">
+                        <!-- SVG лист бумаги -->
+                        <svg width="16" height="16" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <rect x="4" y="3" width="12" height="14" rx="2" fill="#222" stroke="#bbb" stroke-width="1.2"/>
+                            <line x1="6.5" y1="7.5" x2="13.5" y2="7.5" stroke="#bbb" stroke-width="1.1"/>
+                            <line x1="6.5" y1="10.5" x2="13.5" y2="10.5" stroke="#bbb" stroke-width="1.1"/>
+                            <line x1="6.5" y1="13.5" x2="11.5" y2="13.5" stroke="#bbb" stroke-width="1.1"/>
+                        </svg>
+                    </span>
+                    <a class="lesson-link" {% if lesson.is_mirror %}style="font-style: italic;"{% endif %}>
+                        {{ lesson.title }}
+                        {% if lesson.is_mirror %}
+                            <span class="mirror-label" title="Зеркало урока">🔗 зеркало</span>
                         {% endif %}
-                        <span class="lesson-icon" style="margin-right: 8px; display: flex; align-items: center;">
-                            <!-- SVG лист бумаги -->
-                            <svg width="16" height="16" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                <rect x="4" y="3" width="12" height="14" rx="2" fill="#222" stroke="#bbb" stroke-width="1.2"/>
-                                <line x1="6.5" y1="7.5" x2="13.5" y2="7.5" stroke="#bbb" stroke-width="1.1"/>
-                                <line x1="6.5" y1="10.5" x2="13.5" y2="10.5" stroke="#bbb" stroke-width="1.1"/>
-                                <line x1="6.5" y1="13.5" x2="11.5" y2="13.5" stroke="#bbb" stroke-width="1.1"/>
-                            </svg>
-                        </span>
-                        <a class="lesson-link">
-                            {{ lesson.title }}
-                        </a>
-                    </li>
-                {% endfor %}
-            </ul>
-        {% endif %}
-        {% if category.filtered_subcategories %}
-            <ul class="subcategory-list" style="display: none;">
-                {% for subcat in category.filtered_subcategories %}
-                    {% include "builder/category_tree.html" with category=subcat selected_lesson=selected_lesson is_readonly=is_readonly %}
-                {% endfor %}
-            </ul>
-        {% endif %}
-    {% else %}
-        {% if category.lessons.all %}
-            <ul class="lesson-list" style='display: none;'>
-                {% for lesson in category.lessons.all %}
-                    <li class="lesson-li" data-lesson-id="{{ lesson.id }}">
-                        {% if not is_readonly %}
-                            <input type="radio" class="lesson-select" value="{{ lesson.id }}" style="display: none;">
-                        {% endif %}
-                        <span class="lesson-icon" style="margin-right: 8px; display: flex; align-items: center;">
-                            <!-- SVG лист бумаги -->
-                            <svg width="16" height="16" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                <rect x="4" y="3" width="12" height="14" rx="2" fill="#222" stroke="#bbb" stroke-width="1.2"/>
-                                <line x1="6.5" y1="7.5" x2="13.5" y2="7.5" stroke="#bbb" stroke-width="1.1"/>
-                                <line x1="6.5" y1="10.5" x2="13.5" y2="10.5" stroke="#bbb" stroke-width="1.1"/>
-                                <line x1="6.5" y1="13.5" x2="11.5" y2="13.5" stroke="#bbb" stroke-width="1.1"/>
-                            </svg>
-                        </span>
-                        <a class="lesson-link {% if selected_lesson and lesson.id == selected_lesson.id %}active{% endif %}">
-                            {{ lesson.title }}
-                        </a>
-                    </li>
-                {% endfor %}
-            </ul>
-        {% endif %}
-        {% if category.subcategories.all %}
-            <ul class="subcategory-list" style="display: none;">
-                {% for subcat in category.subcategories.all %}
-                    {% include "builder/category_tree.html" with category=subcat selected_lesson=selected_lesson is_readonly=is_readonly %}
-                {% endfor %}
-            </ul>
-        {% endif %}
+                    </a>
+                </li>
+            {% endfor %}
+        </ul>
+    {% endif %}
+
+    {% if category.subcategories %}
+        <ul class="subcategory-list" style="display: none;">
+            {% for subcat in category.subcategories %}
+                {% include "builder/category_tree.html" with category=subcat selected_lesson=selected_lesson is_readonly=is_readonly %}
+            {% endfor %}
+        </ul>
     {% endif %}
 </li>
-<!-- {% if forloop.first and forloop.parentloop is None %} -->
-<!-- Блок действий под списком категорий -->
-    <!-- <li style="list-style: none; margin-top: 16px;">
-        <div id="category-actions-block">
-            <button id="add-root-category" title="Добавить корневую категорию">+|</button>
-            <button id="add-subcategory" title="Добавить подкатегорию/документ">+</button>
-            <button id="edit-category" title="Изменить название">v</button>
-            <button id="delete-category" title="Удалить">x</button>
-        </div>
-    </li>
-
-{% endif %} -->
