@@ -805,6 +805,7 @@ label {
 }
 
 .builder-dropdown {
+  display: none;
   position: absolute;
   top: 40px;
   right: 32px;

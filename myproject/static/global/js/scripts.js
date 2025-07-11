@@ -93,8 +93,10 @@ document.addEventListener('DOMContentLoaded', function() {
   const logo = document.getElementById('logopng');
   const footerLogo = document.getElementById('footerlogo');
   const footerLogoMobile = document.getElementById('footerlogomobile');
-  const darkLogo = "{% static 'global/imgs/logo_lc.png' %}";
-  const lightLogo = "{% static 'global/imgs/logo_light_theme.png' %}";
+
+  // const darkLogo = "{% static 'global/imgs/logo_lc.png' %}";
+  // const lightLogo = "{% static 'global/imgs/logo_light_theme.png' %}";
+  
   function updateLogo() {
     if (document.body.classList.contains('theme-dark')) {
       if (logo) logo.src = darkLogo;

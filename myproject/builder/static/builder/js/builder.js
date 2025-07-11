@@ -478,7 +478,7 @@ document.addEventListener('DOMContentLoaded', function() {
             })
             .then(html => {
                 document.getElementById('detail').innerHTML = html;
-                initVersionHistoryDropdown(); // <-- добавлено!
+                initVersionHistoryDropdown();
             })
             .catch(e => {
                 alert('Ошибка загрузки урока: ' + e.message);
@@ -957,32 +957,52 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     // --- История версий ---
-    const versionBtn = document.getElementById('version-history-btn');
-    const versionDropdown = document.getElementById('version-history-dropdown');
-    if (versionBtn && versionDropdown) {
-        versionBtn.addEventListener('click', function(e) {
+    function initVersionHistoryDropdown() {
+        const versionBtn = document.getElementById('version-history-btn');
+        const versionDropdown = document.getElementById('version-history-dropdown');
+        if (!versionBtn || !versionDropdown) return;
+    
+        // Снимаем старые обработчики
+        versionBtn.onclick = null;
+        versionDropdown.onclick = null;
+    
+        // Открытие/закрытие дропдауна
+        versionBtn.onclick = function(e) {
+            e.stopPropagation();
             versionDropdown.style.display = versionDropdown.style.display === 'none' ? 'block' : 'none';
-        });
-        document.addEventListener('click', function(e) {
+        };
+        versionDropdown.onclick = function(e) {
+            e.stopPropagation();
+        };
+    
+        // Снимаем старый обработчик document (если был)
+        document.removeEventListener('click', window._versionDropdownDocHandler);
+    
+        // Новый обработчик document
+        window._versionDropdownDocHandler = function(e) {
             if (!versionBtn.contains(e.target) && !versionDropdown.contains(e.target)) {
                 versionDropdown.style.display = 'none';
             }
-        });
+        };
+        document.addEventListener('click', window._versionDropdownDocHandler);
+    
+        // Обработчики на элементы версий
         versionDropdown.querySelectorAll('.version-item').forEach(function(item) {
-            item.addEventListener('click', function() {
-                // Показываем детали выбранной версии
+            item.onclick = function() {
                 document.querySelector('h2').textContent = item.dataset.title;
                 document.getElementById('lesson-content-block').innerHTML = item.dataset.content;
                 if (item.dataset.video) {
-                    document.getElementById('lesson-video-block').innerHTML = `<h5>Видео урок:</h5><iframe width=\"560\" height=\"315\" src=\"https://rutube.ru/play/embed/${item.dataset.video}\" frameborder=\"0\" allowfullscreen></iframe>`;
+                    document.getElementById('lesson-video-block').innerHTML = `<h5>Видео урок:</h5><iframe width="560" height="315" src="https://rutube.ru/play/embed/${item.dataset.video}" frameborder="0" allowfullscreen></iframe>`;
                 } else {
                     const vblock = document.getElementById('lesson-video-block');
                     if (vblock) vblock.innerHTML = '';
                 }
                 versionDropdown.style.display = 'none';
-            });
+            };
         });
     }
+
+    initVersionHistoryDropdown();
 
     // --- Кнопка Контроль обновлений ---
     const updateControlBtn = document.getElementById('update-control-btn');
@@ -1011,34 +1031,6 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 
-function initVersionHistoryDropdown() {
-    const versionBtn = document.getElementById('version-history-btn');
-    const versionDropdown = document.getElementById('version-history-dropdown');
-    if (versionBtn && versionDropdown) {
-        versionBtn.onclick = function(e) {
-            versionDropdown.style.display = versionDropdown.style.display === 'none' ? 'block' : 'none';
-        };
-        document.addEventListener('click', function handler(e) {
-            if (!versionBtn.contains(e.target) && !versionDropdown.contains(e.target)) {
-                versionDropdown.style.display = 'none';
-                document.removeEventListener('click', handler);
-            }
-        });
-        versionDropdown.querySelectorAll('.version-item').forEach(function(item) {
-            item.onclick = function() {
-                document.querySelector('h2').textContent = item.dataset.title;
-                document.getElementById('lesson-content-block').innerHTML = item.dataset.content;
-                if (item.dataset.video) {
-                    document.getElementById('lesson-video-block').innerHTML = `<h5>Видео урок:</h5><iframe width="560" height="315" src="https://rutube.ru/play/embed/${item.dataset.video}" frameborder="0" allowfullscreen></iframe>`;
-                } else {
-                    const vblock = document.getElementById('lesson-video-block');
-                    if (vblock) vblock.innerHTML = '';
-                }
-                versionDropdown.style.display = 'none';
-            };
-        });
-    }
-}
 
 function showCategoryPasteWarning({onYes, onNo}) {
     let modal = document.getElementById('category-paste-warning-modal');
