@@ -1994,7 +1994,7 @@ main > section > .text-block-2 {
 }
 
 .theme-light .hero-landing {
-  background: linear-gradient(100deg, #fff 70%, #f7f8fa 100%);
+  background: linear-gradient(280deg, var(--bs-primary-border-subtle) 60%, rgba(76, 175, 170, 0.1) 100%);
   color: #232a3a;
 }
 .theme-light .hero-landing__stat-num {
