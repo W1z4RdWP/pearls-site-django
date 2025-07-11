@@ -59,10 +59,22 @@ def get_category_tree_data(category_id):
         # Собираем зеркала
         for mirror in cat.mirrored_lessons.select_related('lesson').order_by('order'):
             lesson = mirror.lesson
-            # Проверяем, сколько всего экземпляров этого урока (оригинал + зеркала)
-            total_instances = lesson.mirrors.count() + (1 if lesson.category else 0)
-            if total_instances == 1:
-                # Это единственный экземпляр — отображаем как обычный урок
+            mirrors_count = lesson.mirrors.count()
+            # Если у урока нет категории и только один mirror (этот), то это всё ещё зеркало
+            if lesson.category is None and mirrors_count == 1:
+                data['lessons'].append({
+                    'id': lesson.id,
+                    'title': lesson.title,
+                    'content': lesson.content,
+                    'video_id': lesson.video_id,
+                    'order': mirror.order,
+                    'is_mirror': True,
+                    'original_category': None,
+                    'mirror_id': mirror.id,
+                    'has_mirrors': False,
+                })
+            # Если вообще нет ни одной привязки (lesson.category is None и mirrors_count == 0) — обычный урок
+            elif lesson.category is None and mirrors_count == 0:
                 data['lessons'].append({
                     'id': lesson.id,
                     'title': lesson.title,

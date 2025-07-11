@@ -848,6 +848,7 @@ body.theme-dark .builder-dropdown {
   margin-left: 10px;
 }
 .builder-context-menu {
+  display: none;
   position: absolute;
   z-index: 9999;
   background: var(--builder-sidebar-bg);

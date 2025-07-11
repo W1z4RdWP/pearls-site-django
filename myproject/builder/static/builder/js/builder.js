@@ -339,6 +339,14 @@ document.addEventListener('DOMContentLoaded', function() {
         } else if (lessonId && selectedLessonElem) {
             // Новая логика удаления экземпляра урока/зеркала
             const mirrorId = selectedLessonElem.getAttribute('data-mirror-id');
+            const isMirror = selectedLessonElem.classList.contains('mirror');
+
+            // Если это не зеркало (нет mirrorId, нет класса mirror) — обычное удаление через Django view
+            if (!mirrorId && !isMirror) {
+                window.location.href = `/builder/lesson/${lessonId}/delete/`;
+                return;
+            }
+            // Иначе — AJAX-удаление экземпляра
             const categoryId = selectedLessonElem.getAttribute('data-category-id');
             if (confirm('Удалить этот экземпляр урока?')) {
                 fetch('/builder/ajax_delete_lesson_instance/', {
