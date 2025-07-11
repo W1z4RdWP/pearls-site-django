@@ -1,3 +1,65 @@
+:root {
+  --builder-bg: #383838;
+  --builder-sidebar-bg: #232323;
+  --builder-sidebar-text: #fff;
+  --builder-sidebar-header-bg: #2c2c2c;
+  --builder-sidebar-header-hover: #3a3a3a;
+  --builder-sidebar-title: #ddd;
+  --builder-sidebar-arrow: #bbb;
+  --builder-sidebar-arrow-open: #0dcaf0;
+  --builder-category-header-selected: #444;
+  --builder-lesson-bg: #232323;
+  --builder-lesson-hover: #3a3a3a;
+  --builder-lesson-text: #fff;
+  --builder-border-radius: 10px;
+  --builder-shadow: 0 0 12px #2223;
+  --builder-btn-bg: #232a3a;
+  --builder-btn-text: #fff;
+  --builder-btn-primary-bg: #4d7cff;
+  --builder-btn-primary-text: #fff;
+  --builder-btn-primary-hover: #2dabc4;
+  --builder-btn-disabled-bg: #444;
+  --builder-btn-disabled-text: #888;
+  --builder-tab-bg: #232323;
+  --builder-tab-active-bg: #383838;
+  --builder-tab-text: #fff;
+  --builder-tab-active-text: #fff;
+  --builder-input-bg: #232323;
+  --builder-input-text: #fff;
+  --builder-scrollbar-thumb: #444;
+  --builder-scrollbar-track: #232323;
+}
+body.theme-light {
+  --builder-bg: #f7f8fa;
+  --builder-sidebar-bg: #fff;
+  --builder-sidebar-text: #232a3a;
+  --builder-sidebar-header-bg: #e3e8f0;
+  --builder-sidebar-header-hover: #d3d8e0;
+  --builder-sidebar-title: #232a3a;
+  --builder-sidebar-arrow: #888;
+  --builder-sidebar-arrow-open: #4d7cff;
+  --builder-category-header-selected: #e3e8f0;
+  --builder-lesson-bg: #f7f8fa;
+  --builder-lesson-hover: #e3e8f0;
+  --builder-lesson-text: #232a3a;
+  --builder-border-radius: 10px;
+  --builder-shadow: 0 0 12px #e3e8f0;
+  --builder-btn-bg: #e3e8f0;
+  --builder-btn-text: #232a3a;
+  --builder-btn-primary-bg: #4d7cff;
+  --builder-btn-primary-text: #fff;
+  --builder-btn-primary-hover: #2dabc4;
+  --builder-btn-disabled-bg: #e3e8f0;
+  --builder-btn-disabled-text: #bbb;
+  --builder-tab-bg: #e3e8f0;
+  --builder-tab-active-bg: #fff;
+  --builder-tab-text: #232a3a;
+  --builder-tab-active-text: #4d7cff;
+  --builder-input-bg: #fff;
+  --builder-input-text: #232a3a;
+  --builder-scrollbar-thumb: #bbb;
+  --builder-scrollbar-track: #e3e8f0;
+}
 /* --- Основные контейнеры --- */
 .container {
     width: 100% !important;
@@ -8,10 +70,10 @@
 .master-detail-container {
     display: flex;
     min-height: 600px;
-    background: #383838;
-    border-radius: 10px;
+    background: var(--builder-bg);
+    border-radius: var(--builder-border-radius);
     margin-top: 32px;
-    box-shadow: 0 0 12px #2223;
+    box-shadow: var(--builder-shadow);
     transition: all 0.3s;
 }
 
@@ -20,8 +82,8 @@
     min-width: 180px;
     max-width: 600px;
     transition: all 0.3s;
-    background: #232323;
-    color: #fff;
+    background: var(--builder-sidebar-bg);
+    color: var(--builder-sidebar-text);
     border-radius: 10px 0 0 10px;
     padding: 32px 0;
     display: flex;
@@ -56,7 +118,7 @@
     display: flex;
     align-items: center;
     padding: 4px 16px;
-    background: #2c2c2c;
+    background: var(--builder-sidebar-header-bg);
     border-radius: 6px;
     margin-bottom: 2px;
     min-height: 28px;
@@ -67,14 +129,14 @@
 }
 
 .category-header:hover {
-    background: #3a3a3a;
+    background: var(--builder-sidebar-header-hover);
 }
 
 .category-title {
     flex: 1;
     font-weight: 900;
     font-size: 1em;
-    color: #ddd;
+    color: var(--builder-sidebar-title);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -109,10 +171,10 @@
     cursor: pointer;
     user-select: none;
     transition: transform 0.2s;
-    color: #bbb;
+    color: var(--builder-sidebar-arrow);
 }
 .category-header.open .toggle-arrow {
-    color: #0dcaf0;
+    color: var(--builder-sidebar-arrow-open);
 }
 
 .category-block > .lesson-list,
@@ -132,7 +194,7 @@
     justify-content: flex-start;
     padding: 0px 12px;
     margin-bottom: 2px;
-    background: #232323;
+    background: var(--builder-lesson-bg);
     border-radius: 5px;
     font-size: 0.97em;
     min-height: 26px;
@@ -142,12 +204,12 @@
 }
 
 .lesson-list li:hover {
-    background: #3a3a3a;
+    background: var(--builder-lesson-hover);
 }
 
 .lesson-link, .lesson-list a {
     display: block;
-    color: #fff;
+    color: var(--builder-lesson-text);
     text-decoration: none;
     padding: 8px 0 8px 8px;
     border-left: 4px solid transparent;
@@ -158,7 +220,7 @@
 
 .lesson-link {
     flex: 1;
-    color: #fff;
+    color: var(--builder-lesson-text);
     text-decoration: none;
     white-space: normal;
     word-wrap: break-word;
@@ -272,6 +334,7 @@
     border-radius: 0 10px 10px 0;
     color: #212529;
     transition: all 0.3s;
+    position: relative;
 }
 .detail h2 {
     margin-top: 0;
@@ -739,6 +802,85 @@ label {
 .category-scroll:hover::-webkit-scrollbar-thumb {
     background: #444;
     border-radius: 6px;
+}
+
+.builder-dropdown {
+  position: absolute;
+  top: 40px;
+  right: 32px;
+  min-width: 260px;
+  max-width: 95%;
+  background: var(--builder-sidebar-bg, #232323);
+  color: var(--builder-sidebar-text, #fff);
+  border-radius: 8px;
+  box-shadow: 0 2px 8px var(--builder-shadow, #0005);
+  z-index: 1000;
+  box-sizing: border-box;
+  border: 1px solid var(--builder-sidebar-header-hover, #3a3a3a);
+}
+body.theme-light .builder-dropdown {
+  background: #fff;
+  color: #232a3a;
+  box-shadow: 0 2px 8px #e3e8f0;
+  border: 1px solid #e3e8f0;
+}
+.builder-version-item {
+  padding: 10px 18px;
+  cursor: pointer;
+  border-bottom: 1px solid var(--builder-sidebar-header-hover);
+  font-weight: 600;
+  background: none;
+  color: inherit;
+}
+.builder-version-date {
+  color: #aaa;
+  font-size: 0.95em;
+  margin-left: 8px;
+}
+.builder-version-user {
+  margin-left: 10px;
+}
+.builder-context-menu {
+  position: absolute;
+  z-index: 9999;
+  background: var(--builder-sidebar-bg);
+  color: var(--builder-sidebar-text);
+  border: 1px solid var(--builder-sidebar-header-hover);
+  border-radius: 6px;
+  min-width: 160px;
+  box-shadow: 0 2px 8px var(--builder-shadow, #0005);
+}
+.builder-context-menu-item {
+  padding: 10px 18px;
+  cursor: pointer;
+  border-bottom: 1px solid var(--builder-sidebar-header-hover);
+  background: none;
+  color: inherit;
+}
+.builder-context-menu-item:last-child {
+  border-bottom: none;
+}
+.builder-input {
+  background: var(--builder-input-bg);
+  color: var(--builder-input-text);
+  border: 1px solid var(--builder-sidebar-header-hover);
+  border-radius: 6px;
+  outline: none;
+  padding: 6px 12px;
+}
+.svg-folder .svg-folder-path {
+  stroke: var(--builder-sidebar-arrow);
+  fill: var(--builder-sidebar-header-bg);
+  stroke-width: 1.2;
+}
+.svg-paper .svg-paper-rect {
+  fill: var(--builder-sidebar-header-bg);
+  stroke: var(--builder-sidebar-arrow);
+  stroke-width: 1.2;
+}
+.svg-paper .svg-paper-line {
+  stroke: var(--builder-sidebar-arrow);
+  stroke-width: 1.1;
 }
 
 
