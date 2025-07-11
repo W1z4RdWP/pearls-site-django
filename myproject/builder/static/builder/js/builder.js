@@ -50,6 +50,7 @@ function toggleSubcat(header) {
 document.addEventListener('DOMContentLoaded', restoreCategoryStates);
 
 document.addEventListener('DOMContentLoaded', function() {
+    const IS_READONLY = window.IS_READONLY;
     const sidebar = document.getElementById('sidebar');
     const detail = document.getElementById('detail');
     const toggleBtn = document.getElementById('toggle-sidebar-btn');
@@ -107,7 +108,46 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
+    // --- Переключение вкладок Категории/Без категории ---
+    document.getElementById('tab-categories')?.addEventListener('click', function() {
+        this.classList.add('active');
+        document.getElementById('tab-uncat').classList.remove('active');
+        document.getElementById('categories-block').style.display = '';
+        document.getElementById('uncategorized-block').style.display = 'none';
+    });
+    document.getElementById('tab-uncat')?.addEventListener('click', function() {
+        this.classList.add('active');
+        document.getElementById('tab-categories').classList.remove('active');
+        document.getElementById('categories-block').style.display = 'none';
+        document.getElementById('uncategorized-block').style.display = '';
+    });
     // === КНОПКИ ДЕЙСТВИЙ ДЛЯ КАТЕГОРИЙ/УРОКОВ ===
+    if (IS_READONLY) {
+        // Отключаем контекстное меню и действия copy/cut/paste/mirror
+        // Не вешаем обработчики contextmenu, clipboard, custom-context-menu
+        // Просто инициализируем выбор и раскрытие
+        initCategoryCheckboxHandlers();
+        initLessonCheckboxHandlers();
+        // Сброс выделения при клике вне элементов
+        document.addEventListener('click', function(e) {
+            if (e.target.closest('.category-header') || 
+                e.target.closest('.lesson-list li') || 
+                e.target.closest('.category-block[data-id^="uncat-"]')) {
+                return;
+            }
+            document.querySelectorAll('.category-select, .lesson-select').forEach(cb => cb.checked = false);
+            document.querySelectorAll('.category-block').forEach(block => block.classList.remove('selected'));
+            document.querySelectorAll('.lesson-list li').forEach(li => li.classList.remove('selected'));
+        });
+        // Делегируем клик по стрелке для раскрытия/сворачивания категорий
+        document.addEventListener('click', function(e) {
+            if (e.target.classList.contains('toggle-arrow')) {
+                toggleSubcat(e.target.parentElement);
+            }
+        });
+        return;
+    }
+
     function getSelectedCategoryId() {
         const checked = document.querySelector('.category-select:checked');
         return checked ? checked.value : null;
@@ -454,6 +494,22 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     function selectCategory(radio) {
+        if (window.IS_READONLY) {
+            document.querySelectorAll('.category-select').forEach(other => {
+                if (other !== radio) other.checked = false;
+            });
+            document.querySelectorAll('.category-block').forEach(block => {
+                block.classList.remove('selected');
+            });
+            document.querySelectorAll('.lesson-select').forEach(lessonCb => {
+                lessonCb.checked = false;
+            });
+            document.querySelectorAll('.lesson-list li').forEach(li => {
+                li.classList.remove('selected');
+            });
+            radio.closest('.category-block').classList.add('selected');
+            return;
+        }
         // Сбрасываем все категории
         document.querySelectorAll('.category-select').forEach(other => {
             if (other !== radio) other.checked = false;
@@ -476,6 +532,40 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     function selectLesson(radio) {
+        if (window.IS_READONLY) {
+            document.querySelectorAll('.lesson-select').forEach(other => {
+                if (other !== radio) other.checked = false;
+            });
+            document.querySelectorAll('.lesson-list li').forEach(li => {
+                li.classList.remove('selected');
+            });
+            document.querySelectorAll('.category-select').forEach(catCb => {
+                catCb.checked = false;
+            });
+            document.querySelectorAll('.category-block').forEach(block => {
+                block.classList.remove('selected');
+            });
+            const lessonElement = radio.closest('li') || radio.closest('.category-block[data-id^="uncat-"]');
+            if (lessonElement) {
+                lessonElement.classList.add('selected');
+            }
+            // Только просмотр detail
+            if (radio && radio.value) {
+                fetch('/builder/lesson/' + radio.value + '/?ajax=1')
+                .then(r => {
+                    if (!r.ok) throw new Error('Ошибка загрузки');
+                    return r.text();
+                })
+                .then(html => {
+                    document.getElementById('detail').innerHTML = html;
+                    initVersionHistoryDropdown();
+                })
+                .catch(e => {
+                    alert('Ошибка загрузки урока: ' + e.message);
+                });
+            }
+            return;
+        }
         // Сбрасываем все уроки
         document.querySelectorAll('.lesson-select').forEach(other => {
             if (other !== radio) other.checked = false;
@@ -980,20 +1070,6 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Инициализация буфера обмена
     checkClipboard();
-
-    // --- Переключение вкладок Категории/Без категории ---
-    document.getElementById('tab-categories')?.addEventListener('click', function() {
-        this.classList.add('active');
-        document.getElementById('tab-uncat').classList.remove('active');
-        document.getElementById('categories-block').style.display = '';
-        document.getElementById('uncategorized-block').style.display = 'none';
-    });
-    document.getElementById('tab-uncat')?.addEventListener('click', function() {
-        this.classList.add('active');
-        document.getElementById('tab-categories').classList.remove('active');
-        document.getElementById('categories-block').style.display = 'none';
-        document.getElementById('uncategorized-block').style.display = '';
-    });
 
     // --- История версий ---
     function initVersionHistoryDropdown() {

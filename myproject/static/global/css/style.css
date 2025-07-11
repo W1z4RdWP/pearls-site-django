@@ -874,8 +874,8 @@ main > section > .text-block-2 {
     max-width: 260px;
 }
 .footer-logo {
-    width: 110px;
-    margin-bottom: 12px;
+    width: 200px;
+    margin-bottom: 12%;
     display: block;
 }
 
@@ -946,7 +946,7 @@ main > section > .text-block-2 {
 
 .footer-bottom {
     border-top: 1px solid var(--color-footer-border);
-    margin-top: 18px;
+    margin-top: 12px;
     padding: 16px 32px 8px 32px;
     display: flex;
     flex-wrap: wrap;

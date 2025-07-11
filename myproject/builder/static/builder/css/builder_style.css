@@ -629,7 +629,7 @@ label {
 .master-detail-container.sidebar-collapsed .sidebar #toggle-sidebar-btn {
     opacity: 1;
     pointer-events: auto;
-    width: 80%;
+    width: 85%;
     margin-left: 0;
     margin-right: 0;
 }
