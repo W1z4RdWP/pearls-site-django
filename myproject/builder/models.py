@@ -123,3 +123,24 @@ class LessonUpdateControl(models.Model):
 
     def __str__(self) -> str:
         return f"{self.lesson.title} — v{self.version_number} ({self.update_date:%d.%m.%Y})"
+
+
+class LessonCategoryMirror(models.Model):
+    """
+    Зеркальная ссылка на урок (Lesson) в другой категории (CategoryName).
+    Позволяет размещать один и тот же урок в нескольких категориях (аналог симлинка).
+    При удалении урока — все зеркала удаляются (CASCADE).
+    При удалении категории — только связь.
+    """
+    lesson: 'Lesson' = models.ForeignKey('courses.Lesson', on_delete=models.CASCADE, related_name='mirrors', verbose_name='Зеркалируемый урок')
+    category: CategoryName = models.ForeignKey(CategoryName, on_delete=models.CASCADE, related_name='mirrored_lessons', verbose_name='Категория зеркала')
+    order: int = models.PositiveIntegerField(default=0, verbose_name='Порядок в категории')
+
+    class Meta:
+        unique_together = ('lesson', 'category')
+        verbose_name = 'Зеркало урока'
+        verbose_name_plural = 'Зеркала уроков'
+        ordering = ['order']
+
+    def __str__(self) -> str:
+        return f"Зеркало: {self.lesson.title} в {self.category}"

@@ -14,6 +14,7 @@ urlpatterns = [
     path('lesson/<int:pk>/', views.LessonMasterDetailView.as_view(), name='lesson_detail'),
     path('lesson/<int:pk>/delete/', views.LessonDeleteView.as_view(), name='lesson_delete'),
     path('lesson/<int:pk>/edit/', views.LessonUpdateView.as_view(), name='lesson_edit'),
+    path('lesson/<int:lesson_id>/update_control/new/', LessonUpdateControlCreateView.as_view(), name='lesson_update_control_create'),
     path('add/', views.LessonCreateView.as_view(), name='lesson_add'),
     path('add/<int:category_id>/', views.LessonCreateView.as_view(), name='lesson_add_with_category'),
     path('categories/', views.CategoryListView.as_view(), name='category_list'),
@@ -33,8 +34,6 @@ urlpatterns = [
     path('cut/', views.ajax_cut, name='cut'),
     path('paste/', views.ajax_paste, name='paste'),
     path('clipboard/', views.ajax_get_clipboard, name='get_clipboard'),
-]
-
-urlpatterns += [
-    path('lesson/<int:lesson_id>/update_control/new/', LessonUpdateControlCreateView.as_view(), name='lesson_update_control_create'),
+    path('mirror/', views.ajax_mirror, name='mirror'),
+    path('category_tree_json/', views.ajax_category_tree_json, name='category_tree_json'),
 ]
