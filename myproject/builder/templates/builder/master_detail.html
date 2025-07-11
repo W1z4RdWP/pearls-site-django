@@ -40,6 +40,8 @@
                             <div class="category-header">
                                 {% if not is_readonly %}
                                     <input type="radio" class="lesson-select" value="{{ lesson.id }}" style="display: none;">
+                                {% else %}
+                                    <input type="radio" class="lesson-select" value="{{ lesson.id }}" style="display:none;" disabled>
                                 {% endif %}
                                 <span class="lesson-icon" style="margin-right: 8px; display: flex; align-items: center;">
                                     <svg width="16" height="16" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -115,6 +117,11 @@
     <div id="cut-menu-item" class="builder-context-menu-item">Вырезать</div>
     <div id="paste-menu-item" class="builder-context-menu-item">Вставить</div>
     <div id="mirror-menu-item" class="builder-context-menu-item">Зеркало</div>
+    <div id="mirror-here-menu-item" class="builder-context-menu-item">Вставить зеркало</div>
 </div>
+
+<script>
+    window.IS_READONLY = {{ is_readonly|yesno:"true,false" }};
+</script>
 
 {% endblock %}

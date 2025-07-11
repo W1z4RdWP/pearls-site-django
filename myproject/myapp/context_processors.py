@@ -1,16 +1,19 @@
+from packaging.version import parse as parse_version
 from .models import ChangeLog
 
 def get_changelog(request):
     """
     Возвращает список изменений для отображения в шаблонах.
     """
-    try:
-        latest_version = ChangeLog.objects.latest('version').version
-    except ChangeLog.DoesNotExist:
+    changelogs = list(ChangeLog.objects.all())
+    if changelogs:
+        latest = max(changelogs, key=lambda c: parse_version(c.version))
+        latest_version = latest.version
+    else:
         latest_version = None
 
     return {
-        'changelog': ChangeLog.objects.all(),
+        'changelog': changelogs,
         'latest_version': latest_version
     }
 

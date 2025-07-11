@@ -23,7 +23,10 @@
     {% if category.lessons %}
         <ul class="lesson-list" style='display: none;'>
             {% for lesson in category.lessons %}
-                <li class="lesson-li{% if lesson.is_mirror %} mirror{% endif %}" data-lesson-id="{{ lesson.id }}">
+                <li class="lesson-li{% if lesson.is_mirror %} mirror{% endif %}"
+                    data-lesson-id="{{ lesson.id }}"
+                    {% if lesson.is_mirror %}data-mirror-id="{{ lesson.mirror_id }}"{% endif %}
+                    data-category-id="{{ category.id }}">
                     {% if not is_readonly %}
                         <input type="radio" class="lesson-select" value="{{ lesson.id }}" style="display: none;">
                     {% endif %}
@@ -35,12 +38,13 @@
                             <line class="svg-paper-line" x1="6.5" y1="13.5" x2="11.5" y2="13.5"/>
                         </svg>
                     </span>
-                    <a class="lesson-link" {% if lesson.is_mirror %}style="font-style: italic;"{% endif %}>
-                        {{ lesson.title }}
-                        {% if lesson.is_mirror %}
-                            <span class="mirror-label" title="Зеркало урока">🔗 зеркало</span>
-                        {% endif %}
-                    </a>
+                    <a class="lesson-link"
+                    {% if lesson.is_mirror or lesson.has_mirrors %}style="font-style: italic;"{% endif %}>
+                     {{ lesson.title }}
+                     {% if lesson.is_mirror or lesson.has_mirrors %}
+                         <span class="mirror-label" title="Зеркало урока">🔗 зеркало</span>
+                     {% endif %}
+                 </a>
                 </li>
             {% endfor %}
         </ul>
