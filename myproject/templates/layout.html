@@ -32,9 +32,9 @@
     <script>
     (function() {
       try {
-        if (localStorage.getItem('theme') === 'light') {
-          document.documentElement.classList.add('theme-light');
-          document.body.classList.add('theme-light');
+        if (localStorage.getItem('theme') === 'dark') {
+          document.documentElement.classList.add('theme-dark');
+          document.body.classList.add('theme-dark');
         }
       } catch(e){}
     })();
@@ -172,40 +172,9 @@
         </div>
     </footer>
     <script>
-document.addEventListener('DOMContentLoaded', function() {
-  const btn = document.getElementById('theme-toggle-btn');
-  const logo = document.getElementById('logopng');
-  const footerLogo = document.getElementById('footerlogo');
-  const footerLogoMobile = document.getElementById('footerlogomobile');
-  const darkLogo = "{% static 'global/imgs/logo_lc.png' %}";
-  const lightLogo = "{% static 'global/imgs/logo_light_theme.png' %}";
-  function updateLogo() {
-    if (document.body.classList.contains('theme-light')) {
-      if (logo) logo.src = lightLogo;
-      if (footerLogo) footerLogo.src = lightLogo;
-      if (footerLogoMobile) footerLogoMobile.src = lightLogo;
-    } else {
-      if (logo) logo.src = darkLogo;
-      if (footerLogo) footerLogo.src = darkLogo;
-      if (footerLogoMobile) footerLogoMobile.src = darkLogo;
-    }
-  }
-  if (btn && (logo || footerLogo || footerLogoMobile)) {
-    btn.addEventListener('click', function() {
-      document.body.classList.toggle('theme-light');
-      btn.textContent = document.body.classList.contains('theme-light') ? 'Тёмная тема' : 'Светлая тема';
-      localStorage.setItem('theme', document.body.classList.contains('theme-light') ? 'light' : 'dark');
-      updateLogo();
-    });
-    if (localStorage.getItem('theme') === 'light') {
-      document.body.classList.add('theme-light');
-      btn.textContent = 'Тёмная тема';
-      updateLogo();
-    } else {
-      updateLogo();
-    }
-  }
-});
-</script>
+        // Логотипы для темной и светлой темы
+        const darkLogo = "{% static 'global/imgs/logo_lc.png' %}";
+        const lightLogo = "{% static 'global/imgs/logo_light_theme.png' %}";
+    </script>
 </body>
 </html>

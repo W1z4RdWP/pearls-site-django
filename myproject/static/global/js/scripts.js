@@ -86,3 +86,42 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
 
+
+// Переключение темы
+document.addEventListener('DOMContentLoaded', function() {
+  const btn = document.getElementById('theme-toggle-btn');
+  const logo = document.getElementById('logopng');
+  const footerLogo = document.getElementById('footerlogo');
+  const footerLogoMobile = document.getElementById('footerlogomobile');
+
+  // const darkLogo = "{% static 'global/imgs/logo_lc.png' %}";
+  // const lightLogo = "{% static 'global/imgs/logo_light_theme.png' %}";
+  
+  function updateLogo() {
+    if (document.body.classList.contains('theme-dark')) {
+      if (logo) logo.src = darkLogo;
+      if (footerLogo) footerLogo.src = darkLogo;
+      if (footerLogoMobile) footerLogoMobile.src = darkLogo;
+    } else {
+      if (logo) logo.src = lightLogo;
+      if (footerLogo) footerLogo.src = lightLogo;
+      if (footerLogoMobile) footerLogoMobile.src = lightLogo;
+    }
+  }
+  if (btn && (logo || footerLogo || footerLogoMobile)) {
+    btn.addEventListener('click', function() {
+      document.body.classList.toggle('theme-dark');
+      btn.textContent = document.body.classList.contains('theme-dark') ? 'Тёмная тема' : 'Светлая тема';
+      localStorage.setItem('theme', document.body.classList.contains('theme-dark') ? 'dark' : 'light');
+      updateLogo();
+    });
+    if (localStorage.getItem('theme') === 'dark') {
+      document.body.classList.add('theme-dark');
+      btn.textContent = 'Тёмная тема';
+      updateLogo();
+    } else {
+      updateLogo();
+    }
+  }
+});
+
