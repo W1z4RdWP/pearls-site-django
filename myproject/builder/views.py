@@ -44,6 +44,8 @@ def get_category_tree_data(category_id):
         
         # Собираем обычные уроки
         for lesson in cat.lessons.all().order_by('order'):
+            mirrors_count = lesson.mirrors.count()
+            has_mirrors = mirrors_count > 0
             data['lessons'].append({
                 'id': lesson.id,
                 'title': lesson.title,
@@ -52,19 +54,37 @@ def get_category_tree_data(category_id):
                 'order': lesson.order,
                 'is_mirror': False,
                 'original_category': None,
+                'has_mirrors': has_mirrors,
             })
         # Собираем зеркала
         for mirror in cat.mirrored_lessons.select_related('lesson').order_by('order'):
             lesson = mirror.lesson
-            data['lessons'].append({
-                'id': lesson.id,
-                'title': lesson.title,
-                'content': lesson.content,
-                'video_id': lesson.video_id,
-                'order': mirror.order,
-                'is_mirror': True,
-                'original_category': lesson.category.id if lesson.category else None,
-            })
+            # Проверяем, сколько всего экземпляров этого урока (оригинал + зеркала)
+            total_instances = lesson.mirrors.count() + (1 if lesson.category else 0)
+            if total_instances == 1:
+                # Это единственный экземпляр — отображаем как обычный урок
+                data['lessons'].append({
+                    'id': lesson.id,
+                    'title': lesson.title,
+                    'content': lesson.content,
+                    'video_id': lesson.video_id,
+                    'order': mirror.order,
+                    'is_mirror': False,
+                    'original_category': None,
+                    'has_mirrors': False,
+                })
+            else:
+                data['lessons'].append({
+                    'id': lesson.id,
+                    'title': lesson.title,
+                    'content': lesson.content,
+                    'video_id': lesson.video_id,
+                    'order': mirror.order,
+                    'is_mirror': True,
+                    'original_category': lesson.category.id if lesson.category else None,
+                    'mirror_id': mirror.id,
+                    'has_mirrors': False,
+                })
         # Сортируем по order (зеркала и обычные уроки вместе)
         data['lessons'].sort(key=lambda l: l['order'])
         return data
@@ -874,3 +894,45 @@ def ajax_category_tree_json(request):
     root_cats = CategoryName.objects.filter(parent__isnull=True)
     categories = [get_category_tree_data(cat.id) for cat in root_cats]
     return JsonResponse({'categories': categories})
+
+
+@csrf_exempt
+@login_required
+def ajax_delete_lesson_instance(request):
+    if not (request.user.is_staff or request.user.is_superuser):
+        return JsonResponse({'error': 'forbidden'}, status=403)
+    if request.method != 'POST':
+        return JsonResponse({'error': 'method not allowed'}, status=405)
+    lesson_id = request.POST.get('lesson_id')
+    mirror_id = request.POST.get('mirror_id')
+    category_id = request.POST.get('category_id')
+    from .models import LessonCategoryMirror
+    from courses.models import Lesson
+    if mirror_id:
+        # Удаляем только зеркало
+        try:
+            mirror = LessonCategoryMirror.objects.get(id=mirror_id)
+            mirror.delete()
+            return JsonResponse({'result': 'mirror_deleted'})
+        except LessonCategoryMirror.DoesNotExist:
+            return JsonResponse({'error': 'not found'}, status=404)
+    else:
+        # Это оригинал
+        lesson = Lesson.objects.get(id=lesson_id)
+        mirrors_count = lesson.mirrors.count()
+        if mirrors_count == 0:
+            # Нет зеркал — удаляем сам урок
+            lesson.delete()
+            return JsonResponse({'result': 'lesson_deleted'})
+        else:
+            # Есть зеркала — удаляем только связь с категорией (делаем category=None)
+            if lesson.category_id is None:
+                # Уже без категории — значит это единственный экземпляр, удаляем Lesson
+                lesson.delete()
+                return JsonResponse({'result': 'lesson_deleted'})
+            elif str(lesson.category_id) == str(category_id):
+                lesson.category = None
+                lesson.save()
+                return JsonResponse({'result': 'category_unlinked'})
+            else:
+                return JsonResponse({'error': 'category mismatch'}, status=400)

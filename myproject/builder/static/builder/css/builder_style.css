@@ -28,7 +28,11 @@
     --builder-input-text: #232a3a;
     --builder-scrollbar-thumb: #bbb;
     --builder-scrollbar-track: #e3e8f0;
+    --builder-btn-active-bg: #4d7cff;
+    --builder-btn-bg: #cfe2ff;  
 }
+
+/* Тёмная тема */
 body.theme-dark {
   --builder-bg: #383838;
   --builder-sidebar-bg: #232323;
@@ -59,6 +63,8 @@ body.theme-dark {
   --builder-input-text: #fff;
   --builder-scrollbar-thumb: #444;
   --builder-scrollbar-track: #232323;
+  --builder-btn-active-bg: #353b4a;
+  --builder-btn-bg: #232323;
 }
 /* --- Основные контейнеры --- */
 .container {
@@ -753,8 +759,8 @@ label {
 .tab-btn {
     flex: 1 1 0;
     min-width: 0;
-    background: #232323;
-    color: #fff;
+    background: var(--builder-btn-bg);
+    color: var(--builder-btn-text);
     border: 1px solid #444;
     border-bottom: none;
     border-radius: 6px 6px 0 0;
@@ -771,15 +777,14 @@ label {
     border-right: none;
 }
 .tab-btn.active {
-    background: #353b4a;
-    color: #fff;
+    background: var(--builder-btn-active-bg);
+    color: var(--builder-btn-text);
     border-bottom: 2px solid #fff;
     z-index: 2;
 }
 .tab-btn:not(.active):hover {
-    background: #2c2c2c;
-    color: #fff;
-    border-color: #4d7cff;
+    background: var(--builder-btn-active-bg);
+    border-color: var(--builder-btn-active-bg);
 }
 
 .category-scroll {
