@@ -26,11 +26,16 @@ class Profile(models.Model):
     role = models.CharField(max_length=200, blank=True, null=True, verbose_name="Должность")
     date_of_birth = models.DateField(verbose_name="Дата рождения", blank=True, null=True)
     phone_number = models.CharField(
-        max_length=20,
+        max_length=18,
         verbose_name="Номер телефона",
         blank=True,
         null=True,
         help_text="Введите номер в формате +7XXXXXXXXXX"
+    )
+    phone_arbitrary_format = models.BooleanField(
+        default=False,
+        verbose_name="Произвольный формат телефона",
+        help_text="Разрешить произвольный формат номера телефона"
     )
     image = models.ImageField(default='profile_pics/default.jpg', upload_to='profile_pics')
     bio = models.TextField(max_length=500, blank=True, null=True, verbose_name="О себе")

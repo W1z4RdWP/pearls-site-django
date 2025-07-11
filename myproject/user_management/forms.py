@@ -2,6 +2,10 @@ from django import forms
 from users.models import Profile
 
 class UserProfileForm(forms.ModelForm):
+    phone_arbitrary_format = forms.BooleanField(
+        label='Произвольный формат', required=False,
+        help_text='Разрешить произвольный формат номера телефона'
+    )
     def __init__(self, *args, **kwargs):
         self.user_instance = kwargs.pop('user_instance', None)
         super().__init__(*args, **kwargs)
@@ -18,9 +22,12 @@ class UserProfileForm(forms.ModelForm):
         self.fields['image'].required = False
         self.fields['is_approved'].required = False
         self.fields['bio'].required = False
+        if self.instance and hasattr(self.instance, 'phone_arbitrary_format'):
+            self.fields['phone_arbitrary_format'].initial = self.instance.phone_arbitrary_format
 
     def save(self, commit=True):
         profile = super().save(commit=False)
+        profile.phone_arbitrary_format = self.cleaned_data.get('phone_arbitrary_format', False)
         if self.user_instance:
             self.user_instance.first_name = self.cleaned_data['first_name']
             self.user_instance.last_name = self.cleaned_data['last_name']
@@ -32,7 +39,7 @@ class UserProfileForm(forms.ModelForm):
 
     class Meta:
         model = Profile
-        fields = ['middle_name', 'role', 'date_of_birth', 'phone_number', 'image', 'bio', 'is_approved']
+        fields = ['middle_name', 'role', 'date_of_birth', 'phone_number', 'phone_arbitrary_format', 'image', 'bio', 'is_approved']
         widgets = {
             'date_of_birth': forms.DateInput(attrs={'type': 'date'}),
         }

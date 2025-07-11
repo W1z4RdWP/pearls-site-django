@@ -29,6 +29,16 @@
     <link rel="stylesheet" href="{% static 'global/css/style.css' %}" />
     <script src="{% static 'global/js/scripts.js' %}" defer></script>
     {% block specific_styles %} {% endblock %}
+    <script>
+    (function() {
+      try {
+        if (localStorage.getItem('theme') === 'light') {
+          document.documentElement.classList.add('theme-light');
+          document.body.classList.add('theme-light');
+        }
+      } catch(e){}
+    })();
+    </script>
 </head>
 <body>
     
@@ -91,6 +101,9 @@
                         </a>
                       </li>
                     {% endif %}
+                    <li class="nav-item">
+                      <button id="theme-toggle-btn" class="btn btn-outline-primary ms-2" type="button">Светлая тема</button>
+                    </li>
                   </ul>
                 </div>
             </div>
@@ -114,7 +127,7 @@
         <div class="footer-container">
             <div class="footer-col footer-brand">
                 <a href="{% url 'home' %}">
-                    <img src="{% static 'global/imgs/logo_lc.png' %}" alt="Logo" class='footer-logo'>
+                    <img src="{% static 'global/imgs/logo_lc.png' %}" alt="Logo" class='footer-logo' id="footerlogo">
                 </a>
                 <p class="footer-tagline">Территория улыбки — учись, вдохновляйся, совершенствуйся!</p>       
             </div>
@@ -154,9 +167,45 @@
             <span class="site-version">Версия: {{ latest_version }}</span>
             <span class="footer-text">© 2025 Территория Улыбки &nbsp;|&nbsp; The site was created by w1z4rdWP</span>
             <!-- Дублированный логотип для мобильных устройств -->
-            <img src="{% static 'global/imgs/logo_lc.png' %}" alt="Logo" class='footer-logo-mobile'>
+            <img src="{% static 'global/imgs/logo_lc.png' %}" alt="Logo" class='footer-logo-mobile' id="footerlogomobile">
             <a href="{% url 'privacy_policy' %}" class="footer-policy">Политика конфиденциальности</a> 
         </div>
     </footer>
+    <script>
+document.addEventListener('DOMContentLoaded', function() {
+  const btn = document.getElementById('theme-toggle-btn');
+  const logo = document.getElementById('logopng');
+  const footerLogo = document.getElementById('footerlogo');
+  const footerLogoMobile = document.getElementById('footerlogomobile');
+  const darkLogo = "{% static 'global/imgs/logo_lc.png' %}";
+  const lightLogo = "{% static 'global/imgs/logo_light_theme.png' %}";
+  function updateLogo() {
+    if (document.body.classList.contains('theme-light')) {
+      if (logo) logo.src = lightLogo;
+      if (footerLogo) footerLogo.src = lightLogo;
+      if (footerLogoMobile) footerLogoMobile.src = lightLogo;
+    } else {
+      if (logo) logo.src = darkLogo;
+      if (footerLogo) footerLogo.src = darkLogo;
+      if (footerLogoMobile) footerLogoMobile.src = darkLogo;
+    }
+  }
+  if (btn && (logo || footerLogo || footerLogoMobile)) {
+    btn.addEventListener('click', function() {
+      document.body.classList.toggle('theme-light');
+      btn.textContent = document.body.classList.contains('theme-light') ? 'Тёмная тема' : 'Светлая тема';
+      localStorage.setItem('theme', document.body.classList.contains('theme-light') ? 'light' : 'dark');
+      updateLogo();
+    });
+    if (localStorage.getItem('theme') === 'light') {
+      document.body.classList.add('theme-light');
+      btn.textContent = 'Тёмная тема';
+      updateLogo();
+    } else {
+      updateLogo();
+    }
+  }
+});
+</script>
 </body>
 </html>
