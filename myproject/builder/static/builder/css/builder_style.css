@@ -547,7 +547,7 @@ label {
         top: 0;
         left: 0;
         width: 100vw !important;
-        min-width: 100vw !important;
+        min-width: 85vw !important;
         margin-bottom: 0;
         border-radius: 0 0 8px 8px;
         box-shadow: 0 2px 8px #0002;
@@ -615,7 +615,7 @@ label {
 .master-detail-container.sidebar-collapsed .sidebar {
     width: 60px !important;
     min-width: 60px !important;
-    max-width: 60px !important;
+    max-width: 100% !important;
     overflow-x: hidden;
     padding: 32px 0 32px 0;
 }
@@ -629,7 +629,7 @@ label {
 .master-detail-container.sidebar-collapsed .sidebar #toggle-sidebar-btn {
     opacity: 1;
     pointer-events: auto;
-    width: 100%;
+    width: 80%;
     margin-left: 0;
     margin-right: 0;
 }
