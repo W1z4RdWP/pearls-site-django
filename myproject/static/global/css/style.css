@@ -811,6 +811,7 @@ main > section > .text-block-2 {
 }
 .lesson-content p {
     margin: 0 0 12px 0;
+    color: var(--color-text);
 }
 .lesson-content h1, .lesson-content h2, .lesson-content h3 {
     margin: 18px 0 10px 0;
