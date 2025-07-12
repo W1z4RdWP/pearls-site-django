@@ -1,3 +1,38 @@
+.theme-dark {
+    --btn-lesson-complete-gradient: linear-gradient(90deg, #229d52 0%, #38f9d7 100%);
+    --btn-lesson-complete-gradient-hover: linear-gradient(90deg, #38f9d7 0%, #229d52 100%);
+    --btn-lesson-complete-shadow: 0 4px 16px rgba(67,233,123,0.18);
+    --btn-lesson-complete-color: #333;
+
+    --btn-lesson-delete-gradient: linear-gradient(90deg, #b92c2c 0%, #f09819 100%);
+    --btn-lesson-delete-gradient-hover: linear-gradient(90deg, #f09819 0%, #b92c2c 100%);
+    --btn-lesson-delete-shadow: 0 4px 16px rgba(255,88,88,0.22);
+    --btn-lesson-delete-color: #333;
+
+    --btn-lesson-edit-gradient: linear-gradient(90deg, #a67800 0%, #ffe7a0 100%);
+    --btn-lesson-edit-gradient-hover: linear-gradient(90deg, #ffe7a0 0%, #a67800 100%);
+    --btn-lesson-edit-shadow: 0 4px 16px rgba(255,231,160,0.18);
+    --btn-lesson-edit-color: #333;
+    --btn-lesson-edit-color-hover: #333;
+}
+:root {
+    --btn-lesson-complete-gradient: linear-gradient(90deg, #43e97b 0%, #38f9d7 100%);
+    --btn-lesson-complete-gradient-hover: linear-gradient(90deg, #38f9d7 0%, #43e97b 100%);
+    --btn-lesson-complete-shadow: 0 4px 16px rgba(67,233,123,0.12);
+    --btn-lesson-complete-color: #fff;
+
+    --btn-lesson-delete-gradient: linear-gradient(90deg, #ff5858 0%, #f09819 100%);
+    --btn-lesson-delete-gradient-hover: linear-gradient(90deg, #f09819 0%, #ff5858 100%);
+    --btn-lesson-delete-shadow: 0 4px 16px rgba(255,88,88,0.16);
+    --btn-lesson-delete-color: #fff;
+
+    --btn-lesson-edit-gradient: linear-gradient(90deg, #ffb347 0%, #ffcc33 100%);
+    --btn-lesson-edit-gradient-hover: linear-gradient(90deg, #ffcc33 0%, #ffb347 100%);
+    --btn-lesson-edit-shadow: 0 4px 16px rgba(255,179,71,0.18);
+    --btn-lesson-edit-color: #fff;
+    --btn-lesson-edit-color-hover: whitesmoke;
+}
+
 .lesson-actions {
     display: flex;
     justify-content: center;
@@ -23,31 +58,31 @@
 }
 
 .btn-lesson.complete {
-    background: linear-gradient(90deg, #43e97b 0%, #38f9d7 100%);
-    color: #fff;
+    background: var(--btn-lesson-complete-gradient);
+    color: var(--btn-lesson-complete-color);
 }
 .btn-lesson.complete:hover {
-    background: linear-gradient(90deg, #38f9d7 0%, #43e97b 100%);
-    box-shadow: 0 4px 16px rgba(67,233,123,0.12);
+    background: var(--btn-lesson-complete-gradient-hover);
+    box-shadow: var(--btn-lesson-complete-shadow);
 }
 
 .btn-lesson.delete {
-    background: linear-gradient(90deg, #ff5858 0%, #f09819 100%);
-    color: #fff;
+    background: var(--btn-lesson-delete-gradient);
+    color: var(--btn-lesson-delete-color);
 }
 .btn-lesson.delete:hover {
-    background: linear-gradient(90deg, #f09819 0%, #ff5858 100%);
-    box-shadow: 0 4px 16px rgba(255,88,88,0.16);
+    background: var(--btn-lesson-delete-gradient-hover);
+    box-shadow: var(--btn-lesson-delete-shadow);
 }
 
 .btn-lesson.edit {
-    background: linear-gradient(90deg, #ffb347 0%, #ffcc33 100%);
-    color: #333;
+    background: var(--btn-lesson-edit-gradient);
+    color: var(--btn-lesson-edit-color);
 }
 .btn-lesson.edit:hover {
-    background: linear-gradient(90deg, #ffcc33 0%, #ffb347 100%);
-    color: #222;
-    box-shadow: 0 4px 16px rgba(255,179,71,0.18);
+    background: var(--btn-lesson-edit-gradient-hover);
+    color: var(--btn-lesson-edit-color-hover);
+    box-shadow: var(--btn-lesson-edit-shadow);
 }
 
 /* Для иконок (если используете FontAwesome) */
