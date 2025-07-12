@@ -1,6 +1,43 @@
+.theme-dark {
+    --btn-mini-color: #e3e8f0;
+    --btn-mini-bg: #232a3a;
+    --btn-mini-bg-hover: #444;
+    --btn-mini-add-bg: #1a7c3a;
+    --btn-mini-add-color: #e0f8e9;
+    --btn-mini-add-bg-hover: #229d52;
+    --btn-mini-add-color-hover: #bff4d2;
+    --btn-mini-edit-bg: #333;
+    --btn-mini-edit-color: #ffe7a0;
+    --btn-mini-edit-bg-hover: #444;
+    --btn-mini-edit-color-hover: #fff6e0;
+    --btn-mini-delete-bg: #b92c2c;
+    --btn-mini-delete-color: #ffeaea;
+    --btn-mini-delete-bg-hover: #e14b4b;
+    --btn-mini-delete-color-hover: #ffcfcf;
+}
 /* .card{
     width: 30vw;
 } */
+:root {
+    --btn-mini-color: #222;
+    --btn-mini-bg: #9ec5fe;
+    --btn-mini-bg-hover: #80a9e9;
+    --btn-mini-add-bg: #e0f8e9;
+    --btn-mini-add-color: #229d52;
+    --btn-mini-add-bg-hover: #bff4d2;
+    --btn-mini-add-color-hover: #1a7c3a;
+    --btn-mini-edit-bg: #fff6e0;
+    --btn-mini-edit-color: #c48b02;
+    --btn-mini-edit-bg-hover: #ffe7a0;
+    --btn-mini-edit-color-hover: #a67800;
+    --btn-mini-delete-bg: #ffeaea;
+    --btn-mini-delete-color: #e14b4b;
+    --btn-mini-delete-bg-hover: #ffcfcf;
+    --btn-mini-delete-color-hover: #b92c2c;
+}
+
+
+
 
 .btn-mini {
     display: inline-flex;
@@ -14,8 +51,8 @@
     margin-bottom: 4px;
     margin-right: 4px;
     cursor: pointer;
-    background: #f5f6fa;
-    color: #222 !important;
+    background: var(--btn-mini-bg);
+    color: var(--btn-mini-color) !important;
     box-shadow: 0 1px 4px rgba(60,60,60,0.07);
     transition: background 0.16s, color 0.16s;
     text-decoration: none !important;
@@ -24,34 +61,38 @@
     white-space: nowrap;
 }
 
+.btn-mini:hover {
+    background: var(--btn-mini-bg-hover);
+}
+
 .btn-mini i {
     margin-right: 6px;
     font-size: 1.05em;
 }
 
 .btn-mini.add {
-    background: #e0f8e9;
-    color: #229d52 !important;
+    background: var(--btn-mini-add-bg);
+    color: var(--btn-mini-add-color) !important;
 }
 .btn-mini.add:hover {
-    background: #bff4d2;
-    color: #1a7c3a !important;
+    background: var(--btn-mini-add-bg-hover);
+    color: var(--btn-mini-add-color-hover) !important;
 }
 
 .btn-mini.edit {
-    background: #fff6e0;
-    color: #c48b02 !important;
+    background: var(--btn-mini-edit-bg);
+    color: var(--btn-mini-edit-color) !important;
 }
 .btn-mini.edit:hover {
-    background: #ffe7a0;
-    color: #a67800 !important;
+    background: var(--btn-mini-edit-bg-hover);
+    color: var(--btn-mini-edit-color-hover) !important;
 }
 
 .btn-mini.delete {
-    background: #ffeaea;
-    color: #e14b4b !important;
+    background: var(--btn-mini-delete-bg);
+    color: var(--btn-mini-delete-color) !important;
 }
 .btn-mini.delete:hover {
-    background: #ffcfcf;
-    color: #b92c2c !important;
+    background: var(--btn-mini-delete-bg-hover);
+    color: var(--btn-mini-delete-color-hover) !important;
 }
