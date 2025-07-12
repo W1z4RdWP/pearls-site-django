@@ -4,20 +4,24 @@
 
 {% block specific_styles %}
     <link rel="stylesheet" href="{% static 'courses/css/course_custom_buttons.css' %}">
+    <link rel="stylesheet" href="{% static 'courses/css/course_description.css' %}">
+    <script src="{% static 'courses/js/scripts.js' %}"></script>
 {% endblock %}
 
 {% block content %}
 
 <div class="container mt-4">
-    <h1>{{ course.title }}</h1>
-    <p class="lead">{{ course.description|safe }}</p>
+    <button class="btn-mini" id="show-description">Скрыть описание</button>
+    <div class="course-description" id="course-description">
+        <h1>{{ course.title }}</h1>
+        <p class="lead">{{ course.description|safe }}</p>
+        <hr>
+        <span>
+            <p class="lead">Автор курса: {{ course_author }}</p>
+            <p>{{ course.author.email }}</p>
+        </span>
+    </div>
     <hr>
-    <span>
-        <p class="lead">Автор курса: {{ course_author }}</p>
-        <p>{{ course.author.email }}</p>
-    </span>
-    <hr>
-    
     {# Прогресс-бар только для начатых/завершенных курсов #}
     {% if user_course and user_course.status in 'started,completed' %}
     <div class="progress mb-4">

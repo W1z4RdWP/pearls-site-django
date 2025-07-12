@@ -1,4 +1,4 @@
-from packaging.version import parse as parse_version
+from packaging.version import parse as parse_version, InvalidVersion
 from .models import ChangeLog
 
 def get_changelog(request):
@@ -7,8 +7,21 @@ def get_changelog(request):
     """
     changelogs = list(ChangeLog.objects.all())
     if changelogs:
-        latest = max(changelogs, key=lambda c: parse_version(c.version))
-        latest_version = latest.version
+        # Фильтруем только валидные версии
+        valid_changelogs = []
+        for changelog in changelogs:
+            try:
+                parse_version(changelog.version)
+                valid_changelogs.append(changelog)
+            except InvalidVersion:
+                # Пропускаем некорректные версии
+                continue
+        
+        if valid_changelogs:
+            latest = max(valid_changelogs, key=lambda c: parse_version(c.version))
+            latest_version = latest.version
+        else:
+            latest_version = None
     else:
         latest_version = None
 

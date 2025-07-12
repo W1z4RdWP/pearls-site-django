@@ -6,6 +6,7 @@ git pull
 
 source .venv/bin/activate # Активация виртуального окружения
 cd myproject # Переход в директорию проекта
+pip install -r requirements.txt
 
 if [ -d staticfiles ]; then
     echo "Меняем владельца staticfiles/ на django-user"
