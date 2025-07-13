@@ -328,6 +328,10 @@ class LessonCreateView(CreateView):
         return super().form_valid(form)
 
 
+    def get_success_url(self):
+        return f"{reverse('builder:lesson_master')}?new_lesson={self.object.id}"
+
+
 class LessonUpdateView(UpdateView):
     model = Lesson
     fields = ['title', 'content', 'video_id', 'order', 'course', 'category']
@@ -354,6 +358,10 @@ class LessonUpdateView(UpdateView):
             updated_by=self.request.user
         )
         return response
+
+    def get_success_url(self):
+        from django.urls import reverse
+        return f"{reverse('builder:lesson_master')}?edited_lesson={self.object.id}"
 
 
 class LessonDeleteView(DeleteView):

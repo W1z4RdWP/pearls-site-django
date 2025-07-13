@@ -215,6 +215,8 @@ document.addEventListener('DOMContentLoaded', function() {
             .then(r => r.json())
             .then(data => {
                 if (data.error) { alert('Ошибка: ' + data.error); li.remove(); return; }
+                // Сохраняем id новой категории для автовыделения
+                if (data.id) sessionStorage.setItem('new_category_id', data.id);
                 window.location.reload();
             })
             .catch(() => { alert('Ошибка сети'); li.remove(); });
@@ -280,6 +282,8 @@ document.addEventListener('DOMContentLoaded', function() {
             .then(r => r.json())
             .then(data => {
                 if (data.error) { alert('Ошибка: ' + data.error); li.remove(); return; }
+                // Сохраняем id новой подкатегории для автовыделения
+                if (data.id) sessionStorage.setItem('new_category_id', data.id);
                 window.location.reload();
             })
             .catch(() => { alert('Ошибка сети'); li.remove(); });
@@ -615,23 +619,7 @@ document.addEventListener('DOMContentLoaded', function() {
     document.querySelectorAll('.lesson-list li').forEach(li => li.classList.remove('selected'));
 
     // Сброс выделения при клике вне элементов
-    document.addEventListener('click', function(e) {
-        // Не сбрасываем если кликнули на элементы, которые должны активировать выделение
-        if (e.target.closest('.category-header') || 
-            e.target.closest('.lesson-list li') || 
-            e.target.closest('.category-block[data-id^="uncat-"]') ||
-            e.target.closest('#custom-context-menu') ||
-            e.target.closest('.toggle-arrow')) {
-            return;
-        }
-        
-        // Сбрасываем все чекбоксы
-        document.querySelectorAll('.category-select, .lesson-select').forEach(cb => cb.checked = false);
-        // Сбрасываем все выделения
-        document.querySelectorAll('.category-block').forEach(block => block.classList.remove('selected'));
-        document.querySelectorAll('.lesson-list li').forEach(li => li.classList.remove('selected'));
-        updateActionButtons();
-    });
+    // Удалён обработчик сброса выделения при клике вне элементов
     // Кнопки активны только при выборе
     function updateActionButtons() {
         const catId = document.querySelector('.category-select:checked');
@@ -1143,6 +1131,149 @@ document.addEventListener('DOMContentLoaded', function() {
         document.addEventListener('click', function(e) {
             setTimeout(updateUpdateControlBtnState, 100); // после клика по дереву
         });
+    }
+
+    // === АВТОВЫДЕЛЕНИЕ только что созданной категории ===
+    const newCatId = sessionStorage.getItem('new_category_id');
+    if (newCatId) {
+        setTimeout(() => {
+            const radio = document.querySelector(`.category-select[value='${newCatId}']`);
+            const li = document.querySelector(`.category-block[data-id='${newCatId}']`);
+            if (radio) radio.checked = true;
+            if (li) li.classList.add('selected');
+            // --- раскрываем всех родителей ---
+            let parent = li && li.parentElement;
+            while (parent && !parent.classList.contains('category-list')) {
+                if (parent.classList.contains('subcategory-list') || parent.classList.contains('lesson-list')) {
+                    parent.style.display = 'block';
+                }
+                if (parent.classList.contains('category-block')) {
+                    const header = parent.querySelector('.category-header');
+                    if (header && !header.classList.contains('open')) {
+                        header.classList.add('open');
+                        // Меняем стрелку
+                        const arrow = header.querySelector('.toggle-arrow');
+                        if (arrow) arrow.innerHTML = '&#9660;';
+                    }
+                }
+                parent = parent.parentElement;
+            }
+            sessionStorage.removeItem('new_category_id');
+            // Прокручиваем к новой категории
+            if (li) li.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }, 100);
+    }
+    // === АВТОВЫДЕЛЕНИЕ только что созданного урока ===
+    const newLessonId = sessionStorage.getItem('new_lesson_id');
+    if (newLessonId) {
+        setTimeout(() => {
+            // Сначала ищем среди уроков без категории
+            const uncatLi = document.querySelector(`.category-block[data-id='uncat-${newLessonId}']`);
+            if (uncatLi) {
+                // Активируем вкладку 'Без категории'
+                const tabUncat = document.getElementById('tab-uncat');
+                const tabCat = document.getElementById('tab-categories');
+                if (tabUncat) tabUncat.classList.add('active');
+                if (tabCat) tabCat.classList.remove('active');
+                const blockUncat = document.getElementById('uncategorized-block');
+                const blockCat = document.getElementById('categories-block');
+                if (blockUncat) blockUncat.style.display = '';
+                if (blockCat) blockCat.style.display = 'none';
+                uncatLi.classList.add('selected');
+                uncatLi.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                sessionStorage.removeItem('new_lesson_id');
+                // Удаляем ?new_lesson=... из адресной строки
+                if (window.history.replaceState) {
+                    const url = new URL(window.location);
+                    url.searchParams.delete('new_lesson');
+                    window.history.replaceState({}, document.title, url.pathname + url.search);
+                }
+                return;
+            }
+            // Обычный урок в категории
+            const li = document.querySelector(`.lesson-li[data-lesson-id='${newLessonId}']`);
+            if (li) li.classList.add('selected');
+            // раскрываем всех родителей
+            let parent = li && li.parentElement;
+            while (parent && !parent.classList.contains('category-list')) {
+                if (parent.classList.contains('subcategory-list') || parent.classList.contains('lesson-list')) {
+                    parent.style.display = 'block';
+                }
+                if (parent.classList.contains('category-block')) {
+                    const header = parent.querySelector('.category-header');
+                    if (header && !header.classList.contains('open')) {
+                        header.classList.add('open');
+                        const arrow = header.querySelector('.toggle-arrow');
+                        if (arrow) arrow.innerHTML = '&#9660;';
+                    }
+                }
+                parent = parent.parentElement;
+            }
+            sessionStorage.removeItem('new_lesson_id');
+            if (li) li.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            // Удаляем ?new_lesson=... из адресной строки
+            if (window.history.replaceState) {
+                const url = new URL(window.location);
+                url.searchParams.delete('new_lesson');
+                window.history.replaceState({}, document.title, url.pathname + url.search);
+            }
+        }, 100);
+    }
+    // === АВТОВЫДЕЛЕНИЕ только что отредактированного урока ===
+    const editedLessonId = sessionStorage.getItem('edited_lesson_id');
+    if (editedLessonId) {
+        setTimeout(() => {
+            // Сначала ищем среди уроков без категории
+            const uncatLi = document.querySelector(`.category-block[data-id='uncat-${editedLessonId}']`);
+            if (uncatLi) {
+                // Активируем вкладку 'Без категории'
+                const tabUncat = document.getElementById('tab-uncat');
+                const tabCat = document.getElementById('tab-categories');
+                if (tabUncat) tabUncat.classList.add('active');
+                if (tabCat) tabCat.classList.remove('active');
+                const blockUncat = document.getElementById('uncategorized-block');
+                const blockCat = document.getElementById('categories-block');
+                if (blockUncat) blockUncat.style.display = '';
+                if (blockCat) blockCat.style.display = 'none';
+                uncatLi.classList.add('selected');
+                uncatLi.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                sessionStorage.removeItem('edited_lesson_id');
+                // Удаляем ?edited_lesson=... из адресной строки
+                if (window.history.replaceState) {
+                    const url = new URL(window.location);
+                    url.searchParams.delete('edited_lesson');
+                    window.history.replaceState({}, document.title, url.pathname + url.search);
+                }
+                return;
+            }
+            // Обычный урок в категории
+            const li = document.querySelector(`.lesson-li[data-lesson-id='${editedLessonId}']`);
+            if (li) li.classList.add('selected');
+            // раскрываем всех родителей
+            let parent = li && li.parentElement;
+            while (parent && !parent.classList.contains('category-list')) {
+                if (parent.classList.contains('subcategory-list') || parent.classList.contains('lesson-list')) {
+                    parent.style.display = 'block';
+                }
+                if (parent.classList.contains('category-block')) {
+                    const header = parent.querySelector('.category-header');
+                    if (header && !header.classList.contains('open')) {
+                        header.classList.add('open');
+                        const arrow = header.querySelector('.toggle-arrow');
+                        if (arrow) arrow.innerHTML = '&#9660;';
+                    }
+                }
+                parent = parent.parentElement;
+            }
+            sessionStorage.removeItem('edited_lesson_id');
+            if (li) li.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            // Удаляем ?edited_lesson=... из адресной строки
+            if (window.history.replaceState) {
+                const url = new URL(window.location);
+                url.searchParams.delete('edited_lesson');
+                window.history.replaceState({}, document.title, url.pathname + url.search);
+            }
+        }, 100);
     }
 });
 

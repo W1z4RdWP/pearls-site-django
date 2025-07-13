@@ -123,5 +123,23 @@
 <script>
     window.IS_READONLY = {{ is_readonly|yesno:"true,false" }};
 </script>
+<script>
+    // Если есть ?new_lesson=... в query string, кладём в sessionStorage
+    (function() {
+        const params = new URLSearchParams(window.location.search);
+        const newLesson = params.get('new_lesson');
+        if (newLesson) {
+            sessionStorage.setItem('new_lesson_id', newLesson);
+        }
+    })();
+    // Если есть ?edited_lesson=... в query string, кладём в sessionStorage
+    (function() {
+        const params = new URLSearchParams(window.location.search);
+        const editedLesson = params.get('edited_lesson');
+        if (editedLesson) {
+            sessionStorage.setItem('edited_lesson_id', editedLesson);
+        }
+    })();
+</script>
 
 {% endblock %}
