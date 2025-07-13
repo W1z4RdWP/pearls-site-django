@@ -29,6 +29,8 @@ urlpatterns = [
     path('incidents/add/', views.IncidentCreateView.as_view(), name='incident_add'),
     path('search/', views.ajax_search_tree, name='search_tree'),
     path('reorder/', views.ajax_reorder, name='reorder'),
+    path('lessons/reorder_uncat/', views.reorder_uncat_lessons, name='reorder_uncat_lessons'),
+    path('lessons/reorder_in_category/', views.reorder_lessons_in_category, name='reorder_lessons_in_category'),
 
     path('copy/', views.ajax_copy, name='copy'),
     path('cut/', views.ajax_cut, name='cut'),

@@ -1277,6 +1277,124 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 
+// === Drag&Drop сортировка для уроков без категории ===
+(function() {
+    const uncatList = document.querySelector('#uncategorized-block .category-list');
+    if (!uncatList) return;
+    let draggedEl = null;
+    let dragOverEl = null;
+
+    function handleDragStart(e) {
+        draggedEl = this;
+        this.classList.add('dragging');
+        e.dataTransfer.effectAllowed = 'move';
+    }
+    function handleDragEnd(e) {
+        this.classList.remove('dragging');
+        draggedEl = null;
+        dragOverEl = null;
+        uncatList.querySelectorAll('.drag-over').forEach(el => el.classList.remove('drag-over'));
+    }
+    function handleDragOver(e) {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'move';
+        if (this === draggedEl) return;
+        uncatList.querySelectorAll('.drag-over').forEach(el => el.classList.remove('drag-over'));
+        this.classList.add('drag-over');
+        dragOverEl = this;
+    }
+    function handleDrop(e) {
+        e.preventDefault();
+        if (!draggedEl || this === draggedEl) return;
+        this.classList.remove('drag-over');
+        // Вставляем draggedEl перед/после this
+        const rect = this.getBoundingClientRect();
+        const offset = e.clientY - rect.top;
+        if (offset < rect.height / 2) {
+            uncatList.insertBefore(draggedEl, this);
+        } else {
+            uncatList.insertBefore(draggedEl, this.nextSibling);
+        }
+        // Отправляем новый порядок на сервер
+        const ids = Array.from(uncatList.querySelectorAll('li.category-block[data-id^="uncat-"]'))
+            .map(li => li.dataset.id.replace('uncat-', ''));
+        fetch('/builder/lessons/reorder_uncat/', {
+            method: 'POST',
+            headers: { 'X-CSRFToken': (document.querySelector('[name=csrfmiddlewaretoken]')||{}).value || '', 'Content-Type': 'application/json' },
+            body: JSON.stringify({ ids })
+        }).then(r => r.json()).then(data => {
+            if (data.error) alert('Ошибка сортировки: ' + data.error);
+        }).catch(() => alert('Ошибка сети при сортировке!'));
+    }
+    // Навешиваем dnd на все li без категории
+    uncatList.querySelectorAll('li.category-block[data-id^="uncat-"]').forEach(li => {
+        li.setAttribute('draggable', 'true');
+        li.addEventListener('dragstart', handleDragStart);
+        li.addEventListener('dragend', handleDragEnd);
+        li.addEventListener('dragover', handleDragOver);
+        li.addEventListener('drop', handleDrop);
+    });
+})();
+
+// === Drag&Drop сортировка для уроков внутри категорий ===
+(function() {
+    document.querySelectorAll('ul.lesson-list').forEach(lessonList => {
+        let draggedEl = null;
+        let dragOverEl = null;
+        const categoryId = lessonList.closest('.category-block')?.dataset.id;
+        if (!categoryId) return;
+        function handleDragStart(e) {
+            draggedEl = this;
+            this.classList.add('dragging');
+            e.dataTransfer.effectAllowed = 'move';
+        }
+        function handleDragEnd(e) {
+            this.classList.remove('dragging');
+            draggedEl = null;
+            dragOverEl = null;
+            lessonList.querySelectorAll('.drag-over').forEach(el => el.classList.remove('drag-over'));
+        }
+        function handleDragOver(e) {
+            e.preventDefault();
+            e.dataTransfer.dropEffect = 'move';
+            if (this === draggedEl) return;
+            lessonList.querySelectorAll('.drag-over').forEach(el => el.classList.remove('drag-over'));
+            this.classList.add('drag-over');
+            dragOverEl = this;
+        }
+        function handleDrop(e) {
+            e.preventDefault();
+            if (!draggedEl || this === draggedEl) return;
+            this.classList.remove('drag-over');
+            // Вставляем draggedEl перед/после this
+            const rect = this.getBoundingClientRect();
+            const offset = e.clientY - rect.top;
+            if (offset < rect.height / 2) {
+                lessonList.insertBefore(draggedEl, this);
+            } else {
+                lessonList.insertBefore(draggedEl, this.nextSibling);
+            }
+            // Отправляем новый порядок на сервер
+            const ids = Array.from(lessonList.querySelectorAll('li.lesson-li[data-lesson-id]'))
+                .map(li => li.dataset.lessonId);
+            fetch('/builder/lessons/reorder_in_category/', {
+                method: 'POST',
+                headers: { 'X-CSRFToken': (document.querySelector('[name=csrfmiddlewaretoken]')||{}).value || '', 'Content-Type': 'application/json' },
+                body: JSON.stringify({ category_id: categoryId, ids })
+            }).then(r => r.json()).then(data => {
+                if (data.error) alert('Ошибка сортировки: ' + data.error);
+            }).catch(() => alert('Ошибка сети при сортировке!'));
+        }
+        lessonList.querySelectorAll('li.lesson-li[data-lesson-id]').forEach(li => {
+            li.setAttribute('draggable', 'true');
+            li.addEventListener('dragstart', handleDragStart);
+            li.addEventListener('dragend', handleDragEnd);
+            li.addEventListener('dragover', handleDragOver);
+            li.addEventListener('drop', handleDrop);
+        });
+    });
+})();
+
 
 function showCategoryPasteWarning({onYes, onNo}) {
     let modal = document.getElementById('category-paste-warning-modal');

@@ -905,6 +905,7 @@ def ajax_mirror(request):
     except Exception as e:
         return JsonResponse({'error': f'unexpected error: {str(e)}'}, status=500)
 
+
 @csrf_exempt
 @login_required
 def ajax_category_tree_json(request):
@@ -956,3 +957,29 @@ def ajax_delete_lesson_instance(request):
                 return JsonResponse({'result': 'category_unlinked'})
             else:
                 return JsonResponse({'error': 'category mismatch'}, status=400)
+
+
+@require_POST
+def reorder_uncat_lessons(request):
+    try:
+        data = json.loads(request.body)
+        ids = data.get('ids', [])
+        for order, lesson_id in enumerate(ids, start=1):
+            Lesson.objects.filter(id=lesson_id, category__isnull=True).update(order=order)
+        return JsonResponse({'result': 'ok'})
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=400)
+
+@require_POST
+def reorder_lessons_in_category(request):
+    try:
+        data = json.loads(request.body)
+        category_id = data.get('category_id')
+        ids = data.get('ids', [])
+        if not category_id:
+            return JsonResponse({'error': 'category_id required'}, status=400)
+        for order, lesson_id in enumerate(ids, start=1):
+            Lesson.objects.filter(id=lesson_id, category_id=category_id).update(order=order)
+        return JsonResponse({'result': 'ok'})
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=400)
