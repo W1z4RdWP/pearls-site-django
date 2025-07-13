@@ -983,3 +983,19 @@ def reorder_lessons_in_category(request):
         return JsonResponse({'result': 'ok'})
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=400)
+
+@require_POST
+def reorder_categories(request):
+    try:
+        data = json.loads(request.body)
+        parent_id = data.get('parent_id')
+        ids = data.get('ids', [])
+        if parent_id:
+            for order, cat_id in enumerate(ids, start=1):
+                CategoryName.objects.filter(id=cat_id, parent_id=parent_id).update(order=order)
+        else:
+            for order, cat_id in enumerate(ids, start=1):
+                CategoryName.objects.filter(id=cat_id, parent__isnull=True).update(order=order)
+        return JsonResponse({'result': 'ok'})
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=400)
