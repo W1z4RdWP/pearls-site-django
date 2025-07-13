@@ -108,18 +108,43 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // --- Переключение вкладок Категории/Без категории ---
+    // --- Переключение вкладок Категории/Без категории/Словарь ---
     document.getElementById('tab-categories')?.addEventListener('click', function() {
         this.classList.add('active');
         document.getElementById('tab-uncat').classList.remove('active');
+        document.getElementById('tab-dict').classList.remove('active');
         document.getElementById('categories-block').style.display = '';
         document.getElementById('uncategorized-block').style.display = 'none';
+        document.getElementById('dict-block').style.display = 'none';
     });
     document.getElementById('tab-uncat')?.addEventListener('click', function() {
         this.classList.add('active');
         document.getElementById('tab-categories').classList.remove('active');
+        document.getElementById('tab-dict').classList.remove('active');
         document.getElementById('categories-block').style.display = 'none';
         document.getElementById('uncategorized-block').style.display = '';
+        document.getElementById('dict-block').style.display = 'none';
+    });
+    document.getElementById('tab-dict')?.addEventListener('click', function() {
+        this.classList.add('active');
+        document.getElementById('tab-categories').classList.remove('active');
+        document.getElementById('tab-uncat').classList.remove('active');
+        document.getElementById('categories-block').style.display = 'none';
+        document.getElementById('uncategorized-block').style.display = 'none';
+        document.getElementById('dict-block').style.display = '';
+    });
+    // --- Клик по термину словаря ---
+    document.querySelectorAll('.dict-li').forEach(li => {
+        li.addEventListener('click', function() {
+            document.querySelectorAll('.dict-li').forEach(el => el.classList.remove('selected'));
+            li.classList.add('selected');
+            const termId = li.dataset.termId;
+            fetch(`/builder/dictionary/${termId}/?ajax=1`)
+                .then(r => r.text())
+                .then(html => {
+                    document.getElementById('detail').innerHTML = html;
+                });
+        });
     });
     // === КНОПКИ ДЕЙСТВИЙ ДЛЯ КАТЕГОРИЙ/УРОКОВ ===
     if (IS_READONLY) {

@@ -238,7 +238,7 @@ CRISPY_ALLOWED_TEMPLATE_PACKS = "bootstrap5"
 CRISPY_TEMPLATE_PACK = 'bootstrap5'
 
 SESSION_ENGINE = 'qsessions.backends.db'
-SESSION_COOKIE_AGE = 7200 # Время сессии в секундах (2 часа)
+SESSION_COOKIE_AGE = 7200 * 12 # Время сессии в секундах (2 часа)
 
 LOGIN_REDIRECT_URL = 'home'
 LOGOUT_REDIRECT_URL = 'login'

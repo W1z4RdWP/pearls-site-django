@@ -336,15 +336,15 @@ body.theme-dark {
     flex: 1 1 0;
     min-width: 0;
     padding: 40px 48px;
-    background: #fff;
+    background: var(--builder-bg);
     border-radius: 0 10px 10px 0;
-    color: #212529;
+    color: var(--builder-lesson-text);
     transition: all 0.3s;
     position: relative;
 }
 .detail h2 {
     margin-top: 0;
-    color: #212529;
+    color: var(--builder-lesson-text);
 }
 .detail .edit-btn {
     float: right;
@@ -352,7 +352,7 @@ body.theme-dark {
 
 /* CKEditor content */
 .lesson-content {
-    color: #212529;
+    color: var(--builder-lesson-text);
     font-size: 1rem;
     line-height: 1.5;
     overflow: auto;
@@ -764,8 +764,8 @@ label {
     border: 1px solid #444;
     border-bottom: none;
     border-radius: 6px 6px 0 0;
-    padding: 4px 16px 3px 16px;
-    font-size: 0.98em;
+    padding: 4px 4px 3px 4px;
+    font-size: 0.7em;
     font-weight: 500;
     cursor: pointer;
     transition: background 0.15s, color 0.15s, border-color 0.15s;

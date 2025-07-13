@@ -6,7 +6,7 @@ from django.contrib.auth.decorators import login_required, permission_required
 from django.utils.decorators import method_decorator
 from django.views.generic import ListView, CreateView, UpdateView, DeleteView, FormView
 from django.urls import reverse_lazy, reverse
-from .models import CategoryName, Document, Incident, LessonVersion, LessonCategoryMirror
+from .models import CategoryName, Document, Incident, LessonVersion, LessonCategoryMirror, DictionaryTerm
 from django.core.exceptions import PermissionDenied
 from .forms import DocumentForm, IncidentForm, LessonUpdateControlForm
 from django.http import JsonResponse
@@ -999,3 +999,19 @@ def reorder_categories(request):
         return JsonResponse({'result': 'ok'})
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=400)
+
+
+class DictionaryListView(ListView):
+    model = DictionaryTerm
+    context_object_name = 'dictionary_terms'
+    template_name = 'builder/dictionary_list.html'
+
+class DictionaryDetailView(DetailView):
+    model = DictionaryTerm
+    context_object_name = 'term'
+    template_name = 'builder/dictionary_detail.html'
+    def render_to_response(self, context, **response_kwargs):
+        if self.request.GET.get('ajax') == '1':
+            # Только определение (html)
+            return super().render_to_response(context, content_type='text/html', **response_kwargs)
+        return super().render_to_response(context, **response_kwargs)

@@ -21,6 +21,7 @@
             <div class="tabs-switcher" style="display: flex; gap: 2px; margin: 0 0 16px 0;">
                 <button id="tab-categories" class="tab-btn active" type="button">Категории</button>
                 <button id="tab-uncat" class="tab-btn" type="button">Без категории</button>
+                <button id="tab-dict" class="tab-btn" type="button">Словарь</button>
             </div>
             <input type="text" id="tree-search-input" class="search-input builder-input" placeholder="Поиск по категориям и урокам...">
             <div id="categories-block">
@@ -54,6 +55,19 @@
                                 <a class="lesson-link">
                                     {{ lesson.title }}
                                 </a>
+                            </div>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
+            <div id="dict-block" style="display:none;">
+                <div class="category-scroll">
+                    <ul class="dict-list category-list">
+                        {% for term in dictionary_terms %}
+                        <li class="dict-li" data-term-id="{{ term.id }}">
+                            <div class="dict-header">
+                                <a class="dict-link">{{ term.term }}</a>
                             </div>
                         </li>
                         {% endfor %}
