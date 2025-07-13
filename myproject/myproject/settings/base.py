@@ -266,8 +266,8 @@ CKEDITOR_5_CONFIGS = {
                 '|', 'codeBlock', 'insertImage', 'bulletedList', 'numberedList', 'todoList',
                 '|', 'blockQuote',
                 '|', 'fontSize', 'fontFamily', 'fontColor', 'fontBackgroundColor', 'removeFormat',
-                'insertTable',
-                '|',
+                'insertTable', 
+                '|', 'htmlEmbed'
             ],
             'shouldNotGroupWhenFull': True
         },
