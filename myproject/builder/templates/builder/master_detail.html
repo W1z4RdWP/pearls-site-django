@@ -37,7 +37,7 @@
                 <div class="category-scroll">
                     <ul class="category-list">
                         {% for lesson in uncategorized_lessons %}
-                        <li class="category-block" data-id="uncat-{{ lesson.id }}">
+                        <li class="category-block" data-id="uncat-{{ lesson.id }}"{% if lesson.has_mirrors %} data-has-mirrors="1"{% endif %}>
                             <div class="category-header">
                                 {% if not is_readonly %}
                                     <input type="radio" class="lesson-select" value="{{ lesson.id }}" style="display: none;">
@@ -141,6 +141,8 @@
     <div id="paste-menu-item" class="builder-context-menu-item">Вставить</div>
     <div id="mirror-menu-item" class="builder-context-menu-item">Зеркало</div>
     <div id="mirror-here-menu-item" class="builder-context-menu-item">Вставить зеркало</div>
+    <div id="show-all-mirrors-menu-item" class="builder-context-menu-item">Показать все зеркала</div>
+    <div id="hide-mirrors-menu-item" class="builder-context-menu-item" style="display:none;">Скрыть</div>
 </div>
 
 <script>

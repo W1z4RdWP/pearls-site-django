@@ -25,9 +25,15 @@ class LessonCategoryMirrorAdmin(admin.ModelAdmin):
     search_fields = ('lesson__title', 'category__name')
 
 
-admin.site.register(DictionaryTerm)
+# admin.site.register(DictionaryTerm)
 
-# @admin.register(DictionaryTerm)
-# class DictionaryTermAdmin(admin.ModelAdmin):
-#     list_display = ()
-#     list_filter
+@admin.register(DictionaryTerm)
+class DictionaryTermAdmin(admin.ModelAdmin):
+    list_display = ('term', 'author', 'order', 'created_at', 'updated_at')
+    search_fields = ('term', 'definition', 'author__username')
+    ordering = ('order', 'term')
+
+    def save_model(self, request, obj, form, change):
+        if not obj.pk:
+            obj.author = request.user
+        obj.save()

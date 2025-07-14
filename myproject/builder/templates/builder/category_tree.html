@@ -26,7 +26,8 @@
                 <li class="lesson-li{% if lesson.is_mirror %} mirror{% endif %}"
                     data-lesson-id="{{ lesson.id }}"
                     {% if lesson.is_mirror %}data-mirror-id="{{ lesson.mirror_id }}"{% endif %}
-                    data-category-id="{{ category.id }}">
+                    data-category-id="{{ category.id }}"
+                    {% if lesson.has_mirrors %}data-has-mirrors="1"{% endif %}>
                     {% if not is_readonly %}
                         <input type="radio" class="lesson-select" value="{{ lesson.id }}" style="display: none;">
                     {% endif %}

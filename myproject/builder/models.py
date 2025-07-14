@@ -152,7 +152,7 @@ class DictionaryTerm(models.Model):
     order = models.PositiveIntegerField(default=0, verbose_name="Порядок")
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-    author = models.CharField(max_length=200, verbose_name="Автор")
+    author = models.ForeignKey(get_user_model(), on_delete=models.SET_NULL, null=True, blank=True, verbose_name="Автор")
 
     class Meta:
         ordering = ['order', 'term']
