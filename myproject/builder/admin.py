@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import CategoryName, LessonVersion, LessonUpdateControl, LessonCategoryMirror
+from .models import CategoryName, LessonVersion, LessonUpdateControl, LessonCategoryMirror, DictionaryTerm
 
 
 
@@ -23,3 +23,11 @@ class LessonCategoryMirrorAdmin(admin.ModelAdmin):
     list_display = ('lesson', 'category', 'order')
     list_filter = ('lesson', 'category')
     search_fields = ('lesson__title', 'category__name')
+
+
+admin.site.register(DictionaryTerm)
+
+# @admin.register(DictionaryTerm)
+# class DictionaryTermAdmin(admin.ModelAdmin):
+#     list_display = ()
+#     list_filter
