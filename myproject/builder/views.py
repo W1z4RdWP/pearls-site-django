@@ -1001,6 +1001,20 @@ def reorder_categories(request):
         return JsonResponse({'error': str(e)}, status=400)
 
 
+@require_POST
+def dictionary_reorder(request):
+    import json
+    try:
+        data = json.loads(request.body)
+        ids = data.get('ids', [])
+        # ids — список id в новом порядке
+        for order, term_id in enumerate(ids, start=1):
+            DictionaryTerm.objects.filter(id=term_id).update(order=order)
+        return JsonResponse({'result': 'ok'})
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=400)
+
+
 # class DictionaryListView(ListView):
 #     model = DictionaryTerm
 #     context_object_name = 'dictionary_terms'

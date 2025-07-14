@@ -1354,7 +1354,7 @@ document.addEventListener('DOMContentLoaded', function() {
         } else {
             uncatList.insertBefore(draggedEl, this.nextSibling);
         }
-        // Отправляем новый порядок на сервер
+        // Отправляем новый порядок на сервер (ids только числа)
         const ids = Array.from(uncatList.querySelectorAll('li.category-block[data-id^="uncat-"]'))
             .map(li => li.dataset.id.replace('uncat-', ''));
         fetch('/builder/lessons/reorder_uncat/', {
@@ -1367,6 +1367,65 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     // Навешиваем dnd на все li без категории
     uncatList.querySelectorAll('li.category-block[data-id^="uncat-"]').forEach(li => {
+        li.setAttribute('draggable', 'true');
+        li.addEventListener('dragstart', handleDragStart);
+        li.addEventListener('dragend', handleDragEnd);
+        li.addEventListener('dragover', handleDragOver);
+        li.addEventListener('drop', handleDrop);
+    });
+})();
+
+// === Drag&Drop сортировка для терминов словаря ===
+(function() {
+    const dictList = document.querySelector('ul.dict-list');
+    if (!dictList) return;
+    let draggedEl = null;
+    let dragOverEl = null;
+
+    function handleDragStart(e) {
+        draggedEl = this;
+        this.classList.add('dragging');
+        e.dataTransfer.effectAllowed = 'move';
+    }
+    function handleDragEnd(e) {
+        this.classList.remove('dragging');
+        draggedEl = null;
+        dragOverEl = null;
+        dictList.querySelectorAll('.drag-over').forEach(el => el.classList.remove('drag-over'));
+    }
+    function handleDragOver(e) {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'move';
+        if (this === draggedEl) return;
+        dictList.querySelectorAll('.drag-over').forEach(el => el.classList.remove('drag-over'));
+        this.classList.add('drag-over');
+        dragOverEl = this;
+    }
+    function handleDrop(e) {
+        e.preventDefault();
+        if (!draggedEl || this === draggedEl) return;
+        this.classList.remove('drag-over');
+        // Вставляем draggedEl перед/после this
+        const rect = this.getBoundingClientRect();
+        const offset = e.clientY - rect.top;
+        if (offset < rect.height / 2) {
+            dictList.insertBefore(draggedEl, this);
+        } else {
+            dictList.insertBefore(draggedEl, this.nextSibling);
+        }
+        // Отправляем новый порядок на сервер (ids только числа)
+        const ids = Array.from(dictList.querySelectorAll('li.category-block[data-id^="dict-"]'))
+            .map(li => li.dataset.id.replace('dict-', ''));
+        fetch('/builder/dictionary/reorder/', {
+            method: 'POST',
+            headers: { 'X-CSRFToken': (document.querySelector('[name=csrfmiddlewaretoken]')||{}).value || '', 'Content-Type': 'application/json' },
+            body: JSON.stringify({ ids })
+        }).then(r => r.json()).then(data => {
+            if (data.error) alert('Ошибка сортировки: ' + data.error);
+        }).catch(() => alert('Ошибка сети при сортировке!'));
+    }
+    // Навешиваем dnd на все li словаря
+    dictList.querySelectorAll('li.category-block[data-id^="dict-"]').forEach(li => {
         li.setAttribute('draggable', 'true');
         li.addEventListener('dragstart', handleDragStart);
         li.addEventListener('dragend', handleDragEnd);
@@ -1437,6 +1496,10 @@ document.addEventListener('DOMContentLoaded', function() {
 // === Drag&Drop сортировка для категорий и подкатегорий ===
 (function() {
     document.querySelectorAll('ul.category-list').forEach(catList => {
+        // Отключаем dnd для словаря
+        if (catList.classList.contains('dict-list')) return;
+        // Отключаем dnd для блока без категории
+        if (catList.closest('#uncategorized-block')) return;
         let draggedEl = null;
         let dragOverEl = null;
         // parent_id: если это подкатегории — id родителя, если корень — ''
