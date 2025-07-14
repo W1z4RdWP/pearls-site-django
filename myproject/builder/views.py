@@ -248,7 +248,7 @@ class LessonMasterDetailView(TemplateView):
         user = self.request.user
         is_readonly = not (user.is_staff or user.is_superuser)
         context['is_readonly'] = is_readonly
-
+        context['dictionary_terms'] = DictionaryTerm.objects.all() 
         # uncategorized_lessons оставляем как есть (можно доработать аналогично)
         context['uncategorized_lessons'] = uncategorized_lessons
 
@@ -1001,15 +1001,15 @@ def reorder_categories(request):
         return JsonResponse({'error': str(e)}, status=400)
 
 
-class DictionaryListView(ListView):
-    model = DictionaryTerm
-    context_object_name = 'dictionary_terms'
-    template_name = 'builder/dictionary_list.html'
+# class DictionaryListView(ListView):
+#     model = DictionaryTerm
+#     context_object_name = 'dictionary_terms'
+#     template_name = 'builder/dictionary_list.html'
 
 class DictionaryDetailView(DetailView):
     model = DictionaryTerm
     context_object_name = 'term'
-    template_name = 'builder/dictionary_detail.html'
+    template_name = 'builder/includes/_dictionary_detail.html'
     def render_to_response(self, context, **response_kwargs):
         if self.request.GET.get('ajax') == '1':
             # Только определение (html)

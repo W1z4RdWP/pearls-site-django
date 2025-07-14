@@ -134,11 +134,20 @@ document.addEventListener('DOMContentLoaded', function() {
         document.getElementById('dict-block').style.display = '';
     });
     // --- Клик по термину словаря ---
-    document.querySelectorAll('.dict-li').forEach(li => {
-        li.addEventListener('click', function() {
-            document.querySelectorAll('.dict-li').forEach(el => el.classList.remove('selected'));
+    document.querySelectorAll('#dict-block .category-block').forEach(li => {
+        li.addEventListener('click', function(e) {
+            // Не реагировать на клики по svg и иконкам
+            if (e.target.closest('svg') || e.target.classList.contains('lesson-icon')) return;
+            // Сброс выделения у категорий (оставляем выделенным только термин)
+            document.querySelectorAll('.category-select').forEach(cb => cb.checked = false);
+            document.querySelectorAll('.category-block').forEach(block => block.classList.remove('selected'));
+            // Сброс выделения у уроков (оставляем выделенным только термин)
+            document.querySelectorAll('.lesson-select').forEach(cb => cb.checked = false);
+            document.querySelectorAll('.lesson-list li').forEach(li => li.classList.remove('selected'));
+            // Сброс выделения у всех терминов словаря, выделяем только текущий
+            document.querySelectorAll('#dict-block .category-block').forEach(el => el.classList.remove('selected'));
             li.classList.add('selected');
-            const termId = li.dataset.termId;
+            const termId = li.dataset.id.replace('dict-', '');
             fetch(`/builder/dictionary/${termId}/?ajax=1`)
                 .then(r => r.text())
                 .then(html => {
@@ -524,22 +533,23 @@ document.addEventListener('DOMContentLoaded', function() {
     
     function selectCategory(radio) {
         if (window.IS_READONLY) {
+            // Сбрасываем все категории (оставляем выделенной только выбранную)
             document.querySelectorAll('.category-select').forEach(other => {
                 if (other !== radio) other.checked = false;
             });
             document.querySelectorAll('.category-block').forEach(block => {
                 block.classList.remove('selected');
             });
-            document.querySelectorAll('.lesson-select').forEach(lessonCb => {
-                lessonCb.checked = false;
-            });
-            document.querySelectorAll('.lesson-list li').forEach(li => {
-                li.classList.remove('selected');
-            });
+            // Сбрасываем все уроки при выборе категории
+            document.querySelectorAll('.lesson-select').forEach(lessonCb => lessonCb.checked = false);
+            document.querySelectorAll('.lesson-list li').forEach(li => li.classList.remove('selected'));
+            // Добавляем выделение к выбранной категории
             radio.closest('.category-block').classList.add('selected');
+            // Сброс выделения у терминов словаря (оставляем выделенной только категорию)
+            document.querySelectorAll('#dict-block .category-block').forEach(el => el.classList.remove('selected'));
             return;
         }
-        // Сбрасываем все категории
+        // Сбрасываем все категории (оставляем выделенной только выбранную)
         document.querySelectorAll('.category-select').forEach(other => {
             if (other !== radio) other.checked = false;
         });
@@ -557,17 +567,21 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // Добавляем выделение к выбранной категории
         radio.closest('.category-block').classList.add('selected');
+        // Сброс выделения у терминов словаря (оставляем выделенной только категорию)
+        document.querySelectorAll('#dict-block .category-block').forEach(el => el.classList.remove('selected'));
         updateActionButtons();
     }
     
     function selectLesson(radio) {
         if (window.IS_READONLY) {
+            // Сбрасываем все уроки (оставляем выделенным только выбранный)
             document.querySelectorAll('.lesson-select').forEach(other => {
                 if (other !== radio) other.checked = false;
             });
             document.querySelectorAll('.lesson-list li').forEach(li => {
                 li.classList.remove('selected');
             });
+            // Сбрасываем все категории при выборе урока
             document.querySelectorAll('.category-select').forEach(catCb => {
                 catCb.checked = false;
             });
@@ -578,6 +592,8 @@ document.addEventListener('DOMContentLoaded', function() {
             if (lessonElement) {
                 lessonElement.classList.add('selected');
             }
+            // Сброс выделения у терминов словаря (оставляем выделенным только урок)
+            document.querySelectorAll('#dict-block .category-block').forEach(el => el.classList.remove('selected'));
             // Только просмотр detail
             if (radio && radio.value) {
                 fetch('/builder/lesson/' + radio.value + '/?ajax=1')
@@ -595,7 +611,7 @@ document.addEventListener('DOMContentLoaded', function() {
             }
             return;
         }
-        // Сбрасываем все уроки
+        // Сбрасываем все уроки (оставляем выделенным только выбранный)
         document.querySelectorAll('.lesson-select').forEach(other => {
             if (other !== radio) other.checked = false;
         });
@@ -616,6 +632,8 @@ document.addEventListener('DOMContentLoaded', function() {
         if (lessonElement) {
             lessonElement.classList.add('selected');
         }
+        // Сброс выделения у терминов словаря (оставляем выделенным только урок)
+        document.querySelectorAll('#dict-block .category-block').forEach(el => el.classList.remove('selected'));
         updateActionButtons();
 
         // Переход к detail view выбранного урока
@@ -985,26 +1003,6 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
-
-    // --- Контекстное меню на вкладках ---
-    document.getElementById('tab-categories')?.addEventListener('contextmenu', function(e) {
-        e.preventDefault();
-        contextTarget = { tab: 'categories' };
-        const menu = document.getElementById('custom-context-menu');
-        menu.style.display = 'block';
-        menu.style.left = e.pageX + 'px';
-        menu.style.top = e.pageY + 'px';
-        updatePasteButton();
-    });
-    document.getElementById('tab-uncat')?.addEventListener('contextmenu', function(e) {
-        e.preventDefault();
-        contextTarget = { tab: 'uncat' };
-        const menu = document.getElementById('custom-context-menu');
-        menu.style.display = 'block';
-        menu.style.left = e.pageX + 'px';
-        menu.style.top = e.pageY + 'px';
-        updatePasteButton();
-    });
     
     // Вставить
     document.getElementById('paste-menu-item').addEventListener('click', function() {

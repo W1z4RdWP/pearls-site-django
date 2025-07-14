@@ -40,6 +40,6 @@ urlpatterns = [
     path('mirror/', views.ajax_mirror, name='mirror'),
     path('category_tree_json/', views.ajax_category_tree_json, name='category_tree_json'),
     path('ajax_delete_lesson_instance/', views.ajax_delete_lesson_instance, name='ajax_delete_lesson_instance'),
-    path('dictionary/', views.DictionaryListView.as_view(), name='dictionary_list'),
+    # path('dictionary/', views.DictionaryListView.as_view(), name='dictionary_list'),
     path('dictionary/<int:pk>/', views.DictionaryDetailView.as_view(), name='dictionary_detail'),
 ]

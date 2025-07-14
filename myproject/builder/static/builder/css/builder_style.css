@@ -720,6 +720,10 @@ label {
 .lesson-list li.selected .lesson-link {
     color: #fff;
 }
+/* выделение термина словаря */
+.category-block.selected .dict-link {
+    color: #fff !important;
+}
 
 /* Выделение для уроков без категории */
 .category-block[data-id^="uncat-"].selected {
@@ -892,3 +896,9 @@ body.theme-dark .builder-dropdown {
 }
 
 
+/* элементы вкладки Словарь */
+
+.dict-link{
+    color: var(--color-text); 
+    text-decoration: none;
+}

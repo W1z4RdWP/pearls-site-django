@@ -65,8 +65,17 @@
                 <div class="category-scroll">
                     <ul class="dict-list category-list">
                         {% for term in dictionary_terms %}
-                        <li class="dict-li" data-term-id="{{ term.id }}">
-                            <div class="dict-header">
+                        <li class="category-block" data-id="dict-{{ term.id }}">
+                            <div class="category-header">
+                                <span class="lesson-icon" style="margin-right: 8px; display: flex; align-items: center;">
+                                    <!-- <svg width="16" height="16" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                        <rect x="4" y="3" width="12" height="14" rx="2" fill="#222" stroke="#bbb" stroke-width="1.2"/>
+                                        <line x1="6.5" y1="7.5" x2="13.5" y2="7.5" stroke="#bbb" stroke-width="1.1"/>
+                                        <line x1="6.5" y1="10.5" x2="13.5" y2="10.5" stroke="#bbb" stroke-width="1.1"/>
+                                        <line x1="6.5" y1="13.5" x2="11.5" y2="13.5" stroke="#bbb" stroke-width="1.1"/>
+                                    </svg> -->
+                                    <i class="fa-solid fa-info"></i>
+                                </span>
                                 <a class="dict-link">{{ term.term }}</a>
                             </div>
                         </li>
