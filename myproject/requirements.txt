@@ -1,5 +1,6 @@
 asgiref==3.8.1
 asttokens==3.0.0
+bleach==6.2.0
 certifi==2025.4.26
 cffi==1.17.1
 charset-normalizer==3.4.1
@@ -11,7 +12,7 @@ Django==5.1.6
 django-admin-interface==0.30.0
 django-admin-rangefilter==0.13.2
 django-autocomplete-light==3.12.1
-django-ckeditor-5==0.2.17
+django-ckeditor-5==0.2.18
 django-colorfield==0.13.0
 django-cors-headers==4.7.0
 django-crispy-forms==2.3
@@ -66,4 +67,5 @@ ua-parser-rs==0.1.3
 Unidecode==1.3.8
 urllib3==2.4.0
 wcwidth==0.2.13
+webencodings==0.5.1
 whitenoise==6.9.0

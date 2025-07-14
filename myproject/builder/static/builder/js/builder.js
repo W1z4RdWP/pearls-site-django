@@ -108,18 +108,52 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // --- Переключение вкладок Категории/Без категории ---
+    // --- Переключение вкладок Категории/Без категории/Словарь ---
     document.getElementById('tab-categories')?.addEventListener('click', function() {
         this.classList.add('active');
         document.getElementById('tab-uncat').classList.remove('active');
+        document.getElementById('tab-dict').classList.remove('active');
         document.getElementById('categories-block').style.display = '';
         document.getElementById('uncategorized-block').style.display = 'none';
+        document.getElementById('dict-block').style.display = 'none';
     });
     document.getElementById('tab-uncat')?.addEventListener('click', function() {
         this.classList.add('active');
         document.getElementById('tab-categories').classList.remove('active');
+        document.getElementById('tab-dict').classList.remove('active');
         document.getElementById('categories-block').style.display = 'none';
         document.getElementById('uncategorized-block').style.display = '';
+        document.getElementById('dict-block').style.display = 'none';
+    });
+    document.getElementById('tab-dict')?.addEventListener('click', function() {
+        this.classList.add('active');
+        document.getElementById('tab-categories').classList.remove('active');
+        document.getElementById('tab-uncat').classList.remove('active');
+        document.getElementById('categories-block').style.display = 'none';
+        document.getElementById('uncategorized-block').style.display = 'none';
+        document.getElementById('dict-block').style.display = '';
+    });
+    // --- Клик по термину словаря ---
+    document.querySelectorAll('#dict-block .category-block').forEach(li => {
+        li.addEventListener('click', function(e) {
+            // Не реагировать на клики по svg и иконкам
+            if (e.target.closest('svg') || e.target.classList.contains('lesson-icon')) return;
+            // Сброс выделения у категорий (оставляем выделенным только термин)
+            document.querySelectorAll('.category-select').forEach(cb => cb.checked = false);
+            document.querySelectorAll('.category-block').forEach(block => block.classList.remove('selected'));
+            // Сброс выделения у уроков (оставляем выделенным только термин)
+            document.querySelectorAll('.lesson-select').forEach(cb => cb.checked = false);
+            document.querySelectorAll('.lesson-list li').forEach(li => li.classList.remove('selected'));
+            // Сброс выделения у всех терминов словаря, выделяем только текущий
+            document.querySelectorAll('#dict-block .category-block').forEach(el => el.classList.remove('selected'));
+            li.classList.add('selected');
+            const termId = li.dataset.id.replace('dict-', '');
+            fetch(`/builder/dictionary/${termId}/?ajax=1`)
+                .then(r => r.text())
+                .then(html => {
+                    document.getElementById('detail').innerHTML = html;
+                });
+        });
     });
     // === КНОПКИ ДЕЙСТВИЙ ДЛЯ КАТЕГОРИЙ/УРОКОВ ===
     if (IS_READONLY) {
@@ -215,6 +249,8 @@ document.addEventListener('DOMContentLoaded', function() {
             .then(r => r.json())
             .then(data => {
                 if (data.error) { alert('Ошибка: ' + data.error); li.remove(); return; }
+                // Сохраняем id новой категории для автовыделения
+                if (data.id) sessionStorage.setItem('new_category_id', data.id);
                 window.location.reload();
             })
             .catch(() => { alert('Ошибка сети'); li.remove(); });
@@ -280,6 +316,8 @@ document.addEventListener('DOMContentLoaded', function() {
             .then(r => r.json())
             .then(data => {
                 if (data.error) { alert('Ошибка: ' + data.error); li.remove(); return; }
+                // Сохраняем id новой подкатегории для автовыделения
+                if (data.id) sessionStorage.setItem('new_category_id', data.id);
                 window.location.reload();
             })
             .catch(() => { alert('Ошибка сети'); li.remove(); });
@@ -495,22 +533,23 @@ document.addEventListener('DOMContentLoaded', function() {
     
     function selectCategory(radio) {
         if (window.IS_READONLY) {
+            // Сбрасываем все категории (оставляем выделенной только выбранную)
             document.querySelectorAll('.category-select').forEach(other => {
                 if (other !== radio) other.checked = false;
             });
             document.querySelectorAll('.category-block').forEach(block => {
                 block.classList.remove('selected');
             });
-            document.querySelectorAll('.lesson-select').forEach(lessonCb => {
-                lessonCb.checked = false;
-            });
-            document.querySelectorAll('.lesson-list li').forEach(li => {
-                li.classList.remove('selected');
-            });
+            // Сбрасываем все уроки при выборе категории
+            document.querySelectorAll('.lesson-select').forEach(lessonCb => lessonCb.checked = false);
+            document.querySelectorAll('.lesson-list li').forEach(li => li.classList.remove('selected'));
+            // Добавляем выделение к выбранной категории
             radio.closest('.category-block').classList.add('selected');
+            // Сброс выделения у терминов словаря (оставляем выделенной только категорию)
+            document.querySelectorAll('#dict-block .category-block').forEach(el => el.classList.remove('selected'));
             return;
         }
-        // Сбрасываем все категории
+        // Сбрасываем все категории (оставляем выделенной только выбранную)
         document.querySelectorAll('.category-select').forEach(other => {
             if (other !== radio) other.checked = false;
         });
@@ -528,17 +567,21 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // Добавляем выделение к выбранной категории
         radio.closest('.category-block').classList.add('selected');
+        // Сброс выделения у терминов словаря (оставляем выделенной только категорию)
+        document.querySelectorAll('#dict-block .category-block').forEach(el => el.classList.remove('selected'));
         updateActionButtons();
     }
     
     function selectLesson(radio) {
         if (window.IS_READONLY) {
+            // Сбрасываем все уроки (оставляем выделенным только выбранный)
             document.querySelectorAll('.lesson-select').forEach(other => {
                 if (other !== radio) other.checked = false;
             });
             document.querySelectorAll('.lesson-list li').forEach(li => {
                 li.classList.remove('selected');
             });
+            // Сбрасываем все категории при выборе урока
             document.querySelectorAll('.category-select').forEach(catCb => {
                 catCb.checked = false;
             });
@@ -549,6 +592,8 @@ document.addEventListener('DOMContentLoaded', function() {
             if (lessonElement) {
                 lessonElement.classList.add('selected');
             }
+            // Сброс выделения у терминов словаря (оставляем выделенным только урок)
+            document.querySelectorAll('#dict-block .category-block').forEach(el => el.classList.remove('selected'));
             // Только просмотр detail
             if (radio && radio.value) {
                 fetch('/builder/lesson/' + radio.value + '/?ajax=1')
@@ -566,7 +611,7 @@ document.addEventListener('DOMContentLoaded', function() {
             }
             return;
         }
-        // Сбрасываем все уроки
+        // Сбрасываем все уроки (оставляем выделенным только выбранный)
         document.querySelectorAll('.lesson-select').forEach(other => {
             if (other !== radio) other.checked = false;
         });
@@ -587,6 +632,8 @@ document.addEventListener('DOMContentLoaded', function() {
         if (lessonElement) {
             lessonElement.classList.add('selected');
         }
+        // Сброс выделения у терминов словаря (оставляем выделенным только урок)
+        document.querySelectorAll('#dict-block .category-block').forEach(el => el.classList.remove('selected'));
         updateActionButtons();
 
         // Переход к detail view выбранного урока
@@ -615,23 +662,7 @@ document.addEventListener('DOMContentLoaded', function() {
     document.querySelectorAll('.lesson-list li').forEach(li => li.classList.remove('selected'));
 
     // Сброс выделения при клике вне элементов
-    document.addEventListener('click', function(e) {
-        // Не сбрасываем если кликнули на элементы, которые должны активировать выделение
-        if (e.target.closest('.category-header') || 
-            e.target.closest('.lesson-list li') || 
-            e.target.closest('.category-block[data-id^="uncat-"]') ||
-            e.target.closest('#custom-context-menu') ||
-            e.target.closest('.toggle-arrow')) {
-            return;
-        }
-        
-        // Сбрасываем все чекбоксы
-        document.querySelectorAll('.category-select, .lesson-select').forEach(cb => cb.checked = false);
-        // Сбрасываем все выделения
-        document.querySelectorAll('.category-block').forEach(block => block.classList.remove('selected'));
-        document.querySelectorAll('.lesson-list li').forEach(li => li.classList.remove('selected'));
-        updateActionButtons();
-    });
+    // Удалён обработчик сброса выделения при клике вне элементов
     // Кнопки активны только при выборе
     function updateActionButtons() {
         const catId = document.querySelector('.category-select:checked');
@@ -972,26 +1003,6 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
-
-    // --- Контекстное меню на вкладках ---
-    document.getElementById('tab-categories')?.addEventListener('contextmenu', function(e) {
-        e.preventDefault();
-        contextTarget = { tab: 'categories' };
-        const menu = document.getElementById('custom-context-menu');
-        menu.style.display = 'block';
-        menu.style.left = e.pageX + 'px';
-        menu.style.top = e.pageY + 'px';
-        updatePasteButton();
-    });
-    document.getElementById('tab-uncat')?.addEventListener('contextmenu', function(e) {
-        e.preventDefault();
-        contextTarget = { tab: 'uncat' };
-        const menu = document.getElementById('custom-context-menu');
-        menu.style.display = 'block';
-        menu.style.left = e.pageX + 'px';
-        menu.style.top = e.pageY + 'px';
-        updatePasteButton();
-    });
     
     // Вставить
     document.getElementById('paste-menu-item').addEventListener('click', function() {
@@ -1144,7 +1155,330 @@ document.addEventListener('DOMContentLoaded', function() {
             setTimeout(updateUpdateControlBtnState, 100); // после клика по дереву
         });
     }
+
+    // === АВТОВЫДЕЛЕНИЕ только что созданной категории ===
+    const newCatId = sessionStorage.getItem('new_category_id');
+    if (newCatId) {
+        setTimeout(() => {
+            const radio = document.querySelector(`.category-select[value='${newCatId}']`);
+            const li = document.querySelector(`.category-block[data-id='${newCatId}']`);
+            if (radio) radio.checked = true;
+            if (li) li.classList.add('selected');
+            // --- раскрываем всех родителей ---
+            let parent = li && li.parentElement;
+            while (parent && !parent.classList.contains('category-list')) {
+                if (parent.classList.contains('subcategory-list') || parent.classList.contains('lesson-list')) {
+                    parent.style.display = 'block';
+                }
+                if (parent.classList.contains('category-block')) {
+                    const header = parent.querySelector('.category-header');
+                    if (header && !header.classList.contains('open')) {
+                        header.classList.add('open');
+                        // Меняем стрелку
+                        const arrow = header.querySelector('.toggle-arrow');
+                        if (arrow) arrow.innerHTML = '&#9660;';
+                    }
+                }
+                parent = parent.parentElement;
+            }
+            sessionStorage.removeItem('new_category_id');
+            // Прокручиваем к новой категории
+            if (li) li.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }, 100);
+    }
+    // === АВТОВЫДЕЛЕНИЕ только что созданного урока ===
+    const newLessonId = sessionStorage.getItem('new_lesson_id');
+    if (newLessonId) {
+        setTimeout(() => {
+            // Сначала ищем среди уроков без категории
+            const uncatLi = document.querySelector(`.category-block[data-id='uncat-${newLessonId}']`);
+            if (uncatLi) {
+                // Активируем вкладку 'Без категории'
+                const tabUncat = document.getElementById('tab-uncat');
+                const tabCat = document.getElementById('tab-categories');
+                if (tabUncat) tabUncat.classList.add('active');
+                if (tabCat) tabCat.classList.remove('active');
+                const blockUncat = document.getElementById('uncategorized-block');
+                const blockCat = document.getElementById('categories-block');
+                if (blockUncat) blockUncat.style.display = '';
+                if (blockCat) blockCat.style.display = 'none';
+                uncatLi.classList.add('selected');
+                uncatLi.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                sessionStorage.removeItem('new_lesson_id');
+                // Удаляем ?new_lesson=... из адресной строки
+                if (window.history.replaceState) {
+                    const url = new URL(window.location);
+                    url.searchParams.delete('new_lesson');
+                    window.history.replaceState({}, document.title, url.pathname + url.search);
+                }
+                return;
+            }
+            // Обычный урок в категории
+            const li = document.querySelector(`.lesson-li[data-lesson-id='${newLessonId}']`);
+            if (li) li.classList.add('selected');
+            // раскрываем всех родителей
+            let parent = li && li.parentElement;
+            while (parent && !parent.classList.contains('category-list')) {
+                if (parent.classList.contains('subcategory-list') || parent.classList.contains('lesson-list')) {
+                    parent.style.display = 'block';
+                }
+                if (parent.classList.contains('category-block')) {
+                    const header = parent.querySelector('.category-header');
+                    if (header && !header.classList.contains('open')) {
+                        header.classList.add('open');
+                        const arrow = header.querySelector('.toggle-arrow');
+                        if (arrow) arrow.innerHTML = '&#9660;';
+                    }
+                }
+                parent = parent.parentElement;
+            }
+            sessionStorage.removeItem('new_lesson_id');
+            if (li) li.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            // Удаляем ?new_lesson=... из адресной строки
+            if (window.history.replaceState) {
+                const url = new URL(window.location);
+                url.searchParams.delete('new_lesson');
+                window.history.replaceState({}, document.title, url.pathname + url.search);
+            }
+        }, 100);
+    }
+    // === АВТОВЫДЕЛЕНИЕ только что отредактированного урока ===
+    const editedLessonId = sessionStorage.getItem('edited_lesson_id');
+    if (editedLessonId) {
+        setTimeout(() => {
+            // Сначала ищем среди уроков без категории
+            const uncatLi = document.querySelector(`.category-block[data-id='uncat-${editedLessonId}']`);
+            if (uncatLi) {
+                // Активируем вкладку 'Без категории'
+                const tabUncat = document.getElementById('tab-uncat');
+                const tabCat = document.getElementById('tab-categories');
+                if (tabUncat) tabUncat.classList.add('active');
+                if (tabCat) tabCat.classList.remove('active');
+                const blockUncat = document.getElementById('uncategorized-block');
+                const blockCat = document.getElementById('categories-block');
+                if (blockUncat) blockUncat.style.display = '';
+                if (blockCat) blockCat.style.display = 'none';
+                uncatLi.classList.add('selected');
+                uncatLi.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                sessionStorage.removeItem('edited_lesson_id');
+                // Удаляем ?edited_lesson=... из адресной строки
+                if (window.history.replaceState) {
+                    const url = new URL(window.location);
+                    url.searchParams.delete('edited_lesson');
+                    window.history.replaceState({}, document.title, url.pathname + url.search);
+                }
+                return;
+            }
+            // Обычный урок в категории
+            const li = document.querySelector(`.lesson-li[data-lesson-id='${editedLessonId}']`);
+            if (li) li.classList.add('selected');
+            // раскрываем всех родителей
+            let parent = li && li.parentElement;
+            while (parent && !parent.classList.contains('category-list')) {
+                if (parent.classList.contains('subcategory-list') || parent.classList.contains('lesson-list')) {
+                    parent.style.display = 'block';
+                }
+                if (parent.classList.contains('category-block')) {
+                    const header = parent.querySelector('.category-header');
+                    if (header && !header.classList.contains('open')) {
+                        header.classList.add('open');
+                        const arrow = header.querySelector('.toggle-arrow');
+                        if (arrow) arrow.innerHTML = '&#9660;';
+                    }
+                }
+                parent = parent.parentElement;
+            }
+            sessionStorage.removeItem('edited_lesson_id');
+            if (li) li.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            // Удаляем ?edited_lesson=... из адресной строки
+            if (window.history.replaceState) {
+                const url = new URL(window.location);
+                url.searchParams.delete('edited_lesson');
+                window.history.replaceState({}, document.title, url.pathname + url.search);
+            }
+        }, 100);
+    }
 });
+
+// === Drag&Drop сортировка для уроков без категории ===
+(function() {
+    const uncatList = document.querySelector('#uncategorized-block .category-list');
+    if (!uncatList) return;
+    let draggedEl = null;
+    let dragOverEl = null;
+
+    function handleDragStart(e) {
+        draggedEl = this;
+        this.classList.add('dragging');
+        e.dataTransfer.effectAllowed = 'move';
+    }
+    function handleDragEnd(e) {
+        this.classList.remove('dragging');
+        draggedEl = null;
+        dragOverEl = null;
+        uncatList.querySelectorAll('.drag-over').forEach(el => el.classList.remove('drag-over'));
+    }
+    function handleDragOver(e) {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'move';
+        if (this === draggedEl) return;
+        uncatList.querySelectorAll('.drag-over').forEach(el => el.classList.remove('drag-over'));
+        this.classList.add('drag-over');
+        dragOverEl = this;
+    }
+    function handleDrop(e) {
+        e.preventDefault();
+        if (!draggedEl || this === draggedEl) return;
+        this.classList.remove('drag-over');
+        // Вставляем draggedEl перед/после this
+        const rect = this.getBoundingClientRect();
+        const offset = e.clientY - rect.top;
+        if (offset < rect.height / 2) {
+            uncatList.insertBefore(draggedEl, this);
+        } else {
+            uncatList.insertBefore(draggedEl, this.nextSibling);
+        }
+        // Отправляем новый порядок на сервер
+        const ids = Array.from(uncatList.querySelectorAll('li.category-block[data-id^="uncat-"]'))
+            .map(li => li.dataset.id.replace('uncat-', ''));
+        fetch('/builder/lessons/reorder_uncat/', {
+            method: 'POST',
+            headers: { 'X-CSRFToken': (document.querySelector('[name=csrfmiddlewaretoken]')||{}).value || '', 'Content-Type': 'application/json' },
+            body: JSON.stringify({ ids })
+        }).then(r => r.json()).then(data => {
+            if (data.error) alert('Ошибка сортировки: ' + data.error);
+        }).catch(() => alert('Ошибка сети при сортировке!'));
+    }
+    // Навешиваем dnd на все li без категории
+    uncatList.querySelectorAll('li.category-block[data-id^="uncat-"]').forEach(li => {
+        li.setAttribute('draggable', 'true');
+        li.addEventListener('dragstart', handleDragStart);
+        li.addEventListener('dragend', handleDragEnd);
+        li.addEventListener('dragover', handleDragOver);
+        li.addEventListener('drop', handleDrop);
+    });
+})();
+
+// === Drag&Drop сортировка для уроков внутри категорий ===
+(function() {
+    document.querySelectorAll('ul.lesson-list').forEach(lessonList => {
+        let draggedEl = null;
+        let dragOverEl = null;
+        const categoryId = lessonList.closest('.category-block')?.dataset.id;
+        if (!categoryId) return;
+        function handleDragStart(e) {
+            draggedEl = this;
+            this.classList.add('dragging');
+            e.dataTransfer.effectAllowed = 'move';
+        }
+        function handleDragEnd(e) {
+            this.classList.remove('dragging');
+            draggedEl = null;
+            dragOverEl = null;
+            lessonList.querySelectorAll('.drag-over').forEach(el => el.classList.remove('drag-over'));
+        }
+        function handleDragOver(e) {
+            e.preventDefault();
+            e.dataTransfer.dropEffect = 'move';
+            if (this === draggedEl) return;
+            lessonList.querySelectorAll('.drag-over').forEach(el => el.classList.remove('drag-over'));
+            this.classList.add('drag-over');
+            dragOverEl = this;
+        }
+        function handleDrop(e) {
+            e.preventDefault();
+            if (!draggedEl || this === draggedEl) return;
+            this.classList.remove('drag-over');
+            // Вставляем draggedEl перед/после this
+            const rect = this.getBoundingClientRect();
+            const offset = e.clientY - rect.top;
+            if (offset < rect.height / 2) {
+                lessonList.insertBefore(draggedEl, this);
+            } else {
+                lessonList.insertBefore(draggedEl, this.nextSibling);
+            }
+            // Отправляем новый порядок на сервер
+            const ids = Array.from(lessonList.querySelectorAll('li.lesson-li[data-lesson-id]'))
+                .map(li => li.dataset.lessonId);
+            fetch('/builder/lessons/reorder_in_category/', {
+                method: 'POST',
+                headers: { 'X-CSRFToken': (document.querySelector('[name=csrfmiddlewaretoken]')||{}).value || '', 'Content-Type': 'application/json' },
+                body: JSON.stringify({ category_id: categoryId, ids })
+            }).then(r => r.json()).then(data => {
+                if (data.error) alert('Ошибка сортировки: ' + data.error);
+            }).catch(() => alert('Ошибка сети при сортировке!'));
+        }
+        lessonList.querySelectorAll('li.lesson-li[data-lesson-id]').forEach(li => {
+            li.setAttribute('draggable', 'true');
+            li.addEventListener('dragstart', handleDragStart);
+            li.addEventListener('dragend', handleDragEnd);
+            li.addEventListener('dragover', handleDragOver);
+            li.addEventListener('drop', handleDrop);
+        });
+    });
+})();
+
+// === Drag&Drop сортировка для категорий и подкатегорий ===
+(function() {
+    document.querySelectorAll('ul.category-list').forEach(catList => {
+        let draggedEl = null;
+        let dragOverEl = null;
+        // parent_id: если это подкатегории — id родителя, если корень — ''
+        const parentBlock = catList.closest('.category-block');
+        const parentId = parentBlock ? parentBlock.dataset.id : '';
+        function handleDragStart(e) {
+            draggedEl = this;
+            this.classList.add('dragging');
+            e.dataTransfer.effectAllowed = 'move';
+        }
+        function handleDragEnd(e) {
+            this.classList.remove('dragging');
+            draggedEl = null;
+            dragOverEl = null;
+            catList.querySelectorAll('.drag-over').forEach(el => el.classList.remove('drag-over'));
+        }
+        function handleDragOver(e) {
+            e.preventDefault();
+            e.dataTransfer.dropEffect = 'move';
+            if (this === draggedEl) return;
+            catList.querySelectorAll('.drag-over').forEach(el => el.classList.remove('drag-over'));
+            this.classList.add('drag-over');
+            dragOverEl = this;
+        }
+        function handleDrop(e) {
+            e.preventDefault();
+            if (!draggedEl || this === draggedEl) return;
+            // Проверяем, что оба элемента в одном списке
+            if (draggedEl.parentNode !== catList || this.parentNode !== catList) return;
+            this.classList.remove('drag-over');
+            // Вставляем draggedEl перед/после this
+            const rect = this.getBoundingClientRect();
+            const offset = e.clientY - rect.top;
+            if (offset < rect.height / 2) {
+                catList.insertBefore(draggedEl, this);
+            } else {
+                catList.insertBefore(draggedEl, this.nextSibling);
+            }
+            // Отправляем новый порядок на сервер
+            const ids = Array.from(catList.querySelectorAll('li.category-block[data-id]'))
+                .map(li => li.dataset.id);
+            fetch('/builder/categories/reorder/', {
+                method: 'POST',
+                headers: { 'X-CSRFToken': (document.querySelector('[name=csrfmiddlewaretoken]')||{}).value || '', 'Content-Type': 'application/json' },
+                body: JSON.stringify({ parent_id: parentId, ids })
+            }).then(r => r.json()).then(data => {
+                if (data.error) alert('Ошибка сортировки: ' + data.error);
+            }).catch(() => alert('Ошибка сети при сортировке!'));
+        }
+        catList.querySelectorAll('li.category-block[data-id]').forEach(li => {
+            li.setAttribute('draggable', 'true');
+            li.addEventListener('dragstart', handleDragStart);
+            li.addEventListener('dragend', handleDragEnd);
+            li.addEventListener('dragover', handleDragOver);
+            li.addEventListener('drop', handleDrop);
+        });
+    });
+})();
 
 
 function showCategoryPasteWarning({onYes, onNo}) {

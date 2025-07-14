@@ -6,7 +6,7 @@ from django.contrib.auth.decorators import login_required, permission_required
 from django.utils.decorators import method_decorator
 from django.views.generic import ListView, CreateView, UpdateView, DeleteView, FormView
 from django.urls import reverse_lazy, reverse
-from .models import CategoryName, Document, Incident, LessonVersion, LessonCategoryMirror
+from .models import CategoryName, Document, Incident, LessonVersion, LessonCategoryMirror, DictionaryTerm
 from django.core.exceptions import PermissionDenied
 from .forms import DocumentForm, IncidentForm, LessonUpdateControlForm
 from django.http import JsonResponse
@@ -248,7 +248,7 @@ class LessonMasterDetailView(TemplateView):
         user = self.request.user
         is_readonly = not (user.is_staff or user.is_superuser)
         context['is_readonly'] = is_readonly
-
+        context['dictionary_terms'] = DictionaryTerm.objects.all() 
         # uncategorized_lessons оставляем как есть (можно доработать аналогично)
         context['uncategorized_lessons'] = uncategorized_lessons
 
@@ -328,6 +328,10 @@ class LessonCreateView(CreateView):
         return super().form_valid(form)
 
 
+    def get_success_url(self):
+        return f"{reverse('builder:lesson_master')}?new_lesson={self.object.id}"
+
+
 class LessonUpdateView(UpdateView):
     model = Lesson
     fields = ['title', 'content', 'video_id', 'order', 'course', 'category']
@@ -354,6 +358,10 @@ class LessonUpdateView(UpdateView):
             updated_by=self.request.user
         )
         return response
+
+    def get_success_url(self):
+        from django.urls import reverse
+        return f"{reverse('builder:lesson_master')}?edited_lesson={self.object.id}"
 
 
 class LessonDeleteView(DeleteView):
@@ -897,6 +905,7 @@ def ajax_mirror(request):
     except Exception as e:
         return JsonResponse({'error': f'unexpected error: {str(e)}'}, status=500)
 
+
 @csrf_exempt
 @login_required
 def ajax_category_tree_json(request):
@@ -948,3 +957,61 @@ def ajax_delete_lesson_instance(request):
                 return JsonResponse({'result': 'category_unlinked'})
             else:
                 return JsonResponse({'error': 'category mismatch'}, status=400)
+
+
+@require_POST
+def reorder_uncat_lessons(request):
+    try:
+        data = json.loads(request.body)
+        ids = data.get('ids', [])
+        for order, lesson_id in enumerate(ids, start=1):
+            Lesson.objects.filter(id=lesson_id, category__isnull=True).update(order=order)
+        return JsonResponse({'result': 'ok'})
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=400)
+
+@require_POST
+def reorder_lessons_in_category(request):
+    try:
+        data = json.loads(request.body)
+        category_id = data.get('category_id')
+        ids = data.get('ids', [])
+        if not category_id:
+            return JsonResponse({'error': 'category_id required'}, status=400)
+        for order, lesson_id in enumerate(ids, start=1):
+            Lesson.objects.filter(id=lesson_id, category_id=category_id).update(order=order)
+        return JsonResponse({'result': 'ok'})
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=400)
+
+@require_POST
+def reorder_categories(request):
+    try:
+        data = json.loads(request.body)
+        parent_id = data.get('parent_id')
+        ids = data.get('ids', [])
+        if parent_id:
+            for order, cat_id in enumerate(ids, start=1):
+                CategoryName.objects.filter(id=cat_id, parent_id=parent_id).update(order=order)
+        else:
+            for order, cat_id in enumerate(ids, start=1):
+                CategoryName.objects.filter(id=cat_id, parent__isnull=True).update(order=order)
+        return JsonResponse({'result': 'ok'})
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=400)
+
+
+# class DictionaryListView(ListView):
+#     model = DictionaryTerm
+#     context_object_name = 'dictionary_terms'
+#     template_name = 'builder/dictionary_list.html'
+
+class DictionaryDetailView(DetailView):
+    model = DictionaryTerm
+    context_object_name = 'term'
+    template_name = 'builder/includes/_dictionary_detail.html'
+    def render_to_response(self, context, **response_kwargs):
+        if self.request.GET.get('ajax') == '1':
+            # Только определение (html)
+            return super().render_to_response(context, content_type='text/html', **response_kwargs)
+        return super().render_to_response(context, **response_kwargs)

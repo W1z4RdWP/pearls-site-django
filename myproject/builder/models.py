@@ -144,3 +144,20 @@ class LessonCategoryMirror(models.Model):
 
     def __str__(self) -> str:
         return f"Зеркало: {self.lesson.title} в {self.category}"
+
+
+class DictionaryTerm(models.Model):
+    term = models.CharField(max_length=200, verbose_name="Термин")
+    definition = models.TextField(verbose_name="Определение")
+    order = models.PositiveIntegerField(default=0, verbose_name="Порядок")
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    author = models.CharField(max_length=200, verbose_name="Автор")
+
+    class Meta:
+        ordering = ['order', 'term']
+        verbose_name = "Слово словаря"
+        verbose_name_plural = "Словарь"
+
+    def __str__(self):
+        return self.term

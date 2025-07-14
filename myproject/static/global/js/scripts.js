@@ -18,6 +18,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   const headerFixed = () => {
     let scrollTop = window.scrollY;
+    if (!hero) return;
     let heroCenter = hero.offsetHeight / 2;
     
     if (scrollTop >= heroCenter) {

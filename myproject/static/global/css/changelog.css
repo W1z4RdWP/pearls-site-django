@@ -1,4 +1,28 @@
 
+:root {
+  --changelog-timeline-bg: #e9ecef;
+  --changelog-card-bg: #fff;
+  --changelog-card-text: #232a3a;
+  --changelog-feature: #4CAF50;
+  --changelog-bugfix: #f44336;
+  --changelog-improvement: #2196F3;
+  --changelog-security: #FFC107;
+  --changelog-version-date: #6c757d;
+  --changelog-type-badge-bg: rgba(0,0,0,0.1);
+}
+
+body.theme-dark {
+  --changelog-timeline-bg: #444;
+  --changelog-card-bg: #232323;
+  --changelog-card-text: #eee;
+  --changelog-feature: #6fdc8c;
+  --changelog-bugfix: #ff7b7b;
+  --changelog-improvement: #6cbaff;
+  --changelog-security: #ffe066;
+  --changelog-version-date: #bdbdbd;
+  --changelog-type-badge-bg: rgba(255,255,255,0.08);
+}
+
 .timeline {
   position: relative;
   max-width: 1200px;
@@ -7,7 +31,7 @@
     content: '';
     position: absolute;
     width: 6px;
-    background-color: #e9ecef;
+    background-color: var(--changelog-timeline-bg);
     top: 0;
     bottom: 0;
     left: 100%;
@@ -19,16 +43,20 @@
   padding: 10px 40px;
   position: relative;
   width: 100%;
+  background: var(--changelog-card-bg);
+  color: var(--changelog-card-text);
   &.left { left: 0 }
   &.right { left: 0 }
 }
 
 .card {
   position: relative;
-  &.feature { border-left: 4px solid #4CAF50 }
-  &.bugfix { border-left: 4px solid #f44336 }
-  &.improvement { border-left: 4px solid #2196F3 }
-  &.security { border-left: 4px solid #FFC107 }
+  background: var(--changelog-card-bg);
+  color: var(--changelog-card-text);
+  &.feature { border-left: 4px solid var(--changelog-feature); }
+  &.bugfix { border-left: 4px solid var(--changelog-bugfix); }
+  &.improvement { border-left: 4px solid var(--changelog-improvement); }
+  &.security { border-left: 4px solid var(--changelog-security); }
 }
 
 .version-badge {
@@ -40,7 +68,7 @@
     font-weight: 600;
   }
   .date {
-    color: #6c757d;
+    color: var(--changelog-version-date);
     font-size: 0.9rem;
   }
 }
@@ -52,7 +80,7 @@
   padding: 5px 10px;
   border-radius: 20px;
   font-size: 0.8rem;
-  background: rgba(0,0,0,0.1);
+  background: var(--changelog-type-badge-bg);
 }
 
 
@@ -64,6 +92,7 @@
       left: 12px;
       margin-left: 0;
       width: 4px;
+      background-color: var(--changelog-timeline-bg);
     }
   }
 
@@ -75,6 +104,8 @@
     right: 0 !important;
     min-width: 0;
     box-sizing: border-box;
+    background: var(--changelog-card-bg);
+    color: var(--changelog-card-text);
   }
 
   .card {
@@ -82,6 +113,8 @@
     box-shadow: 0 2px 8px rgba(0,0,0,0.04);
     border-left-width: 4px !important;
     margin-bottom: 0;
+    background: var(--changelog-card-bg);
+    color: var(--changelog-card-text);
   }
 
   .version-badge {
@@ -94,6 +127,7 @@
   }
   .version-badge .date {
     font-size: 0.8rem;
+    color: var(--changelog-version-date);
   }
 
   .type-badge {
@@ -106,6 +140,6 @@
     font-size: 0.75rem;
     padding: 4px 10px;
     border-radius: 14px;
-    background: rgba(0,0,0,0.08);
+    background: var(--changelog-type-badge-bg);
   }
 }

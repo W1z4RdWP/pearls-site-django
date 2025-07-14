@@ -2,6 +2,7 @@ from django import forms
 from .models import Course, Lesson, UserLessonTrajectory, Trajectory, UserCourseTrajectory
 from django_ckeditor_5.fields import CKEditor5Widget
 from captcha.fields import CaptchaField
+from myapp.utils import clean_rutube_iframe
 import re
 
 class CourseForm(forms.ModelForm):
@@ -47,6 +48,17 @@ class LessonForm(forms.ModelForm):
         help_texts = {
             'video_id': 'Введите полную ссылку на видео. Пример: https://rutube.ru/video/abcdef12345/'
         }
+
+
+    def clean_content(self):
+        """
+        Функция для фильрации код, попадающего в htmlEmbed через CKeditor5.
+        """
+        data = self.cleaned_data.get('content')
+        if data:
+            data = clean_rutube_iframe(data)
+        return data
+
 
     def __init__(self, *args, hide_order=False, **kwargs):
         super().__init__(*args, **kwargs)
