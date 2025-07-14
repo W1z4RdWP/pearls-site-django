@@ -1,3 +1,5 @@
+let contextTarget = null;
+
 function saveCategoryState(categoryId, isOpen) {
     sessionStorage.setItem(`category_${categoryId}_state`, isOpen ? 'open' : 'closed');
 }
@@ -778,7 +780,6 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     // === Кастомное контекстное меню для копирования/вырезания/вставки ===
-    let contextTarget = null;
     let clipboardData = null;
     
     // Проверяем буфер обмена при загрузке
@@ -853,17 +854,32 @@ document.addEventListener('DOMContentLoaded', function() {
             menu.style.left = e.pageX + 'px';
             menu.style.top = e.pageY + 'px';
             updatePasteButton();
+            const showMirrorsItem = document.getElementById('show-all-mirrors-menu-item');
+            const hideMirrorsItem = document.getElementById('hide-mirrors-menu-item');
+            let show = false;
+            if (li.classList.contains('lesson-li') || (li.dataset.id && li.dataset.id.startsWith('uncat-'))) {
+                if (li.hasAttribute('data-has-mirrors')) show = true;
+                if (li.hasAttribute('data-mirror-id')) show = true;
+                if (li.classList.contains('mirror')) show = true;
+            }
+            if (window._mirrorsFilterActive) {
+                showMirrorsItem.style.display = 'none';
+                hideMirrorsItem.style.display = '';
+            } else {
+                if (show) {
+                    showMirrorsItem.style.display = '';
+                } else {
+                    showMirrorsItem.style.display = 'none';
+                }
+                hideMirrorsItem.style.display = 'none';
+            }
         } else if (ul && clipboardData) {
-            // Показываем меню только если есть что вставлять
-            e.preventDefault();
-            contextTarget = ul;
-            const menu = document.getElementById('custom-context-menu');
-            menu.style.display = 'block';
-            menu.style.left = e.pageX + 'px';
-            menu.style.top = e.pageY + 'px';
-            updatePasteButton();
+            document.getElementById('show-all-mirrors-menu-item').style.display = 'none';
+            document.getElementById('hide-mirrors-menu-item').style.display = 'none';
         } else {
             document.getElementById('custom-context-menu').style.display = 'none';
+            document.getElementById('show-all-mirrors-menu-item').style.display = 'none';
+            document.getElementById('hide-mirrors-menu-item').style.display = 'none';
         }
     });
     
@@ -1338,7 +1354,7 @@ document.addEventListener('DOMContentLoaded', function() {
         } else {
             uncatList.insertBefore(draggedEl, this.nextSibling);
         }
-        // Отправляем новый порядок на сервер
+        // Отправляем новый порядок на сервер (ids только числа)
         const ids = Array.from(uncatList.querySelectorAll('li.category-block[data-id^="uncat-"]'))
             .map(li => li.dataset.id.replace('uncat-', ''));
         fetch('/builder/lessons/reorder_uncat/', {
@@ -1351,6 +1367,65 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     // Навешиваем dnd на все li без категории
     uncatList.querySelectorAll('li.category-block[data-id^="uncat-"]').forEach(li => {
+        li.setAttribute('draggable', 'true');
+        li.addEventListener('dragstart', handleDragStart);
+        li.addEventListener('dragend', handleDragEnd);
+        li.addEventListener('dragover', handleDragOver);
+        li.addEventListener('drop', handleDrop);
+    });
+})();
+
+// === Drag&Drop сортировка для терминов словаря ===
+(function() {
+    const dictList = document.querySelector('ul.dict-list');
+    if (!dictList) return;
+    let draggedEl = null;
+    let dragOverEl = null;
+
+    function handleDragStart(e) {
+        draggedEl = this;
+        this.classList.add('dragging');
+        e.dataTransfer.effectAllowed = 'move';
+    }
+    function handleDragEnd(e) {
+        this.classList.remove('dragging');
+        draggedEl = null;
+        dragOverEl = null;
+        dictList.querySelectorAll('.drag-over').forEach(el => el.classList.remove('drag-over'));
+    }
+    function handleDragOver(e) {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'move';
+        if (this === draggedEl) return;
+        dictList.querySelectorAll('.drag-over').forEach(el => el.classList.remove('drag-over'));
+        this.classList.add('drag-over');
+        dragOverEl = this;
+    }
+    function handleDrop(e) {
+        e.preventDefault();
+        if (!draggedEl || this === draggedEl) return;
+        this.classList.remove('drag-over');
+        // Вставляем draggedEl перед/после this
+        const rect = this.getBoundingClientRect();
+        const offset = e.clientY - rect.top;
+        if (offset < rect.height / 2) {
+            dictList.insertBefore(draggedEl, this);
+        } else {
+            dictList.insertBefore(draggedEl, this.nextSibling);
+        }
+        // Отправляем новый порядок на сервер (ids только числа)
+        const ids = Array.from(dictList.querySelectorAll('li.category-block[data-id^="dict-"]'))
+            .map(li => li.dataset.id.replace('dict-', ''));
+        fetch('/builder/dictionary/reorder/', {
+            method: 'POST',
+            headers: { 'X-CSRFToken': (document.querySelector('[name=csrfmiddlewaretoken]')||{}).value || '', 'Content-Type': 'application/json' },
+            body: JSON.stringify({ ids })
+        }).then(r => r.json()).then(data => {
+            if (data.error) alert('Ошибка сортировки: ' + data.error);
+        }).catch(() => alert('Ошибка сети при сортировке!'));
+    }
+    // Навешиваем dnd на все li словаря
+    dictList.querySelectorAll('li.category-block[data-id^="dict-"]').forEach(li => {
         li.setAttribute('draggable', 'true');
         li.addEventListener('dragstart', handleDragStart);
         li.addEventListener('dragend', handleDragEnd);
@@ -1421,6 +1496,10 @@ document.addEventListener('DOMContentLoaded', function() {
 // === Drag&Drop сортировка для категорий и подкатегорий ===
 (function() {
     document.querySelectorAll('ul.category-list').forEach(catList => {
+        // Отключаем dnd для словаря
+        if (catList.classList.contains('dict-list')) return;
+        // Отключаем dnd для блока без категории
+        if (catList.closest('#uncategorized-block')) return;
         let draggedEl = null;
         let dragOverEl = null;
         // parent_id: если это подкатегории — id родителя, если корень — ''
@@ -1479,6 +1558,68 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 })();
+
+// === Показать все зеркала ===
+document.getElementById('show-all-mirrors-menu-item').addEventListener('click', function() {
+    if (!contextTarget) return;
+    let lessonId = null;
+    if (contextTarget.dataset && contextTarget.dataset.id && contextTarget.dataset.id.startsWith('uncat-')) {
+        lessonId = contextTarget.dataset.id.replace('uncat-', '');
+    } else if (contextTarget.classList.contains('lesson-li')) {
+        lessonId = contextTarget.dataset.lessonId;
+    } else if (contextTarget.querySelector('.lesson-link')) {
+        const radio = contextTarget.querySelector('.lesson-select');
+        if (radio) lessonId = radio.value;
+    }
+    if (!lessonId) return;
+
+    // Скрываем все категории и все уроки
+    document.querySelectorAll('.category-block').forEach(el => el.style.display = 'none');
+    document.querySelectorAll('.lesson-list li').forEach(el => el.style.display = 'none');
+
+    // Находим все экземпляры этого урока (оригинал и зеркала)
+    const allInstances = document.querySelectorAll(`.lesson-li[data-lesson-id='${lessonId}'], .category-block[data-id='uncat-${lessonId}']`);
+    allInstances.forEach(li => {
+        li.style.display = '';
+        li.classList.add('selected');
+        let parent = li.parentElement;
+        while (parent && !parent.classList.contains('category-list')) {
+            if (parent.classList.contains('subcategory-list') || parent.classList.contains('lesson-list')) {
+                parent.style.display = 'block';
+            }
+            if (parent.classList.contains('category-block')) {
+                parent.style.display = '';
+                const header = parent.querySelector('.category-header');
+                if (header && !header.classList.contains('open')) {
+                    header.classList.add('open');
+                    const arrow = header.querySelector('.toggle-arrow');
+                    if (arrow) arrow.innerHTML = '&#9660;';
+                }
+            }
+            parent = parent.parentElement;
+        }
+    });
+    // Скрываем контекстное меню
+    document.getElementById('custom-context-menu').style.display = 'none';
+    // Показываем пункт 'Скрыть', скрываем 'Показать все зеркала'
+    document.getElementById('show-all-mirrors-menu-item').style.display = 'none';
+    document.getElementById('hide-mirrors-menu-item').style.display = '';
+    window._mirrorsFilterActive = true;
+});
+
+// === Скрыть (сбросить фильтр зеркал) ===
+document.getElementById('hide-mirrors-menu-item').addEventListener('click', function() {
+    // Показываем все категории и уроки
+    document.querySelectorAll('.category-block').forEach(el => el.style.display = '');
+    document.querySelectorAll('.lesson-list li').forEach(el => el.style.display = '');
+    // Снимаем выделения
+    document.querySelectorAll('.selected').forEach(el => el.classList.remove('selected'));
+    // Скрываем пункт 'Скрыть', показываем 'Показать все зеркала' (если надо)
+    document.getElementById('hide-mirrors-menu-item').style.display = 'none';
+    document.getElementById('show-all-mirrors-menu-item').style.display = '';
+    window._mirrorsFilterActive = false;
+    document.getElementById('custom-context-menu').style.display = 'none';
+});
 
 
 function showCategoryPasteWarning({onYes, onNo}) {
