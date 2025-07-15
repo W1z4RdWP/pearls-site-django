@@ -82,6 +82,8 @@ class LessonVersion(models.Model):
     Версия урока базы знаний. Хранит историю изменений для каждого Lesson.
     version — автоинкремент по каждому уроку (v1, v2, ...)
     updated_by — пользователь, внёсший изменение (ФИО берём из user.get_full_name()).
+    next_update — дата следующей актуализации (может быть пустой)
+    update_period_days — стандартный период между актуализациями (по умолчанию 90 дней)
     """
     lesson: 'Lesson' = models.ForeignKey('courses.Lesson', on_delete=models.CASCADE, related_name='versions', verbose_name='Урок')
     version: int = models.PositiveIntegerField(verbose_name='Номер версии')
@@ -91,6 +93,8 @@ class LessonVersion(models.Model):
     updated_at: 'datetime' = models.DateTimeField(auto_now_add=True, verbose_name='Дата изменения')
     updated_by: settings.AUTH_USER_MODEL = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, verbose_name='Кто изменил')
     comment: str = models.CharField(max_length=255, blank=True, verbose_name='Комментарий к изменению')
+    next_update: 'date' = models.DateField(null=True, blank=True, verbose_name='Дата следующего обновления')
+    update_period_days: int = models.IntegerField(default=90, verbose_name='Стандарт периода обновлений, дней')
 
     class Meta:
         verbose_name = 'Версия урока'
@@ -100,29 +104,6 @@ class LessonVersion(models.Model):
 
     def __str__(self) -> str:
         return f"{self.lesson.title} v{self.version} ({self.updated_at:%d.%m.%Y})"
-
-class LessonUpdateControl(models.Model):
-    """
-    Контроль обновлений для урока (памятки): хранит историю проверок, обновлений и контрольных дат.
-    """
-    lesson = models.ForeignKey('courses.Lesson', on_delete=models.CASCADE, related_name='update_controls', verbose_name='Урок')
-    version_number = models.PositiveIntegerField(verbose_name='№ версии')
-    created_at = models.DateTimeField(auto_now_add=True, verbose_name='Дата создания')
-    update_date = models.DateField(verbose_name='Дата обновления')
-    next_update_date = models.DateField(verbose_name='Следующая дата обновления')
-    period_between_updates = models.PositiveIntegerField(verbose_name='Период между последними обновлениями, дней')
-    standard_period = models.PositiveIntegerField(default=180, verbose_name='Стандарт периода обновлений, дней')
-    responsible_role = models.CharField(max_length=128, verbose_name='Ответственный (роль)')
-    responsible_fio = models.CharField(max_length=128, verbose_name='ФИО сотрудника')
-    comment = models.CharField(max_length=255, blank=True, verbose_name='Комментарий')
-
-    class Meta:
-        verbose_name = 'Контроль обновлений урока'
-        verbose_name_plural = 'Контроль обновлений уроков'
-        ordering = ['-update_date', '-created_at']
-
-    def __str__(self) -> str:
-        return f"{self.lesson.title} — v{self.version_number} ({self.update_date:%d.%m.%Y})"
 
 
 class LessonCategoryMirror(models.Model):

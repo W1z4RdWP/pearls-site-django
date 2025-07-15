@@ -1,20 +1,66 @@
 {% if lesson %}
+    <input type="hidden" id="actualize-lesson-id" value="{{ lesson.id }}">
     <div style="display: flex; justify-content: space-between; align-items: flex-start;">
         <h2 style="margin-bottom: 0;">{{ lesson.title }}</h2>
-        <div class="version-history-block">
-            <button id="version-history-btn" class="btn btn-outline-secondary" type="button">История версий</button>
-            <div id="version-history-dropdown" class="builder-dropdown">
-                <div>
-                    <div class="version-item base-version builder-version-item" data-version="base" data-title="{{ lesson.title|escape }}" data-content="{{ lesson.content|default:''|escape }}" data-video="{{ lesson.video_id|default:'' }}">
-                        <span style="font-weight:600;">Базовая версия</span>
+        <div style="display: flex; align-items: flex-start; gap: 16px;">
+            <div class="version-history-block">
+                <button id="version-history-btn" class="btn btn-outline-secondary" type="button">История версий</button>
+                <div id="version-history-dropdown" class="builder-dropdown">
+                    <div>
+                        <div class="version-item base-version builder-version-item" data-version="base" data-title="{{ lesson.title|escape }}" data-content="{{ lesson.content|default:''|escape }}" data-video="{{ lesson.video_id|default:'' }}">
+                            <span style="font-weight:600;">Базовая версия</span>
+                        </div>
+                        {% for v in lesson_versions %}
+                        <div class="version-item builder-version-item" data-version="{{ v.version }}" data-title="{{ v.title|escape }}" data-content="{{ v.content|escape }}" data-video="{{ v.video_id|default:'' }}">
+                            <span style="font-weight:600;">v{{ v.version }}</span>
+                            <span class="builder-version-date">{{ v.updated_at|date:"d.m.Y H:i" }}</span>
+                            <span class="builder-version-user">{{ v.updated_by.get_full_name|default:v.updated_by.username|default:'—' }} ({{ v.updated_by.profile.role | default:'—' }})</span>
+                        </div>
+                        {% endfor %}
                     </div>
-                    {% for v in lesson_versions %}
-                    <div class="version-item builder-version-item" data-version="{{ v.version }}" data-title="{{ v.title|escape }}" data-content="{{ v.content|escape }}" data-video="{{ v.video_id|default:'' }}">
-                        <span style="font-weight:600;">v{{ v.version }}</span>
-                        <span class="builder-version-date">{{ v.updated_at|date:"d.m.Y H:i" }}</span>
-                        <span class="builder-version-user">{{ v.updated_by.get_full_name|default:v.updated_by.username|default:'—' }} ({{ v.updated_by.profile.role | default:'—' }})</span>
+                </div>
+            </div>
+            <!-- История актуализаций -->
+            <div class="actualization-history-block" style="position: relative;">
+                <button id="actualization-history-btn" class="btn btn-outline-secondary" type="button">История актуализаций</button>
+                <div id="actualization-history-dropdown" class="builder-dropdown" style="display: none; min-width: 420px;">
+                    <div style="margin-bottom: 8px;">
+                        <button id="actualize-main-btn" class="btn btn-primary btn-sm">Актуализировать</button>
                     </div>
-                    {% endfor %}
+                    <div style="max-height: 320px; overflow-y: auto;">
+                        <table class="table table-sm table-bordered mb-0" style="background: #fff;">
+                            <thead>
+                                <tr>
+                                    <th>Дата создания</th>
+                                    <th>№ версии</th>
+                                    <th>Стандарт (дней)</th>
+                                    <th>След. обновление</th>
+                                    <th>Отв.</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                            {% for a in actualization_history %}
+                                <tr>
+                                    <td>{{ a.created_at|date:"d.m.Y" }}</td>
+                                    <td>v{{ a.version }}</td>
+                                    <td>{{ a.update_period_days }}</td>
+                                    <td {% if a.next_update and a.next_update < today %}style="background: #ffd6e0;"{% endif %}>
+                                        {% if a.next_update %}{{ a.next_update|date:"d.m.Y" }}{% else %}—{% endif %}
+                                    </td>
+                                    <td>{{ a.responsible_role|default:'—' }}</td>
+                                </tr>
+                            {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <div style="margin-top: 8px; font-size: 14px;">
+                    <span>След. обновление:
+                        <span id="next-update-info" {% if actualization_info.next_update and actualization_info.next_update < today %}style="background: #ffd6e0; padding: 2px 6px; border-radius: 4px;"{% endif %}>
+                            {% if actualization_info.next_update %}{{ actualization_info.next_update|date:"d.m.Y" }}{% else %}—{% endif %}
+                        </span>
+                    </span>
+                    <span style="margin-left: 16px;">Отв: <b>{{ actualization_info.responsible_role|default:'—' }}</b></span>
                 </div>
             </div>
         </div>

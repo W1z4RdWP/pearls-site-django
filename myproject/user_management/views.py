@@ -36,11 +36,15 @@ class UserListView(ListView):
                 Q(first_name__icontains=q) |
                 Q(last_name__icontains=q)
             )
-        approved = self.request.GET.get('approved')
-        if approved == '1':
+        filter_val = self.request.GET.get('filter')
+        if filter_val == 'approved':
             queryset = queryset.filter(profile__is_approved=True)
-        elif approved == '0':
+        elif filter_val == 'not_approved':
             queryset = queryset.filter(profile__is_approved=False)
+        elif filter_val == 'responsible':
+            queryset = queryset.filter(profile__is_resonsible=True)
+        elif filter_val == 'not_responsible':
+            queryset = queryset.filter(profile__is_resonsible=False)
         return queryset
 
 
