@@ -4,7 +4,6 @@ from django.urls import reverse
 
 from . import views
 from .views import DashboardView
-from .views import LessonUpdateControlCreateView
 
 app_name = 'builder'
 
@@ -14,9 +13,9 @@ urlpatterns = [
     path('lesson/<int:pk>/', views.LessonMasterDetailView.as_view(), name='lesson_detail'),
     path('lesson/<int:pk>/delete/', views.LessonDeleteView.as_view(), name='lesson_delete'),
     path('lesson/<int:pk>/edit/', views.LessonUpdateView.as_view(), name='lesson_edit'),
-    path('lesson/<int:lesson_id>/update_control/new/', LessonUpdateControlCreateView.as_view(), name='lesson_update_control_create'),
     path('add/', views.LessonCreateView.as_view(), name='lesson_add'),
     path('add/<int:category_id>/', views.LessonCreateView.as_view(), name='lesson_add_with_category'),
+    path('update_control/', views.UpdateControlStandaloneView.as_view(), name='update_control_standalone'),
     path('categories/', views.CategoryListView.as_view(), name='category_list'),
     path('categories/add/', views.CategoryCreateView.as_view(), name='category_add'),
     path('categories/<int:pk>/edit/', views.CategoryUpdateView.as_view(), name='category_edit'),
@@ -43,4 +42,5 @@ urlpatterns = [
     # path('dictionary/', views.DictionaryListView.as_view(), name='dictionary_list'),
     path('dictionary/<int:pk>/', views.DictionaryDetailView.as_view(), name='dictionary_detail'),
     path('dictionary/reorder/', views.dictionary_reorder, name='dictionary_reorder'),
+    path('actualize_version/', views.actualize_version, name='actualize_version'),
 ]

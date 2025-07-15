@@ -20,11 +20,14 @@
     </div>
     <form method="get" class="um-user-list-filter">
         <input type="text" name="q" placeholder="Поиск по имени или email" value="{{ request.GET.q }}">
-        <select name="approved" class="um-user-list-status-filter">
-            <option value="">Все</option>
-            <option value="1" {% if request.GET.approved == '1' %}selected{% endif %}>Только подтверждённые</option>
-            <option value="0" {% if request.GET.approved == '0' %}selected{% endif %}>Только не подтверждённые</option>
+        <select name="filter" class="um-user-list-combined-filter">
+            <option value="" {% if request.GET.filter == "" %}selected{% endif %}>Все</option>
+            <option value="approved" {% if request.GET.filter == "approved" %}selected{% endif %}>Только подтверждённые</option>
+            <option value="not_approved" {% if request.GET.filter == "not_approved" %}selected{% endif %}>Только не подтверждённые</option>
+            <option value="responsible" {% if request.GET.filter == "responsible" %}selected{% endif %}>Только ответственные</option>
+            <option value="not_responsible" {% if request.GET.filter == "not_responsible" %}selected{% endif %}>Только не ответственные</option>
         </select>
+
         <button type="submit" class="um-btn um-btn-secondary">Фильтровать</button>
     </form>
     <table class="um-user-list-table">

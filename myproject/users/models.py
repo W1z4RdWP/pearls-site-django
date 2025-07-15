@@ -39,6 +39,7 @@ class Profile(models.Model):
     )
     image = models.ImageField(default='profile_pics/default.jpg', upload_to='profile_pics')
     bio = models.TextField(max_length=500, blank=True, null=True, verbose_name="О себе")
+    is_resonsible = models.BooleanField(default=False, verbose_name="Можно ли назначать ответственным")
     is_approved = models.BooleanField(default=False, verbose_name="Подвтерждение администратором")
 
     class Meta:

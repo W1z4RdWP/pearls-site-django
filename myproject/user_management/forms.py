@@ -21,6 +21,7 @@ class UserProfileForm(forms.ModelForm):
         self.fields['phone_number'].required = True
         self.fields['image'].required = False
         self.fields['is_approved'].required = False
+        self.fields['is_resonsible'].required = False
         self.fields['bio'].required = False
         if self.instance and hasattr(self.instance, 'phone_arbitrary_format'):
             self.fields['phone_arbitrary_format'].initial = self.instance.phone_arbitrary_format
@@ -39,7 +40,7 @@ class UserProfileForm(forms.ModelForm):
 
     class Meta:
         model = Profile
-        fields = ['middle_name', 'role', 'date_of_birth', 'phone_number', 'phone_arbitrary_format', 'image', 'bio', 'is_approved']
+        fields = ['middle_name', 'role', 'date_of_birth', 'phone_number', 'phone_arbitrary_format', 'image', 'bio', 'is_resonsible', 'is_approved']
         widgets = {
             'date_of_birth': forms.DateInput(attrs={'type': 'date'}),
         }
