@@ -38,7 +38,6 @@
                         <th>Стандарт периода обновлений</th>
                         <th>Отв. (роль)</th>
                         <th>ФИО сотрудника</th>
-                        <th>Комментарий</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -50,14 +49,12 @@
                         <td><input type="text" name="standard_period_{{ forloop.counter }}" value="{{ row.standard_period }}" readonly></td>
                         <td><input type="text" name="role_{{ forloop.counter }}" value="{{ row.role }}" readonly></td>
                         <td><input type="text" name="fio_{{ forloop.counter }}" value="{{ row.fio }}" readonly></td>
-                        <td><input type="text" name="comment_{{ forloop.counter }}" value="{{ row.comment }}" readonly></td>
                     </tr>
                     {% endfor %}
                 </tbody>
             </table>
             <button type="button" class="btn btn-primary" id="add-row-btn">ОБНОВИТЬ</button>
             <button type="submit" class="btn btn-success">Сохранить</button>
-            <a href="{% if object %}{% url 'builder:lesson_detail' object.lesson.id %}{% else %}{% url 'builder:lesson_detail' lesson.id %}{% endif %}" class="btn btn-secondary ms-2">Отмена</a>
         </form>
     </div>
 </div>
@@ -75,7 +72,6 @@
                 <td><input type="text" name="standard_period_${rowCount}" value=""></td>
                 <td><input type="text" name="role_${rowCount}" value=""></td>
                 <td><input type="text" name="fio_${rowCount}" value=""></td>
-                <td><input type="text" name="comment_${rowCount}" value=""></td>
             `;
         });
     });

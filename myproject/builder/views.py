@@ -979,3 +979,21 @@ class DictionaryDetailView(DetailView):
             # Только определение (html)
             return super().render_to_response(context, content_type='text/html', **response_kwargs)
         return super().render_to_response(context, **response_kwargs)
+
+
+class UpdateControlStandaloneView(TemplateView):
+    """
+    Представление для отображения формы контроля обновлений.
+    Доступно только для пользователей с правами staff или superuser.
+    """
+    template_name = 'builder/lesson_update_control_form.html'
+
+    def dispatch(self, request, *args, **kwargs):
+        if not request.user.is_authenticated or not (request.user.is_staff or request.user.is_superuser):
+            return render(request, '403.html', status=403)
+        return super().dispatch(request, *args, **kwargs)
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['update_rows'] = []  # или можно подгрузить тестовые данные
+        return context

@@ -15,6 +15,7 @@ urlpatterns = [
     path('lesson/<int:pk>/edit/', views.LessonUpdateView.as_view(), name='lesson_edit'),
     path('add/', views.LessonCreateView.as_view(), name='lesson_add'),
     path('add/<int:category_id>/', views.LessonCreateView.as_view(), name='lesson_add_with_category'),
+    path('update_control/', views.UpdateControlStandaloneView.as_view(), name='update_control_standalone'),
     path('categories/', views.CategoryListView.as_view(), name='category_list'),
     path('categories/add/', views.CategoryCreateView.as_view(), name='category_add'),
     path('categories/<int:pk>/edit/', views.CategoryUpdateView.as_view(), name='category_edit'),
