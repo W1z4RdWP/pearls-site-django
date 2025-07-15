@@ -8,7 +8,7 @@ from django.views.generic import ListView, CreateView, UpdateView, DeleteView, F
 from django.urls import reverse_lazy, reverse
 from .models import CategoryName, Document, Incident, LessonVersion, LessonCategoryMirror, DictionaryTerm
 from django.core.exceptions import PermissionDenied
-from .forms import DocumentForm, IncidentForm, LessonUpdateControlForm
+from .forms import DocumentForm, IncidentForm
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.db.models import Max, Q
@@ -17,7 +17,6 @@ from django.views.decorators.http import require_POST
 import json
 from myapp.models import UserCourse
 from courses.models import UserLessonTrajectory
-from .models import LessonUpdateControl
 from django.utils import timezone
 
 
@@ -489,55 +488,6 @@ class IncidentCreateView(CreateView):
     form_class = IncidentForm
     template_name = 'builder/incident_form.html'
     success_url = '/builder/incidents/'
-
-
-class LessonUpdateControlCreateView(CreateView):
-    model = LessonUpdateControl
-    form_class = LessonUpdateControlForm
-    template_name = 'builder/lesson_update_control_form.html'
-
-    def dispatch(self, request, *args, **kwargs):
-        if not request.user.is_authenticated or not (request.user.is_staff or request.user.is_superuser):
-            return render(request, '403.html', status=403)
-        return super().dispatch(request, *args, **kwargs)
-
-    def get_initial(self):
-        initial = super().get_initial()
-        lesson_id = self.kwargs.get('lesson_id')
-        lesson = get_object_or_404(Lesson, pk=lesson_id)
-        # Определяем номер версии
-        last = LessonUpdateControl.objects.filter(lesson=lesson).order_by('-version_number').first()
-        next_version = (last.version_number + 1) if last else 1
-        today = timezone.now().date()
-        initial['update_date'] = today
-        initial['standard_period'] = 180
-        initial['next_update_date'] = today + timezone.timedelta(days=initial['standard_period'])
-        initial['period_between_updates'] = (today - last.update_date).days if last else 0
-        initial['responsible_fio'] = self.request.user.get_full_name() or self.request.user.username
-        # Можно добавить определение роли
-        return initial
-
-    def form_valid(self, form):
-        lesson_id = self.kwargs.get('lesson_id')
-        lesson = get_object_or_404(Lesson, pk=lesson_id)
-        last = LessonUpdateControl.objects.filter(lesson=lesson).order_by('-version_number').first()
-        next_version = (last.version_number + 1) if last else 1
-        form.instance.lesson = lesson
-        form.instance.version_number = next_version
-        if not form.instance.period_between_updates:
-            form.instance.period_between_updates = (form.instance.update_date - last.update_date).days if last else 0
-        if not form.instance.responsible_fio:
-            form.instance.responsible_fio = self.request.user.get_full_name() or self.request.user.username
-        return super().form_valid(form)
-
-    def get_success_url(self):
-        return reverse('builder:lesson_detail', args=[self.object.lesson.id])
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        lesson_id = self.kwargs.get('lesson_id')
-        context['lesson'] = get_object_or_404(Lesson, pk=lesson_id)
-        return context
 
 
 @csrf_exempt

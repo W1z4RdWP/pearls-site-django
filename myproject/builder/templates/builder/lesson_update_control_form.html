@@ -6,79 +6,78 @@
 <link rel="stylesheet" href="{% static 'builder/css/builder_style.css' %}">
 <style>
     .update-control-form-bg { background: #383838; min-height: 100vh; padding: 40px 0; }
-    .update-control-form-card { background: #fff; border-radius: 10px; box-shadow: 0 2px 8px #0002; padding: 32px 32px 24px 32px; max-width: 700px; margin: 0 auto; }
+    .update-control-form-card { background: #fff; border-radius: 10px; box-shadow: 0 2px 8px #0002; padding: 32px 32px 24px 32px; max-width: 900px; margin: 0 auto; }
     .update-control-form-card h2 { color: #232323; font-weight: 700; margin-bottom: 32px; letter-spacing: 0.5px; }
-    .update-control-form-card form label { font-weight: 600; color: #232323; margin-bottom: 6px; }
-    .update-control-form-card form input, .update-control-form-card form select, .update-control-form-card form textarea {
-        width: 100%;
-        border-radius: 6px;
-        border: 1px solid #d1d5db;
-        padding: 10px 12px;
-        margin-bottom: 18px;
-        font-size: 1.05em;
-        background: #f8f9fa;
-        transition: border 0.2s;
+    .update-control-table { width: 100%; border-collapse: collapse; margin-bottom: 24px; }
+    .update-control-table th, .update-control-table td { border: 1px solid #d1d5db; padding: 10px 8px; text-align: center; font-size: 1.05em; }
+    .update-control-table th { background: #f8f9fa; font-weight: 700; color: #232323; }
+    .update-control-table td input, .update-control-table td select, .update-control-table td textarea {
+        width: 100%; border-radius: 6px; border: 1px solid #d1d5db; padding: 6px 8px; font-size: 1em; background: #f8f9fa; transition: border 0.2s;
     }
-    .update-control-form-card form input:focus, .update-control-form-card form select:focus, .update-control-form-card form textarea:focus {
-        border: 1.5px solid #4d7cff;
-        outline: none;
-        background: #fff;
+    .update-control-table td input:focus, .update-control-table td select:focus, .update-control-table td textarea:focus {
+        border: 1.5px solid #4d7cff; outline: none; background: #fff;
     }
     .update-control-form-card .btn {
-        min-width: 120px;
-        font-size: 1.05em;
-        margin-right: 10px;
-        margin-top: 8px;
+        min-width: 120px; font-size: 1.05em; margin-right: 10px; margin-top: 8px;
     }
-    @media (max-width: 768px) { .update-control-form-card { padding: 18px 8px; max-width: 100%; } }
+    @media (max-width: 768px) { .update-control-form-card { padding: 18px 4px; max-width: 100%; } .update-control-table th, .update-control-table td { font-size: 0.95em; padding: 6px 2px; } }
 </style>
 {% endblock %}
 {% block content %}
 <div class="update-control-form-bg">
     <div class="update-control-form-card">
-        <h2>Контроль обновлений для урока: <span style="font-weight: 400;">{% if object %}{{ object.lesson.title }}{% else %}{{ lesson.title }}{% endif %}</span></h2>
-        <form method="post">
+        <h2>Контроль обновлений</h2>
+        <form method="post" id="update-control-table-form">
             {% csrf_token %}
-            <div class="mb-3">
-                <label class="form-label">Дата создания</label>
-                <input type="text" class="form-control" value="{% if object %}{{ object.created_at|date:'d.m.Y' }}{% else %}—{% endif %}" readonly>
-            </div>
-            <div class="mb-3">
-                <label class="form-label">№ версии</label>
-                <input type="text" class="form-control" value="{% if object %}{{ object.version_number }}{% else %}—{% endif %}" readonly>
-            </div>
-            {{ form.non_field_errors }}
-            <div class="mb-3">
-                {{ form.update_date.label_tag }}
-                {{ form.update_date }}
-            </div>
-            <div class="mb-3">
-                {{ form.next_update_date.label_tag }}
-                {{ form.next_update_date }}
-            </div>
-            <div class="mb-3">
-                {{ form.period_between_updates.label_tag }}
-                {{ form.period_between_updates }}
-            </div>
-            <div class="mb-3">
-                {{ form.standard_period.label_tag }}
-                {{ form.standard_period }}
-            </div>
-            <div class="mb-3">
-                {{ form.responsible_role.label_tag }}
-                {{ form.responsible_role }}
-            </div>
-            <div class="mb-3">
-                {{ form.responsible_fio.label_tag }}
-                {{ form.responsible_fio }}
-            </div>
-            <div class="mb-3">
-                {{ form.comment.label_tag }}
-                {{ form.comment }}
-            </div>
-            <button type="submit" class="btn btn-primary">Сохранить</button>
+            <table class="update-control-table" id="update-control-table">
+                <thead>
+                    <tr>
+                        <th>№</th>
+                        <th>Дата обновления</th>
+                        <th>Период между последними обновлениями</th>
+                        <th>Стандарт периода обновлений</th>
+                        <th>Отв. (роль)</th>
+                        <th>ФИО сотрудника</th>
+                        <th>Комментарий</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for row in update_rows %}
+                    <tr>
+                        <td>{{ forloop.counter }}</td>
+                        <td><input type="text" name="date_{{ forloop.counter }}" value="{{ row.date }}" readonly></td>
+                        <td><input type="text" name="period_between_{{ forloop.counter }}" value="{{ row.period_between }}" readonly></td>
+                        <td><input type="text" name="standard_period_{{ forloop.counter }}" value="{{ row.standard_period }}" readonly></td>
+                        <td><input type="text" name="role_{{ forloop.counter }}" value="{{ row.role }}" readonly></td>
+                        <td><input type="text" name="fio_{{ forloop.counter }}" value="{{ row.fio }}" readonly></td>
+                        <td><input type="text" name="comment_{{ forloop.counter }}" value="{{ row.comment }}" readonly></td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            <button type="button" class="btn btn-primary" id="add-row-btn">ОБНОВИТЬ</button>
+            <button type="submit" class="btn btn-success">Сохранить</button>
             <a href="{% if object %}{% url 'builder:lesson_detail' object.lesson.id %}{% else %}{% url 'builder:lesson_detail' lesson.id %}{% endif %}" class="btn btn-secondary ms-2">Отмена</a>
         </form>
     </div>
 </div>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const table = document.getElementById('update-control-table').getElementsByTagName('tbody')[0];
+        const addBtn = document.getElementById('add-row-btn');
+        addBtn.addEventListener('click', function() {
+            const rowCount = table.rows.length + 1;
+            const row = table.insertRow();
+            row.innerHTML = `
+                <td>${rowCount}</td>
+                <td><input type="text" name="date_${rowCount}" value=""></td>
+                <td><input type="text" name="period_between_${rowCount}" value=""></td>
+                <td><input type="text" name="standard_period_${rowCount}" value=""></td>
+                <td><input type="text" name="role_${rowCount}" value=""></td>
+                <td><input type="text" name="fio_${rowCount}" value=""></td>
+                <td><input type="text" name="comment_${rowCount}" value=""></td>
+            `;
+        });
+    });
+</script>
 {% endblock %} 
