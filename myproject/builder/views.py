@@ -18,6 +18,7 @@ import json
 from myapp.models import UserCourse
 from courses.models import UserLessonTrajectory
 from django.utils import timezone
+from django.contrib.auth.models import User
 
 
 def get_category_tree_data(category_id):
@@ -256,10 +257,37 @@ class LessonMasterDetailView(TemplateView):
             selected_lesson = Lesson.objects.get(pk=pk)
             context['selected_lesson'] = selected_lesson
             # --- История версий ---
-            context['lesson_versions'] = selected_lesson.versions.order_by('-version')
+            lesson_versions = selected_lesson.versions.order_by('-version')
+            context['lesson_versions'] = lesson_versions
+            # --- История актуализаций ---
+            actualization_history = []
+            next_update = None
+            responsible_role = None
+            for v in lesson_versions:
+                actualization_history.append({
+                    'version': v.version,
+                    'created_at': v.updated_at,
+                    'next_update': v.next_update,
+                    'update_period_days': v.update_period_days,
+                    'responsible_role': getattr(getattr(v.updated_by, 'profile', None), 'role', None),
+                    'responsible_fio': v.updated_by.get_full_name() if v.updated_by else None,
+                })
+                if v.next_update and (not next_update or v.next_update > next_update):
+                    next_update = v.next_update
+                    responsible_role = getattr(getattr(v.updated_by, 'profile', None), 'role', None)
+            context['actualization_info'] = {
+                'next_update': next_update,
+                'responsible_role': responsible_role,
+            }
+            context['actualization_history'] = actualization_history
+            from django.utils import timezone
+            context['today'] = timezone.now().date()
         else:
             context['selected_lesson'] = None
             context['lesson_versions'] = []
+            context['actualization_info'] = None
+            context['actualization_history'] = []
+            context['today'] = None
         return context
 
     def get(self, request, *args, **kwargs):
@@ -272,6 +300,9 @@ class LessonMasterDetailView(TemplateView):
                 'lesson': context.get('selected_lesson'),
                 'lesson_versions': context.get('lesson_versions'),
                 'is_readonly': context.get('is_readonly'),
+                'actualization_history': context.get('actualization_history'),
+                'actualization_info': context.get('actualization_info'),
+                'today': context.get('today'),
             }, request=request))
         return self.render_to_response(context)
 
@@ -983,8 +1014,7 @@ class DictionaryDetailView(DetailView):
 
 class UpdateControlStandaloneView(TemplateView):
     """
-    Представление для отображения формы контроля обновлений.
-    Доступно только для пользователей с правами staff или superuser.
+    Централизованный мониторинг актуальности уроков.
     """
     template_name = 'builder/lesson_update_control_form.html'
 
@@ -995,5 +1025,132 @@ class UpdateControlStandaloneView(TemplateView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['update_rows'] = []  # или можно подгрузить тестовые данные
+        from courses.models import Lesson
+        from builder.models import LessonVersion
+        from django.utils import timezone
+        lessons = Lesson.objects.select_related('category').all()
+        today = timezone.now().date()
+        year_start = today.replace(month=1, day=1)
+        created_from = self.request.GET.get('created_from') or year_start.strftime('%Y-%m-%d')
+        created_to = self.request.GET.get('created_to') or today.strftime('%Y-%m-%d')
+        title_query = self.request.GET.get('title', '').strip()
+        rows = []
+        for lesson in lessons:
+            versions = list(lesson.versions.order_by('-version'))
+            if not versions:
+                last_update = None
+                period_between = None
+                next_update = None
+                responsible = None
+            else:
+                last = versions[0]
+                last_update = last.updated_at.date() if last.updated_at else None
+                next_update = last.next_update
+                responsible = last.updated_by
+                if len(versions) > 1:
+                    prev = versions[1]
+                    period_between = (last.updated_at.date() - prev.updated_at.date()).days
+                else:
+                    period_between = None
+            # Дата создания — дата первой версии
+            if versions:
+                created = versions[-1].updated_at.date() if versions[-1].updated_at else None
+            else:
+                created = None
+            rows.append({
+                'lesson_id': lesson.id,
+                'created': created,
+                'title': lesson.title,
+                'category': lesson.category.name if lesson.category else '—',
+                'last_update': last_update,
+                'period_between': period_between,
+                'next_update': next_update,
+                'responsible': responsible,
+                'responsible_id': responsible.id if responsible else None,
+                'responsible_fio': responsible.get_full_name() if responsible else '—',
+                'is_overdue': next_update and next_update < today,
+                'no_next': not next_update,
+            })
+        # Фильтрация
+        show_overdue = self.request.GET.get('overdue') == '1'
+        show_no_next = self.request.GET.get('no_next') == '1'
+        responsible_id = self.request.GET.get('responsible')
+        filtered = rows
+        # Фильтр по дате создания
+        from datetime import datetime
+        if created_from:
+            dt_from = datetime.strptime(created_from, '%Y-%m-%d').date()
+            filtered = [r for r in filtered if r['created'] and r['created'] >= dt_from]
+        if created_to:
+            dt_to = datetime.strptime(created_to, '%Y-%m-%d').date()
+            filtered = [r for r in filtered if r['created'] and r['created'] <= dt_to]
+        if show_overdue:
+            filtered = [r for r in filtered if r['is_overdue']]
+        if show_no_next:
+            filtered = [r for r in filtered if r['no_next']]
+        if responsible_id:
+            filtered = [r for r in filtered if str(r['responsible_id']) == responsible_id]
+        if title_query:
+            filtered = [r for r in filtered if title_query.lower() in r['title'].lower()]
+        # Список ответственных
+        responsibles = User.objects.filter(profile__is_resonsible=True)
+        context['update_rows'] = filtered
+        context['responsibles'] = responsibles
+        context['show_overdue'] = show_overdue
+        context['show_no_next'] = show_no_next
+        context['selected_responsible'] = responsible_id
+        context['created_from'] = created_from
+        context['created_to'] = created_to
+        context['title_query'] = title_query
         return context
+
+
+    def post(self, request, *args, **kwargs):
+        # Здесь обработай данные формы, сохрани изменения, и верни ответ
+        # Например, просто рендерим ту же страницу с сообщением
+        context = self.get_context_data(**kwargs)
+        # Можно добавить обработку данных из request.POST
+        context['success'] = True
+        return self.render_to_response(context)
+
+
+@csrf_exempt
+@login_required
+def actualize_version(request):
+    """
+    POST: lesson_id
+    Создаёт новую версию LessonVersion для урока (копирует поля из последней, увеличивает номер, next_update = today+period)
+    """
+    import json
+    from django.utils import timezone
+    if not (request.user.is_staff or request.user.is_superuser):
+        return JsonResponse({'error': 'forbidden'}, status=403)
+    if request.method != 'POST':
+        return JsonResponse({'error': 'method not allowed'}, status=405)
+    try:
+        data = json.loads(request.body.decode('utf-8'))
+        lesson_id = int(data.get('lesson_id'))
+    except Exception as e:
+        return JsonResponse({'error': 'bad json'}, status=400)
+    from courses.models import Lesson
+    try:
+        lesson = Lesson.objects.get(pk=lesson_id)
+    except Lesson.DoesNotExist:
+        return JsonResponse({'error': 'lesson not found'}, status=404)
+    last_version = lesson.versions.order_by('-version').first()
+    if not last_version:
+        return JsonResponse({'error': 'no versions'}, status=400)
+    today = timezone.now().date()
+    period = last_version.update_period_days or 90
+    new_version = last_version.version + 1
+    lv = LessonVersion.objects.create(
+        lesson=lesson,
+        version=new_version,
+        title=last_version.title,
+        content=last_version.content,
+        video_id=last_version.video_id,
+        updated_by=request.user,
+        next_update=today + timezone.timedelta(days=period),
+        update_period_days=period
+    )
+    return JsonResponse({'ok': True, 'new_version': lv.version, 'next_update': lv.next_update.strftime('%d.%m.%Y')})

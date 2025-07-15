@@ -154,6 +154,11 @@ document.addEventListener('DOMContentLoaded', function() {
                 .then(r => r.text())
                 .then(html => {
                     document.getElementById('detail').innerHTML = html;
+                    initVersionHistoryDropdown();
+                    if (typeof initActualizationHistoryDropdown === 'function') initActualizationHistoryDropdown();
+                })
+                .catch(e => {
+                    alert('Ошибка загрузки урока: ' + e.message);
                 });
         });
     });
@@ -606,6 +611,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 .then(html => {
                     document.getElementById('detail').innerHTML = html;
                     initVersionHistoryDropdown();
+                    if (typeof initActualizationHistoryDropdown === 'function') initActualizationHistoryDropdown();
                 })
                 .catch(e => {
                     alert('Ошибка загрузки урока: ' + e.message);
@@ -648,6 +654,7 @@ document.addEventListener('DOMContentLoaded', function() {
             .then(html => {
                 document.getElementById('detail').innerHTML = html;
                 initVersionHistoryDropdown();
+                if (typeof initActualizationHistoryDropdown === 'function') initActualizationHistoryDropdown();
             })
             .catch(e => {
                 alert('Ошибка загрузки урока: ' + e.message);
@@ -1146,31 +1153,74 @@ document.addEventListener('DOMContentLoaded', function() {
 
     initVersionHistoryDropdown();
 
-    // --- Кнопка Контроль обновлений ---
-    const updateControlBtn = document.getElementById('update-control-btn');
-    function getSelectedLessonIdForUpdateBtn() {
-        // Просто ищем выбранный radio .lesson-select
-        const checked = document.querySelector('.lesson-select:checked');
-        return checked ? checked.value : null;
-    }
-    function updateUpdateControlBtnState() {
-        if (!updateControlBtn) return;
-        const lessonId = getSelectedLessonIdForUpdateBtn();
-        updateControlBtn.disabled = !lessonId;
-        if (lessonId) {
-            updateControlBtn.onclick = function() {
-                window.location.href = `/builder/lesson/${lessonId}/update_control/new/`;
+    // --- История актуализаций ---
+    function initActualizationHistoryDropdown() {
+        const actualBtn = document.getElementById('actualization-history-btn');
+        const actualDropdown = document.getElementById('actualization-history-dropdown');
+        if (!actualBtn || !actualDropdown) return;
+
+        actualBtn.onclick = function(e) {
+            e.stopPropagation();
+            actualDropdown.style.display = actualDropdown.style.display === 'none' ? 'block' : 'none';
+        };
+        actualDropdown.onclick = function(e) { e.stopPropagation(); };
+        document.removeEventListener('click', window._actualDropdownDocHandler);
+        window._actualDropdownDocHandler = function(e) {
+            if (!actualBtn.contains(e.target) && !actualDropdown.contains(e.target)) {
+                actualDropdown.style.display = 'none';
+            }
+        };
+        document.addEventListener('click', window._actualDropdownDocHandler);
+
+        // Кнопка "Актуализировать" (теперь одна)
+        const mainActualizeBtn = document.getElementById('actualize-main-btn');
+        if (mainActualizeBtn) {
+            mainActualizeBtn.onclick = function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                const id = document.getElementById('actualize-lesson-id')?.value;
+                if (!id) {
+                    alert('Не удалось определить ID урока');
+                    return;
+                }
+                mainActualizeBtn.disabled = true;
+                fetch('/builder/actualize_version/', {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': (document.querySelector('[name=csrfmiddlewaretoken]')||{}).value || '',
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ lesson_id: id })
+                })
+                .then(r => r.json())
+                .then(data => {
+                    if (data.error) {
+                        alert('Ошибка: ' + data.error);
+                        mainActualizeBtn.disabled = false;
+                        return;
+                    }
+                    // Обновляем detail-блок (AJAX reload)
+                    if (window.location.href.match(/lesson\/(\d+)/)) {
+                        const lessonId = window.location.href.match(/lesson\/(\d+)/)[1];
+                        fetch(`/builder/lesson/${lessonId}/?ajax=1`)
+                            .then(r => r.text())
+                            .then(html => {
+                                document.getElementById('detail').innerHTML = html;
+                                initVersionHistoryDropdown();
+                                initActualizationHistoryDropdown();
+                            });
+                    } else {
+                        window.location.reload();
+                    }
+                })
+                .catch(() => {
+                    alert('Ошибка сети');
+                    mainActualizeBtn.disabled = false;
+                });
             };
-        } else {
-            updateControlBtn.onclick = null;
         }
     }
-    if (updateControlBtn) {
-        updateUpdateControlBtnState();
-        document.addEventListener('click', function(e) {
-            setTimeout(updateUpdateControlBtnState, 100); // после клика по дереву
-        });
-    }
+    initActualizationHistoryDropdown();
 
     // === АВТОВЫДЕЛЕНИЕ только что созданной категории ===
     const newCatId = sessionStorage.getItem('new_category_id');

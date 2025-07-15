@@ -42,4 +42,5 @@ urlpatterns = [
     # path('dictionary/', views.DictionaryListView.as_view(), name='dictionary_list'),
     path('dictionary/<int:pk>/', views.DictionaryDetailView.as_view(), name='dictionary_detail'),
     path('dictionary/reorder/', views.dictionary_reorder, name='dictionary_reorder'),
+    path('actualize_version/', views.actualize_version, name='actualize_version'),
 ]

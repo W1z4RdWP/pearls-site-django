@@ -6,7 +6,7 @@
 <link rel="stylesheet" href="{% static 'builder/css/builder_style.css' %}">
 <style>
     .update-control-form-bg { background: #383838; min-height: 100vh; padding: 40px 0; }
-    .update-control-form-card { background: #fff; border-radius: 10px; box-shadow: 0 2px 8px #0002; padding: 32px 32px 24px 32px; max-width: 900px; margin: 0 auto; }
+    .update-control-form-card { background: #fff; border-radius: 10px; box-shadow: 0 2px 8px #0002; padding: 32px 32px 24px 32px; max-width: 1200px; margin: 0 auto; }
     .update-control-form-card h2 { color: #232323; font-weight: 700; margin-bottom: 32px; letter-spacing: 0.5px; }
     .update-control-table { width: 100%; border-collapse: collapse; margin-bottom: 24px; }
     .update-control-table th, .update-control-table td { border: 1px solid #d1d5db; padding: 10px 8px; text-align: center; font-size: 1.05em; }
@@ -20,60 +20,81 @@
     .update-control-form-card .btn {
         min-width: 120px; font-size: 1.05em; margin-right: 10px; margin-top: 8px;
     }
-    @media (max-width: 768px) { .update-control-form-card { padding: 18px 4px; max-width: 100%; } .update-control-table th, .update-control-table td { font-size: 0.95em; padding: 6px 2px; } }
+    .overdue-cell { background: #ffd6e0 !important; }
+    @media (max-width: 900px) { .update-control-form-card { padding: 18px 4px; max-width: 100%; } .update-control-table th, .update-control-table td { font-size: 0.95em; padding: 6px 2px; } }
+
+    .update-filters-form {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        align-items: flex-end;
+        margin-bottom: 2%;
+    }
+    
+    .update-filters-form input,
+    .update-filters-form select {
+        margin-bottom: 0;
+    }
+
+
+    @media (max-width: 700px) {
+        .update-filters-form { flex-direction: column; align-items: stretch; }
+    }
+
 </style>
 {% endblock %}
 {% block content %}
 <div class="update-control-form-bg">
     <div class="update-control-form-card">
-        <h2>Контроль обновлений</h2>
-        <form method="post" id="update-control-table-form">
-            {% csrf_token %}
-            <table class="update-control-table" id="update-control-table">
-                <thead>
-                    <tr>
-                        <th>№</th>
-                        <th>Дата обновления</th>
-                        <th>Период между последними обновлениями</th>
-                        <th>Стандарт периода обновлений</th>
-                        <th>Отв. (роль)</th>
-                        <th>ФИО сотрудника</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for row in update_rows %}
-                    <tr>
-                        <td>{{ forloop.counter }}</td>
-                        <td><input type="text" name="date_{{ forloop.counter }}" value="{{ row.date }}" readonly></td>
-                        <td><input type="text" name="period_between_{{ forloop.counter }}" value="{{ row.period_between }}" readonly></td>
-                        <td><input type="text" name="standard_period_{{ forloop.counter }}" value="{{ row.standard_period }}" readonly></td>
-                        <td><input type="text" name="role_{{ forloop.counter }}" value="{{ row.role }}" readonly></td>
-                        <td><input type="text" name="fio_{{ forloop.counter }}" value="{{ row.fio }}" readonly></td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-            <button type="button" class="btn btn-primary" id="add-row-btn">ОБНОВИТЬ</button>
-            <button type="submit" class="btn btn-success">Сохранить</button>
+        <h2>Контроль актуальности уроков</h2>
+        <form method="get" class="update-filters-form" style="display: flex; flex-wrap: wrap; gap: 8px; align-items: flex-end;">
+            <input type="text" name="title" placeholder="Название урока" value="{{ request.GET.title|default_if_none:'' }}" class="form-control form-control-sm" style="width: 160px;">
+            <input type="date" name="created_from" value="{{ created_from }}" class="form-control form-control-sm" style="width: 135px;">
+            <input type="date" name="created_to" value="{{ created_to }}" class="form-control form-control-sm" style="width: 135px;">
+            <label class="form-check-label" style="margin-left: 8px;">
+                <input type="checkbox" name="overdue" value="1" {% if show_overdue %}checked{% endif %}> Просроченные
+            </label>
+            <label class="form-check-label" style="margin-left: 8px;">
+                <input type="checkbox" name="no_next" value="1" {% if show_no_next %}checked{% endif %}> Без даты обновления
+            </label>
+            <select name="responsible" class="form-control form-control-sm" style="width: 140px;">
+                <option value="">— Все —</option>
+                {% for r in responsibles %}
+                    <option value="{{ r.id }}" {% if selected_responsible == r.id|stringformat:"s" %}selected{% endif %}>{{ r.get_full_name }}</option>
+                {% endfor %}
+            </select>
+            <button type="submit" class="btn btn-primary btn-sm" style="margin-left: 8px;">Фильтровать</button>
         </form>
+        <table class="update-control-table" id="update-control-table">
+            <thead>
+                <tr>
+                    <th>№</th>
+                    <th>Дата создания</th>
+                    <th>Название урока</th>
+                    <th>Категория</th>
+                    <th>Дата последнего обновления</th>
+                    <th>Период между обновлениями (дней)</th>
+                    <th>Дата следующего обновления</th>
+                    <th>Ответственный</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for row in update_rows %}
+                <tr>
+                    <td>{{ forloop.counter }}</td>
+                    <td>{{ row.created|default:'—' }}</td>
+                    <td>{{ row.title }}</td>
+                    <td>{{ row.category }}</td>
+                    <td>{{ row.last_update|default:'—' }}</td>
+                    <td>{% if row.period_between %}{{ row.period_between }}{% else %}—{% endif %}</td>
+                    <td class="{% if row.is_overdue %}overdue-cell{% endif %}">{% if row.next_update %}{{ row.next_update|date:'d.m.Y' }}{% else %}—{% endif %}</td>
+                    <td>{{ row.responsible_fio|default:'—' }}</td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="8" style="text-align:center;">Нет данных</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
     </div>
 </div>
-<script>
-    document.addEventListener('DOMContentLoaded', function() {
-        const table = document.getElementById('update-control-table').getElementsByTagName('tbody')[0];
-        const addBtn = document.getElementById('add-row-btn');
-        addBtn.addEventListener('click', function() {
-            const rowCount = table.rows.length + 1;
-            const row = table.insertRow();
-            row.innerHTML = `
-                <td>${rowCount}</td>
-                <td><input type="text" name="date_${rowCount}" value=""></td>
-                <td><input type="text" name="period_between_${rowCount}" value=""></td>
-                <td><input type="text" name="standard_period_${rowCount}" value=""></td>
-                <td><input type="text" name="role_${rowCount}" value=""></td>
-                <td><input type="text" name="fio_${rowCount}" value=""></td>
-            `;
-        });
-    });
-</script>
 {% endblock %} 
