@@ -345,6 +345,7 @@ body.theme-dark {
 .detail h2 {
     margin-top: 0;
     color: var(--builder-lesson-text);
+    max-width: 60%;
 }
 .detail .edit-btn {
     float: right;

@@ -4,44 +4,7 @@
 {% block title %}Контроль обновлений{% endblock %}
 {% block specific_styles %}
 <link rel="stylesheet" href="{% static 'builder/css/builder_style.css' %}">
-<style>
-    .update-control-form-bg { background: #383838; min-height: 100vh; padding: 40px 0; }
-    .update-control-form-card { background: #fff; border-radius: 10px; box-shadow: 0 2px 8px #0002; padding: 32px 32px 24px 32px; max-width: 1200px; margin: 0 auto; }
-    .update-control-form-card h2 { color: #232323; font-weight: 700; margin-bottom: 32px; letter-spacing: 0.5px; }
-    .update-control-table { width: 100%; border-collapse: collapse; margin-bottom: 24px; }
-    .update-control-table th, .update-control-table td { border: 1px solid #d1d5db; padding: 10px 8px; text-align: center; font-size: 1.05em; }
-    .update-control-table th { background: #f8f9fa; font-weight: 700; color: #232323; }
-    .update-control-table td input, .update-control-table td select, .update-control-table td textarea {
-        width: 100%; border-radius: 6px; border: 1px solid #d1d5db; padding: 6px 8px; font-size: 1em; background: #f8f9fa; transition: border 0.2s;
-    }
-    .update-control-table td input:focus, .update-control-table td select:focus, .update-control-table td textarea:focus {
-        border: 1.5px solid #4d7cff; outline: none; background: #fff;
-    }
-    .update-control-form-card .btn {
-        min-width: 120px; font-size: 1.05em; margin-right: 10px; margin-top: 8px;
-    }
-    .overdue-cell { background: #ffd6e0 !important; }
-    @media (max-width: 900px) { .update-control-form-card { padding: 18px 4px; max-width: 100%; } .update-control-table th, .update-control-table td { font-size: 0.95em; padding: 6px 2px; } }
-
-    .update-filters-form {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 8px;
-        align-items: flex-end;
-        margin-bottom: 2%;
-    }
-    
-    .update-filters-form input,
-    .update-filters-form select {
-        margin-bottom: 0;
-    }
-
-
-    @media (max-width: 700px) {
-        .update-filters-form { flex-direction: column; align-items: stretch; }
-    }
-
-</style>
+<link rel="stylesheet" href="{% static 'builder/css/update_control_form.css' %}">
 {% endblock %}
 {% block content %}
 <div class="update-control-form-bg">
@@ -52,10 +15,10 @@
             <input type="date" name="created_from" value="{{ created_from }}" class="form-control form-control-sm" style="width: 135px;">
             <input type="date" name="created_to" value="{{ created_to }}" class="form-control form-control-sm" style="width: 135px;">
             <label class="form-check-label" style="margin-left: 8px;">
-                <input type="checkbox" name="overdue" value="1" {% if show_overdue %}checked{% endif %}> Просроченные
+                <input type="checkbox" name="overdue" value="1" {% if show_overdue %}checked{% endif %}> <span class="ucf-filter-label">Просроченные</span>
             </label>
             <label class="form-check-label" style="margin-left: 8px;">
-                <input type="checkbox" name="no_next" value="1" {% if show_no_next %}checked{% endif %}> Без даты обновления
+                <input type="checkbox" name="no_next" value="1" {% if show_no_next %}checked{% endif %}> <span class="ucf-filter-label">Без даты обновления</span>
             </label>
             <select name="responsible" class="form-control form-control-sm" style="width: 140px;">
                 <option value="">— Все —</option>
@@ -82,10 +45,10 @@
                 {% for row in update_rows %}
                 <tr>
                     <td>{{ forloop.counter }}</td>
-                    <td>{{ row.created|default:'—' }}</td>
+                    <td>{% if row.created %}{{ row.created|date:'d.m.Y' }}{% else %}—{% endif %}</td>
                     <td>{{ row.title }}</td>
                     <td>{{ row.category }}</td>
-                    <td>{{ row.last_update|default:'—' }}</td>
+                    <td>{% if row.last_update %}{{ row.last_update|date:'d.m.Y' }}{% else %}—{% endif %}</td>
                     <td>{% if row.period_between %}{{ row.period_between }}{% else %}—{% endif %}</td>
                     <td class="{% if row.is_overdue %}overdue-cell{% endif %}">{% if row.next_update %}{{ row.next_update|date:'d.m.Y' }}{% else %}—{% endif %}</td>
                     <td>{{ row.responsible_fio|default:'—' }}</td>
