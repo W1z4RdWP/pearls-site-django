@@ -1072,8 +1072,15 @@ class UpdateControlStandaloneView(TemplateView):
                 'no_next': not next_update,
             })
         # Фильтрация
-        show_overdue = self.request.GET.get('overdue') == '1'
-        show_no_next = self.request.GET.get('no_next') == '1'
+        show_overdue = self.request.GET.get('overdue')
+        show_no_next = self.request.GET.get('no_next')
+        # Если нет GET-параметров — оба фильтра включены по умолчанию
+        if show_overdue is None and show_no_next is None and not self.request.GET:
+            show_overdue = True
+            show_no_next = True
+        else:
+            show_overdue = show_overdue == '1'
+            show_no_next = show_no_next == '1'
         responsible_id = self.request.GET.get('responsible')
         filtered = rows
         # Фильтр по дате создания
@@ -1084,9 +1091,11 @@ class UpdateControlStandaloneView(TemplateView):
         if created_to:
             dt_to = datetime.strptime(created_to, '%Y-%m-%d').date()
             filtered = [r for r in filtered if r['created'] and r['created'] <= dt_to]
-        if show_overdue:
+        if show_overdue and show_no_next:
+            filtered = [r for r in filtered if r['is_overdue'] or r['no_next']]
+        elif show_overdue:
             filtered = [r for r in filtered if r['is_overdue']]
-        if show_no_next:
+        elif show_no_next:
             filtered = [r for r in filtered if r['no_next']]
         if responsible_id:
             filtered = [r for r in filtered if str(r['responsible_id']) == responsible_id]
