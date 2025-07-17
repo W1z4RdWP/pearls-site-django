@@ -1449,6 +1449,51 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }, 100);
     }
+    
+    // === АВТОВЫДЕЛЕНИЕ выбранного урока из URL ===
+    const selectedLessonId = sessionStorage.getItem('selected_lesson_id');
+    if (selectedLessonId) {
+        setTimeout(() => {
+            // Сначала ищем среди уроков без категории
+            const uncatLi = document.querySelector(`.category-block[data-id='uncat-${selectedLessonId}']`);
+            if (uncatLi) {
+                // Активируем вкладку 'Без категории'
+                const tabUncat = document.getElementById('tab-uncat');
+                const tabCat = document.getElementById('tab-categories');
+                if (tabUncat) tabUncat.classList.add('active');
+                if (tabCat) tabCat.classList.remove('active');
+                const blockUncat = document.getElementById('uncategorized-block');
+                const blockCat = document.getElementById('categories-block');
+                if (blockUncat) blockUncat.style.display = '';
+                if (blockCat) blockCat.style.display = 'none';
+                uncatLi.classList.add('selected');
+                uncatLi.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                sessionStorage.removeItem('selected_lesson_id');
+                return;
+            }
+            // Обычный урок в категории
+            const li = document.querySelector(`.lesson-li[data-lesson-id='${selectedLessonId}']`);
+            if (li) li.classList.add('selected');
+            // раскрываем всех родителей (категории любого уровня)
+            let parent = li && li.parentElement;
+            while (parent) {
+                if (parent.classList.contains('subcategory-list') || parent.classList.contains('lesson-list')) {
+                    parent.style.display = 'block';
+                }
+                if (parent.classList.contains('category-block')) {
+                    const header = parent.querySelector('.category-header');
+                    if (header && !header.classList.contains('open')) {
+                        header.classList.add('open');
+                        const arrow = header.querySelector('.toggle-arrow');
+                        if (arrow) arrow.innerHTML = '&#9660;';
+                    }
+                }
+                parent = parent.parentElement;
+            }
+            sessionStorage.removeItem('selected_lesson_id');
+            if (li) li.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }, 100);
+    }
 });
 
 // === Drag&Drop сортировка для уроков без категории ===

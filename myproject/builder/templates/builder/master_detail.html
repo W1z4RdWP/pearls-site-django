@@ -206,6 +206,14 @@
             sessionStorage.setItem('edited_lesson_id', editedLesson);
         }
     })();
+    // Если есть ?lesson_id=... в query string, кладём в sessionStorage для автовыделения
+    (function() {
+        const params = new URLSearchParams(window.location.search);
+        const lessonId = params.get('lesson_id');
+        if (lessonId) {
+            sessionStorage.setItem('selected_lesson_id', lessonId);
+        }
+    })();
 </script>
 
 {% endblock %}
