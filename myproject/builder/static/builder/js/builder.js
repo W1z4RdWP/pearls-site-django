@@ -1811,6 +1811,7 @@ function initDictHotTable() {
                 {data: 'definition', type: 'text'},
                 {
                     data: 'photo',
+                    readOnly: true,
                     renderer: function (instance, td, row, col, prop, value, cellProperties) {
                         td.innerHTML = value ? `<img src="${value}" style="width:32px;height:32px;object-fit:cover;transition:.2s;" onmouseover="this.style.transform='scale(3)';this.style.zIndex=10;this.style.position='relative'" onmouseout="this.style.transform='';this.style.zIndex='';this.style.position=''">` : '';
                         return td;
@@ -1820,13 +1821,21 @@ function initDictHotTable() {
             rowHeaders: true,
             stretchH: 'all',
             licenseKey: 'non-commercial-and-evaluation',
-            contextMenu: true,
-            manualRowMove: true,
-            manualColumnMove: true,
+            contextMenu: !window.IS_READONLY,
+            manualRowMove: !window.IS_READONLY,
+            manualColumnMove: !window.IS_READONLY,
+            readOnly: window.IS_READONLY,
             afterChange: function(changes, source) {
-                if (source === 'loadData' || !changes) return;
-                // Добавляем order = rowIndex+1 для каждой строки
-                const data = this.getSourceData().map((row, idx) => ({...row, order: idx + 1}));
+                if (source === 'loadData' || !changes || window.IS_READONLY) return;
+                // Добавляем order = rowIndex+1 для каждой строки и фильтруем пустые строки
+                const data = this.getSourceData()
+                    .filter(row => row.term && row.term.trim() !== '') // убираем строки без названия
+                    .map((row, idx) => ({
+                        ...row, 
+                        order: idx + 1,
+                        definition: row.definition || '', // заполняем пустое definition пустой строкой
+                        slang: row.slang || '' // заполняем пустое slang пустой строкой
+                    }));
                 fetch('/builder/dictionary/save_terms/', {
                     method: 'POST',
                     headers: {
