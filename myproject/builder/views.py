@@ -253,45 +253,57 @@ class LessonMasterDetailView(TemplateView):
         # uncategorized_lessons оставляем как есть (можно доработать аналогично)
         context['uncategorized_lessons'] = uncategorized_lessons
 
-        pk = self.kwargs.get('pk')
+        # Проверяем pk в URL и lesson_id в GET-параметрах
+        pk = self.kwargs.get('pk') or self.request.GET.get('lesson_id')
         if pk:
-            selected_lesson = Lesson.objects.get(pk=pk)
-            context['selected_lesson'] = selected_lesson
-            # --- История версий ---
-            lesson_versions = selected_lesson.versions.order_by('-version')
+            try:
+                selected_lesson = Lesson.objects.get(pk=pk)
+                context['selected_lesson'] = selected_lesson
+                # --- История версий ---
+                lesson_versions = selected_lesson.versions.order_by('-version')
+            except Lesson.DoesNotExist:
+                selected_lesson = None
+                context['selected_lesson'] = None
+                lesson_versions = []
             context['lesson_versions'] = lesson_versions
             
-            # Подготавливаем JSON для версий
-            versions_data = []
-            for v in lesson_versions:
-                versions_data.append({
-                    'version': str(v.version),
-                    'title': v.title,
-                    'content': v.content,
-                    'video_id': v.video_id or ''
-                })
-            context['lesson_versions_json'] = json.dumps(versions_data, ensure_ascii=False)
-            # --- История актуализаций ---
-            actualization_history = []
-            for v in lesson_versions:
-                actualization_history.append({
-                    'version': v.version,
-                    'created_at': v.updated_at,
-                    'next_update': v.next_update,
-                    'update_period_days': v.update_period_days,
-                    'responsible_role': getattr(getattr(v.updated_by, 'profile', None), 'role', None),
-                    'responsible_fio': v.updated_by.get_full_name() if v.updated_by else None,
-                })
-            
-            # Берем информацию из последней версии (с максимальным номером)
-            latest_version = lesson_versions.first() if lesson_versions else None
-            context['actualization_info'] = {
-                'next_update': latest_version.next_update if latest_version else None,
-                'responsible_role': getattr(getattr(latest_version.updated_by, 'profile', None), 'role', None) if latest_version else None,
-            }
-            context['actualization_history'] = actualization_history
-            from django.utils import timezone
-            context['today'] = timezone.now().date()
+            if selected_lesson:
+                # Подготавливаем JSON для версий
+                versions_data = []
+                for v in lesson_versions:
+                    versions_data.append({
+                        'version': str(v.version),
+                        'title': v.title,
+                        'content': v.content,
+                        'video_id': v.video_id or ''
+                    })
+                context['lesson_versions_json'] = json.dumps(versions_data, ensure_ascii=False)
+                # --- История актуализаций ---
+                actualization_history = []
+                for v in lesson_versions:
+                    actualization_history.append({
+                        'version': v.version,
+                        'created_at': v.updated_at,
+                        'next_update': v.next_update,
+                        'update_period_days': v.update_period_days,
+                        'responsible_role': getattr(getattr(v.updated_by, 'profile', None), 'role', None),
+                        'responsible_fio': v.updated_by.get_full_name() if v.updated_by else None,
+                    })
+                
+                # Берем информацию из последней версии (с максимальным номером)
+                latest_version = lesson_versions.first() if lesson_versions else None
+                context['actualization_info'] = {
+                    'next_update': latest_version.next_update if latest_version else None,
+                    'responsible_role': getattr(getattr(latest_version.updated_by, 'profile', None), 'role', None) if latest_version else None,
+                }
+                context['actualization_history'] = actualization_history
+                from django.utils import timezone
+                context['today'] = timezone.now().date()
+            else:
+                context['lesson_versions_json'] = json.dumps([], ensure_ascii=False)
+                context['actualization_info'] = None
+                context['actualization_history'] = []
+                context['today'] = None
         else:
             context['selected_lesson'] = None
             context['lesson_versions'] = []

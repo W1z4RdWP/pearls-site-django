@@ -46,7 +46,7 @@
                 <tr>
                     <td>{{ forloop.counter }}</td>
                     <td>{% if row.created %}{{ row.created|date:'d.m.Y' }}{% else %}—{% endif %}</td>
-                    <td>{{ row.title }}</td>
+                    <td><a href="/builder/content/?lesson_id={{ row.lesson_id }}" target="_blank" style="color: #007bff; text-decoration: none;">{{ row.title }}</a></td>
                     <td>{{ row.category }}</td>
                     <td>{% if row.last_update %}{{ row.last_update|date:'d.m.Y' }}{% else %}—{% endif %}</td>
                     <td>{% if row.period_between %}{{ row.period_between }}{% else %}—{% endif %}</td>
