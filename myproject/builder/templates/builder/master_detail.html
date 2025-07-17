@@ -5,6 +5,8 @@
 {% block specific_styles %}
 <link rel="stylesheet" href="{% static 'builder/css/builder_style.css' %}">
 <script src="{% static 'builder/js/builder.js' %}" defer></script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/handsontable@12.3.3/dist/handsontable.full.min.css">
+<script src="https://cdn.jsdelivr.net/npm/handsontable@12.3.3/dist/handsontable.full.min.js"></script>
 {% endblock %}
 
 {% block content %}
@@ -64,21 +66,13 @@
             <div id="dict-block" style="display:none;">
                 <div class="category-scroll">
                     <ul class="dict-list category-list">
-                        {% for term in dictionary_terms %}
-                        <li class="category-block" data-id="dict-{{ term.id }}">
-                            <div class="category-header">
-                                <span class="lesson-icon" style="margin-right: 8px; display: flex; align-items: center;">
-                                    <!-- <svg width="16" height="16" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                        <rect x="4" y="3" width="12" height="14" rx="2" fill="#222" stroke="#bbb" stroke-width="1.2"/>
-                                        <line x1="6.5" y1="7.5" x2="13.5" y2="7.5" stroke="#bbb" stroke-width="1.1"/>
-                                        <line x1="6.5" y1="10.5" x2="13.5" y2="10.5" stroke="#bbb" stroke-width="1.1"/>
-                                        <line x1="6.5" y1="13.5" x2="11.5" y2="13.5" stroke="#bbb" stroke-width="1.1"/>
-                                    </svg> -->
-                                    <i class="fa-solid fa-info"></i>
-                                </span>
-                                <a class="dict-link">{{ term.term }}</a>
-                            </div>
-                        </li>
+                        {% for section in dictionary_sections %}
+                            <li class="category-block" data-id="dict-section-{{ section.id }}">
+                                <div class="category-header">
+                                    <span class="lesson-icon"><i class="fa-solid fa-info"></i></span>
+                                    <a class="dict-section-link">{{ section.name }}</a>
+                                </div>
+                            </li>
                         {% endfor %}
                     </ul>
                 </div>
@@ -99,25 +93,26 @@
         </div>
         <div class="detail" id="detail">
             {% if selected_lesson %}
+                <script>
+                window._lessonVersions = [{
+                    version: 'base',
+                    title: `{{ selected_lesson.title|escapejs }}`,
+                    content: `{{ selected_lesson.content|default:''|escapejs }}`,
+                    video_id: `{{ selected_lesson.video_id|default:'' }}`
+                    }{% for v in lesson_versions %}
+                    ,{
+                        version: `{{ v.version }}`,
+                        title: `{{ v.title|escapejs }}`,
+                        content: `{{ v.content|escapejs }}`,
+                        video_id: `{{ v.video_id|default:'' }}`
+                    }{% endfor %}
+                ];
+                </script>
                 <div style="display: flex; justify-content: space-between; align-items: flex-start;">
                     <h2 style="margin-bottom: 0;">{{ selected_lesson.title }}</h2>
                     <div style="display: flex; align-items: flex-start; gap: 16px;">
                         <div class="version-history-block" style="position: relative;">
-                            <button id="version-history-btn" class="btn btn-outline-secondary" type="button">История версий</button>
-                            <div id="version-history-dropdown" class="builder-dropdown">
-                                <div style="max-height: 320px; overflow-y: auto;">
-                                    <div class="version-item base-version builder-version-item" data-version="base" data-title="{{ selected_lesson.title|escape }}" data-content="{{ selected_lesson.content|default:''|safe }}" data-video="{{ selected_lesson.video_id|default:'' }}">
-                                        Базовая версия
-                                    </div>
-                                    {% for v in lesson_versions %}
-                                    <div class="version-item builder-version-item" data-version="{{ v.version }}" data-title="{{ v.title|escape }}" data-content="{{ v.content|safe }}" data-video="{{ v.video_id|default:'' }}">
-                                        <span style="font-weight:600;">v{{ v.version }}</span>
-                                        <span class="builder-version-date">{{ v.updated_at|date:"d.m.Y H:i" }}</span>
-                                        <span class="builder-version-user">{{ v.updated_by.get_full_name|default:v.updated_by.username|default:'—' }} ({{ v.updated_by.profile.role | default:'—' }})</span>
-                                    </div>
-                                    {% endfor %}
-                                </div>
-                            </div>
+                            <!-- Кнопка и выпадашка 'История версий' удалены -->
                         </div>
                         <!-- Блок истории актуализаций -->
                         <div class="actualization-history-block" style="position: relative;">
@@ -139,7 +134,7 @@
                                         {% for a in actualization_history %}
                                             <tr>
                                                 <td>{{ a.created_at|date:"d.m.Y" }}</td>
-                                                <td>v{{ a.version }}</td>
+                                                <td data-version="{{ a.version }}" class="version-cell" style="cursor:pointer;text-decoration:underline;">v{{ a.version }}</td>
                                                 <td>{{ a.update_period_days }}</td>
                                                 <td {% if a.next_update and a.next_update < today %}style="background: #ffd6e0;"{% endif %}>
                                                     {% if a.next_update %}{{ a.next_update|date:"d.m.Y" }}{% else %}—{% endif %}

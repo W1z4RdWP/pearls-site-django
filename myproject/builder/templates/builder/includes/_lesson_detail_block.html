@@ -4,21 +4,7 @@
         <h2 style="margin-bottom: 0;">{{ lesson.title }}</h2>
         <div style="display: flex; align-items: flex-start; gap: 16px;">
             <div class="version-history-block">
-                <button id="version-history-btn" class="btn btn-outline-secondary" type="button">История версий</button>
-                <div id="version-history-dropdown" class="builder-dropdown">
-                    <div>
-                        <div class="version-item base-version builder-version-item" data-version="base" data-title="{{ lesson.title|escape }}" data-content="{{ lesson.content|default:''|escape }}" data-video="{{ lesson.video_id|default:'' }}">
-                            <span style="font-weight:600;">Базовая версия</span>
-                        </div>
-                        {% for v in lesson_versions %}
-                        <div class="version-item builder-version-item" data-version="{{ v.version }}" data-title="{{ v.title|escape }}" data-content="{{ v.content|escape }}" data-video="{{ v.video_id|default:'' }}">
-                            <span style="font-weight:600;">v{{ v.version }}</span>
-                            <span class="builder-version-date">{{ v.updated_at|date:"d.m.Y H:i" }}</span>
-                            <span class="builder-version-user">{{ v.updated_by.get_full_name|default:v.updated_by.username|default:'—' }} ({{ v.updated_by.profile.role | default:'—' }})</span>
-                        </div>
-                        {% endfor %}
-                    </div>
-                </div>
+                <!-- Кнопка и выпадашка 'История версий' удалены -->
             </div>
             <!-- История актуализаций -->
             <div class="actualization-history-block" style="position: relative;">
@@ -42,7 +28,7 @@
                             {% for a in actualization_history %}
                                 <tr>
                                     <td>{{ a.created_at|date:"d.m.Y" }}</td>
-                                    <td>v{{ a.version }}</td>
+                                    <td data-version="{{ a.version }}" class="version-cell" style="cursor:pointer;text-decoration:underline;">v{{ a.version }}</td>
                                     <td>{{ a.update_period_days }}</td>
                                     <td {% if a.next_update and a.next_update < today %}style="background: #ffd6e0;"{% endif %}>
                                         {% if a.next_update %}{{ a.next_update|date:"d.m.Y" }}{% else %}—{% endif %}
@@ -84,4 +70,24 @@
     </div>
 {% else %}
     <p>Выберите урок для просмотра.</p>
+{% endif %}
+{% if lesson %}
+<script>
+    window._lessonVersions = [
+        {
+            version: 'base',
+            title: `{{ lesson.title|escapejs }}`,
+            content: `{{ lesson.content|default:''|escapejs }}`,
+            video_id: `{{ lesson.video_id|default:'' }}`
+        }
+        {% for v in lesson_versions %}
+        ,{
+            version: '{{ v.version }}',
+            title: `{{ v.title|escapejs }}`,
+            content: `{{ v.content|escapejs }}`,
+            video_id: `{{ v.video_id|default:'' }}`
+        }
+        {% endfor %}
+    ];
+    </script>
 {% endif %} 

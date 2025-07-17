@@ -52,7 +52,7 @@
     {% endif %}
 
     {% if category.subcategories %}
-        <ul class="subcategory-list" style="display: none;">
+        <ul class="subcategory-list category-list" style="display: none;">
             {% for subcat in category.subcategories %}
                 {% include "builder/category_tree.html" with category=subcat selected_lesson=selected_lesson is_readonly=is_readonly %}
             {% endfor %}

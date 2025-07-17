@@ -6,7 +6,7 @@ from django.contrib.auth.decorators import login_required, permission_required
 from django.utils.decorators import method_decorator
 from django.views.generic import ListView, CreateView, UpdateView, DeleteView, FormView
 from django.urls import reverse_lazy, reverse
-from .models import CategoryName, Document, Incident, LessonVersion, LessonCategoryMirror, DictionaryTerm
+from .models import CategoryName, Document, Incident, LessonVersion, LessonCategoryMirror, DictionarySection, DictionaryTerm
 from django.core.exceptions import PermissionDenied
 from .forms import DocumentForm, IncidentForm
 from django.http import JsonResponse
@@ -19,6 +19,7 @@ from myapp.models import UserCourse
 from courses.models import UserLessonTrajectory
 from django.utils import timezone
 from django.contrib.auth.models import User
+from django.template.loader import render_to_string
 
 
 def get_category_tree_data(category_id):
@@ -248,7 +249,7 @@ class LessonMasterDetailView(TemplateView):
         user = self.request.user
         is_readonly = not (user.is_staff or user.is_superuser)
         context['is_readonly'] = is_readonly
-        context['dictionary_terms'] = DictionaryTerm.objects.all() 
+        context['dictionary_sections'] = DictionarySection.objects.all().order_by('order', 'name')
         # uncategorized_lessons оставляем как есть (можно доработать аналогично)
         context['uncategorized_lessons'] = uncategorized_lessons
 
@@ -1001,14 +1002,36 @@ def dictionary_reorder(request):
 #     context_object_name = 'dictionary_terms'
 #     template_name = 'builder/dictionary_list.html'
 
-class DictionaryDetailView(DetailView):
-    model = DictionaryTerm
-    context_object_name = 'term'
-    template_name = 'builder/includes/_dictionary_detail.html'
+# class DictionaryDetailView(DetailView):
+#     model = DictionaryTerm
+#     context_object_name = 'term'
+#     template_name = 'builder/includes/_dictionary_detail.html'
+#     def render_to_response(self, context, **response_kwargs):
+#         if self.request.GET.get('ajax') == '1':
+#             # Только определение (html)
+#             return super().render_to_response(context, content_type='text/html', **response_kwargs)
+#         return super().render_to_response(context, **response_kwargs)
+
+class DictionarySectionDetailView(DetailView):
+    model = DictionarySection
+    context_object_name = 'section'
+    template_name = 'builder/includes/_dictionary_section_detail.html'
     def render_to_response(self, context, **response_kwargs):
         if self.request.GET.get('ajax') == '1':
-            # Только определение (html)
-            return super().render_to_response(context, content_type='text/html', **response_kwargs)
+            section = context['section']
+            terms = [
+                {
+                    'id': term.id,
+                    'order': term.order,
+                    'term': term.term,
+                    'slang': term.slang,
+                    'definition': term.definition,
+                    'photo': term.photo.url if term.photo else '',
+                }
+                for term in section.terms.all()
+            ]
+            html = render_to_string(self.template_name, context, request=self.request)
+            return JsonResponse({'html': html, 'data': terms, 'section_id': section.id})
         return super().render_to_response(context, **response_kwargs)
 
 
@@ -1072,8 +1095,15 @@ class UpdateControlStandaloneView(TemplateView):
                 'no_next': not next_update,
             })
         # Фильтрация
-        show_overdue = self.request.GET.get('overdue') == '1'
-        show_no_next = self.request.GET.get('no_next') == '1'
+        show_overdue = self.request.GET.get('overdue')
+        show_no_next = self.request.GET.get('no_next')
+        # Если нет GET-параметров — оба фильтра включены по умолчанию
+        if show_overdue is None and show_no_next is None and not self.request.GET:
+            show_overdue = True
+            show_no_next = True
+        else:
+            show_overdue = show_overdue == '1'
+            show_no_next = show_no_next == '1'
         responsible_id = self.request.GET.get('responsible')
         filtered = rows
         # Фильтр по дате создания
@@ -1084,9 +1114,11 @@ class UpdateControlStandaloneView(TemplateView):
         if created_to:
             dt_to = datetime.strptime(created_to, '%Y-%m-%d').date()
             filtered = [r for r in filtered if r['created'] and r['created'] <= dt_to]
-        if show_overdue:
+        if show_overdue and show_no_next:
+            filtered = [r for r in filtered if r['is_overdue'] or r['no_next']]
+        elif show_overdue:
             filtered = [r for r in filtered if r['is_overdue']]
-        if show_no_next:
+        elif show_no_next:
             filtered = [r for r in filtered if r['no_next']]
         if responsible_id:
             filtered = [r for r in filtered if str(r['responsible_id']) == responsible_id]
@@ -1154,3 +1186,43 @@ def actualize_version(request):
         update_period_days=period
     )
     return JsonResponse({'ok': True, 'new_version': lv.version, 'next_update': lv.next_update.strftime('%d.%m.%Y')})
+
+@csrf_exempt  # Для продакшена лучше использовать CSRF и авторизацию!
+def save_terms(request):
+    if request.method != 'POST':
+        return JsonResponse({'error': 'method not allowed'}, status=405)
+    try:
+        data = json.loads(request.body)
+        section_id = data.get('section_id')
+        terms = data.get('terms', [])
+        from builder.models import DictionarySection, DictionaryTerm
+        section = DictionarySection.objects.get(id=section_id)
+        existing_terms = {t.id: t for t in section.terms.all()}
+        sent_ids = set()
+        for term_data in terms:
+            term_id = term_data.get('id')
+            if term_id:
+                sent_ids.add(term_id)
+                term = existing_terms.get(term_id)
+                if term:
+                    term.term = term_data.get('term', '')
+                    term.slang = term_data.get('slang', '')
+                    term.definition = term_data.get('definition', '')
+                    term.order = term_data.get('order', 0)
+                    term.save()
+            else:
+                new_term = DictionaryTerm.objects.create(
+                    section=section,
+                    term=term_data.get('term', ''),
+                    slang=term_data.get('slang', ''),
+                    definition=term_data.get('definition', ''),
+                    order=term_data.get('order', 0)
+                )
+                sent_ids.add(new_term.id)
+        # Удаляем термины, которых нет в присланном списке
+        for tid, term in existing_terms.items():
+            if tid not in sent_ids:
+                term.delete()
+        return JsonResponse({'ok': True})
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=400)
