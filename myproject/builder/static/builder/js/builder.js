@@ -209,16 +209,16 @@ document.addEventListener('DOMContentLoaded', function() {
                 toggleSubcat(e.target.parentElement);
             }
         });
-        return;
-    }
-
-    function getSelectedCategoryId() {
-        const checked = document.querySelector('.category-select:checked');
-        return checked ? checked.value : null;
-    }
-    function getSelectedLessonId() {
-        const checked = document.querySelector('.lesson-select:checked');
-        return checked ? checked.value : null;
+    } else {
+        // Код для staff пользователей остается как есть
+        function getSelectedCategoryId() {
+            const checked = document.querySelector('.category-select:checked');
+            return checked ? checked.value : null;
+        }
+        function getSelectedLessonId() {
+            const checked = document.querySelector('.lesson-select:checked');
+            return checked ? checked.value : null;
+        }
     }
 
     // === МОДАЛКА ПОДТВЕРЖДЕНИЯ СОЗДАНИЯ КАТЕГОРИИ ===
@@ -759,7 +759,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     updateActionButtons();
 
-    // --- Поиск по дереву категорий и уроков ---
+    // --- Поиск по дереву категорий и уроков (для всех пользователей) ---
     document.getElementById('tree-search-input')?.addEventListener('input', function() {
         const q = this.value.trim();
         const allCatBlocks = document.querySelectorAll('.category-block');
@@ -770,6 +770,7 @@ document.addEventListener('DOMContentLoaded', function() {
             document.querySelectorAll('.lesson-list li').forEach(el => el.style.display = '');
             return;
         }
+        console.log('Поиск:', q); // Отладка
         fetch('/builder/search/?query=' + encodeURIComponent(q))
             .then(r => {
                 if (!r.ok) {
@@ -778,14 +779,18 @@ document.addEventListener('DOMContentLoaded', function() {
                 return r.json();
             })
             .then(data => {
+                console.log('Результат поиска:', data); // Отладка
                 const catIds = new Set((data.categories||[]).map(String));
                 const lessonIds = new Set((data.lessons||[]).map(String));
+                console.log('ID категорий:', Array.from(catIds)); // Отладка
+                console.log('ID уроков:', Array.from(lessonIds)); // Отладка
                 // Скрыть всё
                 allCatBlocks.forEach(el => el.style.display = 'none');
                 document.querySelectorAll('.lesson-list li').forEach(el => el.style.display = 'none');
                 // Показать совпавшие категории
                 catIds.forEach(id => {
                     const el = document.querySelector(`.category-block[data-id='${id}']`);
+                    console.log(`Ищем категорию ${id}:`, el); // Отладка
                     if (el) {
                         el.style.display = '';
                         // Показать родителей
@@ -806,6 +811,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     } else {
                         lessonLi = document.querySelector(`.lesson-li[data-lesson-id='${id}']`);
                     }
+                    console.log(`Ищем урок ${id}:`, lessonLi); // Отладка
                     if (lessonLi) {
                         lessonLi.style.display = '';
                         // Показать родительский список уроков
@@ -824,6 +830,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     }
                     // В корне (уроки без категории)
                     const rootLi = document.querySelector(`.category-block[data-id='uncat-${id}']`);
+                    console.log(`Ищем урок без категории ${id}:`, rootLi); // Отладка
                     if (rootLi) rootLi.style.display = '';
                 });
             })

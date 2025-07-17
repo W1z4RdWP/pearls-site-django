@@ -669,11 +669,8 @@ def ajax_search_tree(request):
     user = request.user
     is_readonly = not (user.is_staff or user.is_superuser)
     
-    # Fuzzy поиск по названию (можно доработать под более сложный)
-    categories = CategoryName.objects.filter(name__icontains=q).values_list('id', flat=True)
-    
     if is_readonly:
-        # Для readonly пользователей фильтруем уроки по правам доступа
+        # Для readonly пользователей получаем доступные уроки
         user_courses = UserCourse.objects.filter(user=user).select_related('course')
         allowed_courses = [uc.course for uc in user_courses if uc.status in ['available', 'started', 'completed']]
         allowed_lesson_ids = set()
@@ -689,11 +686,55 @@ def ajax_search_tree(request):
             title__icontains=q,
             id__in=allowed_lesson_ids
         ).values_list('id', flat=True)
+        
+        # Для категорий нужно найти только те, которые содержат доступные уроки
+        # Получаем все категории с уроками, содержащими поисковый запрос
+        categories_with_lessons = CategoryName.objects.filter(
+            lessons__title__icontains=q,
+            lessons__id__in=allowed_lesson_ids
+        ).distinct()
+        
+        # Получаем категории по названию, но только если они содержат доступные уроки
+        categories_by_name = CategoryName.objects.filter(name__icontains=q)
+        
+        # Объединяем и убираем дубликаты
+        all_category_ids = set()
+        all_category_ids.update(categories_with_lessons.values_list('id', flat=True))
+        all_category_ids.update(categories_by_name.values_list('id', flat=True))
+        
+        # Проверяем, что каждая категория содержит доступные уроки
+        filtered_category_ids = []
+        for cat_id in all_category_ids:
+            # Проверяем, есть ли в этой категории доступные уроки
+            has_accessible_lessons = Lesson.objects.filter(
+                category_id=cat_id,
+                id__in=allowed_lesson_ids
+            ).exists()
+            
+            # Также проверяем подкатегории
+            if not has_accessible_lessons:
+                # Рекурсивно проверяем подкатегории
+                def check_subcategories(category_id):
+                    subcategories = CategoryName.objects.filter(parent_id=category_id)
+                    for subcat in subcategories:
+                        if Lesson.objects.filter(category_id=subcat.id, id__in=allowed_lesson_ids).exists():
+                            return True
+                        if check_subcategories(subcat.id):
+                            return True
+                    return False
+                
+                has_accessible_lessons = check_subcategories(cat_id)
+            
+            if has_accessible_lessons:
+                filtered_category_ids.append(cat_id)
+        
+        categories = filtered_category_ids
     else:
-        # Для staff/superuser показываем все уроки
-        lessons = Lesson.objects.filter(title__icontains=q).values_list('id', flat=True)
+        # Для staff/superuser показываем все
+        categories = list(CategoryName.objects.filter(name__icontains=q).values_list('id', flat=True))
+        lessons = list(Lesson.objects.filter(title__icontains=q).values_list('id', flat=True))
     
-    return JsonResponse({'categories': list(categories), 'lessons': list(lessons)})
+    return JsonResponse({'categories': categories, 'lessons': list(lessons)})
 
 @csrf_exempt
 @login_required
