@@ -825,6 +825,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     document.addEventListener('contextmenu', function(e) {
+        if (window.IS_READONLY) return; // не показываем контекстное меню обучающимся
         let li = e.target.closest('li');
         let ul = e.target.closest('ul.category-list');
         

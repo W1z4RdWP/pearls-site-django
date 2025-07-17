@@ -3,7 +3,7 @@
     <div style="display: flex; justify-content: space-between; align-items: flex-start;">
         <h2 style="margin-bottom: 0;">{{ lesson.title }}</h2>
         <div style="display: flex; align-items: flex-start; gap: 16px;">
-            <!-- История актуализаций -->
+            {% if not is_readonly %}
             <div class="actualization-history-block" style="position: relative;">
                 <button id="actualization-history-btn" class="btn btn-outline-secondary" type="button">История актуализаций</button>
                 <div id="actualization-history-dropdown" class="builder-dropdown" style="display: none; min-width: 420px;">
@@ -46,6 +46,7 @@
                     <span style="margin-left: 16px;">Отв: <b>{{ actualization_info.responsible_role|default:'—' }}</b></span>
                 </div>
             </div>
+{% endif %}
         </div>
     </div>
     <div class="lesson-content" id="lesson-content-block">

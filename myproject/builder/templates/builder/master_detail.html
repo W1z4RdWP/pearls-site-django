@@ -112,6 +112,7 @@
                             <!-- Кнопка и выпадашка 'История версий' удалены -->
                         </div>
                         <!-- Блок истории актуализаций -->
+                        {% if not is_readonly %}
                         <div class="actualization-history-block" style="position: relative;">
                             <button id="actualization-history-btn" class="btn btn-outline-secondary" type="button">История актуализаций</button>
                             <div id="actualization-history-dropdown" class="builder-dropdown" style="display: none; min-width: 420px;">
@@ -155,6 +156,7 @@
                                 <span style="margin-left: 16px;">Отв: <b>{{ actualization_info.responsible_role|default:'—' }}</b></span>
                             </div>
                         </div>
+{% endif %}
                     </div>
                 </div>
                 <div class="lesson-content" id="lesson-content-block">
