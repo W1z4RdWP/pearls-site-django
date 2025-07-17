@@ -149,17 +149,40 @@ document.addEventListener('DOMContentLoaded', function() {
             // Сброс выделения у всех терминов словаря, выделяем только текущий
             document.querySelectorAll('#dict-block .category-block').forEach(el => el.classList.remove('selected'));
             li.classList.add('selected');
-            const termId = li.dataset.id.replace('dict-', '');
-            fetch(`/builder/dictionary/${termId}/?ajax=1`)
-                .then(r => r.text())
-                .then(html => {
-                    document.getElementById('detail').innerHTML = html;
+            const sectionId = li.dataset.id.replace(/^[^\d]+/, '');
+            fetch(`/builder/dictionary/${sectionId}/?ajax=1`)
+                .then(r => r.json())
+                .then(resp => {
+                    document.getElementById('detail').innerHTML = resp.html;
+                    window._dictSectionData = resp.data;
+                    window._dictSectionId = resp.section_id;
                     initVersionHistoryDropdown();
                     if (typeof initActualizationHistoryDropdown === 'function') initActualizationHistoryDropdown();
+                    initDictHotTable();
                 })
                 .catch(e => {
                     alert('Ошибка загрузки урока: ' + e.message);
                 });
+        });
+    });
+    // --- Клик по отделу словаря ---
+    document.querySelectorAll('#dict-block .dict-section-link').forEach(link => {
+        link.addEventListener('click', function(e) {
+            const li = this.closest('.category-block');
+            // Сброс выделения у всех отделов
+            document.querySelectorAll('#dict-block .category-block').forEach(el => el.classList.remove('selected'));
+            li.classList.add('selected');
+            const sectionId = li.dataset.id.split('-').pop();
+            fetch(`/builder/dictionary/${sectionId}/?ajax=1`)
+                .then(r => r.json())
+                .then(resp => {
+                    document.getElementById('detail').innerHTML = resp.html;
+                    window._dictSectionData = resp.data;
+                    window._dictSectionId = resp.section_id;
+                    // тут потом инициализация таблицы
+                    initDictHotTable();
+                })
+                .catch(e => alert('Ошибка загрузки отдела: ' + e.message));
         });
     });
     // === КНОПКИ ДЕЙСТВИЙ ДЛЯ КАТЕГОРИЙ/УРОКОВ ===
@@ -1172,6 +1195,28 @@ document.addEventListener('DOMContentLoaded', function() {
         };
         document.addEventListener('click', window._actualDropdownDocHandler);
 
+        // Клик по номеру версии в таблице
+        actualDropdown.querySelectorAll('td.version-cell').forEach(function(cell) {
+            cell.style.cursor = 'pointer';
+            cell.style.textDecoration = 'underline';
+            cell.onclick = function(e) {
+                e.stopPropagation();
+                const version = cell.getAttribute('data-version');
+                if (!version) return;
+                const v = (window._lessonVersions||[]).find(x => String(x.version) === String(version));
+                if (!v) return;
+                document.querySelector('h2').textContent = v.title;
+                document.getElementById('lesson-content-block').innerHTML = v.content;
+                if (v.video_id) {
+                    document.getElementById('lesson-video-block').innerHTML = `<h5>Видео урок:</h5><iframe width="560" height="315" src="https://rutube.ru/play/embed/${v.video_id}" frameborder="0" allowfullscreen></iframe>`;
+                } else {
+                    const vblock = document.getElementById('lesson-video-block');
+                    if (vblock) vblock.innerHTML = '';
+                }
+                actualDropdown.style.display = 'none';
+            };
+        });
+
         // Кнопка "Актуализировать" (теперь одна)
         const mainActualizeBtn = document.getElementById('actualize-main-btn');
         if (mainActualizeBtn) {
@@ -1206,8 +1251,9 @@ document.addEventListener('DOMContentLoaded', function() {
                             .then(r => r.text())
                             .then(html => {
                                 document.getElementById('detail').innerHTML = html;
-                                initVersionHistoryDropdown();
+                                // initVersionHistoryDropdown();
                                 initActualizationHistoryDropdown();
+                                initDictHotTable(); // <--- добавлено
                             });
                     } else {
                         window.location.reload();
@@ -1696,4 +1742,87 @@ function showCategoryPasteWarning({onYes, onNo}) {
     }
     modal.querySelector('#cat-paste-yes').onclick = function() { cleanup(); onYes && onYes(); };
     modal.querySelector('#cat-paste-no').onclick = function() { cleanup(); onNo && onNo(); };
+}
+
+
+if (window._dictSectionData && document.getElementById('dict-hot-table')) {
+    const container = document.getElementById('dict-hot-table');
+    const hot = new Handsontable(container, {
+        data: window._dictSectionData,
+        colHeaders: ['№', 'Название', 'Сленг', 'Описание', 'Фото'],
+        columns: [
+            {data: 'order', type: 'numeric', width: 40, readOnly: true},
+            {data: 'term', type: 'text'},
+            {data: 'slang', type: 'text'},
+            {data: 'definition', type: 'text'},
+            {
+                data: 'photo',
+                renderer: function (instance, td, row, col, prop, value, cellProperties) {
+                    td.innerHTML = value ? `<img src=\"${value}\" style=\"width:32px;height:32px;object-fit:cover;transition:.2s;\" onmouseover=\"this.style.transform='scale(3)';this.style.zIndex=10;this.style.position='relative'\" onmouseout=\"this.style.transform='';this.style.zIndex='';this.style.position=''\">` : '';
+                    return td;
+                }
+            }
+        ],
+        rowHeaders: true,
+        stretchH: 'all',
+        licenseKey: 'non-commercial-and-evaluation',
+        contextMenu: true,
+        manualRowMove: true,
+        manualColumnMove: true,
+        afterChange: function(changes, source) {
+            // TODO: AJAX сохранение изменений
+        }
+    });
+    // Сохраняем hot для дальнейшей работы
+    window._dictHot = hot;
+}
+
+function initDictHotTable() {
+    if (window._dictSectionData && document.getElementById('dict-hot-table') && window.Handsontable) {
+        const container = document.getElementById('dict-hot-table');
+        const hot = new Handsontable(container, {
+            data: window._dictSectionData,
+            colHeaders: ['Название', 'Сленг', 'Описание', 'Фото'],
+            columns: [
+                {data: 'term', type: 'text'},
+                {data: 'slang', type: 'text'},
+                {data: 'definition', type: 'text'},
+                {
+                    data: 'photo',
+                    renderer: function (instance, td, row, col, prop, value, cellProperties) {
+                        td.innerHTML = value ? `<img src="${value}" style="width:32px;height:32px;object-fit:cover;transition:.2s;" onmouseover="this.style.transform='scale(3)';this.style.zIndex=10;this.style.position='relative'" onmouseout="this.style.transform='';this.style.zIndex='';this.style.position=''">` : '';
+                        return td;
+                    }
+                }
+            ],
+            rowHeaders: true,
+            stretchH: 'all',
+            licenseKey: 'non-commercial-and-evaluation',
+            contextMenu: true,
+            manualRowMove: true,
+            manualColumnMove: true,
+            afterChange: function(changes, source) {
+                if (source === 'loadData' || !changes) return;
+                // Добавляем order = rowIndex+1 для каждой строки
+                const data = this.getSourceData().map((row, idx) => ({...row, order: idx + 1}));
+                fetch('/builder/dictionary/save_terms/', {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': (document.querySelector('[name=csrfmiddlewaretoken]')||{}).value || '',
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        section_id: window._dictSectionId,
+                        terms: data
+                    })
+                })
+                .then(r => r.json())
+                .then(resp => {
+                    if (resp.error) alert('Ошибка сохранения: ' + resp.error);
+                })
+                .catch(() => alert('Ошибка сети при сохранении!'));
+            }
+        });
+        window._dictHot = hot;
+    }
 }

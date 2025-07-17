@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import CategoryName, LessonVersion, LessonCategoryMirror, DictionaryTerm
+from .models import CategoryName, LessonVersion, LessonCategoryMirror, DictionaryTerm, DictionarySection
 
 
 
@@ -19,13 +19,15 @@ class LessonCategoryMirrorAdmin(admin.ModelAdmin):
     search_fields = ('lesson__title', 'category__name')
 
 
-@admin.register(DictionaryTerm)
-class DictionaryTermAdmin(admin.ModelAdmin):
-    list_display = ('term', 'author', 'order', 'created_at', 'updated_at')
-    search_fields = ('term', 'definition', 'author__username')
-    ordering = ('order', 'term')
+admin.site.register(DictionaryTerm)
+admin.site.register(DictionarySection)
 
-    def save_model(self, request, obj, form, change):
-        if not obj.pk:
-            obj.author = request.user
-        obj.save()
+# class DictionaryTermAdmin(admin.ModelAdmin):
+#     list_display = ('term', 'author', 'order', 'created_at', 'updated_at')
+#     search_fields = ('term', 'definition', 'author__username')
+#     ordering = ('order', 'term')
+
+#     def save_model(self, request, obj, form, change):
+#         if not obj.pk:
+#             obj.author = request.user
+#         obj.save()

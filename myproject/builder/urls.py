@@ -40,7 +40,8 @@ urlpatterns = [
     path('category_tree_json/', views.ajax_category_tree_json, name='category_tree_json'),
     path('ajax_delete_lesson_instance/', views.ajax_delete_lesson_instance, name='ajax_delete_lesson_instance'),
     # path('dictionary/', views.DictionaryListView.as_view(), name='dictionary_list'),
-    path('dictionary/<int:pk>/', views.DictionaryDetailView.as_view(), name='dictionary_detail'),
+    path('dictionary/<int:pk>/', views.DictionarySectionDetailView.as_view(), name='dictionary_detail'),
     path('dictionary/reorder/', views.dictionary_reorder, name='dictionary_reorder'),
     path('actualize_version/', views.actualize_version, name='actualize_version'),
+    path('dictionary/save_terms/', views.save_terms, name='save_terms'),
 ]
