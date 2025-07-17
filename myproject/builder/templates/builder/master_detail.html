@@ -41,11 +41,7 @@
                         {% for lesson in uncategorized_lessons %}
                         <li class="category-block" data-id="uncat-{{ lesson.id }}"{% if lesson.has_mirrors %} data-has-mirrors="1"{% endif %}>
                             <div class="category-header">
-                                {% if not is_readonly %}
-                                    <input type="radio" class="lesson-select" value="{{ lesson.id }}" style="display: none;">
-                                {% else %}
-                                    <input type="radio" class="lesson-select" value="{{ lesson.id }}" style="display:none;" disabled>
-                                {% endif %}
+                                <input type="radio" class="lesson-select" value="{{ lesson.id }}" style="display: none;">
                                 <span class="lesson-icon" style="margin-right: 8px; display: flex; align-items: center;">
                                     <svg width="16" height="16" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
                                         <rect x="4" y="3" width="12" height="14" rx="2" fill="#222" stroke="#bbb" stroke-width="1.2"/>

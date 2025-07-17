@@ -1,8 +1,6 @@
 <li class="category-block" data-id="{{ category.id }}">
     <div class="category-header">
-        {% if not is_readonly %}
-            <input type="radio" class="category-select" value="{{ category.id }}" style="display: none;">
-        {% endif %}
+        <input type="radio" class="category-select" value="{{ category.id }}" style="display: none;">
         <span class="category-icon folder-icon svg-folder">
             <svg width="18" height="18" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
                 <path class="svg-folder-path" d="M2 5.5A1.5 1.5 0 0 1 3.5 4h3.672a1.5 1.5 0 0 1 1.06.44l1.414 1.414A1.5 1.5 0 0 0 10.707 6H16.5A1.5 1.5 0 0 1 18 7.5v7A1.5 1.5 0 0 1 16.5 16h-13A1.5 1.5 0 0 1 2 14.5v-9z"/>
@@ -20,42 +18,81 @@
         {% endif %}
     </div>
     
-    {% if category.lessons %}
-        <ul class="lesson-list" style='display: none;'>
-            {% for lesson in category.lessons %}
-                <li class="lesson-li{% if lesson.is_mirror %} mirror{% endif %}"
-                    data-lesson-id="{{ lesson.id }}"
-                    {% if lesson.is_mirror %}data-mirror-id="{{ lesson.mirror_id }}"{% endif %}
-                    data-category-id="{{ category.id }}"
-                    {% if lesson.has_mirrors %}data-has-mirrors="1"{% endif %}>
-                    {% if not is_readonly %}
+    {% if is_readonly %}
+        {% if category.filtered_lessons %}
+            <ul class="lesson-list" style='display: none;'>
+                {% for lesson in category.filtered_lessons %}
+                    <li class="lesson-li{% if lesson.is_mirror %} mirror{% endif %}"
+                        data-lesson-id="{{ lesson.id }}"
+                        {% if lesson.is_mirror %}data-mirror-id="{{ lesson.mirror_id }}"{% endif %}
+                        data-category-id="{{ category.id }}"
+                        {% if lesson.has_mirrors %}data-has-mirrors="1"{% endif %}>
                         <input type="radio" class="lesson-select" value="{{ lesson.id }}" style="display: none;">
-                    {% endif %}
-                    <span class="lesson-icon svg-paper">
-                        <svg width="16" height="16" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
-                            <rect class="svg-paper-rect" x="4" y="3" width="12" height="14" rx="2"/>
-                            <line class="svg-paper-line" x1="6.5" y1="7.5" x2="13.5" y2="7.5"/>
-                            <line class="svg-paper-line" x1="6.5" y1="10.5" x2="13.5" y2="10.5"/>
-                            <line class="svg-paper-line" x1="6.5" y1="13.5" x2="11.5" y2="13.5"/>
-                        </svg>
-                    </span>
-                    <a class="lesson-link"
-                    {% if lesson.is_mirror or lesson.has_mirrors %}style="font-style: italic;"{% endif %}>
-                     {{ lesson.title }}
-                     {% if lesson.is_mirror or lesson.has_mirrors %}
-                         <span class="mirror-label" title="Зеркало урока">🔗 зеркало</span>
-                     {% endif %}
-                 </a>
-                </li>
-            {% endfor %}
-        </ul>
+                        <span class="lesson-icon svg-paper">
+                            <svg width="16" height="16" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                                <rect class="svg-paper-rect" x="4" y="3" width="12" height="14" rx="2"/>
+                                <line class="svg-paper-line" x1="6.5" y1="7.5" x2="13.5" y2="7.5"/>
+                                <line class="svg-paper-line" x1="6.5" y1="10.5" x2="13.5" y2="10.5"/>
+                                <line class="svg-paper-line" x1="6.5" y1="13.5" x2="11.5" y2="13.5"/>
+                            </svg>
+                        </span>
+                        <a class="lesson-link"
+                        {% if lesson.is_mirror or lesson.has_mirrors %}style="font-style: italic;"{% endif %}>
+                         {{ lesson.title }}
+                         {% if lesson.is_mirror or lesson.has_mirrors %}
+                             <span class="mirror-label" title="Зеркало урока">🔗 зеркало</span>
+                         {% endif %}
+                     </a>
+                    </li>
+                {% endfor %}
+            </ul>
+        {% endif %}
+    {% else %}
+        {% if category.lessons %}
+            <ul class="lesson-list" style='display: none;'>
+                {% for lesson in category.lessons %}
+                    <li class="lesson-li{% if lesson.is_mirror %} mirror{% endif %}"
+                        data-lesson-id="{{ lesson.id }}"
+                        {% if lesson.is_mirror %}data-mirror-id="{{ lesson.mirror_id }}"{% endif %}
+                        data-category-id="{{ category.id }}"
+                        {% if lesson.has_mirrors %}data-has-mirrors="1"{% endif %}>
+                        <input type="radio" class="lesson-select" value="{{ lesson.id }}" style="display: none;">
+                        <span class="lesson-icon svg-paper">
+                            <svg width="16" height="16" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                                <rect class="svg-paper-rect" x="4" y="3" width="12" height="14" rx="2"/>
+                                <line class="svg-paper-line" x1="6.5" y1="7.5" x2="13.5" y2="7.5"/>
+                                <line class="svg-paper-line" x1="6.5" y1="10.5" x2="13.5" y2="10.5"/>
+                                <line class="svg-paper-line" x1="6.5" y1="13.5" x2="11.5" y2="13.5"/>
+                            </svg>
+                        </span>
+                        <a class="lesson-link"
+                        {% if lesson.is_mirror or lesson.has_mirrors %}style="font-style: italic;"{% endif %}>
+                         {{ lesson.title }}
+                         {% if lesson.is_mirror or lesson.has_mirrors %}
+                             <span class="mirror-label" title="Зеркало урока">🔗 зеркало</span>
+                         {% endif %}
+                     </a>
+                    </li>
+                {% endfor %}
+            </ul>
+        {% endif %}
     {% endif %}
 
-    {% if category.subcategories %}
-        <ul class="subcategory-list category-list" style="display: none;">
-            {% for subcat in category.subcategories %}
-                {% include "builder/category_tree.html" with category=subcat selected_lesson=selected_lesson is_readonly=is_readonly %}
-            {% endfor %}
-        </ul>
+    {% if is_readonly %}
+        {% if category.filtered_subcategories %}
+            <ul class="subcategory-list category-list" style="display: none;">
+                {% for subcat in category.filtered_subcategories %}
+                    {% include "builder/category_tree.html" with category=subcat selected_lesson=selected_lesson is_readonly=is_readonly %}
+                {% endfor %}
+            </ul>
+        {% endif %}
+    {% else %}
+        {% if category.subcategories %}
+            <ul class="subcategory-list category-list" style="display: none;">
+                {% for subcat in category.subcategories %}
+                    {% include "builder/category_tree.html" with category=subcat selected_lesson=selected_lesson is_readonly=is_readonly %}
+                {% endfor %}
+            </ul>
+        {% endif %}
     {% endif %}
 </li>
