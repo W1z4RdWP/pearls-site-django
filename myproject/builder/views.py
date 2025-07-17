@@ -260,10 +260,19 @@ class LessonMasterDetailView(TemplateView):
             # --- История версий ---
             lesson_versions = selected_lesson.versions.order_by('-version')
             context['lesson_versions'] = lesson_versions
+            
+            # Подготавливаем JSON для версий
+            versions_data = []
+            for v in lesson_versions:
+                versions_data.append({
+                    'version': str(v.version),
+                    'title': v.title,
+                    'content': v.content,
+                    'video_id': v.video_id or ''
+                })
+            context['lesson_versions_json'] = json.dumps(versions_data, ensure_ascii=False)
             # --- История актуализаций ---
             actualization_history = []
-            next_update = None
-            responsible_role = None
             for v in lesson_versions:
                 actualization_history.append({
                     'version': v.version,
@@ -273,12 +282,12 @@ class LessonMasterDetailView(TemplateView):
                     'responsible_role': getattr(getattr(v.updated_by, 'profile', None), 'role', None),
                     'responsible_fio': v.updated_by.get_full_name() if v.updated_by else None,
                 })
-                if v.next_update and (not next_update or v.next_update > next_update):
-                    next_update = v.next_update
-                    responsible_role = getattr(getattr(v.updated_by, 'profile', None), 'role', None)
+            
+            # Берем информацию из последней версии (с максимальным номером)
+            latest_version = lesson_versions.first() if lesson_versions else None
             context['actualization_info'] = {
-                'next_update': next_update,
-                'responsible_role': responsible_role,
+                'next_update': latest_version.next_update if latest_version else None,
+                'responsible_role': getattr(getattr(latest_version.updated_by, 'profile', None), 'role', None) if latest_version else None,
             }
             context['actualization_history'] = actualization_history
             from django.utils import timezone
@@ -286,6 +295,7 @@ class LessonMasterDetailView(TemplateView):
         else:
             context['selected_lesson'] = None
             context['lesson_versions'] = []
+            context['lesson_versions_json'] = json.dumps([], ensure_ascii=False)
             context['actualization_info'] = None
             context['actualization_history'] = []
             context['today'] = None
@@ -296,15 +306,18 @@ class LessonMasterDetailView(TemplateView):
         if request.GET.get('ajax') == '1':
             from django.template.loader import render_to_string
             from django.http import HttpResponse
+            import json
             # detail-блок для AJAX: передаём lesson=selected_lesson, lesson_versions
-            return HttpResponse(render_to_string('builder/includes/_lesson_detail_block.html', {
+            ajax_context = {
                 'lesson': context.get('selected_lesson'),
                 'lesson_versions': context.get('lesson_versions'),
+                'lesson_versions_json': context.get('lesson_versions_json', json.dumps([], ensure_ascii=False)),
                 'is_readonly': context.get('is_readonly'),
                 'actualization_history': context.get('actualization_history'),
                 'actualization_info': context.get('actualization_info'),
                 'today': context.get('today'),
-            }, request=request))
+            }
+            return HttpResponse(render_to_string('builder/includes/_lesson_detail_block.html', ajax_context, request=request))
         return self.render_to_response(context)
 
 
@@ -348,13 +361,17 @@ class LessonCreateView(CreateView):
         lesson.order = max_order + 1
         lesson.save()
         # --- Создаём первую версию ---
+        from django.utils import timezone
+        today = timezone.now().date()
         LessonVersion.objects.create(
             lesson=lesson,
             version=1,
             title=lesson.title,
             content=lesson.content,
             video_id=lesson.video_id,
-            updated_by=self.request.user
+            updated_by=self.request.user,
+            next_update=today + timezone.timedelta(days=90),  # Стандартный период 90 дней
+            update_period_days=90
         )
         return super().form_valid(form)
 
@@ -377,16 +394,25 @@ class LessonUpdateView(UpdateView):
     def form_valid(self, form):
         response = super().form_valid(form)
         lesson = self.object
+        
         # --- Определяем следующий номер версии ---
         last_version = LessonVersion.objects.filter(lesson=lesson).order_by('-version').first()
         next_version = (last_version.version + 1) if last_version else 1
+        
+        # --- Определяем период обновления и дату следующего обновления ---
+        from django.utils import timezone
+        today = timezone.now().date()
+        period = last_version.update_period_days if last_version else 90
+        
         LessonVersion.objects.create(
             lesson=lesson,
             version=next_version,
             title=lesson.title,
             content=lesson.content,
             video_id=lesson.video_id,
-            updated_by=self.request.user
+            updated_by=self.request.user,
+            next_update=today + timezone.timedelta(days=period),
+            update_period_days=period
         )
         return response
 

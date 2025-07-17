@@ -631,11 +631,24 @@ document.addEventListener('DOMContentLoaded', function() {
                     if (!r.ok) throw new Error('Ошибка загрузки');
                     return r.text();
                 })
-                .then(html => {
-                    document.getElementById('detail').innerHTML = html;
-                    initVersionHistoryDropdown();
-                    if (typeof initActualizationHistoryDropdown === 'function') initActualizationHistoryDropdown();
-                })
+                            .then(html => {
+                document.getElementById('detail').innerHTML = html;
+                
+                // Выполняем скрипты из загруженного HTML
+                const scripts = document.getElementById('detail').querySelectorAll('script');
+                scripts.forEach(script => {
+                    if (script.textContent) {
+                        try {
+                            eval(script.textContent);
+                        } catch (e) {
+                            console.error('Ошибка выполнения скрипта:', e);
+                        }
+                    }
+                });
+                
+                initVersionHistoryDropdown();
+                if (typeof initActualizationHistoryDropdown === 'function') initActualizationHistoryDropdown();
+            })
                 .catch(e => {
                     alert('Ошибка загрузки урока: ' + e.message);
                 });
@@ -676,6 +689,19 @@ document.addEventListener('DOMContentLoaded', function() {
             })
             .then(html => {
                 document.getElementById('detail').innerHTML = html;
+                
+                // Выполняем скрипты из загруженного HTML
+                const scripts = document.getElementById('detail').querySelectorAll('script');
+                scripts.forEach(script => {
+                    if (script.textContent) {
+                        try {
+                            eval(script.textContent);
+                        } catch (e) {
+                            console.error('Ошибка выполнения скрипта:', e);
+                        }
+                    }
+                });
+                
                 initVersionHistoryDropdown();
                 if (typeof initActualizationHistoryDropdown === 'function') initActualizationHistoryDropdown();
             })
@@ -1195,24 +1221,37 @@ document.addEventListener('DOMContentLoaded', function() {
         };
         document.addEventListener('click', window._actualDropdownDocHandler);
 
-        // Клик по номеру версии в таблице
+        
         actualDropdown.querySelectorAll('td.version-cell').forEach(function(cell) {
             cell.style.cursor = 'pointer';
             cell.style.textDecoration = 'underline';
             cell.onclick = function(e) {
                 e.stopPropagation();
+                
                 const version = cell.getAttribute('data-version');
-                if (!version) return;
+                
+                // Ищем версию в массиве
                 const v = (window._lessonVersions||[]).find(x => String(x.version) === String(version));
-                if (!v) return;
-                document.querySelector('h2').textContent = v.title;
-                document.getElementById('lesson-content-block').innerHTML = v.content;
-                if (v.video_id) {
-                    document.getElementById('lesson-video-block').innerHTML = `<h5>Видео урок:</h5><iframe width="560" height="315" src="https://rutube.ru/play/embed/${v.video_id}" frameborder="0" allowfullscreen></iframe>`;
-                } else {
-                    const vblock = document.getElementById('lesson-video-block');
-                    if (vblock) vblock.innerHTML = '';
+                                
+                
+                // Обновляем содержимое урока
+                const titleElement = document.querySelector('h2');
+                const contentElement = document.getElementById('lesson-content-block');
+                const videoElement = document.getElementById('lesson-video-block');
+                                
+                if (titleElement) {
+                    titleElement.textContent = v.title;
                 }
+                if (contentElement) {
+                    contentElement.innerHTML = v.content;
+                }
+                
+                if (v.video_id && videoElement) {
+                    videoElement.innerHTML = `<h5>Видео урок:</h5><iframe width="560" height="315" src="https://rutube.ru/play/embed/${v.video_id}" frameborder="0" allowfullscreen></iframe>`;
+                } else if (videoElement) {
+                    videoElement.innerHTML = '';
+                }
+                
                 actualDropdown.style.display = 'none';
             };
         });
