@@ -141,7 +141,7 @@ class DictionarySection(models.Model):
         return self.name
 
 class DictionaryTerm(models.Model):
-    section = models.ForeignKey(DictionarySection, on_delete=models.CASCADE, related_name='terms', verbose_name="Отдел")
+    section = models.ForeignKey(DictionarySection, on_delete=models.CASCADE, blank=True, null=True, related_name='terms', verbose_name="Отдел")
     term = models.CharField(max_length=200, verbose_name="Термин")
     slang = models.CharField(max_length=200, blank=True, verbose_name="Сленг")
     definition = models.TextField(verbose_name="Определение")
