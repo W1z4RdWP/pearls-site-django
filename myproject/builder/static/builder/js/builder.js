@@ -1634,6 +1634,16 @@ document.addEventListener('DOMContentLoaded', function() {
             } else {
                 catList.insertBefore(draggedEl, this.nextSibling);
             }
+            // --- Обновляем порядковые номера ---
+            function updateSubcategoryOrderNumbers(subUl) {
+                const items = subUl.querySelectorAll('.category-header .category-title');
+                items.forEach((title, idx) => {
+                    title.textContent = title.textContent.replace(/^\d+\.\s*/, '');
+                    title.textContent = (idx + 1) + '. ' + title.textContent;
+                });
+            }
+            updateSubcategoryOrderNumbers(catList);
+            // ---
             // Отправляем новый порядок на сервер
             const ids = Array.from(catList.querySelectorAll('li.category-block[data-id]'))
                 .map(li => li.dataset.id);
@@ -1758,7 +1768,8 @@ if (window._dictSectionData && document.getElementById('dict-hot-table')) {
             {
                 data: 'photo',
                 renderer: function (instance, td, row, col, prop, value, cellProperties) {
-                    td.innerHTML = value ? `<img src=\"${value}\" style=\"width:32px;height:32px;object-fit:cover;transition:.2s;\" onmouseover=\"this.style.transform='scale(3)';this.style.zIndex=10;this.style.position='relative'\" onmouseout=\"this.style.transform='';this.style.zIndex='';this.style.position=''\">` : '';
+                    if (!value) { td.innerHTML = ''; return td; }
+                    td.innerHTML = `<a href="${value}" target="_blank" rel="noopener"><img src="${value}" style="width:32px;height:32px;object-fit:cover;transition:.2s;cursor:pointer;"></a>`;
                     return td;
                 }
             }
@@ -1824,5 +1835,33 @@ function initDictHotTable() {
             }
         });
         window._dictHot = hot;
+    }
+}
+
+// Добавь в конец файла:
+window._dictPhotoPopup = null;
+function showDictPhotoPopup(e, img) {
+    hideDictPhotoPopup();
+    const popup = document.createElement('img');
+    popup.src = img.src;
+    popup.style.position = 'fixed';
+    popup.style.left = (e.clientX + 20) + 'px';
+    popup.style.top = (e.clientY - 20) + 'px';
+    popup.style.width = '200px';
+    popup.style.height = '200px';
+    popup.style.objectFit = 'contain';
+    popup.style.background = '#fff';
+    popup.style.border = '2px solid #333';
+    popup.style.boxShadow = '0 4px 24px #0008';
+    popup.style.zIndex = 10000;
+    popup.style.pointerEvents = 'none';
+    popup.id = 'dict-photo-popup';
+    document.body.appendChild(popup);
+    window._dictPhotoPopup = popup;
+}
+function hideDictPhotoPopup() {
+    if (window._dictPhotoPopup) {
+        window._dictPhotoPopup.remove();
+        window._dictPhotoPopup = null;
     }
 }

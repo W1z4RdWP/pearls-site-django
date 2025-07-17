@@ -903,3 +903,8 @@ body.theme-dark .builder-dropdown {
     color: var(--color-text); 
     text-decoration: none;
 }
+
+.dict-section-link {
+    color: var(--builder-sidebar-text) !important;
+    text-decoration: none !important;
+}
