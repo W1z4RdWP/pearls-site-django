@@ -5,6 +5,7 @@
 {% block specific_styles %}
 <link rel="stylesheet" href="{% static 'builder/css/builder_style.css' %}">
 <script src="{% static 'builder/js/builder.js' %}" defer></script>
+<script src="{% static 'builder/js/search.js' %}" defer></script>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/handsontable@12.3.3/dist/handsontable.full.min.css">
 <script src="https://cdn.jsdelivr.net/npm/handsontable@12.3.3/dist/handsontable.full.min.js"></script>
 {% endblock %}
@@ -41,11 +42,7 @@
                         {% for lesson in uncategorized_lessons %}
                         <li class="category-block" data-id="uncat-{{ lesson.id }}"{% if lesson.has_mirrors %} data-has-mirrors="1"{% endif %}>
                             <div class="category-header">
-                                {% if not is_readonly %}
-                                    <input type="radio" class="lesson-select" value="{{ lesson.id }}" style="display: none;">
-                                {% else %}
-                                    <input type="radio" class="lesson-select" value="{{ lesson.id }}" style="display:none;" disabled>
-                                {% endif %}
+                                <input type="radio" class="lesson-select" value="{{ lesson.id }}" style="display: none;">
                                 <span class="lesson-icon" style="margin-right: 8px; display: flex; align-items: center;">
                                     <svg width="16" height="16" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
                                         <rect x="4" y="3" width="12" height="14" rx="2" fill="#222" stroke="#bbb" stroke-width="1.2"/>
@@ -115,6 +112,7 @@
                             <!-- Кнопка и выпадашка 'История версий' удалены -->
                         </div>
                         <!-- Блок истории актуализаций -->
+                        {% if not is_readonly %}
                         <div class="actualization-history-block" style="position: relative;">
                             <button id="actualization-history-btn" class="btn btn-outline-secondary" type="button">История актуализаций</button>
                             <div id="actualization-history-dropdown" class="builder-dropdown" style="display: none; min-width: 420px;">
@@ -158,6 +156,7 @@
                                 <span style="margin-left: 16px;">Отв: <b>{{ actualization_info.responsible_role|default:'—' }}</b></span>
                             </div>
                         </div>
+{% endif %}
                     </div>
                 </div>
                 <div class="lesson-content" id="lesson-content-block">
@@ -204,6 +203,14 @@
         const editedLesson = params.get('edited_lesson');
         if (editedLesson) {
             sessionStorage.setItem('edited_lesson_id', editedLesson);
+        }
+    })();
+    // Если есть ?lesson_id=... в query string, кладём в sessionStorage для автовыделения
+    (function() {
+        const params = new URLSearchParams(window.location.search);
+        const lessonId = params.get('lesson_id');
+        if (lessonId) {
+            sessionStorage.setItem('selected_lesson_id', lessonId);
         }
     })();
 </script>
