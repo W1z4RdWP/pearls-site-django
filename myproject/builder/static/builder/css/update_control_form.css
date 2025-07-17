@@ -1,0 +1,90 @@
+:root {
+    --ucf-bg: #f7f8fa;
+    --ucf-card-bg: #fff;
+    --ucf-card-shadow: 0 2px 8px #0002;
+    --ucf-table-border: #d1d5db;
+    --ucf-table-th-bg: #f8f9fa;
+    --ucf-table-th-color: #232323;
+    --ucf-table-td-bg: #f8f9fa;
+    --ucf-table-td-focus: #fff;
+    --ucf-btn-bg: #4d7cff;
+    --ucf-btn-color: #fff;
+    --ucf-overdue-bg: #ffd6e0;
+}
+body.theme-dark {
+    --ucf-bg: #383838;
+    --ucf-card-bg: #232323;
+    --ucf-card-shadow: 0 2px 8px #0005;
+    --ucf-table-border: #444;
+    --ucf-table-th-bg: #232323;
+    --ucf-table-th-color: #fff;
+    --ucf-table-td-bg: #232323;
+    --ucf-table-td-focus: #232323;
+    --ucf-btn-bg: #4d7cff;
+    --ucf-btn-color: #fff;
+    --ucf-overdue-bg: #5a2a3a;
+}
+
+.update-control-form-bg { background: var(--ucf-bg); min-height: 100vh; padding: 40px 0; }
+    .update-control-form-card { background: var(--ucf-card-bg); border-radius: 10px; box-shadow: var(--ucf-card-shadow); padding: 32px 32px 24px 32px; max-width: 1200px; margin: 0 auto; }
+    .update-control-form-card h2 { color: var(--ucf-table-th-color); font-weight: 700; margin-bottom: 32px; letter-spacing: 0.5px; }
+    .update-control-table { width: 100%; border-collapse: collapse; margin-bottom: 24px; }
+    .update-control-table th, .update-control-table td {
+        border: 1px solid var(--ucf-table-border);
+        padding: 4px 4px;
+        font-size: 0.93em;
+        line-height: 1.1;
+        font-weight: 400;
+    }
+    .update-control-table th { background: var(--ucf-table-th-bg); font-weight: 700; color: var(--ucf-table-th-color); }
+    .update-control-table td { background: var(--ucf-table-td-bg); }
+    .update-control-table td input, .update-control-table td select, .update-control-table td textarea {
+        width: 100%; border-radius: 6px; border: 1px solid var(--ucf-table-border); padding: 6px 8px; font-size: 1em; background: var(--ucf-table-td-bg); transition: border 0.2s;
+    }
+    .update-control-table td input:focus, .update-control-table td select:focus, .update-control-table td textarea:focus {
+        border: 1.5px solid var(--ucf-btn-bg); outline: none; background: var(--ucf-table-td-focus);
+    }
+
+    /* Дата следующего обновления */
+    .update-control-table td:nth-child(6) {
+        width: 60px; 
+        min-width: 60px;
+        max-width: 120px;
+    }
+
+    /* Ответственный */
+    .update-control-table td:last-child { 
+        width: 180px;
+        min-width: 120px;
+        max-width: 180px;
+    }
+
+    .update-control-form-card .btn {
+        min-width: 120px; font-size: 1.05em; margin-right: 10px; margin-top: 8px; background: var(--ucf-btn-bg); color: var(--ucf-btn-color);
+    }
+
+    .overdue-cell { background: var(--ucf-overdue-bg) !important; }
+    @media (max-width: 900px) { .update-control-form-card { padding: 18px 4px; max-width: 100%; } .update-control-table th, .update-control-table td { font-size: 0.95em; padding: 6px 2px; } }
+
+    .update-filters-form {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        align-items: flex-end;
+        margin-bottom: 2%;
+    }
+    
+    .update-filters-form input,
+    .update-filters-form select {
+        margin-bottom: 0;
+    }
+
+    .ucf-filter-label {
+        color: var(--ucf-table-th-color);
+        font-weight: 500;
+        letter-spacing: 0.1px;
+    }
+
+    @media (max-width: 700px) {
+        .update-filters-form { flex-direction: column; align-items: stretch; }
+    }

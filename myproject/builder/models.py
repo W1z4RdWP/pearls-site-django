@@ -127,9 +127,25 @@ class LessonCategoryMirror(models.Model):
         return f"Зеркало: {self.lesson.title} в {self.category}"
 
 
+class DictionarySection(models.Model):
+    name = models.CharField(max_length=200, verbose_name="Название отдела")
+    order = models.PositiveIntegerField(default=0, verbose_name="Порядок")
+    # Можно добавить slug, описание и т.д.
+
+    class Meta:
+        ordering = ['order', 'name']
+        verbose_name = "Отдел словаря"
+        verbose_name_plural = "Отделы словаря"
+
+    def __str__(self):
+        return self.name
+
 class DictionaryTerm(models.Model):
+    section = models.ForeignKey(DictionarySection, on_delete=models.CASCADE, related_name='terms', verbose_name="Отдел")
     term = models.CharField(max_length=200, verbose_name="Термин")
+    slang = models.CharField(max_length=200, blank=True, verbose_name="Сленг")
     definition = models.TextField(verbose_name="Определение")
+    photo = models.ImageField(upload_to='dict_photos/', blank=True, null=True, verbose_name="Фото")
     order = models.PositiveIntegerField(default=0, verbose_name="Порядок")
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
