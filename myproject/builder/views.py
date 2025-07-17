@@ -207,25 +207,30 @@ def filter_categories_and_lessons_for_user(user, categories, uncategorized_lesso
     # Фильтруем уроки без категории
     filtered_uncat = uncategorized_lessons.filter(id__in=allowed_lesson_ids)
 
-    # Рекурсивно фильтруем дерево категорий
-    def filter_category(cat):
+    # Рекурсивно фильтруем дерево категорий (работаем со словарями из get_category_tree_data)
+    def filter_category(cat_data):
         # Фильтруем уроки в категории
-        filtered_lessons = cat.lessons.filter(id__in=allowed_lesson_ids)
+        filtered_lessons = [lesson for lesson in cat_data['lessons'] if lesson['id'] in allowed_lesson_ids]
         # Рекурсивно фильтруем подкатегории
-        filtered_subcats = [filter_category(subcat) for subcat in cat.subcategories.all()]
+        filtered_subcats = [filter_category(subcat) for subcat in cat_data['subcategories']]
         # Оставляем только те подкатегории, где есть уроки или подкатегории с уроками
         filtered_subcats = [sc for sc in filtered_subcats if sc is not None]
-        if filtered_lessons.exists() or filtered_subcats:
-            cat.filtered_lessons = filtered_lessons
-            cat.filtered_subcategories = filtered_subcats
-            return cat
+        
+        if filtered_lessons or filtered_subcats:
+            # Создаем копию данных категории с отфильтрованными уроками и подкатегориями
+            filtered_cat = cat_data.copy()
+            filtered_cat['filtered_lessons'] = filtered_lessons
+            filtered_cat['filtered_subcategories'] = filtered_subcats
+            return filtered_cat
         return None
 
     filtered_categories = []
-    for cat in categories:
-        filtered = filter_category(cat)
-        if filtered:
-            filtered_categories.append(filtered)
+    for cat_data in categories:
+        if cat_data:  # Проверяем, что данные категории не None
+            filtered = filter_category(cat_data)
+            if filtered:
+                filtered_categories.append(filtered)
+    
     return filtered_categories, filtered_uncat
 
 
@@ -250,42 +255,86 @@ class LessonMasterDetailView(TemplateView):
         is_readonly = not (user.is_staff or user.is_superuser)
         context['is_readonly'] = is_readonly
         context['dictionary_sections'] = DictionarySection.objects.all().order_by('order', 'name')
-        # uncategorized_lessons оставляем как есть (можно доработать аналогично)
-        context['uncategorized_lessons'] = uncategorized_lessons
+        
+        # Применяем фильтрацию для readonly пользователей
+        if is_readonly:
+            context['categories'], context['uncategorized_lessons'] = filter_categories_and_lessons_for_user(
+                user, context['categories'], uncategorized_lessons
+            )
+        else:
+            context['uncategorized_lessons'] = uncategorized_lessons
 
-        pk = self.kwargs.get('pk')
+        # Проверяем pk в URL и lesson_id в GET-параметрах
+        pk = self.kwargs.get('pk') or self.request.GET.get('lesson_id')
         if pk:
-            selected_lesson = Lesson.objects.get(pk=pk)
-            context['selected_lesson'] = selected_lesson
-            # --- История версий ---
-            lesson_versions = selected_lesson.versions.order_by('-version')
+            try:
+                selected_lesson = Lesson.objects.get(pk=pk)
+                # Для readonly пользователей проверяем доступ к уроку
+                if is_readonly:
+                    # Проверяем, есть ли урок в доступных для пользователя
+                    user_courses = UserCourse.objects.filter(user=user).select_related('course')
+                    allowed_courses = [uc.course for uc in user_courses if uc.status in ['available', 'started', 'completed']]
+                    allowed_lesson_ids = set()
+                    for course in allowed_courses:
+                        trajectory = UserLessonTrajectory.objects.filter(user=user, course=course).first()
+                        if trajectory:
+                            allowed_lesson_ids.update(trajectory.lessons.values_list('id', flat=True))
+                        else:
+                            allowed_lesson_ids.update(course.lessons.values_list('id', flat=True))
+                    
+                    if selected_lesson.id not in allowed_lesson_ids:
+                        selected_lesson = None
+                
+                context['selected_lesson'] = selected_lesson
+                # --- История версий ---
+                lesson_versions = selected_lesson.versions.order_by('-version') if selected_lesson else []
+            except Lesson.DoesNotExist:
+                selected_lesson = None
+                context['selected_lesson'] = None
+                lesson_versions = []
             context['lesson_versions'] = lesson_versions
-            # --- История актуализаций ---
-            actualization_history = []
-            next_update = None
-            responsible_role = None
-            for v in lesson_versions:
-                actualization_history.append({
-                    'version': v.version,
-                    'created_at': v.updated_at,
-                    'next_update': v.next_update,
-                    'update_period_days': v.update_period_days,
-                    'responsible_role': getattr(getattr(v.updated_by, 'profile', None), 'role', None),
-                    'responsible_fio': v.updated_by.get_full_name() if v.updated_by else None,
-                })
-                if v.next_update and (not next_update or v.next_update > next_update):
-                    next_update = v.next_update
-                    responsible_role = getattr(getattr(v.updated_by, 'profile', None), 'role', None)
-            context['actualization_info'] = {
-                'next_update': next_update,
-                'responsible_role': responsible_role,
-            }
-            context['actualization_history'] = actualization_history
-            from django.utils import timezone
-            context['today'] = timezone.now().date()
+            
+            if selected_lesson:
+                # Подготавливаем JSON для версий
+                versions_data = []
+                for v in lesson_versions:
+                    versions_data.append({
+                        'version': str(v.version),
+                        'title': v.title,
+                        'content': v.content,
+                        'video_id': v.video_id or ''
+                    })
+                context['lesson_versions_json'] = json.dumps(versions_data, ensure_ascii=False)
+                # --- История актуализаций ---
+                actualization_history = []
+                for v in lesson_versions:
+                    actualization_history.append({
+                        'version': v.version,
+                        'created_at': v.updated_at,
+                        'next_update': v.next_update,
+                        'update_period_days': v.update_period_days,
+                        'responsible_role': getattr(getattr(v.updated_by, 'profile', None), 'role', None),
+                        'responsible_fio': v.updated_by.get_full_name() if v.updated_by else None,
+                    })
+                
+                # Берем информацию из последней версии (с максимальным номером)
+                latest_version = lesson_versions.first() if lesson_versions else None
+                context['actualization_info'] = {
+                    'next_update': latest_version.next_update if latest_version else None,
+                    'responsible_role': getattr(getattr(latest_version.updated_by, 'profile', None), 'role', None) if latest_version else None,
+                }
+                context['actualization_history'] = actualization_history
+                from django.utils import timezone
+                context['today'] = timezone.now().date()
+            else:
+                context['lesson_versions_json'] = json.dumps([], ensure_ascii=False)
+                context['actualization_info'] = None
+                context['actualization_history'] = []
+                context['today'] = None
         else:
             context['selected_lesson'] = None
             context['lesson_versions'] = []
+            context['lesson_versions_json'] = json.dumps([], ensure_ascii=False)
             context['actualization_info'] = None
             context['actualization_history'] = []
             context['today'] = None
@@ -296,15 +345,18 @@ class LessonMasterDetailView(TemplateView):
         if request.GET.get('ajax') == '1':
             from django.template.loader import render_to_string
             from django.http import HttpResponse
+            import json
             # detail-блок для AJAX: передаём lesson=selected_lesson, lesson_versions
-            return HttpResponse(render_to_string('builder/includes/_lesson_detail_block.html', {
+            ajax_context = {
                 'lesson': context.get('selected_lesson'),
                 'lesson_versions': context.get('lesson_versions'),
+                'lesson_versions_json': context.get('lesson_versions_json', json.dumps([], ensure_ascii=False)),
                 'is_readonly': context.get('is_readonly'),
                 'actualization_history': context.get('actualization_history'),
                 'actualization_info': context.get('actualization_info'),
                 'today': context.get('today'),
-            }, request=request))
+            }
+            return HttpResponse(render_to_string('builder/includes/_lesson_detail_block.html', ajax_context, request=request))
         return self.render_to_response(context)
 
 
@@ -348,13 +400,17 @@ class LessonCreateView(CreateView):
         lesson.order = max_order + 1
         lesson.save()
         # --- Создаём первую версию ---
+        from django.utils import timezone
+        today = timezone.now().date()
         LessonVersion.objects.create(
             lesson=lesson,
             version=1,
             title=lesson.title,
             content=lesson.content,
             video_id=lesson.video_id,
-            updated_by=self.request.user
+            updated_by=self.request.user,
+            next_update=today + timezone.timedelta(days=90),  # Стандартный период 90 дней
+            update_period_days=90
         )
         return super().form_valid(form)
 
@@ -377,16 +433,25 @@ class LessonUpdateView(UpdateView):
     def form_valid(self, form):
         response = super().form_valid(form)
         lesson = self.object
+        
         # --- Определяем следующий номер версии ---
         last_version = LessonVersion.objects.filter(lesson=lesson).order_by('-version').first()
         next_version = (last_version.version + 1) if last_version else 1
+        
+        # --- Определяем период обновления и дату следующего обновления ---
+        from django.utils import timezone
+        today = timezone.now().date()
+        period = last_version.update_period_days if last_version else 90
+        
         LessonVersion.objects.create(
             lesson=lesson,
             version=next_version,
             title=lesson.title,
             content=lesson.content,
             video_id=lesson.video_id,
-            updated_by=self.request.user
+            updated_by=self.request.user,
+            next_update=today + timezone.timedelta(days=period),
+            update_period_days=period
         )
         return response
 
@@ -600,10 +665,76 @@ def ajax_search_tree(request):
     q = q.strip()
     if not q:
         return JsonResponse({'categories': [], 'lessons': []})
-    # Fuzzy поиск по названию (можно доработать под более сложный)
-    categories = CategoryName.objects.filter(name__icontains=q).values_list('id', flat=True)
-    lessons = Lesson.objects.filter(title__icontains=q).values_list('id', flat=True)
-    return JsonResponse({'categories': list(categories), 'lessons': list(lessons)})
+    
+    user = request.user
+    is_readonly = not (user.is_staff or user.is_superuser)
+    
+    if is_readonly:
+        # Для readonly пользователей получаем доступные уроки
+        user_courses = UserCourse.objects.filter(user=user).select_related('course')
+        allowed_courses = [uc.course for uc in user_courses if uc.status in ['available', 'started', 'completed']]
+        allowed_lesson_ids = set()
+        for course in allowed_courses:
+            trajectory = UserLessonTrajectory.objects.filter(user=user, course=course).first()
+            if trajectory:
+                allowed_lesson_ids.update(trajectory.lessons.values_list('id', flat=True))
+            else:
+                allowed_lesson_ids.update(course.lessons.values_list('id', flat=True))
+        
+        # Ищем уроки только среди разрешенных
+        lessons = Lesson.objects.filter(
+            title__icontains=q,
+            id__in=allowed_lesson_ids
+        ).values_list('id', flat=True)
+        
+        # Для категорий нужно найти только те, которые содержат доступные уроки
+        # Получаем все категории с уроками, содержащими поисковый запрос
+        categories_with_lessons = CategoryName.objects.filter(
+            lessons__title__icontains=q,
+            lessons__id__in=allowed_lesson_ids
+        ).distinct()
+        
+        # Получаем категории по названию, но только если они содержат доступные уроки
+        categories_by_name = CategoryName.objects.filter(name__icontains=q)
+        
+        # Объединяем и убираем дубликаты
+        all_category_ids = set()
+        all_category_ids.update(categories_with_lessons.values_list('id', flat=True))
+        all_category_ids.update(categories_by_name.values_list('id', flat=True))
+        
+        # Проверяем, что каждая категория содержит доступные уроки
+        filtered_category_ids = []
+        for cat_id in all_category_ids:
+            # Проверяем, есть ли в этой категории доступные уроки
+            has_accessible_lessons = Lesson.objects.filter(
+                category_id=cat_id,
+                id__in=allowed_lesson_ids
+            ).exists()
+            
+            # Также проверяем подкатегории
+            if not has_accessible_lessons:
+                # Рекурсивно проверяем подкатегории
+                def check_subcategories(category_id):
+                    subcategories = CategoryName.objects.filter(parent_id=category_id)
+                    for subcat in subcategories:
+                        if Lesson.objects.filter(category_id=subcat.id, id__in=allowed_lesson_ids).exists():
+                            return True
+                        if check_subcategories(subcat.id):
+                            return True
+                    return False
+                
+                has_accessible_lessons = check_subcategories(cat_id)
+            
+            if has_accessible_lessons:
+                filtered_category_ids.append(cat_id)
+        
+        categories = filtered_category_ids
+    else:
+        # Для staff/superuser показываем все
+        categories = list(CategoryName.objects.filter(name__icontains=q).values_list('id', flat=True))
+        lessons = list(Lesson.objects.filter(title__icontains=q).values_list('id', flat=True))
+    
+    return JsonResponse({'categories': categories, 'lessons': list(lessons)})
 
 @csrf_exempt
 @login_required
