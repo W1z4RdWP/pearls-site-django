@@ -1764,4 +1764,3 @@ function showCategoryPasteWarning({onYes, onNo}) {
     modal.querySelector('#cat-paste-yes').onclick = function() { cleanup(); onYes && onYes(); };
     modal.querySelector('#cat-paste-no').onclick = function() { cleanup(); onNo && onNo(); };
 }
-

@@ -1,4 +1,5 @@
 
+
 if (window._dictSectionData && document.getElementById('dict-hot-table')) {
     const container = document.getElementById('dict-hot-table');
     const hot = new Handsontable(container, {
@@ -13,7 +14,7 @@ if (window._dictSectionData && document.getElementById('dict-hot-table')) {
                 data: 'photo',
                 renderer: function (instance, td, row, col, prop, value, cellProperties) {
                     if (!value) { td.innerHTML = ''; return td; }
-                    td.innerHTML = `<a href="${value}" target="_blank" rel="noopener"><img src="${value}" style="width:32px;height:32px;object-fit:cover;transition:.2s;cursor:pointer;"></a>`;
+                    td.innerHTML = `<a href="${value}" target="_blank" rel="noopener"><img src="${value}"></a>`;
                     return td;
                 }
             }
@@ -34,19 +35,34 @@ if (window._dictSectionData && document.getElementById('dict-hot-table')) {
 
 function initDictHotTable() {
     if (window._dictSectionData && document.getElementById('dict-hot-table') && window.Handsontable) {
+        // Регистрируем русскую локализацию для Handsontable
+        if (window.Handsontable.languages) {
+            window.Handsontable.languages['ru-RU'] = {
+                'contextMenu.items.insert_row_above': 'Вставить строку выше',
+                'contextMenu.items.insert_row_below': 'Вставить строку ниже',
+                'contextMenu.items.insert_column_left': 'Вставить столбец слева',
+                'contextMenu.items.insert_column_right': 'Вставить столбец справа',
+                'contextMenu.items.remove_row': 'Удалить строки',
+                'contextMenu.items.remove_column': 'Удалить столбцы',
+            };
+        }
         const container = document.getElementById('dict-hot-table');
         const hot = new Handsontable(container, {
             data: window._dictSectionData,
             colHeaders: ['Название', 'Сленг', 'Описание', 'Фото'],
             columns: [
-                {data: 'term', type: 'text', width: 160},
-                {data: 'slang', type: 'text', width: 190},
+                {data: 'term', type: 'text', width: 160, className: 'ht-term-cell'},
+                {data: 'slang', type: 'text', width: 190, className: 'ht-slang-cell'},
                 {data: 'definition', type: 'text', width: 320, className: 'ht-definition-cell'},
                 {
                     data: 'photo',
+                    width: 180,
+                    height: 80,
                     readOnly: true,
+                    className: 'ht-photo-cell',
                     renderer: function (instance, td, row, col, prop, value, cellProperties) {
-                        td.innerHTML = value ? `<img src="${value}" style="width:32px;height:32px;object-fit:cover;transition:.2s;" onmouseover="this.style.transform='scale(3)';this.style.zIndex=10;this.style.position='relative'" onmouseout="this.style.transform='';this.style.zIndex='';this.style.position=''">` : '';
+                        if (!value) { td.innerHTML = ''; return td; }
+                        td.innerHTML = `<img src="${value}" alt="Фото" class="ht-photo-cell-img" onclick="openPhotoModal('${value}')">`;
                         return td;
                     }
                 }
@@ -58,9 +74,10 @@ function initDictHotTable() {
             manualRowMove: !window.IS_READONLY,
             manualColumnMove: !window.IS_READONLY,
             readOnly: window.IS_READONLY,
-            // autoWrapRow: true,
-            // autoWrapCol: true,
+            autoWrapRow: true,
+            autoWrapCol: true,
             height: 'auto',
+            language: 'ru-RU',
             minSpareRows: 1,
             afterChange: function(changes, source) {
                 if (source === 'loadData' || !changes || window.IS_READONLY) return;
@@ -89,36 +106,119 @@ function initDictHotTable() {
                     if (resp.error) alert('Ошибка сохранения: ' + resp.error);
                 })
                 .catch(() => alert('Ошибка сети при сохранении!'));
+            },
+            beforePaste: function(data, coords) {
+                // Обработка вставки изображений
+                if (coords && coords.length > 0) {
+                    const row = coords[0].startRow;
+                    const col = coords[0].startCol;
+                    
+                    // Если вставляем в столбец с фото (индекс 3)
+                    if (col === 3) {
+                        // Проверяем, есть ли изображения в буфере
+                        if (navigator.clipboard && navigator.clipboard.read) {
+                            navigator.clipboard.read().then(clipboardItems => {
+                                for (let clipboardItem of clipboardItems) {
+                                    for (let type of clipboardItem.types) {
+                                        if (type.startsWith('image/')) {
+                                            clipboardItem.getType(type).then(blob => {
+                                                // Создаем URL для изображения
+                                                const imageUrl = URL.createObjectURL(blob);
+                                                // Вставляем URL в ячейку
+                                                this.setDataAtRowProp(row, 'photo', imageUrl);
+                                                // Сохраняем изменения
+                                                this.render();
+                                            });
+                                            return;
+                                        }
+                                    }
+                                }
+                            }).catch(err => {
+                                console.log('Ошибка чтения буфера обмена:', err);
+                            });
+                        }
+                    }
+                }
+                return data;
             }
         });
+        
+        // Обработчик вставки изображений через Ctrl+V
+        container.addEventListener('paste', function(e) {
+            if (window.IS_READONLY) return;
+            
+            const items = e.clipboardData.items;
+            for (let i = 0; i < items.length; i++) {
+                if (items[i].type.startsWith('image/')) {
+                    e.preventDefault();
+                    const blob = items[i].getAsFile();
+                    const imageUrl = URL.createObjectURL(blob);
+                    
+                    // Получаем текущую активную ячейку
+                    const selected = hot.getSelected();
+                    if (selected && selected.length > 0) {
+                        const row = selected[0][0];
+                        const col = selected[0][1];
+                        
+                        // Если выбрана ячейка в столбце с фото
+                        if (col === 3) {
+                            hot.setDataAtRowProp(row, 'photo', imageUrl);
+                            hot.render();
+                        }
+                    }
+                    break;
+                }
+            }
+        });
+        
         window._dictHot = hot;
     }
 }
 
-// Добавь в конец файла:
-window._dictPhotoPopup = null;
-function showDictPhotoPopup(e, img) {
-    hideDictPhotoPopup();
-    const popup = document.createElement('img');
-    popup.src = img.src;
-    popup.style.position = 'fixed';
-    popup.style.left = (e.clientX + 20) + 'px';
-    popup.style.top = (e.clientY - 20) + 'px';
-    popup.style.width = '200px';
-    popup.style.height = '200px';
-    popup.style.objectFit = 'contain';
-    popup.style.background = '#fff';
-    popup.style.border = '2px solid #333';
-    popup.style.boxShadow = '0 4px 24px #0008';
-    popup.style.zIndex = 10000;
-    popup.style.pointerEvents = 'none';
-    popup.id = 'dict-photo-popup';
-    document.body.appendChild(popup);
-    window._dictPhotoPopup = popup;
+// Модальное окно для просмотра фото
+function openPhotoModal(imageSrc) {
+    // Создаем модальное окно
+    const modal = document.createElement('div');
+    modal.className = 'photo-modal-overlay';
+    modal.innerHTML = `
+        <div class="photo-modal">
+            <div class="photo-modal-header">
+                <button class="photo-modal-close" onclick="closePhotoModal()">&times;</button>
+            </div>
+            <div class="photo-modal-content">
+                <img src="${imageSrc}" alt="Фото" class="photo-modal-image">
+            </div>
+        </div>
+    `;
+    
+    // Добавляем обработчик клика по оверлею для закрытия
+    modal.addEventListener('click', function(e) {
+        if (e.target === modal) {
+            closePhotoModal();
+        }
+    });
+    
+    // Добавляем обработчик клавиши Escape
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            closePhotoModal();
+        }
+    });
+    
+    document.body.appendChild(modal);
+    
+    // Показываем модальное окно с анимацией
+    setTimeout(() => {
+        modal.classList.add('show');
+    }, 10);
 }
-function hideDictPhotoPopup() {
-    if (window._dictPhotoPopup) {
-        window._dictPhotoPopup.remove();
-        window._dictPhotoPopup = null;
+
+function closePhotoModal() {
+    const modal = document.querySelector('.photo-modal-overlay');
+    if (modal) {
+        modal.classList.remove('show');
+        setTimeout(() => {
+            modal.remove();
+        }, 300);
     }
 }
