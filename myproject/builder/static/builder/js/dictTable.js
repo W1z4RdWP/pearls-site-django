@@ -1,37 +1,6 @@
 
 
-if (window._dictSectionData && document.getElementById('dict-hot-table')) {
-    const container = document.getElementById('dict-hot-table');
-    const hot = new Handsontable(container, {
-        data: window._dictSectionData,
-        colHeaders: ['№', 'Название', 'Сленг', 'Описание', 'Фото'],
-        columns: [
-            {data: 'order', type: 'numeric', width: 40, readOnly: true},
-            {data: 'term', type: 'text'},
-            {data: 'slang', type: 'text'},
-            {data: 'definition', type: 'text'},
-            {
-                data: 'photo',
-                renderer: function (instance, td, row, col, prop, value, cellProperties) {
-                    if (!value) { td.innerHTML = ''; return td; }
-                    td.innerHTML = `<a href="${value}" target="_blank" rel="noopener"><img src="${value}"></a>`;
-                    return td;
-                }
-            }
-        ],
-        rowHeaders: true,
-        stretchH: 'all',
-        licenseKey: 'non-commercial-and-evaluation',
-        contextMenu: true,
-        manualRowMove: true,
-        manualColumnMove: true,
-        afterChange: function(changes, source) {
-            // TODO: AJAX сохранение изменений
-        }
-    });
-    // Сохраняем hot для дальнейшей работы
-    window._dictHot = hot;
-}
+
 
 function initDictHotTable() {
     if (window._dictSectionData && document.getElementById('dict-hot-table') && window.Handsontable) {
@@ -51,13 +20,13 @@ function initDictHotTable() {
             data: window._dictSectionData,
             colHeaders: ['Название', 'Сленг', 'Описание', 'Фото'],
             columns: [
-                {data: 'term', type: 'text', width: 160, className: 'ht-term-cell'},
-                {data: 'slang', type: 'text', width: 190, className: 'ht-slang-cell'},
-                {data: 'definition', type: 'text', width: 320, className: 'ht-definition-cell'},
+                {data: 'term', type: 'text', width: window.innerWidth < 768 ? 120 : 160, className: 'ht-term-cell'},
+                {data: 'slang', type: 'text', width: window.innerWidth < 768 ? 140 : 190, className: 'ht-slang-cell'},
+                {data: 'definition', type: 'text', width: window.innerWidth < 768 ? 200 : 320, className: 'ht-definition-cell'},
                 {
                     data: 'photo',
-                    width: 180,
-                    height: 80,
+                    width: window.innerWidth < 768 ? 100 : 180,
+                    height: window.innerWidth < 768 ? 60 : 80,
                     readOnly: true,
                     className: 'ht-photo-cell',
                     renderer: function (instance, td, row, col, prop, value, cellProperties) {
@@ -77,7 +46,6 @@ function initDictHotTable() {
             autoWrapRow: true,
             autoWrapCol: true,
             height: 'auto',
-            language: 'ru-RU',
             minSpareRows: 1,
             afterChange: function(changes, source) {
                 if (source === 'loadData' || !changes || window.IS_READONLY) return;
@@ -172,6 +140,24 @@ function initDictHotTable() {
         });
         
         window._dictHot = hot;
+        
+        // Обработчик изменения размера окна для адаптивности
+        window.addEventListener('resize', function() {
+            if (hot && !window.IS_READONLY) {
+                const isMobile = window.innerWidth < 768;
+                const columns = hot.getSettings().columns;
+                
+                // Обновляем ширину столбцов
+                columns[0].width = isMobile ? 120 : 160; // Название
+                columns[1].width = isMobile ? 140 : 190; // Сленг  
+                columns[2].width = isMobile ? 200 : 320; // Описание
+                columns[3].width = isMobile ? 100 : 180; // Фото
+                columns[3].height = isMobile ? 60 : 80;
+                
+                hot.updateSettings({ columns: columns });
+                hot.render();
+            }
+        });
     }
 }
 
