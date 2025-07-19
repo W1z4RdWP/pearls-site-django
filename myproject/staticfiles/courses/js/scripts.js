@@ -86,3 +86,23 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
 
+// Раскрытие описания курса
+document.addEventListener('DOMContentLoaded', () => {
+  const showDescription = document.getElementById('show-description');
+  const courseDescription = document.getElementById('course-description');
+  // if (!showDescription || !courseDescription) return;
+
+  showDescription.addEventListener('click', () => {
+    courseDescription.style.display = 'none';
+    // showDescription.style.display = 'none';
+    if (showDescription.textContent === 'Скрыть описание') {
+      showDescription.textContent = 'Показать описание';
+    } else {
+      showDescription.textContent = 'Скрыть описание';
+      showDescription.classList.remove('btn-mini-active');
+      courseDescription.style.display = 'block';
+    }
+    // showDescription.classList.toggle('btn-mini-active');
+  });
+  showDescription.style.display = 'block';
+});

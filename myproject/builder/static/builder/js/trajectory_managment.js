@@ -4,26 +4,22 @@
 
 // Функции для модальных окон
 function showCreateCourseModal() {
-    console.log('Открытие модального окна курса');
     var modal = new bootstrap.Modal(document.getElementById('createCourseModal'));
     modal.show();
 }
 
 function showCreateTrajectoryModal() {
-    console.log('Открытие модального окна траектории');
     var modal = new bootstrap.Modal(document.getElementById('createTrajectoryModal'));
     modal.show();
 }
 
 function showCreateQuizModal() {
-    console.log('Открытие модального окна теста');
     var modal = new bootstrap.Modal(document.getElementById('createQuizModal'));
     modal.show();
 }
 
 // Функции для работы с траекториями
 function viewTrajectory(trajectoryId) {
-    console.log('Просмотр траектории:', trajectoryId);
     
     // Показываем индикатор загрузки
     var modalBody = document.getElementById('trajectoryDetails');
@@ -40,7 +36,6 @@ function viewTrajectory(trajectoryId) {
             'X-Requested-With': 'XMLHttpRequest'
         },
         success: function(data) {
-            console.log('Данные траектории:', data);
             renderTrajectoryDetails(data);
         },
         error: function(xhr, status, error) {
@@ -183,20 +178,17 @@ function renderGroupsList(groups) {
 }
 
 function editTrajectory(trajectoryId) {
-    console.log('Редактирование траектории:', trajectoryId);
     // Перенаправление на страницу редактирования
     window.location.href = '/builder/trajectories/' + trajectoryId + '/edit/';
 }
 
 function manageCourses(trajectoryId) {
-    console.log('Управление курсами траектории:', trajectoryId);
     // Перенаправление на страницу управления курсами
-    window.location.href = '/courses/trajectory/' + trajectoryId + '/courses/';
+    window.location.href = '/builder/trajectories/' + trajectoryId + '/courses/';
 }
 
 function deleteTrajectory(trajectoryId, trajectoryName) {
     if (confirm('Вы уверены, что хотите удалить траекторию "' + trajectoryName + '"?\n\nЭто действие нельзя отменить.')) {
-        console.log('Удаление траектории:', trajectoryId);
         // Здесь можно добавить AJAX запрос для удаления
         // window.location.href = '/courses/trajectory/' + trajectoryId + '/delete/';
     }
@@ -204,7 +196,6 @@ function deleteTrajectory(trajectoryId, trajectoryName) {
 
 // Функция для показа уведомлений
 function showNotification(message, type) {
-    console.log('Показ уведомления:', message, type);
     // Создаем элемент уведомления
     var alertClass = type === 'success' ? 'alert-success' : 'alert-danger';
     var icon = type === 'success' ? 'fas fa-check-circle' : 'fas fa-exclamation-circle';
@@ -275,7 +266,6 @@ $(document).ready(function() {
     // Обработка создания траектории
     $('#createTrajectoryForm').on('submit', function(e) {
         e.preventDefault();
-        console.log('Отправка формы траектории');
         var form = $(this);
         var submitBtn = form.find('button[type="submit"]');
         var originalText = submitBtn.text();
@@ -291,7 +281,6 @@ $(document).ready(function() {
                 'X-Requested-With': 'XMLHttpRequest'
             },
             success: function(data) {
-                console.log('Ответ сервера:', data);
                 if (data.success) {
                     showNotification('Траектория успешно создана!', 'success');
                     var modal = bootstrap.Modal.getInstance(document.getElementById('createTrajectoryModal'));
@@ -319,7 +308,6 @@ $(document).ready(function() {
     // Обработка создания теста
     $('#createQuizForm').on('submit', function(e) {
         e.preventDefault();
-        console.log('Отправка формы теста');
         var form = $(this);
         var submitBtn = form.find('button[type="submit"]');
         var originalText = submitBtn.text();
@@ -335,7 +323,6 @@ $(document).ready(function() {
                 'X-Requested-With': 'XMLHttpRequest'
             },
             success: function(data) {
-                console.log('Ответ сервера:', data);
                 if (data.success) {
                     showNotification('Тест успешно создан!', 'success');
                     var modal = bootstrap.Modal.getInstance(document.getElementById('createQuizModal'));

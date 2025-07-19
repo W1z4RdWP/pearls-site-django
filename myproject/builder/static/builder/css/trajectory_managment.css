@@ -326,6 +326,266 @@
     margin-top: 0.25rem;
 }
 
+/* Стили для timeline управления курсами */
+.timeline-container {
+    position: relative;
+}
+
+.timeline-header {
+    display: grid;
+    grid-template-columns: 1fr 200px 100px;
+    gap: 1rem;
+    padding: 1rem;
+    background-color: #f8f9fc;
+    border-bottom: 1px solid #e3e6f0;
+    font-weight: 600;
+    color: #5a5c69;
+}
+
+.timeline-body {
+    position: relative;
+}
+
+
+
+.timeline-line {
+    position: absolute;
+    left: 25px;
+    top: 0;
+    bottom: 0;
+    width: 2px;
+    background: linear-gradient(to bottom, #4e73df, #36b9cc);
+    z-index: 1;
+}
+
+.timeline-content {
+    display: grid;
+    grid-template-columns: 1fr 200px 100px;
+    gap: 1rem;
+    padding: 1rem;
+    background: white;
+    border: 1px solid #e3e6f0;
+    border-radius: 0.35rem;
+    margin-left: 50px;
+    position: relative;
+    z-index: 2;
+}
+
+.day-badge {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, #4e73df, #36b9cc);
+    color: white;
+    border-radius: 50%;
+    width: 60px;
+    height: 60px;
+    margin: 0 auto;
+}
+
+.day-number {
+    font-size: 1.2rem;
+    font-weight: bold;
+    line-height: 1;
+}
+
+.day-text {
+    font-size: 0.7rem;
+    opacity: 0.9;
+}
+
+.course-item {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    position: relative;
+}
+
+.course-image {
+    flex-shrink: 0;
+}
+
+.course-thumbnail {
+    width: 60px;
+    height: 40px;
+    object-fit: cover;
+    border-radius: 0.25rem;
+    border: 1px solid #e3e6f0;
+}
+
+.course-placeholder {
+    width: 60px;
+    height: 40px;
+    background-color: #f8f9fc;
+    border: 1px solid #e3e6f0;
+    border-radius: 0.25rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #858796;
+}
+
+.course-info {
+    flex: 1;
+}
+
+.course-title {
+    margin: 0;
+    font-weight: 600;
+    color: #5a5c69;
+}
+
+.deadline-info {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: #858796;
+}
+
+.course-actions {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    position: relative;
+}
+
+.dropdown-menu-end {
+    right: 0;
+    left: auto;
+    z-index: 9999 !important;
+}
+
+.dropdown-menu {
+    z-index: 9999 !important;
+    position: absolute !important;
+}
+
+.course-actions .dropdown {
+    position: relative;
+    z-index: 1000;
+}
+
+.timeline-item {
+    position: relative;
+    margin-bottom: 1rem;
+    cursor: move;
+    transition: all 0.2s ease;
+    z-index: 1;
+}
+
+.timeline-item:hover {
+    background-color: #f8f9fc;
+    border-radius: 0.35rem;
+    z-index: 2;
+}
+
+.timeline-item .dropdown.show {
+    z-index: 9999;
+}
+
+/* Стили для модального окна добавления курсов */
+.course-card {
+    cursor: pointer;
+    transition: all 0.2s ease;
+    border: 1px solid #e3e6f0;
+}
+
+.course-card:hover {
+    border-color: #4e73df;
+    box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.15);
+    transform: translateY(-2px);
+}
+
+.course-thumbnail-small {
+    width: 40px;
+    height: 30px;
+    object-fit: cover;
+    border-radius: 0.25rem;
+}
+
+.course-placeholder-small {
+    width: 40px;
+    height: 30px;
+    background-color: #f8f9fc;
+    border: 1px solid #e3e6f0;
+    border-radius: 0.25rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #858796;
+    font-size: 0.8rem;
+}
+
+/* Стили для Sortable.js */
+.sortable-ghost {
+    opacity: 0.5;
+    background-color: #f8f9fc !important;
+    border: 2px dashed #4e73df !important;
+}
+
+.sortable-chosen {
+    background-color: #e3f2fd !important;
+    box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.15) !important;
+}
+
+.sortable-drag {
+    background: white !important;
+    box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.15) !important;
+    transform: rotate(2deg) !important;
+    z-index: 9999 !important;
+}
+
+/* Стили для drag & drop (jQuery UI) */
+.timeline-item.ui-sortable-helper {
+    background: white;
+    box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.15);
+    transform: rotate(2deg);
+}
+
+.timeline-item.ui-sortable-placeholder {
+    background-color: #f8f9fc;
+    border: 2px dashed #4e73df;
+    opacity: 0.5;
+}
+
+/* Адаптивность для мобильных устройств */
+@media (max-width: 768px) {
+    .timeline-header,
+    .timeline-content {
+        grid-template-columns: 1fr 80px;
+        gap: 0.5rem;
+        padding: 0.5rem;
+    }
+    
+    .timeline-col:nth-child(2) {
+        display: none;
+    }
+    
+    .day-badge {
+        width: 50px;
+        height: 50px;
+    }
+    
+    .day-number {
+        font-size: 1rem;
+    }
+    
+    .day-text {
+        font-size: 0.6rem;
+    }
+    
+    .course-thumbnail {
+        width: 40px;
+        height: 30px;
+    }
+    
+    .course-placeholder {
+        width: 40px;
+        height: 30px;
+    }
+}
+
 /* Стили для кнопок в модальных окнах */
 .modal-footer .btn {
     border-radius: 0.35rem;

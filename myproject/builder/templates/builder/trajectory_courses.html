@@ -1,0 +1,561 @@
+{% extends 'layout.html' %}
+{% load static %}
+{% block title %}Управление курсами траектории{% endblock %}
+
+{% block specific_styles %}
+<link rel="stylesheet" href="{% static 'builder/css/trajectory_managment.css' %}">
+<script src="{% static 'admin/js/vendor/jquery/jquery.min.js' %}"></script>
+<script src="{% static 'builder/js/Sortable.min.js' %}"></script>
+<script src="{% static 'builder/js/trajectory_managment.js' %}"></script>
+<script>
+// Проверяем загрузку Sortable.js
+$(document).ready(function() {
+    if (typeof Sortable === 'undefined') {
+        // Альтернативная реализация без sortable - кнопки вверх/вниз
+        $('.timeline-item').each(function() {
+            const $item = $(this);
+            const $actions = $item.find('.course-actions .dropdown-menu');
+            
+            // Проверяем, не добавлены ли уже кнопки
+            if ($actions.find('[onclick*="moveCourseUp"]').length === 0) {
+                // Добавляем кнопки для перемещения
+                $actions.append('<li><hr class="dropdown-divider"></li>');
+                $actions.append('<li><a class="dropdown-item" href="#" onclick="moveCourseUp(' + $item.data('course-id') + ')"><i class="fas fa-arrow-up"></i> Переместить вверх</a></li>');
+                $actions.append('<li><a class="dropdown-item" href="#" onclick="moveCourseDown(' + $item.data('course-id') + ')"><i class="fas fa-arrow-down"></i> Переместить вниз</a></li>');
+            }
+        });
+        return;
+    }
+    
+    // Инициализация Sortable.js
+    if ($('#coursesTimeline').length) {
+        new Sortable(document.getElementById('coursesTimeline'), {
+            animation: 150,
+            ghostClass: 'sortable-ghost',
+            chosenClass: 'sortable-chosen',
+            dragClass: 'sortable-drag',
+            onEnd: function(evt) {
+                const courseOrders = [];
+                $('.timeline-item').each(function(index) {
+                    const courseId = $(this).data('course-id');
+                    courseOrders.push({course_id: courseId, order: index + 1});
+                });
+                
+                $.ajax({
+                    url: '/builder/trajectories/{{ trajectory.id }}/courses/reorder/',
+                    method: 'POST',
+                    data: JSON.stringify({course_orders: courseOrders}),
+                    contentType: 'application/json',
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'X-CSRFToken': $('input[name=csrfmiddlewaretoken]').val()
+                    },
+                    success: function(data) {
+                        if (data.success) {
+                            // Уведомление убрано
+                        } else {
+                            if (typeof showNotification === 'function') {
+                                showNotification('Ошибка при обновлении порядка', 'error');
+                            }
+                        }
+                    },
+                    error: function(xhr, status, error) {
+                        showNotification('Ошибка при обновлении порядка: ' + error, 'error');
+                    }
+                });
+            }
+        });
+    }
+});
+
+// Альтернативные функции для перемещения курсов
+function moveCourseUp(courseId) {
+    const $currentItem = $('.timeline-item[data-course-id="' + courseId + '"]');
+    const $prevItem = $currentItem.prev('.timeline-item');
+    
+    if ($prevItem.length) {
+        const courseOrders = [];
+        $('.timeline-item').each(function(index) {
+            const id = $(this).data('course-id');
+            let order = index + 1;
+            
+            if (id === courseId) {
+                order = index; // Перемещаем на позицию выше
+            } else if ($(this).is($prevItem)) {
+                order = index + 2; // Сдвигаем предыдущий элемент вниз
+            }
+            
+            courseOrders.push({course_id: id, order: order});
+        });
+        
+        reorderCourses(courseOrders);
+    }
+}
+
+function moveCourseDown(courseId) {
+    const $currentItem = $('.timeline-item[data-course-id="' + courseId + '"]');
+    const $nextItem = $currentItem.next('.timeline-item');
+    
+    if ($nextItem.length) {
+        const courseOrders = [];
+        $('.timeline-item').each(function(index) {
+            const id = $(this).data('course-id');
+            let order = index + 1;
+            
+            if (id === courseId) {
+                order = index + 2; // Перемещаем на позицию ниже
+            } else if ($(this).is($nextItem)) {
+                order = index; // Сдвигаем следующий элемент вверх
+            }
+            
+            courseOrders.push({course_id: id, order: order});
+        });
+        
+        reorderCourses(courseOrders);
+    }
+}
+
+function reorderCourses(courseOrders) {
+    $.ajax({
+        url: '/builder/trajectories/{{ trajectory.id }}/courses/reorder/',
+        method: 'POST',
+        data: JSON.stringify({course_orders: courseOrders}),
+        contentType: 'application/json',
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest',
+            'X-CSRFToken': $('input[name=csrfmiddlewaretoken]').val()
+        },
+        success: function(data) {
+            if (data.success) {
+                setTimeout(function() {
+                    location.reload();
+                }, 1000);
+            } else {
+                if (typeof showNotification === 'function') {
+                    showNotification('Ошибка при обновлении порядка', 'error');
+                }
+            }
+        },
+        error: function(xhr, status, error) {
+            showNotification('Ошибка при обновлении порядка: ' + error, 'error');
+        }
+    });
+}
+</script>
+{% endblock %}
+
+{% block content %}
+{% csrf_token %}
+<div class="container-fluid">
+    <!-- Заголовок -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item">
+                        <a href="{% url 'builder:trajectory_list' %}">
+                            <i class="fas fa-route"></i> Все траектории
+                        </a>
+                    </li>
+                    <li class="breadcrumb-item">
+                        <a href="{% url 'builder:trajectory_edit' trajectory.id %}">
+                            {{ trajectory.name }}
+                        </a>
+                    </li>
+                    <li class="breadcrumb-item active" aria-current="page">
+                        Управление курсами
+                    </li>
+                </ol>
+            </nav>
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h1 class="h3 mb-0 text-gray-800">
+                        <i class="fas fa-graduation-cap text-warning"></i> Настройте структуру траектории обучения
+                    </h1>
+                    <p class="text-muted">Порядок прохождения курсов: По дням</p>
+                </div>
+                <div class="d-flex gap-2">
+                    <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#addCourseModal">
+                        <i class="fas fa-plus"></i> Добавить курс
+                    </button>
+                    <a href="{% url 'builder:trajectory_edit' trajectory.id %}" class="btn btn-secondary">
+                        <i class="fas fa-arrow-left"></i> Назад к редактированию
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Статистика -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card border-left-primary shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">Курсов в траектории</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ total_courses }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-graduation-cap fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-left-success shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-success text-uppercase mb-1">Доступно для добавления</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ available_courses.count }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-plus-circle fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-left-info shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-info text-uppercase mb-1">Групп назначено</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ trajectory.groups.count }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-users fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-left-warning shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">Пользователей</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ trajectory.usercoursetrajectory_set.count }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-user-graduate fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Timeline курсов -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card shadow">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">
+                        <i class="fas fa-list-ol"></i> Структура траектории
+                    </h6>
+                </div>
+                <div class="card-body">
+                    {% if trajectory_courses %}
+                        <div class="timeline-container">
+                            <div class="timeline-header">
+                                <div class="timeline-col">Курс / Этап</div>
+                                <div class="timeline-col">Срок выполнения</div>
+                                <div class="timeline-col">Действия</div>
+                            </div>
+                            
+                            <div class="timeline-body" id="coursesTimeline">
+                                {% for tc in trajectory_courses %}
+                                <div class="timeline-item" data-course-id="{{ tc.course.id }}" data-order="{{ tc.order }}">
+                                    <div class="timeline-line"></div>
+                                                                    <div class="timeline-content">
+                                    <div class="timeline-col">
+                                        <div class="course-item">
+                                            <div class="day-badge">
+                                                <span class="day-number">{{ tc.order }}</span>
+                                                <span class="day-text">день</span>
+                                            </div>
+                                            <div class="course-image">
+                                                {% if tc.course.image %}
+                                                    <img src="{{ tc.course.image.url }}" alt="{{ tc.course.title }}" class="course-thumbnail">
+                                                {% else %}
+                                                    <div class="course-placeholder">
+                                                        <i class="fas fa-graduation-cap"></i>
+                                                    </div>
+                                                {% endif %}
+                                            </div>
+                                            <div class="course-info">
+                                                <h6 class="course-title">{{ tc.order }} день. {{ tc.course.title }}</h6>
+                                                <small class="text-muted">
+                                                    {{ tc.course.lessons.count }} уроков • Автор: {{ tc.course.author.get_full_name|default:tc.course.author.username }}
+                                                </small>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="timeline-col">
+                                        <div class="deadline-info">
+                                            <i class="fas fa-clock text-muted"></i>
+                                            <span class="text-muted">Без срока</span>
+                                        </div>
+                                    </div>
+                                    <div class="timeline-col">
+                                        <div class="course-actions">
+                                            <div class="dropdown">
+                                                <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                                    <i class="fas fa-ellipsis-v"></i>
+                                                </button>
+                                                <ul class="dropdown-menu dropdown-menu-end">
+                                                    <li>
+                                                        <a class="dropdown-item" href="/courses/course/{{ tc.course.slug }}/" target="_blank">
+                                                            <i class="fas fa-external-link-alt"></i> Открыть курс
+                                                        </a>
+                                                    </li>
+                                                    <li>
+                                                        <a class="dropdown-item" href="#" onclick="editCourseOrder({{ tc.course.id }}, {{ tc.order }})">
+                                                            <i class="fas fa-edit"></i> Изменить порядок
+                                                        </a>
+                                                    </li>
+                                                    <li><hr class="dropdown-divider"></li>
+                                                    <li>
+                                                        <a class="dropdown-item text-danger" href="#" onclick="removeCourse({{ tc.course.id }}, '{{ tc.course.title }}')">
+                                                            <i class="fas fa-trash"></i> Удалить из траектории
+                                                        </a>
+                                                    </li>
+                                                </ul>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    {% else %}
+                        <div class="text-center py-5">
+                            <i class="fas fa-graduation-cap fa-3x text-gray-300 mb-3"></i>
+                            <h5 class="text-gray-500">Курсы не добавлены</h5>
+                            <p class="text-muted">Добавьте курсы в траекторию, чтобы начать настройку структуры обучения</p>
+                            <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#addCourseModal">
+                                <i class="fas fa-plus"></i> Добавить первый курс
+                            </button>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Модальное окно добавления курса -->
+<div class="modal fade" id="addCourseModal" tabindex="-1" role="dialog">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-plus text-success"></i> Добавить курс в траекторию
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                {% if available_courses %}
+                    <div class="row">
+                        {% for course in available_courses %}
+                        <div class="col-md-6 mb-3">
+                            <div class="card course-card" onclick="addCourseToTrajectory({{ course.id }})">
+                                <div class="card-body">
+                                    <div class="d-flex align-items-center">
+                                        <div class="course-image me-3">
+                                            {% if course.image %}
+                                                <img src="{{ course.image.url }}" alt="{{ course.title }}" class="course-thumbnail-small">
+                                            {% else %}
+                                                <div class="course-placeholder-small">
+                                                    <i class="fas fa-graduation-cap"></i>
+                                                </div>
+                                            {% endif %}
+                                        </div>
+                                        <div class="course-info">
+                                            <h6 class="course-title mb-1">{{ course.title }}</h6>
+                                            <small class="text-muted">
+                                                {{ course.lessons.count }} уроков • {{ course.author.get_full_name|default:course.author.username }}
+                                            </small>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="text-center py-4">
+                        <i class="fas fa-info-circle fa-2x text-info mb-3"></i>
+                        <h5>Нет доступных курсов</h5>
+                        <p class="text-muted">Все курсы уже добавлены в траекторию или нет доступных курсов для добавления</p>
+                        <a href="{% url 'courses:create-course' %}" class="btn btn-primary">
+                            <i class="fas fa-plus"></i> Создать новый курс
+                        </a>
+                    </div>
+                {% endif %}
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Закрыть</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Модальное окно изменения порядка -->
+<div class="modal fade" id="editOrderModal" tabindex="-1" role="dialog">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-sort text-warning"></i> Изменить порядок курса
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="newOrder">Новый порядок:</label>
+                    <input type="number" class="form-control" id="newOrder" min="1" max="{{ total_courses }}">
+                    <small class="form-text text-muted">Введите число от 1 до {{ total_courses }}</small>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                <button type="button" class="btn btn-primary" onclick="saveNewOrder()">Сохранить</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+let currentEditingCourseId = null;
+
+function addCourseToTrajectory(courseId) {
+    $.ajax({
+        url: '/builder/trajectories/{{ trajectory.id }}/courses/add/',
+        method: 'POST',
+        data: JSON.stringify({course_id: courseId}),
+        contentType: 'application/json',
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest',
+            'X-CSRFToken': $('input[name=csrfmiddlewaretoken]').val()
+        },
+        success: function(data) {
+            if (data.success) {
+                if (typeof showNotification === 'function') {
+                    showNotification('Курс успешно добавлен в траекторию', 'success');
+                }
+                setTimeout(function() {
+                    location.reload();
+                }, 1000);
+            } else {
+                if (typeof showNotification === 'function') {
+                    showNotification('Ошибка при добавлении курса', 'error');
+                }
+            }
+        },
+        error: function(xhr, status, error) {
+            showNotification('Ошибка при добавлении курса: ' + error, 'error');
+        }
+    });
+}
+
+function removeCourse(courseId, courseTitle) {
+    if (confirm('Вы уверены, что хотите удалить курс "' + courseTitle + '" из траектории?\n\nЭто действие нельзя отменить.')) {
+        $.ajax({
+            url: '/builder/trajectories/{{ trajectory.id }}/courses/remove/',
+            method: 'POST',
+            data: JSON.stringify({course_id: courseId}),
+            contentType: 'application/json',
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-CSRFToken': $('input[name=csrfmiddlewaretoken]').val()
+            },
+                    success: function(data) {
+            if (data.success) {
+                if (typeof showNotification === 'function') {
+                    showNotification('Курс успешно удален из траектории', 'success');
+                }
+                setTimeout(function() {
+                    location.reload();
+                }, 1000);
+            } else {
+                if (typeof showNotification === 'function') {
+                    showNotification('Ошибка при удалении курса', 'error');
+                }
+            }
+        },
+            error: function(xhr, status, error) {
+                showNotification('Ошибка при удалении курса: ' + error, 'error');
+            }
+        });
+    }
+}
+
+function editCourseOrder(courseId, currentOrder) {
+    currentEditingCourseId = courseId;
+    $('#newOrder').val(currentOrder);
+    $('#editOrderModal').modal('show');
+}
+
+function saveNewOrder() {
+    const newOrder = parseInt($('#newOrder').val());
+    const currentOrder = parseInt($('#newOrder').attr('placeholder'));
+    
+    if (newOrder < 1 || newOrder > {{ total_courses }}) {
+        showNotification('Порядок должен быть от 1 до {{ total_courses }}', 'error');
+        return;
+    }
+    
+    // Получаем все курсы и их текущие порядки
+    const courseOrders = [];
+    $('.timeline-item').each(function() {
+        const courseId = $(this).data('course-id');
+        const order = $(this).data('order');
+        
+        if (courseId === currentEditingCourseId) {
+            courseOrders.push({course_id: courseId, order: newOrder});
+        } else if (order >= newOrder && order < currentOrder) {
+            courseOrders.push({course_id: courseId, order: order + 1});
+        } else if (order <= newOrder && order > currentOrder) {
+            courseOrders.push({course_id: courseId, order: order - 1});
+        } else {
+            courseOrders.push({course_id: courseId, order: order});
+        }
+    });
+    
+    $.ajax({
+        url: '/builder/trajectories/{{ trajectory.id }}/courses/reorder/',
+        method: 'POST',
+        data: JSON.stringify({course_orders: courseOrders}),
+        contentType: 'application/json',
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest',
+            'X-CSRFToken': $('input[name=csrfmiddlewaretoken]').val()
+        },
+        success: function(data) {
+            if (data.success) {
+                $('#editOrderModal').modal('hide');
+                setTimeout(function() {
+                    location.reload();
+                }, 1000);
+            } else {
+                if (typeof showNotification === 'function') {
+                    showNotification('Ошибка при обновлении порядка', 'error');
+                }
+            }
+        },
+        error: function(xhr, status, error) {
+            showNotification('Ошибка при обновлении порядка: ' + error, 'error');
+        }
+    });
+}
+
+
+</script>
+{% endblock %} 

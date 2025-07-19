@@ -48,4 +48,8 @@ urlpatterns = [
     path('trajectories/', views.TrajectoryListView.as_view(), name='trajectory_list'),
     path('trajectories/<int:trajectory_id>/detail/', views.trajectory_detail_ajax, name='trajectory_detail_ajax'),
     path('trajectories/<int:pk>/edit/', views.TrajectoryEditView.as_view(), name='trajectory_edit'),
+    path('trajectories/<int:trajectory_id>/courses/', views.TrajectoryCoursesView.as_view(), name='trajectory_courses'),
+    path('trajectories/<int:trajectory_id>/courses/reorder/', views.trajectory_course_reorder, name='trajectory_course_reorder'),
+    path('trajectories/<int:trajectory_id>/courses/add/', views.trajectory_course_add, name='trajectory_course_add'),
+    path('trajectories/<int:trajectory_id>/courses/remove/', views.trajectory_course_remove, name='trajectory_course_remove'),
 ]

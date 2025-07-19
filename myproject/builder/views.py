@@ -23,6 +23,7 @@ from django.template.loader import render_to_string
 from courses.models import Trajectory, TrajectoryCourse, UserCourseTrajectory
 from quizzes.models import Quiz, Question, Answer
 from django.db import models
+from django.http import Http404
 
 
 def get_category_tree_data(category_id):
@@ -1527,3 +1528,149 @@ class TrajectoryEditView(UpdateView):
                 'errors': form.errors
             }, status=400)
         return super().form_invalid(form)
+
+
+class TrajectoryCoursesView(TemplateView):
+    """
+    Представление для управления курсами в траектории
+    """
+    template_name = 'builder/trajectory_courses.html'
+
+    def dispatch(self, request, *args, **kwargs):
+        if not request.user.is_authenticated or not (request.user.is_staff or request.user.is_superuser):
+            return render(request, '403.html', status=403)
+        return super().dispatch(request, *args, **kwargs)
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        trajectory_id = self.kwargs.get('trajectory_id')
+        
+        try:
+            trajectory = Trajectory.objects.get(pk=trajectory_id)
+        except Trajectory.DoesNotExist:
+            raise Http404("Траектория не найдена")
+        
+        # Получаем курсы в траектории с их порядком
+        trajectory_courses = TrajectoryCourse.objects.filter(trajectory=trajectory).select_related('course').order_by('order')
+        
+        # Получаем все доступные курсы для добавления
+        available_courses = Course.objects.exclude(
+            id__in=trajectory_courses.values_list('course_id', flat=True)
+        ).order_by('title')
+        
+        context['trajectory'] = trajectory
+        context['trajectory_courses'] = trajectory_courses
+        context['available_courses'] = available_courses
+        context['total_courses'] = trajectory_courses.count()
+        
+        return context
+
+
+@csrf_exempt
+@login_required
+def trajectory_course_reorder(request, trajectory_id):
+    """
+    AJAX представление для изменения порядка курсов в траектории
+    """
+    if not (request.user.is_staff or request.user.is_superuser):
+        return JsonResponse({'error': 'forbidden'}, status=403)
+    
+    if request.method != 'POST':
+        return JsonResponse({'error': 'method not allowed'}, status=405)
+    
+    try:
+        data = json.loads(request.body)
+        course_orders = data.get('course_orders', [])  # [{course_id: 1, order: 1}, ...]
+        
+        with transaction.atomic():
+            for item in course_orders:
+                course_id = item.get('course_id')
+                new_order = item.get('order')
+                
+                if course_id and new_order is not None:
+                    TrajectoryCourse.objects.filter(
+                        trajectory_id=trajectory_id,
+                        course_id=course_id
+                    ).update(order=new_order)
+        
+        return JsonResponse({'success': True})
+        
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=400)
+
+
+@csrf_exempt
+@login_required
+def trajectory_course_add(request, trajectory_id):
+    """
+    AJAX представление для добавления курса в траекторию
+    """
+    if not (request.user.is_staff or request.user.is_superuser):
+        return JsonResponse({'error': 'forbidden'}, status=403)
+    
+    if request.method != 'POST':
+        return JsonResponse({'error': 'method not allowed'}, status=405)
+    
+    try:
+        data = json.loads(request.body)
+        course_id = data.get('course_id')
+        
+        if not course_id:
+            return JsonResponse({'error': 'course_id required'}, status=400)
+        
+        # Получаем максимальный порядок в траектории
+        max_order = TrajectoryCourse.objects.filter(trajectory_id=trajectory_id).aggregate(
+            Max('order')
+        )['order__max'] or 0
+        
+        # Создаем новую связь
+        TrajectoryCourse.objects.create(
+            trajectory_id=trajectory_id,
+            course_id=course_id,
+            order=max_order + 1
+        )
+        
+        return JsonResponse({'success': True})
+        
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=400)
+
+
+@csrf_exempt
+@login_required
+def trajectory_course_remove(request, trajectory_id):
+    """
+    AJAX представление для удаления курса из траектории
+    """
+    if not (request.user.is_staff or request.user.is_superuser):
+        return JsonResponse({'error': 'forbidden'}, status=403)
+    
+    if request.method != 'POST':
+        return JsonResponse({'error': 'method not allowed'}, status=405)
+    
+    try:
+        data = json.loads(request.body)
+        course_id = data.get('course_id')
+        
+        if not course_id:
+            return JsonResponse({'error': 'course_id required'}, status=400)
+        
+        # Удаляем связь
+        TrajectoryCourse.objects.filter(
+            trajectory_id=trajectory_id,
+            course_id=course_id
+        ).delete()
+        
+        # Пересчитываем порядок оставшихся курсов
+        remaining_courses = TrajectoryCourse.objects.filter(
+            trajectory_id=trajectory_id
+        ).order_by('order')
+        
+        for index, tc in enumerate(remaining_courses, 1):
+            tc.order = index
+            tc.save()
+        
+        return JsonResponse({'success': True})
+        
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=400)
