@@ -374,8 +374,12 @@ def lesson_detail(request, course_slug, lesson_id):
 @user_passes_test(is_admin, login_url='/')
 def create_course(request):
     if request.method == 'POST':
+        # Проверяем, является ли это AJAX запросом
+        is_ajax = (request.headers.get('X-Requested-With') == 'XMLHttpRequest' or 
+                  request.headers.get('Accept') == 'application/json')
+        
         # Используем разные формы в зависимости от типа запроса
-        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+        if is_ajax:
             form = CourseModalForm(request.POST, request.FILES)
         else:
             form = CourseForm(request.POST, request.FILES)
@@ -392,9 +396,10 @@ def create_course(request):
             for user in staff_users:
                 UserCourse.objects.get_or_create(user=user, course=course, defaults={'status': 'available'})
             # ---
-            if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-                return JsonResponse({'success': True, 'id': course.id, 'title': course.title})
-            return redirect('home')
+            if is_ajax:
+                return JsonResponse({'success': True, 'id': course.id, 'title': course.title, 'slug': course.slug})
+            else:
+                return redirect('courses:course_detail', slug=course.slug)
     else:
         # Используем CourseForm для обычных GET запросов
         form = CourseForm()

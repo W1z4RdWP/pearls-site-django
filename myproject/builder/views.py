@@ -18,10 +18,11 @@ import json
 from myapp.models import UserCourse
 from courses.models import UserLessonTrajectory
 from django.utils import timezone
-from django.contrib.auth.models import User
+from django.contrib.auth.models import User, Group
 from django.template.loader import render_to_string
 from courses.models import Trajectory, TrajectoryCourse, UserCourseTrajectory
 from quizzes.models import Quiz, Question, Answer
+from django.db import models
 
 
 def get_category_tree_data(category_id):
@@ -1390,7 +1391,139 @@ class TrajectoryManagementView(TemplateView):
         context['recent_quizzes'] = Quiz.objects.order_by('-id')[:5]
         
         # Все группы Django для выбора в модальных окнах
-        from django.contrib.auth.models import Group
         context['all_groups'] = Group.objects.all()
         
         return context
+
+
+class TrajectoryListView(ListView):
+    """
+    Список всех траекторий с возможностью управления.
+    """
+    model = Trajectory
+    template_name = 'builder/trajectory_list.html'
+    context_object_name = 'trajectories'
+    ordering = ['name']
+    paginate_by = 20
+
+    def dispatch(self, request, *args, **kwargs):
+        if not request.user.is_authenticated or not (request.user.is_staff or request.user.is_superuser):
+            return render(request, '403.html', status=403)
+        return super().dispatch(request, *args, **kwargs)
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        
+        # Добавляем статистику
+        context['total_trajectories'] = Trajectory.objects.count()
+        context['total_courses'] = Course.objects.count()
+        context['total_groups'] = Group.objects.count()
+        
+        # Добавляем поиск
+        search_query = self.request.GET.get('search', '')
+        if search_query:
+            context['trajectories'] = Trajectory.objects.filter(
+                models.Q(name__icontains=search_query) |
+                models.Q(description__icontains=search_query)
+            ).order_by('name')
+        
+        context['search_query'] = search_query
+        
+        return context
+
+
+@csrf_exempt
+@login_required
+def trajectory_detail_ajax(request, trajectory_id):
+    """
+    AJAX представление для получения детальной информации о траектории
+    """
+    if not (request.user.is_staff or request.user.is_superuser):
+        return JsonResponse({'error': 'forbidden'}, status=403)
+    
+    try:
+        trajectory = Trajectory.objects.get(pk=trajectory_id)
+    except Trajectory.DoesNotExist:
+        return JsonResponse({'error': 'Траектория не найдена'}, status=404)
+    
+    # Получаем курсы в правильном порядке
+    trajectory_courses = TrajectoryCourse.objects.filter(trajectory=trajectory).select_related('course').order_by('order')
+    
+    # Получаем статистику пользователей
+    user_trajectories = UserCourseTrajectory.objects.filter(trajectory=trajectory)
+    total_users = user_trajectories.count()
+    active_users = user_trajectories.filter(completed=False).count()
+    completed_users = user_trajectories.filter(completed=True).count()
+    
+    # Формируем данные для ответа
+    data = {
+        'id': trajectory.id,
+        'name': trajectory.name,
+        'description': trajectory.description or 'Описание отсутствует',
+        'groups': [
+            {
+                'id': group.id,
+                'name': group.name,
+                'user_count': group.user_set.count()
+            } for group in trajectory.groups.all()
+        ],
+        'courses': [
+            {
+                'id': tc.course.id,
+                'title': tc.course.title,
+                'order': tc.order,
+                'lesson_count': tc.course.lessons.count(),
+                'author': tc.course.author.get_full_name() or tc.course.author.username
+            } for tc in trajectory_courses
+        ],
+        'statistics': {
+            'total_users': total_users,
+            'active_users': active_users,
+            'completed_users': completed_users,
+            'completion_rate': round((completed_users / total_users * 100) if total_users > 0 else 0, 1)
+        },
+        'created_at': trajectory.id,  # Используем ID как приблизительную дату создания
+        'total_courses': trajectory.courses.count(),
+        'total_groups': trajectory.groups.count()
+    }
+    
+    return JsonResponse(data)
+
+
+class TrajectoryEditView(UpdateView):
+    """
+    Представление для редактирования траектории
+    """
+    model = Trajectory
+    template_name = 'builder/trajectory_edit.html'
+    fields = ['name', 'description', 'groups']
+    success_url = reverse_lazy('builder:trajectory_list')
+
+    def dispatch(self, request, *args, **kwargs):
+        if not request.user.is_authenticated or not (request.user.is_staff or request.user.is_superuser):
+            return render(request, '403.html', status=403)
+        return super().dispatch(request, *args, **kwargs)
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['trajectory'] = self.object
+        context['all_groups'] = Group.objects.all()
+        return context
+
+    def form_valid(self, form):
+        response = super().form_valid(form)
+        if self.request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return JsonResponse({
+                'success': True,
+                'message': 'Траектория успешно обновлена',
+                'redirect_url': self.success_url
+            })
+        return response
+
+    def form_invalid(self, form):
+        if self.request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return JsonResponse({
+                'success': False,
+                'errors': form.errors
+            }, status=400)
+        return super().form_invalid(form)

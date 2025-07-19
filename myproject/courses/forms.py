@@ -1,12 +1,10 @@
 from django import forms
 from .models import Course, Lesson, UserLessonTrajectory, Trajectory, UserCourseTrajectory
 from django_ckeditor_5.fields import CKEditor5Widget
-from captcha.fields import CaptchaField
 from myapp.utils import clean_rutube_iframe
 import re
 
 class CourseForm(forms.ModelForm):
-    captcha = CaptchaField()
     class Meta:
         model = Course
         fields = ['title', 'description', 'image', 'slug', 'final_quiz', 'allowed_groups']
@@ -40,7 +38,10 @@ class CourseModalForm(forms.ModelForm):
         labels = {'slug': 'ЧПУ (оставьте пустым для автогенерации)'}
         required = {'slug': False}
         widgets = {
-            'description': forms.Textarea(attrs={'rows': 4, 'class': 'form-control'}),
+            'description': CKEditor5Widget(
+                attrs={'class': 'django_ckeditor_5'},
+                config_name='extends'
+            ),
             'allowed_groups': forms.SelectMultiple(attrs={'class': 'form-control'}),
         }
 

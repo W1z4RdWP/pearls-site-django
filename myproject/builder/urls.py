@@ -45,4 +45,7 @@ urlpatterns = [
     path('actualize_version/', views.actualize_version, name='actualize_version'),
     path('dictionary/save_terms/', views.save_terms, name='save_terms'),
     path('trajectory-management/', views.TrajectoryManagementView.as_view(), name='trajectory_management'),
+    path('trajectories/', views.TrajectoryListView.as_view(), name='trajectory_list'),
+    path('trajectories/<int:trajectory_id>/detail/', views.trajectory_detail_ajax, name='trajectory_detail_ajax'),
+    path('trajectories/<int:pk>/edit/', views.TrajectoryEditView.as_view(), name='trajectory_edit'),
 ]

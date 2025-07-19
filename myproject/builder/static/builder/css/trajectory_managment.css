@@ -1,0 +1,382 @@
+/* Стили для страниц управления траекториями */
+
+/* Карточки статистики */
+.card.border-left-primary {
+    border-left: 0.25rem solid #4e73df !important;
+}
+
+.card.border-left-success {
+    border-left: 0.25rem solid #1cc88a !important;
+}
+
+.card.border-left-info {
+    border-left: 0.25rem solid #36b9cc !important;
+}
+
+.card.border-left-warning {
+    border-left: 0.25rem solid #f6c23e !important;
+}
+
+/* Анимации для кнопок */
+.btn-group .btn {
+    transition: all 0.2s ease-in-out;
+}
+
+.btn-group .btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+/* Стили для таблицы */
+.table-responsive {
+    border-radius: 0.35rem;
+}
+
+#trajectoriesTable th {
+    background-color: #f8f9fc;
+    border-color: #e3e6f0;
+    font-weight: 600;
+    color: #5a5c69;
+}
+
+#trajectoriesTable td {
+    vertical-align: middle;
+    border-color: #e3e6f0;
+}
+
+/* Стили для бейджей */
+.badge-pill {
+    border-radius: 10rem;
+}
+
+/* Стили для модальных окон */
+.modal-content {
+    border: none;
+    border-radius: 0.35rem;
+    box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.15);
+}
+
+.modal-header {
+    border-bottom: 1px solid #e3e6f0;
+    background-color: #f8f9fc;
+}
+
+.modal-footer {
+    border-top: 1px solid #e3e6f0;
+    background-color: #f8f9fc;
+}
+
+/* Стили для модального окна просмотра траектории */
+#viewTrajectoryModal .modal-dialog {
+    max-width: 900px;
+}
+
+#viewTrajectoryModal .card {
+    margin-bottom: 1rem;
+}
+
+#viewTrajectoryModal .card.border-left-primary,
+#viewTrajectoryModal .card.border-left-success,
+#viewTrajectoryModal .card.border-left-info {
+    border-left: 0.25rem solid;
+}
+
+#viewTrajectoryModal .progress {
+    height: 0.5rem;
+    border-radius: 0.25rem;
+}
+
+#viewTrajectoryModal .list-group-item {
+    border: none;
+    border-bottom: 1px solid #e3e6f0;
+    padding: 0.75rem 0;
+}
+
+#viewTrajectoryModal .list-group-item:last-child {
+    border-bottom: none;
+}
+
+#viewTrajectoryModal .badge {
+    font-size: 0.75rem;
+}
+
+/* Стили для индикатора загрузки */
+.fa-spinner {
+    color: #4e73df;
+}
+
+/* Стили для статистики */
+#viewTrajectoryModal .text-xs {
+    font-size: 0.7rem;
+}
+
+#viewTrajectoryModal .h5 {
+    font-size: 1.25rem;
+}
+
+/* Стили для пагинации */
+.pagination .page-link {
+    color: #4e73df;
+    border-color: #e3e6f0;
+}
+
+.pagination .page-item.active .page-link {
+    background-color: #4e73df;
+    border-color: #4e73df;
+}
+
+.pagination .page-link:hover {
+    background-color: #eaecf4;
+    border-color: #e3e6f0;
+}
+
+/* Стили для поиска */
+.input-group .form-control:focus {
+    border-color: #4e73df;
+    box-shadow: 0 0 0 0.2rem rgba(78, 115, 223, 0.25);
+}
+
+/* Стили для уведомлений */
+.alert {
+    border: none;
+    border-radius: 0.35rem;
+    box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.15);
+}
+
+.alert-success {
+    background-color: #d4edda;
+    color: #155724;
+}
+
+.alert-danger {
+    background-color: #f8d7da;
+    color: #721c24;
+}
+
+/* Адаптивность для мобильных устройств */
+@media (max-width: 768px) {
+    .btn-group {
+        display: flex;
+        flex-direction: column;
+    }
+    
+    .btn-group .btn {
+        margin-bottom: 0.25rem;
+    }
+    
+    .table-responsive {
+        font-size: 0.875rem;
+    }
+    
+    .badge {
+        font-size: 0.75rem;
+    }
+}
+
+/* Стили для пустого состояния */
+.text-center.py-5 {
+    background-color: #f8f9fc;
+    border-radius: 0.35rem;
+    margin: 2rem 0;
+}
+
+.text-gray-300 {
+    color: #dddfeb !important;
+}
+
+.text-gray-500 {
+    color: #858796 !important;
+}
+
+/* Стили для DataTables */
+.dataTables_wrapper .dataTables_length,
+.dataTables_wrapper .dataTables_filter,
+.dataTables_wrapper .dataTables_info,
+.dataTables_wrapper .dataTables_processing,
+.dataTables_wrapper .dataTables_paginate {
+    color: #5a5c69;
+}
+
+.dataTables_wrapper .dataTables_paginate .paginate_button {
+    color: #4e73df !important;
+    border: 1px solid #e3e6f0;
+    background: white;
+}
+
+.dataTables_wrapper .dataTables_paginate .paginate_button:hover {
+    background: #eaecf4 !important;
+    border-color: #e3e6f0;
+}
+
+.dataTables_wrapper .dataTables_paginate .paginate_button.current {
+    background: #4e73df !important;
+    border-color: #4e73df;
+    color: white !important;
+}
+
+/* Стили для форм в модальных окнах */
+.form-group label {
+    font-weight: 600;
+    color: #5a5c69;
+    margin-bottom: 0.5rem;
+}
+
+.form-control {
+    border-color: #d1d3e2;
+    border-radius: 0.35rem;
+}
+
+.form-control:focus {
+    border-color: #4e73df;
+    box-shadow: 0 0 0 0.2rem rgba(78, 115, 223, 0.25);
+}
+
+/* Стили для формы редактирования траектории */
+#trajectoryEditForm .form-group {
+    margin-bottom: 1.5rem;
+}
+
+#trajectoryEditForm label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-weight: 600;
+    color: #5a5c69;
+}
+
+#trajectoryEditForm .form-control {
+    width: 100%;
+    padding: 0.75rem;
+    font-size: 0.9rem;
+}
+
+#trajectoryEditForm textarea.form-control {
+    min-height: 120px;
+    resize: vertical;
+}
+
+#trajectoryEditForm select[multiple] {
+    min-height: 150px;
+}
+
+/* Стили для хлебных крошек */
+.breadcrumb {
+    background-color: transparent;
+    padding: 0;
+    margin-bottom: 1rem;
+}
+
+.breadcrumb-item + .breadcrumb-item::before {
+    content: ">";
+    color: #858796;
+}
+
+.breadcrumb-item a {
+    color: #4e73df;
+    text-decoration: none;
+}
+
+.breadcrumb-item a:hover {
+    color: #2e59d9;
+    text-decoration: underline;
+}
+
+.breadcrumb-item.active {
+    color: #858796;
+}
+
+/* Стили для боковой панели */
+.card .card-body .mb-3 {
+    border-bottom: 1px solid #e3e6f0;
+    padding-bottom: 0.75rem;
+}
+
+.card .card-body .mb-3:last-child {
+    border-bottom: none;
+    padding-bottom: 0;
+}
+
+/* Стили для быстрых действий */
+.d-grid.gap-2 .btn {
+    text-align: left;
+    padding: 0.5rem 0.75rem;
+}
+
+.d-grid.gap-2 .btn i {
+    margin-right: 0.5rem;
+    width: 16px;
+}
+
+/* Стили для индикатора загрузки в кнопке */
+.btn .fa-spinner {
+    margin-right: 0.25rem;
+}
+
+/* Стили для ошибок валидации */
+.invalid-feedback {
+    display: block;
+    color: #e74a3b;
+    font-size: 0.875rem;
+    margin-top: 0.25rem;
+}
+
+/* Стили для подсказок */
+.form-text {
+    color: #858796;
+    font-size: 0.875rem;
+    margin-top: 0.25rem;
+}
+
+/* Стили для кнопок в модальных окнах */
+.modal-footer .btn {
+    border-radius: 0.35rem;
+    font-weight: 600;
+}
+
+/* Стили для иконок */
+.fas {
+    margin-right: 0.25rem;
+}
+
+/* Стили для заголовков */
+.h3 {
+    font-weight: 700;
+    color: #5a5c69;
+}
+
+.text-muted {
+    color: #858796 !important;
+}
+
+/* Стили для карточек */
+.card {
+    border: none;
+    border-radius: 0.35rem;
+    box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.15);
+}
+
+.card-header {
+    background-color: #f8f9fc;
+    border-bottom: 1px solid #e3e6f0;
+    font-weight: 700;
+    color: #5a5c69;
+}
+
+/* Стили для кнопок действий */
+.btn-outline-info:hover,
+.btn-outline-primary:hover,
+.btn-outline-warning:hover,
+.btn-outline-danger:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+/* Стили для инпут групп */
+.input-group-append .btn {
+    border-top-left-radius: 0;
+    border-bottom-left-radius: 0;
+}
+
+.input-group .form-control {
+    border-top-right-radius: 0;
+    border-bottom-right-radius: 0;
+}

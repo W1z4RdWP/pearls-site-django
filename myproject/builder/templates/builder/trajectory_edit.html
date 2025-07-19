@@ -1,0 +1,244 @@
+{% extends 'layout.html' %}
+{% load static %}
+{% block title %}Редактирование траектории{% endblock %}
+
+{% block specific_styles %}
+<link rel="stylesheet" href="{% static 'builder/css/trajectory_managment.css' %}">
+<script src="{% static 'builder/js/trajectory_managment.js' %}"></script>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Заголовок -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item">
+                        <a href="{% url 'builder:trajectory_list' %}">
+                            <i class="fas fa-route"></i> Все траектории
+                        </a>
+                    </li>
+                    <li class="breadcrumb-item active" aria-current="page">
+                        Редактирование траектории
+                    </li>
+                </ol>
+            </nav>
+            <h1 class="h3 mb-0 text-gray-800">
+                <i class="fas fa-edit text-primary"></i> Редактирование траектории
+            </h1>
+            <p class="text-muted">Изменение параметров траектории "{{ trajectory.name }}"</p>
+        </div>
+    </div>
+
+    <!-- Форма редактирования -->
+    <div class="row">
+        <div class="col-lg-8">
+            <div class="card shadow">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">Основные параметры</h6>
+                </div>
+                <div class="card-body">
+                    <form id="trajectoryEditForm" method="post">
+                        {% csrf_token %}
+                        
+                        <!-- Название траектории -->
+                        <div class="form-group">
+                            <label for="{{ form.name.id_for_label }}" class="font-weight-bold">
+                                <i class="fas fa-tag text-primary"></i> Название траектории *
+                            </label>
+                            {{ form.name }}
+                            {% if form.name.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {% for error in form.name.errors %}
+                                        {{ error }}
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                            <small class="form-text text-muted">
+                                Уникальное название для идентификации траектории
+                            </small>
+                        </div>
+
+                        <!-- Описание траектории -->
+                        <div class="form-group">
+                            <label for="{{ form.description.id_for_label }}" class="font-weight-bold">
+                                <i class="fas fa-align-left text-info"></i> Описание
+                            </label>
+                            {{ form.description }}
+                            {% if form.description.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {% for error in form.description.errors %}
+                                        {{ error }}
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                            <small class="form-text text-muted">
+                                Подробное описание траектории обучения
+                            </small>
+                        </div>
+
+                        <!-- Группы пользователей -->
+                        <div class="form-group">
+                            <label for="{{ form.groups.id_for_label }}" class="font-weight-bold">
+                                <i class="fas fa-users text-success"></i> Назначенные группы
+                            </label>
+                            {{ form.groups }}
+                            {% if form.groups.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {% for error in form.groups.errors %}
+                                        {{ error }}
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                            <small class="form-text text-muted">
+                                Выберите группы пользователей, которым будет назначена эта траектория
+                            </small>
+                        </div>
+
+                        <!-- Кнопки действий -->
+                        <div class="form-group mt-4">
+                            <button type="submit" class="btn btn-primary" id="saveButton">
+                                <i class="fas fa-save"></i> Сохранить изменения
+                            </button>
+                            <a href="{% url 'builder:trajectory_list' %}" class="btn btn-secondary">
+                                <i class="fas fa-times"></i> Отмена
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Боковая панель с информацией -->
+        <div class="col-lg-4">
+            <!-- Информация о траектории -->
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-info">
+                        <i class="fas fa-info-circle"></i> Информация о траектории
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <strong>ID траектории:</strong>
+                        <span class="badge badge-secondary">{{ trajectory.id }}</span>
+                    </div>
+                    <div class="mb-3">
+                        <strong>Курсов в траектории:</strong>
+                        <span class="badge badge-primary">{{ trajectory.courses.count }}</span>
+                    </div>
+                    <div class="mb-3">
+                        <strong>Назначенных групп:</strong>
+                        <span class="badge badge-success">{{ trajectory.groups.count }}</span>
+                    </div>
+                    <div class="mb-3">
+                        <strong>Пользователей:</strong>
+                        <span class="badge badge-info">{{ trajectory.usercoursetrajectory_set.count }}</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Быстрые действия -->
+            <div class="card shadow">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-warning">
+                        <i class="fas fa-bolt"></i> Быстрые действия
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="d-grid gap-2">
+                        <a href="#" class="btn btn-outline-warning btn-sm" onclick="manageCourses({{ trajectory.id }})">
+                            <i class="fas fa-graduation-cap"></i> Управление курсами
+                        </a>
+                        <a href="#" class="btn btn-outline-info btn-sm" onclick="viewTrajectory({{ trajectory.id }})">
+                            <i class="fas fa-eye"></i> Просмотр траектории
+                        </a>
+                        <button type="button" class="btn btn-outline-danger btn-sm" 
+                                onclick="deleteTrajectory({{ trajectory.id }}, '{{ trajectory.name }}')">
+                            <i class="fas fa-trash"></i> Удалить траекторию
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Модальное окно просмотра траектории (для быстрых действий) -->
+<div class="modal fade" id="viewTrajectoryModal" tabindex="-1" role="dialog">
+    <div class="modal-dialog modal-xl" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-route text-info"></i> Детальная информация о траектории
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body" id="trajectoryDetails">
+                <!-- Содержимое будет загружено через AJAX -->
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="fas fa-times"></i> Закрыть
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Дополнительная обработка для формы редактирования
+$(document).ready(function() {
+    // Обработка отправки формы редактирования
+    $('#trajectoryEditForm').on('submit', function(e) {
+        e.preventDefault();
+        
+        var form = $(this);
+        var submitBtn = $('#saveButton');
+        var originalText = submitBtn.html();
+        
+        // Показываем индикатор загрузки
+        submitBtn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Сохранение...');
+        
+        $.ajax({
+            url: form.attr('action'),
+            method: 'POST',
+            data: form.serialize(),
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            success: function(data) {
+                if (data.success) {
+                    showNotification(data.message, 'success');
+                    setTimeout(function() {
+                        window.location.href = data.redirect_url;
+                    }, 1000);
+                } else {
+                    showNotification('Ошибка при сохранении', 'error');
+                }
+            },
+            error: function(xhr, status, error) {
+                if (xhr.responseJSON && xhr.responseJSON.errors) {
+                    // Показываем ошибки валидации
+                    var errorHtml = '<ul>';
+                    for (var field in xhr.responseJSON.errors) {
+                        xhr.responseJSON.errors[field].forEach(function(error) {
+                            errorHtml += '<li>' + error + '</li>';
+                        });
+                    }
+                    errorHtml += '</ul>';
+                    showNotification('Ошибки валидации: ' + errorHtml, 'error');
+                } else {
+                    showNotification('Ошибка при сохранении: ' + error, 'error');
+                }
+            },
+            complete: function() {
+                // Восстанавливаем кнопку
+                submitBtn.prop('disabled', false).html(originalText);
+            }
+        });
+    });
+});
+</script>
+{% endblock %} 

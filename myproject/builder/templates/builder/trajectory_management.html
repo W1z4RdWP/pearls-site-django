@@ -1,5 +1,14 @@
 {% extends 'layout.html' %}
+{% load static %}
 {% block title %}Управление траекториями{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'builder/css/trajectory_managment.css' %}">
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'builder/js/trajectory_managment.js' %}"></script>
+{% endblock %}
 
 {% block content %}
 <div class="container-fluid">
@@ -189,10 +198,10 @@
                                 <div>
                                     <h6 class="mb-1">{{ lesson.title }}</h6>
                                     <small class="text-muted">
-                                        {% if lesson.course %}
-                                            Курс: {{ lesson.course.title }}
+                                        {% if lesson.category %}
+                                            Категория: {{ lesson.category.name }}
                                         {% else %}
-                                            Без курса
+                                            Без категории
                                         {% endif %}
                                     </small>
                                 </div>
@@ -216,7 +225,7 @@
             <div class="card shadow">
                 <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
                     <h6 class="m-0 font-weight-bold text-info">Последние траектории</h6>
-                    <a href="#" class="btn btn-info btn-sm">Все траектории</a>
+                    <a href="{% url 'builder:trajectory_list' %}" class="btn btn-info btn-sm">Все траектории</a>
                 </div>
                 <div class="card-body">
                     {% if recent_trajectories %}
@@ -245,7 +254,7 @@
             <div class="card shadow">
                 <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
                     <h6 class="m-0 font-weight-bold text-warning">Последние тесты</h6>
-                    <a href="#" class="btn btn-warning btn-sm">Все тесты</a>
+                    <a href="{% url 'quizzes:quizzes' %}" class="btn btn-warning btn-sm">Все тесты</a>
                 </div>
                 <div class="card-body">
                     {% if recent_quizzes %}
@@ -381,190 +390,4 @@
     </div>
 </div>
 
-<script>
-function showCreateCourseModal() {
-    console.log('Открытие модального окна курса');
-    var modal = new bootstrap.Modal(document.getElementById('createCourseModal'));
-    modal.show();
-}
-
-function showCreateTrajectoryModal() {
-    console.log('Открытие модального окна траектории');
-    var modal = new bootstrap.Modal(document.getElementById('createTrajectoryModal'));
-    modal.show();
-}
-
-function showCreateQuizModal() {
-    console.log('Открытие модального окна теста');
-    var modal = new bootstrap.Modal(document.getElementById('createQuizModal'));
-    modal.show();
-}
-
-// Обработка отправки форм
-$(document).ready(function() {
-    console.log('DOM загружен, инициализация обработчиков форм');
-    
-    // Обработка создания курса
-    $('#createCourseForm').on('submit', function(e) {
-        e.preventDefault();
-        console.log('Отправка формы курса');
-        var form = $(this);
-        var submitBtn = form.find('button[type="submit"]');
-        var originalText = submitBtn.text();
-        
-        // Показываем индикатор загрузки
-        submitBtn.prop('disabled', true).text('Создание...');
-        
-        // Создаем FormData для отправки файлов
-        var formData = new FormData(form[0]);
-        
-        $.ajax({
-            url: form.attr('action'),
-            method: 'POST',
-            data: formData,
-            processData: false,
-            contentType: false,
-            headers: {
-                'X-Requested-With': 'XMLHttpRequest'
-            },
-            success: function(data) {
-                console.log('Ответ сервера:', data);
-                if (data.success) {
-                    // Показываем уведомление об успехе
-                    showNotification('Курс успешно создан!', 'success');
-                    var modal = bootstrap.Modal.getInstance(document.getElementById('createCourseModal'));
-                    modal.hide();
-                    // Перезагружаем страницу через небольшую задержку
-                    setTimeout(function() {
-                        location.reload();
-                    }, 1000);
-                } else {
-                    showNotification('Ошибка при создании курса', 'error');
-                }
-            },
-            error: function(xhr, status, error) {
-                console.error('Ошибка AJAX:', error);
-                console.error('Статус:', xhr.status);
-                console.error('Ответ:', xhr.responseText);
-                showNotification('Ошибка при создании курса: ' + error, 'error');
-            },
-            complete: function() {
-                // Восстанавливаем кнопку
-                submitBtn.prop('disabled', false).text(originalText);
-            }
-        });
-    });
-
-    // Обработка создания траектории
-    $('#createTrajectoryForm').on('submit', function(e) {
-        e.preventDefault();
-        console.log('Отправка формы траектории');
-        var form = $(this);
-        var submitBtn = form.find('button[type="submit"]');
-        var originalText = submitBtn.text();
-        
-        // Показываем индикатор загрузки
-        submitBtn.prop('disabled', true).text('Создание...');
-        
-        $.ajax({
-            url: form.attr('action'),
-            method: 'POST',
-            data: form.serialize(),
-            headers: {
-                'X-Requested-With': 'XMLHttpRequest'
-            },
-            success: function(data) {
-                console.log('Ответ сервера:', data);
-                if (data.success) {
-                    showNotification('Траектория успешно создана!', 'success');
-                    var modal = bootstrap.Modal.getInstance(document.getElementById('createTrajectoryModal'));
-                    modal.hide();
-                    setTimeout(function() {
-                        location.reload();
-                    }, 1000);
-                } else {
-                    showNotification('Ошибка при создании траектории', 'error');
-                }
-            },
-            error: function(xhr, status, error) {
-                console.error('Ошибка AJAX:', error);
-                console.error('Статус:', xhr.status);
-                console.error('Ответ:', xhr.responseText);
-                showNotification('Ошибка при создании траектории: ' + error, 'error');
-            },
-            complete: function() {
-                submitBtn.prop('disabled', false).text(originalText);
-            }
-        });
-    });
-
-    // Обработка создания теста
-    $('#createQuizForm').on('submit', function(e) {
-        e.preventDefault();
-        console.log('Отправка формы теста');
-        var form = $(this);
-        var submitBtn = form.find('button[type="submit"]');
-        var originalText = submitBtn.text();
-        
-        // Показываем индикатор загрузки
-        submitBtn.prop('disabled', true).text('Создание...');
-        
-        $.ajax({
-            url: form.attr('action'),
-            method: 'POST',
-            data: form.serialize(),
-            headers: {
-                'X-Requested-With': 'XMLHttpRequest'
-            },
-            success: function(data) {
-                console.log('Ответ сервера:', data);
-                if (data.success) {
-                    showNotification('Тест успешно создан!', 'success');
-                    var modal = bootstrap.Modal.getInstance(document.getElementById('createQuizModal'));
-                    modal.hide();
-                    setTimeout(function() {
-                        location.reload();
-                    }, 1000);
-                } else {
-                    showNotification('Ошибка при создании теста', 'error');
-                }
-            },
-            error: function(xhr, status, error) {
-                console.error('Ошибка AJAX:', error);
-                console.error('Статус:', xhr.status);
-                console.error('Ответ:', xhr.responseText);
-                showNotification('Ошибка при создании теста: ' + error, 'error');
-            },
-            complete: function() {
-                submitBtn.prop('disabled', false).text(originalText);
-            }
-        });
-    });
-
-    // Очистка форм при закрытии модальных окон
-    $('.modal').on('hidden.bs.modal', function() {
-        $(this).find('form')[0].reset();
-    });
-});
-
-// Функция для показа уведомлений
-function showNotification(message, type) {
-    console.log('Показ уведомления:', message, type);
-    // Создаем элемент уведомления
-    var alertClass = type === 'success' ? 'alert-success' : 'alert-danger';
-    var icon = type === 'success' ? 'fas fa-check-circle' : 'fas fa-exclamation-circle';
-    
-    var notification = $('<div class="alert ' + alertClass + ' alert-dismissible fade show" role="alert">' +
-        '<i class="' + icon + '"></i> ' + message +
-        '<button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>');
-    
-    // Добавляем уведомление в начало страницы
-    $('.container-fluid').prepend(notification);
-    
-    // Автоматически скрываем через 5 секунд
-    setTimeout(function() {
-        notification.alert('close');
-    }, 5000);
-}
-</script>
 {% endblock %} 
