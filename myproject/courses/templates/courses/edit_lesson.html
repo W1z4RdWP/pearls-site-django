@@ -24,7 +24,7 @@
             
             <div class="button-group mt-4">
                 <button type="submit" class="btn btn-primary">Сохранить изменения</button>
-                <a href="{% url 'lesson_detail' course.slug lesson.id %}" class="btn btn-secondary">Отмена</a>
+                <a href="{% url 'courses:lesson_detail' course.slug lesson.id %}" class="btn btn-secondary">Отмена</a>
             </div>
         </form>
     </div>

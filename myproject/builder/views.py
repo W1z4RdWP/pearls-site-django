@@ -20,6 +20,8 @@ from courses.models import UserLessonTrajectory
 from django.utils import timezone
 from django.contrib.auth.models import User
 from django.template.loader import render_to_string
+from courses.models import Trajectory, TrajectoryCourse, UserCourseTrajectory
+from quizzes.models import Quiz, Question, Answer
 
 
 def get_category_tree_data(category_id):
@@ -1357,3 +1359,34 @@ def save_terms(request):
         return JsonResponse({'ok': True})
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=400)
+
+
+class TrajectoryManagementView(TemplateView):
+    """
+    Централизованная панель управления траекториями для администраторов.
+    Позволяет создавать и управлять уроками, курсами, траекториями и тестами.
+    """
+    template_name = 'builder/trajectory_management.html'
+
+    def dispatch(self, request, *args, **kwargs):
+        if not request.user.is_authenticated or not (request.user.is_staff or request.user.is_superuser):
+            return render(request, '403.html', status=403)
+        return super().dispatch(request, *args, **kwargs)
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        
+        # Статистика для дашборда
+        context['total_courses'] = Course.objects.count()
+        context['total_lessons'] = Lesson.objects.count()
+        context['total_trajectories'] = Trajectory.objects.count()
+        context['total_quizzes'] = Quiz.objects.count()
+        context['total_users'] = User.objects.count()
+        
+        # Последние созданные элементы
+        context['recent_courses'] = Course.objects.order_by('-created_at')[:5]
+        context['recent_lessons'] = Lesson.objects.order_by('-id')[:5]
+        context['recent_trajectories'] = Trajectory.objects.order_by('-id')[:5]
+        context['recent_quizzes'] = Quiz.objects.order_by('-id')[:5]
+        
+        return context

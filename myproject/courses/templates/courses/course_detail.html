@@ -41,7 +41,7 @@
             <h3>Уроки курса</h3>
             <div class="list-group">
                 {% for lesson in lessons %} 
-                <a href="{% url 'lesson_detail' course.slug lesson.id %}" 
+                <a href="{% url 'courses:lesson_detail' course.slug lesson.id %}" 
                    class="list-group-item list-group-item-action">
                     {{ lesson.title }}
                     {% if user_course and user_course.status in 'started,completed' and lesson.id in completed_lessons_ids %}
@@ -58,7 +58,7 @@
                     {% if user_course %}
                         {# Статус: Курс доступен #}
                         {% if user_course.status == 'available' %}
-                            <form method="POST" action="{% url 'course_detail' slug=course.slug %}" style='text-align: center;'>
+                            <form method="POST" action="{% url 'courses:course_detail' slug=course.slug %}" style='text-align: center;'>
                                 {% csrf_token %}
                                 <button type="submit" name="start_course" class="btn-mini add">
                                     <i class="fa fa-play"></i> <span class="d-none d-sm-inline">Начать</span>
@@ -74,14 +74,14 @@
                                 {% if course.final_quiz and not show_final_quiz %}
                                     <div class="alert alert-info">
                                         Для завершения курса необходимо пройти финальный тест
-                                        <a href="{% url 'quiz_start' quiz_id=course.final_quiz.id %}" class="btn-modern">
+                                        <a href="{% url 'quizzes:quiz_start' quiz_id=course.final_quiz.id %}" class="btn-modern">
                                             <i class="fa fa-check-circle"></i> Пройти тест
                                         </a>
                                     </div>
                                 {% endif %}
                             {% endif %}
                             {% if next_lesson.id %}
-                                <a href="{% url 'lesson_detail' course.slug next_lesson.id %}" 
+                                <a href="{% url 'courses:lesson_detail' course.slug next_lesson.id %}" 
                                 class="btn-modern">
                                     <i class="fa fa-arrow-right"></i> Продолжить обучение
                                 </a>
@@ -101,15 +101,15 @@
                 {# Админ-панель #}
                 {% if user.is_authenticated and user.is_staff %}
                     <div class="course-actions" style="display: flex; flex-wrap: wrap; gap: 4px;">
-                        <a href="{% url 'add_lesson' course.slug %}" class="btn-mini add" title="Добавить урок">
+                        <a href="{% url 'courses:add_lesson' course.slug %}" class="btn-mini add" title="Добавить урок">
                             <i class="fa fa-plus"></i>
                             <span class="d-none d-sm-inline">Добавить</span>
                         </a>
-                        <a href="{% url 'edit_course' course.slug %}" class="btn-mini edit" title="Редактировать">
+                        <a href="{% url 'courses:edit_course' course.slug %}" class="btn-mini edit" title="Редактировать">
                             <i class="fa fa-edit"></i>
                             <span class="d-none d-sm-inline">Редактировать</span>
                         </a>
-                        <form method="POST" action="{% url 'delete_course' course.slug %}" style="display: inline;">
+                        <form method="POST" action="{% url 'courses:delete_course' course.slug %}" style="display: inline;">
                             {% csrf_token %}
                             <button type="submit" class="btn-mini delete"
                                     title="Удалить курс"

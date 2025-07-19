@@ -1,5 +1,5 @@
 from django.shortcuts import render, redirect, get_object_or_404
-from django.http import HttpRequest, HttpResponse
+from django.http import HttpRequest, HttpResponse, JsonResponse
 from django.views.decorators.http import require_http_methods
 from django.db.models import Count, Exists, OuterRef
 from django.contrib import messages  # Добавлен импорт
@@ -86,7 +86,7 @@ def get_questions(request, quiz_id: int = None, is_start: bool = False) -> HttpR
                 'user': request.user.username if request.user.is_authenticated else 'Anonymous'
             }
         )
-            return redirect('get-finish')
+            return redirect('quizzes:get-finish')
         
         # Обновление сессии
         request.session['current_question_id'] = question.id
@@ -297,10 +297,10 @@ def get_finish(request) -> HttpResponse:
                 user=request.user, 
                 course=course
             ).update(is_completed=True)
-            return redirect('course_detail', slug=course.slug)
+            return redirect('courses:course_detail', slug=course.slug)
         else:
             messages.error(request, "Тест не пройден. Попробуйте снова!")
-            return redirect('quiz_start', quiz_id=quiz.id)
+            return redirect('quizzes:quiz_start', quiz_id=quiz.id)
 
     context = {
         'score': score,
@@ -333,6 +333,29 @@ def start_quiz_handler(request):
         request.session['quiz_id'] = int(quiz_id)
         request.session['score'] = 0
         request.session['current_question_id'] = None
-        return redirect('quiz_start', quiz_id=quiz_id)
+        return redirect('quizzes:quiz_start', quiz_id=quiz_id)
     
     return redirect('quizzes')
+
+
+from django.views.generic import CreateView
+from django.contrib.auth.mixins import UserPassesTestMixin
+from django.http import JsonResponse
+
+class QuizCreateView(UserPassesTestMixin, CreateView):
+    """
+    Создание нового теста.
+    """
+    model = Quiz
+    fields = ['name']
+    template_name = 'quizzes/quiz_form.html'
+    success_url = '/builder/trajectory-management/'
+
+    def test_func(self):
+        return self.request.user.is_staff or self.request.user.is_superuser
+
+    def form_valid(self, form):
+        response = super().form_valid(form)
+        if self.request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return JsonResponse({'success': True, 'id': self.object.id, 'name': self.object.name})
+        return response

@@ -44,4 +44,5 @@ urlpatterns = [
     path('dictionary/reorder/', views.dictionary_reorder, name='dictionary_reorder'),
     path('actualize_version/', views.actualize_version, name='actualize_version'),
     path('dictionary/save_terms/', views.save_terms, name='save_terms'),
+    path('trajectory-management/', views.TrajectoryManagementView.as_view(), name='trajectory_management'),
 ]
