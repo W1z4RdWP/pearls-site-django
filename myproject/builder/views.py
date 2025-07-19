@@ -1389,4 +1389,8 @@ class TrajectoryManagementView(TemplateView):
         context['recent_trajectories'] = Trajectory.objects.order_by('-id')[:5]
         context['recent_quizzes'] = Quiz.objects.order_by('-id')[:5]
         
+        # Все группы Django для выбора в модальных окнах
+        from django.contrib.auth.models import Group
+        context['all_groups'] = Group.objects.all()
+        
         return context

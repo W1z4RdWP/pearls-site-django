@@ -30,6 +30,30 @@ class CourseForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         self.fields['image'].help_text = "Рекомендуемый размер: 1200x600 пикселей"
 
+class CourseModalForm(forms.ModelForm):
+    """
+    Форма для создания курса в модальном окне (без captcha).
+    """
+    class Meta:
+        model = Course
+        fields = ['title', 'description', 'image', 'slug', 'allowed_groups']
+        labels = {'slug': 'ЧПУ (оставьте пустым для автогенерации)'}
+        required = {'slug': False}
+        widgets = {
+            'description': forms.Textarea(attrs={'rows': 4, 'class': 'form-control'}),
+            'allowed_groups': forms.SelectMultiple(attrs={'class': 'form-control'}),
+        }
+
+    def clean_slug(self):
+        slug = self.cleaned_data.get('slug')
+        if slug and not re.match(r'^[-a-zA-Z0-9_]+$', slug):
+            raise forms.ValidationError("ЧПУ может содержать только латинские буквы, цифры, дефисы и подчеркивания")
+        return slug
+    
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['image'].help_text = "Рекомендуемый размер: 1200x600 пикселей"
+
 class LessonForm(forms.ModelForm):
     class Meta:
         model = Lesson

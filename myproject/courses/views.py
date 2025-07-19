@@ -7,7 +7,7 @@ from django.db import transaction, models
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.views.decorators.http import require_POST, require_http_methods
 from django.http import JsonResponse
-from .forms import CourseForm, LessonForm
+from .forms import CourseForm, CourseModalForm, LessonForm
 from .models import Course, Lesson, UserLessonTrajectory, Trajectory, UserCourseTrajectory, TrajectoryCourse
 from myapp.models import UserProgress, UserCourse, QuizResult
 from myapp.views import is_admin, is_author_or_admin
@@ -374,7 +374,12 @@ def lesson_detail(request, course_slug, lesson_id):
 @user_passes_test(is_admin, login_url='/')
 def create_course(request):
     if request.method == 'POST':
-        form = CourseForm(request.POST, request.FILES)
+        # Используем разные формы в зависимости от типа запроса
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            form = CourseModalForm(request.POST, request.FILES)
+        else:
+            form = CourseForm(request.POST, request.FILES)
+            
         if form.is_valid():
             course = form.save(commit=False)
             course.author = request.user
@@ -391,6 +396,7 @@ def create_course(request):
                 return JsonResponse({'success': True, 'id': course.id, 'title': course.title})
             return redirect('home')
     else:
+        # Используем CourseForm для обычных GET запросов
         form = CourseForm()
     return render(request, 'courses/create_course.html', {'form': form})
 

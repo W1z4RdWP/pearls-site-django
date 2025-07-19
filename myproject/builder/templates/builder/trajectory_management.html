@@ -107,9 +107,9 @@
                                     <i class="fas fa-graduation-cap fa-3x text-success mb-3"></i>
                                     <h5 class="card-title">Создать курс</h5>
                                     <p class="card-text">Создать новый курс обучения</p>
-                                    <a href="#" class="btn btn-success btn-sm" onclick="showCreateCourseModal()">
+                                    <button type="button" class="btn btn-success btn-sm" onclick="showCreateCourseModal()">
                                         <i class="fas fa-plus"></i> Создать
-                                    </a>
+                                    </button>
                                 </div>
                             </div>
                         </div>
@@ -119,9 +119,9 @@
                                     <i class="fas fa-route fa-3x text-info mb-3"></i>
                                     <h5 class="card-title">Создать траекторию</h5>
                                     <p class="card-text">Настроить последовательность курсов</p>
-                                    <a href="#" class="btn btn-info btn-sm" onclick="showCreateTrajectoryModal()">
+                                    <button type="button" class="btn btn-info btn-sm" onclick="showCreateTrajectoryModal()">
                                         <i class="fas fa-plus"></i> Создать
-                                    </a>
+                                    </button>
                                 </div>
                             </div>
                         </div>
@@ -131,9 +131,9 @@
                                     <i class="fas fa-question-circle fa-3x text-warning mb-3"></i>
                                     <h5 class="card-title">Создать тест</h5>
                                     <p class="card-text">Создать новый тест или квиз</p>
-                                    <a href="#" class="btn btn-warning btn-sm" onclick="showCreateQuizModal()">
+                                    <button type="button" class="btn btn-warning btn-sm" onclick="showCreateQuizModal()">
                                         <i class="fas fa-plus"></i> Создать
-                                    </a>
+                                    </button>
                                 </div>
                             </div>
                         </div>
@@ -278,11 +278,9 @@
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title">Создать новый курс</h5>
-                <button type="button" class="close" data-dismiss="modal">
-                    <span>&times;</span>
-                </button>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-            <form id="createCourseForm" method="post" action="{% url 'courses:create-course' %}">
+            <form id="createCourseForm" method="post" action="{% url 'courses:create-course' %}" enctype="multipart/form-data">
                 {% csrf_token %}
                 <div class="modal-body">
                     <div class="form-group">
@@ -294,16 +292,26 @@
                         <textarea class="form-control" id="course_description" name="description" rows="4"></textarea>
                     </div>
                     <div class="form-group">
+                        <label for="course_image">Изображение курса</label>
+                        <input type="file" class="form-control-file" id="course_image" name="image" accept="image/*">
+                        <small class="form-text text-muted">Рекомендуемый размер: 1200x600 пикселей</small>
+                    </div>
+                    <div class="form-group">
+                        <label for="course_slug">ЧПУ (оставьте пустым для автогенерации)</label>
+                        <input type="text" class="form-control" id="course_slug" name="slug">
+                        <small class="form-text text-muted">Может содержать только латинские буквы, цифры, дефисы и подчеркивания</small>
+                    </div>
+                    <div class="form-group">
                         <label for="course_groups">Доступен для групп</label>
                         <select class="form-control" id="course_groups" name="allowed_groups" multiple>
-                            {% for group in request.user.groups.all %}
-                            <option value="{{ group.id }}">{{ group.name }}</option>
+                            {% for group in all_groups %}
+                                <option value="{{ group.id }}">{{ group.name }}</option>
                             {% endfor %}
                         </select>
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Отмена</button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
                     <button type="submit" class="btn btn-primary">Создать курс</button>
                 </div>
             </form>
@@ -317,9 +325,7 @@
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title">Создать новую траекторию</h5>
-                <button type="button" class="close" data-dismiss="modal">
-                    <span>&times;</span>
-                </button>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <form id="createTrajectoryForm" method="post" action="{% url 'courses:trajectory_create' %}">
                 {% csrf_token %}
@@ -335,14 +341,14 @@
                     <div class="form-group">
                         <label for="trajectory_groups">Назначить группам</label>
                         <select class="form-control" id="trajectory_groups" name="groups" multiple>
-                            {% for group in request.user.groups.all %}
+                            {% for group in all_groups %}
                             <option value="{{ group.id }}">{{ group.name }}</option>
                             {% endfor %}
                         </select>
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Отмена</button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
                     <button type="submit" class="btn btn-primary">Создать траекторию</button>
                 </div>
             </form>
@@ -356,9 +362,7 @@
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title">Создать новый тест</h5>
-                <button type="button" class="close" data-dismiss="modal">
-                    <span>&times;</span>
-                </button>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <form id="createQuizForm" method="post" action="{% url 'quizzes:quiz_create' %}">
                 {% csrf_token %}
@@ -369,7 +373,7 @@
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Отмена</button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
                     <button type="submit" class="btn btn-primary">Создать тест</button>
                 </div>
             </form>
@@ -379,51 +383,188 @@
 
 <script>
 function showCreateCourseModal() {
-    $('#createCourseModal').modal('show');
+    console.log('Открытие модального окна курса');
+    var modal = new bootstrap.Modal(document.getElementById('createCourseModal'));
+    modal.show();
 }
 
 function showCreateTrajectoryModal() {
-    $('#createTrajectoryModal').modal('show');
+    console.log('Открытие модального окна траектории');
+    var modal = new bootstrap.Modal(document.getElementById('createTrajectoryModal'));
+    modal.show();
 }
 
 function showCreateQuizModal() {
-    $('#createQuizModal').modal('show');
+    console.log('Открытие модального окна теста');
+    var modal = new bootstrap.Modal(document.getElementById('createQuizModal'));
+    modal.show();
 }
 
 // Обработка отправки форм
 $(document).ready(function() {
+    console.log('DOM загружен, инициализация обработчиков форм');
+    
+    // Обработка создания курса
     $('#createCourseForm').on('submit', function(e) {
         e.preventDefault();
-        $.post($(this).attr('action'), $(this).serialize(), function(data) {
-            if (data.success) {
-                location.reload();
-            } else {
-                alert('Ошибка при создании курса');
+        console.log('Отправка формы курса');
+        var form = $(this);
+        var submitBtn = form.find('button[type="submit"]');
+        var originalText = submitBtn.text();
+        
+        // Показываем индикатор загрузки
+        submitBtn.prop('disabled', true).text('Создание...');
+        
+        // Создаем FormData для отправки файлов
+        var formData = new FormData(form[0]);
+        
+        $.ajax({
+            url: form.attr('action'),
+            method: 'POST',
+            data: formData,
+            processData: false,
+            contentType: false,
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            success: function(data) {
+                console.log('Ответ сервера:', data);
+                if (data.success) {
+                    // Показываем уведомление об успехе
+                    showNotification('Курс успешно создан!', 'success');
+                    var modal = bootstrap.Modal.getInstance(document.getElementById('createCourseModal'));
+                    modal.hide();
+                    // Перезагружаем страницу через небольшую задержку
+                    setTimeout(function() {
+                        location.reload();
+                    }, 1000);
+                } else {
+                    showNotification('Ошибка при создании курса', 'error');
+                }
+            },
+            error: function(xhr, status, error) {
+                console.error('Ошибка AJAX:', error);
+                console.error('Статус:', xhr.status);
+                console.error('Ответ:', xhr.responseText);
+                showNotification('Ошибка при создании курса: ' + error, 'error');
+            },
+            complete: function() {
+                // Восстанавливаем кнопку
+                submitBtn.prop('disabled', false).text(originalText);
             }
         });
     });
 
+    // Обработка создания траектории
     $('#createTrajectoryForm').on('submit', function(e) {
         e.preventDefault();
-        $.post($(this).attr('action'), $(this).serialize(), function(data) {
-            if (data.success) {
-                location.reload();
-            } else {
-                alert('Ошибка при создании траектории');
+        console.log('Отправка формы траектории');
+        var form = $(this);
+        var submitBtn = form.find('button[type="submit"]');
+        var originalText = submitBtn.text();
+        
+        // Показываем индикатор загрузки
+        submitBtn.prop('disabled', true).text('Создание...');
+        
+        $.ajax({
+            url: form.attr('action'),
+            method: 'POST',
+            data: form.serialize(),
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            success: function(data) {
+                console.log('Ответ сервера:', data);
+                if (data.success) {
+                    showNotification('Траектория успешно создана!', 'success');
+                    var modal = bootstrap.Modal.getInstance(document.getElementById('createTrajectoryModal'));
+                    modal.hide();
+                    setTimeout(function() {
+                        location.reload();
+                    }, 1000);
+                } else {
+                    showNotification('Ошибка при создании траектории', 'error');
+                }
+            },
+            error: function(xhr, status, error) {
+                console.error('Ошибка AJAX:', error);
+                console.error('Статус:', xhr.status);
+                console.error('Ответ:', xhr.responseText);
+                showNotification('Ошибка при создании траектории: ' + error, 'error');
+            },
+            complete: function() {
+                submitBtn.prop('disabled', false).text(originalText);
             }
         });
     });
 
+    // Обработка создания теста
     $('#createQuizForm').on('submit', function(e) {
         e.preventDefault();
-        $.post($(this).attr('action'), $(this).serialize(), function(data) {
-            if (data.success) {
-                location.reload();
-            } else {
-                alert('Ошибка при создании теста');
+        console.log('Отправка формы теста');
+        var form = $(this);
+        var submitBtn = form.find('button[type="submit"]');
+        var originalText = submitBtn.text();
+        
+        // Показываем индикатор загрузки
+        submitBtn.prop('disabled', true).text('Создание...');
+        
+        $.ajax({
+            url: form.attr('action'),
+            method: 'POST',
+            data: form.serialize(),
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            success: function(data) {
+                console.log('Ответ сервера:', data);
+                if (data.success) {
+                    showNotification('Тест успешно создан!', 'success');
+                    var modal = bootstrap.Modal.getInstance(document.getElementById('createQuizModal'));
+                    modal.hide();
+                    setTimeout(function() {
+                        location.reload();
+                    }, 1000);
+                } else {
+                    showNotification('Ошибка при создании теста', 'error');
+                }
+            },
+            error: function(xhr, status, error) {
+                console.error('Ошибка AJAX:', error);
+                console.error('Статус:', xhr.status);
+                console.error('Ответ:', xhr.responseText);
+                showNotification('Ошибка при создании теста: ' + error, 'error');
+            },
+            complete: function() {
+                submitBtn.prop('disabled', false).text(originalText);
             }
         });
     });
+
+    // Очистка форм при закрытии модальных окон
+    $('.modal').on('hidden.bs.modal', function() {
+        $(this).find('form')[0].reset();
+    });
 });
+
+// Функция для показа уведомлений
+function showNotification(message, type) {
+    console.log('Показ уведомления:', message, type);
+    // Создаем элемент уведомления
+    var alertClass = type === 'success' ? 'alert-success' : 'alert-danger';
+    var icon = type === 'success' ? 'fas fa-check-circle' : 'fas fa-exclamation-circle';
+    
+    var notification = $('<div class="alert ' + alertClass + ' alert-dismissible fade show" role="alert">' +
+        '<i class="' + icon + '"></i> ' + message +
+        '<button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>');
+    
+    // Добавляем уведомление в начало страницы
+    $('.container-fluid').prepend(notification);
+    
+    // Автоматически скрываем через 5 секунд
+    setTimeout(function() {
+        notification.alert('close');
+    }, 5000);
+}
 </script>
 {% endblock %} 
