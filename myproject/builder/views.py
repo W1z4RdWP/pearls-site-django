@@ -1420,6 +1420,9 @@ class TrajectoryListView(ListView):
         context['total_courses'] = Course.objects.count()
         context['total_groups'] = Group.objects.count()
         
+        # Добавляем все группы для модального окна создания траектории
+        context['all_groups'] = Group.objects.all().order_by('name')
+        
         # Добавляем поиск
         search_query = self.request.GET.get('search', '')
         if search_query:
@@ -1638,6 +1641,79 @@ def trajectory_course_add(request, trajectory_id):
 
 @csrf_exempt
 @login_required
+def trajectory_course_add_multiple(request, trajectory_id):
+    """
+    AJAX представление для добавления нескольких курсов в траекторию
+    """
+    if not (request.user.is_staff or request.user.is_superuser):
+        return JsonResponse({'success': False, 'error': 'Недостаточно прав'}, status=403)
+    
+    if request.method != 'POST':
+        return JsonResponse({'success': False, 'error': 'Метод не поддерживается'}, status=405)
+    
+    try:
+        data = json.loads(request.body)
+        course_ids = data.get('course_ids', [])
+        
+        if not course_ids or not isinstance(course_ids, list):
+            return JsonResponse({'success': False, 'error': 'Список ID курсов обязателен'}, status=400)
+        
+        # Проверяем существование траектории
+        try:
+            trajectory = Trajectory.objects.get(id=trajectory_id)
+        except Trajectory.DoesNotExist:
+            return JsonResponse({'success': False, 'error': 'Траектория не найдена'}, status=404)
+        
+        # Проверяем существование курсов
+        from courses.models import Course
+        existing_courses = Course.objects.filter(id__in=course_ids)
+        if len(existing_courses) != len(course_ids):
+            return JsonResponse({'success': False, 'error': 'Некоторые курсы не найдены'}, status=400)
+        
+        # Получаем максимальный порядок в траектории
+        max_order = TrajectoryCourse.objects.filter(trajectory_id=trajectory_id).aggregate(
+            Max('order')
+        )['order__max'] or 0
+        
+        # Создаем связи для всех курсов
+        trajectory_courses = []
+        for i, course_id in enumerate(course_ids):
+            # Проверяем, не добавлен ли уже курс
+            if not TrajectoryCourse.objects.filter(trajectory_id=trajectory_id, course_id=course_id).exists():
+                trajectory_courses.append(
+                    TrajectoryCourse(
+                        trajectory_id=trajectory_id,
+                        course_id=course_id,
+                        order=max_order + i + 1
+                    )
+                )
+        
+        # Массово создаем записи
+        if trajectory_courses:
+            TrajectoryCourse.objects.bulk_create(trajectory_courses)
+        
+        added_count = len(trajectory_courses)
+        skipped_count = len(course_ids) - added_count
+        
+        message = f'Добавлено курсов: {added_count}'
+        if skipped_count > 0:
+            message += f', пропущено (уже добавлены): {skipped_count}'
+        
+        return JsonResponse({
+            'success': True,
+            'message': message,
+            'added_count': added_count,
+            'skipped_count': skipped_count
+        })
+        
+    except json.JSONDecodeError:
+        return JsonResponse({'success': False, 'error': 'Неверный формат JSON'}, status=400)
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=400)
+
+
+@csrf_exempt
+@login_required
 def trajectory_course_remove(request, trajectory_id):
     """
     AJAX представление для удаления курса из траектории
@@ -1707,3 +1783,37 @@ def trajectory_delete(request, trajectory_id):
         
     except Exception as e:
         return JsonResponse({'success': False, 'error': str(e)}, status=500)
+
+
+class CourseListView(ListView):
+    """
+    Представление для просмотра всех курсов на платформе
+    """
+    template_name = 'builder/course_list.html'
+    context_object_name = 'courses'
+    paginate_by = 12
+    
+    def dispatch(self, request, *args, **kwargs):
+        if not request.user.is_authenticated or not (request.user.is_staff or request.user.is_superuser):
+            return render(request, '403.html', status=403)
+        return super().dispatch(request, *args, **kwargs)
+    
+    def get_queryset(self):
+        from courses.models import Course
+        return Course.objects.all().order_by('-created_at')
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        from courses.models import Course
+        from django.contrib.auth.models import User
+        
+        # Статистика
+        context['total_courses'] = Course.objects.count()
+        context['active_courses'] = Course.objects.count()  # Все курсы считаются активными
+        context['total_lessons'] = sum(course.lessons.count() for course in Course.objects.all())
+        context['total_authors'] = User.objects.filter(course__isnull=False).distinct().count()
+        
+        # Список авторов для фильтра
+        context['authors'] = User.objects.filter(course__isnull=False).distinct().order_by('first_name', 'last_name', 'username')
+        
+        return context

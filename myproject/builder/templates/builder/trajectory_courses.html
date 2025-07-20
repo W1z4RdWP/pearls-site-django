@@ -356,17 +356,28 @@ function reorderCourses(courseOrders) {
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title">
-                    <i class="fas fa-plus text-success"></i> Добавить курс в траекторию
+                    <i class="fas fa-plus text-success"></i> Добавить курсы в траекторию
                 </h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
+                <div class="mb-3">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <span class="text-muted">
+                            <i class="fas fa-info-circle"></i> Выберите курсы для добавления в траекторию
+                        </span>
+                        <span class="badge badge-primary" id="selectedCoursesCount">Выбрано: 0</span>
+                    </div>
+                </div>
                 {% if available_courses %}
                     <div class="row">
                         {% for course in available_courses %}
                         <div class="col-md-6 mb-3">
-                            <div class="card course-card" onclick="addCourseToTrajectory({{ course.id }})">
+                            <div class="card course-card selectable-course" data-course-id="{{ course.id }}">
                                 <div class="card-body">
+                                    <div class="course-selection-overlay">
+                                        <i class="fas fa-check-circle"></i>
+                                    </div>
                                     <div class="d-flex align-items-center">
                                         <div class="course-image me-3">
                                             {% if course.image %}
@@ -402,6 +413,9 @@ function reorderCourses(courseOrders) {
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Закрыть</button>
+                <button type="button" class="btn btn-success" id="addSelectedCoursesBtn" disabled>
+                    <i class="fas fa-plus"></i> Добавить выбранные курсы (<span id="selectedCount">0</span>)
+                </button>
             </div>
         </div>
     </div>
@@ -435,11 +449,81 @@ function reorderCourses(courseOrders) {
 <script>
 let currentEditingCourseId = null;
 
-function addCourseToTrajectory(courseId) {
+// Глобальные переменные для выбора курсов
+let selectedCourses = new Set();
+
+// Инициализация функциональности выбора курсов
+$(document).ready(function() {
+    // Обработчик клика по карточке курса
+    $(document).on('click', '.selectable-course', function() {
+        const courseId = $(this).data('course-id');
+        toggleCourseSelection(courseId, $(this));
+    });
+    
+    // Обработчик кнопки добавления выбранных курсов
+    $('#addSelectedCoursesBtn').on('click', function() {
+        addSelectedCoursesToTrajectory();
+    });
+    
+    // Сброс выбора при закрытии модального окна
+    $('#addCourseModal').on('hidden.bs.modal', function() {
+        resetCourseSelection();
+    });
+});
+
+function toggleCourseSelection(courseId, courseElement) {
+    if (selectedCourses.has(courseId)) {
+        // Убираем из выбора
+        selectedCourses.delete(courseId);
+        courseElement.removeClass('selected');
+    } else {
+        // Добавляем в выбор
+        selectedCourses.add(courseId);
+        courseElement.addClass('selected');
+    }
+    
+    updateSelectionUI();
+}
+
+function updateSelectionUI() {
+    const count = selectedCourses.size;
+    
+    // Обновляем счетчики
+    $('#selectedCoursesCount').text('Выбрано: ' + count);
+    $('#selectedCount').text(count);
+    
+    // Обновляем состояние кнопки
+    const $btn = $('#addSelectedCoursesBtn');
+    if (count > 0) {
+        $btn.prop('disabled', false);
+    } else {
+        $btn.prop('disabled', true);
+    }
+}
+
+function resetCourseSelection() {
+    selectedCourses.clear();
+    $('.selectable-course').removeClass('selected');
+    updateSelectionUI();
+}
+
+function addSelectedCoursesToTrajectory() {
+    if (selectedCourses.size === 0) {
+        showNotification('Выберите хотя бы один курс', 'warning');
+        return;
+    }
+    
+    const courseIds = Array.from(selectedCourses);
+    const $btn = $('#addSelectedCoursesBtn');
+    const originalText = $btn.html();
+    
+    // Показываем индикатор загрузки
+    $btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Добавление...');
+    
     $.ajax({
-        url: '/builder/trajectories/{{ trajectory.id }}/courses/add/',
+        url: '/builder/trajectories/{{ trajectory.id }}/courses/add-multiple/',
         method: 'POST',
-        data: JSON.stringify({course_id: courseId}),
+        data: JSON.stringify({course_ids: courseIds}),
         contentType: 'application/json',
         headers: {
             'X-Requested-With': 'XMLHttpRequest',
@@ -447,22 +531,27 @@ function addCourseToTrajectory(courseId) {
         },
         success: function(data) {
             if (data.success) {
-                if (typeof showNotification === 'function') {
-                    showNotification('Курс успешно добавлен в траекторию', 'success');
-                }
+                showNotification('Курсы успешно добавлены в траекторию', 'success');
                 setTimeout(function() {
                     location.reload();
                 }, 1000);
             } else {
-                if (typeof showNotification === 'function') {
-                    showNotification('Ошибка при добавлении курса', 'error');
-                }
+                showNotification('Ошибка при добавлении курсов: ' + (data.message || 'Неизвестная ошибка'), 'error');
+                $btn.prop('disabled', false).html(originalText);
             }
         },
         error: function(xhr, status, error) {
-            showNotification('Ошибка при добавлении курса: ' + error, 'error');
+            showNotification('Ошибка при добавлении курсов: ' + error, 'error');
+            $btn.prop('disabled', false).html(originalText);
         }
     });
+}
+
+// Старая функция для обратной совместимости (если где-то используется)
+function addCourseToTrajectory(courseId) {
+    selectedCourses.add(courseId);
+    $('.selectable-course[data-course-id="' + courseId + '"]').addClass('selected');
+    updateSelectionUI();
 }
 
 function removeCourse(courseId, courseTitle) {

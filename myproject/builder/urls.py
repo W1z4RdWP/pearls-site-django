@@ -51,6 +51,8 @@ urlpatterns = [
     path('trajectories/<int:trajectory_id>/courses/', views.TrajectoryCoursesView.as_view(), name='trajectory_courses'),
     path('trajectories/<int:trajectory_id>/courses/reorder/', views.trajectory_course_reorder, name='trajectory_course_reorder'),
     path('trajectories/<int:trajectory_id>/courses/add/', views.trajectory_course_add, name='trajectory_course_add'),
+    path('trajectories/<int:trajectory_id>/courses/add-multiple/', views.trajectory_course_add_multiple, name='trajectory_course_add_multiple'),
     path('trajectories/<int:trajectory_id>/courses/remove/', views.trajectory_course_remove, name='trajectory_course_remove'),
     path('trajectories/<int:trajectory_id>/delete/', views.trajectory_delete, name='trajectory_delete'),
+    path('courses/', views.CourseListView.as_view(), name='course_list'),
 ]

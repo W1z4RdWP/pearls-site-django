@@ -2,11 +2,9 @@
 {% load static %}
 {% block title %}Управление траекториями{% endblock %}
 
-{% block extra_css %}
+{% block specific_styles %}
+<script src="{% static 'admin/js/vendor/jquery/jquery.min.js' %}"></script>
 <link rel="stylesheet" href="{% static 'builder/css/trajectory_managment.css' %}">
-{% endblock %}
-
-{% block extra_js %}
 <script src="{% static 'builder/js/trajectory_managment.js' %}"></script>
 {% endblock %}
 
@@ -99,48 +97,48 @@
                 <div class="card-body">
                     <div class="row">
                         <div class="col-lg-3 col-md-6 mb-3">
-                            <div class="card border-0 bg-light">
-                                <div class="card-body text-center">
+                            <div class="card border-0 bg-light h-100">
+                                <div class="card-body text-center d-flex flex-column">
                                     <i class="fas fa-plus-circle fa-3x text-primary mb-3"></i>
                                     <h5 class="card-title">Создать урок</h5>
-                                    <p class="card-text">Добавить новый урок в базу знаний</p>
-                                    <a href="{% url 'builder:lesson_add' %}" class="btn btn-primary btn-sm">
+                                    <p class="card-text flex-grow-1">Добавить новый урок в базу знаний</p>
+                                    <a href="{% url 'builder:lesson_add' %}" class="btn btn-primary btn-sm mt-auto">
                                         <i class="fas fa-plus"></i> Создать
                                     </a>
                                 </div>
                             </div>
                         </div>
                         <div class="col-lg-3 col-md-6 mb-3">
-                            <div class="card border-0 bg-light">
-                                <div class="card-body text-center">
+                            <div class="card border-0 bg-light h-100">
+                                <div class="card-body text-center d-flex flex-column">
                                     <i class="fas fa-graduation-cap fa-3x text-success mb-3"></i>
                                     <h5 class="card-title">Создать курс</h5>
-                                    <p class="card-text">Создать новый курс обучения</p>
-                                    <button type="button" class="btn btn-success btn-sm" onclick="showCreateCourseModal()">
+                                    <p class="card-text flex-grow-1">Создать новый курс обучения</p>
+                                    <button type="button" class="btn btn-success btn-sm mt-auto" onclick="showCreateCourseModal()">
                                         <i class="fas fa-plus"></i> Создать
                                     </button>
                                 </div>
                             </div>
                         </div>
                         <div class="col-lg-3 col-md-6 mb-3">
-                            <div class="card border-0 bg-light">
-                                <div class="card-body text-center">
+                            <div class="card border-0 bg-light h-100">
+                                <div class="card-body text-center d-flex flex-column">
                                     <i class="fas fa-route fa-3x text-info mb-3"></i>
                                     <h5 class="card-title">Создать траекторию</h5>
-                                    <p class="card-text">Настроить последовательность курсов</p>
-                                    <button type="button" class="btn btn-info btn-sm" onclick="showCreateTrajectoryModal()">
+                                    <p class="card-text flex-grow-1">Настроить последовательность курсов</p>
+                                    <button type="button" class="btn btn-info btn-sm mt-auto" onclick="showCreateTrajectoryModal()">
                                         <i class="fas fa-plus"></i> Создать
                                     </button>
                                 </div>
                             </div>
                         </div>
                         <div class="col-lg-3 col-md-6 mb-3">
-                            <div class="card border-0 bg-light">
-                                <div class="card-body text-center">
+                            <div class="card border-0 bg-light h-100">
+                                <div class="card-body text-center d-flex flex-column">
                                     <i class="fas fa-question-circle fa-3x text-warning mb-3"></i>
                                     <h5 class="card-title">Создать тест</h5>
-                                    <p class="card-text">Создать новый тест или квиз</p>
-                                    <button type="button" class="btn btn-warning btn-sm" onclick="showCreateQuizModal()">
+                                    <p class="card-text flex-grow-1">Создать новый тест или квиз</p>
+                                    <button type="button" class="btn btn-warning btn-sm mt-auto" onclick="showCreateQuizModal()">
                                         <i class="fas fa-plus"></i> Создать
                                     </button>
                                 </div>
@@ -159,7 +157,7 @@
             <div class="card shadow">
                 <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
                     <h6 class="m-0 font-weight-bold text-primary">Последние курсы</h6>
-                    <a href="#" class="btn btn-primary btn-sm">Все курсы</a>
+                    <a href="{% url 'builder:course_list' %}" class="btn btn-primary btn-sm">Все курсы</a>
                 </div>
                 <div class="card-body">
                     {% if recent_courses %}
