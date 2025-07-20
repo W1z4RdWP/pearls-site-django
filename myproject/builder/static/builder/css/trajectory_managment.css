@@ -973,3 +973,108 @@
         font-size: 1rem;
     }
 }
+
+/* Стили для модального окна создания тестов */
+.question-block {
+    border: 1px solid #e3e6f0;
+    border-radius: 8px;
+    margin-bottom: 1rem;
+    transition: all 0.3s ease;
+}
+
+.question-block:hover {
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.question-block .card-header {
+    background-color: #f8f9fc;
+    border-bottom: 1px solid #e3e6f0;
+    padding: 0.75rem 1rem;
+}
+
+.question-block .card-body {
+    padding: 1rem;
+}
+
+.answer-item {
+    background-color: #f8f9fc;
+    border: 1px solid #e3e6f0;
+    border-radius: 6px;
+    padding: 0.5rem;
+    margin-bottom: 0.5rem;
+    transition: all 0.2s ease;
+}
+
+.answer-item:hover {
+    background-color: #e9ecef;
+}
+
+.answer-item .form-control-sm {
+    border: 1px solid #d1d3e2;
+    border-radius: 4px;
+}
+
+.answer-item .form-check-input:checked {
+    background-color: #28a745;
+    border-color: #28a745;
+}
+
+.answers-container {
+    border: 1px solid #e3e6f0;
+    border-radius: 6px;
+    padding: 1rem;
+    background-color: #f8f9fc;
+}
+
+.answers-list {
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+/* Анимации для добавления/удаления вопросов */
+.question-block {
+    animation: slideIn 0.3s ease-out;
+}
+
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateY(-20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Стили для модального окна создания тестов */
+#createQuizModal .modal-xl {
+    max-width: 90%;
+}
+
+#createQuizModal .modal-body {
+    max-height: 70vh;
+    overflow-y: auto;
+}
+
+/* Адаптивность для мобильных устройств */
+@media (max-width: 768px) {
+    .answer-item {
+        flex-direction: column;
+        align-items: stretch !important;
+    }
+    
+    .answer-item .me-2 {
+        margin-right: 0 !important;
+        margin-bottom: 0.5rem;
+    }
+    
+    .answer-item .btn-outline-danger {
+        align-self: flex-end;
+        margin-top: 0.5rem;
+    }
+    
+    #createQuizModal .modal-xl {
+        max-width: 95%;
+    }
+}

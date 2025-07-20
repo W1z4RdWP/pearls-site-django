@@ -344,7 +344,7 @@ from django.http import JsonResponse
 
 class QuizCreateView(UserPassesTestMixin, CreateView):
     """
-    Создание нового теста.
+    Создание нового теста с вопросами и ответами.
     """
     model = Quiz
     fields = ['name']
@@ -355,7 +355,100 @@ class QuizCreateView(UserPassesTestMixin, CreateView):
         return self.request.user.is_staff or self.request.user.is_superuser
 
     def form_valid(self, form):
-        response = super().form_valid(form)
+        # Проверяем, что это AJAX запрос для предотвращения дублирования
         if self.request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-            return JsonResponse({'success': True, 'id': self.object.id, 'name': self.object.name})
-        return response
+            try:
+                # Проверяем, не существует ли уже тест с таким именем
+                quiz_name = form.cleaned_data.get('name')
+                if Quiz.objects.filter(name=quiz_name).exists():
+                    return JsonResponse({
+                        'success': False, 
+                        'error': f'Тест с названием "{quiz_name}" уже существует'
+                    })
+                
+                # Создаем тест
+                quiz = form.save()
+            except Exception as e:
+                return JsonResponse({
+                    'success': False, 
+                    'error': f'Ошибка при создании теста: {str(e)}'
+                })
+        else:
+            # Если это не AJAX запрос, используем стандартное поведение
+            return super().form_valid(form)
+        
+        # Обрабатываем вопросы и ответы
+        try:
+            # Парсим данные вопросов из формы
+            questions_dict = {}
+            for key, value in self.request.POST.items():
+                if key.startswith('questions['):
+                    try:
+                        # Извлекаем номер вопроса и тип данных
+                        # Формат: questions[1][text], questions[1][type], questions[1][answers][1][text], etc.
+                        parts = key.replace('questions[', '').replace(']', '').split('[')
+                        question_num = int(parts[0])
+                        
+                        if question_num not in questions_dict:
+                            questions_dict[question_num] = {'text': '', 'type': 'single', 'answers': {}}
+                        
+                        if len(parts) == 2:
+                            if parts[1] == 'text':
+                                questions_dict[question_num]['text'] = value
+                            elif parts[1] == 'type':
+                                questions_dict[question_num]['type'] = value
+                        elif len(parts) == 4 and parts[1] == 'answers':
+                            answer_num = int(parts[2])
+                            answer_field = parts[3]
+                            
+                            if answer_num not in questions_dict[question_num]['answers']:
+                                questions_dict[question_num]['answers'][answer_num] = {'text': '', 'correct': False}
+                            
+                            if answer_field == 'text':
+                                questions_dict[question_num]['answers'][answer_num]['text'] = value
+                            elif answer_field == 'correct':
+                                questions_dict[question_num]['answers'][answer_num]['correct'] = True
+                    except (ValueError, IndexError) as e:
+                        # Пропускаем некорректные данные
+                        continue
+        except Exception as e:
+            return JsonResponse({
+                'success': False, 
+                'error': f'Ошибка при обработке вопросов: {str(e)}'
+            })
+        
+        # Создаем вопросы и ответы
+        try:
+            for question_num, question_data in questions_dict.items():
+                if question_data['text'].strip():  # Проверяем, что текст вопроса не пустой
+                    # Создаем вопрос
+                    question = Question.objects.create(
+                        quiz=quiz,
+                        text=question_data['text'],
+                        question_type=question_data['type']
+                    )
+                    
+                    # Создаем ответы (только для вопросов с вариантами ответов)
+                    if question_data['type'] in ['single', 'multiple']:
+                        for answer_num, answer_data in question_data['answers'].items():
+                            if answer_data['text'].strip():  # Проверяем, что текст ответа не пустой
+                                Answer.objects.create(
+                                    question=question,
+                                    text=answer_data['text'],
+                                    is_correct=answer_data['correct']
+                                )
+        except Exception as e:
+            # Если произошла ошибка при создании вопросов, удаляем созданный тест
+            quiz.delete()
+            return JsonResponse({
+                'success': False, 
+                'error': f'Ошибка при создании вопросов: {str(e)}'
+            })
+        
+        # Возвращаем JSON ответ для AJAX запроса
+        return JsonResponse({
+            'success': True, 
+            'id': quiz.id, 
+            'name': quiz.name,
+            'questions_count': quiz.question_set.count()
+        })

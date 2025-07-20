@@ -365,27 +365,361 @@
 
 <!-- Модальное окно создания теста -->
 <div class="modal fade" id="createQuizModal" tabindex="-1" role="dialog">
-    <div class="modal-dialog modal-lg" role="document">
+    <div class="modal-dialog modal-xl" role="document">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title">Создать новый тест</h5>
+                <h5 class="modal-title">
+                    <i class="fas fa-question-circle text-warning"></i> Создать новый тест
+                </h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-            <form id="createQuizForm" method="post" action="{% url 'quizzes:quiz_create' %}">
+            <form id="createQuizForm" method="post" action="{% url 'quizzes:quiz_create' %}" onsubmit="return false;">
                 {% csrf_token %}
                 <div class="modal-body">
-                    <div class="form-group">
-                        <label for="quiz_name">Название теста *</label>
-                        <input type="text" class="form-control" id="quiz_name" name="name" required>
+                    <!-- Основная информация о тесте -->
+                    <div class="row mb-4">
+                        <div class="col-12">
+                            <h6 class="text-primary mb-3">Основная информация</h6>
+                            <div class="form-group mb-3">
+                                <label for="quiz_name" class="form-label">Название теста *</label>
+                                <input type="text" class="form-control" id="quiz_name" name="name" required>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Вопросы -->
+                    <div class="row mb-4">
+                        <div class="col-12">
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <h6 class="text-primary mb-0">Вопросы теста</h6>
+                                <button type="button" class="btn btn-success btn-sm" onclick="addQuestion()">
+                                    <i class="fas fa-plus"></i> Добавить вопрос
+                                </button>
+                            </div>
+                            <div id="questionsContainer">
+                                <!-- Вопросы будут добавляться динамически -->
+                            </div>
+                        </div>
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
-                    <button type="submit" class="btn btn-primary">Создать тест</button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="fas fa-times"></i> Отмена
+                    </button>
+                    <button type="button" class="btn btn-warning" onclick="submitQuizForm()">
+                        <i class="fas fa-save"></i> Создать тест
+                    </button>
                 </div>
             </form>
         </div>
     </div>
 </div>
+
+<script>
+// Глобальные переменные для управления вопросами
+let questionCounter = 0;
+let isFormSubmitting = false; // Флаг для предотвращения двойной отправки
+let currentRequestId = null; // Уникальный ID для текущего запроса
+
+// Функция для добавления нового вопроса
+function addQuestion() {
+    questionCounter++;
+    const questionHtml = `
+        <div class="question-block card mb-3" data-question-id="${questionCounter}">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h6 class="mb-0">Вопрос ${questionCounter}</h6>
+                <button type="button" class="btn btn-danger btn-sm" onclick="removeQuestion(${questionCounter})">
+                    <i class="fas fa-trash"></i> Удалить
+                </button>
+            </div>
+            <div class="card-body">
+                <!-- Текст вопроса -->
+                <div class="form-group mb-3">
+                    <label class="form-label">Текст вопроса *</label>
+                    <input type="text" class="form-control" name="questions[${questionCounter}][text]" required>
+                </div>
+                
+                <!-- Тип вопроса -->
+                <div class="form-group mb-3">
+                    <label class="form-label">Тип вопроса *</label>
+                    <select class="form-control" name="questions[${questionCounter}][type]" onchange="toggleAnswerType(${questionCounter}, this.value)">
+                        <option value="single">Один правильный ответ</option>
+                        <option value="multiple">Несколько правильных ответов</option>
+                        <option value="text">Открытый ответ</option>
+                    </select>
+                </div>
+                
+                <!-- Контейнер для ответов -->
+                <div class="answers-container" id="answers-${questionCounter}">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <label class="form-label mb-0">Варианты ответов</label>
+                        <button type="button" class="btn btn-outline-primary btn-sm" onclick="addAnswer(${questionCounter})">
+                            <i class="fas fa-plus"></i> Добавить ответ
+                        </button>
+                    </div>
+                    <div class="answers-list" id="answers-list-${questionCounter}">
+                        <!-- Ответы будут добавляться динамически -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    document.getElementById('questionsContainer').insertAdjacentHTML('beforeend', questionHtml);
+    
+    // Добавляем первые два ответа по умолчанию
+    addAnswer(questionCounter);
+    addAnswer(questionCounter);
+}
+
+// Функция для удаления вопроса
+function removeQuestion(questionId) {
+    const questionBlock = document.querySelector(`[data-question-id="${questionId}"]`);
+    if (questionBlock) {
+        questionBlock.remove();
+        // Пересчитываем номера вопросов
+        renumberQuestions();
+    }
+}
+
+// Функция для добавления ответа
+function addAnswer(questionId) {
+    const answersList = document.getElementById(`answers-list-${questionId}`);
+    const answerCount = answersList.children.length + 1;
+    
+    const answerHtml = `
+        <div class="answer-item d-flex align-items-center mb-2" data-answer-id="${answerCount}">
+            <div class="flex-grow-1 me-2">
+                <input type="text" class="form-control form-control-sm" 
+                       name="questions[${questionId}][answers][${answerCount}][text]" 
+                       placeholder="Вариант ответа ${answerCount}" required>
+            </div>
+            <div class="me-2">
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" 
+                           name="questions[${questionId}][answers][${answerCount}][correct]" 
+                           id="correct-${questionId}-${answerCount}">
+                    <label class="form-check-label" for="correct-${questionId}-${answerCount}">
+                        Правильный
+                    </label>
+                </div>
+            </div>
+            <button type="button" class="btn btn-outline-danger btn-sm" onclick="removeAnswer(${questionId}, ${answerCount})">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+    `;
+    
+    answersList.insertAdjacentHTML('beforeend', answerHtml);
+}
+
+// Функция для удаления ответа
+function removeAnswer(questionId, answerId) {
+    const answerItem = document.querySelector(`[data-question-id="${questionId}"] .answer-item[data-answer-id="${answerId}"]`);
+    if (answerItem) {
+        answerItem.remove();
+        // Пересчитываем номера ответов
+        renumberAnswers(questionId);
+    }
+}
+
+// Функция для переключения типа вопроса
+function toggleAnswerType(questionId, questionType) {
+    const answersContainer = document.getElementById(`answers-${questionId}`);
+    const answersList = document.getElementById(`answers-list-${questionId}`);
+    
+    if (questionType === 'text') {
+        // Для открытого ответа скрываем варианты ответов
+        answersContainer.style.display = 'none';
+        answersList.innerHTML = '';
+    } else {
+        // Для других типов показываем варианты ответов
+        answersContainer.style.display = 'block';
+        if (answersList.children.length === 0) {
+            // Добавляем первые два ответа если их нет
+            addAnswer(questionId);
+            addAnswer(questionId);
+        }
+    }
+}
+
+// Функция для пересчета номеров вопросов
+function renumberQuestions() {
+    const questions = document.querySelectorAll('.question-block');
+    questions.forEach((question, index) => {
+        const questionNumber = index + 1;
+        question.setAttribute('data-question-id', questionNumber);
+        question.querySelector('.card-header h6').textContent = `Вопрос ${questionNumber}`;
+        
+        // Обновляем все атрибуты name в вопросе
+        const questionInputs = question.querySelectorAll('input, select');
+        questionInputs.forEach(input => {
+            if (input.name) {
+                input.name = input.name.replace(/questions\[\d+\]/, `questions[${questionNumber}]`);
+            }
+        });
+        
+        // Обновляем ID и onclick для кнопок
+        const removeButton = question.querySelector('.btn-danger');
+        if (removeButton) {
+            removeButton.setAttribute('onclick', `removeQuestion(${questionNumber})`);
+        }
+        
+        const addAnswerButton = question.querySelector('.btn-outline-primary');
+        if (addAnswerButton) {
+            addAnswerButton.setAttribute('onclick', `addAnswer(${questionNumber})`);
+        }
+        
+        // Обновляем ID контейнеров ответов
+        const answersContainer = question.querySelector('.answers-container');
+        if (answersContainer) {
+            answersContainer.id = `answers-${questionNumber}`;
+        }
+        
+        const answersList = question.querySelector('.answers-list');
+        if (answersList) {
+            answersList.id = `answers-list-${questionNumber}`;
+        }
+        
+        // Пересчитываем ответы в этом вопросе
+        renumberAnswers(questionNumber);
+    });
+    
+    // Обновляем глобальный счетчик
+    questionCounter = questions.length;
+}
+
+// Функция для пересчета номеров ответов
+function renumberAnswers(questionId) {
+    const answers = document.querySelectorAll(`[data-question-id="${questionId}"] .answer-item`);
+    answers.forEach((answer, index) => {
+        const answerNumber = index + 1;
+        answer.setAttribute('data-answer-id', answerNumber);
+        
+        // Обновляем атрибуты name
+        const textInput = answer.querySelector('input[type="text"]');
+        if (textInput) {
+            textInput.name = textInput.name.replace(/answers\[\d+\]/, `answers[${answerNumber}]`);
+            textInput.placeholder = `Вариант ответа ${answerNumber}`;
+        }
+        
+        const checkbox = answer.querySelector('input[type="checkbox"]');
+        if (checkbox) {
+            checkbox.name = checkbox.name.replace(/answers\[\d+\]/, `answers[${answerNumber}]`);
+            checkbox.id = `correct-${questionId}-${answerNumber}`;
+        }
+        
+        const label = answer.querySelector('label');
+        if (label) {
+            label.setAttribute('for', `correct-${questionId}-${answerNumber}`);
+        }
+        
+        // Обновляем onclick для кнопки удаления
+        const removeButton = answer.querySelector('.btn-outline-danger');
+        if (removeButton) {
+            removeButton.setAttribute('onclick', `removeAnswer(${questionId}, ${answerNumber})`);
+        }
+    });
+}
+
+// Функция для показа модального окна создания теста
+function showCreateQuizModal() {
+    // Сбрасываем флаг отправки
+    isFormSubmitting = false;
+    
+    // Очищаем контейнер вопросов
+    document.getElementById('questionsContainer').innerHTML = '';
+    questionCounter = 0;
+    
+    // Очищаем форму
+    document.getElementById('createQuizForm').reset();
+    
+    // Показываем модальное окно
+    $('#createQuizModal').modal('show');
+}
+
+// Функция для отправки формы теста
+function submitQuizForm() {
+    // Проверяем, что форма уже не отправляется
+    if (isFormSubmitting) {
+        console.log('Форма уже отправляется, игнорируем повторный запрос');
+        return;
+    }
+    
+    // Проверяем, что есть хотя бы один вопрос
+    if (questionCounter === 0) {
+        alert('Добавьте хотя бы один вопрос к тесту!');
+        return;
+    }
+    
+    // Устанавливаем флаг отправки и генерируем уникальный ID запроса
+    isFormSubmitting = true;
+    currentRequestId = Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+    
+    // Получаем форму и кнопку
+    const form = document.getElementById('createQuizForm');
+    const submitButton = form.querySelector('button[onclick="submitQuizForm()"]');
+    const originalText = submitButton.innerHTML;
+    
+    // Отключаем кнопку отправки
+    submitButton.disabled = true;
+    submitButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Создание...';
+    
+    // Собираем данные формы
+    const formData = new FormData(form);
+    formData.append('request_id', currentRequestId);
+    
+    // Отправляем AJAX запрос
+    fetch(form.action, {
+        method: 'POST',
+        body: formData,
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest',
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+        }
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        return response.json();
+    })
+    .then(data => {
+        if (data.success) {
+            // Сбрасываем флаг отправки
+            isFormSubmitting = false;
+            
+            // Закрываем модальное окно
+            $('#createQuizModal').modal('hide');
+            
+            // Показываем уведомление об успехе
+            if (typeof showNotification === 'function') {
+                showNotification('Тест успешно создан!', 'success');
+            } else {
+                alert('Тест успешно создан!');
+            }
+            
+            // Перезагружаем страницу через секунду
+            setTimeout(() => {
+                location.reload();
+            }, 1000);
+        } else {
+            alert('Ошибка при создании теста: ' + (data.error || 'Неизвестная ошибка'));
+            // Восстанавливаем кнопку и флаг
+            submitButton.disabled = false;
+            submitButton.innerHTML = originalText;
+            isFormSubmitting = false;
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Ошибка при создании теста: ' + error.message);
+        // Восстанавливаем кнопку и флаг
+        submitButton.disabled = false;
+        submitButton.innerHTML = originalText;
+        isFormSubmitting = false;
+    });
+}
+</script>
 
 {% endblock %} 
