@@ -390,14 +390,14 @@
                     <!-- Вопросы -->
                     <div class="row mb-4">
                         <div class="col-12">
-                            <div class="d-flex justify-content-between align-items-center mb-3">
-                                <h6 class="text-primary mb-0">Вопросы теста</h6>
-                                <button type="button" class="btn btn-success btn-sm" onclick="addQuestion()">
-                                    <i class="fas fa-plus"></i> Добавить вопрос
-                                </button>
-                            </div>
+                            <h6 class="text-primary mb-3">Вопросы теста</h6>
                             <div id="questionsContainer">
                                 <!-- Вопросы будут добавляться динамически -->
+                            </div>
+                            <div class="text-center mt-3">
+                                <button type="button" class="btn btn-success" onclick="addQuestion()">
+                                    <i class="fas fa-plus"></i> Добавить вопрос
+                                </button>
                             </div>
                         </div>
                     </div>
@@ -498,7 +498,8 @@ function addAnswer(questionId) {
                 <div class="form-check">
                     <input class="form-check-input" type="checkbox" 
                            name="questions[${questionId}][answers][${answerCount}][correct]" 
-                           id="correct-${questionId}-${answerCount}">
+                           id="correct-${questionId}-${answerCount}"
+                           onchange="handleCheckboxChange(${questionId}, this)">
                     <label class="form-check-label" for="correct-${questionId}-${answerCount}">
                         Правильный
                     </label>
@@ -540,6 +541,46 @@ function toggleAnswerType(questionId, questionType) {
             addAnswer(questionId);
             addAnswer(questionId);
         }
+    }
+    
+    // Валидируем чекбоксы при смене типа
+    validateCheckboxes(questionId, questionType);
+}
+
+// Функция для валидации чекбоксов в зависимости от типа вопроса
+function validateCheckboxes(questionId, questionType) {
+    const answersList = document.getElementById(`answers-list-${questionId}`);
+    const checkboxes = answersList.querySelectorAll('input[type="checkbox"]');
+    
+    if (questionType === 'single') {
+        // Для одного правильного ответа снимаем все чекбоксы кроме первого отмеченного
+        let firstChecked = null;
+        checkboxes.forEach((checkbox, index) => {
+            if (checkbox.checked && firstChecked === null) {
+                firstChecked = index;
+            } else if (checkbox.checked && firstChecked !== null) {
+                checkbox.checked = false;
+            }
+        });
+    }
+}
+
+// Функция для обработки изменения чекбокса
+function handleCheckboxChange(questionId, changedCheckbox) {
+    const questionBlock = document.querySelector(`[data-question-id="${questionId}"]`);
+    const questionType = questionBlock.querySelector('select[name*="[type]"]').value;
+    
+    if (questionType === 'single' && changedCheckbox.checked) {
+        // Если это вопрос с одним правильным ответом и чекбокс отмечен
+        const answersList = document.getElementById(`answers-list-${questionId}`);
+        const checkboxes = answersList.querySelectorAll('input[type="checkbox"]');
+        
+        // Снимаем все остальные чекбоксы
+        checkboxes.forEach(checkbox => {
+            if (checkbox !== changedCheckbox) {
+                checkbox.checked = false;
+            }
+        });
     }
 }
 
@@ -622,6 +663,80 @@ function renumberAnswers(questionId) {
     });
 }
 
+// Функция валидации формы теста
+function validateQuizForm() {
+    const questions = document.querySelectorAll('.question-block');
+    
+    for (let i = 0; i < questions.length; i++) {
+        const question = questions[i];
+        const questionNumber = i + 1;
+        
+        // Проверяем текст вопроса
+        const questionText = question.querySelector('input[name*="[text]"]').value.trim();
+        if (!questionText) {
+            return {
+                isValid: false,
+                message: `Вопрос ${questionNumber}: Текст вопроса не может быть пустым`
+            };
+        }
+        
+        // Проверяем тип вопроса
+        const questionType = question.querySelector('select[name*="[type]"]').value;
+        
+        // Проверяем ответы для вопросов с вариантами
+        if (questionType !== 'text') {
+            const answers = question.querySelectorAll('.answer-item');
+            let correctAnswersCount = 0;
+            let hasAnswers = false;
+            
+            for (let j = 0; j < answers.length; j++) {
+                const answer = answers[j];
+                const answerText = answer.querySelector('input[type="text"]').value.trim();
+                const isCorrect = answer.querySelector('input[type="checkbox"]').checked;
+                
+                if (answerText) {
+                    hasAnswers = true;
+                    if (isCorrect) {
+                        correctAnswersCount++;
+                    }
+                }
+            }
+            
+            // Проверяем, что есть хотя бы один ответ
+            if (!hasAnswers) {
+                return {
+                    isValid: false,
+                    message: `Вопрос ${questionNumber}: Добавьте хотя бы один вариант ответа`
+                };
+            }
+            
+            // Проверяем правильность ответов в зависимости от типа
+            if (questionType === 'single') {
+                if (correctAnswersCount === 0) {
+                    return {
+                        isValid: false,
+                        message: `Вопрос ${questionNumber}: Для вопроса с одним правильным ответом выберите один правильный вариант`
+                    };
+                } else if (correctAnswersCount > 1) {
+                    return {
+                        isValid: false,
+                        message: `Вопрос ${questionNumber}: Для вопроса с одним правильным ответом выберите только один правильный вариант (сейчас выбрано ${correctAnswersCount})`
+                    };
+                }
+            } else if (questionType === 'multiple') {
+                if (correctAnswersCount === 0) {
+                    return {
+                        isValid: false,
+                        message: `Вопрос ${questionNumber}: Для вопроса с несколькими правильными ответами выберите хотя бы один правильный вариант`
+                    };
+                }
+            }
+        }
+    }
+    
+    return { isValid: true, message: '' };
+}
+
 // Функция для показа модального окна создания теста
 function showCreateQuizModal() {
     // Сбрасываем флаг отправки
@@ -636,6 +751,11 @@ function showCreateQuizModal() {
     
     // Показываем модальное окно
     $('#createQuizModal').modal('show');
+    
+    // Фокусируемся на поле названия теста
+    setTimeout(() => {
+        document.getElementById('quiz_name').focus();
+    }, 500);
 }
 
 // Функция для отправки формы теста
@@ -649,6 +769,13 @@ function submitQuizForm() {
     // Проверяем, что есть хотя бы один вопрос
     if (questionCounter === 0) {
         alert('Добавьте хотя бы один вопрос к тесту!');
+        return;
+    }
+    
+    // Валидация вопросов и ответов
+    const validationResult = validateQuizForm();
+    if (!validationResult.isValid) {
+        alert(validationResult.message);
         return;
     }
     
@@ -682,6 +809,13 @@ function submitQuizForm() {
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
         }
+        
+        // Проверяем, что ответ действительно JSON
+        const contentType = response.headers.get('content-type');
+        if (!contentType || !contentType.includes('application/json')) {
+            throw new Error('Сервер вернул неверный формат ответа. Попробуйте еще раз.');
+        }
+        
         return response.json();
     })
     .then(data => {
@@ -713,7 +847,18 @@ function submitQuizForm() {
     })
     .catch(error => {
         console.error('Error:', error);
-        alert('Ошибка при создании теста: ' + error.message);
+        
+        // Показываем понятное сообщение об ошибке
+        let errorMessage = 'Ошибка при создании теста';
+        if (error.message.includes('Unexpected token')) {
+            errorMessage = 'Ошибка сервера: получен неверный ответ. Попробуйте еще раз или обратитесь к администратору.';
+        } else if (error.message.includes('HTTP error')) {
+            errorMessage = 'Ошибка сервера: ' + error.message;
+        } else {
+            errorMessage = error.message;
+        }
+        
+        alert(errorMessage);
         // Восстанавливаем кнопку и флаг
         submitButton.disabled = false;
         submitButton.innerHTML = originalText;

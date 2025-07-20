@@ -1078,3 +1078,19 @@
         max-width: 95%;
     }
 }
+
+/* Стили для кнопки добавления вопроса */
+#createQuizModal .btn-success {
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+#createQuizModal .btn-success:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+}
+
+#createQuizModal .btn-success:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
