@@ -9,6 +9,7 @@
 
 
 {% block content %}
+{% csrf_token %}
 <div class="container-fluid">
     <!-- Заголовок -->
     <div class="row mb-4">
@@ -230,5 +231,46 @@
         </div>
     </div>
 </div>
+
+<script>
+function deleteTrajectory(trajectoryId, trajectoryName) {
+    const message = `Вы уверены, что хотите удалить траекторию "${trajectoryName}"?\n\n` +
+                   `Это действие нельзя отменить и приведет к:\n` +
+                   `• Удалению всех связей с курсами\n` +
+                   `• Удалению всех назначений группам\n` +
+                   `• Потере прогресса пользователей\n\n` +
+                   `Введите "УДАЛИТЬ" для подтверждения:`;
+    
+    const confirmation = prompt(message);
+    
+    if (confirmation === 'УДАЛИТЬ') {
+        $.ajax({
+            url: '/builder/trajectories/' + trajectoryId + '/delete/',
+            method: 'POST',
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-CSRFToken': $('input[name=csrfmiddlewaretoken]').val()
+            },
+            success: function(data) {
+                if (data.success) {
+                    if (typeof showNotification === 'function') {
+                        showNotification('Траектория успешно удалена', 'success');
+                    }
+                    setTimeout(function() {
+                        location.reload();
+                    }, 1000);
+                } else {
+                    if (typeof showNotification === 'function') {
+                        showNotification(data.error || 'Ошибка при удалении траектории', 'error');
+                    }
+                }
+            },
+            error: function(xhr, status, error) {
+                showNotification('Ошибка при удалении траектории: ' + error, 'error');
+            }
+        });
+        }
+    }
+</script>
 
 {% endblock %} 

@@ -3,6 +3,7 @@
 {% block title %}Редактирование траектории{% endblock %}
 
 {% block specific_styles %}
+<script src="{% static 'admin/js/vendor/jquery/jquery.min.js' %}"></script>
 <link rel="stylesheet" href="{% static 'builder/css/trajectory_managment.css' %}">
 <script src="{% static 'builder/js/trajectory_managment.js' %}"></script>
 {% endblock %}
@@ -98,12 +99,14 @@
 
                         <!-- Кнопки действий -->
                         <div class="form-group mt-4">
-                            <button type="submit" class="btn btn-primary" id="saveButton">
-                                <i class="fas fa-save"></i> Сохранить изменения
-                            </button>
-                            <a href="{% url 'builder:trajectory_list' %}" class="btn btn-secondary">
-                                <i class="fas fa-times"></i> Отмена
-                            </a>
+                            <div class="d-flex gap-2">
+                                <button type="submit" class="btn btn-primary flex-fill" id="saveButton">
+                                    <i class="fas fa-save"></i> Сохранить
+                                </button>
+                                <a href="{% url 'builder:trajectory_list' %}" class="btn btn-secondary flex-fill">
+                                    <i class="fas fa-times"></i> Отмена
+                                </a>
+                            </div>
                         </div>
                     </form>
                 </div>
@@ -147,14 +150,14 @@
                     </h6>
                 </div>
                 <div class="card-body">
-                    <div class="d-grid gap-2">
-                        <a href="#" class="btn btn-outline-warning btn-sm" onclick="manageCourses({{ trajectory.id }})">
+                    <div class="d-flex flex-wrap gap-2">
+                        <a href="#" class="btn btn-outline-warning btn-sm flex-fill" onclick="manageCourses({{ trajectory.id }})">
                             <i class="fas fa-graduation-cap"></i> Управление курсами
                         </a>
-                        <a href="#" class="btn btn-outline-info btn-sm" onclick="viewTrajectory({{ trajectory.id }})">
+                        <a href="#" class="btn btn-outline-info btn-sm flex-fill" onclick="viewTrajectory({{ trajectory.id }})">
                             <i class="fas fa-eye"></i> Просмотр траектории
                         </a>
-                        <button type="button" class="btn btn-outline-danger btn-sm" 
+                        <button type="button" class="btn btn-outline-danger btn-sm flex-fill" 
                                 onclick="deleteTrajectory({{ trajectory.id }}, '{{ trajectory.name }}')">
                             <i class="fas fa-trash"></i> Удалить траекторию
                         </button>

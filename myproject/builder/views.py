@@ -1674,3 +1674,36 @@ def trajectory_course_remove(request, trajectory_id):
         
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=400)
+
+@csrf_exempt
+@login_required
+def trajectory_delete(request, trajectory_id):
+    """
+    AJAX представление для удаления траектории и всех связанных с ней данных
+    """
+    if not (request.user.is_staff or request.user.is_superuser):
+        return JsonResponse({'success': False, 'error': 'Недостаточно прав'}, status=403)
+    
+    if request.method != 'POST':
+        return JsonResponse({'success': False, 'error': 'Метод не поддерживается'}, status=405)
+    
+    try:
+        trajectory = Trajectory.objects.get(id=trajectory_id)
+    except Trajectory.DoesNotExist:
+        return JsonResponse({'success': False, 'error': 'Траектория не найдена'}, status=404)
+    
+    try:
+        with transaction.atomic():
+            # Удаляем все связи с курсами
+            TrajectoryCourse.objects.filter(trajectory=trajectory).delete()
+            
+            # Удаляем все записи о прогрессе пользователей по этой траектории
+            UserCourseTrajectory.objects.filter(trajectory=trajectory).delete()
+            
+            # Удаляем саму траекторию
+            trajectory.delete()
+        
+        return JsonResponse({'success': True})
+        
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
