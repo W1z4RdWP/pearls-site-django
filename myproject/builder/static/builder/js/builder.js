@@ -1425,6 +1425,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // === Drag&Drop сортировка для уроков без категории ===
 (function() {
+    if (window.IS_READONLY) return;
     const uncatList = document.querySelector('#uncategorized-block .category-list');
     if (!uncatList) return;
     let draggedEl = null;
@@ -1484,6 +1485,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // === Drag&Drop сортировка для терминов словаря ===
 (function() {
+    if (window.IS_READONLY) return;
     const dictList = document.querySelector('ul.dict-list');
     if (!dictList) return;
     let draggedEl = null;
@@ -1543,6 +1545,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // === Drag&Drop сортировка для уроков внутри категорий ===
 (function() {
+    if (window.IS_READONLY) return;
     document.querySelectorAll('ul.lesson-list').forEach(lessonList => {
         let draggedEl = null;
         let dragOverEl = null;
@@ -1602,6 +1605,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // === Drag&Drop сортировка для категорий и подкатегорий ===
 (function() {
+    if (window.IS_READONLY) return;
     document.querySelectorAll('ul.category-list').forEach(catList => {
         // Отключаем dnd для словаря
         if (catList.classList.contains('dict-list')) return;
