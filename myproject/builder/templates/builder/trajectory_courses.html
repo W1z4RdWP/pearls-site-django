@@ -289,7 +289,7 @@ function reorderCourses(courseOrders) {
                                                 {% endif %}
                                             </div>
                                             <div class="course-info">
-                                                <h6 class="course-title">{{ tc.order }} день. {{ tc.course.title }}</h6>
+                                                <h6 class="course-title">{{ tc.course.title }}</h6>
                                                 <small class="text-muted">
                                                     {{ tc.course.lessons.count }} уроков • Автор: {{ tc.course.author.get_full_name|default:tc.course.author.username }}
                                                 </small>

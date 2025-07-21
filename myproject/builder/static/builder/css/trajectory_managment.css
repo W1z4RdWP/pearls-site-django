@@ -1,4 +1,11 @@
-/* Стили для страниц управления траекториями */
+:root {
+    --trajectory-badge-text: #fff;
+    --trajectory-badge-bg: #4e73df;
+}
+
+.text-dark{
+    color: black;
+}
 
 /* Карточки статистики */
 .card.border-left-primary {
@@ -47,6 +54,8 @@
 /* Стили для бейджей */
 .badge-pill {
     border-radius: 10rem;
+    color: var(--trajectory-badge-text);
+    background-color: var(--trajectory-badge-bg);
 }
 
 /* Стили для модальных окон */

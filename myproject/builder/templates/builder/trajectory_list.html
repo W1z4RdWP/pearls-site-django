@@ -11,6 +11,18 @@
 
 {% block content %}
 {% csrf_token %}
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item">
+            <a href="{% url 'builder:trajectory_management' %}">
+                <i class="fas fa-tachometer-alt"></i> Панель управления
+            </a>
+        </li>
+        <li class="breadcrumb-item active" aria-current="page">
+            Все траектории
+        </li>
+    </ol>
+</nav>
 <div class="container-fluid">
     <!-- Заголовок -->
     <div class="row mb-4">
@@ -21,7 +33,6 @@
             <p class="text-muted">Управление траекториями обучения</p>
         </div>
     </div>
-
 
 
     <!-- Поиск и фильтры -->
@@ -46,8 +57,8 @@
                             </div>
                         </div>
                         <div class="col-md-3 text-right">
-                            <button type="button" class="btn btn-info btn-block" style="width: 8vw; height: 4vh; font-size: 0.71em;" onclick="showCreateTrajectoryModal()">
-                                <i class="fas fa-plus"></i> Создать траекторию
+                            <button type="button" class="btn btn-info btn-block" style="width: 2.5rem; height: 2.5rem; padding: 0; display: flex; align-items: center; justify-content: center; font-size: 1.2rem;" onclick="showCreateTrajectoryModal()" title="Создать траекторию">
+                                <i class="fas fa-plus"></i>
                             </button>
                         </div>
                     </form>
