@@ -20,7 +20,7 @@
                             <li><b>Статус:</b> {% if ut.completed %}<span class="badge bg-success">Завершена</span>{% else %}<span class="badge bg-primary">В процессе</span>{% endif %}</li>
                             <li><b>Дата назначения:</b> {{ ut.started_at|date:"d.m.Y H:i" }}</li>
                         </ul>
-                        <a href="{% url 'user_course_trajectory_detail' ut.pk %}" class="btn btn-modern w-100">Перейти к траектории</a>
+                        <a href="{% url 'courses:user_course_trajectory_detail' ut.pk %}" class="btn btn-modern w-100">Перейти к траектории</a>
                     </div>
                 </div>
             </div>

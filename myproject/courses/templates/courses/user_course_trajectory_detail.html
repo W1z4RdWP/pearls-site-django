@@ -29,7 +29,7 @@
                 </div>
                 {% if item.available %}
                     {% if not item.user_course or item.user_course.status != 'completed' %}
-                        <a href="{% url 'course_detail' item.course.slug %}" class="btn btn-modern">Перейти к курсу</a>
+                        <a href="{% url 'courses:course_detail' item.course.slug %}" class="btn btn-modern">Перейти к курсу</a>
                     {% endif %}
                 {% endif %}
             </li>
