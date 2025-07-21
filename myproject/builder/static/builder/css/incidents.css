@@ -1,0 +1,170 @@
+:root {
+  --incidents-bg: #ffffff;
+  --incidents-card-bg: #fff;
+  --incidents-card-radius: 10px;
+  --incidents-card-shadow: 0 2px 8px #0002;
+  --incidents-card-padding: 32px 32px 24px 32px;
+  --incidents-card-title: #232323;
+  --incidents-title-font-weight: 700;
+  --incidents-title-letter-spacing: 0.5px;
+  --incidents-title-font-size: 1.2rem;
+  --incidents-meta: #888;
+  --incidents-meta-font-size: 0.95em;
+  --incidents-doc-link: #4d7cff;
+  --incidents-doc-link-hover: #2356b3;
+  --incidents-status-new: #007bff;
+  --incidents-status-in-progress: #ffc107;
+  --incidents-status-resolved: #28a745;
+  --incidents-status-font-weight: 600;
+  --incidents-table-header-bg: #f8f9fa;
+  --incidents-table-header-border: #eaeaea;
+  --incidents-table-row-hover-bg: #f2f6ff;
+  --incidents-table-th-font-size: 1em;
+  --incidents-table-td-font-size: 1em;
+  --incidents-table-td-padding: 6px 8px;
+  --incidents-table-th-padding: 6px 8px;
+  --incidents-table-th-color: inherit;
+  --incidents-table-td-color: inherit;
+}
+
+body.theme-dark {
+  --incidents-bg: #232323;
+  --incidents-card-bg: #232a3a;
+  --incidents-card-radius: 10px;
+  --incidents-card-shadow: 0 2px 8px #0007;
+  --incidents-card-padding: 32px 32px 24px 32px;
+  --incidents-card-title: #eee;
+  --incidents-title-font-weight: 700;
+  --incidents-title-letter-spacing: 0.5px;
+  --incidents-title-font-size: 1.2rem;
+  --incidents-meta: #bdbdbd;
+  --incidents-meta-font-size: 0.95em;
+  --incidents-doc-link: #4d7cff;
+  --incidents-doc-link-hover: #2dabc4;
+  --incidents-status-new: #4d7cff;
+  --incidents-status-in-progress: #ffc107;
+  --incidents-status-resolved: #28a745;
+  --incidents-status-font-weight: 600;
+  --incidents-table-header-bg: #232a3a;
+  --incidents-table-header-border: #353535;
+  --incidents-table-row-hover-bg: #232a3a;
+  --incidents-table-th-font-size: 1em;
+  --incidents-table-td-font-size: 1em;
+  --incidents-table-td-padding: 6px 8px;
+  --incidents-table-th-padding: 6px 8px;
+  --incidents-table-th-color: #eee;
+  --incidents-table-td-color: #333;
+}
+
+.incidents-bg {
+  background: var(--incidents-bg);
+  min-height: 100vh;
+  padding: 40px 0;
+}
+
+.incidents-card {
+  background: var(--incidents-card-bg);
+  border-radius: var(--incidents-card-radius);
+  box-shadow: var(--incidents-card-shadow);
+  padding: var(--incidents-card-padding);
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+.incident-title {
+  font-size: var(--incidents-title-font-size);
+  font-weight: 600;
+  color: var(--incidents-card-title);
+}
+
+.incident-meta {
+  color: var(--incidents-meta);
+  font-size: var(--incidents-meta-font-size);
+}
+
+.incident-docs a {
+  color: var(--incidents-doc-link);
+  text-decoration: underline;
+  margin-right: 10px;
+}
+
+.incident-docs a:hover {
+  color: var(--incidents-doc-link-hover);
+}
+
+.table th, .table td {
+  vertical-align: middle !important;
+  font-size: var(--incidents-table-th-font-size);
+  color: var(--incidents-table-th-color);
+  padding: var(--incidents-table-th-padding);
+}
+
+.status-new {
+  color: var(--incidents-status-new);
+  font-weight: var(--incidents-status-font-weight);
+}
+.status-in_progress {
+  color: var(--incidents-status-in-progress);
+  font-weight: var(--incidents-status-font-weight);
+}
+.status-resolved {
+  color: var(--incidents-status-resolved);
+  font-weight: var(--incidents-status-font-weight);
+}
+
+.table thead th {
+  background: var(--incidents-table-header-bg);
+  border-bottom: 2px solid var(--incidents-table-header-border);
+}
+
+.table td {
+  color: var(--incidents-table-td-color);
+}
+
+.table-hover tbody tr:hover {
+  background: var(--incidents-table-row-hover-bg);
+}
+
+.incidents-card h2 {
+  color: var(--incidents-card-title);
+  font-weight: var(--incidents-title-font-weight);
+  letter-spacing: var(--incidents-title-letter-spacing);
+}
+
+.incidents-table-responsive {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+@media (max-width: 768px) {
+  .incidents-card {
+    padding: 18px 8px;
+    max-width: 100%;
+  }
+}
+
+@media (max-width: 600px) {
+  .incidents-card {
+    padding: 10px 2px;
+    overflow-x: auto;
+  }
+  .incidents-table-responsive {
+    margin: 0 -8px;
+  }
+  .table th, .table td {
+    white-space: nowrap;
+    font-size: 0.92em;
+    padding: 6px 8px;
+  }
+  .incident-title, .incidents-card h2 {
+    font-size: 1.05rem;
+  }
+  .table td.status-new,
+  .table td.status-in_progress,
+  .table td.status-resolved {
+    font-size: 0.9em;
+    padding: 4px 4px;
+    min-width: 60px;
+  }
+}
