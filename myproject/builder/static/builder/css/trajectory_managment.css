@@ -1,0 +1,1096 @@
+/* Стили для страниц управления траекториями */
+
+/* Карточки статистики */
+.card.border-left-primary {
+    border-left: 0.25rem solid #4e73df !important;
+}
+
+.card.border-left-success {
+    border-left: 0.25rem solid #1cc88a !important;
+}
+
+.card.border-left-info {
+    border-left: 0.25rem solid #36b9cc !important;
+}
+
+.card.border-left-warning {
+    border-left: 0.25rem solid #f6c23e !important;
+}
+
+/* Анимации для кнопок */
+.btn-group .btn {
+    transition: all 0.2s ease-in-out;
+}
+
+.btn-group .btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+/* Стили для таблицы */
+.table-responsive {
+    border-radius: 0.35rem;
+}
+
+#trajectoriesTable th {
+    background-color: #f8f9fc;
+    border-color: #e3e6f0;
+    font-weight: 600;
+    color: #5a5c69;
+}
+
+#trajectoriesTable td {
+    vertical-align: middle;
+    border-color: #e3e6f0;
+}
+
+/* Стили для бейджей */
+.badge-pill {
+    border-radius: 10rem;
+}
+
+/* Стили для модальных окон */
+.modal-content {
+    border: none;
+    border-radius: 0.35rem;
+    box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.15);
+}
+
+.modal-header {
+    border-bottom: 1px solid #e3e6f0;
+    background-color: #f8f9fc;
+}
+
+.modal-footer {
+    border-top: 1px solid #e3e6f0;
+    background-color: #f8f9fc;
+}
+
+/* Стили для модального окна просмотра траектории */
+#viewTrajectoryModal .modal-dialog {
+    max-width: 900px;
+}
+
+#viewTrajectoryModal .card {
+    margin-bottom: 1rem;
+}
+
+#viewTrajectoryModal .card.border-left-primary,
+#viewTrajectoryModal .card.border-left-success,
+#viewTrajectoryModal .card.border-left-info {
+    border-left: 0.25rem solid;
+}
+
+#viewTrajectoryModal .progress {
+    height: 0.5rem;
+    border-radius: 0.25rem;
+}
+
+#viewTrajectoryModal .list-group-item {
+    border: none;
+    border-bottom: 1px solid #e3e6f0;
+    padding: 0.75rem 0;
+}
+
+#viewTrajectoryModal .list-group-item:last-child {
+    border-bottom: none;
+}
+
+#viewTrajectoryModal .badge {
+    font-size: 0.75rem;
+}
+
+/* Стили для индикатора загрузки */
+.fa-spinner {
+    color: #4e73df;
+}
+
+/* Стили для статистики */
+#viewTrajectoryModal .text-xs {
+    font-size: 0.7rem;
+}
+
+#viewTrajectoryModal .h5 {
+    font-size: 1.25rem;
+}
+
+/* Стили для пагинации */
+.pagination .page-link {
+    color: #4e73df;
+    border-color: #e3e6f0;
+}
+
+.pagination .page-item.active .page-link {
+    background-color: #4e73df;
+    border-color: #4e73df;
+}
+
+.pagination .page-link:hover {
+    background-color: #eaecf4;
+    border-color: #e3e6f0;
+}
+
+/* Стили для поиска */
+.input-group .form-control:focus {
+    border-color: #4e73df;
+    box-shadow: 0 0 0 0.2rem rgba(78, 115, 223, 0.25);
+}
+
+/* Стили для уведомлений */
+.alert {
+    border: none;
+    border-radius: 0.35rem;
+    box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.15);
+}
+
+.alert-success {
+    background-color: #d4edda;
+    color: #155724;
+}
+
+.alert-danger {
+    background-color: #f8d7da;
+    color: #721c24;
+}
+
+/* Адаптивность для мобильных устройств */
+@media (max-width: 768px) {
+    .btn-group {
+        display: flex;
+        flex-direction: column;
+    }
+    
+    .btn-group .btn {
+        margin-bottom: 0.25rem;
+    }
+    
+    .table-responsive {
+        font-size: 0.875rem;
+    }
+    
+    .badge {
+        font-size: 0.75rem;
+    }
+}
+
+/* Стили для пустого состояния */
+.text-center.py-5 {
+    background-color: #f8f9fc;
+    border-radius: 0.35rem;
+    margin: 2rem 0;
+}
+
+.text-gray-300 {
+    color: #dddfeb !important;
+}
+
+.text-gray-500 {
+    color: #858796 !important;
+}
+
+/* Стили для DataTables */
+.dataTables_wrapper .dataTables_length,
+.dataTables_wrapper .dataTables_filter,
+.dataTables_wrapper .dataTables_info,
+.dataTables_wrapper .dataTables_processing,
+.dataTables_wrapper .dataTables_paginate {
+    color: #5a5c69;
+}
+
+.dataTables_wrapper .dataTables_paginate .paginate_button {
+    color: #4e73df !important;
+    border: 1px solid #e3e6f0;
+    background: white;
+}
+
+.dataTables_wrapper .dataTables_paginate .paginate_button:hover {
+    background: #eaecf4 !important;
+    border-color: #e3e6f0;
+}
+
+.dataTables_wrapper .dataTables_paginate .paginate_button.current {
+    background: #4e73df !important;
+    border-color: #4e73df;
+    color: white !important;
+}
+
+/* Стили для форм в модальных окнах */
+.form-group label {
+    font-weight: 600;
+    color: #5a5c69;
+    margin-bottom: 0.5rem;
+}
+
+.form-control {
+    border-color: #d1d3e2;
+    border-radius: 0.35rem;
+}
+
+.form-control:focus {
+    border-color: #4e73df;
+    box-shadow: 0 0 0 0.2rem rgba(78, 115, 223, 0.25);
+}
+
+/* Стили для формы редактирования траектории */
+#trajectoryEditForm .form-group {
+    margin-bottom: 1.5rem;
+}
+
+#trajectoryEditForm label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-weight: 600;
+    color: #5a5c69;
+}
+
+#trajectoryEditForm .form-control {
+    width: 100%;
+    padding: 0.75rem;
+    font-size: 0.9rem;
+}
+
+#trajectoryEditForm textarea.form-control {
+    min-height: 120px;
+    resize: vertical;
+}
+
+#trajectoryEditForm select[multiple] {
+    min-height: 150px;
+}
+
+/* Стили для хлебных крошек */
+.breadcrumb {
+    background-color: transparent;
+    padding: 0;
+    margin-bottom: 1rem;
+}
+
+.breadcrumb-item + .breadcrumb-item::before {
+    content: ">";
+    color: #858796;
+}
+
+.breadcrumb-item a {
+    color: #4e73df;
+    text-decoration: none;
+}
+
+.breadcrumb-item a:hover {
+    color: #2e59d9;
+    text-decoration: underline;
+}
+
+.breadcrumb-item.active {
+    color: #858796;
+}
+
+/* Стили для боковой панели */
+.card .card-body .mb-3 {
+    border-bottom: 1px solid #e3e6f0;
+    padding-bottom: 0.75rem;
+}
+
+.card .card-body .mb-3:last-child {
+    border-bottom: none;
+    padding-bottom: 0;
+}
+
+/* Стили для быстрых действий */
+.d-grid.gap-2 .btn {
+    text-align: left;
+    padding: 0.5rem 0.75rem;
+}
+
+.d-grid.gap-2 .btn i {
+    margin-right: 0.5rem;
+    width: 16px;
+}
+
+/* Стили для индикатора загрузки в кнопке */
+.btn .fa-spinner {
+    margin-right: 0.25rem;
+}
+
+/* Стили для ошибок валидации */
+.invalid-feedback {
+    display: block;
+    color: #e74a3b;
+    font-size: 0.875rem;
+    margin-top: 0.25rem;
+}
+
+/* Стили для подсказок */
+.form-text {
+    color: #858796;
+    font-size: 0.875rem;
+    margin-top: 0.25rem;
+}
+
+/* Стили для timeline управления курсами */
+.timeline-container {
+    position: relative;
+}
+
+.timeline-header {
+    display: grid;
+    grid-template-columns: 1fr 200px 100px;
+    gap: 1rem;
+    padding: 1rem;
+    background-color: #f8f9fc;
+    border-bottom: 1px solid #e3e6f0;
+    font-weight: 600;
+    color: #5a5c69;
+}
+
+.timeline-body {
+    position: relative;
+}
+
+
+
+.timeline-line {
+    position: absolute;
+    left: 25px;
+    top: 0;
+    bottom: 0;
+    width: 2px;
+    background: linear-gradient(to bottom, #4e73df, #36b9cc);
+    z-index: 1;
+}
+
+.timeline-content {
+    display: grid;
+    grid-template-columns: 1fr 200px 100px;
+    gap: 1rem;
+    padding: 1rem;
+    background: white;
+    border: 1px solid #e3e6f0;
+    border-radius: 0.35rem;
+    margin-left: 50px;
+    position: relative;
+    z-index: 2;
+}
+
+.day-badge {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, #4e73df, #36b9cc);
+    color: white;
+    border-radius: 50%;
+    width: 60px;
+    height: 60px;
+    margin: 0 auto;
+}
+
+.day-number {
+    font-size: 1.2rem;
+    font-weight: bold;
+    line-height: 1;
+}
+
+.day-text {
+    font-size: 0.7rem;
+    opacity: 0.9;
+}
+
+.course-item {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    position: relative;
+}
+
+.course-image {
+    flex-shrink: 0;
+}
+
+.course-thumbnail {
+    width: 60px;
+    height: 40px;
+    object-fit: cover;
+    border-radius: 0.25rem;
+    border: 1px solid #e3e6f0;
+}
+
+.course-placeholder {
+    width: 60px;
+    height: 40px;
+    background-color: #f8f9fc;
+    border: 1px solid #e3e6f0;
+    border-radius: 0.25rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #858796;
+}
+
+.course-info {
+    flex: 1;
+}
+
+.course-title {
+    margin: 0;
+    font-weight: 600;
+    color: #5a5c69;
+}
+
+.deadline-info {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: #858796;
+}
+
+.course-actions {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    position: relative;
+}
+
+.dropdown-menu-end {
+    right: 0;
+    left: auto;
+    z-index: 9999 !important;
+}
+
+.dropdown-menu {
+    z-index: 9999 !important;
+    position: absolute !important;
+}
+
+.course-actions .dropdown {
+    position: relative;
+    z-index: 1000;
+}
+
+.timeline-item {
+    position: relative;
+    margin-bottom: 1rem;
+    cursor: move;
+    transition: all 0.2s ease;
+    z-index: 1;
+}
+
+.timeline-item:hover {
+    background-color: #f8f9fc;
+    border-radius: 0.35rem;
+    z-index: 2;
+}
+
+.timeline-item .dropdown.show {
+    z-index: 9999;
+}
+
+/* Стили для модального окна добавления курсов */
+.course-card {
+    cursor: pointer;
+    transition: all 0.2s ease;
+    border: 1px solid #e3e6f0;
+}
+
+.course-card:hover {
+    border-color: #4e73df;
+    box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.15);
+    transform: translateY(-2px);
+}
+
+.course-thumbnail-small {
+    width: 40px;
+    height: 30px;
+    object-fit: cover;
+    border-radius: 0.25rem;
+}
+
+.course-placeholder-small {
+    width: 40px;
+    height: 30px;
+    background-color: #f8f9fc;
+    border: 1px solid #e3e6f0;
+    border-radius: 0.25rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #858796;
+    font-size: 0.8rem;
+}
+
+/* Стили для Sortable.js */
+.sortable-ghost {
+    opacity: 0.5;
+    background-color: #f8f9fc !important;
+    border: 2px dashed #4e73df !important;
+}
+
+.sortable-chosen {
+    background-color: #e3f2fd !important;
+    box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.15) !important;
+}
+
+.sortable-drag {
+    background: white !important;
+    box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.15) !important;
+    transform: rotate(2deg) !important;
+    z-index: 9999 !important;
+}
+
+/* Стили для drag & drop (jQuery UI) */
+.timeline-item.ui-sortable-helper {
+    background: white;
+    box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.15);
+    transform: rotate(2deg);
+}
+
+.timeline-item.ui-sortable-placeholder {
+    background-color: #f8f9fc;
+    border: 2px dashed #4e73df;
+    opacity: 0.5;
+}
+
+/* Адаптивность для мобильных устройств */
+@media (max-width: 768px) {
+    .timeline-header,
+    .timeline-content {
+        grid-template-columns: 1fr 80px;
+        gap: 0.5rem;
+        padding: 0.5rem;
+    }
+    
+    .timeline-col:nth-child(2) {
+        display: none;
+    }
+    
+    .day-badge {
+        width: 50px;
+        height: 50px;
+    }
+    
+    .day-number {
+        font-size: 1rem;
+    }
+    
+    .day-text {
+        font-size: 0.6rem;
+    }
+    
+    .course-thumbnail {
+        width: 40px;
+        height: 30px;
+    }
+    
+    .course-placeholder {
+        width: 40px;
+        height: 30px;
+    }
+}
+
+/* Стили для кнопок в модальных окнах */
+.modal-footer .btn {
+    border-radius: 0.35rem;
+    font-weight: 600;
+}
+
+/* Стили для иконок */
+.fas {
+    margin-right: 0.25rem;
+}
+
+/* Стили для заголовков */
+.h3 {
+    font-weight: 700;
+    color: #5a5c69;
+}
+
+.text-muted {
+    color: #858796 !important;
+}
+
+/* Стили для карточек */
+.card {
+    border: none;
+    border-radius: 0.35rem;
+    box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.15);
+}
+
+.card-header {
+    background-color: #f8f9fc;
+    border-bottom: 1px solid #e3e6f0;
+    font-weight: 700;
+    color: #5a5c69;
+}
+
+/* Стили для кнопок действий */
+.btn-outline-info:hover,
+.btn-outline-primary:hover,
+.btn-outline-warning:hover,
+.btn-outline-danger:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+/* Стили для инпут групп */
+.input-group-append .btn {
+    border-top-left-radius: 0;
+    border-bottom-left-radius: 0;
+}
+
+.input-group .form-control {
+    border-top-right-radius: 0;
+    border-bottom-right-radius: 0;
+}
+
+/* Стили для карточек "Быстрые действия" */
+.card.bg-light {
+    transition: all 0.3s ease;
+    border: 1px solid #e3e6f0;
+    box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.1);
+}
+
+.card.bg-light:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 0.5rem 2rem 0 rgba(58, 59, 69, 0.15);
+}
+
+.card.bg-light .card-body {
+    padding: 1.5rem;
+    min-height: 200px;
+    display: flex;
+    flex-direction: column;
+}
+
+.card.bg-light .card-title {
+    font-size: 1.1rem;
+    font-weight: 600;
+    margin-bottom: 0.75rem;
+    color: #5a5c69;
+}
+
+.card.bg-light .card-text {
+    font-size: 0.9rem;
+    color: #858796;
+    line-height: 1.4;
+    margin-bottom: 1rem;
+}
+
+.card.bg-light .btn {
+    font-size: 0.85rem;
+    padding: 0.5rem 1rem;
+    border-radius: 0.35rem;
+    font-weight: 500;
+    transition: all 0.2s ease;
+}
+
+.card.bg-light .btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.card.bg-light i.fa-3x {
+    margin-bottom: 1rem;
+}
+
+/* Гарантия одинаковой высоты карточек */
+.row .col-lg-3 .card,
+.row .col-md-6 .card {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+}
+
+.row .col-lg-3 .card .card-body,
+.row .col-md-6 .card .card-body {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+}
+
+/* Адаптивность для мобильных устройств */
+@media (max-width: 768px) {
+    .card.bg-light .card-body {
+        min-height: 180px;
+        padding: 1rem;
+    }
+    
+    .card.bg-light .card-title {
+        font-size: 1rem;
+    }
+    
+    .card.bg-light .card-text {
+        font-size: 0.85rem;
+    }
+    
+    .card.bg-light .btn {
+        font-size: 0.8rem;
+        padding: 0.4rem 0.8rem;
+    }
+}
+
+/* Стили для выбора курсов в модальном окне */
+.selectable-course {
+    position: relative;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    border: 2px solid transparent;
+}
+
+.selectable-course:hover {
+    border-color: #007bff;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 123, 255, 0.2);
+}
+
+.selectable-course.selected {
+    border-color: #28a745;
+    background-color: #f8fff9;
+    box-shadow: 0 4px 12px rgba(40, 167, 69, 0.3);
+}
+
+.course-selection-overlay {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    width: 20px;
+    height: 20px;
+    background-color: #fff;
+    border: 2px solid #dee2e6;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: all 0.3s ease;
+    z-index: 10;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+.selectable-course:hover .course-selection-overlay {
+    opacity: 1;
+    border-color: #007bff;
+    transform: scale(1.1);
+}
+
+.selectable-course.selected .course-selection-overlay {
+    opacity: 1;
+    border-color: #28a745;
+    background-color: #28a745;
+    color: white;
+    transform: scale(1.1);
+}
+
+.course-selection-overlay i {
+    font-size: 19px;
+    margin-left: 4px;
+    margin-bottom: 2px;
+    color: #28a745;
+    line-height: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.selectable-course.selected .course-selection-overlay i {
+    color: white;
+}
+
+/* Счетчик выбранных курсов */
+#selectedCoursesCount {
+    font-size: 0.9rem;
+    padding: 0.5rem 0.75rem;
+}
+
+#addSelectedCoursesBtn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+#addSelectedCoursesBtn:not(:disabled) {
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0% {
+        box-shadow: 0 0 0 0 rgba(40, 167, 69, 0.7);
+    }
+    70% {
+        box-shadow: 0 0 0 10px rgba(40, 167, 69, 0);
+    }
+    100% {
+        box-shadow: 0 0 0 0 rgba(40, 167, 69, 0);
+    }
+}
+
+/* Адаптивность для модального окна */
+@media (max-width: 768px) {
+    .selectable-course .course-selection-overlay {
+        width: 18px;
+        height: 18px;
+        top: 6px;
+        right: 6px;
+    }
+    
+    .course-selection-overlay i {
+        font-size: 12px;
+    }
+}
+
+/* Стили для карточек курсов в списке */
+.course-item .card {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    transition: all 0.3s ease;
+    border: 1px solid #e3e6f0;
+    box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.1);
+    position: relative;
+    z-index: 1;
+}
+
+.course-item .card:hover {
+    z-index: 10;
+}
+
+.course-item .card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 0.5rem 2rem 0 rgba(58, 59, 69, 0.15);
+    z-index: 10;
+}
+
+.course-item .card-body {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    padding: 1.25rem;
+}
+
+.course-item .course-image {
+    flex-shrink: 0;
+}
+
+.course-item .course-info {
+    flex: 1;
+    min-width: 0; /* Для правильного переноса текста */
+}
+
+.course-item .course-title {
+    font-size: 1rem;
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+    color: #5a5c69;
+    line-height: 1.3;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+}
+
+.course-item .course-meta {
+    margin-top: auto;
+    padding-top: 1rem;
+}
+
+.course-item .course-actions {
+    flex-shrink: 0;
+}
+
+/* Исправление z-index для dropdown меню */
+.course-item .dropdown-menu {
+    z-index: 1050 !important;
+    position: absolute !important;
+}
+
+.course-item .dropdown.show .dropdown-menu {
+    z-index: 1050 !important;
+}
+
+/* Увеличиваем z-index для карточки с открытым dropdown */
+.course-item .card .dropdown.show {
+    z-index: 1050;
+}
+
+.course-item .card:hover .dropdown.show {
+    z-index: 1050;
+}
+
+/* Гарантия одинаковой высоты карточек */
+#coursesGrid .row {
+    display: flex;
+    flex-wrap: wrap;
+}
+
+#coursesGrid .col-lg-4,
+#coursesGrid .col-md-6 {
+    display: flex;
+    margin-bottom: 1.5rem;
+}
+
+#coursesGrid .col-lg-4 .card,
+#coursesGrid .col-md-6 .card {
+    width: 100%;
+}
+
+/* Стили для изображений курсов */
+.course-thumbnail-small {
+    width: 50px;
+    height: 50px;
+    object-fit: cover;
+    border-radius: 8px;
+}
+
+.course-placeholder-small {
+    width: 50px;
+    height: 50px;
+    background-color: #f8f9fc;
+    border: 2px dashed #d1d3e2;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #858796;
+}
+
+.course-placeholder-small i {
+    font-size: 1.2rem;
+}
+
+/* Адаптивность для карточек курсов */
+@media (max-width: 768px) {
+    .course-item .card-body {
+        padding: 1rem;
+    }
+    
+    .course-item .course-title {
+        font-size: 0.9rem;
+    }
+    
+    .course-thumbnail-small,
+    .course-placeholder-small {
+        width: 40px;
+        height: 40px;
+    }
+    
+    .course-placeholder-small i {
+        font-size: 1rem;
+    }
+}
+
+/* Стили для модального окна создания тестов */
+.question-block {
+    border: 1px solid #e3e6f0;
+    border-radius: 8px;
+    margin-bottom: 1rem;
+    transition: all 0.3s ease;
+}
+
+.question-block:hover {
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.question-block .card-header {
+    background-color: #f8f9fc;
+    border-bottom: 1px solid #e3e6f0;
+    padding: 0.75rem 1rem;
+}
+
+.question-block .card-body {
+    padding: 1rem;
+}
+
+.answer-item {
+    background-color: #f8f9fc;
+    border: 1px solid #e3e6f0;
+    border-radius: 6px;
+    padding: 0.5rem;
+    margin-bottom: 0.5rem;
+    transition: all 0.2s ease;
+}
+
+.answer-item:hover {
+    background-color: #e9ecef;
+}
+
+.answer-item .form-control-sm {
+    border: 1px solid #d1d3e2;
+    border-radius: 4px;
+}
+
+.answer-item .form-check-input:checked {
+    background-color: #28a745;
+    border-color: #28a745;
+}
+
+.answers-container {
+    border: 1px solid #e3e6f0;
+    border-radius: 6px;
+    padding: 1rem;
+    background-color: #f8f9fc;
+}
+
+.answers-list {
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+/* Анимации для добавления/удаления вопросов */
+.question-block {
+    animation: slideIn 0.3s ease-out;
+}
+
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateY(-20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Стили для модального окна создания тестов */
+#createQuizModal .modal-xl {
+    max-width: 90%;
+}
+
+#createQuizModal .modal-body {
+    max-height: 70vh;
+    overflow-y: auto;
+}
+
+/* Адаптивность для мобильных устройств */
+@media (max-width: 768px) {
+    .answer-item {
+        flex-direction: column;
+        align-items: stretch !important;
+    }
+    
+    .answer-item .me-2 {
+        margin-right: 0 !important;
+        margin-bottom: 0.5rem;
+    }
+    
+    .answer-item .btn-outline-danger {
+        align-self: flex-end;
+        margin-top: 0.5rem;
+    }
+    
+    #createQuizModal .modal-xl {
+        max-width: 95%;
+    }
+}
+
+/* Стили для кнопки добавления вопроса */
+#createQuizModal .btn-success {
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+#createQuizModal .btn-success:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+}
+
+#createQuizModal .btn-success:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}

@@ -20,7 +20,7 @@
             <p class="mt-2">
                 Пройдено уроков: {{ stats.completed }} из {{ stats.total }}
             </p>
-            <a href="{% url 'course_detail' course.slug %}" class="btn btn-primary">
+            <a href="{% url 'courses:course_detail' course.slug %}" class="btn btn-primary">
                 Продолжить обучение
             </a>
         </div>

@@ -2,6 +2,8 @@ from django.urls import path
 from . import views as course_views
 from .views import UserCourseTrajectoryDetailView, UserCourseTrajectoryListView
 
+app_name = 'courses'
+
 urlpatterns = [
     path('', course_views.CourseDetailView.as_view(), name='course-detail'),
     path('create-course/', course_views.create_course, name='create-course'),
@@ -18,4 +20,5 @@ urlpatterns = [
     path('course/<slug:course_slug>/redir_to_quiz/', course_views.redir_to_quiz, name='redir_to_quiz'),
     path('trajectory/<int:pk>/', UserCourseTrajectoryDetailView.as_view(), name='user_course_trajectory_detail'),
     path('trajectories/', UserCourseTrajectoryListView.as_view(), name='user_course_trajectory_list'),
+    path('trajectory-create/', course_views.TrajectoryCreateView.as_view(), name='trajectory_create'),
 ]

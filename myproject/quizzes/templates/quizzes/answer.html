@@ -13,7 +13,7 @@
             Вопрос {% if question.question_type != 'text' %}{{ current_question_number }} из {{ total_questions }}{% else %} открытый{%endif%}
         </div>
     </div>
-    <form method="POST" action="{% url 'get-questions' %}">
+    <form method="POST" action="{% url 'quizzes:get-questions' %}">
         {% csrf_token %}
         <input type="hidden" name="quiz_id" value="{{ correct_answer.question.quiz.id }}">
         

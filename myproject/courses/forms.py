@@ -1,12 +1,10 @@
 from django import forms
 from .models import Course, Lesson, UserLessonTrajectory, Trajectory, UserCourseTrajectory
 from django_ckeditor_5.fields import CKEditor5Widget
-from captcha.fields import CaptchaField
 from myapp.utils import clean_rutube_iframe
 import re
 
 class CourseForm(forms.ModelForm):
-    captcha = CaptchaField()
     class Meta:
         model = Course
         fields = ['title', 'description', 'image', 'slug', 'final_quiz', 'allowed_groups']
@@ -18,6 +16,33 @@ class CourseForm(forms.ModelForm):
                 config_name='extends'
             ),
             'allowed_groups': forms.SelectMultiple(attrs={'class': 'form-select'}),
+        }
+
+    def clean_slug(self):
+        slug = self.cleaned_data.get('slug')
+        if slug and not re.match(r'^[-a-zA-Z0-9_]+$', slug):
+            raise forms.ValidationError("ЧПУ может содержать только латинские буквы, цифры, дефисы и подчеркивания")
+        return slug
+    
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['image'].help_text = "Рекомендуемый размер: 1200x600 пикселей"
+
+class CourseModalForm(forms.ModelForm):
+    """
+    Форма для создания курса в модальном окне (без captcha).
+    """
+    class Meta:
+        model = Course
+        fields = ['title', 'description', 'image', 'slug', 'allowed_groups']
+        labels = {'slug': 'ЧПУ (оставьте пустым для автогенерации)'}
+        required = {'slug': False}
+        widgets = {
+            'description': CKEditor5Widget(
+                attrs={'class': 'django_ckeditor_5'},
+                config_name='extends'
+            ),
+            'allowed_groups': forms.SelectMultiple(attrs={'class': 'form-control'}),
         }
 
     def clean_slug(self):

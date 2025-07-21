@@ -54,7 +54,7 @@ class CoursesAccessTest(TestCase):
     def test_course_detail_access(self):
         """Любой авторизованный пользователь может просматривать курс."""
         self.client.login(username='user', password='pass')
-        url = reverse('course_detail', args=[self.course.slug])
+        url = reverse('courses:course_detail', args=[self.course.slug])
         resp = self.client.get(url)
         self.assertEqual(resp.status_code, 200)
         self.assertContains(resp, 'TestCourse')
@@ -62,14 +62,14 @@ class CoursesAccessTest(TestCase):
     def test_lesson_detail_access(self):
         """Любой авторизованный пользователь может просматривать урок."""
         self.client.login(username='user', password='pass')
-        url = reverse('lesson_detail', args=[self.course.slug, self.lesson.pk])
+        url = reverse('courses:lesson_detail', args=[self.course.slug, self.lesson.pk])
         resp = self.client.get(url)
         self.assertEqual(resp.status_code, 200)
         self.assertContains(resp, 'Lesson1')
 
     def test_course_requires_login(self):
         """Неавторизованный пользователь получает 302/403 на курс."""
-        url = reverse('course_detail', args=[self.course.slug])
+        url = reverse('courses:course_detail', args=[self.course.slug])
         resp = self.client.get(url)
         self.assertIn(resp.status_code, [302, 403])
 
@@ -87,7 +87,7 @@ class CoursesProgressTest(TestCase):
     def test_lesson_access(self):
         """Пользователь может получить доступ к уроку."""
         self.client.login(username='user', password='pass')
-        url = reverse('lesson_detail', args=[self.course.slug, self.lesson.pk])
+        url = reverse('courses:lesson_detail', args=[self.course.slug, self.lesson.pk])
         resp = self.client.get(url)
         self.assertEqual(resp.status_code, 200)
         self.assertContains(resp, 'Lesson1')

@@ -9,7 +9,7 @@
 
     <div class="lesson-navigation">
         {% if previous_lesson %}
-            <a href="{% url 'lesson_detail' course_slug=lesson.course.slug lesson_id=previous_lesson.id %}" 
+            <a href="{% url 'courses:lesson_detail' course_slug=lesson.course.slug lesson_id=previous_lesson.id %}" 
             class="btn btn-primary">
                 ← {{ previous_lesson.title }}
             </a>
@@ -18,7 +18,7 @@
         {% endif %}
 
         {% if next_lesson %}
-            <a href="{% url 'lesson_detail' course_slug=lesson.course.slug lesson_id=next_lesson.id %}" 
+            <a href="{% url 'courses:lesson_detail' course_slug=lesson.course.slug lesson_id=next_lesson.id %}" 
             class="btn btn-primary">
                 {{ next_lesson.title }} →
             </a>
@@ -45,21 +45,21 @@
         </div>
     </div>
     <div class="lesson-actions">
-        <form method="POST" action="{% url 'complete_lesson' course_slug=lesson.course.slug lesson_id=lesson.id %}">
+        <form method="POST" action="{% url 'courses:complete_lesson' course_slug=lesson.course.slug lesson_id=lesson.id %}">
             {% csrf_token %}
             <button type="submit" class="btn-lesson complete">
                 <i class="fa fa-check"></i> Завершить урок
             </button>
         </form>
         {% if user.is_authenticated and user.is_staff %}
-            <form method="POST" action="{% url 'delete_lesson' lesson.id %}">
+            <form method="POST" action="{% url 'courses:delete_lesson' lesson.id %}">
                 {% csrf_token %}
                 <button type="submit" class="btn-lesson delete"
                         onclick="return confirm('Вы уверены, что хотите удалить этот урок?')">
                     <i class="fa fa-trash"></i> Удалить урок
                 </button>
             </form>
-            <a href="{% url 'edit_lesson' lesson.id %}" class="btn-lesson edit">
+            <a href="{% url 'courses:edit_lesson' lesson.id %}" class="btn-lesson edit">
                 <i class="fa fa-edit"></i> Редактировать
             </a>
         {% endif %}

@@ -18,7 +18,7 @@
             <div class="progress-bar-finish__progress" style="width: {{ percent_score }}%"></div>
         </div>
         {% if course_slug %}
-        <a href="{% url 'course_detail' slug=course_slug %}" class="btn-quiz finish-btn">
+        <a href="{% url 'courses:course_detail' slug=course_slug %}" class="btn-quiz finish-btn">
             ← Вернуться к курсу
         </a>
         {% else %}

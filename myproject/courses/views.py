@@ -6,7 +6,8 @@ from django.contrib.auth.models import User
 from django.db import transaction, models
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.views.decorators.http import require_POST, require_http_methods
-from .forms import CourseForm, LessonForm
+from django.http import JsonResponse
+from .forms import CourseForm, CourseModalForm, LessonForm
 from .models import Course, Lesson, UserLessonTrajectory, Trajectory, UserCourseTrajectory, TrajectoryCourse
 from myapp.models import UserProgress, UserCourse, QuizResult
 from myapp.views import is_admin, is_author_or_admin
@@ -106,7 +107,7 @@ class CourseDetailView(DetailView):
             user_course.status = 'started'
             user_course.save()
         
-        return redirect('course_detail', slug=course.slug)
+        return redirect('courses:course_detail', slug=course.slug)
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -324,7 +325,7 @@ def lesson_detail(request, course_slug, lesson_id):
     # Проверка доступа к курсу
     user_course = UserCourse.objects.filter(user=request.user, course=course).first()
     if not user_course:
-        return redirect('course_detail', slug=course.slug)
+        return redirect('courses:course_detail', slug=course.slug)
 
     # Блокируем доступ к уроку, если курс не начат
     if user_course.status not in ['started', 'completed']:
@@ -373,7 +374,16 @@ def lesson_detail(request, course_slug, lesson_id):
 @user_passes_test(is_admin, login_url='/')
 def create_course(request):
     if request.method == 'POST':
-        form = CourseForm(request.POST, request.FILES)
+        # Проверяем, является ли это AJAX запросом
+        is_ajax = (request.headers.get('X-Requested-With') == 'XMLHttpRequest' or 
+                  request.headers.get('Accept') == 'application/json')
+        
+        # Используем разные формы в зависимости от типа запроса
+        if is_ajax:
+            form = CourseModalForm(request.POST, request.FILES)
+        else:
+            form = CourseForm(request.POST, request.FILES)
+            
         if form.is_valid():
             course = form.save(commit=False)
             course.author = request.user
@@ -386,8 +396,12 @@ def create_course(request):
             for user in staff_users:
                 UserCourse.objects.get_or_create(user=user, course=course, defaults={'status': 'available'})
             # ---
-            return redirect('home')
+            if is_ajax:
+                return JsonResponse({'success': True, 'id': course.id, 'title': course.title, 'slug': course.slug})
+            else:
+                return redirect('courses:course_detail', slug=course.slug)
     else:
+        # Используем CourseForm для обычных GET запросов
         form = CourseForm()
     return render(request, 'courses/create_course.html', {'form': form})
 
@@ -402,7 +416,7 @@ def create_lesson(request, course_slug):
             lesson.course = course
             lesson.order = max_order + 1
             lesson.save()
-            return redirect('course_detail', course_slug)
+            return redirect('courses:course_detail', course_slug)
     else:
         form = LessonForm(initial={'order': max_order + 1}, hide_order=True)
     return render(request, 'courses/create_lesson.html', {'form': form, 'course': course})
@@ -427,7 +441,7 @@ def add_lesson(request, course_slug):
     ]
     if request.method == 'POST':
         if 'create_new' in request.POST:
-            return redirect('create_lesson', course_slug=course.slug)
+            return redirect('courses:create_lesson', course_slug=course.slug)
         elif 'select_existing' in request.POST:
             lesson_id = request.POST.get('lesson_id')
             if lesson_id:
@@ -436,7 +450,7 @@ def add_lesson(request, course_slug):
                 max_order = course.lessons.aggregate(Max('order'))['order__max'] or 0
                 lesson.order = max_order + 1
                 lesson.save()
-                return redirect('course_detail', slug=course.slug)
+                return redirect('courses:course_detail', slug=course.slug)
         elif 'add_category_lessons' in request.POST:
             category_id = request.POST.get('category_id')
             if category_id:
@@ -446,7 +460,7 @@ def add_lesson(request, course_slug):
                     lesson.course = course
                     lesson.order = max_order + i
                     lesson.save()
-                return redirect('course_detail', slug=course.slug)
+                return redirect('courses:course_detail', slug=course.slug)
     return render(request, 'courses/add_lesson.html', {
         'course': course,
         'existing_lessons': existing_lessons,
@@ -462,7 +476,7 @@ def delete_course(request, slug):
     if request.method == 'POST':
         course.delete()
         return redirect('home')
-    return redirect('course_detail', slug=slug)
+    return redirect('courses:course_detail', slug=slug)
 
 
 @login_required
@@ -472,7 +486,7 @@ def delete_lesson(request, lesson_id):
     course_slug = lesson.course.slug
     if request.method == 'POST':
         lesson.delete()
-    return redirect('course_detail', course_slug)
+    return redirect('courses:course_detail', course_slug)
 
 
 @login_required
@@ -484,7 +498,7 @@ def edit_course(request, slug):
         form = CourseForm(request.POST, request.FILES, instance=course)
         if form.is_valid():
             form.save()
-            return redirect('course_detail', slug=course.slug)
+            return redirect('courses:course_detail', slug=course.slug)
     else:
         form = CourseForm(instance=course)
     
@@ -505,7 +519,7 @@ def edit_lesson(request, lesson_id):
         form = LessonForm(request.POST, instance=lesson)
         if form.is_valid():
             form.save()
-            return redirect('lesson_detail', course_slug=course.slug, lesson_id=lesson.id)
+            return redirect('courses:lesson_detail', course_slug=course.slug, lesson_id=lesson.id)
     else:
         form = LessonForm(instance=lesson)
     
@@ -524,7 +538,7 @@ def redir_to_quiz(request, course_slug):
         action = request.POST.get('action')
         if action == 'start_quiz':
             request.session['course_slug'] = course.slug
-            return redirect('quiz_start', quiz_id=course.final_quiz.id)
+            return redirect('quizzes:quiz_start', quiz_id=course.final_quiz.id)
         else:
             return redirect('profile')
 
@@ -541,14 +555,14 @@ def complete_lesson(request, course_slug, lesson_id):
     lesson = get_object_or_404(Lesson, id=lesson_id, course=course)
     
     if not UserCourse.objects.filter(user=request.user, course=course).exists():
-        return redirect('course_detail', slug=course.slug)
+        return redirect('courses:course_detail', slug=course.slug)
     
     # Получаем траекторию пользователя
     trajectory = UserLessonTrajectory.objects.filter(user=request.user, course=course).first()
     
     # Проверяем, что урок входит в траекторию пользователя (если траектория задана)
     if trajectory and lesson not in trajectory.lessons.all():
-        return redirect('course_detail', slug=course.slug)
+        return redirect('courses:course_detail', slug=course.slug)
 
     # Создаем или обновляем прогресс
     UserProgress.objects.update_or_create(
@@ -579,12 +593,12 @@ def complete_lesson(request, course_slug, lesson_id):
     
     if all_completed:
         if course.final_quiz:
-            return redirect('redir_to_quiz', course_slug=course_slug)
+            return redirect('courses:redir_to_quiz', course_slug=course_slug)
         else:
             user_course.is_completed = True
             user_course.save()
     
-    return redirect('course_detail', slug=course.slug)
+    return redirect('courses:course_detail', slug=course.slug)
 
 
 def complete_course(request, course_id):
@@ -601,13 +615,13 @@ def complete_course(request, course_id):
         if quiz_result:
             user_course.is_completed = True
             user_course.save()
-            return redirect('course_detail', slug=course.slug)
+            return redirect('courses:course_detail', slug=course.slug)
         else:
-            return redirect('quiz_start', quiz_id=course.final_quiz.id)
+            return redirect('quizzes:quiz_start', quiz_id=course.final_quiz.id)
     else:
         user_course.is_completed = True
         user_course.save()
-        return redirect('course_detail', slug=course.slug)
+        return redirect('courses:course_detail', slug=course.slug)
     
 
 @method_decorator(login_required, name='dispatch')
@@ -626,5 +640,28 @@ class UserCourseTrajectoryListView(ListView):
         context = super().get_context_data(**kwargs)
         context['user'] = self.request.user
         return context
+
+
+from django.views.generic import CreateView
+from django.contrib.auth.mixins import UserPassesTestMixin
+from django.http import JsonResponse
+
+class TrajectoryCreateView(UserPassesTestMixin, CreateView):
+    """
+    Создание новой траектории курсов.
+    """
+    model = Trajectory
+    fields = ['name', 'description', 'groups']
+    template_name = 'courses/trajectory_form.html'
+    success_url = '/builder/trajectory-management/'
+
+    def test_func(self):
+        return self.request.user.is_staff or self.request.user.is_superuser
+
+    def form_valid(self, form):
+        response = super().form_valid(form)
+        if self.request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return JsonResponse({'success': True, 'id': self.object.id, 'name': self.object.name})
+        return response
     
 
