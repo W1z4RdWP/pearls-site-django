@@ -475,6 +475,8 @@ def delete_course(request, slug):
     course = get_object_or_404(Course, slug=slug)
     if request.method == 'POST':
         course.delete()
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return JsonResponse({'success': True})
         return redirect('home')
     return redirect('courses:course_detail', slug=slug)
 
