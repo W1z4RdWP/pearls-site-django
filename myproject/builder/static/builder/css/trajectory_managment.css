@@ -888,12 +888,12 @@ body.theme-dark {
     font-size: 1.1rem;
     font-weight: 600;
     margin-bottom: 0.75rem;
-    color: var(--trajectory-card-title);
+    color: #5a5c69;
 }
 
 .card.bg-light .card-text {
     font-size: 0.9rem;
-    color: var(--trajectory-card-text);
+    color: #5a5c69;
     line-height: 1.4;
     margin-bottom: 1rem;
 }

@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import CategoryName, LessonVersion, LessonCategoryMirror, DictionaryTerm, DictionarySection
+from .models import CategoryName, Document, LessonVersion, LessonCategoryMirror, DictionaryTerm, DictionarySection
 
 
 
@@ -18,6 +18,12 @@ class LessonCategoryMirrorAdmin(admin.ModelAdmin):
     list_filter = ('lesson', 'category')
     search_fields = ('lesson__title', 'category__name')
 
+
+@admin.register(Document)
+class DocumentAdmin(admin.ModelAdmin):
+    list_display = ('title', 'file', 'uploaded_at')
+    list_filter = ('uploaded_at',)
+    search_fields = ('title',)
 
 admin.site.register(DictionaryTerm)
 admin.site.register(DictionarySection)

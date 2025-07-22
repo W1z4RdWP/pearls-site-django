@@ -1817,3 +1817,14 @@ class CourseListView(ListView):
         context['authors'] = User.objects.filter(course__isnull=False).distinct().order_by('first_name', 'last_name', 'username')
         
         return context
+
+
+class DocumentDeleteView(DeleteView):
+    model = Document
+    template_name = 'builder/document_confirm_delete.html'
+    success_url = reverse_lazy('builder:documents')
+
+    def dispatch(self, request, *args, **kwargs):
+        if not request.user.is_authenticated or not (request.user.is_staff or request.user.is_superuser):
+            return render(request, '403.html', status=403)
+        return super().dispatch(request, *args, **kwargs)

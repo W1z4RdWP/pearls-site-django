@@ -15,8 +15,14 @@
             <ul class="list-group list-group-flush">
                 {% for doc in documents %}
                     <li class="list-group-item d-flex justify-content-between align-items-center">
-                        <a href="{{ doc.file.url }}" target="_blank">{{ doc.title }}</a>
-                        <span class="text-muted small">{{ doc.uploaded_at|date:"d.m.Y H:i" }}</span>
+                        <div>
+                            <a href="{{ doc.file.url }}" target="_blank">{{ doc.title }}</a>
+                            <span class="text-muted small ms-2">{{ doc.uploaded_at|date:"d.m.Y H:i" }}</span>
+                        </div>
+                        <form method="post" action="{% url 'builder:document_delete' doc.pk %}" style="display:inline;" onsubmit="return confirm('Удалить документ?');">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-sm btn-danger"><i class="fas fa-trash"></i> Удалить</button>
+                        </form>
                     </li>
                 {% empty %}
                     <li class="list-group-item">Документов пока нет.</li>

@@ -27,6 +27,8 @@ document.getElementById('tree-search-input')?.addEventListener('input', function
                 const el = document.querySelector(`.category-block[data-id='${id}']`);
                 if (el) {
                     el.style.display = '';
+                    // Показать все уроки внутри найденной категории
+                    el.querySelectorAll('.lesson-list li').forEach(li => li.style.display = '');
                     // Показать родителей
                     let parent = el.parentElement;
                     while (parent && !parent.classList.contains('category-list')) {
