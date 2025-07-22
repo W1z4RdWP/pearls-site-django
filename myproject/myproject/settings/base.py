@@ -261,13 +261,13 @@ CKEDITOR_5_CONFIGS = {
             'items': [
                 '|', 'heading',
                 '|', 'outdent', 'indent',
-                '|', 'bold', 'italic', 'link', 'underline', 'strikethrough', 'code', 'subscript', 'superscript',
+                '|', 'bold', 'italic', 'underline', 'strikethrough', 'code', 'subscript', 'superscript',
                 'highlight',
                 '|', 'codeBlock', 'insertImage', 'bulletedList', 'numberedList', 'todoList',
                 '|', 'blockQuote',
                 '|', 'fontSize', 'fontFamily', 'fontColor', 'fontBackgroundColor', 'removeFormat',
                 'insertTable', 
-                '|', 'htmlEmbed'
+                '|', 'htmlEmbed', 'link', 
             ],
             'shouldNotGroupWhenFull': True
         },
