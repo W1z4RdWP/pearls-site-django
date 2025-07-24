@@ -69,18 +69,20 @@ body.theme-dark {
 /* --- Основные контейнеры --- */
 .container {
     width: 100% !important;
-    max-width: none !important;
+    max-width: 80vw !important;
 }
 
 /* --- Master-detail layout --- */
 .master-detail-container {
     display: flex;
     min-height: 600px;
+    width: 98vw;
     background: var(--builder-bg);
     border-radius: var(--builder-border-radius);
-    margin-top: 32px;
+    margin-top: 0px;
     box-shadow: var(--builder-shadow);
     transition: all 0.3s;
+    margin-left: -14vw;
 }
 
 .sidebar {
