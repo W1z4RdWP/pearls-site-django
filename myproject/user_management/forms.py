@@ -18,13 +18,19 @@ class UserProfileForm(forms.ModelForm):
         self.fields['middle_name'].required = False
         self.fields['role'].required = False
         self.fields['date_of_birth'].required = False
-        self.fields['phone_number'].required = True
         self.fields['image'].required = False
         self.fields['is_approved'].required = False
         self.fields['is_resonsible'].required = False
         self.fields['bio'].required = False
+        # --- required для телефона зависит от формата ---
+        phone_arbitrary = False
         if self.instance and hasattr(self.instance, 'phone_arbitrary_format'):
-            self.fields['phone_arbitrary_format'].initial = self.instance.phone_arbitrary_format
+            phone_arbitrary = self.instance.phone_arbitrary_format
+        # Если POST — приоритет у данных формы
+        if 'phone_arbitrary_format' in self.data:
+            phone_arbitrary = self.data.get('phone_arbitrary_format') in ['on', 'true', 'True', True]
+        self.fields['phone_arbitrary_format'].initial = phone_arbitrary
+        self.fields['phone_number'].required = not phone_arbitrary
 
     def save(self, commit=True):
         profile = super().save(commit=False)
