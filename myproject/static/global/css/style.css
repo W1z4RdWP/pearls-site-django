@@ -1165,6 +1165,9 @@ main > section > .text-block-2 {
         width: 100px;
     } */
 
+    .custom-navbar .navbar-nav {
+        margin-right: 0px;
+    }
 
     .nav-profile-actions, .custom-nav-list .nav-item.staff-icons-row {
         display: flex !important;

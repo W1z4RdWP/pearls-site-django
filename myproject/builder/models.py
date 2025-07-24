@@ -14,6 +14,13 @@ class CategoryName(models.Model):
         verbose_name="Родительская категория"
     )
     order = models.PositiveIntegerField(default=0, verbose_name="Порядок сортировки")
+    allowed_groups = models.ManyToManyField(
+        'auth.Group',
+        blank=True,
+        related_name='allowed_categories',
+        verbose_name='Доступен для групп',
+        help_text='Группы, которым доступна эта категория и все её подкатегории/уроки в БЗ'
+    )
 
     class Meta:
         verbose_name = "Категория"
