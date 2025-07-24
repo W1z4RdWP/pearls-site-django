@@ -188,11 +188,28 @@ def get_category_descendants(category_id):
     return descendants
 
 
+def user_has_category_access(user, category):
+    """
+    Проверяет, есть ли у пользователя доступ к категории через allowed_groups (учитывает родителей).
+    Доступ наследуется вниз по дереву.
+    """
+    if not user.is_authenticated:
+        return False
+    user_groups = set(user.groups.values_list('id', flat=True))
+    cat = category
+    while cat:
+        allowed = set(cat.allowed_groups.values_list('id', flat=True))
+        if allowed and user_groups & allowed:
+            return True
+        cat = cat.parent
+    return False
+
+
 def filter_categories_and_lessons_for_user(user, categories, uncategorized_lessons):
     """
     Фильтрует дерево категорий и список уроков без категории для read-only пользователя,
-    чтобы показывать только те уроки, которые входят в доступные для пользователя курсы.
-    Если у пользователя есть траектория по курсу — показываются только уроки из траектории.
+    чтобы показывать только те уроки, которые входят в доступные для пользователя курсы
+    ИЛИ доступны через группы в allowed_groups (категории и все вложенные).
     """
     # Получаем все курсы, доступные пользователю
     user_courses = UserCourse.objects.filter(user=user).select_related('course')
@@ -208,20 +225,39 @@ def filter_categories_and_lessons_for_user(user, categories, uncategorized_lesso
         else:
             allowed_lesson_ids.update(course.lessons.values_list('id', flat=True))
 
+    # --- ДОБАВЛЯЕМ доступ через группы (категории и все вложенные) ---
+    def collect_group_accessible_lessons(cat_data, parent_access=False):
+        # parent_access: был ли доступ у родителя
+        cat_id = cat_data['id']
+        cat_obj = CategoryName.objects.get(id=cat_id)
+        has_access = parent_access or user_has_category_access(user, cat_obj)
+        group_lesson_ids = set()
+        if has_access:
+            group_lesson_ids.update(lesson['id'] for lesson in cat_data['lessons'])
+        for subcat in cat_data['subcategories']:
+            group_lesson_ids.update(collect_group_accessible_lessons(subcat, has_access))
+        return group_lesson_ids
+
+    group_access_lesson_ids = set()
+    for cat_data in categories:
+        if cat_data:
+            group_access_lesson_ids.update(collect_group_accessible_lessons(cat_data))
+    allowed_lesson_ids.update(group_access_lesson_ids)
+
     # Фильтруем уроки без категории
     filtered_uncat = uncategorized_lessons.filter(id__in=allowed_lesson_ids)
 
     # Рекурсивно фильтруем дерево категорий (работаем со словарями из get_category_tree_data)
-    def filter_category(cat_data):
+    def filter_category(cat_data, parent_access=False):
+        cat_id = cat_data['id']
+        cat_obj = CategoryName.objects.get(id=cat_id)
+        has_access = parent_access or user_has_category_access(user, cat_obj)
         # Фильтруем уроки в категории
         filtered_lessons = [lesson for lesson in cat_data['lessons'] if lesson['id'] in allowed_lesson_ids]
         # Рекурсивно фильтруем подкатегории
-        filtered_subcats = [filter_category(subcat) for subcat in cat_data['subcategories']]
-        # Оставляем только те подкатегории, где есть уроки или подкатегории с уроками
+        filtered_subcats = [filter_category(subcat, has_access) for subcat in cat_data['subcategories']]
         filtered_subcats = [sc for sc in filtered_subcats if sc is not None]
-        
         if filtered_lessons or filtered_subcats:
-            # Создаем копию данных категории с отфильтрованными уроками и подкатегориями
             filtered_cat = cat_data.copy()
             filtered_cat['filtered_lessons'] = filtered_lessons
             filtered_cat['filtered_subcategories'] = filtered_subcats
@@ -230,11 +266,10 @@ def filter_categories_and_lessons_for_user(user, categories, uncategorized_lesso
 
     filtered_categories = []
     for cat_data in categories:
-        if cat_data:  # Проверяем, что данные категории не None
+        if cat_data:
             filtered = filter_category(cat_data)
             if filtered:
                 filtered_categories.append(filtered)
-    
     return filtered_categories, filtered_uncat
 
 
@@ -286,7 +321,15 @@ class LessonMasterDetailView(TemplateView):
                         else:
                             allowed_lesson_ids.update(course.lessons.values_list('id', flat=True))
                     
-                    if selected_lesson.id not in allowed_lesson_ids:
+                    # --- ДОБАВЛЯЕМ доступ через группы (категория и все родители) ---
+                    group_access = False
+                    cat = selected_lesson.category
+                    while cat and not group_access:
+                        if user_has_category_access(user, cat):
+                            group_access = True
+                        cat = cat.parent if cat else None
+
+                    if selected_lesson.id not in allowed_lesson_ids and not group_access:
                         selected_lesson = None
                 
                 context['selected_lesson'] = selected_lesson
@@ -488,7 +531,7 @@ class CategoryListView(ListView):
 
 class CategoryCreateView(CreateView):
     model = CategoryName
-    fields = ['name', 'parent', 'order']
+    fields = ['name', 'parent', 'order', 'allowed_groups']
     template_name = 'builder/category_form.html'
     success_url = reverse_lazy('builder:lesson_master')
 
@@ -500,7 +543,7 @@ class CategoryCreateView(CreateView):
 
 class CategoryUpdateView(UpdateView):
     model = CategoryName
-    fields = ['name', 'parent', 'order']
+    fields = ['name', 'parent', 'order', 'allowed_groups']
     template_name = 'builder/category_form.html'
     success_url = reverse_lazy('builder:lesson_master')
 
