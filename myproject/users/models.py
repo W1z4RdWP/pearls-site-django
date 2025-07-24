@@ -4,6 +4,21 @@ from django.db.models.signals import post_save
 from django.dispatch import receiver
 from typing import Any
 
+
+class Role(models.Model):
+    name = models.CharField(max_length=200, unique=True, verbose_name="Название должности")
+
+    class Meta:
+        verbose_name = 'Должность'
+        verbose_name_plural = 'Должности'
+        ordering = ['name']
+
+    def __str__(self):
+        return self.name
+
+
+        
+
 class Profile(models.Model):
     """
     Модель профиля пользователя.
@@ -23,7 +38,7 @@ class Profile(models.Model):
 
     user = models.OneToOneField(User, on_delete=models.CASCADE)
     middle_name = models.CharField(max_length=200, blank=True, null=True, verbose_name="Отчество")
-    role = models.CharField(max_length=200, blank=True, null=True, verbose_name="Должность")
+    role = models.ForeignKey(Role, null=True, blank=True, on_delete=models.SET_NULL, verbose_name="Должность")
     date_of_birth = models.DateField(verbose_name="Дата рождения", blank=True, null=True)
     phone_number = models.CharField(
         max_length=18,

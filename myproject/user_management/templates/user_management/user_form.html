@@ -46,7 +46,15 @@
                 {{ form.first_name.label_tag }}{{ form.first_name }}
                 {{ form.last_name.label_tag }}{{ form.last_name }}
                 {{ profile_form.middle_name.label_tag }}{{ profile_form.middle_name }}
-                {{ profile_form.role.label_tag }}{{ profile_form.role }}
+                <label for="id_role">{{ profile_form.role.label }}</label>
+                <div class="role-field-wrapper" style="position:relative; display:flex; align-items:center; gap:8px;">
+                    <div style="flex:1;">
+                        {{ profile_form.role }}
+                    </div>
+                    <button type="button" class="btn btn-link p-0" data-bs-toggle="modal" data-bs-target="#roleModal" style="margin-left:8px;">
+                        <i class="fa fa-cog"></i>
+                    </button>
+                </div>
                 {{ form.username.label_tag }}{{ form.username }}
                 {{ form.email.label_tag }}{{ form.email }}
                 <label for="id_groups">Группы пользователя</label>
@@ -85,6 +93,44 @@
             <a href="{% url 'user_management:user_list' %}" class="btn btn-secondary">Отмена</a>
         </div>
     </form>
+</div>
+<!-- Модальное окно для управления ролями -->
+<div class="modal fade" id="roleModal" tabindex="-1" aria-labelledby="roleModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="roleModalLabel">Управление должностями</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Закрыть"></button>
+      </div>
+      <div class="modal-body">
+        <form method="post" action="{% url 'user_management:role_manage' %}" id="role-manage-form">
+          {% csrf_token %}
+          <div class="mb-3">
+            <label for="id_new_role" class="form-label">Добавить новую должность</label>
+            <input type="text" class="form-control" id="id_new_role" name="new_role" maxlength="200">
+          </div>
+          <button type="submit" class="btn btn-primary mb-3">Добавить</button>
+        </form>
+        <hr>
+        <h6>Существующие должности:</h6>
+        <ul class="list-group">
+          {% for role in roles %}
+          <li class="list-group-item d-flex justify-content-between align-items-center">
+            <span>{{ role.name }}</span>
+            <form method="post" action="{% url 'user_management:role_delete' role.id %}" style="display:inline;">
+              {% csrf_token %}
+              <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Удалить должность?')">
+                <i class="fa fa-trash"></i>
+              </button>
+            </form>
+          </li>
+          {% empty %}
+          <li class="list-group-item">Нет должностей</li>
+          {% endfor %}
+        </ul>
+      </div>
+    </div>
+  </div>
 </div>
 <script src="{% static 'user_management/js/phone_field.js' %}" defer></script>
 <script>

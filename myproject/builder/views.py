@@ -294,7 +294,11 @@ class LessonMasterDetailView(TemplateView):
         is_readonly = not (user.is_staff or user.is_superuser)
         context['is_readonly'] = is_readonly
         context['dictionary_sections'] = DictionarySection.objects.all().order_by('order', 'name')
-        
+        # Список ответственных всегда в context
+        from django.contrib.auth import get_user_model
+        User = get_user_model()
+        context['responsibles'] = User.objects.filter(profile__is_resonsible=True)
+        context['responsible_id_default'] = None
         # Применяем фильтрацию для readonly пользователей
         if is_readonly:
             context['categories'], context['uncategorized_lessons'] = filter_categories_and_lessons_for_user(
@@ -302,7 +306,6 @@ class LessonMasterDetailView(TemplateView):
             )
         else:
             context['uncategorized_lessons'] = uncategorized_lessons
-
         # Проверяем pk в URL и lesson_id в GET-параметрах
         pk = self.kwargs.get('pk') or self.request.GET.get('lesson_id')
         if pk:
@@ -320,7 +323,6 @@ class LessonMasterDetailView(TemplateView):
                             allowed_lesson_ids.update(trajectory.lessons.values_list('id', flat=True))
                         else:
                             allowed_lesson_ids.update(course.lessons.values_list('id', flat=True))
-                    
                     # --- ДОБАВЛЯЕМ доступ через группы (категория и все родители) ---
                     group_access = False
                     cat = selected_lesson.category
@@ -328,10 +330,8 @@ class LessonMasterDetailView(TemplateView):
                         if user_has_category_access(user, cat):
                             group_access = True
                         cat = cat.parent if cat else None
-
                     if selected_lesson.id not in allowed_lesson_ids and not group_access:
                         selected_lesson = None
-                
                 context['selected_lesson'] = selected_lesson
                 # --- История версий ---
                 lesson_versions = selected_lesson.versions.order_by('-version') if selected_lesson else []
@@ -340,7 +340,6 @@ class LessonMasterDetailView(TemplateView):
                 context['selected_lesson'] = None
                 lesson_versions = []
             context['lesson_versions'] = lesson_versions
-            
             if selected_lesson:
                 # Подготавливаем JSON для версий
                 versions_data = []
@@ -363,13 +362,15 @@ class LessonMasterDetailView(TemplateView):
                         'responsible_role': getattr(getattr(v.updated_by, 'profile', None), 'role', None),
                         'responsible_fio': v.updated_by.get_full_name() if v.updated_by else None,
                     })
-                
                 # Берем информацию из последней версии (с максимальным номером)
                 latest_version = lesson_versions.first() if lesson_versions else None
                 context['actualization_info'] = {
                     'next_update': latest_version.next_update if latest_version else None,
                     'responsible_role': getattr(getattr(latest_version.updated_by, 'profile', None), 'role', None) if latest_version else None,
                 }
+                # Новый: id ответственного по умолчанию
+                if latest_version and latest_version.updated_by:
+                    context['responsible_id_default'] = latest_version.updated_by.id
                 context['actualization_history'] = actualization_history
                 from django.utils import timezone
                 context['today'] = timezone.now().date()

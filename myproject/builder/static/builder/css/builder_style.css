@@ -85,6 +85,18 @@ body.theme-dark {
     margin-left: -14vw;
 }
 
+@media (max-width: 1600px) {
+    .master-detail-container {
+        margin-left: -10vw;
+    }
+}
+
+@media (max-width: 1200px) {
+    .master-detail-container {
+        margin-left: -8vw;
+    }
+}
+
 .sidebar {
     width: 320px;
     min-width: 180px;

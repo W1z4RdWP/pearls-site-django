@@ -1189,47 +1189,139 @@ document.addEventListener('DOMContentLoaded', function() {
             mainActualizeBtn.onclick = function(e) {
                 e.preventDefault();
                 e.stopPropagation();
+                // Открываем модалку
+                openActualizeModal();
+            };
+        }
+
+        // --- Логика модалки актуализации ---
+        function openActualizeModal() {
+            const modal = document.getElementById('actualize-modal');
+            if (!modal) return;
+            // Заполняем поля
+            const createdInput = document.getElementById('actualize-created');
+            const versionInput = document.getElementById('actualize-version');
+            const periodInput = document.getElementById('actualize-period');
+            const nextUpdateInput = document.getElementById('actualize-next-update');
+            const responsibleSelect = document.getElementById('actualize-responsible');
+            const confirmBtn = document.getElementById('actualize-confirm-btn');
+            const closeBtn = document.getElementById('actualize-modal-close');
+            const form = document.getElementById('actualize-form');
+
+            // Получаем данные из последней строки истории (или из блока)
+            let last = null;
+            if (window._lessonVersions && window._lessonVersions.length) {
+                last = window._lessonVersions[0];
+            }
+            // Альтернативно — из actualization_history, если есть
+            let historyRows = document.querySelectorAll('#actualization-history-dropdown tbody tr');
+            if (historyRows.length) {
+                const tds = historyRows[0].querySelectorAll('td');
+                // created, version, period, next_update, role, fio
+                createdInput.value = tds[0]?.textContent.trim() || '';
+                versionInput.value = tds[1]?.textContent.replace(/^v/, '').trim() || '';
+                periodInput.value = tds[2]?.textContent.trim() || '90';
+                nextUpdateInput.value = tds[3]?.textContent.trim().split('.').reverse().join('-') || '';
+            } else {
+                // fallback
+                const today = (window._actualizationToday || new Date()).toISOString().slice(0,10);
+                createdInput.value = today.split('-').reverse().join('.');
+                versionInput.value = '1';
+                periodInput.value = '90';
+                nextUpdateInput.value = today;
+            }
+            // Ответственный — по умолчанию первый
+            if (responsibleSelect.options.length) responsibleSelect.selectedIndex = 0;
+
+            // Ограничения для даты
+            const today = new Date();
+            const maxDate = new Date(today.getTime() + 180*24*60*60*1000);
+            nextUpdateInput.min = today.toISOString().slice(0,10);
+            nextUpdateInput.max = maxDate.toISOString().slice(0,10);
+
+            // При изменении периода — меняем дату
+            periodInput.oninput = function() {
+                let days = parseInt(periodInput.value, 10);
+                if (isNaN(days) || days < 1) days = 1;
+                if (days > 180) days = 180;
+                periodInput.value = days;
+                const d = new Date();
+                d.setDate(d.getDate() + days);
+                nextUpdateInput.value = d.toISOString().slice(0,10);
+                validateActualizeForm();
+            };
+            // При изменении даты — меняем период
+            nextUpdateInput.oninput = function() {
+                const d1 = today;
+                const d2 = new Date(nextUpdateInput.value);
+                let diff = Math.round((d2-d1)/(1000*60*60*24));
+                if (diff < 1) diff = 1;
+                if (diff > 180) diff = 180;
+                periodInput.value = diff;
+                validateActualizeForm();
+            };
+            responsibleSelect.onchange = validateActualizeForm;
+
+            // Валидация
+            function validateActualizeForm() {
+                let valid = true;
+                const days = parseInt(periodInput.value, 10);
+                const d2 = new Date(nextUpdateInput.value);
+                if (!days || days < 1 || days > 180) valid = false;
+                if (!nextUpdateInput.value) valid = false;
+                if ((d2-today)/(1000*60*60*24) < 0 || (d2-today)/(1000*60*60*24) > 180) valid = false;
+                if (!responsibleSelect.value) valid = false;
+                confirmBtn.disabled = !valid;
+            }
+            periodInput.oninput(); // триггерим заполнение даты и валидацию
+
+            // Закрытие
+            closeBtn.onclick = function() { modal.style.display = 'none'; };
+            modal.onclick = function(e) { if (e.target === modal) modal.style.display = 'none'; };
+
+            // Сабмит
+            form.onsubmit = function(ev) {
+                ev.preventDefault();
+                confirmBtn.disabled = true;
+                // Собираем данные
                 const id = document.getElementById('actualize-lesson-id')?.value;
-                if (!id) {
-                    alert('Не удалось определить ID урока');
-                    return;
-                }
-                mainActualizeBtn.disabled = true;
+                if (!id) { alert('Не удалось определить ID урока'); return; }
                 fetch('/builder/actualize_version/', {
                     method: 'POST',
                     headers: {
                         'X-CSRFToken': (document.querySelector('[name=csrfmiddlewaretoken]')||{}).value || '',
                         'Content-Type': 'application/json',
                     },
-                    body: JSON.stringify({ lesson_id: id })
+                    body: JSON.stringify({
+                        lesson_id: id,
+                        period: parseInt(periodInput.value, 10),
+                        next_update: nextUpdateInput.value,
+                        responsible_id: responsibleSelect.value
+                    })
                 })
                 .then(r => r.json())
                 .then(data => {
                     if (data.error) {
                         alert('Ошибка: ' + data.error);
-                        mainActualizeBtn.disabled = false;
+                        confirmBtn.disabled = false;
                         return;
                     }
+                    modal.style.display = 'none';
                     // Обновляем detail-блок (AJAX reload)
-                    if (window.location.href.match(/lesson\/(\d+)/)) {
-                        const lessonId = window.location.href.match(/lesson\/(\d+)/)[1];
-                        fetch(`/builder/lesson/${lessonId}/?ajax=1`)
-                            .then(r => r.text())
-                            .then(html => {
-                                document.getElementById('detail').innerHTML = html;
-                                // initVersionHistoryDropdown();
-                                initActualizationHistoryDropdown();
-                                initDictHotTable(); // <--- добавлено
-                            });
-                    } else {
-                        window.location.reload();
-                    }
+                    const lessonId = id;
+                    fetch(`/builder/lesson/${lessonId}/?ajax=1`)
+                        .then(r => r.text())
+                        .then(html => {
+                            document.getElementById('detail').innerHTML = html;
+                            initActualizationHistoryDropdown();
+                        });
                 })
                 .catch(() => {
                     alert('Ошибка сети');
-                    mainActualizeBtn.disabled = false;
+                    confirmBtn.disabled = false;
                 });
             };
+            modal.style.display = 'flex';
         }
     }
     initActualizationHistoryDropdown();

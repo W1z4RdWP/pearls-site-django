@@ -63,15 +63,15 @@
                     </li>
                     {% endfor %}
                     {% if user.is_authenticated %}
-                    {% if user.is_staff %}
-                    {% for item in nav_staff %}
-                      <li class="nav-item">
-                        <a class="nav-link custom-nav-link" href="{% url item.url %}" title="{{ item.label }}">
-                          <i class="{{ item.icon }}"></i>
-                        </a>
-                      </li>
-                    {% endfor %}
-                    {% if user.is_superuser %}
+                    {% if request.user.is_staff %}
+                      {% for item in nav_staff %}
+                        <li class="nav-item">
+                          <a class="nav-link custom-nav-link" href="{% url item.url %}" title="{{ item.label }}">
+                            <i class="{{ item.icon }}"></i>
+                          </a>
+                        </li>
+                      {% endfor %}
+                    {% if request.user.is_superuser %}
                       <li class="nav-item">
                         <a class="nav-link custom-nav-link" href="/admin" title="Админ панель">
                           <i class="fa-solid fa-screwdriver-wrench"></i>
