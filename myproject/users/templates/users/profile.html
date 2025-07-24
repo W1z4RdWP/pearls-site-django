@@ -13,6 +13,7 @@
             </div>
             <div class="profile-main-info">
                 <div class="profile-top-row">
+                    
                     <h2 class="account-heading">{{ user.username }}</h2>
                     <span class="profile-registered">Дата регистрации: {{ user.date_joined|date:"d.m.Y H:i" }}</span>
                 </div>
@@ -29,23 +30,24 @@
                     </div>
                     <div class="media-body__user-groups">
                         {% with user.groups.all as groups %}
-                            {% if groups|length == 1 %}
-                                <p>Вы состоите в группе: <b>{{ groups.0.name }}</b></p>
-                            {% elif groups|length > 1 %}
-                                <p>Группы пользователя:</p>
-                                <ul>
-                                    {% for group in groups %}
-                                        <li><b>{{ group.name }}</b></li>
-                                    {% endfor %}
-                                </ul>
-                            {% else %}
-                                <p>Пользователь не состоит в группах</p>
-                            {% endif %}
+                        {% if groups|length == 1 %}
+                        <p>Вы состоите в группе: <b>{{ groups.0.name }}</b></p>
+                        {% elif groups|length > 1 %}
+                        <p>Группы пользователя:</p>
+                        <ul>
+                            {% for group in groups %}
+                            <li><b>{{ group.name }}</b></li>
+                            {% endfor %}
+                        </ul>
+                        {% else %}
+                        <p>Пользователь не состоит в группах</p>
+                        {% endif %}
                         {% endwith %}
                     </div>
                 </div>
             </div>
         </div>
+        
         <div class="profile-actions">
             <button class="btn-modern" id="edit-profile-btn">
                 <i class="fa fa-edit"></i> Редактировать
@@ -80,6 +82,9 @@
                 <div class="form-group">
                     <button class="btn btn-outline-info" type="submit" id="update-profile_info-btn">Обновить</button>
                     <button class="btn btn-outline-secondary" id="cancel-edit-btn">Отмена</button>
+                    <a href="{% url 'password_change' %}" class="btn btn-outline-warning" id="change-password-btn" style="margin-left: 10px; color: #2dabc4; border: 1px solid #2dabc4;">
+                        <i class="fa fa-key"></i> Сменить пароль
+                    </a>
                 </div>
             </form>
         </div>

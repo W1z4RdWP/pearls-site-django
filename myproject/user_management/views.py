@@ -341,6 +341,13 @@ class UserPasswordChangeView(FormView):
     form_class = SetPasswordForm
     success_url = reverse_lazy('user_management:user_list')
 
+    def dispatch(self, request, *args, **kwargs):
+        # Только staff или superuser могут менять пароли другим
+        if not request.user.is_authenticated or not (request.user.is_staff or request.user.is_superuser):
+            raise PermissionDenied('У вас нет прав для смены пароля других пользователей.')
+        # Можно добавить: запрет staff менять пароль superuser, если нужно
+        return super().dispatch(request, *args, **kwargs)
+
     def get_form_kwargs(self):
         kwargs = super().get_form_kwargs()
         kwargs['user'] = User.objects.get(pk=self.kwargs['pk'])
