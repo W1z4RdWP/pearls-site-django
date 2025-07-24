@@ -1,5 +1,5 @@
 from django import forms
-from users.models import Profile
+from users.models import Profile, Role
 
 class UserProfileForm(forms.ModelForm):
     phone_arbitrary_format = forms.BooleanField(
@@ -16,7 +16,12 @@ class UserProfileForm(forms.ModelForm):
             self.fields['first_name'] = forms.CharField(label='Имя', required=True)
             self.fields['last_name'] = forms.CharField(label='Фамилия', required=True)
         self.fields['middle_name'].required = False
-        self.fields['role'].required = False
+        self.fields['role'] = forms.ModelChoiceField(
+            label='Должность',
+            queryset=Role.objects.all(),
+            required=False,
+            empty_label='— выберите —',
+        )
         self.fields['date_of_birth'].required = False
         self.fields['image'].required = False
         self.fields['is_approved'].required = False

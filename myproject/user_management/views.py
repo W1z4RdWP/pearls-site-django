@@ -2,7 +2,7 @@ from django.shortcuts import render, redirect
 from django.views.generic import ListView, CreateView, UpdateView, DetailView, FormView
 from django.contrib.auth.models import User
 from django.db.models import Q, Count, Max
-from users.models import Profile
+from users.models import Profile, Role
 from django import forms
 from django.urls import reverse_lazy
 from django.core.exceptions import PermissionDenied
@@ -14,6 +14,9 @@ from django.contrib.admin.views.decorators import staff_member_required
 from .forms import UserProfileForm
 from users.forms import UserRegisterNoCaptchaForm
 from django.contrib.auth.forms import SetPasswordForm
+from django.views.decorators.http import require_POST
+from django.urls import reverse
+from django.contrib import messages
 
 class UserListView(ListView):
     model = User
@@ -88,6 +91,25 @@ def get_user_privilege_level(user):
         return 2
     return 1
 
+def role_manage(request):
+    if not request.user.is_staff:
+        raise PermissionDenied
+    if request.method == 'POST':
+        name = request.POST.get('new_role', '').strip()
+        if name:
+            Role.objects.get_or_create(name=name)
+            messages.success(request, f'Должность "{name}" добавлена.')
+        return redirect(request.META.get('HTTP_REFERER', reverse('user_management:user_list')))
+    return redirect('user_management:user_list')
+
+@require_POST
+def role_delete(request, role_id):
+    if not request.user.is_staff:
+        raise PermissionDenied
+    Role.objects.filter(id=role_id).delete()
+    messages.success(request, 'Должность удалена.')
+    return redirect(request.META.get('HTTP_REFERER', reverse('user_management:user_list')))
+
 class UserUpdateView(UpdateView):
     model = User
     template_name = 'user_management/user_form.html'
@@ -111,6 +133,7 @@ class UserUpdateView(UpdateView):
         else:
             context['profile_form'] = UserProfileForm(instance=self.object.profile, user_instance=self.object)
         context['readonly'] = getattr(self, 'readonly', False)
+        context['roles'] = Role.objects.all()
         return context
 
     def form_valid(self, form):
