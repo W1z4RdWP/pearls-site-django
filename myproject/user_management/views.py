@@ -19,7 +19,7 @@ class UserListView(ListView):
     model = User
     template_name = 'user_management/user_list.html'
     context_object_name = 'users'
-    paginate_by = 10
+    paginate_by = 20
 
     def dispatch(self, request, *args, **kwargs):
         if not request.user.is_authenticated or not (request.user.is_staff or request.user.is_superuser):

@@ -72,8 +72,10 @@
                     {% endif %}
                 </td>
                 <td>
-                    <a href="{% url 'user_management:user_edit' user.pk %}" class="um-btn um-btn-secondary um-btn-wide">Редактировать</a>
-                    <a href="{% url 'user_management:user_progress' user.pk %}" class="um-btn um-btn-primary um-btn-wide">Прогресс обучения</a>
+                    <div class="um-action-btns">
+                        <a href="{% url 'user_management:user_edit' user.pk %}" class="um-action-btn" title="Редактировать"><i class="fa-solid fa-pen-to-square"></i></a>
+                        <a href="{% url 'user_management:user_progress' user.pk %}" class="um-action-btn" title="Прогресс обучения"><i class="fa-solid fa-chart-line"></i></a>
+                    </div>
                 </td>
 
             </tr>
