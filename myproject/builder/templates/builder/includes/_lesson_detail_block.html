@@ -6,7 +6,7 @@
             {% if not is_readonly %}
             <div class="actualization-history-block" style="position: relative;">
                 <button id="actualization-history-btn" class="btn btn-outline-secondary" type="button">История актуализаций</button>
-                <div id="actualization-history-dropdown" class="builder-dropdown" style="display: none; min-width: 420px;">
+                <div id="actualization-history-dropdown" class="builder-dropdown" style="display: none; min-width: 420px; max-width: 700px;">
                     <div style="margin-bottom: 8px;">
                         <button id="actualize-main-btn" class="btn btn-primary btn-sm">Актуализировать</button>
                     </div>
@@ -19,6 +19,7 @@
                                     <th>Стандарт (дней)</th>
                                     <th>След. обновление</th>
                                     <th>Отв.</th>
+                                    <th>Отв. ФИО</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -31,6 +32,7 @@
                                         {% if a.next_update %}{{ a.next_update|date:"d.m.Y" }}{% else %}—{% endif %}
                                     </td>
                                     <td>{{ a.responsible_role|default:'—' }}</td>
+                                    <td>{{ a.responsible_fio|default:'—' }}</td>
                                 </tr>
                             {% endfor %}
                             </tbody>
