@@ -89,3 +89,43 @@
     window._lessonVersions = [];
 </script>
 {% endif %} 
+
+<!-- Модалка подтверждения актуализации -->
+<div id="actualize-modal" style="display:none; position:fixed; z-index:99999; left:0; top:0; width:100vw; height:100vh; background:rgba(0,0,0,0.35); align-items:center; justify-content:center;">
+  <div style="background:#fff; color:#232a3a; padding:32px 32px 24px 32px; border-radius:12px; box-shadow:0 2px 16px #0007; min-width:340px; max-width:95vw; text-align:left; position:relative;">
+    <button id="actualize-modal-close" style="position:absolute; right:12px; top:12px; background:none; border:none; font-size:1.5em; color:#888; cursor:pointer;">&times;</button>
+    <h4 style="margin-top:0;">Подтвердите актуализацию</h4>
+    <form id="actualize-form" autocomplete="off">
+      <div style="margin-bottom:12px;">
+        <label>Дата создания:<br>
+          <input type="text" id="actualize-created" readonly style="width:180px; background:#eee;">
+        </label>
+      </div>
+      <div style="margin-bottom:12px;">
+        <label>№ версии:<br>
+          <input type="text" id="actualize-version" readonly style="width:80px; background:#eee;">
+        </label>
+      </div>
+      <div style="margin-bottom:12px;">
+        <label>Стандарт (дней):<br>
+          <input type="number" id="actualize-period" min="1" max="180" required style="width:80px;">
+        </label>
+      </div>
+      <div style="margin-bottom:12px;">
+        <label>След. обновление:<br>
+          <input type="date" id="actualize-next-update" required style="width:180px;">
+        </label>
+      </div>
+      <div style="margin-bottom:18px;">
+        <label>Ответственный:<br>
+          <select id="actualize-responsible" required style="width:220px;">
+            {% for r in responsibles %}
+              <option value="{{ r.id }}" {% if r.id == responsible_id_default %}selected{% endif %}>{{ r.get_full_name }}</option>
+            {% endfor %}
+          </select>
+        </label>
+      </div>
+      <button type="submit" id="actualize-confirm-btn" class="btn btn-primary" disabled>Актуализировать</button>
+    </form>
+  </div>
+</div> 
