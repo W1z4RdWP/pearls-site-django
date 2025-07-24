@@ -10,6 +10,7 @@
 <div class="update-control-form-bg">
     <div class="update-control-form-card">
         <h2>Контроль актуальности уроков</h2>
+        <a href="/builder/content/" class="btn-goback">&times;</a>
         <form method="get" class="update-filters-form" style="display: flex; flex-wrap: wrap; gap: 8px; align-items: flex-end;">
             <input type="text" name="title" placeholder="Название урока" value="{{ request.GET.title|default_if_none:'' }}" class="form-control form-control-sm" style="width: 160px;">
             <input type="date" name="created_from" value="{{ created_from }}" class="form-control form-control-sm" style="width: 135px;">

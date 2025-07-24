@@ -49,7 +49,9 @@ urlpatterns = [
     path('ckeditor5/', include('django_ckeditor_5.urls')),
     path('changelog/', views.ChangelogListView.as_view(), name='changelog'),
     path('privacy-policy/', PrivacyPolicyView.as_view(), name='privacy_policy'),
-    path('error_found/', views.page_not_found_view, {'exception': Answer.MultipleObjectsReturned}, name='error')
+    path('error_found/', views.page_not_found_view, {'exception': Answer.MultipleObjectsReturned}, name='error'),
+    path('password_change/', auth_views.PasswordChangeView.as_view(template_name='users/password_change.html'), name='password_change'),
+    path('password_change/done/', auth_views.PasswordChangeDoneView.as_view(template_name='users/password_change_done.html'), name='password_change_done'),
 ]
 
 handler404 = 'myapp.views.page_not_found_view'

@@ -26,7 +26,7 @@ body.theme-dark {
 }
 
 .update-control-form-bg { background: var(--ucf-bg); min-height: 100vh; padding: 40px 0; }
-    .update-control-form-card { background: var(--ucf-card-bg); border-radius: 10px; box-shadow: var(--ucf-card-shadow); padding: 32px 32px 24px 32px; max-width: 1200px; margin: 0 auto; }
+    .update-control-form-card { position: relative; background: var(--ucf-card-bg); border-radius: 10px; box-shadow: var(--ucf-card-shadow); padding: 32px 32px 24px 32px; max-width: 1200px; margin: 0 auto; }
     .update-control-form-card h2 { color: var(--ucf-table-th-color); font-weight: 700; margin-bottom: 32px; letter-spacing: 0.5px; }
     .update-control-table { width: 100%; border-collapse: collapse; margin-bottom: 24px; }
     .update-control-table th, .update-control-table td {
@@ -43,6 +43,10 @@ body.theme-dark {
     }
     .update-control-table td input:focus, .update-control-table td select:focus, .update-control-table td textarea:focus {
         border: 1.5px solid var(--ucf-btn-bg); outline: none; background: var(--ucf-table-td-focus);
+    }
+
+    .update-control-form-card .btn-goback {
+        position: absolute; right: 32px; top: 32px; font-size: 28px; color: #888; text-decoration: none; z-index: 109;
     }
 
     /* Дата следующего обновления */
