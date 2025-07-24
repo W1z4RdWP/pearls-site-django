@@ -140,7 +140,7 @@ body.theme-dark {
 
 .category-title {
     flex: 1;
-    font-weight: 900;
+    font-weight: 500;
     font-size: 1em;
     color: var(--builder-sidebar-title);
     white-space: nowrap;

@@ -2,12 +2,20 @@
 {% load static %}
 {% block specific_styles %}
 <link rel="stylesheet" href="{% static 'user_management/css/user_list.css' %}">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
 <style>
-.um-btn-wide {
-    min-width: 180px;
-    width: 180px;
-    text-align: center;
-}
+.um-btn-wide { display: none; }
+.um-user-list-table th, .um-user-list-table td { padding: 6px 4px; font-size: 0.97rem; }
+.um-user-avatar { width: 28px; height: 28px; min-width: 28px; min-height: 28px; }
+.um-user-avatar-name { gap: 6px; }
+.um-user-list-table td { vertical-align: middle; }
+.um-user-list-table th { font-size: 0.98rem; }
+.um-user-list-table { font-size: 0.97rem; }
+.um-user-list-table .um-user-name-email { line-height: 1.1; }
+.um-user-list-table .um-user-email { font-size: 0.92em; }
+.um-action-btns { display: flex; gap: 8px; }
+.um-action-btn { border: none; background: none; padding: 0 4px; color: #5b3cc4; font-size: 1.2em; cursor: pointer; transition: color 0.15s; }
+.um-action-btn:hover { color: #2dabc4; }
 </style>
 {% endblock %}
 
