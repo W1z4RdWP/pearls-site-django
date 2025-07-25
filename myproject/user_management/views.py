@@ -110,6 +110,18 @@ def role_delete(request, role_id):
     messages.success(request, 'Должность удалена.')
     return redirect(request.META.get('HTTP_REFERER', reverse('user_management:user_list')))
 
+@require_POST
+def role_edit(request, role_id):
+    if not request.user.is_staff:
+        raise PermissionDenied
+    new_name = request.POST.get('new_name', '').strip()
+    if new_name:
+        Role.objects.filter(id=role_id).update(name=new_name)
+        messages.success(request, f'Должность переименована в "{new_name}".')
+    else:
+        messages.error(request, 'Название не может быть пустым.')
+    return redirect(request.META.get('HTTP_REFERER', reverse('user_management:user_list')))
+
 class UserUpdateView(UpdateView):
     model = User
     template_name = 'user_management/user_form.html'
