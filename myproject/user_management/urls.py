@@ -14,4 +14,5 @@ urlpatterns = [
     path('users/quiz_report/<int:quiz_id>/', views.UserQuizReportView.as_view(), name='user_quiz_report'),
     path('roles/manage/', views.role_manage, name='role_manage'),
     path('roles/delete/<int:role_id>/', views.role_delete, name='role_delete'),
+    path('roles/<int:role_id>/edit/', views.role_edit, name='role_edit'),
 ]

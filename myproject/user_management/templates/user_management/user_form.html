@@ -115,14 +115,19 @@
         <h6>Существующие должности:</h6>
         <ul class="list-group">
           {% for role in roles %}
-          <li class="list-group-item d-flex justify-content-between align-items-center">
-            <span>{{ role.name }}</span>
-            <form method="post" action="{% url 'user_management:role_delete' role.id %}" style="display:inline;">
-              {% csrf_token %}
-              <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Удалить должность?')">
-                <i class="fa fa-trash"></i>
+          <li class="list-group-item d-flex justify-content-between align-items-center" id="role-item-{{ role.id }}">
+            <span class="role-name" id="role-name-{{ role.id }}">{{ role.name }}</span>
+            <div class="role-action-btns" style="display:flex; gap:6px; align-items:center; margin-left:10px;">
+              <button type="button" class="btn btn-sm btn-secondary" onclick="editRole({{ role.id }}, '{{ role.name|escapejs }}')">
+                <i class="fa fa-pencil"></i>
               </button>
-            </form>
+              <form method="post" action="{% url 'user_management:role_delete' role.id %}" style="display:inline; margin:0;">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Удалить должность?')">
+                  <i class="fa fa-trash"></i>
+                </button>
+              </form>
+            </div>
           </li>
           {% empty %}
           <li class="list-group-item">Нет должностей</li>
@@ -143,6 +148,54 @@ document.addEventListener('DOMContentLoaded', function() {
         arb.addEventListener('change', function() { cb.checked = arb.checked; });
     }
 });
+
+function editRole(roleId, roleName) {
+  const item = document.getElementById('role-item-' + roleId);
+  const nameSpan = document.getElementById('role-name-' + roleId);
+  nameSpan.style.display = 'none';
+
+  // Если уже есть форма — не добавлять ещё одну
+  if (item.querySelector('form.role-edit-form')) return;
+
+  // Получаем CSRF-токен из cookie
+  function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+      const cookies = document.cookie.split(';');
+      for (let i = 0; i < cookies.length; i++) {
+        const cookie = cookies[i].trim();
+        if (cookie.substring(0, name.length + 1) === (name + '=')) {
+          cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+          break;
+        }
+      }
+    }
+    return cookieValue;
+  }
+  const csrfToken = getCookie('csrftoken');
+
+  // Создаём инпут и форму для редактирования
+  const form = document.createElement('form');
+  form.method = 'post';
+  form.action = `/user_management/roles/${roleId}/edit/`;
+  form.className = 'role-edit-form';
+  form.style.display = 'inline';
+  form.innerHTML = `
+    <input type="hidden" name="csrfmiddlewaretoken" value="${csrfToken}">
+    <input type="text" name="new_name" value="${roleName}" class="form-control form-control-sm d-inline" style="width:120px;display:inline-block;">
+    <button type="submit" class="btn btn-sm btn-success ms-1"><i class="fa fa-save"></i></button>
+    <button type="button" class="btn btn-sm btn-secondary ms-1" onclick="cancelEditRole(${roleId}, '${roleName}')"><i class="fa fa-times"></i></button>
+  `;
+  nameSpan.after(form);
+}
+
+function cancelEditRole(roleId, roleName) {
+  const item = document.getElementById('role-item-' + roleId);
+  const form = item.querySelector('form.role-edit-form');
+  if (form) form.remove();
+  const nameSpan = document.getElementById('role-name-' + roleId);
+  nameSpan.style.display = '';
+}
 </script>
 {% endblock %}
 
