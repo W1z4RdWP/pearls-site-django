@@ -1232,7 +1232,25 @@ document.addEventListener('DOMContentLoaded', function() {
             }
             // Ответственный — по умолчанию первый
             if (responsibleSelect.options.length) responsibleSelect.selectedIndex = 0;
+            // Если есть default_responsible_id, выбираем его
+            if (window.responsibleIdDefault) {
+                for (let i = 0; i < responsibleSelect.options.length; i++) {
+                    if (responsibleSelect.options[i].value == window.responsibleIdDefault) {
+                        responsibleSelect.selectedIndex = i;
+                        break;
+                    }
+                }
+            }
 
+            if (window.responsibleIdDefault) {
+                for (let i = 0; i < responsibleSelect.options.length; i++) {
+                    if (responsibleSelect.options[i].value == window.responsibleIdDefault) {
+                        responsibleSelect.selectedIndex = i;
+                        break;
+                    }
+                }
+            }
+            
             // Ограничения для даты
             const today = new Date();
             const maxDate = new Date(today.getTime() + 180*24*60*60*1000);

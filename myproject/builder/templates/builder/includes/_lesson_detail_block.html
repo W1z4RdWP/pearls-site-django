@@ -54,6 +54,10 @@
     <div class="lesson-content" id="lesson-content-block">
         {{ lesson.content|safe|default:"Нет содержимого." }}
     </div>
+<script id="responsible-id-default" type="application/json">{{ responsible_id_default|default:'null' }}</script>
+<script>
+window.responsibleIdDefault = JSON.parse(document.getElementById('responsible-id-default').textContent);
+</script>
     {% if lesson.video_id %}
         <div class="lesson-video mt-4" id="lesson-video-block">
             <h5>Видео урок:</h5>
@@ -87,6 +91,7 @@
 {% else %}
 <script>
     window._lessonVersions = [];
+    window.responsibleIdDefault = {{ responsible_id_default|default:'null' }};
 </script>
 {% endif %} 
 
@@ -129,3 +134,95 @@
     </form>
   </div>
 </div> 
+
+<style>
+  /* Модалка подтверждения актуализации */
+  #actualize-modal {
+  display: none;
+  position: fixed;
+  z-index: 99999;
+  left: 0; top: 0; width: 100vw; height: 100vh;
+  background: rgba(0,0,0,0.35);
+  align-items: center; justify-content: center;
+}
+
+#actualize-modal > div {
+  background: #f8fafc;
+  color: #232a3a;
+  padding: 32px 32px 24px 32px;
+  border-radius: 16px;
+  box-shadow: 0 4px 32px #0002;
+  min-width: 340px; max-width: 95vw;
+  text-align: left; position: relative;
+  font-family: inherit;
+}
+
+#actualize-modal h4 {
+  margin-top: 0;
+  margin-bottom: 24px;
+  font-size: 1.35em;
+  font-weight: 700;
+  text-align: center;
+  letter-spacing: 0.01em;
+}
+
+#actualize-modal label {
+  display: block;
+  margin-bottom: 10px;
+  font-weight: 500;
+}
+
+#actualize-modal input,
+#actualize-modal select {
+  width: 100%;
+  padding: 7px 10px;
+  border: 1px solid #c3c8d0;
+  border-radius: 6px;
+  background: #fff;
+  font-size: 1em;
+  margin-top: 4px;
+  box-sizing: border-box;
+  transition: border 0.2s, box-shadow 0.2s;
+}
+#actualize-modal input:focus,
+#actualize-modal select:focus {
+  border: 1.5px solid #4d7cff;
+  box-shadow: 0 0 0 2px #4d7cff22;
+  outline: none;
+}
+
+#actualize-modal form > div {
+  margin-bottom: 18px;
+}
+
+#actualize-modal-close {
+  position: absolute; right: 12px; top: 12px;
+  background: none; border: none;
+  font-size: 1.5em; color: #888; cursor: pointer;
+  transition: color 0.2s;
+}
+#actualize-modal-close:hover {
+  color: #232a3a;
+}
+
+#actualize-confirm-btn {
+  width: 100%;
+  padding: 10px 0;
+  font-size: 1.08em;
+  border-radius: 7px;
+  border: none;
+  background: #4d7cff;
+  color: #fff;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s, box-shadow 0.2s;
+  box-shadow: 0 2px 8px #4d7cff22;
+}
+#actualize-confirm-btn:disabled {
+  background: #b3c7fa;
+  cursor: not-allowed;
+}
+#actualize-confirm-btn:hover:not(:disabled) {
+  background: #2956d3;
+}
+</style>
