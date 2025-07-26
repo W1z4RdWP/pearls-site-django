@@ -55,8 +55,12 @@
         {{ lesson.content|safe|default:"Нет содержимого." }}
     </div>
 <script id="responsible-id-default" type="application/json">{{ responsible_id_default|default:'null' }}</script>
+<script id="previous-role-id" type="application/json">{{ previous_role_id|default:'null' }}</script>
+<script id="previous-role-name" type="application/json">{{ previous_role_name|default:'null' }}</script>
 <script>
 window.responsibleIdDefault = JSON.parse(document.getElementById('responsible-id-default').textContent);
+window.previousRoleId = JSON.parse(document.getElementById('previous-role-id').textContent);
+window.previousRoleName = JSON.parse(document.getElementById('previous-role-name').textContent);
 </script>
     {% if lesson.video_id %}
         <div class="lesson-video mt-4" id="lesson-video-block">
@@ -89,9 +93,14 @@ window.responsibleIdDefault = JSON.parse(document.getElementById('responsible-id
 })();
 </script>
 {% else %}
+<script id="responsible-id-default-else" type="application/json">{{ responsible_id_default|default:'null' }}</script>
+<script id="previous-role-id-else" type="application/json">{{ previous_role_id|default:'null' }}</script>
+<script id="previous-role-name-else" type="application/json">{{ previous_role_name|default:'null' }}</script>
 <script>
     window._lessonVersions = [];
-    window.responsibleIdDefault = {{ responsible_id_default|default:'null' }};
+    window.responsibleIdDefault = JSON.parse(document.getElementById('responsible-id-default-else').textContent);
+    window.previousRoleId = JSON.parse(document.getElementById('previous-role-id-else').textContent);
+    window.previousRoleName = JSON.parse(document.getElementById('previous-role-name-else').textContent);
 </script>
 {% endif %} 
 
@@ -130,11 +139,6 @@ window.responsibleIdDefault = JSON.parse(document.getElementById('responsible-id
               <option value="{{ role.id }}">{{ role.name }}</option>
             {% endfor %}
           </select>
-        </label>
-      </div>
-      <div style="margin-bottom:18px;">
-        <label>Ответственный:<br>
-          <input type="text" id="actualize-responsible-fio" readonly style="width:220px; background:#f8f9fa; border:1px solid #dee2e6; padding:7px 10px; border-radius:6px; font-size:0.9em; color:#6c757d;" placeholder="ФИО ответственного">
         </label>
       </div>
       <button type="submit" id="actualize-confirm-btn" class="btn btn-primary" disabled>Актуализировать</button>

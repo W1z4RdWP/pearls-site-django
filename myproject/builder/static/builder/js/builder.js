@@ -1,5 +1,13 @@
 let contextTarget = null;
 
+// Инициализация переменных для автозаполнения роли
+if (typeof window.previousRoleId === 'undefined') {
+    window.previousRoleId = null;
+}
+if (typeof window.previousRoleName === 'undefined') {
+    window.previousRoleName = null;
+}
+
 function saveCategoryState(categoryId, isOpen) {
     sessionStorage.setItem(`category_${categoryId}_state`, isOpen ? 'open' : 'closed');
 }
@@ -1234,6 +1242,21 @@ document.addEventListener('DOMContentLoaded', function() {
             // Инициализируем поля роли и ответственного
             responsibleFio.value = '';
             
+            // Функция валидации формы
+            function validateActualizeForm() {
+                let valid = true;
+                const days = parseInt(periodInput.value, 10);
+                const d2 = new Date(nextUpdateInput.value);
+                if (!days || days < 1 || days > 180) valid = false;
+                if (!nextUpdateInput.value) valid = false;
+                if ((d2-today)/(1000*60*60*24) < 0 || (d2-today)/(1000*60*60*24) > 180) valid = false;
+                if (!roleSelect.value) valid = false;
+                if (!responsibleFio.value) valid = false;
+                confirmBtn.disabled = !valid;
+            }
+            
+            // Автозаполнение роли из предыдущей версии (перемещаем после добавления обработчиков)
+            
             // Ограничения для даты
             const today = new Date();
             const maxDate = new Date(today.getTime() + 180*24*60*60*1000);
@@ -1292,19 +1315,19 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             });
 
-            // Валидация
-            function validateActualizeForm() {
-                let valid = true;
-                const days = parseInt(periodInput.value, 10);
-                const d2 = new Date(nextUpdateInput.value);
-                if (!days || days < 1 || days > 180) valid = false;
-                if (!nextUpdateInput.value) valid = false;
-                if ((d2-today)/(1000*60*60*24) < 0 || (d2-today)/(1000*60*60*24) > 180) valid = false;
-                if (!roleSelect.value) valid = false;
-                if (!responsibleFio.value) valid = false;
-                confirmBtn.disabled = !valid;
-            }
+            // Валидация формы
             periodInput.oninput(); // триггерим заполнение даты и валидацию
+
+            // Автозаполнение роли из предыдущей версии (после добавления всех обработчиков)
+            if (window.previousRoleId && window.previousRoleId !== null) {
+                roleSelect.value = window.previousRoleId;
+                // Триггерим событие change для загрузки пользователей
+                const event = new Event('change');
+                roleSelect.dispatchEvent(event);
+            } else {
+                // Если нет предыдущей роли, все равно вызываем валидацию
+                validateActualizeForm();
+            }
 
             // Закрытие
             closeBtn.onclick = function() { modal.style.display = 'none'; };

@@ -373,6 +373,13 @@ class LessonMasterDetailView(TemplateView):
                 # Новый: id ответственного по умолчанию
                 if latest_version and latest_version.updated_by:
                     context['responsible_id_default'] = latest_version.updated_by.id
+                # Добавляем информацию о предыдущей роли для автозаполнения
+                if latest_version and latest_version.updated_by and latest_version.updated_by.profile and latest_version.updated_by.profile.role:
+                    context['previous_role_id'] = latest_version.updated_by.profile.role.id
+                    context['previous_role_name'] = latest_version.updated_by.profile.role.name
+                else:
+                    context['previous_role_id'] = None
+                    context['previous_role_name'] = None
                 context['actualization_history'] = actualization_history
                 from django.utils import timezone
                 context['today'] = timezone.now().date()
@@ -408,6 +415,8 @@ class LessonMasterDetailView(TemplateView):
                 'responsibles': context.get('responsibles'),
                 'roles': context.get('roles'),
                 'responsible_id_default': context.get('responsible_id_default'),
+                'previous_role_id': context.get('previous_role_id'),
+                'previous_role_name': context.get('previous_role_name'),
             }
             return HttpResponse(render_to_string('builder/includes/_lesson_detail_block.html', ajax_context, request=request))
         return self.render_to_response(context)
