@@ -6,7 +6,7 @@
                 <path class="svg-folder-path" d="M2 5.5A1.5 1.5 0 0 1 3.5 4h3.672a1.5 1.5 0 0 1 1.06.44l1.414 1.414A1.5 1.5 0 0 0 10.707 6H16.5A1.5 1.5 0 0 1 18 7.5v7A1.5 1.5 0 0 1 16.5 16h-13A1.5 1.5 0 0 1 2 14.5v-9z"/>
             </svg>
         </span>
-        <span class="category-title">{{ category.order }}. {{ category.name }}</span>
+        <span class="category-title">{{ category.name }}</span>
         {% if is_readonly %}
             {% if category.filtered_subcategories or category.filtered_lessons %}
                 <span class="toggle-arrow">&#9654;</span>
@@ -40,7 +40,7 @@
                         {% if lesson.is_mirror or lesson.has_mirrors %}style="font-style: italic;"{% endif %}>
                          {{ lesson.title }}
                          {% if lesson.is_mirror or lesson.has_mirrors %}
-                             <span class="mirror-label" title="Зеркало урока">🔗 зеркало</span>
+                             <span class="mirror-label" title="Зеркало урока">🔗 (зеркало)</span>
                          {% endif %}
                      </a>
                     </li>
@@ -69,7 +69,7 @@
                         {% if lesson.is_mirror or lesson.has_mirrors %}style="font-style: italic;"{% endif %}>
                          {{ lesson.title }}
                          {% if lesson.is_mirror or lesson.has_mirrors %}
-                             <span class="mirror-label" title="Зеркало урока">🔗 зеркало</span>
+                             <span class="mirror-label" title="Зеркало урока">🔗 (зеркало)</span>
                          {% endif %}
                      </a>
                     </li>
@@ -90,7 +90,7 @@
         {% if category.subcategories %}
             <ul class="subcategory-list category-list" style="display: none;">
                 {% for subcat in category.subcategories %}
-                    {% include "builder/category_tree.html" with category=subcat selected_lesson=selected_lesson is_readonly=is_readonly %}
+                    {% include "builder/includes/_category_tree.html" with category=subcat selected_lesson=selected_lesson is_readonly=is_readonly %}
                 {% endfor %}
             </ul>
         {% endif %}

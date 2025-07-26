@@ -1760,14 +1760,14 @@ document.addEventListener('DOMContentLoaded', function() {
                 catList.insertBefore(draggedEl, this.nextSibling);
             }
             // --- Обновляем порядковые номера ---
-            function updateSubcategoryOrderNumbers(subUl) {
-                const items = subUl.querySelectorAll('.category-header .category-title');
-                items.forEach((title, idx) => {
-                    title.textContent = title.textContent.replace(/^\d+\.\s*/, '');
-                    title.textContent = (idx + 1) + '. ' + title.textContent;
-                });
-            }
-            updateSubcategoryOrderNumbers(catList);
+            // function updateSubcategoryOrderNumbers(subUl) {
+            //     const items = subUl.querySelectorAll('.category-header .category-title');
+            //     items.forEach((title, idx) => {
+            //         title.textContent = title.textContent.replace(/^\d+\.\s*/, '');
+            //         title.textContent = (idx + 1) + '. ' + title.textContent;
+            //     });
+            // }
+            // updateSubcategoryOrderNumbers(catList);
             // ---
             // Отправляем новый порядок на сервер
             const ids = Array.from(catList.querySelectorAll('li.category-block[data-id]'))

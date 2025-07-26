@@ -7,6 +7,7 @@
 <script src="{% static 'builder/js/builder.js' %}" defer></script>
 <script src="{% static 'builder/js/search.js' %}" defer></script>
 <script src="{% static 'builder/js/dictTable.js' %}" defer></script>
+<script src="{% static 'builder/js/ckeditor_target_blank.js' %}" defer></script>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/handsontable@12.3.3/dist/handsontable.full.min.css">
 <script src="https://cdn.jsdelivr.net/npm/handsontable@12.3.3/dist/handsontable.full.min.js"></script>
 <link rel="stylesheet" href="{% static 'builder/css/dict_table_style.css' %}">
@@ -33,7 +34,7 @@
                 <div class="category-scroll">
                     <ul class="category-list">
                         {% for category in categories %}
-                            {% include "builder/category_tree.html" with category=category selected_lesson=selected_lesson is_readonly=is_readonly %}
+                            {% include "builder/includes/_category_tree.html" with category=category selected_lesson=selected_lesson is_readonly=is_readonly %}
                         {% endfor %}
                     </ul>
                 </div>
