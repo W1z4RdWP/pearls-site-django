@@ -31,7 +31,7 @@
                                     <td {% if a.next_update and a.next_update < today %}style="background: #ffd6e0;"{% endif %}>
                                         {% if a.next_update %}{{ a.next_update|date:"d.m.Y" }}{% else %}—{% endif %}
                                     </td>
-                                    <td>{{ a.responsible_role|default:'—' }}</td>
+                                    <td>{{ a.responsible_role.name|default:'—' }}</td>
                                     <td>{{ a.responsible_fio|default:'—' }}</td>
                                 </tr>
                             {% endfor %}
@@ -45,7 +45,7 @@
                             {% if actualization_info.next_update %}{{ actualization_info.next_update|date:"d.m.Y" }}{% else %}—{% endif %}
                         </span>
                     </span>
-                    <span style="margin-left: 16px;">Отв: <b>{{ actualization_info.responsible_role|default:'—' }}</b></span>
+                    <span style="margin-left: 16px;">Отв: <b>{{ actualization_info.responsible_role.name|default:'—' }}</b></span>
                 </div>
             </div>
 {% endif %}
@@ -55,8 +55,19 @@
         {{ lesson.content|safe|default:"Нет содержимого." }}
     </div>
 <script id="responsible-id-default" type="application/json">{{ responsible_id_default|default:'null' }}</script>
+<script id="previous-role-id" type="application/json">{{ previous_role_id|default:'null' }}</script>
+<script id="previous-role-name" type="application/json">{{ previous_role_name|default:'null' }}</script>
 <script>
-window.responsibleIdDefault = JSON.parse(document.getElementById('responsible-id-default').textContent);
+function safeParseJsonScript(id) {
+    var el = document.getElementById(id);
+    if (!el) return null;
+    var txt = (el.textContent || '').trim();
+    if (!txt || txt === '' || txt === 'null') return null;
+    try { return JSON.parse(txt); } catch { return null; }
+}
+window.responsibleIdDefault = safeParseJsonScript('responsible-id-default');
+window.previousRoleId = safeParseJsonScript('previous-role-id');
+window.previousRoleName = safeParseJsonScript('previous-role-name');
 </script>
     {% if lesson.video_id %}
         <div class="lesson-video mt-4" id="lesson-video-block">
@@ -79,7 +90,7 @@ window.responsibleIdDefault = JSON.parse(document.getElementById('responsible-id
 <script>
     // Инициализируем версии урока
     (function() {
-        const jsonString = '{{ lesson_versions_json|safe }}';        
+        const jsonString = '{{ lesson_versions_json|escapejs }}';        
         try {
             window._lessonVersions = JSON.parse(jsonString);
         } catch (e) {
@@ -89,9 +100,21 @@ window.responsibleIdDefault = JSON.parse(document.getElementById('responsible-id
 })();
 </script>
 {% else %}
+<script id="responsible-id-default-else" type="application/json">{{ responsible_id_default|default:'null' }}</script>
+<script id="previous-role-id-else" type="application/json">{{ previous_role_id|default:'null' }}</script>
+<script id="previous-role-name-else" type="application/json">{{ previous_role_name|default:'null' }}</script>
 <script>
-    window._lessonVersions = [];
-    window.responsibleIdDefault = {{ responsible_id_default|default:'null' }};
+function safeParseJsonScript(id) {
+    var el = document.getElementById(id);
+    if (!el) return null;
+    var txt = (el.textContent || '').trim();
+    if (!txt || txt === '' || txt === 'null') return null;
+    try { return JSON.parse(txt); } catch { return null; }
+}
+window._lessonVersions = [];
+window.responsibleIdDefault = safeParseJsonScript('responsible-id-default-else');
+window.previousRoleId = safeParseJsonScript('previous-role-id-else');
+window.previousRoleName = safeParseJsonScript('previous-role-name-else');
 </script>
 {% endif %} 
 
@@ -115,19 +138,26 @@ window.responsibleIdDefault = JSON.parse(document.getElementById('responsible-id
         <label>Стандарт (дней):<br>
           <input type="number" id="actualize-period" min="1" max="180" required style="width:80px;">
         </label>
+        <div style="font-size:12px;color:#888;margin-top:-8px;margin-bottom:8px;">(максимум 180 дней)</div>
       </div>
       <div style="margin-bottom:12px;">
         <label>След. обновление:<br>
           <input type="date" id="actualize-next-update" required style="width:180px;">
         </label>
       </div>
-      <div style="margin-bottom:18px;">
-        <label>Ответственный:<br>
-          <select id="actualize-responsible" required style="width:220px;">
-            {% for r in responsibles %}
-              <option value="{{ r.id }}" {% if r.id == responsible_id_default %}selected{% endif %}>{{ r.get_full_name }}</option>
+      <div style="margin-bottom:12px;">
+        <label>Роль ответственного:<br>
+          <select id="actualize-role" required style="width:220px;">
+            <option value="">— выберите роль —</option>
+            {% for role in roles %}
+              <option value="{{ role.id }}">{{ role.name }}</option>
             {% endfor %}
           </select>
+        </label>
+      </div>
+      <div style="margin-bottom:18px;">
+        <label>Ответственный:<br>
+          <input type="text" id="actualize-responsible-fio" readonly style="width:220px; background:#f8f9fa; border:1px solid #dee2e6; padding:7px 10px; border-radius:6px; font-size:0.9em; color:#6c757d;" placeholder="ФИО ответственного">
         </label>
       </div>
       <button type="submit" id="actualize-confirm-btn" class="btn btn-primary" disabled>Актуализировать</button>
@@ -225,4 +255,105 @@ window.responsibleIdDefault = JSON.parse(document.getElementById('responsible-id
 #actualize-confirm-btn:hover:not(:disabled) {
   background: #2956d3;
 }
+
+/* Стили для поля ФИО */
+#actualize-responsible-fio {
+  font-style: italic;
+}
 </style>
+
+<script>
+// Обработчик изменения роли
+document.addEventListener('DOMContentLoaded', function() {
+    const roleSelect = document.getElementById('actualize-role');
+    const responsibleSelect = document.getElementById('actualize-responsible');
+    const responsibleFio = document.getElementById('actualize-responsible-fio');
+    
+    if (roleSelect && responsibleSelect && responsibleFio) {
+        roleSelect.addEventListener('change', function() {
+            const roleId = this.value;
+            
+            if (roleId) {
+                // Загружаем пользователей с данной ролью
+                fetch(`/user_management/roles/${roleId}/users/`)
+                    .then(response => response.json())
+                    .then(data => {
+                        responsibleSelect.innerHTML = '<option value="">— выберите ответственного —</option>';
+                        responsibleFio.value = '';
+                        
+                        data.users.forEach(user => {
+                            const option = document.createElement('option');
+                            option.value = user.id;
+                            option.textContent = user.full_name;
+                            if (user.is_responsible) {
+                                option.selected = true;
+                                responsibleFio.value = user.full_name;
+                            }
+                            responsibleSelect.appendChild(option);
+                        });
+                        
+                        responsibleSelect.disabled = false;
+                    })
+                    .catch(error => {
+                        console.error('Ошибка загрузки пользователей:', error);
+                        responsibleSelect.innerHTML = '<option value="">Ошибка загрузки</option>';
+                        responsibleSelect.disabled = true;
+                        responsibleFio.value = '';
+                    });
+            } else {
+                responsibleSelect.innerHTML = '<option value="">— сначала выберите роль —</option>';
+                responsibleSelect.disabled = true;
+                responsibleFio.value = '';
+            }
+        });
+        
+        // Обработчик изменения ответственного
+        responsibleSelect.addEventListener('change', function() {
+            const selectedOption = this.options[this.selectedIndex];
+            if (selectedOption && selectedOption.value) {
+                responsibleFio.value = selectedOption.textContent;
+            } else {
+                responsibleFio.value = '';
+            }
+        });
+        
+        // Валидация формы
+        const form = document.getElementById('actualize-form');
+        const confirmBtn = document.getElementById('actualize-confirm-btn');
+        
+        if (form && confirmBtn) {
+            function validateForm() {
+                const period = document.getElementById('actualize-period').value;
+                const nextUpdate = document.getElementById('actualize-next-update').value;
+                const role = roleSelect.value;
+                const responsible = responsibleSelect.value;
+                
+                const isValid = period && nextUpdate && role && responsible;
+                confirmBtn.disabled = !isValid;
+            }
+            
+            // Добавляем обработчики для всех полей формы
+            document.getElementById('actualize-period').addEventListener('input', validateForm);
+            document.getElementById('actualize-next-update').addEventListener('change', validateForm);
+            roleSelect.addEventListener('change', validateForm);
+            responsibleSelect.addEventListener('change', validateForm);
+            
+            // Начальная валидация
+            validateForm();
+        }
+    }
+});
+</script>
+<script>
+// Безопасная инициализация обработчика на кнопку "Актуализировать"
+document.addEventListener('DOMContentLoaded', function() {
+    var btn = document.getElementById('actualize-main-btn');
+    if (btn && typeof openActualizeModal === 'function') {
+        btn.onclick = function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            openActualizeModal();
+        };
+    }
+});
+</script>

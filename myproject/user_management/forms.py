@@ -1,5 +1,6 @@
 from django import forms
 from users.models import Profile, Role
+from django.db import models
 
 class UserProfileForm(forms.ModelForm):
     phone_arbitrary_format = forms.BooleanField(
@@ -25,7 +26,7 @@ class UserProfileForm(forms.ModelForm):
         self.fields['date_of_birth'].required = False
         self.fields['image'].required = False
         self.fields['is_approved'].required = False
-        self.fields['is_resonsible'].required = False
+
         self.fields['bio'].required = False
         # --- required для телефона зависит от формата ---
         phone_arbitrary = False
@@ -51,7 +52,61 @@ class UserProfileForm(forms.ModelForm):
 
     class Meta:
         model = Profile
-        fields = ['middle_name', 'role', 'date_of_birth', 'phone_number', 'phone_arbitrary_format', 'image', 'bio', 'is_resonsible', 'is_approved']
+        fields = ['middle_name', 'role', 'date_of_birth', 'phone_number', 'phone_arbitrary_format', 'image', 'bio', 'is_approved']
         widgets = {
             'date_of_birth': forms.DateInput(attrs={'type': 'date'}),
         }
+
+
+class RoleResponsibleForm(forms.ModelForm):
+    """
+    Форма для назначения ответственного в роли
+    """
+    responsible_user = forms.ModelChoiceField(
+        queryset=None,
+        required=False,
+        empty_label='— не назначен —',
+        label='Ответственный',
+        help_text='Выберите пользователя, который будет ответственным за данную должность'
+    )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Получаем пользователей с данной ролью
+        if self.instance and self.instance.pk:
+            from django.contrib.auth import get_user_model
+            User = get_user_model()
+            users_with_role = User.objects.filter(profile__role=self.instance)
+            self.fields['responsible_user'].queryset = users_with_role
+            # Если уже есть ответственный, добавляем его в queryset
+            if self.instance.responsible_user:
+                self.fields['responsible_user'].queryset = User.objects.filter(
+                    models.Q(profile__role=self.instance) | models.Q(id=self.instance.responsible_user.id)
+                ).distinct()
+
+    def clean(self):
+        cleaned_data = super().clean()
+        responsible_user = cleaned_data.get('responsible_user')
+        
+        if responsible_user:
+            # Проверяем, что у пользователя действительно эта роль
+            if responsible_user.profile.role != self.instance:
+                raise forms.ValidationError(
+                    f'Пользователь {responsible_user.get_full_name()} не имеет должности "{self.instance.name}"'
+                )
+            
+            # Проверяем, что у другой роли этот пользователь не назначен ответственным
+            other_role_with_same_responsible = Role.objects.filter(
+                responsible_user=responsible_user
+            ).exclude(id=self.instance.id).first()
+            
+            if other_role_with_same_responsible:
+                raise forms.ValidationError(
+                    f'Пользователь {responsible_user.get_full_name()} уже назначен ответственным за должность "{other_role_with_same_responsible.name}"'
+                )
+        
+        return cleaned_data
+
+    class Meta:
+        model = Role
+        fields = ['responsible_user']

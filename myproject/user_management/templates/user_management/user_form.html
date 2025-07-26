@@ -54,7 +54,13 @@
                     <button type="button" class="btn btn-link p-0" data-bs-toggle="modal" data-bs-target="#roleModal" style="margin-left:8px;">
                         <i class="fa fa-cog"></i>
                     </button>
+                    <div class="form-check" title="Пользователь является ответственным за свою должность">
+                        <input type="checkbox" class="form-check-input" id="is_responsible" 
+                               {% if profile_form.instance.is_responsible %}checked{% endif %}>
+                        <label class="form-check-label" for="is_responsible">Ответственный</label>
+                    </div>
                 </div>
+                <br>
                 {{ form.username.label_tag }}{{ form.username }}
                 {{ form.email.label_tag }}{{ form.email }}
                 <label for="id_groups">Группы пользователя</label>
@@ -77,8 +83,6 @@
                 {{ profile_form.bio.label_tag }}{{ profile_form.bio }}
                 {{ profile_form.image.label_tag }}{{ profile_form.image }}
                 {{ form.is_active.label_tag }}{{ form.is_active }}
-                <br>
-                {{ profile_form.is_resonsible.label_tag }}{{ profile_form.is_resonsible }}
                 <br>
                 {{ profile_form.is_approved.label_tag }}{{ profile_form.is_approved }}
             {% endif %}
@@ -121,6 +125,9 @@
               <button type="button" class="btn btn-sm btn-secondary" onclick="editRole({{ role.id }}, '{{ role.name|escapejs }}')">
                 <i class="fa fa-pencil"></i>
               </button>
+              <button type="button" class="btn btn-sm btn-info" onclick="manageResponsible({{ role.id }}, '{{ role.name|escapejs }}')" title="Управление ответственным">
+                <i class="fa fa-user"></i>
+              </button>
               <form method="post" action="{% url 'user_management:role_delete' role.id %}" style="display:inline; margin:0;">
                 {% csrf_token %}
                 <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Удалить должность?')">
@@ -137,6 +144,32 @@
     </div>
   </div>
 </div>
+
+<!-- Модальное окно для управления ответственными -->
+<div class="modal fade" id="responsibleModal" tabindex="-1" aria-labelledby="responsibleModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="responsibleModalLabel">Управление ответственным</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Закрыть"></button>
+      </div>
+      <div class="modal-body">
+        <form method="post" id="responsible-manage-form">
+          {% csrf_token %}
+          <div class="mb-3">
+            <label for="responsible_user" class="form-label">Ответственный для должности "<span id="role-name-display"></span>"</label>
+            <select class="form-control" id="responsible_user" name="responsible_id">
+              <option value="">— не назначен —</option>
+            </select>
+            <div class="form-text">Выберите пользователя, который будет ответственным за данную должность</div>
+          </div>
+          <button type="submit" class="btn btn-primary">Сохранить</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
 <script src="{% static 'user_management/js/phone_field.js' %}" defer></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
@@ -196,6 +229,159 @@ function cancelEditRole(roleId, roleName) {
   const nameSpan = document.getElementById('role-name-' + roleId);
   nameSpan.style.display = '';
 }
+
+function manageResponsible(roleId, roleName) {
+  // Заполняем модальное окно
+  document.getElementById('role-name-display').textContent = roleName;
+  document.getElementById('responsible-manage-form').action = `/user_management/roles/${roleId}/responsible/`;
+  
+  // Загружаем пользователей с данной ролью
+  fetch(`/user_management/roles/${roleId}/users/`)
+    .then(response => response.json())
+    .then(data => {
+      const select = document.getElementById('responsible_user');
+      select.innerHTML = '<option value="">— не назначен —</option>';
+      
+      data.users.forEach(user => {
+        const option = document.createElement('option');
+        option.value = user.id;
+        option.textContent = user.full_name;
+        if (user.is_responsible) {
+          option.selected = true;
+        }
+        select.appendChild(option);
+      });
+      
+      // Показываем модальное окно
+      new bootstrap.Modal(document.getElementById('responsibleModal')).show();
+    })
+    .catch(error => {
+      console.error('Ошибка загрузки пользователей:', error);
+      alert('Ошибка загрузки пользователей');
+    });
+}
+
+// Обработчик изменения галочки "Ответственный"
+document.addEventListener('DOMContentLoaded', function() {
+    const responsibleCheckbox = document.getElementById('is_responsible');
+    const roleSelect = document.getElementById('id_role');
+    
+    if (responsibleCheckbox && roleSelect) {
+        responsibleCheckbox.addEventListener('change', function() {
+            const isChecked = this.checked;
+            const roleId = roleSelect.value;
+            const userId = {{ object.id|default:'null' }};
+            
+            if (!roleId) {
+                alert('Сначала выберите должность для пользователя');
+                this.checked = !isChecked; // Возвращаем предыдущее состояние
+                return;
+            }
+            
+            if (!userId) {
+                alert('Ошибка: не удалось определить пользователя');
+                this.checked = !isChecked;
+                return;
+            }
+            
+            if (isChecked) {
+                // Проверяем, есть ли уже ответственный для этой роли
+                fetch(`/user_management/roles/${roleId}/users/`)
+                    .then(response => response.json())
+                    .then(data => {
+                        const currentResponsible = data.users.find(user => user.is_responsible);
+                        
+                        if (currentResponsible && currentResponsible.id !== userId) {
+                            // Уже есть другой ответственный
+                            this.checked = false; // Не устанавливаем галочку
+                            alert(`Для должности "${roleSelect.options[roleSelect.selectedIndex].text}" уже назначен ответственный - это ${currentResponsible.full_name}`);
+                            return;
+                        }
+                        
+                        // Можно назначить ответственным
+                        const responsibleId = userId;
+                        
+                        // Отправляем запрос на назначение ответственности
+                        fetch(`/user_management/roles/${roleId}/responsible/`, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/x-www-form-urlencoded',
+                                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+                            },
+                            body: `responsible_id=${responsibleId}`
+                        })
+                        .then(response => {
+                            if (response.ok) {
+                                alert('Пользователь назначен ответственным за данную должность');
+                            } else {
+                                this.checked = false; // Возвращаем предыдущее состояние
+                                alert('Ошибка при назначении ответственности');
+                            }
+                        })
+                        .catch(error => {
+                            console.error('Ошибка:', error);
+                            this.checked = false;
+                            alert('Ошибка при назначении ответственности');
+                        });
+                    })
+                    .catch(error => {
+                        console.error('Ошибка загрузки данных роли:', error);
+                        this.checked = false;
+                        alert('Ошибка при проверке ответственности');
+                    });
+            } else {
+                // Снимаем ответственность
+                const responsibleId = '';
+                
+                // Отправляем запрос на снятие ответственности
+                fetch(`/user_management/roles/${roleId}/responsible/`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                        'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+                    },
+                    body: `responsible_id=${responsibleId}`
+                })
+                .then(response => {
+                    if (response.ok) {
+                        alert('Ответственность снята с пользователя');
+                    } else {
+                        this.checked = true; // Возвращаем предыдущее состояние
+                        alert('Ошибка при снятии ответственности');
+                    }
+                })
+                .catch(error => {
+                    console.error('Ошибка:', error);
+                    this.checked = true;
+                    alert('Ошибка при снятии ответственности');
+                });
+            }
+        });
+        
+        // Обновляем состояние галочки при изменении роли
+        roleSelect.addEventListener('change', function() {
+            const roleId = this.value;
+            if (roleId) {
+                // Проверяем, является ли текущий пользователь ответственным за эту роль
+                fetch(`/user_management/roles/${roleId}/users/`)
+                    .then(response => response.json())
+                    .then(data => {
+                        const currentUserId = {{ object.id|default:'null' }};
+                        const isResponsible = data.users.some(user => 
+                            user.id === currentUserId && user.is_responsible
+                        );
+                        responsibleCheckbox.checked = isResponsible;
+                    })
+                    .catch(error => {
+                        console.error('Ошибка загрузки данных роли:', error);
+                        responsibleCheckbox.checked = false;
+                    });
+            } else {
+                responsibleCheckbox.checked = false;
+            }
+        });
+    }
+});
 </script>
 {% endblock %}
 

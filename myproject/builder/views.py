@@ -19,6 +19,7 @@ from myapp.models import UserCourse
 from courses.models import UserLessonTrajectory
 from django.utils import timezone
 from django.contrib.auth.models import User, Group
+from users.models import Role
 from django.template.loader import render_to_string
 from courses.models import Trajectory, TrajectoryCourse, UserCourseTrajectory
 from quizzes.models import Quiz, Question, Answer
@@ -297,7 +298,8 @@ class LessonMasterDetailView(TemplateView):
         # Список ответственных всегда в context
         from django.contrib.auth import get_user_model
         User = get_user_model()
-        context['responsibles'] = User.objects.filter(profile__is_resonsible=True)
+        context['responsibles'] = User.objects.filter(profile__role__responsible_user__isnull=False)
+        context['roles'] = Role.objects.all().order_by('name')
         context['responsible_id_default'] = None
         # Применяем фильтрацию для readonly пользователей
         if is_readonly:
@@ -371,6 +373,13 @@ class LessonMasterDetailView(TemplateView):
                 # Новый: id ответственного по умолчанию
                 if latest_version and latest_version.updated_by:
                     context['responsible_id_default'] = latest_version.updated_by.id
+                # Добавляем информацию о предыдущей роли для автозаполнения
+                if latest_version and latest_version.updated_by and latest_version.updated_by.profile and latest_version.updated_by.profile.role:
+                    context['previous_role_id'] = latest_version.updated_by.profile.role.id
+                    context['previous_role_name'] = latest_version.updated_by.profile.role.name
+                else:
+                    context['previous_role_id'] = None
+                    context['previous_role_name'] = None
                 context['actualization_history'] = actualization_history
                 from django.utils import timezone
                 context['today'] = timezone.now().date()
@@ -404,7 +413,10 @@ class LessonMasterDetailView(TemplateView):
                 'actualization_info': context.get('actualization_info'),
                 'today': context.get('today'),
                 'responsibles': context.get('responsibles'),
+                'roles': context.get('roles'),
                 'responsible_id_default': context.get('responsible_id_default'),
+                'previous_role_id': context.get('previous_role_id'),
+                'previous_role_name': context.get('previous_role_name'),
             }
             return HttpResponse(render_to_string('builder/includes/_lesson_detail_block.html', ajax_context, request=request))
         return self.render_to_response(context)
@@ -452,6 +464,7 @@ class LessonCreateView(CreateView):
         # --- Создаём первую версию ---
         from django.utils import timezone
         today = timezone.now().date()
+        # Для первой версии используем того, кто создал урок
         LessonVersion.objects.create(
             lesson=lesson,
             version=1,
@@ -493,13 +506,16 @@ class LessonUpdateView(UpdateView):
         today = timezone.now().date()
         period = last_version.update_period_days if last_version else 90
         
+        # Определяем ответственного пользователя
+        responsible_user = get_responsible_user_for_lesson(last_version) if last_version else self.request.user
+        
         LessonVersion.objects.create(
             lesson=lesson,
             version=next_version,
             title=lesson.title,
             content=lesson.content,
             video_id=lesson.video_id,
-            updated_by=self.request.user,
+            updated_by=responsible_user,
             next_update=today + timezone.timedelta(days=period),
             update_period_days=period
         )
@@ -1306,7 +1322,7 @@ class UpdateControlStandaloneView(TemplateView):
         if title_query:
             filtered = [r for r in filtered if title_query.lower() in r['title'].lower()]
         # Список ответственных
-        responsibles = User.objects.filter(profile__is_resonsible=True)
+        responsibles = User.objects.filter(profile__role__responsible_user__isnull=False)
         context['update_rows'] = filtered
         context['responsibles'] = responsibles
         context['show_overdue'] = show_overdue
@@ -1899,3 +1915,19 @@ class DocumentDeleteView(DeleteView):
         if not request.user.is_authenticated or not (request.user.is_staff or request.user.is_superuser):
             return render(request, '403.html', status=403)
         return super().dispatch(request, *args, **kwargs)
+
+def get_responsible_user_for_lesson(lesson_version):
+    """
+    Определяет ответственного пользователя для урока.
+    Если у пользователя, который редактировал урок, есть роль с назначенным ответственным —
+    возвращает ответственного. Иначе возвращает того, кто редактировал.
+    """
+    if not lesson_version or not lesson_version.updated_by:
+        return None
+    try:
+        user_role = lesson_version.updated_by.profile.role
+        if user_role and user_role.responsible_user:
+            return user_role.responsible_user
+    except Exception:
+        pass
+    return lesson_version.updated_by
