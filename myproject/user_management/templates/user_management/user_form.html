@@ -284,37 +284,78 @@ document.addEventListener('DOMContentLoaded', function() {
                 return;
             }
             
-            // Определяем действие
-            const responsibleId = isChecked ? userId : '';
-            
-            // Отправляем запрос на назначение/снятие ответственности
-            fetch(`/user_management/roles/${roleId}/responsible/`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/x-www-form-urlencoded',
-                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
-                },
-                body: `responsible_id=${responsibleId}`
-            })
-            .then(response => {
-                if (response.ok) {
-                    // Успешно
-                    if (isChecked) {
-                        alert('Пользователь назначен ответственным за данную должность');
-                    } else {
+            if (isChecked) {
+                // Проверяем, есть ли уже ответственный для этой роли
+                fetch(`/user_management/roles/${roleId}/users/`)
+                    .then(response => response.json())
+                    .then(data => {
+                        const currentResponsible = data.users.find(user => user.is_responsible);
+                        
+                        if (currentResponsible && currentResponsible.id !== userId) {
+                            // Уже есть другой ответственный
+                            this.checked = false; // Не устанавливаем галочку
+                            alert(`Для должности "${roleSelect.options[roleSelect.selectedIndex].text}" уже назначен ответственный - это ${currentResponsible.full_name}`);
+                            return;
+                        }
+                        
+                        // Можно назначить ответственным
+                        const responsibleId = userId;
+                        
+                        // Отправляем запрос на назначение ответственности
+                        fetch(`/user_management/roles/${roleId}/responsible/`, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/x-www-form-urlencoded',
+                                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+                            },
+                            body: `responsible_id=${responsibleId}`
+                        })
+                        .then(response => {
+                            if (response.ok) {
+                                alert('Пользователь назначен ответственным за данную должность');
+                            } else {
+                                this.checked = false; // Возвращаем предыдущее состояние
+                                alert('Ошибка при назначении ответственности');
+                            }
+                        })
+                        .catch(error => {
+                            console.error('Ошибка:', error);
+                            this.checked = false;
+                            alert('Ошибка при назначении ответственности');
+                        });
+                    })
+                    .catch(error => {
+                        console.error('Ошибка загрузки данных роли:', error);
+                        this.checked = false;
+                        alert('Ошибка при проверке ответственности');
+                    });
+            } else {
+                // Снимаем ответственность
+                const responsibleId = '';
+                
+                // Отправляем запрос на снятие ответственности
+                fetch(`/user_management/roles/${roleId}/responsible/`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                        'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+                    },
+                    body: `responsible_id=${responsibleId}`
+                })
+                .then(response => {
+                    if (response.ok) {
                         alert('Ответственность снята с пользователя');
+                    } else {
+                        this.checked = true; // Возвращаем предыдущее состояние
+                        alert('Ошибка при снятии ответственности');
                     }
-                } else {
-                    // Ошибка
-                    this.checked = !isChecked; // Возвращаем предыдущее состояние
-                    alert('Ошибка при изменении ответственности');
-                }
-            })
-            .catch(error => {
-                console.error('Ошибка:', error);
-                this.checked = !isChecked;
-                alert('Ошибка при изменении ответственности');
-            });
+                })
+                .catch(error => {
+                    console.error('Ошибка:', error);
+                    this.checked = true;
+                    alert('Ошибка при снятии ответственности');
+                });
+            }
         });
         
         // Обновляем состояние галочки при изменении роли
