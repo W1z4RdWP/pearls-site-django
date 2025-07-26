@@ -464,6 +464,7 @@ class LessonCreateView(CreateView):
         # --- Создаём первую версию ---
         from django.utils import timezone
         today = timezone.now().date()
+        # Для первой версии используем того, кто создал урок
         LessonVersion.objects.create(
             lesson=lesson,
             version=1,
@@ -505,13 +506,16 @@ class LessonUpdateView(UpdateView):
         today = timezone.now().date()
         period = last_version.update_period_days if last_version else 90
         
+        # Определяем ответственного пользователя
+        responsible_user = get_responsible_user_for_lesson(last_version) if last_version else self.request.user
+        
         LessonVersion.objects.create(
             lesson=lesson,
             version=next_version,
             title=lesson.title,
             content=lesson.content,
             video_id=lesson.video_id,
-            updated_by=self.request.user,
+            updated_by=responsible_user,
             next_update=today + timezone.timedelta(days=period),
             update_period_days=period
         )
@@ -1911,3 +1915,19 @@ class DocumentDeleteView(DeleteView):
         if not request.user.is_authenticated or not (request.user.is_staff or request.user.is_superuser):
             return render(request, '403.html', status=403)
         return super().dispatch(request, *args, **kwargs)
+
+def get_responsible_user_for_lesson(lesson_version):
+    """
+    Определяет ответственного пользователя для урока.
+    Если у пользователя, который редактировал урок, есть роль с назначенным ответственным —
+    возвращает ответственного. Иначе возвращает того, кто редактировал.
+    """
+    if not lesson_version or not lesson_version.updated_by:
+        return None
+    try:
+        user_role = lesson_version.updated_by.profile.role
+        if user_role and user_role.responsible_user:
+            return user_role.responsible_user
+    except Exception:
+        pass
+    return lesson_version.updated_by

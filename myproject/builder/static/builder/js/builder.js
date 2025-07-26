@@ -1216,7 +1216,10 @@ document.addEventListener('DOMContentLoaded', function() {
             const confirmBtn = document.getElementById('actualize-confirm-btn');
             const closeBtn = document.getElementById('actualize-modal-close');
             const form = document.getElementById('actualize-form');
-
+            if (!createdInput || !versionInput || !periodInput || !nextUpdateInput || !roleSelect || !responsibleFio || !confirmBtn || !closeBtn || !form) {
+                console.error('Один из элементов модалки не найден!');
+                return;
+            }
             // Получаем данные из последней строки истории (или из блока)
             let last = null;
             if (window._lessonVersions && window._lessonVersions.length) {

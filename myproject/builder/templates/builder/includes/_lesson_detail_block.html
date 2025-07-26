@@ -58,9 +58,16 @@
 <script id="previous-role-id" type="application/json">{{ previous_role_id|default:'null' }}</script>
 <script id="previous-role-name" type="application/json">{{ previous_role_name|default:'null' }}</script>
 <script>
-window.responsibleIdDefault = JSON.parse(document.getElementById('responsible-id-default').textContent);
-window.previousRoleId = JSON.parse(document.getElementById('previous-role-id').textContent);
-window.previousRoleName = JSON.parse(document.getElementById('previous-role-name').textContent);
+function safeParseJsonScript(id) {
+    var el = document.getElementById(id);
+    if (!el) return null;
+    var txt = (el.textContent || '').trim();
+    if (!txt || txt === '' || txt === 'null') return null;
+    try { return JSON.parse(txt); } catch { return null; }
+}
+window.responsibleIdDefault = safeParseJsonScript('responsible-id-default');
+window.previousRoleId = safeParseJsonScript('previous-role-id');
+window.previousRoleName = safeParseJsonScript('previous-role-name');
 </script>
     {% if lesson.video_id %}
         <div class="lesson-video mt-4" id="lesson-video-block">
@@ -83,7 +90,7 @@ window.previousRoleName = JSON.parse(document.getElementById('previous-role-name
 <script>
     // Инициализируем версии урока
     (function() {
-        const jsonString = '{{ lesson_versions_json|safe }}';        
+        const jsonString = '{{ lesson_versions_json|escapejs }}';        
         try {
             window._lessonVersions = JSON.parse(jsonString);
         } catch (e) {
@@ -97,10 +104,17 @@ window.previousRoleName = JSON.parse(document.getElementById('previous-role-name
 <script id="previous-role-id-else" type="application/json">{{ previous_role_id|default:'null' }}</script>
 <script id="previous-role-name-else" type="application/json">{{ previous_role_name|default:'null' }}</script>
 <script>
-    window._lessonVersions = [];
-    window.responsibleIdDefault = JSON.parse(document.getElementById('responsible-id-default-else').textContent);
-    window.previousRoleId = JSON.parse(document.getElementById('previous-role-id-else').textContent);
-    window.previousRoleName = JSON.parse(document.getElementById('previous-role-name-else').textContent);
+function safeParseJsonScript(id) {
+    var el = document.getElementById(id);
+    if (!el) return null;
+    var txt = (el.textContent || '').trim();
+    if (!txt || txt === '' || txt === 'null') return null;
+    try { return JSON.parse(txt); } catch { return null; }
+}
+window._lessonVersions = [];
+window.responsibleIdDefault = safeParseJsonScript('responsible-id-default-else');
+window.previousRoleId = safeParseJsonScript('previous-role-id-else');
+window.previousRoleName = safeParseJsonScript('previous-role-name-else');
 </script>
 {% endif %} 
 
@@ -139,6 +153,11 @@ window.previousRoleName = JSON.parse(document.getElementById('previous-role-name
               <option value="{{ role.id }}">{{ role.name }}</option>
             {% endfor %}
           </select>
+        </label>
+      </div>
+      <div style="margin-bottom:18px;">
+        <label>Ответственный:<br>
+          <input type="text" id="actualize-responsible-fio" readonly style="width:220px; background:#f8f9fa; border:1px solid #dee2e6; padding:7px 10px; border-radius:6px; font-size:0.9em; color:#6c757d;" placeholder="ФИО ответственного">
         </label>
       </div>
       <button type="submit" id="actualize-confirm-btn" class="btn btn-primary" disabled>Актуализировать</button>
@@ -322,6 +341,19 @@ document.addEventListener('DOMContentLoaded', function() {
             // Начальная валидация
             validateForm();
         }
+    }
+});
+</script>
+<script>
+// Безопасная инициализация обработчика на кнопку "Актуализировать"
+document.addEventListener('DOMContentLoaded', function() {
+    var btn = document.getElementById('actualize-main-btn');
+    if (btn && typeof openActualizeModal === 'function') {
+        btn.onclick = function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            openActualizeModal();
+        };
     }
 });
 </script>
