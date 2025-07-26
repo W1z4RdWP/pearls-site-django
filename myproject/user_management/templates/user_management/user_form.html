@@ -54,7 +54,11 @@
                     <button type="button" class="btn btn-link p-0" data-bs-toggle="modal" data-bs-target="#roleModal" style="margin-left:8px;">
                         <i class="fa fa-cog"></i>
                     </button>
+                    <div class="form-check" title="Отметьте, если пользователь будет назначен ответственным за уроки">
+                        {{ profile_form.is_resonsible }}
+                    </div>
                 </div>
+                <br>
                 {{ form.username.label_tag }}{{ form.username }}
                 {{ form.email.label_tag }}{{ form.email }}
                 <label for="id_groups">Группы пользователя</label>
@@ -77,8 +81,6 @@
                 {{ profile_form.bio.label_tag }}{{ profile_form.bio }}
                 {{ profile_form.image.label_tag }}{{ profile_form.image }}
                 {{ form.is_active.label_tag }}{{ form.is_active }}
-                <br>
-                {{ profile_form.is_resonsible.label_tag }}{{ profile_form.is_resonsible }}
                 <br>
                 {{ profile_form.is_approved.label_tag }}{{ profile_form.is_approved }}
             {% endif %}
