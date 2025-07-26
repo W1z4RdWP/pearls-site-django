@@ -19,6 +19,7 @@ from myapp.models import UserCourse
 from courses.models import UserLessonTrajectory
 from django.utils import timezone
 from django.contrib.auth.models import User, Group
+from users.models import Role
 from django.template.loader import render_to_string
 from courses.models import Trajectory, TrajectoryCourse, UserCourseTrajectory
 from quizzes.models import Quiz, Question, Answer
@@ -297,7 +298,8 @@ class LessonMasterDetailView(TemplateView):
         # Список ответственных всегда в context
         from django.contrib.auth import get_user_model
         User = get_user_model()
-        context['responsibles'] = User.objects.filter(profile__is_resonsible=True)
+        context['responsibles'] = User.objects.filter(profile__role__responsible_user__isnull=False)
+        context['roles'] = Role.objects.all().order_by('name')
         context['responsible_id_default'] = None
         # Применяем фильтрацию для readonly пользователей
         if is_readonly:
@@ -404,6 +406,7 @@ class LessonMasterDetailView(TemplateView):
                 'actualization_info': context.get('actualization_info'),
                 'today': context.get('today'),
                 'responsibles': context.get('responsibles'),
+                'roles': context.get('roles'),
                 'responsible_id_default': context.get('responsible_id_default'),
             }
             return HttpResponse(render_to_string('builder/includes/_lesson_detail_block.html', ajax_context, request=request))
@@ -1306,7 +1309,7 @@ class UpdateControlStandaloneView(TemplateView):
         if title_query:
             filtered = [r for r in filtered if title_query.lower() in r['title'].lower()]
         # Список ответственных
-        responsibles = User.objects.filter(profile__is_resonsible=True)
+        responsibles = User.objects.filter(profile__role__responsible_user__isnull=False)
         context['update_rows'] = filtered
         context['responsibles'] = responsibles
         context['show_overdue'] = show_overdue

@@ -7,6 +7,14 @@ from typing import Any
 
 class Role(models.Model):
     name = models.CharField(max_length=200, unique=True, verbose_name="Название должности")
+    responsible_user = models.OneToOneField(
+        User, 
+        on_delete=models.SET_NULL, 
+        null=True, 
+        blank=True, 
+        verbose_name="Ответственный",
+        help_text="Пользователь, ответственный за данную должность"
+    )
 
     class Meta:
         verbose_name = 'Должность'
@@ -15,6 +23,17 @@ class Role(models.Model):
 
     def __str__(self):
         return self.name
+
+    def clean(self):
+        from django.core.exceptions import ValidationError
+        if self.responsible_user and self.responsible_user.profile.role != self:
+            raise ValidationError(
+                f'Пользователь {self.responsible_user.get_full_name()} не имеет должности "{self.name}"'
+            )
+
+    def save(self, *args, **kwargs):
+        self.clean()
+        super().save(*args, **kwargs)
 
 
         
@@ -54,7 +73,6 @@ class Profile(models.Model):
     )
     image = models.ImageField(default='profile_pics/default.jpg', upload_to='profile_pics')
     bio = models.TextField(max_length=500, blank=True, null=True, verbose_name="О себе")
-    is_resonsible = models.BooleanField(default=False, verbose_name="Можно ли назначать ответственным")
     is_approved = models.BooleanField(default=False, verbose_name="Подвтерждение администратором")
 
     class Meta:
@@ -92,6 +110,13 @@ class Profile(models.Model):
         for ut in UserCourseTrajectory.objects.filter(user=self.user, completed=True):
             exp += 500
         return exp
+
+    @property
+    def is_responsible(self) -> bool:
+        """
+        Проверяет, является ли пользователь ответственным за свою должность.
+        """
+        return self.role and self.role.responsible_user == self.user
 
 @receiver(post_save, sender=User)
 def create_profile(sender: Any, instance: User, created: bool, **kwargs: Any) -> None:

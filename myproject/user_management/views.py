@@ -45,9 +45,9 @@ class UserListView(ListView):
         elif filter_val == 'not_approved':
             queryset = queryset.filter(profile__is_approved=False)
         elif filter_val == 'responsible':
-            queryset = queryset.filter(profile__is_resonsible=True)
+            queryset = queryset.filter(profile__role__responsible_user__isnull=False)
         elif filter_val == 'not_responsible':
-            queryset = queryset.filter(profile__is_resonsible=False)
+            queryset = queryset.filter(profile__role__responsible_user__isnull=True)
         return queryset
 
 
@@ -121,6 +121,88 @@ def role_edit(request, role_id):
     else:
         messages.error(request, 'Название не может быть пустым.')
     return redirect(request.META.get('HTTP_REFERER', reverse('user_management:user_list')))
+
+@require_POST
+def role_responsible_manage(request, role_id):
+    """
+    Управление ответственным для роли
+    """
+    if not request.user.is_staff:
+        raise PermissionDenied
+    
+    try:
+        role = Role.objects.get(id=role_id)
+    except Role.DoesNotExist:
+        messages.error(request, 'Должность не найдена.')
+        return redirect(request.META.get('HTTP_REFERER', reverse('user_management:user_list')))
+    
+    responsible_id = request.POST.get('responsible_id')
+    
+    if responsible_id:
+        try:
+            from django.contrib.auth import get_user_model
+            User = get_user_model()
+            user = User.objects.get(id=responsible_id)
+            
+            # Проверяем, что у пользователя эта роль
+            if user.profile.role != role:
+                messages.error(request, f'Пользователь {user.get_full_name()} не имеет должности "{role.name}"')
+                return redirect(request.META.get('HTTP_REFERER', reverse('user_management:user_list')))
+            
+            # Проверяем, что у другой роли этот пользователь не назначен ответственным
+            other_role = Role.objects.filter(responsible_user=user).exclude(id=role.id).first()
+            if other_role:
+                messages.error(request, f'Пользователь {user.get_full_name()} уже назначен ответственным за должность "{other_role.name}"')
+                return redirect(request.META.get('HTTP_REFERER', reverse('user_management:user_list')))
+            
+            role.responsible_user = user
+            role.save()
+            messages.success(request, f'Пользователь {user.get_full_name()} назначен ответственным за должность "{role.name}"')
+            
+        except User.DoesNotExist:
+            messages.error(request, 'Пользователь не найден.')
+    else:
+        # Убираем ответственного
+        if role.responsible_user:
+            old_responsible = role.responsible_user.get_full_name()
+            role.responsible_user = None
+            role.save()
+            messages.success(request, f'Ответственный {old_responsible} снят с должности "{role.name}"')
+        else:
+            messages.info(request, 'Ответственный не был назначен.')
+    
+    return redirect(request.META.get('HTTP_REFERER', reverse('user_management:user_list')))
+
+
+def role_users_json(request, role_id):
+    """
+    Возвращает список пользователей с данной ролью в JSON формате
+    """
+    if not request.user.is_staff:
+        from django.http import JsonResponse
+        return JsonResponse({'error': 'forbidden'}, status=403)
+    
+    try:
+        role = Role.objects.get(id=role_id)
+    except Role.DoesNotExist:
+        from django.http import JsonResponse
+        return JsonResponse({'error': 'role not found'}, status=404)
+    
+    from django.contrib.auth import get_user_model
+    from django.http import JsonResponse
+    User = get_user_model()
+    
+    users = User.objects.filter(profile__role=role)
+    users_data = []
+    
+    for user in users:
+        users_data.append({
+            'id': user.id,
+            'full_name': user.get_full_name(),
+            'is_responsible': role.responsible_user == user
+        })
+    
+    return JsonResponse({'users': users_data})
 
 class UserUpdateView(UpdateView):
     model = User

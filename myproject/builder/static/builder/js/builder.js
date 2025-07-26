@@ -1203,7 +1203,8 @@ document.addEventListener('DOMContentLoaded', function() {
             const versionInput = document.getElementById('actualize-version');
             const periodInput = document.getElementById('actualize-period');
             const nextUpdateInput = document.getElementById('actualize-next-update');
-            const responsibleSelect = document.getElementById('actualize-responsible');
+            const roleSelect = document.getElementById('actualize-role');
+            const responsibleFio = document.getElementById('actualize-responsible-fio');
             const confirmBtn = document.getElementById('actualize-confirm-btn');
             const closeBtn = document.getElementById('actualize-modal-close');
             const form = document.getElementById('actualize-form');
@@ -1230,26 +1231,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 periodInput.value = '90';
                 nextUpdateInput.value = today;
             }
-            // Ответственный — по умолчанию первый
-            if (responsibleSelect.options.length) responsibleSelect.selectedIndex = 0;
-            // Если есть default_responsible_id, выбираем его
-            if (window.responsibleIdDefault) {
-                for (let i = 0; i < responsibleSelect.options.length; i++) {
-                    if (responsibleSelect.options[i].value == window.responsibleIdDefault) {
-                        responsibleSelect.selectedIndex = i;
-                        break;
-                    }
-                }
-            }
-
-            if (window.responsibleIdDefault) {
-                for (let i = 0; i < responsibleSelect.options.length; i++) {
-                    if (responsibleSelect.options[i].value == window.responsibleIdDefault) {
-                        responsibleSelect.selectedIndex = i;
-                        break;
-                    }
-                }
-            }
+            // Инициализируем поля роли и ответственного
+            responsibleFio.value = '';
             
             // Ограничения для даты
             const today = new Date();
@@ -1278,7 +1261,36 @@ document.addEventListener('DOMContentLoaded', function() {
                 periodInput.value = diff;
                 validateActualizeForm();
             };
-            responsibleSelect.onchange = validateActualizeForm;
+            
+            // Обработчик изменения роли
+            roleSelect.addEventListener('change', function() {
+                const roleId = this.value;
+                
+                if (roleId) {
+                    // Загружаем пользователей с данной ролью
+                    fetch(`/user_management/roles/${roleId}/users/`)
+                        .then(response => response.json())
+                        .then(data => {
+                            responsibleFio.value = '';
+                            
+                            // Ищем ответственного пользователя
+                            const responsibleUser = data.users.find(user => user.is_responsible);
+                            if (responsibleUser) {
+                                responsibleFio.value = responsibleUser.full_name;
+                            }
+                            
+                            validateActualizeForm();
+                        })
+                        .catch(error => {
+                            console.error('Ошибка загрузки пользователей:', error);
+                            responsibleFio.value = '';
+                            validateActualizeForm();
+                        });
+                } else {
+                    responsibleFio.value = '';
+                    validateActualizeForm();
+                }
+            });
 
             // Валидация
             function validateActualizeForm() {
@@ -1288,7 +1300,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (!days || days < 1 || days > 180) valid = false;
                 if (!nextUpdateInput.value) valid = false;
                 if ((d2-today)/(1000*60*60*24) < 0 || (d2-today)/(1000*60*60*24) > 180) valid = false;
-                if (!responsibleSelect.value) valid = false;
+                if (!roleSelect.value) valid = false;
+                if (!responsibleFio.value) valid = false;
                 confirmBtn.disabled = !valid;
             }
             periodInput.oninput(); // триггерим заполнение даты и валидацию
@@ -1304,21 +1317,33 @@ document.addEventListener('DOMContentLoaded', function() {
                 // Собираем данные
                 const id = document.getElementById('actualize-lesson-id')?.value;
                 if (!id) { alert('Не удалось определить ID урока'); return; }
-                fetch('/builder/actualize_version/', {
-                    method: 'POST',
-                    headers: {
-                        'X-CSRFToken': (document.querySelector('[name=csrfmiddlewaretoken]')||{}).value || '',
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        lesson_id: id,
-                        period: parseInt(periodInput.value, 10),
-                        next_update: nextUpdateInput.value,
-                        responsible_id: responsibleSelect.value
+                // Получаем ID ответственного пользователя из выбранной роли
+                const roleId = roleSelect.value;
+                fetch(`/user_management/roles/${roleId}/users/`)
+                    .then(response => response.json())
+                    .then(userData => {
+                        const responsibleUser = userData.users.find(user => user.is_responsible);
+                        if (!responsibleUser) {
+                            alert('Для выбранной роли не найден ответственный пользователь');
+                            confirmBtn.disabled = false;
+                            return;
+                        }
+                        
+                        return fetch('/builder/actualize_version/', {
+                            method: 'POST',
+                            headers: {
+                                'X-CSRFToken': (document.querySelector('[name=csrfmiddlewaretoken]')||{}).value || '',
+                                'Content-Type': 'application/json',
+                            },
+                            body: JSON.stringify({
+                                lesson_id: id,
+                                period: parseInt(periodInput.value, 10),
+                                next_update: nextUpdateInput.value,
+                                responsible_id: responsibleUser.id
+                            })
+                        });
                     })
-                })
-                .then(r => r.json())
-                .then(data => {
+                    .then(data => {
                     if (data.error) {
                         alert('Ошибка: ' + data.error);
                         confirmBtn.disabled = false;
