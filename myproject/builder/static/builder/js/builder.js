@@ -1202,10 +1202,108 @@ document.addEventListener('DOMContentLoaded', function() {
             };
         }
 
+        // Кнопка "Настройки ответственных" (шестеренка)
+        const settingsBtn = document.getElementById('responsible-settings-btn');
+        const settingsModal = document.getElementById('responsible-settings-modal');
+        if (settingsBtn && settingsModal) {
+            settingsBtn.onclick = function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                // Загружаем данные и показываем модальное окно
+                if (typeof loadRolesAndResponsibles === 'function') {
+                    loadRolesAndResponsibles();
+                }
+                settingsModal.style.display = 'flex';
+            };
+            
+            // Добавляем обработчики для закрытия модального окна
+            const closeBtn = document.getElementById('responsible-settings-modal-close');
+            if (closeBtn) {
+                closeBtn.onclick = function() {
+                    settingsModal.style.display = 'none';
+                };
+            }
+            
+            // Закрытие по клику вне модального окна
+            settingsModal.onclick = function(e) {
+                if (e.target === settingsModal) {
+                    settingsModal.style.display = 'none';
+                }
+            };
+            
+            // Обработчик добавления должности в список разрешенных
+            const addRoleForm = document.getElementById('add-role-form');
+            if (addRoleForm) {
+                addRoleForm.onsubmit = function(e) {
+                    e.preventDefault();
+                    const roleId = document.getElementById('role-select').value;
+                    const lessonId = document.getElementById('actualize-lesson-id').value;
+                    
+                    if (roleId && lessonId) {
+                        fetch(`/user_management/lessons/${lessonId}/allowed-roles/add/`, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/x-www-form-urlencoded',
+                                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+                            },
+                            body: `role_id=${roleId}`
+                        })
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.success) {
+                                document.getElementById('role-select').value = '';
+                                if (typeof loadRolesAndResponsibles === 'function') {
+                                    loadRolesAndResponsibles();
+                                }
+                            } else {
+                                alert(data.error || 'Ошибка при добавлении должности');
+                            }
+                        })
+                        .catch(error => {
+                            console.error('Ошибка:', error);
+                            alert('Ошибка при добавлении должности');
+                        });
+                    }
+                };
+            }
+            
+            // Закрытие по клавише Escape
+            document.addEventListener('keydown', function(e) {
+                if (e.key === 'Escape' && settingsModal.style.display === 'flex') {
+                    settingsModal.style.display = 'none';
+                }
+            });
+        }
+
         // --- Логика модалки актуализации ---
         function openActualizeModal() {
             const modal = document.getElementById('actualize-modal');
             if (!modal) return;
+            
+            // Загружаем разрешенные роли для урока
+            const lessonId = document.getElementById('actualize-lesson-id').value;
+            if (lessonId) {
+                fetch(`/user_management/lessons/${lessonId}/allowed-roles/`)
+                    .then(response => response.json())
+                    .then(data => {
+                        const roleSelect = document.getElementById('actualize-role');
+                        if (roleSelect) {
+                            // Очищаем список, оставляя только первый option
+                            roleSelect.innerHTML = '<option value="">— выберите роль —</option>';
+                            
+                            data.allowed_roles.forEach(role => {
+                                const option = document.createElement('option');
+                                option.value = role.id;
+                                option.textContent = role.name;
+                                roleSelect.appendChild(option);
+                            });
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Ошибка загрузки разрешенных ролей:', error);
+                    });
+            }
+            
             // Заполняем поля
             const createdInput = document.getElementById('actualize-created');
             const versionInput = document.getElementById('actualize-version');
@@ -1929,3 +2027,111 @@ function showCategoryPasteWarning({onYes, onNo}) {
     modal.querySelector('#cat-paste-yes').onclick = function() { cleanup(); onYes && onYes(); };
     modal.querySelector('#cat-paste-no').onclick = function() { cleanup(); onNo && onNo(); };
 }
+
+// Функции для модального окна управления ответственными
+window.loadRolesAndResponsibles = function() {
+    const lessonId = document.getElementById('actualize-lesson-id').value;
+    if (!lessonId) return;
+    
+    // Загружаем разрешенные роли для урока
+    fetch(`/user_management/lessons/${lessonId}/allowed-roles/`)
+        .then(response => response.json())
+        .then(data => {
+            const tbody = document.getElementById('roles-responsible-tbody');
+            if (!tbody) return;
+            
+            tbody.innerHTML = '';
+            
+            data.allowed_roles.forEach(role => {
+                const row = document.createElement('tr');
+                row.className = 'role-responsible-row';
+                row.innerHTML = `
+                    <td>${role.name}</td>
+                    <td>${role.responsible_fio}</td>
+                    <td class="role-actions">
+                        <button type="button" class="btn-delete" onclick="removeAllowedRole(${role.id})" title="Удалить">
+                            <i class="fa fa-trash"></i>
+                        </button>
+                    </td>
+                `;
+                tbody.appendChild(row);
+            });
+        })
+        .catch(error => {
+            console.error('Ошибка загрузки разрешенных ролей:', error);
+            const tbody = document.getElementById('roles-responsible-tbody');
+            if (tbody) {
+                tbody.innerHTML = '<tr><td colspan="3" style="text-align: center; color: #6c757d;">Ошибка загрузки данных</td></tr>';
+            }
+        });
+    
+    // Загружаем все доступные роли для выпадающего списка (исключая уже добавленные)
+    fetch('/user_management/roles/all/')
+        .then(response => response.json())
+        .then(data => {
+            const roleSelect = document.getElementById('role-select');
+            if (!roleSelect) return;
+            
+            // Очищаем список, оставляя только первый option
+            roleSelect.innerHTML = '<option value="">— выберите должность —</option>';
+            
+            // Получаем список уже добавленных ролей
+            const addedRoleIds = new Set();
+            const tbody = document.getElementById('roles-responsible-tbody');
+            if (tbody) {
+                tbody.querySelectorAll('tr').forEach(row => {
+                    const deleteBtn = row.querySelector('.btn-delete');
+                    if (deleteBtn) {
+                        const onclick = deleteBtn.getAttribute('onclick');
+                        const match = onclick.match(/removeAllowedRole\((\d+)\)/);
+                        if (match) {
+                            addedRoleIds.add(parseInt(match[1]));
+                        }
+                    }
+                });
+            }
+            
+            // Добавляем только те роли, которые еще не добавлены
+            data.roles.forEach(role => {
+                if (!addedRoleIds.has(role.id)) {
+                    const option = document.createElement('option');
+                    option.value = role.id;
+                    option.textContent = role.name;
+                    roleSelect.appendChild(option);
+                }
+            });
+        })
+        .catch(error => {
+            console.error('Ошибка загрузки всех ролей:', error);
+        });
+};
+
+
+
+window.removeAllowedRole = function(roleId) {
+    const lessonId = document.getElementById('actualize-lesson-id').value;
+    if (!lessonId) return;
+    
+    if (confirm('Вы уверены, что хотите удалить эту должность из списка разрешенных?')) {
+        fetch(`/user_management/lessons/${lessonId}/allowed-roles/${roleId}/remove/`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                loadRolesAndResponsibles();
+            } else {
+                alert(data.error || 'Ошибка при удалении должности');
+            }
+        })
+        .catch(error => {
+            console.error('Ошибка:', error);
+            alert('Ошибка при удалении должности');
+        });
+    }
+};
+

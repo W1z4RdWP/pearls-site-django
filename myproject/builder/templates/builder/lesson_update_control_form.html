@@ -21,10 +21,13 @@
             <label class="form-check-label" style="margin-left: 8px;">
                 <input type="checkbox" name="no_next" value="1" {% if show_no_next %}checked{% endif %}> <span class="ucf-filter-label">Без даты обновления</span>
             </label>
+            <label class="form-check-label" style="margin-left: 8px;">
+                <input type="checkbox" name="no_responsible" value="1" {% if show_no_responsible %}checked{% endif %}> <span class="ucf-filter-label">Без ответственных</span>
+            </label>
             <select name="responsible" class="form-control form-control-sm" style="width: 140px;">
                 <option value="">— Все —</option>
-                {% for r in responsibles %}
-                    <option value="{{ r.id }}" {% if selected_responsible == r.id|stringformat:"s" %}selected{% endif %}>{{ r.get_full_name }}</option>
+                {% for role in roles %}
+                    <option value="{{ role.name }}" {% if selected_responsible == role.name %}selected{% endif %}>{{ role.name }}</option>
                 {% endfor %}
             </select>
             <button type="submit" class="btn btn-primary btn-sm" style="margin-left: 8px;">Фильтровать</button>
@@ -39,6 +42,7 @@
                     <th>Дата последнего обновления</th>
                     <th>Период между обновлениями (дней)</th>
                     <th>Дата следующего обновления</th>
+                    <th>Должность</th>
                     <th>Ответственный</th>
                 </tr>
             </thead>
@@ -52,10 +56,11 @@
                     <td>{% if row.last_update %}{{ row.last_update|date:'d.m.Y' }}{% else %}—{% endif %}</td>
                     <td>{% if row.period_between %}{{ row.period_between }}{% else %}—{% endif %}</td>
                     <td class="{% if row.is_overdue %}overdue-cell{% endif %}">{% if row.next_update %}{{ row.next_update|date:'d.m.Y' }}{% else %}—{% endif %}</td>
+                    <td>{{ row.responsible_position|default:'—' }}</td>
                     <td>{{ row.responsible_fio|default:'—' }}</td>
                 </tr>
                 {% empty %}
-                <tr><td colspan="8" style="text-align:center;">Нет данных</td></tr>
+                <tr><td colspan="9" style="text-align:center;">Нет данных</td></tr>
                 {% endfor %}
             </tbody>
         </table>

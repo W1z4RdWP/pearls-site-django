@@ -434,38 +434,91 @@ def get_category_full_path(category):
 @user_passes_test(is_admin, login_url='/')
 def add_lesson(request, course_slug):
     course = get_object_or_404(Course, slug=course_slug)
-    existing_lessons = Lesson.objects.all()
-    categories = CategoryName.objects.all()
-    categories_with_path = [
-        {'id': c.id, 'path': get_category_full_path(c)} for c in categories
-    ]
+    
+    # Получаем все категории с их подкатегориями и уроками
+    def get_categories_with_lessons():
+        categories = CategoryName.objects.filter(parent=None).prefetch_related(
+            'subcategories', 'lessons', 'mirrored_lessons__lesson'
+        ).order_by('order', 'name')
+        
+        def process_category(cat):
+            # Получаем все уроки категории (включая зеркала)
+            lessons = list(cat.lessons.all())
+            for mirror in cat.mirrored_lessons.all():
+                if mirror.lesson not in lessons:
+                    lessons.append(mirror.lesson)
+            
+            # Обрабатываем подкатегории
+            subcategories = []
+            for subcat in cat.subcategories.all():
+                subcategories.append(process_category(subcat))
+            
+            return {
+                'id': cat.id,
+                'name': cat.name,
+                'lessons': lessons,
+                'subcategories': subcategories
+            }
+        
+        return [process_category(cat) for cat in categories]
+    
+    # Функция для получения всех уроков категории (включая подкатегории)
+    def get_all_lessons_in_category(category_id):
+        category = CategoryName.objects.get(id=category_id)
+        lessons = set()
+        
+        # Добавляем уроки текущей категории
+        lessons.update(category.lessons.all())
+        lessons.update([mirror.lesson for mirror in category.mirrored_lessons.all()])
+        
+        # Рекурсивно добавляем уроки подкатегорий
+        for subcat in category.subcategories.all():
+            lessons.update(get_all_lessons_in_category(subcat.id))
+        
+        return list(lessons)
+    
     if request.method == 'POST':
-        if 'create_new' in request.POST:
+        if 'add_selected' in request.POST:
+            selected_items_str = request.POST.get('selected_items', '')
+            selected_items = [item.strip() for item in selected_items_str.split(',') if item.strip()]
+            max_order = course.lessons.aggregate(Max('order'))['order__max'] or 0
+            current_order = max_order + 1
+            
+            for item_id in selected_items:
+                if item_id.startswith('category_'):
+                    # Добавляем все уроки из категории (включая подкатегории)
+                    category_id = item_id.replace('category_', '')
+                    lessons = get_all_lessons_in_category(category_id)
+                    
+                    for lesson in lessons:
+                        # Проверяем, что урок еще не добавлен в курс
+                        if lesson.course != course:
+                            lesson.course = course
+                            lesson.order = current_order
+                            lesson.save()
+                            current_order += 1
+                            
+                elif item_id.startswith('lesson_'):
+                    # Добавляем отдельный урок
+                    lesson_id = item_id.replace('lesson_', '')
+                    lesson = get_object_or_404(Lesson, id=lesson_id)
+                    
+                    # Проверяем, что урок еще не добавлен в курс
+                    if lesson.course != course:
+                        lesson.course = course
+                        lesson.order = current_order
+                        lesson.save()
+                        current_order += 1
+            
+            return redirect('courses:course_detail', slug=course.slug)
+        elif 'create_new' in request.POST:
             return redirect('courses:create_lesson', course_slug=course.slug)
-        elif 'select_existing' in request.POST:
-            lesson_id = request.POST.get('lesson_id')
-            if lesson_id:
-                lesson = get_object_or_404(Lesson, id=lesson_id)
-                lesson.course = course
-                max_order = course.lessons.aggregate(Max('order'))['order__max'] or 0
-                lesson.order = max_order + 1
-                lesson.save()
-                return redirect('courses:course_detail', slug=course.slug)
-        elif 'add_category_lessons' in request.POST:
-            category_id = request.POST.get('category_id')
-            if category_id:
-                lessons = Lesson.objects.filter(category_id=category_id)
-                max_order = course.lessons.aggregate(Max('order'))['order__max'] or 0
-                for i, lesson in enumerate(lessons, start=1):
-                    lesson.course = course
-                    lesson.order = max_order + i
-                    lesson.save()
-                return redirect('courses:course_detail', slug=course.slug)
+    
+    categories_data = get_categories_with_lessons()
+    
     return render(request, 'courses/add_lesson.html', {
         'course': course,
-        'existing_lessons': existing_lessons,
-        'categories': categories,
-        'categories_with_path': categories_with_path,
+        'categories_data': categories_data,
     })
 
 

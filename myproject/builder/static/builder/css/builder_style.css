@@ -85,6 +85,19 @@ body.theme-dark {
     margin-left: -14vw;
 }
 
+@media (min-width: 2200px) {
+    .master-detail-container {
+        margin-left: -23vw;
+    }
+}
+
+@media (min-width: 2600px) {
+    .master-detail-container {
+        margin-left: -28vw;
+    }
+}
+
+
 @media (max-width: 1600px) {
     .master-detail-container {
         margin-left: -10vw;

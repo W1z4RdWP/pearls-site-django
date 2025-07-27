@@ -1272,11 +1272,9 @@ class UpdateControlStandaloneView(TemplateView):
                     period_between = (last.updated_at.date() - prev.updated_at.date()).days
                 else:
                     period_between = None
-            # Дата создания — дата первой версии
-            if versions:
-                created = versions[-1].updated_at.date() if versions[-1].updated_at else None
-            else:
-                created = None
+            # Дата создания — из поля модели Lesson
+            
+            created = lesson.created_at.date() if lesson.created_at else None
             rows.append({
                 'lesson_id': lesson.id,
                 'created': created,
@@ -1288,20 +1286,24 @@ class UpdateControlStandaloneView(TemplateView):
                 'responsible': responsible,
                 'responsible_id': responsible.id if responsible else None,
                 'responsible_fio': responsible.get_full_name() if responsible else '—',
+                'responsible_position': responsible.profile.role.name if responsible and responsible.profile and responsible.profile.role else '—',
                 'is_overdue': next_update and next_update < today,
                 'no_next': not next_update,
             })
         # Фильтрация
         show_overdue = self.request.GET.get('overdue')
         show_no_next = self.request.GET.get('no_next')
-        # Если нет GET-параметров — оба фильтра включены по умолчанию
-        if show_overdue is None and show_no_next is None and not self.request.GET:
+        show_no_responsible = self.request.GET.get('no_responsible')
+        # Если нет GET-параметров — все фильтры включены по умолчанию
+        if show_overdue is None and show_no_next is None and show_no_responsible is None and not self.request.GET:
             show_overdue = True
             show_no_next = True
+            show_no_responsible = True
         else:
             show_overdue = show_overdue == '1'
             show_no_next = show_no_next == '1'
-        responsible_id = self.request.GET.get('responsible')
+            show_no_responsible = show_no_responsible == '1'
+        responsible_position = self.request.GET.get('responsible')
         filtered = rows
         # Фильтр по дате создания
         from datetime import datetime
@@ -1311,23 +1313,33 @@ class UpdateControlStandaloneView(TemplateView):
         if created_to:
             dt_to = datetime.strptime(created_to, '%Y-%m-%d').date()
             filtered = [r for r in filtered if r['created'] and r['created'] <= dt_to]
-        if show_overdue and show_no_next:
+        if show_overdue and show_no_next and show_no_responsible:
+            filtered = [r for r in filtered if r['is_overdue'] or r['no_next'] or r['responsible_fio'] == '—']
+        elif show_overdue and show_no_next:
             filtered = [r for r in filtered if r['is_overdue'] or r['no_next']]
+        elif show_overdue and show_no_responsible:
+            filtered = [r for r in filtered if r['is_overdue'] or r['responsible_fio'] == '—']
+        elif show_no_next and show_no_responsible:
+            filtered = [r for r in filtered if r['no_next'] or r['responsible_fio'] == '—']
         elif show_overdue:
             filtered = [r for r in filtered if r['is_overdue']]
         elif show_no_next:
             filtered = [r for r in filtered if r['no_next']]
-        if responsible_id:
-            filtered = [r for r in filtered if str(r['responsible_id']) == responsible_id]
+        elif show_no_responsible:
+            filtered = [r for r in filtered if r['responsible_fio'] == '—']
+        if responsible_position:
+            filtered = [r for r in filtered if r['responsible_position'] == responsible_position]
         if title_query:
             filtered = [r for r in filtered if title_query.lower() in r['title'].lower()]
-        # Список ответственных
-        responsibles = User.objects.filter(profile__role__responsible_user__isnull=False)
+        # Список должностей для фильтра
+        from users.models import Role
+        roles = Role.objects.all().order_by('name')
         context['update_rows'] = filtered
-        context['responsibles'] = responsibles
+        context['roles'] = roles
         context['show_overdue'] = show_overdue
         context['show_no_next'] = show_no_next
-        context['selected_responsible'] = responsible_id
+        context['show_no_responsible'] = show_no_responsible
+        context['selected_responsible'] = responsible_position
         context['created_from'] = created_from
         context['created_to'] = created_to
         context['title_query'] = title_query

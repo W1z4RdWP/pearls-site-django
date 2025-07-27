@@ -204,6 +204,137 @@ def role_users_json(request, role_id):
     
     return JsonResponse({'users': users_data})
 
+
+def roles_all_json(request):
+    """
+    Возвращает список всех ролей с их ответственными в JSON формате
+    """
+    if not request.user.is_staff:
+        from django.http import JsonResponse
+        return JsonResponse({'error': 'forbidden'}, status=403)
+    
+    from django.http import JsonResponse
+    from users.models import Role
+    
+    roles = Role.objects.all().prefetch_related('responsible_user')
+    roles_data = []
+    
+    for role in roles:
+        role_data = {
+            'id': role.id,
+            'name': role.name,
+            'responsible_user': None
+        }
+        
+        if role.responsible_user:
+            role_data['responsible_user'] = {
+                'id': role.responsible_user.id,
+                'full_name': role.responsible_user.get_full_name()
+            }
+        
+        roles_data.append(role_data)
+    
+    return JsonResponse({'roles': roles_data})
+
+
+def lesson_allowed_roles_json(request, lesson_id):
+    """
+    Возвращает список разрешенных должностей для урока в JSON формате
+    """
+    if not request.user.is_staff:
+        from django.http import JsonResponse
+        return JsonResponse({'error': 'forbidden'}, status=403)
+    
+    from django.http import JsonResponse
+    from builder.models import LessonAllowedRole
+    from courses.models import Lesson
+    
+    try:
+        lesson = Lesson.objects.get(id=lesson_id)
+    except Lesson.DoesNotExist:
+        return JsonResponse({'error': 'lesson not found'}, status=404)
+    
+    allowed_roles = LessonAllowedRole.objects.filter(lesson=lesson).select_related('role', 'role__responsible_user')
+    roles_data = []
+    
+    for allowed_role in allowed_roles:
+        role_data = {
+            'id': allowed_role.role.id,
+            'name': allowed_role.role.name,
+            'responsible_fio': allowed_role.responsible_fio,
+            'added_at': allowed_role.added_at.strftime('%d.%m.%Y')
+        }
+        roles_data.append(role_data)
+    
+    return JsonResponse({'allowed_roles': roles_data})
+
+
+@require_POST
+def lesson_add_allowed_role(request, lesson_id):
+    """
+    Добавляет должность в список разрешенных для урока
+    """
+    if not request.user.is_staff:
+        from django.http import JsonResponse
+        return JsonResponse({'error': 'forbidden'}, status=403)
+    
+    from django.http import JsonResponse
+    from builder.models import LessonAllowedRole
+    from courses.models import Lesson
+    from users.models import Role
+    
+    try:
+        lesson = Lesson.objects.get(id=lesson_id)
+        role_id = request.POST.get('role_id')
+        if not role_id:
+            return JsonResponse({'error': 'role_id is required'}, status=400)
+        
+        role = Role.objects.get(id=role_id)
+        
+        # Проверяем, не добавлена ли уже эта должность
+        if LessonAllowedRole.objects.filter(lesson=lesson, role=role).exists():
+            return JsonResponse({'error': 'Должность уже добавлена'}, status=400)
+        
+        # Добавляем должность
+        LessonAllowedRole.objects.create(lesson=lesson, role=role)
+        
+        return JsonResponse({'success': True})
+        
+    except Lesson.DoesNotExist:
+        return JsonResponse({'error': 'lesson not found'}, status=404)
+    except Role.DoesNotExist:
+        return JsonResponse({'error': 'role not found'}, status=404)
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+
+
+@require_POST
+def lesson_remove_allowed_role(request, lesson_id, role_id):
+    """
+    Удаляет должность из списка разрешенных для урока
+    """
+    if not request.user.is_staff:
+        from django.http import JsonResponse
+        return JsonResponse({'error': 'forbidden'}, status=403)
+    
+    from django.http import JsonResponse
+    from builder.models import LessonAllowedRole
+    from courses.models import Lesson
+    
+    try:
+        lesson = Lesson.objects.get(id=lesson_id)
+        allowed_role = LessonAllowedRole.objects.get(lesson=lesson, role_id=role_id)
+        allowed_role.delete()
+        
+        return JsonResponse({'success': True})
+        
+    except Lesson.DoesNotExist:
+        return JsonResponse({'error': 'lesson not found'}, status=404)
+    except LessonAllowedRole.DoesNotExist:
+        return JsonResponse({'error': 'allowed role not found'}, status=404)
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+
 class UserUpdateView(UpdateView):
     model = User
     template_name = 'user_management/user_form.html'

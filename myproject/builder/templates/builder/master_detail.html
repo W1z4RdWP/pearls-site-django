@@ -108,69 +108,7 @@
                     }{% endfor %}
                 ];
                 </script>
-                <div style="display: flex; justify-content: space-between; align-items: flex-start;">
-                    <h2 style="margin-bottom: 0;">{{ selected_lesson.title }}</h2>
-                    <div style="display: flex; align-items: flex-start; gap: 16px;">
-                        <div class="version-history-block" style="position: relative;">
-                            <!-- Кнопка и выпадашка 'История версий' удалены -->
-                        </div>
-                        <!-- Блок истории актуализаций -->
-                        {% if not is_readonly %}
-                        <div class="actualization-history-block" style="position: relative;">
-                            <button id="actualization-history-btn" class="btn btn-outline-secondary" type="button">История актуализаций</button>
-                            <div id="actualization-history-dropdown" class="builder-dropdown" style="display: none; min-width: 420px;">
-                                <div style="max-height: 320px; overflow-y: auto;">
-                                    <table class="table table-sm table-bordered mb-0" style="background: #fff;">
-                                        <thead>
-                                            <tr>
-                                                <th>Дата создания</th>
-                                                <th>№ версии</th>
-                                                <th>Стандарт (дней)</th>
-                                                <th>След. обновление</th>
-                                                <th>Отв.</th>
-                                                <th></th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                        {% for a in actualization_history %}
-                                            <tr>
-                                                <td>{{ a.created_at|date:"d.m.Y" }}</td>
-                                                <td data-version="{{ a.version }}" class="version-cell" style="cursor:pointer;text-decoration:underline;">v{{ a.version }}</td>
-                                                <td>{{ a.update_period_days }}</td>
-                                                <td {% if a.next_update and a.next_update < today %}style="background: #ffd6e0;"{% endif %}>
-                                                    {% if a.next_update %}{{ a.next_update|date:"d.m.Y" }}{% else %}—{% endif %}
-                                                </td>
-                                                <td>{{ a.responsible_role|default:'—' }}</td>
-                                                <td>
-                                                    <button class="btn btn-sm btn-outline-primary actualize-btn" data-version="{{ a.version }}">Актуализировать</button>
-                                                </td>
-                                            </tr>
-                                        {% endfor %}
-                                        </tbody>
-                                    </table>
-                                </div>
-                            </div>
-                            <div style="margin-top: 8px; font-size: 14px;">
-                                <span>След. обновление:
-                                    <span id="next-update-info" {% if actualization_info.next_update and actualization_info.next_update < today %}style="background: #ffd6e0; padding: 2px 6px; border-radius: 4px;"{% endif %}>
-                                        {% if actualization_info.next_update %}{{ actualization_info.next_update|date:"d.m.Y" }}{% else %}—{% endif %}
-                                    </span>
-                                </span>
-                                <span style="margin-left: 16px;">Отв: <b>{{ actualization_info.responsible_role|default:'—' }}</b></span>
-                            </div>
-                        </div>
-{% endif %}
-                    </div>
-                </div>
-                <div class="lesson-content" id="lesson-content-block">
-                    {{ selected_lesson.content|safe|default:"Нет содержимого." }}
-                </div>
-                {% if selected_lesson.video_id %}
-                    <div class="lesson-video mt-4" id="lesson-video-block">
-                        <h5>Видео урок:</h5>
-                        <iframe width="560" height="315" src="https://rutube.ru/play/embed/{{ selected_lesson.video_id }}" frameborder="0" allowfullscreen></iframe>
-                    </div>
-                {% endif %}
+                {% include "builder/includes/_lesson_detail_block.html" with lesson=selected_lesson actualization_history=actualization_history actualization_info=actualization_info roles=roles is_readonly=is_readonly %}
             {% else %}
                 <p>Выберите урок для просмотра.</p>
             {% endif %}
