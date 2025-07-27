@@ -21,6 +21,9 @@
             <label class="form-check-label" style="margin-left: 8px;">
                 <input type="checkbox" name="no_next" value="1" {% if show_no_next %}checked{% endif %}> <span class="ucf-filter-label">Без даты обновления</span>
             </label>
+            <label class="form-check-label" style="margin-left: 8px;">
+                <input type="checkbox" name="no_responsible" value="1" {% if show_no_responsible %}checked{% endif %}> <span class="ucf-filter-label">Без ответственных</span>
+            </label>
             <select name="responsible" class="form-control form-control-sm" style="width: 140px;">
                 <option value="">— Все —</option>
                 {% for role in roles %}

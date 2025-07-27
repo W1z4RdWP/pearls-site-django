@@ -1293,13 +1293,16 @@ class UpdateControlStandaloneView(TemplateView):
         # Фильтрация
         show_overdue = self.request.GET.get('overdue')
         show_no_next = self.request.GET.get('no_next')
-        # Если нет GET-параметров — оба фильтра включены по умолчанию
-        if show_overdue is None and show_no_next is None and not self.request.GET:
+        show_no_responsible = self.request.GET.get('no_responsible')
+        # Если нет GET-параметров — все фильтры включены по умолчанию
+        if show_overdue is None and show_no_next is None and show_no_responsible is None and not self.request.GET:
             show_overdue = True
             show_no_next = True
+            show_no_responsible = True
         else:
             show_overdue = show_overdue == '1'
             show_no_next = show_no_next == '1'
+            show_no_responsible = show_no_responsible == '1'
         responsible_position = self.request.GET.get('responsible')
         filtered = rows
         # Фильтр по дате создания
@@ -1310,12 +1313,20 @@ class UpdateControlStandaloneView(TemplateView):
         if created_to:
             dt_to = datetime.strptime(created_to, '%Y-%m-%d').date()
             filtered = [r for r in filtered if r['created'] and r['created'] <= dt_to]
-        if show_overdue and show_no_next:
+        if show_overdue and show_no_next and show_no_responsible:
+            filtered = [r for r in filtered if r['is_overdue'] or r['no_next'] or r['responsible_fio'] == '—']
+        elif show_overdue and show_no_next:
             filtered = [r for r in filtered if r['is_overdue'] or r['no_next']]
+        elif show_overdue and show_no_responsible:
+            filtered = [r for r in filtered if r['is_overdue'] or r['responsible_fio'] == '—']
+        elif show_no_next and show_no_responsible:
+            filtered = [r for r in filtered if r['no_next'] or r['responsible_fio'] == '—']
         elif show_overdue:
             filtered = [r for r in filtered if r['is_overdue']]
         elif show_no_next:
             filtered = [r for r in filtered if r['no_next']]
+        elif show_no_responsible:
+            filtered = [r for r in filtered if r['responsible_fio'] == '—']
         if responsible_position:
             filtered = [r for r in filtered if r['responsible_position'] == responsible_position]
         if title_query:
@@ -1327,6 +1338,7 @@ class UpdateControlStandaloneView(TemplateView):
         context['roles'] = roles
         context['show_overdue'] = show_overdue
         context['show_no_next'] = show_no_next
+        context['show_no_responsible'] = show_no_responsible
         context['selected_responsible'] = responsible_position
         context['created_from'] = created_from
         context['created_to'] = created_to
