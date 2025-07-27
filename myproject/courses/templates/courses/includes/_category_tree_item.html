@@ -1,0 +1,28 @@
+<li class="category-item" data-category-id="{{ category.id }}">
+    <div class="category-header" onclick="selectItem(this, 'category', '{{ category.id }}', '{{ category.name }}')">
+        <span class="category-icon">📁</span>
+        <span class="category-title">{{ category.name }}</span>
+        {% if category.subcategories or category.lessons %}
+            <span class="toggle-arrow" onclick="event.stopPropagation(); toggleCategory(this.parentElement)">▶</span>
+        {% endif %}
+    </div>
+    
+    {% if category.subcategories %}
+        <ul class="subcategory-list category-tree" style="display: none;">
+            {% for subcategory in category.subcategories %}
+                {% include "courses/includes/_category_tree_item.html" with category=subcategory %}
+            {% endfor %}
+        </ul>
+    {% endif %}
+    
+    {% if category.lessons %}
+        <ul class="lesson-list" style="display: none;">
+            {% for lesson in category.lessons %}
+                <li class="lesson-item" data-lesson-id="{{ lesson.id }}" onclick="selectItem(this, 'lesson', '{{ lesson.id }}', '{{ lesson.title }}')">
+                    <span class="lesson-icon">📄</span>
+                    <span class="lesson-title">{{ lesson.title }}</span>
+                </li>
+            {% endfor %}
+        </ul>
+    {% endif %}
+</li> 
