@@ -39,6 +39,7 @@
                     <th>Дата последнего обновления</th>
                     <th>Период между обновлениями (дней)</th>
                     <th>Дата следующего обновления</th>
+                    <th>Должность</th>
                     <th>Ответственный</th>
                 </tr>
             </thead>
@@ -52,10 +53,11 @@
                     <td>{% if row.last_update %}{{ row.last_update|date:'d.m.Y' }}{% else %}—{% endif %}</td>
                     <td>{% if row.period_between %}{{ row.period_between }}{% else %}—{% endif %}</td>
                     <td class="{% if row.is_overdue %}overdue-cell{% endif %}">{% if row.next_update %}{{ row.next_update|date:'d.m.Y' }}{% else %}—{% endif %}</td>
+                    <td>{{ row.responsible_position|default:'—' }}</td>
                     <td>{{ row.responsible_fio|default:'—' }}</td>
                 </tr>
                 {% empty %}
-                <tr><td colspan="8" style="text-align:center;">Нет данных</td></tr>
+                <tr><td colspan="9" style="text-align:center;">Нет данных</td></tr>
                 {% endfor %}
             </tbody>
         </table>

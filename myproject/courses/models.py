@@ -96,6 +96,7 @@ class Lesson(models.Model):
         related_name='lessons',
         verbose_name="Категория"
     )
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name="Дата создания")
 
 
     class Meta:

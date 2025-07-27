@@ -1272,11 +1272,9 @@ class UpdateControlStandaloneView(TemplateView):
                     period_between = (last.updated_at.date() - prev.updated_at.date()).days
                 else:
                     period_between = None
-            # Дата создания — дата первой версии
-            if versions:
-                created = versions[-1].updated_at.date() if versions[-1].updated_at else None
-            else:
-                created = None
+            # Дата создания — из поля модели Lesson
+            
+            created = lesson.created_at.date() if lesson.created_at else None
             rows.append({
                 'lesson_id': lesson.id,
                 'created': created,
@@ -1288,6 +1286,7 @@ class UpdateControlStandaloneView(TemplateView):
                 'responsible': responsible,
                 'responsible_id': responsible.id if responsible else None,
                 'responsible_fio': responsible.get_full_name() if responsible else '—',
+                'responsible_position': responsible.profile.role.name if responsible and responsible.profile and responsible.profile.role else '—',
                 'is_overdue': next_update and next_update < today,
                 'no_next': not next_update,
             })
