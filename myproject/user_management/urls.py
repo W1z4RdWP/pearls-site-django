@@ -17,4 +17,8 @@ urlpatterns = [
     path('roles/<int:role_id>/edit/', views.role_edit, name='role_edit'),
     path('roles/<int:role_id>/responsible/', views.role_responsible_manage, name='role_responsible_manage'),
     path('roles/<int:role_id>/users/', views.role_users_json, name='role_users_json'),
+    path('roles/all/', views.roles_all_json, name='roles_all_json'),
+    path('lessons/<int:lesson_id>/allowed-roles/', views.lesson_allowed_roles_json, name='lesson_allowed_roles_json'),
+    path('lessons/<int:lesson_id>/allowed-roles/add/', views.lesson_add_allowed_role, name='lesson_add_allowed_role'),
+    path('lessons/<int:lesson_id>/allowed-roles/<int:role_id>/remove/', views.lesson_remove_allowed_role, name='lesson_remove_allowed_role'),
 ]

@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import CategoryName, Document, LessonVersion, LessonCategoryMirror, DictionaryTerm, DictionarySection
+from .models import CategoryName, Document, LessonVersion, LessonCategoryMirror, DictionaryTerm, DictionarySection, LessonAllowedRole
 
 
 
@@ -27,6 +27,13 @@ class DocumentAdmin(admin.ModelAdmin):
 
 admin.site.register(DictionaryTerm)
 admin.site.register(DictionarySection)
+
+@admin.register(LessonAllowedRole)
+class LessonAllowedRoleAdmin(admin.ModelAdmin):
+    list_display = ('lesson', 'role', 'responsible_fio', 'added_at')
+    list_filter = ('lesson', 'role', 'added_at')
+    search_fields = ('lesson__title', 'role__name')
+    ordering = ('lesson__title', 'role__name')
 
 # class DictionaryTermAdmin(admin.ModelAdmin):
 #     list_display = ('term', 'author', 'order', 'created_at', 'updated_at')

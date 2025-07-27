@@ -165,3 +165,29 @@ class DictionaryTerm(models.Model):
 
     def __str__(self):
         return self.term
+
+class LessonAllowedRole(models.Model):
+    """
+    Модель для связи уроков с разрешенными должностями для актуализации.
+    Позволяет ограничить список должностей, которые могут быть назначены ответственными
+    при актуализации конкретного урока.
+    """
+    lesson = models.ForeignKey('courses.Lesson', on_delete=models.CASCADE, related_name='allowed_roles', verbose_name='Урок')
+    role = models.ForeignKey('users.Role', on_delete=models.CASCADE, verbose_name='Должность')
+    added_at = models.DateTimeField(auto_now_add=True, verbose_name='Дата добавления')
+
+    class Meta:
+        unique_together = ('lesson', 'role')
+        verbose_name = 'Разрешенная должность для урока'
+        verbose_name_plural = 'Разрешенные должности для уроков'
+        ordering = ['role__name']
+
+    def __str__(self):
+        return f"{self.lesson.title} - {self.role.name}"
+
+    @property
+    def responsible_fio(self):
+        """Возвращает ФИО ответственного за данную должность"""
+        if self.role.responsible_user:
+            return self.role.responsible_user.get_full_name()
+        return "— не назначен —"

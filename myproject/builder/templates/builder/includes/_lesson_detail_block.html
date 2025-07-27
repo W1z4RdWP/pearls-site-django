@@ -1,4 +1,5 @@
 {% if lesson %}
+    {% csrf_token %}
     <input type="hidden" id="actualize-lesson-id" value="{{ lesson.id }}">
     <div style="display: flex; justify-content: space-between; align-items: flex-start;">
         <h2 style="margin-bottom: 0;">{{ lesson.title }}</h2>
@@ -7,8 +8,11 @@
             <div class="actualization-history-block" style="position: relative;">
                 <button id="actualization-history-btn" class="btn btn-outline-secondary" type="button">История актуализаций</button>
                 <div id="actualization-history-dropdown" class="builder-dropdown" style="display: none; min-width: 420px; max-width: 700px;">
-                    <div style="margin-bottom: 8px;">
+                    <div style="margin-bottom: 8px; display: flex; gap: 8px; align-items: center;">
                         <button id="actualize-main-btn" class="btn btn-primary btn-sm">Актуализировать</button>
+                        <button id="responsible-settings-btn" class="btn btn-outline-secondary btn-sm" title="Настройки ответственных">
+                            <i class="fa fa-cog"></i>
+                        </button>
                     </div>
                     <div style="max-height: 320px; overflow-y: auto;">
                         <table class="table table-sm table-bordered mb-0" style="background: #fff;">
@@ -149,9 +153,6 @@ window.previousRoleName = safeParseJsonScript('previous-role-name-else');
         <label>Роль ответственного:<br>
           <select id="actualize-role" required style="width:220px;">
             <option value="">— выберите роль —</option>
-            {% for role in roles %}
-              <option value="{{ role.id }}">{{ role.name }}</option>
-            {% endfor %}
           </select>
         </label>
       </div>
@@ -357,3 +358,183 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 </script>
+
+<!-- Модальное окно для управления ответственными -->
+<div id="responsible-settings-modal" style="display:none; position:fixed; z-index:99999; left:0; top:0; width:100vw; height:100vh; background:rgba(0,0,0,0.35); align-items:center; justify-content:center;">
+  <div style="background:#fff; color:#232a3a; padding:32px 32px 24px 32px; border-radius:12px; box-shadow:0 2px 16px #0007; min-width:600px; max-width:95vw; text-align:left; position:relative;">
+    <button id="responsible-settings-modal-close" style="position:absolute; right:12px; top:12px; background:none; border:none; font-size:1.5em; color:#888; cursor:pointer;">&times;</button>
+    <h4 style="margin-top:0;">Управление ответственными</h4>
+    
+    <!-- Форма добавления должности в список разрешенных -->
+    <div style="margin-bottom: 24px; padding: 16px; background: #f8f9fa; border-radius: 8px;">
+      <h6 style="margin-top: 0; margin-bottom: 12px;">Добавить должность в список разрешенных</h6>
+      <form id="add-role-form" style="display: flex; gap: 12px; align-items: end;">
+        <div style="flex: 1;">
+          <label style="display: block; margin-bottom: 4px; font-weight: 500;">Выберите должность:</label>
+          <select id="role-select" required style="width: 100%; padding: 8px 12px; border: 1px solid #c3c8d0; border-radius: 6px; font-size: 14px;">
+            <option value="">— выберите должность —</option>
+          </select>
+        </div>
+        <button type="submit" class="btn btn-primary btn-sm">Добавить</button>
+      </form>
+    </div>
+    
+    <!-- Список должностей и ответственных -->
+    <div style="max-height: 400px; overflow-y: auto;">
+      <table class="table table-sm table-bordered mb-0" style="background: #fff;">
+        <thead>
+          <tr>
+            <th>Должность</th>
+            <th>ФИО ответственного</th>
+            <th>Действия</th>
+          </tr>
+        </thead>
+        <tbody id="roles-responsible-tbody">
+          <!-- Данные будут загружены динамически -->
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<style>
+/* Стили для модального окна управления ответственными */
+#responsible-settings-modal {
+  display: none;
+  position: fixed;
+  z-index: 99999;
+  left: 0; top: 0; width: 100vw; height: 100vh;
+  background: rgba(0,0,0,0.35);
+  align-items: center; justify-content: center;
+}
+
+#responsible-settings-modal > div {
+  background: #f8fafc;
+  color: #232a3a;
+  padding: 32px 32px 24px 32px;
+  border-radius: 16px;
+  box-shadow: 0 4px 32px #0002;
+  min-width: 600px; max-width: 95vw;
+  text-align: left; position: relative;
+  font-family: inherit;
+}
+
+#responsible-settings-modal h4 {
+  margin-top: 0;
+  margin-bottom: 24px;
+  font-size: 1.35em;
+  font-weight: 700;
+  text-align: center;
+  letter-spacing: 0.01em;
+}
+
+#responsible-settings-modal h6 {
+  margin-top: 0;
+  margin-bottom: 12px;
+  font-size: 1.1em;
+  font-weight: 600;
+  color: #495057;
+}
+
+#responsible-settings-modal input {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid #c3c8d0;
+  border-radius: 6px;
+  background: #fff;
+  font-size: 14px;
+  box-sizing: border-box;
+  transition: border 0.2s, box-shadow 0.2s;
+}
+
+#responsible-settings-modal input:focus {
+  border: 1.5px solid #4d7cff;
+  box-shadow: 0 0 0 2px #4d7cff22;
+  outline: none;
+}
+
+#responsible-settings-modal-close {
+  position: absolute; right: 12px; top: 12px;
+  background: none; border: none;
+  font-size: 1.5em; color: #888; cursor: pointer;
+  transition: color 0.2s;
+}
+
+#responsible-settings-modal-close:hover {
+  color: #232a3a;
+}
+
+.role-responsible-row {
+  transition: background-color 0.2s;
+}
+
+.role-responsible-row:hover {
+  background-color: #f8f9fa;
+}
+
+.responsible-select {
+  width: 100%;
+  padding: 6px 8px;
+  border: 1px solid #c3c8d0;
+  border-radius: 4px;
+  font-size: 14px;
+  background: #fff;
+}
+
+.responsible-select:focus {
+  border-color: #4d7cff;
+  outline: none;
+}
+
+.role-actions {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+}
+
+.role-actions button {
+  padding: 4px 8px;
+  font-size: 12px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.role-actions .btn-save {
+  background: #28a745;
+  color: white;
+}
+
+.role-actions .btn-save:hover {
+  background: #218838;
+}
+
+.role-actions .btn-cancel {
+  background: #6c757d;
+  color: white;
+}
+
+.role-actions .btn-cancel:hover {
+  background: #5a6268;
+}
+
+.role-actions .btn-edit {
+  background: #17a2b8;
+  color: white;
+}
+
+.role-actions .btn-edit:hover {
+  background: #138496;
+}
+
+.role-actions .btn-delete {
+  background: #dc3545;
+  color: white;
+}
+
+.role-actions .btn-delete:hover {
+  background: #c82333;
+}
+</style>
+
