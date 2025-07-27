@@ -1300,7 +1300,7 @@ class UpdateControlStandaloneView(TemplateView):
         else:
             show_overdue = show_overdue == '1'
             show_no_next = show_no_next == '1'
-        responsible_id = self.request.GET.get('responsible')
+        responsible_position = self.request.GET.get('responsible')
         filtered = rows
         # Фильтр по дате создания
         from datetime import datetime
@@ -1316,17 +1316,18 @@ class UpdateControlStandaloneView(TemplateView):
             filtered = [r for r in filtered if r['is_overdue']]
         elif show_no_next:
             filtered = [r for r in filtered if r['no_next']]
-        if responsible_id:
-            filtered = [r for r in filtered if str(r['responsible_id']) == responsible_id]
+        if responsible_position:
+            filtered = [r for r in filtered if r['responsible_position'] == responsible_position]
         if title_query:
             filtered = [r for r in filtered if title_query.lower() in r['title'].lower()]
-        # Список ответственных
-        responsibles = User.objects.filter(profile__role__responsible_user__isnull=False)
+        # Список должностей для фильтра
+        from users.models import Role
+        roles = Role.objects.all().order_by('name')
         context['update_rows'] = filtered
-        context['responsibles'] = responsibles
+        context['roles'] = roles
         context['show_overdue'] = show_overdue
         context['show_no_next'] = show_no_next
-        context['selected_responsible'] = responsible_id
+        context['selected_responsible'] = responsible_position
         context['created_from'] = created_from
         context['created_to'] = created_to
         context['title_query'] = title_query
