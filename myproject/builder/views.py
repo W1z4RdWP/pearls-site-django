@@ -1267,9 +1267,8 @@ class UpdateControlStandaloneView(TemplateView):
                 last_update = last.updated_at.date() if last.updated_at else None
                 next_update = last.next_update
                 responsible = last.updated_by
-                if len(versions) > 1:
-                    prev = versions[1]
-                    period_between = (last.updated_at.date() - prev.updated_at.date()).days
+                if last_update and next_update:
+                    period_between = (next_update - last_update).days
                 else:
                     period_between = None
             # Дата создания — из поля модели Lesson
