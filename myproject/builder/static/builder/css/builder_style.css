@@ -929,3 +929,50 @@ body.theme-dark .builder-dropdown {
     color: var(--builder-sidebar-text) !important;
     text-decoration: none !important;
 }
+
+/* Стили для таблицы истории актуализаций */
+#actualization-history-dropdown .table {
+    font-size: 0.85em;
+    line-height: 1.2;
+}
+
+#actualization-history-dropdown .table th,
+#actualization-history-dropdown .table td {
+    padding: 4px 6px;
+    vertical-align: middle;
+    white-space: nowrap;
+}
+
+/* Расширяем колонки "Отв." и "Отв. ФИО" */
+#actualization-history-dropdown .table th:nth-child(5),
+#actualization-history-dropdown .table td:nth-child(5) {
+    min-width: 120px;
+    max-width: 150px;
+}
+
+#actualization-history-dropdown .table th:nth-child(6),
+#actualization-history-dropdown .table td:nth-child(6) {
+    min-width: 100px;
+    max-width: 120px;
+}
+
+/* Уменьшаем ширину других колонок */
+#actualization-history-dropdown .table th:nth-child(1),
+#actualization-history-dropdown .table td:nth-child(1) {
+    width: 80px;
+}
+
+#actualization-history-dropdown .table th:nth-child(2),
+#actualization-history-dropdown .table td:nth-child(2) {
+    width: 60px;
+}
+
+#actualization-history-dropdown .table th:nth-child(3),
+#actualization-history-dropdown .table td:nth-child(3) {
+    width: 80px;
+}
+
+#actualization-history-dropdown .table th:nth-child(4),
+#actualization-history-dropdown .table td:nth-child(4) {
+    width: 100px;
+}

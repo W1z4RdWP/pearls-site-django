@@ -27,6 +27,32 @@ from django.db import models
 from django.http import Http404
 
 
+def get_compact_fio(user):
+    """
+    Возвращает компактное ФИО: фамилия полностью, имя и отчество инициалами
+    Например: "Кузнецов В.А." вместо "Владислав Александрович Кузнецов"
+    """
+    if not user:
+        return None
+    
+    last_name = user.last_name or ''
+    first_name = user.first_name or ''
+    middle_name = getattr(user.profile, 'middle_name', '') if hasattr(user, 'profile') else ''
+    
+    # Формируем инициалы
+    first_initial = first_name[0] + '.' if first_name else ''
+    middle_initial = middle_name[0] + '.' if middle_name else ''
+    
+    # Собираем ФИО
+    parts = [last_name]
+    if first_initial:
+        parts.append(first_initial)
+    if middle_initial:
+        parts.append(middle_initial)
+    
+    return ' '.join(parts) if parts else user.username
+
+
 def get_category_tree_data(category_id):
     """Получить полное дерево категории со всеми подкатегориями, уроками и зеркалами"""
     try:
@@ -362,7 +388,7 @@ class LessonMasterDetailView(TemplateView):
                         'next_update': v.next_update,
                         'update_period_days': v.update_period_days,
                         'responsible_role': getattr(getattr(v.updated_by, 'profile', None), 'role', None),
-                        'responsible_fio': v.updated_by.get_full_name() if v.updated_by else None,
+                        'responsible_fio': get_compact_fio(v.updated_by) if v.updated_by else None,
                     })
                 # Берем информацию из последней версии (с максимальным номером)
                 latest_version = lesson_versions.first() if lesson_versions else None
@@ -1267,9 +1293,8 @@ class UpdateControlStandaloneView(TemplateView):
                 last_update = last.updated_at.date() if last.updated_at else None
                 next_update = last.next_update
                 responsible = last.updated_by
-                if len(versions) > 1:
-                    prev = versions[1]
-                    period_between = (last.updated_at.date() - prev.updated_at.date()).days
+                if last_update and next_update:
+                    period_between = (next_update - last_update).days
                 else:
                     period_between = None
             # Дата создания — из поля модели Lesson
@@ -1285,7 +1310,7 @@ class UpdateControlStandaloneView(TemplateView):
                 'next_update': next_update,
                 'responsible': responsible,
                 'responsible_id': responsible.id if responsible else None,
-                'responsible_fio': responsible.get_full_name() if responsible else '—',
+                'responsible_fio': get_compact_fio(responsible) if responsible else '—',
                 'responsible_position': responsible.profile.role.name if responsible and responsible.profile and responsible.profile.role else '—',
                 'is_overdue': next_update and next_update < today,
                 'no_next': not next_update,

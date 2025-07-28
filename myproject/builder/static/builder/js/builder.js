@@ -1297,11 +1297,26 @@ document.addEventListener('DOMContentLoaded', function() {
                                 option.textContent = role.name;
                                 roleSelect.appendChild(option);
                             });
+                            
+                            // Автозаполнение роли из предыдущей версии (после загрузки ролей)
+                            if (window.previousRoleId && window.previousRoleId !== null) {
+                                roleSelect.value = window.previousRoleId;
+                                // Триггерим событие change для загрузки пользователей
+                                const event = new Event('change');
+                                roleSelect.dispatchEvent(event);
+                            } else {
+                                // Если нет предыдущей роли, все равно вызываем валидацию
+                                validateActualizeForm();
+                            }
                         }
                     })
                     .catch(error => {
                         console.error('Ошибка загрузки разрешенных ролей:', error);
+                        validateActualizeForm();
                     });
+            } else {
+                // Если нет lessonId, все равно вызываем валидацию
+                validateActualizeForm();
             }
             
             // Заполняем поля
@@ -1418,17 +1433,6 @@ document.addEventListener('DOMContentLoaded', function() {
 
             // Валидация формы
             periodInput.oninput(); // триггерим заполнение даты и валидацию
-
-            // Автозаполнение роли из предыдущей версии (после добавления всех обработчиков)
-            if (window.previousRoleId && window.previousRoleId !== null) {
-                roleSelect.value = window.previousRoleId;
-                // Триггерим событие change для загрузки пользователей
-                const event = new Event('change');
-                roleSelect.dispatchEvent(event);
-            } else {
-                // Если нет предыдущей роли, все равно вызываем валидацию
-                validateActualizeForm();
-            }
 
             // Закрытие
             closeBtn.onclick = function() { modal.style.display = 'none'; };
