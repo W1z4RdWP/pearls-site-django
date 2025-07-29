@@ -2,8 +2,13 @@
 
 from pathlib import Path
 import os
+import sys
 
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
+
+# Добавляем папку apps в PYTHONPATH
+APPS_DIR = BASE_DIR / 'apps'
+sys.path.insert(0, str(APPS_DIR))
 
 #SECRET_KEY = os.getenv('SECRET_DJANGO') # DJANGO_SECRET_KEY / SECRET_DJANGO
  
@@ -60,6 +65,7 @@ INSTALLED_APPS = [
     'quizzes',
     'builder', # БЗ. Конструктор траекторий из уроков.
     'user_management',
+    'gamification',
 ]
 
 X_FRAME_OPTIONS = "SAMEORIGIN"              # allows you to use modals insated of popups
