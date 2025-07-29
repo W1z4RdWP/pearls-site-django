@@ -125,9 +125,6 @@
               <button type="button" class="btn btn-sm btn-secondary" onclick="editRole({{ role.id }}, '{{ role.name|escapejs }}')">
                 <i class="fa fa-pencil"></i>
               </button>
-              <button type="button" class="btn btn-sm btn-info" onclick="manageResponsible({{ role.id }}, '{{ role.name|escapejs }}')" title="Управление ответственным">
-                <i class="fa fa-user"></i>
-              </button>
               <form method="post" action="{% url 'user_management:role_delete' role.id %}" style="display:inline; margin:0;">
                 {% csrf_token %}
                 <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Удалить должность?')">
@@ -228,37 +225,6 @@ function cancelEditRole(roleId, roleName) {
   if (form) form.remove();
   const nameSpan = document.getElementById('role-name-' + roleId);
   nameSpan.style.display = '';
-}
-
-function manageResponsible(roleId, roleName) {
-  // Заполняем модальное окно
-  document.getElementById('role-name-display').textContent = roleName;
-  document.getElementById('responsible-manage-form').action = `/user_management/roles/${roleId}/responsible/`;
-  
-  // Загружаем пользователей с данной ролью
-  fetch(`/user_management/roles/${roleId}/users/`)
-    .then(response => response.json())
-    .then(data => {
-      const select = document.getElementById('responsible_user');
-      select.innerHTML = '<option value="">— не назначен —</option>';
-      
-      data.users.forEach(user => {
-        const option = document.createElement('option');
-        option.value = user.id;
-        option.textContent = user.full_name;
-        if (user.is_responsible) {
-          option.selected = true;
-        }
-        select.appendChild(option);
-      });
-      
-      // Показываем модальное окно
-      new bootstrap.Modal(document.getElementById('responsibleModal')).show();
-    })
-    .catch(error => {
-      console.error('Ошибка загрузки пользователей:', error);
-      alert('Ошибка загрузки пользователей');
-    });
 }
 
 // Обработчик изменения галочки "Ответственный"
