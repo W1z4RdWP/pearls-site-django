@@ -70,6 +70,35 @@ legend{
 
 .profile-avatar {
     flex-shrink: 0;
+    position: relative;
+}
+
+.dascoin-badge {
+    position: absolute;
+    bottom: -5px;
+    right: -5px;
+    background: linear-gradient(135deg, #ffd700, #ffed4e);
+    border: 2px solid #fff;
+    border-radius: 20px;
+    padding: 5px 10px;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 0.9em;
+    font-weight: bold;
+    color: #b8860b;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+    min-width: 50px;
+    justify-content: center;
+}
+
+.dascoin-badge i {
+    font-size: 0.8em;
+}
+
+.dascoin-badge span {
+    font-size: 0.9em;
+    font-weight: bold;
 }
 
 .profile-main-info {
@@ -255,6 +284,14 @@ legend{
         margin-right: 10px;
     }
     
+    .dascoin-badge {
+        bottom: -4px;
+        right: -4px;
+        padding: 4px 9px;
+        font-size: 0.85em;
+        min-width: 45px;
+    }
+    
     .account-heading {
         font-size: 1.5rem;
         color: var(--primary-text-color);
@@ -344,6 +381,19 @@ legend{
         z-index: 1; /* Убедимся, что .inner ниже текста */
     }
     
+    /* Адаптация для планшетов */
+    .gamification-grid {
+        grid-template-columns: 1fr 1fr;
+        gap: 15px;
+    }
+    
+
+    
+    .badges-grid,
+    .achievements-grid {
+        grid-template-columns: repeat(auto-fit, minmax(75px, 1fr));
+        gap: 12px;
+    }
 }
 
 
@@ -369,6 +419,22 @@ legend{
     margin-right: 0;
     margin-bottom: 8px;
     align-self: center;
+  }
+  
+  .dascoin-badge {
+    bottom: -3px;
+    right: -3px;
+    padding: 3px 8px;
+    font-size: 0.8em;
+    min-width: 40px;
+  }
+  
+  .dascoin-badge i {
+    font-size: 0.7em;
+  }
+  
+  .dascoin-badge span {
+    font-size: 0.8em;
   }
 
   .account-heading {
@@ -437,4 +503,152 @@ legend{
     gap: 8px;
     align-items: flex-start;
   }
+  
+  /* Адаптация для мобильных устройств */
+  .gamification-grid {
+    grid-template-columns: 1fr;
+    gap: 15px;
+  }
+  
+
+  
+  .badges-grid,
+  .achievements-grid {
+    grid-template-columns: repeat(auto-fit, minmax(70px, 1fr));
+    gap: 10px;
+  }
+}
+
+
+
+/* Секция геймификации */
+.gamification-section {
+    margin: 20px 0;
+}
+
+.gamification-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+}
+
+.gamification-card {
+    background: white;
+    border-radius: 12px;
+    padding: 20px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    border: 1px solid #e0e0e0;
+}
+
+.card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+    padding-bottom: 10px;
+    border-bottom: 2px solid #f0f0f0;
+}
+
+.card-header h4 {
+    margin: 0;
+    color: var(--primary-text-color);
+    font-size: 1.1em;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.badge-count {
+    background: #007bff;
+    color: white;
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-size: 0.8em;
+    font-weight: bold;
+}
+
+.card-content {
+    min-height: 120px;
+}
+
+.badges-grid,
+.achievements-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
+    gap: 15px;
+    margin-bottom: 15px;
+}
+
+.badge-item,
+.achievement-item {
+    text-align: center;
+    padding: 10px;
+    border-radius: 8px;
+    background: #f8f9fa;
+    border: 1px solid #e9ecef;
+    transition: transform 0.2s, box-shadow 0.2s;
+    cursor: pointer;
+}
+
+.badge-item:hover,
+.achievement-item:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.badge-icon,
+.achievement-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    margin-bottom: 5px;
+    object-fit: cover;
+}
+
+.badge-name,
+.achievement-name {
+    display: block;
+    font-size: 0.8em;
+    font-weight: 500;
+    color: var(--primary-text-color);
+    margin-bottom: 2px;
+    line-height: 1.2;
+}
+
+.badge-date,
+.achievement-date {
+    display: block;
+    font-size: 0.7em;
+    color: var(--secondary-text-color);
+}
+
+.show-more {
+    text-align: center;
+    margin-top: 10px;
+}
+
+.btn-modern.btn-sm {
+    padding: 6px 12px;
+    font-size: 0.8em;
+}
+
+.empty-state {
+    text-align: center;
+    padding: 20px;
+    color: var(--secondary-text-color);
+}
+
+.empty-state i {
+    margin-bottom: 10px;
+    opacity: 0.5;
+}
+
+.empty-state p {
+    margin: 5px 0;
+    font-weight: 500;
+}
+
+.empty-state small {
+    font-size: 0.8em;
+    opacity: 0.7;
 }

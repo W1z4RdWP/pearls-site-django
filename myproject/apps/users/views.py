@@ -172,6 +172,11 @@ def profile(request: HttpRequest) -> HttpResponse:
         'quiz_results': quiz_results,
         'page_obj': page_obj,
         'all_lessons_completed': all_lessons_completed,
+        'dascoin_points': profile.dascoin_points,
+        'recent_badges': profile.get_recent_badges(),
+        'recent_achievements': profile.get_recent_achievements(),
+        'total_badges': profile.get_badges().count(),
+        'total_achievements': profile.get_achievements().count(),
     })
 
 

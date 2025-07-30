@@ -103,12 +103,57 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
+    // --- Геймификация: Обработка бейджей и достижений ---
+    const showAllBadgesBtn = document.getElementById('show-all-badges');
+    const showAllAchievementsBtn = document.getElementById('show-all-achievements');
+    
+    if (showAllBadgesBtn) {
+        showAllBadgesBtn.addEventListener('click', () => {
+            // Здесь можно добавить модальное окно или переход на страницу всех бейджей
+            alert('Функция показа всех бейджей будет добавлена позже');
+        });
+    }
+    
+    if (showAllAchievementsBtn) {
+        showAllAchievementsBtn.addEventListener('click', () => {
+            // Здесь можно добавить модальное окно или переход на страницу всех достижений
+            alert('Функция показа всех достижений будет добавлена позже');
+        });
+    }
+    
+    // Анимация для бейджей и достижений
+    const badgeItems = document.querySelectorAll('.badge-item, .achievement-item');
+    badgeItems.forEach(item => {
+        item.addEventListener('mouseenter', () => {
+            item.style.transform = 'translateY(-3px) scale(1.05)';
+        });
+        
+        item.addEventListener('mouseleave', () => {
+            item.style.transform = 'translateY(0) scale(1)';
+        });
+    });
+    
+    // Анимация для бейджа DASCOIN
+    const dascoinBadge = document.querySelector('.dascoin-badge');
+    if (dascoinBadge) {
+        dascoinBadge.addEventListener('mouseenter', () => {
+            dascoinBadge.style.transform = 'scale(1.1)';
+            dascoinBadge.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.3)';
+        });
+        
+        dascoinBadge.addEventListener('mouseleave', () => {
+            dascoinBadge.style.transform = 'scale(1)';
+            dascoinBadge.style.boxShadow = '0 2px 8px rgba(0, 0, 0, 0.2)';
+        });
+    }
+
     // --- Переключение режимов редактирования профиля ---
     const editProfileBtn = document.getElementById('edit-profile-btn');
     const cancelEditBtn = document.getElementById('cancel-edit-btn');
     const editProfileForm = document.getElementById('edit-profile-form');
     const progressBar = document.querySelector('.progress-bar-user');
     const trajectoriesBtn = document.getElementById('trajectories-btn');
+    const gamificationSection = document.getElementById('gamification-section');
 
     if (editProfileBtn && cancelEditBtn) {
         editProfileBtn.addEventListener('click', function() {
@@ -118,6 +163,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (toggleQuizzesBtn) toggleQuizzesBtn.style.display = 'none';
             if (progressBar) progressBar.style.display = 'none';
             if (trajectoriesBtn) trajectoriesBtn.style.display = 'none';
+            if (gamificationSection) gamificationSection.style.display = 'none';
         });
 
         cancelEditBtn.addEventListener('click', function(event) {
@@ -128,6 +174,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (toggleQuizzesBtn) toggleQuizzesBtn.style.display = 'block';
             if (progressBar) progressBar.style.display = 'block';
             if (trajectoriesBtn) trajectoriesBtn.style.display = 'block';
+            if (gamificationSection) gamificationSection.style.display = 'block';
         });
     }
 });

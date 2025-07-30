@@ -74,6 +74,7 @@ class Profile(models.Model):
     image = models.ImageField(default='profile_pics/default.jpg', upload_to='profile_pics')
     bio = models.TextField(max_length=500, blank=True, null=True, verbose_name="О себе")
     is_approved = models.BooleanField(default=False, verbose_name="Подвтерждение администратором")
+    dascoin_points = models.PositiveIntegerField(default=0, verbose_name="Баллы DASCOIN")
 
     class Meta:
         verbose_name = 'Пользователь'
@@ -117,6 +118,35 @@ class Profile(models.Model):
         Проверяет, является ли пользователь ответственным за свою должность.
         """
         return self.role and self.role.responsible_user == self.user
+    
+    def add_dascoin_points(self, points: int) -> None:
+        """
+        Добавляет баллы DASCOIN пользователю.
+        
+        Args:
+            points (int): Количество баллов для добавления
+        """
+        self.dascoin_points += points
+        self.save()
+    
+    def get_badges(self):
+        """Возвращает все бейджи пользователя"""
+        from gamification.models import UserBadge
+        return UserBadge.objects.filter(user=self.user).select_related('badge')
+    
+    def get_achievements(self):
+        """Возвращает все достижения пользователя"""
+        from gamification.models import UserAchievement
+        return UserAchievement.objects.filter(user=self.user).select_related('achievement')
+    
+    def get_recent_badges(self, limit=3):
+        """Возвращает последние полученные бейджи"""
+        return self.get_badges()[:limit]
+    
+    def get_recent_achievements(self, limit=3):
+        """Возвращает последние полученные достижения"""
+        return self.get_achievements()[:limit]
+
 
 @receiver(post_save, sender=User)
 def create_profile(sender: Any, instance: User, created: bool, **kwargs: Any) -> None:
