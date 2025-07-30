@@ -19,7 +19,7 @@
                         <small class="text-muted">
                             Дата: {{ result.completed_at|date:"d.m.Y H:i" }}
                         </small>
-                        <form action="{% url 'quiz_report' result.id %}" method="get">
+                        <form action="{% url 'users:quiz_report' result.id %}" method="get">
                             {% comment %} {% csrf_token %} {% endcomment %}
                             <button class="btn-outline-info p-2" type="submit">Отчёт</button>
                         </form>

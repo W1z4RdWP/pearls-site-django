@@ -5,7 +5,7 @@
 {% block content %}
 {% load static %}
     <link rel="stylesheet" href="{% static 'users/css/profile.css' %}">
-    <script src="{% static 'users/js/scripts.js' %}" defer></script>
+    <script src="{% static 'users/js/profile_scripts.js' %}" defer></script>
     <div class="content-section">
         <div class="profile-header">
             <div class="profile-avatar">
@@ -93,7 +93,7 @@
                                 </div>
                                 {% endfor %}
                             </div>
-                            {% if total_badges > 3 %}
+                            {% if total_badges > 0 %}
                                 <div class="show-more">
                                     <button class="btn-modern btn-sm" id="show-all-badges">
                                         <i class="fa fa-eye"></i> Показать все ({{ total_badges }})
@@ -127,7 +127,7 @@
                                 </div>
                                 {% endfor %}
                             </div>
-                            {% if total_achievements > 3 %}
+                            {% if total_achievements > 0 %}
                                 <div class="show-more">
                                     <button class="btn-modern btn-sm" id="show-all-achievements">
                                         <i class="fa fa-eye"></i> Показать все ({{ total_achievements }})
@@ -159,7 +159,7 @@
                 <div class="form-group">
                     <button class="btn btn-outline-info" type="submit" id="update-profile_info-btn">Обновить</button>
                     <button class="btn btn-outline-secondary" id="cancel-edit-btn">Отмена</button>
-                    <a href="{% url 'password_change' %}" class="btn btn-outline-warning" id="change-password-btn" style="margin-left: 10px; color: #2dabc4; border: 1px solid #2dabc4;">
+                    <a href="{% url 'users:password_change' %}" class="btn btn-outline-warning" id="change-password-btn" style="margin-left: 10px; color: #2dabc4; border: 1px solid #2dabc4;">
                         <i class="fa fa-key"></i> Сменить пароль
                     </a>
                 </div>

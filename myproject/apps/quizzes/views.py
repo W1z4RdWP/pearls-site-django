@@ -225,7 +225,7 @@ def get_answer(request) -> HttpResponse:
 
 def get_finish(request) -> HttpResponse:
     if not request.user.is_authenticated:
-        return redirect('login')
+        return redirect('users:login')
 
     quiz_id = request.session.get('quiz_id')
     if not quiz_id:

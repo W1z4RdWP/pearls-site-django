@@ -93,7 +93,7 @@ class CourseDetailView(DetailView):
         user = request.user
         
         if not user.is_authenticated:
-            return redirect('login')
+            return redirect('users:login')
         
         # Получаем или создаем запись курса
         user_course, created = UserCourse.objects.get_or_create(
@@ -315,7 +315,7 @@ class CourseListView(ListView):
 
 def lesson_detail(request, course_slug, lesson_id):
     if not request.user.is_authenticated:
-        return redirect('login')
+        return redirect('users:login')
 
     course = get_object_or_404(Course, slug=course_slug)
     lesson = get_object_or_404(Lesson, id=lesson_id, course=course)
@@ -595,7 +595,7 @@ def redir_to_quiz(request, course_slug):
             request.session['course_slug'] = course.slug
             return redirect('quizzes:quiz_start', quiz_id=course.final_quiz.id)
         else:
-            return redirect('profile')
+            return redirect('users:profile')
 
     # GET-запрос - показываем страницу с подтверждением
     return render(request, 'courses/redir_to_quiz.html', {'course': course})
@@ -604,7 +604,7 @@ def redir_to_quiz(request, course_slug):
 def complete_lesson(request, course_slug, lesson_id):
     """Отмечает урок как завершенный и начисляет пользователю опыт"""
     if not request.user.is_authenticated:
-        return redirect('login')
+        return redirect('users:login')
     
     course = get_object_or_404(Course, slug=course_slug)
     lesson = get_object_or_404(Lesson, id=lesson_id, course=course)

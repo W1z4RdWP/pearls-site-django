@@ -18,6 +18,7 @@ from django.urls import reverse_lazy
 from myapp.models import UserCourse, UserProgress, QuizResult, UserAnswer
 from quizzes.models import Answer
 from courses.models import UserLessonTrajectory
+from gamification.models import Badge, Achievement
 from .forms import UserRegisterForm, UserUpdateForm, ProfileUpdateForm
 from .models import Profile
  
@@ -147,7 +148,7 @@ def profile(request: HttpRequest) -> HttpResponse:
         if user_form.is_valid() and profile_form.is_valid():
             user_form.save()
             profile_form.save()
-            return redirect('profile')
+            return redirect('users:profile')
     else:
         user_form = UserUpdateForm(instance=request.user)
         profile_form = ProfileUpdateForm(instance=profile)
@@ -178,6 +179,46 @@ def profile(request: HttpRequest) -> HttpResponse:
         'total_badges': profile.get_badges().count(),
         'total_achievements': profile.get_achievements().count(),
     })
+
+
+@login_required
+def all_badges(request: HttpRequest) -> HttpResponse:
+    """Отображает все бейджи пользователя"""
+    user = request.user
+    profile = user.profile
+    
+    user_badges = profile.get_badges()
+    total_badges = user_badges.count()
+    all_badges_count = Badge.objects.filter(is_active=True).count()
+    progress_percent = int((total_badges / all_badges_count * 100)) if all_badges_count > 0 else 0
+    
+    context = {
+        'user_badges': user_badges,
+        'total_badges': all_badges_count,
+        'progress_percent': progress_percent,
+    }
+    
+    return render(request, 'users/includes/_all_badges.html', context)
+
+
+@login_required
+def all_achievements(request: HttpRequest) -> HttpResponse:
+    """Отображает все достижения пользователя"""
+    user = request.user
+    profile = user.profile
+    
+    user_achievements = profile.get_achievements()
+    total_achievements = user_achievements.count()
+    all_achievements_count = Achievement.objects.filter(is_active=True).count()
+    progress_percent = int((total_achievements / all_achievements_count * 100)) if all_achievements_count > 0 else 0
+    
+    context = {
+        'user_achievements': user_achievements,
+        'total_achievements': all_achievements_count,
+        'progress_percent': progress_percent,
+    }
+    
+    return render(request, 'users/includes/_all_achievements.html', context)
 
 
 @login_required
@@ -215,7 +256,7 @@ class CustomLoginView(LoginView):
 
     def dispatch(self, request, *args, **kwargs):
         if request.user.is_authenticated:
-            return redirect('profile')
+            return redirect('users:profile')
         return super().dispatch(request, *args, **kwargs)
 
     def form_valid(self, form):
@@ -235,7 +276,7 @@ class CustomLoginView(LoginView):
                 }
             )
             messages.error(self.request, "Ваш аккаунт ожидает подтверждения администратором.")
-            return redirect('login')
+            return redirect('users:login')
         audit_logger.info(
             'Вошёл в систему', 
             extra={

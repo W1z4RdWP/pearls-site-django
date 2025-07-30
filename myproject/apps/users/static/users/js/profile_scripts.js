@@ -4,7 +4,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const unfinishedBlock = document.getElementById('unfinished-courses');
     const finishedBlock = document.getElementById('finished-courses');
 
-    if (toggleCoursesBtn) {
+    if (toggleCoursesBtn && unfinishedBlock && finishedBlock) {
         toggleCoursesBtn.addEventListener('click', () => {
             const isFinishedVisible = finishedBlock.style.display === 'block';
             finishedBlock.style.display = isFinishedVisible ? 'none' : 'block';
@@ -103,21 +103,116 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
+    // --- Переключение режимов редактирования профиля ---
+    const editProfileBtn = document.getElementById('edit-profile-btn');
+    const cancelEditBtn = document.getElementById('cancel-edit-btn');
+    const editProfileForm = document.getElementById('edit-profile-form');
+    const progressBar = document.querySelector('.progress-bar-user');
+    const trajectoriesBtn = document.getElementById('trajectories-btn');
+    const gamificationSection = document.getElementById('gamification-section');
+
+    if (editProfileBtn && cancelEditBtn && editProfileForm) {
+        editProfileBtn.addEventListener('click', function() {
+            editProfileForm.style.display = 'block';
+            editProfileBtn.style.display = 'none';
+            if (toggleCoursesBtn) toggleCoursesBtn.style.display = 'none';
+            if (toggleQuizzesBtn) toggleQuizzesBtn.style.display = 'none';
+            if (progressBar) progressBar.style.display = 'none';
+            if (trajectoriesBtn) trajectoriesBtn.style.display = 'none';
+            if (gamificationSection) gamificationSection.style.display = 'none';
+        });
+
+        cancelEditBtn.addEventListener('click', function(event) {
+            event.preventDefault();
+            editProfileForm.style.display = 'none';
+            editProfileBtn.style.display = 'block';
+            if (toggleCoursesBtn) toggleCoursesBtn.style.display = 'block';
+            if (toggleQuizzesBtn) toggleQuizzesBtn.style.display = 'block';
+            if (progressBar) progressBar.style.display = 'block';
+            if (trajectoriesBtn) trajectoriesBtn.style.display = 'block';
+            if (gamificationSection) gamificationSection.style.display = 'block';
+        });
+    }
+
     // --- Геймификация: Обработка бейджей и достижений ---
     const showAllBadgesBtn = document.getElementById('show-all-badges');
     const showAllAchievementsBtn = document.getElementById('show-all-achievements');
     
     if (showAllBadgesBtn) {
-        showAllBadgesBtn.addEventListener('click', () => {
-            // Здесь можно добавить модальное окно или переход на страницу всех бейджей
-            alert('Функция показа всех бейджей будет добавлена позже');
+        showAllBadgesBtn.addEventListener('click', async () => {
+            try {
+                const response = await fetch('/users/profile/all-badges/', {
+                    headers: {'X-Requested-With': 'XMLHttpRequest'}
+                });
+                const html = await response.text();
+                
+                // Создаем модальное окно
+                const modal = document.createElement('div');
+                modal.className = 'modal-overlay';
+                modal.innerHTML = `
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h3>Все бейджи</h3>
+                            <button class="modal-close">&times;</button>
+                        </div>
+                        <div class="modal-body">
+                            ${html}
+                        </div>
+                    </div>
+                `;
+                
+                document.body.appendChild(modal);
+                
+                // Обработчик закрытия
+                modal.addEventListener('click', (e) => {
+                    if (e.target === modal || e.target.classList.contains('modal-close')) {
+                        document.body.removeChild(modal);
+                    }
+                });
+                
+            } catch (error) {
+                console.error('Ошибка загрузки бейджей:', error);
+                alert('Ошибка загрузки бейджей. Попробуйте позже.');
+            }
         });
     }
     
     if (showAllAchievementsBtn) {
-        showAllAchievementsBtn.addEventListener('click', () => {
-            // Здесь можно добавить модальное окно или переход на страницу всех достижений
-            alert('Функция показа всех достижений будет добавлена позже');
+        showAllAchievementsBtn.addEventListener('click', async () => {
+            try {
+                const response = await fetch('/users/profile/all-achievements/', {
+                    headers: {'X-Requested-With': 'XMLHttpRequest'}
+                });
+                const html = await response.text();
+                
+                // Создаем модальное окно
+                const modal = document.createElement('div');
+                modal.className = 'modal-overlay';
+                modal.innerHTML = `
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h3>Все достижения</h3>
+                            <button class="modal-close">&times;</button>
+                        </div>
+                        <div class="modal-body">
+                            ${html}
+                        </div>
+                    </div>
+                `;
+                
+                document.body.appendChild(modal);
+                
+                // Обработчик закрытия
+                modal.addEventListener('click', (e) => {
+                    if (e.target === modal || e.target.classList.contains('modal-close')) {
+                        document.body.removeChild(modal);
+                    }
+                });
+                
+            } catch (error) {
+                console.error('Ошибка загрузки достижений:', error);
+                alert('Ошибка загрузки достижений. Попробуйте позже.');
+            }
         });
     }
     
@@ -144,37 +239,6 @@ document.addEventListener('DOMContentLoaded', () => {
         dascoinBadge.addEventListener('mouseleave', () => {
             dascoinBadge.style.transform = 'scale(1)';
             dascoinBadge.style.boxShadow = '0 2px 8px rgba(0, 0, 0, 0.2)';
-        });
-    }
-
-    // --- Переключение режимов редактирования профиля ---
-    const editProfileBtn = document.getElementById('edit-profile-btn');
-    const cancelEditBtn = document.getElementById('cancel-edit-btn');
-    const editProfileForm = document.getElementById('edit-profile-form');
-    const progressBar = document.querySelector('.progress-bar-user');
-    const trajectoriesBtn = document.getElementById('trajectories-btn');
-    const gamificationSection = document.getElementById('gamification-section');
-
-    if (editProfileBtn && cancelEditBtn) {
-        editProfileBtn.addEventListener('click', function() {
-            editProfileForm.style.display = 'block';
-            editProfileBtn.style.display = 'none';
-            if (toggleCoursesBtn) toggleCoursesBtn.style.display = 'none';
-            if (toggleQuizzesBtn) toggleQuizzesBtn.style.display = 'none';
-            if (progressBar) progressBar.style.display = 'none';
-            if (trajectoriesBtn) trajectoriesBtn.style.display = 'none';
-            if (gamificationSection) gamificationSection.style.display = 'none';
-        });
-
-        cancelEditBtn.addEventListener('click', function(event) {
-            event.preventDefault();
-            editProfileForm.style.display = 'none';
-            editProfileBtn.style.display = 'block';
-            if (toggleCoursesBtn) toggleCoursesBtn.style.display = 'block';
-            if (toggleQuizzesBtn) toggleQuizzesBtn.style.display = 'block';
-            if (progressBar) progressBar.style.display = 'block';
-            if (trajectoriesBtn) trajectoriesBtn.style.display = 'block';
-            if (gamificationSection) gamificationSection.style.display = 'block';
         });
     }
 });
@@ -220,68 +284,3 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 });
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-// // --- Переключение между курсами --- old
-// const toggleCoursesBtn = document.getElementById('toggle-courses-btn');
-// const unfinishedBlock = document.getElementById('unfinished-courses');
-// const finishedBlock = document.getElementById('finished-courses');
-
-// toggleCoursesBtn.addEventListener('click', () => {
-//     const isFinishedVisible = finishedBlock.style.display === 'block';
-//     finishedBlock.style.display = isFinishedVisible ? 'none' : 'block';
-//     unfinishedBlock.style.display = isFinishedVisible ? 'block' : 'none';
-//     toggleCoursesBtn.textContent = isFinishedVisible 
-//         ? 'Показать завершенные курсы' 
-//         : 'Показать незавершенные курсы';
-// });
-
-// // --- Переключение между тестами и их отображением ---
-// const toggleQuizzesBtn = document.getElementById('toggle-quizzes-btn');
-// // Найдём нужный блок с тестами (вторая .container.mt-4)
-// const containers = document.querySelectorAll('.container.mt-4');
-// const quizzesSection = containers[1]; // второй блок - история тестов
-
-// // По умолчанию скрываем блок с тестами
-// quizzesSection.style.display = 'none';
-// toggleQuizzesBtn.textContent = 'Показать тесты';
-
-// toggleQuizzesBtn.addEventListener('click', () => {
-//     const isVisible = quizzesSection.style.display === 'block';
-//     quizzesSection.style.display = isVisible ? 'none' : 'block';
-//     toggleQuizzesBtn.textContent = isVisible ? 'Показать тесты' : 'Скрыть тесты';
-// });
-
-// // --- Переключение режимов редактирования профиля ---
-// const editProfileBtn = document.getElementById('edit-profile-btn');
-// const cancelEditBtn = document.getElementById('cancel-edit-btn');
-// const editProfileForm = document.getElementById('edit-profile-form');
-// const progressBar = document.querySelector('.progress-bar-user');
-
-// editProfileBtn.addEventListener('click', function() {
-//     editProfileForm.style.display = 'block';
-//     editProfileBtn.style.display = 'none';
-//     toggleCoursesBtn.style.display = 'none';
-//     toggleQuizzesBtn.style.display = 'none';
-//     progressBar.style.display = 'none';
-// });
-
-// cancelEditBtn.addEventListener('click', function(event) {
-//     event.preventDefault();
-//     editProfileForm.style.display = 'none';
-//     editProfileBtn.style.display = 'block';
-//     toggleCoursesBtn.style.display = 'block';
-//     toggleQuizzesBtn.style.display = 'block';
-//     progressBar.style.display = 'block';
-// });

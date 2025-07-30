@@ -42,7 +42,7 @@ class RegisterViewTest(TestCase):
     def setUp(self):
         """Создаёт клиент и определяет url регистрации."""
         self.client = Client()
-        self.url = reverse('register')
+        self.url = reverse('users:register')
 
     def test_register_get(self):
         """GET-запрос возвращает страницу регистрации."""
@@ -79,7 +79,7 @@ class CustomLoginViewTest(TestCase):
     def setUp(self):
         """Создаёт пользователя и url логина."""
         self.client = Client()
-        self.url = reverse('login')
+        self.url = reverse('users:login')
         self.user = User.objects.create_user(username='loginuser', password='pass')
         self.profile = self.user.profile
 
@@ -123,7 +123,7 @@ class ProfileViewTest(TestCase):
         self.user = User.objects.create_user(username='profileuser', password='pass', email='profile@example.com')
         self.user.profile.is_approved = True
         self.user.profile.save()
-        self.url = reverse('profile')
+        self.url = reverse('users:profile')
 
     def test_profile_requires_login(self):
         """Неавторизованный пользователь не может просматривать профиль."""
