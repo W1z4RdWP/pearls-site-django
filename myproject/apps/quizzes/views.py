@@ -10,7 +10,7 @@ from myapp.models import QuizResult, UserCourse, UserAnswer
 from courses.models import Course  # Добавлен импорт модели Course
 from .models import Quiz, Question, Answer
 from .utils import DataMixin
-
+from gamification.utils import award_dascoin_points, award_achievement, award_course_badge
 from typing import Optional
 import logging
 
@@ -27,7 +27,7 @@ class StartQuizView(LoginRequiredMixin, UserPassesTestMixin, DataMixin, Template
      - get_context_data() - в шаблон передается переменная topics, которая возвращает количество вопросов в каждом тесте
     """
     template_name = 'quizzes/start.html'
-    login_url = '/login/'  # URL для перенаправления неавторизованных пользователей
+    login_url = 'users:login'  # URL для перенаправления неавторизованных пользователей
     permission_denied_message = "Доступ разрешен только администраторам сайта"
 
     
@@ -290,17 +290,37 @@ def get_finish(request) -> HttpResponse:
     # --------------------------------------------
 
     # Обработка привязки к курсу
+    course = None
     if hasattr(quiz, 'course') and quiz.course:
         course = quiz.course
-        if passed:
-            UserCourse.objects.filter(
-                user=request.user, 
-                course=course
-            ).update(is_completed=True)
+    else:
+        # Проверяем, является ли этот тест финальным для какого-то курса
+        course = Course.objects.filter(final_quiz=quiz).first()
+    
+    if course and passed:
+        user_course = UserCourse.objects.filter(user=request.user, course=course).first()
+        if user_course:
+            # Начисляем очки за тест (10 баллов согласно таблице)
+            award_dascoin_points(request.user, 10, f"Прохождение теста {quiz.name}")
+            
+            # Завершаем курс и начисляем очки за курс
+            if user_course.status != 'completed':
+                user_course.status = 'completed'
+                user_course.save()
+                award_dascoin_points(request.user, course.points, f"Завершение курса {course.title}")
+                award_course_badge(request.user, course)
+            
+            if percent_score == 100:
+                award_achievement(request.user, 'perfect_score', 'Идеальный результат', 'Получили 100% за прохождение теста')
             return redirect('courses:course_detail', slug=course.slug)
-        else:
-            messages.error(request, "Тест не пройден. Попробуйте снова!")
-            return redirect('quizzes:quiz_start', quiz_id=quiz.id)
+    elif course and not passed:
+        messages.error(request, "Тест не пройден. Попробуйте снова!")
+        return redirect('quizzes:quiz_start', quiz_id=quiz.id)
+    elif passed:
+        # Если тест не привязан к курсу, но пройден - начисляем очки
+        award_dascoin_points(request.user, 10, f"Прохождение теста {quiz.name}")
+        if percent_score == 100:
+            award_achievement(request.user, 'perfect_score', 'Идеальный результат', 'Получили 100% за прохождение теста')
 
     context = {
         'score': score,

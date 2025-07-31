@@ -15,6 +15,8 @@ import logging
 from builder.models import CategoryName
 from django.contrib.auth import get_user_model
 from django.utils.decorators import method_decorator
+from gamification.utils import award_dascoin_points, award_course_badge
+
 
 logger = logging.getLogger(__name__)
 audit_logger = logging.getLogger('audit')
@@ -217,10 +219,16 @@ class CourseDetailView(DetailView):
                         if quiz_passed:
                             user_course.status = 'completed'
                             user_course.save()
+                            # Начисляем очки за завершение курса
+                            award_dascoin_points(user, course.points, f"Завершение курса {course.title}")
+                            award_course_badge(user, course)
                     else:
                         # Если теста нет - завершаем автоматически
                         user_course.status = 'completed'
                         user_course.save()
+                        # Начисляем очки за завершение курса
+                        award_dascoin_points(user, course.points, f"Завершение курса {course.title}")
+                        award_course_badge(user, course)
 
                 # Проверка для отображения финального теста
                 if course.final_quiz:
@@ -608,20 +616,32 @@ def complete_lesson(request, course_slug, lesson_id):
     
     course = get_object_or_404(Course, slug=course_slug)
     lesson = get_object_or_404(Lesson, id=lesson_id, course=course)
+    user = request.user
     
-    if not UserCourse.objects.filter(user=request.user, course=course).exists():
+    if not UserCourse.objects.filter(user=user, course=course).exists():
         return redirect('courses:course_detail', slug=course.slug)
     
     # Получаем траекторию пользователя
-    trajectory = UserLessonTrajectory.objects.filter(user=request.user, course=course).first()
+    trajectory = UserLessonTrajectory.objects.filter(user=user, course=course).first()
     
     # Проверяем, что урок входит в траекторию пользователя (если траектория задана)
     if trajectory and lesson not in trajectory.lessons.all():
         return redirect('courses:course_detail', slug=course.slug)
 
+    # Проверяем, был ли урок уже завершен ранее
+    progress, created = UserProgress.objects.get_or_create(
+        user=user,
+        lesson=lesson,
+        defaults={'completed': False, 'course': course}
+    )
+    
+    # Начисляем очки только если урок завершается впервые
+    if not progress.completed:
+        award_dascoin_points(user, lesson.points)
+    
     # Создаем или обновляем прогресс
     UserProgress.objects.update_or_create(
-        user=request.user,
+        user=user,
         lesson=lesson,
         defaults={'completed': True, 'course': course}
     )
@@ -636,7 +656,7 @@ def complete_lesson(request, course_slug, lesson_id):
 
     # Считаем ТОЛЬКО уроки из траектории
     completed_lessons = UserProgress.objects.filter(
-        user=request.user,
+        user=user,
         course=course,
         completed=True,
         lesson_id__in=lesson_ids
@@ -644,7 +664,7 @@ def complete_lesson(request, course_slug, lesson_id):
 
     all_completed = completed_lessons >= total_lessons
 
-    user_course = UserCourse.objects.get(user=request.user, course=course)
+    user_course = UserCourse.objects.get(user=user, course=course)
     
     if all_completed:
         if course.final_quiz:
@@ -652,13 +672,14 @@ def complete_lesson(request, course_slug, lesson_id):
         else:
             user_course.is_completed = True
             user_course.save()
-    
+            award_course_badge(user, course)
     return redirect('courses:course_detail', slug=course.slug)
 
 
 def complete_course(request, course_id):
     course = get_object_or_404(Course, id=course_id)
     user_course = UserCourse.objects.get(user=request.user, course=course)
+    user = request.user
     
     if course.final_quiz:
         quiz_result = QuizResult.objects.filter(
@@ -670,12 +691,16 @@ def complete_course(request, course_id):
         if quiz_result:
             user_course.is_completed = True
             user_course.save()
+            award_dascoin_points(user, course.points) 
+            award_course_badge(user, course)
             return redirect('courses:course_detail', slug=course.slug)
         else:
             return redirect('quizzes:quiz_start', quiz_id=course.final_quiz.id)
     else:
         user_course.is_completed = True
         user_course.save()
+        award_dascoin_points(user, course.points) 
+        award_course_badge(user, course)
         return redirect('courses:course_detail', slug=course.slug)
     
 

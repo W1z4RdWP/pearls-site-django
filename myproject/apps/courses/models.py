@@ -39,6 +39,7 @@ class Course(models.Model):
         verbose_name="Доступен для групп",
         help_text="Группы, которым доступен этот курс"
     )
+    points = models.PositiveIntegerField(default=30, verbose_name="Количество DASCOIN за прохождение курса")
 
     class Meta:
         verbose_name = 'Курс'
@@ -97,6 +98,7 @@ class Lesson(models.Model):
         verbose_name="Категория"
     )
     created_at = models.DateTimeField(auto_now_add=True, verbose_name="Дата создания")
+    points = models.PositiveIntegerField(default=10, verbose_name="Количество DASCOIN за прохождение урока")
 
 
     class Meta:
@@ -161,6 +163,7 @@ class Trajectory(models.Model):
         through='TrajectoryCourse',
         verbose_name="Курсы в траектории"
     )
+    points = models.PositiveIntegerField(default=100, verbose_name="Количество DASCOIN за прохождение траектории")
 
     class Meta:
         verbose_name = 'Траектория курсов'

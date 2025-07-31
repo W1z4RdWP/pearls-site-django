@@ -300,7 +300,7 @@ def filter_categories_and_lessons_for_user(user, categories, uncategorized_lesso
     return filtered_categories, filtered_uncat
 
 
-@method_decorator(login_required(login_url='/login/'), name='dispatch')
+@method_decorator(login_required(login_url='users:login'), name='dispatch')
 class LessonMasterDetailView(TemplateView):
     template_name = 'builder/master_detail.html'
 

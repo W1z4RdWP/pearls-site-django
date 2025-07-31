@@ -3,7 +3,7 @@ from django.db import models
 
 class Quiz(models.Model):
   name = models.CharField(max_length=300)
-
+  points = models.PositiveIntegerField(default=10, verbose_name="Количество DASCOIN за прохождение теста")
   class Meta:
     verbose_name = "Тест" # Как будет отображаться в админ панели
     verbose_name_plural = "Тесты" # Отображаться в множественном числе

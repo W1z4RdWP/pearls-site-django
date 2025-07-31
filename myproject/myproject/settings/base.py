@@ -247,8 +247,8 @@ SESSION_ENGINE = 'qsessions.backends.db'
 SESSION_COOKIE_AGE = 7200 * 12 # Время сессии в секундах (2 часа)
 
 LOGIN_REDIRECT_URL = 'home'
-LOGOUT_REDIRECT_URL = 'login'
-LOGIN_URL = 'login'
+LOGOUT_REDIRECT_URL = 'users:login'
+LOGIN_URL = 'users:login'
 
 CKEDITOR_5_ALLOW_ALL_FILE_TYPES = True
 CKEDITOR_5_UPLOAD_FILE_TYPES = ['jpeg', 'pdf', 'png', 'jpg']
