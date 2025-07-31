@@ -16,7 +16,6 @@ Including another URLconf
 """
 
 from django.contrib import admin
-from django.contrib.auth import views as auth_views
 from django.urls import path, include, re_path
 from django.views.static import serve
 from django.conf import settings
@@ -25,7 +24,6 @@ from django.views.decorators.cache import cache_page
 from debug_toolbar.toolbar import debug_toolbar_urls
 from myapp import views
 from myapp.views import page_not_found_view, PrivacyPolicyView
-from users import views as user_views
 from quizzes.models import Answer
 
 
@@ -33,25 +31,19 @@ urlpatterns = [
     re_path(r'^media/(?P<path>.*)$', serve,{'document_root': settings.MEDIA_ROOT}),
     re_path(r'^static/(?P<path>.*)$', serve,{'document_root': settings.STATIC_ROOT}),
     path('admin/', admin.site.urls),
-    path('register/', user_views.RegisterView.as_view(), name='register'),
     path('', (views.IndexView.as_view()), name='home'),
     path('captcha/', include('captcha.urls')),
     path('about/', views.AboutView.as_view(), name='about'),
-    path('profile/', user_views.profile, name='profile'),
-    path('login/', user_views.CustomLoginView.as_view(), name='login'),
-    path('logout/', auth_views.LogoutView.as_view(template_name='users/logout.html'), name='logout'),
+    path('users/', include('users.urls'), name='users'),
     path('courses/', include('courses.urls'), name='courses'),
     path('quizzes/', include('quizzes.urls'), name='quizzes'),
     path('builder/', include('builder.urls'), name='builder'),
     path('user_management/', include('user_management.urls'), name='user_management'),
-    path('profile/quiz_report/<int:quiz_id>/', user_views.quiz_report, name='quiz_report'),
     path('i18n/', include('django.conf.urls.i18n')),
     path('ckeditor5/', include('django_ckeditor_5.urls')),
     path('changelog/', views.ChangelogListView.as_view(), name='changelog'),
     path('privacy-policy/', PrivacyPolicyView.as_view(), name='privacy_policy'),
     path('error_found/', views.page_not_found_view, {'exception': Answer.MultipleObjectsReturned}, name='error'),
-    path('password_change/', auth_views.PasswordChangeView.as_view(template_name='users/password_change.html'), name='password_change'),
-    path('password_change/done/', auth_views.PasswordChangeDoneView.as_view(template_name='users/password_change_done.html'), name='password_change_done'),
 ]
 
 handler404 = 'myapp.views.page_not_found_view'

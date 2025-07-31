@@ -1,0 +1,1005 @@
+/* static/css/profile.css */
+:root{
+    --secondary-text-color: #6c757d;
+    --primary-text-color: #333;
+}
+
+
+.content-section {
+    background: #dad7d7;
+    padding: 20px;
+    border: 1px solid #dddddd;
+    border-radius: 8px;
+    margin-top: 20px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.media {
+    display: flex;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+
+.media-body__user-groups {
+    color: var(--secondary-text-color);
+}
+
+.rounded-circle.account-img {
+    width: 100px;
+    height: 100px;
+    border: 3px solid #007bff;
+    margin-right: 20px;
+}
+
+.account-heading {
+    font-size: 2rem;
+    color: var(--primary-text-color);
+}
+
+.text-secondary {
+    color: #6c757d;
+}
+
+.form-group {
+    margin-bottom: 15px;
+}
+
+legend{
+    color: var(--primary-text-color);
+}
+
+.btn-outline-info {
+    color: #007bff;
+    border-color: #007bff;
+}
+
+.btn-outline-info:hover {
+    background-color: #007bff;
+    color: #fff;
+}
+
+
+.profile-header {
+    display: flex;
+    align-items: flex-start;
+    gap: 28px;
+    margin-bottom: 18px;
+    position: relative;
+}
+
+.profile-avatar {
+    flex-shrink: 0;
+    position: relative;
+}
+
+.dascoin-badge {
+    position: absolute;
+    bottom: -5px;
+    right: -5px;
+    background: linear-gradient(135deg, #ffd700, #ffed4e);
+    border: 2px solid #fff;
+    border-radius: 20px;
+    padding: 5px 10px;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 0.9em;
+    font-weight: bold;
+    color: #b8860b;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+    min-width: 50px;
+    justify-content: center;
+}
+
+.dascoin-badge i {
+    font-size: 0.8em;
+}
+
+.dascoin-badge span {
+    font-size: 0.9em;
+    font-weight: bold;
+}
+
+.profile-main-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.profile-top-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 16px;
+}
+
+.account-heading {
+    font-size: 2rem;
+    color: var(--primary-text-color);
+    margin-bottom: 2px;
+}
+
+.profile-registered {
+    font-size: 1em;
+    color: #fff;
+    background: #4e8cff;
+    padding: 4px 12px;
+    border-radius: 12px;
+    font-weight: 600;
+    align-self: flex-start;
+    margin-left: 12px;
+}
+
+.profile-details {
+    margin-top: 8px;
+}
+
+.profile-fields {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 18px 32px;
+    margin: 8px 0 6px 0;
+}
+.profile-fields span {
+    font-size: 1em;
+    color: #444;
+    background: #f3f6fa;
+    border-radius: 8px;
+    padding: 3px 10px;
+    margin-bottom: 2px;
+    display: inline-block;
+}
+
+.btn-modern {
+    background: linear-gradient(90deg, #4e8cff 0%, #38b6ff 100%);
+    color: #fff;
+    border: none;
+    border-radius: 22px;
+    padding: 10px 24px;
+    margin-right: 12px;
+    margin-bottom: 8px;
+    font-size: 1.1em;
+    font-weight: 500;
+    cursor: pointer;
+    box-shadow: 0 2px 8px rgba(78,140,255,0.08);
+    transition: background 0.2s, box-shadow 0.2s;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+.btn-modern:hover {
+    background: linear-gradient(90deg, #38b6ff 0%, #4e8cff 100%);
+    box-shadow: 0 4px 16px rgba(78,140,255,0.14);
+    color: #fff;
+}
+
+
+.profile-actions{
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+}
+
+#check-finished-courses-btn{
+    margin-bottom: 20px;
+}
+
+#edit-profile-btn {
+    margin-bottom: 20px;
+}
+
+#cancel-edit-btn {
+    margin-left: 10px;
+}
+
+.progress-bar {
+    transition: width 0.5s ease-in-out;
+    background-color: #4CAF50;
+}
+
+.progress {
+    height: 25px;
+    border-radius: 12px;
+    overflow: visible;
+}
+
+.progress-bar-user {
+    place-self: center;
+    height: 5vh;
+    width: 90%;
+    border: 2px solid var(--primary-text-color);
+    margin-top: 1vh; 
+    
+    position: relative; /* Делаем контейнер относительным для позиционирования текста */
+}
+
+.progress-bar-user h3 {
+    position: absolute; /* Абсолютное позиционирование текста */
+    top: 50%; /* Размещаем текст по центру по вертикали */
+    left: 10px; /* Отступ слева */
+    transform: translateY(-50%); /* Смещаем текст вверх на половину его высоты */
+    margin: 0; /* Убираем отступы */
+    z-index: 2; /* Убедимся, что текст поверх .inner */
+    color: var(--primary-text-color); /* Цвет текста */
+}
+
+.progress-bar-user .inner {
+    height: 100%;
+    background-color: #4CAF50;
+    position: relative; /* Относительное позиционирование */
+    z-index: 1; /* Убедимся, что .inner ниже текста */
+}
+
+/* Блок с кнопками "Перейти к курсу" и "Курс завершен" */
+.btn-group {
+    display: flex;
+    width: 100%;
+    /* background-color: red; */
+    justify-content: space-between;
+    gap: 25%;
+}
+
+.quiz-status{
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    /* border: 1px solid gray; */
+    margin-bottom: 0.5%;
+
+}
+
+
+.quiz-status span{ /* Выравнивание текста "Требуется тест" по центру внутри своего контейнера */
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+.quiz_history-bottom_info{
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+@media (max-width: 768px){
+    .content-section {
+        background: #dad7d7;
+        padding: 10px;
+        border: 1px solid #dddddd;
+        border-radius: 8px;
+        margin-top: 10px;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    }
+    
+    .media {
+        display: flex;
+        align-items: center;
+        margin-bottom: 10px;
+    }
+    
+    .rounded-circle.account-img {
+        width: 70px;
+        height: 70px;
+        border: 2px solid #007bff;
+        margin-right: 10px;
+    }
+    
+    .dascoin-badge {
+        bottom: -4px;
+        right: -4px;
+        padding: 4px 9px;
+        font-size: 0.85em;
+        min-width: 45px;
+    }
+    
+    .account-heading {
+        font-size: 1.5rem;
+        color: var(--primary-text-color);
+    }
+    
+    
+    .form-group {
+        margin-bottom: 8px;
+    }
+    
+    
+    
+    .profile-actions{
+        display: flex;
+        flex-direction: row;
+        justify-content: space-between;
+        gap: 10%;
+    }
+
+    .profile-header {
+        flex-direction: column;
+        gap: 14px;
+        align-items: center;
+    }
+    .profile-top-row {
+        flex-direction: column;
+        align-items: center;
+        gap: 6px;
+    }
+    .profile-fields {
+        flex-direction: column;
+        gap: 6px;
+        align-items: flex-start;
+    }
+    
+
+
+    #toggle-courses-btn{
+        overflow: hidden;
+        font-size: 0.8em;
+        margin-bottom: 10px;
+        height: 50px;
+    }
+    
+    #edit-profile-btn {
+        font-size: 0.8em;
+        margin-bottom: 10px;
+        height: 50px;
+    }
+    
+    #cancel-edit-btn {
+        margin-left: 5px;
+    }
+    
+    
+    .progress {
+        height: 20px;
+        border-radius: 10px;
+        overflow: visible;
+    }
+    
+    .progress-bar-user {
+        place-self: center;
+        height: 5vh;
+        width: 90%;
+        border: 2px solid #333;
+        margin-top: 1vh;
+        
+        position: relative; /* Делаем контейнер относительным для позиционирования текста */
+    }
+    
+    .progress-bar-user h3 {
+        position: absolute; /* Абсолютное позиционирование текста */
+        font-size: 1em; 
+        top: 50%; /* Размещаем текст по центру по вертикали */
+        left: 10px; /* Отступ слева */
+        transform: translateY(-50%); /* Смещаем текст вверх на половину его высоты */
+        margin: 0; /* Убираем отступы */
+        z-index: 2; /* Убедимся, что текст поверх .inner */
+        color: #333; /* Цвет текста */
+    }
+    
+    .progress-bar-user .inner {
+        height: 100%;
+        background-color: #4CAF50;
+        position: relative; /* Относительное позиционирование */
+        z-index: 1; /* Убедимся, что .inner ниже текста */
+    }
+    
+    /* Адаптация для планшетов */
+    .gamification-grid {
+        grid-template-columns: 1fr 1fr;
+        gap: 15px;
+    }
+    
+
+    
+    .badges-grid,
+    .achievements-grid {
+        grid-template-columns: repeat(auto-fit, minmax(75px, 1fr));
+        gap: 12px;
+    }
+}
+
+
+@media (max-width: 512px) {
+  .content-section {
+    padding: 10px 5px;
+    margin-top: 10px;
+    border-radius: 6px;
+    font-size: 0.98em;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.08);
+  }
+
+  .media {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+    margin-bottom: 14px;
+  }
+
+  .rounded-circle.account-img {
+    width: 60px;
+    height: 60px;
+    margin-right: 0;
+    margin-bottom: 8px;
+    align-self: center;
+  }
+  
+  .dascoin-badge {
+    bottom: -3px;
+    right: -3px;
+    padding: 3px 8px;
+    font-size: 0.8em;
+    min-width: 40px;
+  }
+  
+  .dascoin-badge i {
+    font-size: 0.7em;
+  }
+  
+  .dascoin-badge span {
+    font-size: 0.8em;
+  }
+
+  .account-heading {
+    font-size: 1.25rem;
+    text-align: center;
+    width: 100%;
+  }
+
+  .form-group {
+    width: 100%;
+    margin-bottom: 10px;
+  }
+
+  .profile-actions {
+    flex-direction: column;
+    gap: 8px;
+    align-items: stretch;
+  }
+
+  #check-finished-courses-btn,
+  #edit-profile-btn,
+  #cancel-edit-btn,
+  #update-profile_info-btn {
+    width: 100%;
+    margin-bottom: 10px;
+    margin-left: 0;
+  }
+
+
+  .progress {
+    height: 18px;
+    border-radius: 8px;
+  }
+
+  .progress-bar-user {
+    height: 24px;
+    width: 98%;
+    margin-top: 8px;
+    font-size: 0.95em;
+  }
+  .progress-bar-user h3 {
+    left: 8px;
+    font-size: 1em;
+  }
+
+  .btn-group {
+    flex-direction: column;
+    gap: 8px;
+    width: 100%;
+  }
+
+  .quiz-status {
+    flex-direction: column;
+    gap: 4px;
+    align-items: flex-start;
+    margin-bottom: 8px;
+  }
+
+  .quiz-status span {
+    align-items: flex-start;
+    font-size: 0.95em;
+  }
+
+  .quiz_history-bottom_info {
+    flex-direction: column;
+    gap: 8px;
+    align-items: flex-start;
+  }
+  
+  /* Адаптация для мобильных устройств */
+  .gamification-grid {
+    grid-template-columns: 1fr;
+    gap: 15px;
+  }
+  
+
+  
+  .badges-grid,
+  .achievements-grid {
+    grid-template-columns: repeat(auto-fit, minmax(70px, 1fr));
+    gap: 10px;
+  }
+}
+
+
+
+/* Секция геймификации */
+.gamification-section {
+    margin: 20px 0;
+}
+
+.gamification-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+}
+
+.gamification-card {
+    background: white;
+    border-radius: 12px;
+    padding: 20px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    border: 1px solid #e0e0e0;
+}
+
+.card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+    padding-bottom: 10px;
+    border-bottom: 2px solid #f0f0f0;
+}
+
+.card-header h4 {
+    margin: 0;
+    color: var(--primary-text-color);
+    font-size: 1.1em;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.badge-count {
+    background: #007bff;
+    color: white;
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-size: 0.8em;
+    font-weight: bold;
+}
+
+.card-content {
+    min-height: 120px;
+}
+
+.badges-grid,
+.achievements-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
+    gap: 15px;
+    margin-bottom: 15px;
+}
+
+.badge-item,
+.achievement-item {
+    text-align: center;
+    padding: 10px;
+    border-radius: 8px;
+    background: #f8f9fa;
+    border: 1px solid #e9ecef;
+    transition: transform 0.2s, box-shadow 0.2s;
+    cursor: pointer;
+}
+
+.badge-item:hover,
+.achievement-item:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.badge-icon,
+.achievement-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    margin-bottom: 5px;
+    object-fit: cover;
+}
+
+.badge-icon-placeholder,
+.achievement-icon-placeholder {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #ffd700, #ffed4e);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 5px;
+    color: #b8860b;
+    font-size: 1.2em;
+}
+
+.achievement-icon-placeholder {
+    background: linear-gradient(135deg, #ff6b35, #ff8c42);
+    color: #fff;
+}
+
+.badge-name,
+.achievement-name {
+    display: block;
+    font-size: 0.8em;
+    font-weight: 500;
+    color: var(--primary-text-color);
+    margin-bottom: 2px;
+    line-height: 1.2;
+}
+
+.badge-date,
+.achievement-date {
+    display: block;
+    font-size: 0.7em;
+    color: var(--secondary-text-color);
+}
+
+.show-more {
+    text-align: center;
+    margin-top: 10px;
+}
+
+.btn-modern.btn-sm {
+    padding: 6px 12px;
+    font-size: 0.8em;
+}
+
+.empty-state {
+    text-align: center;
+    padding: 20px;
+    color: var(--secondary-text-color);
+}
+
+.empty-state i {
+    margin-bottom: 10px;
+    opacity: 0.5;
+}
+
+.empty-state p {
+    margin: 5px 0;
+    font-weight: 500;
+}
+
+.empty-state small {
+    font-size: 0.8em;
+    opacity: 0.7;
+}
+
+/* Модальное окно */
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    animation: fadeIn 0.3s ease;
+}
+
+.modal-content {
+    background: white;
+    border-radius: 12px;
+    max-width: 90%;
+    max-height: 90%;
+    width: 800px;
+    overflow: hidden;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+    animation: slideIn 0.3s ease;
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px;
+    border-bottom: 1px solid #e0e0e0;
+    background: #f8f9fa;
+}
+
+.modal-header h3 {
+    margin: 0;
+    color: var(--primary-text-color);
+    font-size: 1.3em;
+}
+
+.modal-close {
+    background: none;
+    border: none;
+    font-size: 24px;
+    cursor: pointer;
+    color: #666;
+    padding: 0;
+    width: 30px;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    transition: background-color 0.2s;
+}
+
+.modal-close:hover {
+    background: #e0e0e0;
+    color: #333;
+}
+
+.modal-body {
+    padding: 20px;
+    max-height: 60vh;
+    overflow-y: auto;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes slideIn {
+    from { 
+        opacity: 0;
+        transform: translateY(-20px) scale(0.95);
+    }
+    to { 
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+/* Адаптивность для модального окна */
+@media (max-width: 768px) {
+    .modal-content {
+        width: 95%;
+        max-height: 95%;
+    }
+    
+    .modal-header {
+        padding: 15px;
+    }
+    
+    .modal-body {
+        padding: 15px;
+        max-height: 70vh;
+    }
+    
+    .modal-header h3 {
+        font-size: 1.1em;
+    }
+}
+
+/* Стили для всех бейджей и достижений */
+.all-badges-container,
+.all-achievements-container {
+    padding: 20px 0;
+}
+
+.badges-stats,
+.achievements-stats {
+    display: flex;
+    justify-content: space-around;
+    margin-bottom: 30px;
+    padding: 20px;
+    background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.stat-item {
+    text-align: center;
+    flex: 1;
+}
+
+.stat-number {
+    display: block;
+    font-size: 2.5em;
+    font-weight: bold;
+    color: #007bff;
+    margin-bottom: 5px;
+}
+
+.stat-label {
+    font-size: 0.9em;
+    color: var(--secondary-text-color);
+    font-weight: 500;
+}
+
+.badges-grid-all,
+.achievements-grid-all {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 20px;
+}
+
+.badge-item-all,
+.achievement-item-all {
+    background: white;
+    border-radius: 12px;
+    padding: 20px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    border: 1px solid #e9ecef;
+    transition: transform 0.2s, box-shadow 0.2s;
+    display: flex;
+    gap: 15px;
+    align-items: flex-start;
+}
+
+.badge-item-all:hover,
+.achievement-item-all:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+}
+
+.badge-icon-container,
+.achievement-icon-container {
+    position: relative;
+    flex-shrink: 0;
+}
+
+.badge-icon-large,
+.achievement-icon-large {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 3px solid #ffd700;
+}
+
+.achievement-icon-large {
+    border-color: #ff6b35;
+}
+
+.badge-icon-large-placeholder,
+.achievement-icon-large-placeholder {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #ffd700, #ffed4e);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 3px solid #ffd700;
+    color: #b8860b;
+    font-size: 2em;
+}
+
+.achievement-icon-large-placeholder {
+    background: linear-gradient(135deg, #ff6b35, #ff8c42);
+    border-color: #ff6b35;
+    color: #fff;
+}
+
+.badge-earned-date,
+.achievement-earned-date {
+    position: absolute;
+    bottom: -5px;
+    right: -5px;
+    background: #007bff;
+    color: white;
+    padding: 3px 8px;
+    border-radius: 10px;
+    font-size: 0.7em;
+    font-weight: 500;
+    white-space: nowrap;
+}
+
+.badge-info {
+    background-color: #fff;
+}
+
+.badge-info,
+.achievement-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.badge-title,
+.achievement-title {
+    margin: 0 0 8px 0;
+    font-size: 1.2em;
+    color: var(--primary-text-color);
+    font-weight: 600;
+}
+
+.badge-description,
+.achievement-description {
+    margin: 0 0 12px 0;
+    color: var(--secondary-text-color);
+    line-height: 1.4;
+    font-size: 0.9em;
+}
+
+.badge-requirement,
+.achievement-type {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 0.8em;
+    color: #666;
+    font-weight: 500;
+}
+
+.badge-requirement i,
+.achievement-type i {
+    color: #ffd700;
+}
+
+.empty-state-large {
+    text-align: center;
+    padding: 40px 20px;
+    color: var(--secondary-text-color);
+}
+
+.empty-state-large i {
+    margin-bottom: 20px;
+    opacity: 0.5;
+}
+
+.empty-state-large h3 {
+    margin: 10px 0;
+    font-size: 1.5em;
+    color: var(--primary-text-color);
+}
+
+.empty-state-large p {
+    margin: 10px 0 20px 0;
+    font-size: 1em;
+    line-height: 1.5;
+}
+
+.empty-state-actions {
+    margin-top: 20px;
+}
+
+/* Адаптивность для всех бейджей и достижений */
+@media (max-width: 768px) {
+    .badges-stats,
+    .achievements-stats {
+        flex-direction: column;
+        gap: 15px;
+        padding: 15px;
+    }
+    
+    .stat-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    
+    .stat-number {
+        font-size: 2em;
+        margin-bottom: 0;
+    }
+    
+    .badges-grid-all,
+    .achievements-grid-all {
+        grid-template-columns: 1fr;
+        gap: 15px;
+    }
+    
+    .badge-item-all,
+    .achievement-item-all {
+        padding: 15px;
+        gap: 12px;
+    }
+    
+    .badge-icon-large,
+    .achievement-icon-large {
+        width: 60px;
+        height: 60px;
+    }
+    
+    .badge-title,
+    .achievement-title {
+        font-size: 1.1em;
+    }
+}

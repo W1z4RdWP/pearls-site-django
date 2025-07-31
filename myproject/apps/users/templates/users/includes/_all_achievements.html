@@ -1,0 +1,57 @@
+{% if user_achievements %}
+    <div class="all-achievements-container">
+        <div class="achievements-stats">
+            <div class="stat-item">
+                <span class="stat-number">{{ user_achievements.count }}</span>
+                <span class="stat-label">Получено достижений</span>
+            </div>
+            <div class="stat-item">
+                <span class="stat-number">{{ total_achievements }}</span>
+                <span class="stat-label">Всего доступно</span>
+            </div>
+            <div class="stat-item">
+                <span class="stat-number">{{ progress_percent }}%</span>
+                <span class="stat-label">Прогресс</span>
+            </div>
+        </div>
+        
+        <div class="achievements-grid-all">
+            {% for user_achievement in user_achievements %}
+            <div class="achievement-item-all" title="{{ user_achievement.achievement.description }}">
+                <div class="achievement-icon-container">
+                    {% if user_achievement.achievement.icon %}
+                        <img src="{{ user_achievement.achievement.icon.url }}" alt="{{ user_achievement.achievement.name }}" class="achievement-icon-large">
+                    {% else %}
+                        <div class="achievement-icon-large-placeholder">
+                            <i class="fa fa-trophy fa-2x"></i>
+                        </div>
+                    {% endif %}
+                    <div class="achievement-earned-date">
+                        <i class="fa fa-calendar"></i>
+                        {{ user_achievement.earned_at|date:"d.m.Y" }}
+                    </div>
+                </div>
+                <div class="achievement-info">
+                    <h4 class="achievement-title">{{ user_achievement.achievement.name }}</h4>
+                    <p class="achievement-description">{{ user_achievement.achievement.description }}</p>
+                    <div class="achievement-type">
+                        <i class="fa fa-star"></i>
+                        {{ user_achievement.achievement.get_achievement_type_display }}
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+{% else %}
+    <div class="empty-state-large">
+        <i class="fa fa-trophy fa-4x"></i>
+        <h3>У вас пока нет достижений</h3>
+        <p>Особые достижения появятся здесь за уникальные успехи в обучении</p>
+        <div class="empty-state-actions">
+            <a href="{% url 'courses:course_list' %}" class="btn-modern">
+                <i class="fa fa-graduation-cap"></i> Перейти к курсам
+            </a>
+        </div>
+    </div>
+{% endif %} 
