@@ -15,7 +15,7 @@ import logging
 from builder.models import CategoryName
 from django.contrib.auth import get_user_model
 from django.utils.decorators import method_decorator
-from gamification.utils import award_dascoin_points, award_course_badge
+from gamification.utils import award_dascoin_points, award_course_badge, award_trajectory_badge
 
 
 logger = logging.getLogger(__name__)
@@ -37,6 +37,8 @@ class UserCourseTrajectoryDetailView(DetailView):
         user_courses = {uc.course_id: uc for uc in user_trajectory.user.started_courses.all()}
         progress = []
         all_completed = True
+        next_available_course = None
+        
         for tc in trajectory_courses:
             uc = user_courses.get(tc.course_id)
             if not (uc and uc.status == 'completed'):
@@ -47,11 +49,31 @@ class UserCourseTrajectoryDetailView(DetailView):
                 'user_course': uc,
                 'available': self._is_course_available(user_trajectory, tc, user_courses)
             })
+            
+            # Находим первый доступный курс
+            if next_available_course is None and self._is_course_available(user_trajectory, tc, user_courses):
+                if not uc or uc.status != 'completed':
+                    next_available_course = tc.course
+        
         # --- автоапдейт статуса и опыта ---
         if all_completed and not user_trajectory.completed:
             user_trajectory.completed = True
             user_trajectory.save(update_fields=['completed'])
+            
+            # Начисляем DASCOIN за завершение траектории
+            award_dascoin_points(user_trajectory.user, 100, f"Завершение траектории {user_trajectory.trajectory.name}")
+            
+            # Выдаем бейдж за траекторию
+            award_trajectory_badge(user_trajectory.user, user_trajectory.trajectory.name)
+            
+            # Логируем завершение траектории
+            audit_logger.info(
+                f'Завершил траекторию {user_trajectory.trajectory.name}', 
+                extra={'user': user_trajectory.user.username}
+            )
+        
         context['trajectory_progress'] = progress
+        context['next_available_course'] = next_available_course
         return context
 
     def _is_course_available(self, user_trajectory, tc, user_courses):
@@ -217,18 +239,34 @@ class CourseDetailView(DetailView):
                             passed=True
                         ).exists()
                         if quiz_passed:
-                            user_course.status = 'completed'
-                            user_course.save()
-                            # Начисляем очки за завершение курса
-                            award_dascoin_points(user, course.points, f"Завершение курса {course.title}")
-                            award_course_badge(user, course)
+                            # Проверяем, был ли курс уже завершен ранее
+                            was_completed_before = user_course.status == 'completed'
+                            if not was_completed_before:
+                                user_course.status = 'completed'
+                                user_course.save()
+                                
+                                # Начисляем очки только если курс только что завершен
+                                award_dascoin_points(user, course.points, f"Завершение курса {course.title}")
+                                award_course_badge(user, course)
+                            else:
+                                # Курс уже был завершен, просто обновляем статус
+                                user_course.status = 'completed'
+                                user_course.save()
                     else:
                         # Если теста нет - завершаем автоматически
-                        user_course.status = 'completed'
-                        user_course.save()
-                        # Начисляем очки за завершение курса
-                        award_dascoin_points(user, course.points, f"Завершение курса {course.title}")
-                        award_course_badge(user, course)
+                        # Проверяем, был ли курс уже завершен ранее
+                        was_completed_before = user_course.status == 'completed'
+                        if not was_completed_before:
+                            user_course.status = 'completed'
+                            user_course.save()
+                            
+                            # Начисляем очки только если курс только что завершен
+                            award_dascoin_points(user, course.points, f"Завершение курса {course.title}")
+                            award_course_badge(user, course)
+                        else:
+                            # Курс уже был завершен, просто обновляем статус
+                            user_course.status = 'completed'
+                            user_course.save()
 
                 # Проверка для отображения финального теста
                 if course.final_quiz:
@@ -258,6 +296,43 @@ class CourseDetailView(DetailView):
             # Для неаутентифицированных пользователей
             lessons = course.lessons.all()
 
+        # Получение информации о следующем курсе в траектории
+        next_course_in_trajectory = None
+        user_trajectories_info = []
+        if user.is_authenticated:
+            # Ищем траектории, в которых есть этот курс
+            user_trajectories = UserCourseTrajectory.objects.filter(
+                user=user, 
+                trajectory__courses=course
+            )
+            
+            for user_trajectory in user_trajectories:
+                # Получаем текущий курс в траектории
+                current_tc = TrajectoryCourse.objects.filter(
+                    trajectory=user_trajectory.trajectory, 
+                    course=course
+                ).first()
+                
+                if current_tc:
+                    trajectory_info = {
+                        'trajectory': user_trajectory.trajectory,
+                        'user_trajectory': user_trajectory,
+                        'order': current_tc.order,
+                        'total_courses': TrajectoryCourse.objects.filter(trajectory=user_trajectory.trajectory).count()
+                    }
+                    user_trajectories_info.append(trajectory_info)
+                    
+                    # Ищем следующий курс в траектории только если текущий завершен
+                    if user_course and user_course.status == 'completed':
+                        next_tc = TrajectoryCourse.objects.filter(
+                            trajectory=user_trajectory.trajectory,
+                            order=current_tc.order + 1
+                        ).first()
+                        
+                        if next_tc:
+                            next_course_in_trajectory = next_tc.course
+                            break
+
         # Формирование контекста
         context.update({
             'course_author': course.author.username,
@@ -272,6 +347,8 @@ class CourseDetailView(DetailView):
             'exp_earned': exp_earned,
             'lessons': lessons,
             'show_final_quiz': show_final_quiz,
+            'next_course_in_trajectory': next_course_in_trajectory,
+            'user_trajectories_info': user_trajectories_info,
         })
         
         return context
@@ -670,9 +747,16 @@ def complete_lesson(request, course_slug, lesson_id):
         if course.final_quiz:
             return redirect('courses:redir_to_quiz', course_slug=course_slug)
         else:
-            user_course.is_completed = True
-            user_course.save()
-            award_course_badge(user, course)
+            # Проверяем, был ли курс уже завершен ранее
+            was_completed_before = user_course.status == 'completed'
+            if not was_completed_before:
+                user_course.status = 'completed'
+                user_course.save()
+                award_course_badge(user, course)
+            else:
+                # Курс уже был завершен, просто обновляем статус
+                user_course.status = 'completed'
+                user_course.save()
     return redirect('courses:course_detail', slug=course.slug)
 
 
@@ -689,18 +773,32 @@ def complete_course(request, course_id):
         ).exists()
         
         if quiz_result:
-            user_course.is_completed = True
-            user_course.save()
-            award_dascoin_points(user, course.points) 
-            award_course_badge(user, course)
+            # Проверяем, был ли курс уже завершен ранее
+            was_completed_before = user_course.status == 'completed'
+            if not was_completed_before:
+                user_course.status = 'completed'
+                user_course.save()
+                award_dascoin_points(user, course.points, f"Завершение курса {course.title}") 
+                award_course_badge(user, course)
+            else:
+                # Курс уже был завершен, просто обновляем статус
+                user_course.status = 'completed'
+                user_course.save()
             return redirect('courses:course_detail', slug=course.slug)
         else:
             return redirect('quizzes:quiz_start', quiz_id=course.final_quiz.id)
     else:
-        user_course.is_completed = True
-        user_course.save()
-        award_dascoin_points(user, course.points) 
-        award_course_badge(user, course)
+        # Проверяем, был ли курс уже завершен ранее
+        was_completed_before = user_course.status == 'completed'
+        if not was_completed_before:
+            user_course.status = 'completed'
+            user_course.save()
+            award_dascoin_points(user, course.points, f"Завершение курса {course.title}") 
+            award_course_badge(user, course)
+        else:
+            # Курс уже был завершен, просто обновляем статус
+            user_course.status = 'completed'
+            user_course.save()
         return redirect('courses:course_detail', slug=course.slug)
     
 

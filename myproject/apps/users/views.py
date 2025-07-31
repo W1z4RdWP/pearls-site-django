@@ -208,14 +208,9 @@ def all_achievements(request: HttpRequest) -> HttpResponse:
     profile = user.profile
     
     user_achievements = profile.get_achievements()
-    total_achievements = user_achievements.count()
-    all_achievements_count = Achievement.objects.filter(is_active=True).count()
-    progress_percent = int((total_achievements / all_achievements_count * 100)) if all_achievements_count > 0 else 0
     
     context = {
         'user_achievements': user_achievements,
-        'total_achievements': all_achievements_count,
-        'progress_percent': progress_percent,
     }
     
     return render(request, 'users/includes/_all_achievements.html', context)
