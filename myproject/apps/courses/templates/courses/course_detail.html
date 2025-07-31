@@ -109,7 +109,7 @@
                             <i class="fa fa-edit"></i>
                             <span class="d-none d-sm-inline">Редактировать</span>
                         </a>
-                        <form method="POST" action="{% url 'courses:delete_course' course.slug %}" style="display: inline;">
+                        <!-- <form method="POST" action="{% url 'courses:delete_course' course.slug %}" style="display: inline;">
                             {% csrf_token %}
                             <button type="submit" class="btn-mini delete"
                                     title="Удалить курс"
@@ -117,7 +117,8 @@
                                 <i class="fa fa-trash"></i>
                                 <span class="d-none d-sm-inline">Удалить</span>
                             </button>
-                        </form>
+                        </form> -->
+                        <!-- TODO: Сделать чтобы не удалялись уроки при удалении курса -->
                     </div>
                 {% endif %}
             </div>
