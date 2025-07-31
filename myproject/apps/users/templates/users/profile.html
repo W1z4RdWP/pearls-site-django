@@ -87,7 +87,13 @@
                             <div class="badges-grid">
                                 {% for user_badge in recent_badges %}
                                 <div class="badge-item" title="{{ user_badge.badge.description }}">
-                                    <img src="{{ user_badge.badge.icon.url }}" alt="{{ user_badge.badge.name }}" class="badge-icon">
+                                    {% if user_badge.badge.icon %}
+                                        <img src="{{ user_badge.badge.icon.url }}" alt="{{ user_badge.badge.name }}" class="badge-icon">
+                                    {% else %}
+                                        <div class="badge-icon-placeholder">
+                                            <i class="fa fa-medal"></i>
+                                        </div>
+                                    {% endif %}
                                     <span class="badge-name">{{ user_badge.badge.name }}</span>
                                     <small class="badge-date">{{ user_badge.earned_at|date:"d.m.Y" }}</small>
                                 </div>
@@ -121,7 +127,13 @@
                             <div class="achievements-grid">
                                 {% for user_achievement in recent_achievements %}
                                 <div class="achievement-item" title="{{ user_achievement.achievement.description }}">
-                                    <img src="{{ user_achievement.achievement.icon.url }}" alt="{{ user_achievement.achievement.name }}" class="achievement-icon">
+                                    {% if user_achievement.achievement.icon %}
+                                        <img src="{{ user_achievement.achievement.icon.url }}" alt="{{ user_achievement.achievement.name }}" class="achievement-icon">
+                                    {% else %}
+                                        <div class="achievement-icon-placeholder">
+                                            <i class="fa fa-trophy"></i>
+                                        </div>
+                                    {% endif %}
                                     <span class="achievement-name">{{ user_achievement.achievement.name }}</span>
                                     <small class="achievement-date">{{ user_achievement.earned_at|date:"d.m.Y" }}</small>
                                 </div>

@@ -24,25 +24,23 @@ class Command(BaseCommand):
   <text x="32" y="35" text-anchor="middle" font-family="Arial" font-size="10" font-weight="bold" fill="#b8860b">🏆</text>
 </svg>'''
         
-        # Обновляем бейджи
-        badges = Badge.objects.all()
+        # Обновляем бейджи без иконок
+        badges = Badge.objects.filter(icon='')
         for badge in badges:
-            if not badge.icon:
-                badge.icon.save(
-                    f'badge_{badge.id}.svg',
-                    ContentFile(badge_svg.encode(), name=f'badge_{badge.id}.svg')
-                )
-                self.stdout.write(f'Создана иконка для бейджа: {badge.name}')
+            badge.icon.save(
+                f'badge_{badge.id}.svg',
+                ContentFile(badge_svg.encode(), name=f'badge_{badge.id}.svg')
+            )
+            self.stdout.write(f'Создана иконка для бейджа: {badge.name}')
         
-        # Обновляем достижения
-        achievements = Achievement.objects.all()
+        # Обновляем достижения без иконок
+        achievements = Achievement.objects.filter(icon='')
         for achievement in achievements:
-            if not achievement.icon:
-                achievement.icon.save(
-                    f'achievement_{achievement.id}.svg',
-                    ContentFile(achievement_svg.encode(), name=f'achievement_{achievement.id}.svg')
-                )
-                self.stdout.write(f'Создана иконка для достижения: {achievement.name}')
+            achievement.icon.save(
+                f'achievement_{achievement.id}.svg',
+                ContentFile(achievement_svg.encode(), name=f'achievement_{achievement.id}.svg')
+            )
+            self.stdout.write(f'Создана иконка для достижения: {achievement.name}')
         
         self.stdout.write(
             self.style.SUCCESS('Иконки по умолчанию успешно созданы!')

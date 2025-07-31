@@ -41,6 +41,7 @@ def check_and_award_badges(user: User) -> None:
     # Выдаем новые бейджи
     for badge in available_badges:
         UserBadge.objects.create(user=user, badge=badge)
+        print(f"Выдан бейдж: {badge.name} за {badge.points_required} баллов")
 
 
 def award_course_badge(user: User, course_title: str) -> None:
@@ -91,6 +92,136 @@ def award_trajectory_badge(user: User, trajectory_title: str) -> None:
         pass
     
     UserBadge.objects.get_or_create(user=user, badge=badge)
+
+
+def award_first_lesson_badge(user: User) -> None:
+    """
+    Выдает бейдж "Первый шаг" за прохождение первого урока.
+    
+    Args:
+        user (User): Пользователь
+    """
+    try:
+        badge = Badge.objects.get(name='Первый шаг', badge_type='lesson')
+        UserBadge.objects.get_or_create(user=user, badge=badge)
+    except Badge.DoesNotExist:
+        pass
+
+
+def award_half_course_badge(user: User, role: str = None) -> None:
+    """
+    Выдает бейдж "Половина пути" за прохождение половины курсов по направлению.
+    
+    Args:
+        user (User): Пользователь
+        role (str): Должность пользователя
+    """
+    try:
+        badge = Badge.objects.get(name='Половина пути', badge_type='course')
+        UserBadge.objects.get_or_create(user=user, badge=badge)
+    except Badge.DoesNotExist:
+        pass
+
+
+def award_trajectory_completed_badge(user: User) -> None:
+    """
+    Выдает бейдж "Траектория пройдена" за завершение траектории.
+    
+    Args:
+        user (User): Пользователь
+    """
+    try:
+        badge = Badge.objects.get(name='Траектория пройдена', badge_type='trajectory')
+        UserBadge.objects.get_or_create(user=user, badge=badge)
+    except Badge.DoesNotExist:
+        pass
+
+
+def award_speaker_badge(user: User) -> None:
+    """
+    Выдает бейдж "Спикер" за проведение обучения.
+    
+    Args:
+        user (User): Пользователь
+    """
+    try:
+        badge = Badge.objects.get(name='Спикер', badge_type='skill')
+        UserBadge.objects.get_or_create(user=user, badge=badge)
+    except Badge.DoesNotExist:
+        pass
+
+
+def award_mentor_badge(user: User) -> None:
+    """
+    Выдает бейдж "Наставник" за помощь в адаптации.
+    
+    Args:
+        user (User): Пользователь
+    """
+    try:
+        badge = Badge.objects.get(name='Наставник', badge_type='skill')
+        UserBadge.objects.get_or_create(user=user, badge=badge)
+    except Badge.DoesNotExist:
+        pass
+
+
+def award_monthly_leader_achievement(user: User) -> None:
+    """
+    Выдает достижение "Лидер месяца" за самый высокий прирост баллов.
+    
+    Args:
+        user (User): Пользователь
+    """
+    try:
+        achievement = Achievement.objects.get(name='Лидер месяца', achievement_type='monthly_leader')
+        UserAchievement.objects.get_or_create(user=user, achievement=achievement)
+    except Achievement.DoesNotExist:
+        pass
+
+
+def award_department_erudite_achievement(user: User, department: str = None) -> None:
+    """
+    Выдает достижение "Эрудит отдела" за прохождение больше всех курсов в отделе.
+    
+    Args:
+        user (User): Пользователь
+        department (str): Отдел пользователя
+    """
+    try:
+        achievement = Achievement.objects.get(name='Эрудит отдела', achievement_type='department_erudite')
+        UserAchievement.objects.get_or_create(user=user, achievement=achievement)
+    except Achievement.DoesNotExist:
+        pass
+
+
+def award_yearly_mentor_achievement(user: User) -> None:
+    """
+    Выдает достижение "Наставник года" за наиболее активного наставника.
+    
+    Args:
+        user (User): Пользователь
+    """
+    try:
+        achievement = Achievement.objects.get(name='Наставник года', achievement_type='yearly_mentor')
+        # Проверяем, что это уникальное достижение еще не выдано
+        if not UserAchievement.objects.filter(achievement=achievement).exists():
+            UserAchievement.objects.create(user=user, achievement=achievement)
+    except Achievement.DoesNotExist:
+        pass
+
+
+def award_initiator_achievement(user: User) -> None:
+    """
+    Выдает достижение "Инициатор" за авторство значимой идеи.
+    
+    Args:
+        user (User): Пользователь
+    """
+    try:
+        achievement = Achievement.objects.get(name='Инициатор', achievement_type='initiator')
+        UserAchievement.objects.get_or_create(user=user, achievement=achievement)
+    except Achievement.DoesNotExist:
+        pass
 
 
 def award_achievement(user: User, achievement_type: str, title: str, description: str = "") -> None:

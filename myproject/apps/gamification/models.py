@@ -37,6 +37,10 @@ class Badge(models.Model):
 class Achievement(models.Model):
     """Модель для уникальных достижений"""
     ACHIEVEMENT_TYPES = [
+        ('monthly_leader', 'Лидер месяца'),
+        ('department_erudite', 'Эрудит отдела'),
+        ('yearly_mentor', 'Наставник года'),
+        ('initiator', 'Инициатор'),
         ('first_course', 'Первый курс'),
         ('perfect_score', 'Идеальный результат'),
         ('speed_learner', 'Быстрый ученик'),

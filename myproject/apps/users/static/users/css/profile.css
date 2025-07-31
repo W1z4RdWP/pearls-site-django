@@ -605,6 +605,25 @@ legend{
     object-fit: cover;
 }
 
+.badge-icon-placeholder,
+.achievement-icon-placeholder {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #ffd700, #ffed4e);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 5px;
+    color: #b8860b;
+    font-size: 1.2em;
+}
+
+.achievement-icon-placeholder {
+    background: linear-gradient(135deg, #ff6b35, #ff8c42);
+    color: #fff;
+}
+
 .badge-name,
 .achievement-name {
     display: block;
@@ -837,6 +856,26 @@ legend{
 
 .achievement-icon-large {
     border-color: #ff6b35;
+}
+
+.badge-icon-large-placeholder,
+.achievement-icon-large-placeholder {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #ffd700, #ffed4e);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 3px solid #ffd700;
+    color: #b8860b;
+    font-size: 2em;
+}
+
+.achievement-icon-large-placeholder {
+    background: linear-gradient(135deg, #ff6b35, #ff8c42);
+    border-color: #ff6b35;
+    color: #fff;
 }
 
 .badge-earned-date,

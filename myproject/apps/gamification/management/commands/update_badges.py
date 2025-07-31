@@ -1,14 +1,29 @@
 from django.core.management.base import BaseCommand
-from django.core.files.base import ContentFile
-from gamification.models import Badge, Achievement
-import os
+from gamification.models import Badge, UserBadge
 
 
 class Command(BaseCommand):
-    help = 'Создает тестовые бейджи и достижения для системы геймификации'
+    help = 'Обновляет бейджи на новые согласно требованиям'
 
     def handle(self, *args, **options):
-        self.stdout.write('Создание тестовых бейджей...')
+        self.stdout.write('Обновление бейджей...')
+        
+        # Список старых бейджей для удаления
+        old_badge_names = [
+            'Новичок', 'Ученик', 'Студент', 'Опытный', 'Эксперт', 'Мастер'
+        ]
+        
+        # Удаляем старые бейджи и их связи с пользователями
+        for badge_name in old_badge_names:
+            try:
+                badge = Badge.objects.get(name=badge_name)
+                # Удаляем связи с пользователями
+                UserBadge.objects.filter(badge=badge).delete()
+                # Удаляем сам бейдж
+                badge.delete()
+                self.stdout.write(f'Удален старый бейдж: {badge_name}')
+            except Badge.DoesNotExist:
+                self.stdout.write(f'Бейдж {badge_name} не найден')
         
         # Создаем новые бейджи
         new_badges = [
@@ -56,7 +71,7 @@ class Command(BaseCommand):
                 defaults=badge_data
             )
             if created:
-                self.stdout.write(f'Создан бейдж: {badge.name}')
+                self.stdout.write(f'Создан новый бейдж: {badge.name}')
             else:
                 # Обновляем существующий бейдж
                 for key, value in badge_data.items():
@@ -64,48 +79,6 @@ class Command(BaseCommand):
                 badge.save()
                 self.stdout.write(f'Обновлен бейдж: {badge.name}')
         
-        # Создаем новые достижения
-        achievements = [
-            {
-                'name': 'Лидер месяца',
-                'description': 'Легенда месяца',
-                'achievement_type': 'monthly_leader',
-                'is_unique': False,
-                'is_active': True
-            },
-            {
-                'name': 'Эрудит отдела',
-                'description': 'Гугл на минималках',
-                'achievement_type': 'department_erudite',
-                'is_unique': False,
-                'is_active': True
-            },
-            {
-                'name': 'Наставник года',
-                'description': 'Легенда поддержки',
-                'achievement_type': 'yearly_mentor',
-                'is_unique': True,
-                'is_active': True
-            },
-            {
-                'name': 'Инициатор',
-                'description': 'Двигатель апгрейда',
-                'achievement_type': 'initiator',
-                'is_unique': False,
-                'is_active': True
-            }
-        ]
-        
-        for achievement_data in achievements:
-            achievement, created = Achievement.objects.get_or_create(
-                name=achievement_data['name'],
-                defaults=achievement_data
-            )
-            if created:
-                self.stdout.write(f'Создано достижение: {achievement.name}')
-            else:
-                self.stdout.write(f'Достижение уже существует: {achievement.name}')
-        
         self.stdout.write(
-            self.style.SUCCESS('Тестовые бейджи и достижения успешно созданы!')
+            self.style.SUCCESS('Бейджи успешно обновлены!')
         ) 

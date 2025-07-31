@@ -19,7 +19,13 @@
             {% for user_achievement in user_achievements %}
             <div class="achievement-item-all" title="{{ user_achievement.achievement.description }}">
                 <div class="achievement-icon-container">
-                    <img src="{{ user_achievement.achievement.icon.url }}" alt="{{ user_achievement.achievement.name }}" class="achievement-icon-large">
+                    {% if user_achievement.achievement.icon %}
+                        <img src="{{ user_achievement.achievement.icon.url }}" alt="{{ user_achievement.achievement.name }}" class="achievement-icon-large">
+                    {% else %}
+                        <div class="achievement-icon-large-placeholder">
+                            <i class="fa fa-trophy fa-2x"></i>
+                        </div>
+                    {% endif %}
                     <div class="achievement-earned-date">
                         <i class="fa fa-calendar"></i>
                         {{ user_achievement.earned_at|date:"d.m.Y" }}
