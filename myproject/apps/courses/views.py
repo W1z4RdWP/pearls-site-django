@@ -37,6 +37,8 @@ class UserCourseTrajectoryDetailView(DetailView):
         user_courses = {uc.course_id: uc for uc in user_trajectory.user.started_courses.all()}
         progress = []
         all_completed = True
+        next_available_course = None
+        
         for tc in trajectory_courses:
             uc = user_courses.get(tc.course_id)
             if not (uc and uc.status == 'completed'):
@@ -47,11 +49,19 @@ class UserCourseTrajectoryDetailView(DetailView):
                 'user_course': uc,
                 'available': self._is_course_available(user_trajectory, tc, user_courses)
             })
+            
+            # Находим первый доступный курс
+            if next_available_course is None and self._is_course_available(user_trajectory, tc, user_courses):
+                if not uc or uc.status != 'completed':
+                    next_available_course = tc.course
+        
         # --- автоапдейт статуса и опыта ---
         if all_completed and not user_trajectory.completed:
             user_trajectory.completed = True
             user_trajectory.save(update_fields=['completed'])
+        
         context['trajectory_progress'] = progress
+        context['next_available_course'] = next_available_course
         return context
 
     def _is_course_available(self, user_trajectory, tc, user_courses):
@@ -258,6 +268,43 @@ class CourseDetailView(DetailView):
             # Для неаутентифицированных пользователей
             lessons = course.lessons.all()
 
+        # Получение информации о следующем курсе в траектории
+        next_course_in_trajectory = None
+        user_trajectories_info = []
+        if user.is_authenticated:
+            # Ищем траектории, в которых есть этот курс
+            user_trajectories = UserCourseTrajectory.objects.filter(
+                user=user, 
+                trajectory__courses=course
+            )
+            
+            for user_trajectory in user_trajectories:
+                # Получаем текущий курс в траектории
+                current_tc = TrajectoryCourse.objects.filter(
+                    trajectory=user_trajectory.trajectory, 
+                    course=course
+                ).first()
+                
+                if current_tc:
+                    trajectory_info = {
+                        'trajectory': user_trajectory.trajectory,
+                        'user_trajectory': user_trajectory,
+                        'order': current_tc.order,
+                        'total_courses': TrajectoryCourse.objects.filter(trajectory=user_trajectory.trajectory).count()
+                    }
+                    user_trajectories_info.append(trajectory_info)
+                    
+                    # Ищем следующий курс в траектории только если текущий завершен
+                    if user_course and user_course.status == 'completed':
+                        next_tc = TrajectoryCourse.objects.filter(
+                            trajectory=user_trajectory.trajectory,
+                            order=current_tc.order + 1
+                        ).first()
+                        
+                        if next_tc:
+                            next_course_in_trajectory = next_tc.course
+                            break
+
         # Формирование контекста
         context.update({
             'course_author': course.author.username,
@@ -272,6 +319,8 @@ class CourseDetailView(DetailView):
             'exp_earned': exp_earned,
             'lessons': lessons,
             'show_final_quiz': show_final_quiz,
+            'next_course_in_trajectory': next_course_in_trajectory,
+            'user_trajectories_info': user_trajectories_info,
         })
         
         return context
