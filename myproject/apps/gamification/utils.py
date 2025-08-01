@@ -14,6 +14,8 @@ def award_dascoin_points(user: User, points: int, reason: str = "") -> None:
     """
     with transaction.atomic():
         profile = user.profile
+        # Сохраняем причину начисления во временном атрибуте
+        profile._dascoin_reason = reason
         profile.add_dascoin_points(points)
         
         # Проверяем, нужно ли выдать новые бейджи

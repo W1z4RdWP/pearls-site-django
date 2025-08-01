@@ -297,11 +297,19 @@ def get_finish(request) -> HttpResponse:
         # Проверяем, является ли этот тест финальным для какого-то курса
         course = Course.objects.filter(final_quiz=quiz).first()
     
+    # Проверяем, был ли тест уже пройден ранее
+    previous_quiz_result = QuizResult.objects.filter(
+        user=request.user,
+        quiz_title=quiz.name,
+        passed=True
+    ).first()
+    
     if course and passed:
         user_course = UserCourse.objects.filter(user=request.user, course=course).first()
         if user_course:
-            # Начисляем очки за тест (10 баллов согласно таблице)
-            award_dascoin_points(request.user, 10, f"Прохождение теста {quiz.name}")
+            # Начисляем очки за тест только если он не был пройден ранее
+            if not previous_quiz_result:
+                award_dascoin_points(request.user, 10, f"Прохождение теста {quiz.name}")
             
             # Завершаем курс и начисляем очки за курс
             if user_course.status != 'completed':
@@ -317,8 +325,9 @@ def get_finish(request) -> HttpResponse:
         messages.error(request, "Тест не пройден. Попробуйте снова!")
         return redirect('quizzes:quiz_start', quiz_id=quiz.id)
     elif passed:
-        # Если тест не привязан к курсу, но пройден - начисляем очки
-        award_dascoin_points(request.user, 10, f"Прохождение теста {quiz.name}")
+        # Если тест не привязан к курсу, но пройден - начисляем очки только если не был пройден ранее
+        if not previous_quiz_result:
+            award_dascoin_points(request.user, 10, f"Прохождение теста {quiz.name}")
         if percent_score == 100:
             award_achievement(request.user, 'perfect_score', 'Идеальный результат', 'Получили 100% за прохождение теста')
 

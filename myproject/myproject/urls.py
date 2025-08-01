@@ -39,6 +39,7 @@ urlpatterns = [
     path('quizzes/', include('quizzes.urls'), name='quizzes'),
     path('builder/', include('builder.urls'), name='builder'),
     path('user_management/', include('user_management.urls'), name='user_management'),
+    path('notifications/', include('notifications.urls')),
     path('i18n/', include('django.conf.urls.i18n')),
     path('ckeditor5/', include('django_ckeditor_5.urls')),
     path('changelog/', views.ChangelogListView.as_view(), name='changelog'),

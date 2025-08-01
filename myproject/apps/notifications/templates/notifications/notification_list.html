@@ -1,0 +1,259 @@
+{% extends 'layout.html' %}
+{% load static %}
+
+{% block title %}Уведомления{% endblock %}
+
+{% block specific_styles %}
+<style>
+    .notification-filters {
+        background: #f8f9fa;
+        padding: 1rem;
+        border-radius: 0.375rem;
+        margin-bottom: 1.5rem;
+    }
+    
+    .notification-item {
+        border: 1px solid #dee2e6;
+        border-radius: 0.375rem;
+        padding: 1rem;
+        margin-bottom: 1rem;
+        transition: all 0.2s ease;
+    }
+    
+    .notification-item:hover {
+        box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+    }
+    
+    .notification-item.unread {
+        border-left: 4px solid #007bff;
+        background-color: #f8f9ff;
+    }
+    
+    .notification-title {
+        font-weight: 600;
+        color: #212529;
+        margin-bottom: 0.5rem;
+    }
+    
+    .notification-message {
+        color: #6c757d;
+        margin-bottom: 0.5rem;
+    }
+    
+    .notification-meta {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-size: 0.875rem;
+        color: #6c757d;
+    }
+    
+    .notification-type-badge {
+        font-size: 0.75rem;
+        padding: 0.25rem 0.5rem;
+        border-radius: 0.25rem;
+        background-color: #e9ecef;
+        color: #495057;
+    }
+    
+    .notification-actions {
+        display: flex;
+        gap: 0.5rem;
+    }
+    
+    .notification-stats {
+        background: #e9ecef;
+        padding: 1rem;
+        border-radius: 0.375rem;
+        margin-bottom: 1.5rem;
+    }
+    
+    .stats-item {
+        text-align: center;
+    }
+    
+    .stats-number {
+        font-size: 1.5rem;
+        font-weight: 600;
+        color: #007bff;
+    }
+    
+    .stats-label {
+        font-size: 0.875rem;
+        color: #6c757d;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-12">
+            <h1 class="mb-4">
+                <i class="fas fa-bell"></i> Уведомления
+            </h1>
+            
+            <!-- Статистика -->
+            <div class="notification-stats">
+                <div class="row">
+                    <div class="col-md-3 stats-item">
+                        <div class="stats-number">{{ total_count }}</div>
+                        <div class="stats-label">Всего уведомлений</div>
+                    </div>
+                    <div class="col-md-3 stats-item">
+                        <div class="stats-number text-warning">{{ unread_count }}</div>
+                        <div class="stats-label">Непрочитанных</div>
+                    </div>
+                    <div class="col-md-3 stats-item">
+                        <div class="stats-number text-success">{{ read_count }}</div>
+                        <div class="stats-label">Прочитанных</div>
+                    </div>
+                    <div class="col-md-3 stats-item">
+                        <a href="{% url 'notifications:clear_old_notifications' %}" 
+                           class="btn btn-outline-danger btn-sm"
+                           onclick="return confirm('Удалить уведомления старше 30 дней?')">
+                            <i class="fas fa-trash"></i> Очистить старые
+                        </a>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Фильтры -->
+            <div class="notification-filters">
+                <form method="get" class="row g-3">
+                    <div class="col-md-4">
+                        <label for="type" class="form-label">Тип уведомления</label>
+                        <select name="type" id="type" class="form-select">
+                            <option value="">Все типы</option>
+                            {% for type_code, type_name in notification_types %}
+                                <option value="{{ type_code }}" {% if request.GET.type == type_code %}selected{% endif %}>
+                                    {{ type_name }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-6">
+                        <label for="search" class="form-label">Поиск</label>
+                        <input type="text" name="search" id="search" class="form-control" 
+                               value="{{ request.GET.search }}" placeholder="Поиск по заголовку или сообщению">
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label">&nbsp;</label>
+                        <div>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-search"></i> Найти
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            
+            <!-- Действия -->
+            {% if unread_count > 0 %}
+                <div class="mb-3">
+                    <form method="post" action="{% url 'notifications:mark_all_as_read' %}" style="display: inline;">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-success">
+                            <i class="fas fa-check-double"></i> Отметить все как прочитанные
+                        </button>
+                    </form>
+                </div>
+            {% endif %}
+            
+            <!-- Список уведомлений -->
+            {% if notifications %}
+                {% for notification in notifications %}
+                    <div class="notification-item {% if not notification.is_read %}unread{% endif %}">
+                        <div class="row">
+                            <div class="col-md-8">
+                                <div class="notification-title">
+                                    {% if not notification.is_read %}
+                                        <i class="fas fa-circle text-primary" style="font-size: 0.5rem;"></i>
+                                    {% endif %}
+                                    {{ notification.title }}
+                                </div>
+                                <div class="notification-message">{{ notification.message }}</div>
+                                <div class="notification-meta">
+                                    <span class="notification-type-badge">
+                                        {{ notification.get_notification_type_display }}
+                                    </span>
+                                    <span>{{ notification.created_at|date:"d.m.Y H:i" }}</span>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="notification-actions">
+                                    {% if not notification.is_read %}
+                                        <form method="post" action="{% url 'notifications:mark_as_read' notification.id %}" style="display: inline;">
+                                            {% csrf_token %}
+                                            <button type="submit" class="btn btn-sm btn-outline-primary">
+                                                <i class="fas fa-check"></i> Прочитано
+                                            </button>
+                                        </form>
+                                    {% endif %}
+                                    
+                                    {% if notification.get_absolute_url != '#' %}
+                                        <a href="{{ notification.get_absolute_url }}" class="btn btn-sm btn-primary">
+                                            <i class="fas fa-external-link-alt"></i> Перейти
+                                        </a>
+                                    {% endif %}
+                                    
+                                    <form method="post" action="{% url 'notifications:delete_notification' notification.id %}" style="display: inline;">
+                                        {% csrf_token %}
+                                        <button type="submit" class="btn btn-sm btn-outline-danger"
+                                                onclick="return confirm('Удалить уведомление?')">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                {% endfor %}
+                
+                <!-- Пагинация -->
+                {% if notifications.has_other_pages %}
+                    <nav aria-label="Навигация по уведомлениям">
+                        <ul class="pagination justify-content-center">
+                            {% if notifications.has_previous %}
+                                <li class="page-item">
+                                    <a class="page-link" href="?page={{ notifications.previous_page_number }}{% if request.GET.type %}&type={{ request.GET.type }}{% endif %}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}">
+                                        Предыдущая
+                                    </a>
+                                </li>
+                            {% endif %}
+                            
+                            {% for num in notifications.paginator.page_range %}
+                                {% if notifications.number == num %}
+                                    <li class="page-item active">
+                                        <span class="page-link">{{ num }}</span>
+                                    </li>
+                                {% elif num > notifications.number|add:'-3' and num < notifications.number|add:'3' %}
+                                    <li class="page-item">
+                                        <a class="page-link" href="?page={{ num }}{% if request.GET.type %}&type={{ request.GET.type }}{% endif %}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}">
+                                            {{ num }}
+                                        </a>
+                                    </li>
+                                {% endif %}
+                            {% endfor %}
+                            
+                            {% if notifications.has_next %}
+                                <li class="page-item">
+                                    <a class="page-link" href="?page={{ notifications.next_page_number }}{% if request.GET.type %}&type={{ request.GET.type }}{% endif %}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}">
+                                        Следующая
+                                    </a>
+                                </li>
+                            {% endif %}
+                        </ul>
+                    </nav>
+                {% endif %}
+            {% else %}
+                <div class="text-center py-5">
+                    <i class="fas fa-bell-slash text-muted" style="font-size: 3rem;"></i>
+                    <h4 class="mt-3">Уведомлений не найдено</h4>
+                    <p class="text-muted">Попробуйте изменить параметры поиска или фильтры</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %} 
