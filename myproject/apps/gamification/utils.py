@@ -22,6 +22,45 @@ def award_dascoin_points(user: User, points: int, reason: str = "") -> None:
         check_and_award_badges(user)
 
 
+def deduct_dascoin_points(user: User, points: int, reason: str = "") -> None:
+    """
+    Списывает баллы DASCOIN у пользователя.
+    
+    Args:
+        user (User): Пользователь
+        points (int): Количество баллов для списания
+        reason (str): Причина списания
+    """
+    with transaction.atomic():
+        profile = user.profile
+        if profile.dascoin_points >= points:
+            profile.dascoin_points -= points
+            profile.save()
+            print(f"Списано {points} баллов у пользователя {user.username}. Причина: {reason}")
+        else:
+            # Если баллов недостаточно, обнуляем до 0
+            profile.dascoin_points = 0
+            profile.save()
+            print(f"Баллы пользователя {user.username} обнулены. Причина: {reason}")
+
+
+def set_dascoin_points(user: User, points: int, reason: str = "") -> None:
+    """
+    Устанавливает точное количество баллов DASCOIN пользователю.
+    
+    Args:
+        user (User): Пользователь
+        points (int): Новое количество баллов
+        reason (str): Причина изменения
+    """
+    with transaction.atomic():
+        profile = user.profile
+        old_points = profile.dascoin_points
+        profile.dascoin_points = max(0, points)  # Не меньше 0
+        profile.save()
+        print(f"Баланс пользователя {user.username} изменен с {old_points} на {points}. Причина: {reason}")
+
+
 def check_and_award_badges(user: User) -> None:
     """
     Проверяет и выдает бейджи на основе текущих баллов пользователя.
@@ -270,39 +309,4 @@ def get_user_gamification_stats(user: User) -> dict:
         'total_achievements': profile.get_achievements().count(),
         'recent_badges': list(profile.get_recent_badges()),
         'recent_achievements': list(profile.get_recent_achievements()),
-        'level': calculate_level(profile.dascoin_points),
-        'progress_to_next_level': calculate_progress_to_next_level(profile.dascoin_points)
     }
-
-
-def calculate_level(points: int) -> int:
-    """
-    Рассчитывает уровень на основе баллов.
-    
-    Args:
-        points (int): Количество баллов
-        
-    Returns:
-        int: Уровень пользователя
-    """
-    level = 1
-    while points >= level * 100:
-        level += 1
-    return level
-
-
-def calculate_progress_to_next_level(points: int) -> int:
-    """
-    Рассчитывает прогресс до следующего уровня.
-    
-    Args:
-        points (int): Количество баллов
-        
-    Returns:
-        int: Прогресс в процентах
-    """
-    level = calculate_level(points)
-    points_for_current_level = (level - 1) * 100
-    points_for_next_level = level * 100
-    progress = ((points - points_for_current_level) / (points_for_next_level - points_for_current_level)) * 100
-    return min(int(progress), 100) 
