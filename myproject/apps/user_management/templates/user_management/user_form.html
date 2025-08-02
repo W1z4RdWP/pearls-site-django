@@ -39,7 +39,8 @@
                         <p class="um-user-groups">Пользователь не состоит в группах</p>
                     {% endif %}
                 {% endwith %}
-                {{ profile_form.date_of_birth.label_tag }}{{ profile_form.date_of_birth|attr:'readonly:readonly,disabled:disabled' }}
+                <label for="id_date_of_birth">{{ profile_form.date_of_birth.label }}</label>
+                <input type="date" id="id_date_of_birth" name="date_of_birth" class="form-control" value="{{ profile_form.date_of_birth.value|date:'Y-m-d'|default:'' }}" readonly disabled/>
                 {{ profile_form.phone_number.label_tag }}{{ profile_form.phone_number|attr:'readonly:readonly,disabled:disabled' }}
                 {{ profile_form.bio.label_tag }}{{ profile_form.bio|attr:'readonly:readonly,disabled:disabled' }}
             {% else %}
@@ -71,7 +72,8 @@
                         </div>
                     {% endfor %}
                 </div>
-                {{ profile_form.date_of_birth.label_tag }}{{ profile_form.date_of_birth }}
+                <label for="id_date_of_birth">{{ profile_form.date_of_birth.label }}</label>
+                <input type="date" id="id_date_of_birth" name="date_of_birth" class="form-control" value="{{ profile_form.date_of_birth.value|date:'Y-m-d'|default:'' }}"/>
                 <div class="phone-field-wrapper">
                     <label for="id_phone_number">{{ profile_form.phone_number.label }}</label>
                     <input type="text" id="id_phone_number" name="phone_number" class="form-control" maxlength="12" autocomplete="off" value="{{ profile_form.phone_number.value|default:'' }}"/>

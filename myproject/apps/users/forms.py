@@ -70,6 +70,12 @@ class ProfileUpdateForm(forms.ModelForm):
     Attributes:
         Meta: Метаданные формы.
     """
+    
+    date_of_birth = forms.DateField(
+        widget=forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}, format='%Y-%m-%d'),
+        input_formats=['%Y-%m-%d'],
+        required=False
+    )
 
     class Meta:
         """
@@ -83,7 +89,6 @@ class ProfileUpdateForm(forms.ModelForm):
         model = Profile
         fields = ['middle_name', 'role', 'date_of_birth', 'phone_number', 'image', 'bio']
         widgets = {
-            'date_of_birth': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
             'phone_number': forms.TextInput(attrs={'class': 'form-control'}),
             'group': forms.Select(attrs={'class': 'form-select'}),
         }
