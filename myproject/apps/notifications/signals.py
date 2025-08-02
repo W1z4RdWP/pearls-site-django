@@ -60,6 +60,17 @@ def create_platform_update_notification_for_all(title, message):
         Notification.create_platform_update_notification(user, title, message)
 
 
+@receiver(post_save, sender='myapp.ChangeLog')
+def create_platform_update_notification_on_changelog(sender, instance, created, **kwargs):
+    """Создает уведомление об обновлении платформы при создании новой записи в ChangeLog"""
+    if created and instance.is_public:
+        title = f"Обновление платформы до версии {instance.version}"
+        message = f"{instance.title}\n\n{instance.description}"
+        
+        # Создаем уведомления для всех активных пользователей
+        create_platform_update_notification_for_all(title, message)
+
+
 def create_course_reminder_notifications():
     """Создает напоминания о курсах, которые были назначены автоматически"""
     # Находим курсы, назначенные через группы, но не пройденные
