@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Badge, Achievement, UserBadge, UserAchievement
+from .models import Badge, Achievement, UserBadge, UserAchievement, DascoinTransaction
 
 
 @admin.register(Badge)
@@ -32,3 +32,15 @@ class UserAchievementAdmin(admin.ModelAdmin):
     list_filter = ['achievement__achievement_type', 'earned_at']
     search_fields = ['user__username', 'user__first_name', 'user__last_name', 'achievement__name']
     ordering = ['-earned_at']
+
+
+@admin.register(DascoinTransaction)
+class DascoinTransactionAdmin(admin.ModelAdmin):
+    list_display = ['user', 'transaction_type', 'points_change', 'points_before', 'points_after', 'admin_user', 'created_at']
+    list_filter = ['transaction_type', 'created_at', 'admin_user']
+    search_fields = ['user__username', 'user__first_name', 'user__last_name', 'reason']
+    readonly_fields = ['created_at']
+    date_hierarchy = 'created_at'
+    
+    def has_add_permission(self, request):
+        return False  # Запрещаем ручное создание транзакций

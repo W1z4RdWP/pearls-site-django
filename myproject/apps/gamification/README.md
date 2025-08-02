@@ -130,6 +130,13 @@ python manage.py manage_dascoin deduct username 50 --reason "Отмена оши
 
 # Установить точное количество
 python manage.py manage_dascoin set username 250 --reason "Исправление баланса"
+
+# Начисление с указанием администратора
+python manage.py manage_dascoin add username 100 --reason "Компенсация за ошибку" --admin admin_user
+
+# Просмотр истории транзакций
+python manage.py manage_dascoin history username
+python manage.py manage_dascoin history username --detailed
 ```
 
 ## Интеграция
