@@ -17,6 +17,7 @@ class Role(models.Model):
     )
 
     class Meta:
+        app_label = 'users'
         verbose_name = 'Должность'
         verbose_name_plural = 'Должности'
         ordering = ['name']
@@ -77,6 +78,7 @@ class Profile(models.Model):
     dascoin_points = models.PositiveIntegerField(default=0, verbose_name="Баллы DASCOIN")
 
     class Meta:
+        app_label = 'users'
         verbose_name = 'Пользователь'
         verbose_name_plural = 'Пользователи'
         ordering = ['user']

@@ -714,7 +714,7 @@ def complete_lesson(request, course_slug, lesson_id):
     
     # Начисляем очки только если урок завершается впервые
     if not progress.completed:
-        award_dascoin_points(user, lesson.points)
+        award_dascoin_points(user, lesson.points, f"Завершение урока {lesson.title}")
     
     # Создаем или обновляем прогресс
     UserProgress.objects.update_or_create(
@@ -752,6 +752,7 @@ def complete_lesson(request, course_slug, lesson_id):
             if not was_completed_before:
                 user_course.status = 'completed'
                 user_course.save()
+                award_dascoin_points(user, course.points, f"Завершение курса {course.title}")
                 award_course_badge(user, course)
             else:
                 # Курс уже был завершен, просто обновляем статус

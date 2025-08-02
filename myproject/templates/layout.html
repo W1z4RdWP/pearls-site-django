@@ -4,7 +4,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}Home{% endblock %}</title>
+    <meta name="csrf-token" content="{{ csrf_token }}">
+    <title>{% block title %}УЦ «Территория Улыбки»{% endblock %}</title>
     {% comment %} Шрифты {% endcomment %}
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@600&family=Open+Sans&display=swap" rel="stylesheet">
     <link rel="icon" href="{% static 'global/imgs/favicon.ico' %}" type="image/x-icon">
@@ -28,6 +29,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Onest:wght@100..900&display=swap" rel="stylesheet">
 
     <link rel="stylesheet" href="{% static 'global/css/style.css' %}" />
+    <link rel="stylesheet" href="{% static 'notifications/css/notifications.css' %}" />
     <script src="{% static 'global/js/scripts.js' %}" defer></script>
     {% block specific_styles %} {% endblock %}
     <script>
@@ -79,6 +81,24 @@
                       </li>
                     {% endif %}
                   {% endif %}
+                      <!-- Уведомления -->
+                      <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle d-flex align-items-center position-relative" href="#" id="notificationDropdown" role="button"
+                          data-bs-toggle="dropdown" aria-expanded="false">
+                          <i class="fas fa-bell"></i>
+                          <span id="notification-badge" class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" style="display: none;">
+                            0
+                          </span>
+                        </a>
+                        <ul class="dropdown-menu dropdown-menu-end notification-dropdown-menu" aria-labelledby="notificationDropdown" style="width: 350px; max-height: 400px; overflow-y: auto;">
+                          <li id="notification-list">
+                            <div class="dropdown-item-text text-center">
+                              <i class="fas fa-spinner fa-spin"></i> Загрузка...
+                            </div>
+                          </li>
+                        </ul>
+                      </li>
+                      
                       <li class="nav-item dropdown">
                         <a class="nav-link dropdown-toggle d-flex align-items-center" href="#" id="profileDropdown" role="button"
                           data-bs-toggle="dropdown" aria-expanded="false">
@@ -179,5 +199,95 @@
     </script>
     <!-- jQuery -->
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    
+    <!-- Уведомления JavaScript -->
+    {% if user.is_authenticated %}
+    <script>
+        // Функция для загрузки уведомлений
+        function loadNotifications() {
+            $.ajax({
+                url: '{% url "notifications:notification_dropdown" %}',
+                method: 'GET',
+                success: function(data) {
+                    $('#notification-list').html(data);
+                },
+                error: function() {
+                    $('#notification-list').html('<li><div class="dropdown-item-text text-center text-danger">Ошибка загрузки</div></li>');
+                }
+            });
+        }
+        
+        // Функция для обновления счетчика уведомлений
+        function updateNotificationCount() {
+            $.ajax({
+                url: '{% url "notifications:notification_count" %}',
+                method: 'GET',
+                success: function(data) {
+                    const count = data.count;
+                    const badge = $('#notification-badge');
+                    const countText = $('#notification-count-text');
+                    
+                    if (count > 0) {
+                        badge.text(count).show();
+                        countText.text(count + ' непрочитанных');
+                    } else {
+                        badge.hide();
+                        countText.text('Нет уведомлений');
+                    }
+                }
+            });
+        }
+        
+        // Обработчик для отметки уведомления как прочитанного
+        $(document).on('click', '.mark-read-btn', function(e) {
+            e.preventDefault();
+            const notificationId = $(this).data('notification-id');
+            const notificationItem = $(this).closest('.notification-item');
+            
+            $.ajax({
+                url: '/notifications/' + notificationId + '/mark-read/',
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': $('[name=csrfmiddlewaretoken]').val() || $('meta[name=csrf-token]').attr('content')
+                },
+                success: function() {
+                    notificationItem.removeClass('unread');
+                    updateNotificationCount();
+                    loadNotifications();
+                }
+            });
+        });
+        
+        // Обработчик для отметки всех уведомлений как прочитанных
+        $(document).on('click', '.mark-all-read-btn', function(e) {
+            e.preventDefault();
+            
+            $.ajax({
+                url: '{% url "notifications:mark_all_as_read" %}',
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': $('[name=csrfmiddlewaretoken]').val() || $('meta[name=csrf-token]').attr('content')
+                },
+                success: function() {
+                    updateNotificationCount();
+                    loadNotifications();
+                }
+            });
+        });
+        
+        // Загрузка уведомлений при открытии dropdown
+        $('#notificationDropdown').on('show.bs.dropdown', function() {
+            loadNotifications();
+        });
+        
+        // Инициализация при загрузке страницы
+        $(document).ready(function() {
+            updateNotificationCount();
+            
+            // Обновление каждые 30 секунд
+            setInterval(updateNotificationCount, 30000);
+        });
+    </script>
+    {% endif %}
 </body>
 </html>

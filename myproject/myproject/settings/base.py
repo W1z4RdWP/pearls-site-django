@@ -59,13 +59,14 @@ INSTALLED_APPS = [
     'widget_tweaks',
     
 
-    'myapp',
-    'users',
-    'courses',
-    'quizzes',
-    'builder', # БЗ. Конструктор траекторий из уроков.
-    'user_management',
-    'gamification',
+    'myapp.apps.MyappConfig',
+    'users.apps.UsersConfig',
+    'courses.apps.CoursesConfig',
+    'quizzes.apps.QuizzesConfig',
+    'builder.apps.BuilderConfig', # БЗ. Конструктор траекторий из уроков.
+    'user_management.apps.UserManagementConfig',
+    'gamification.apps.GamificationConfig',
+    'notifications.apps.NotificationsConfig',
 ]
 
 X_FRAME_OPTIONS = "SAMEORIGIN"              # allows you to use modals insated of popups

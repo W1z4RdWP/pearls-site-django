@@ -3,7 +3,10 @@
 
 {% block title %}{{ lesson.title }}{% endblock %}
 
-{% block specific_styles %}<link rel="stylesheet" href="{% static 'courses/css/lesson_custom_buttons.css' %}"> {% endblock %}
+{% block specific_styles %}
+        <link rel="stylesheet" href="{% static 'courses/css/lesson_custom_buttons.css' %}"> 
+        <script src="{% static 'courses/js/ckeditor_target_blank.js' %}"></script>
+{% endblock %}
 
 {% block content %}
 

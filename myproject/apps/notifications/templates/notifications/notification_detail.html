@@ -1,0 +1,193 @@
+{% extends 'layout.html' %}
+{% load static %}
+
+{% block title %}{{ notification.title }}{% endblock %}
+
+{% block specific_styles %}
+<style>
+    .notification-detail {
+        background: #fff;
+        border: 1px solid #dee2e6;
+        border-radius: 0.5rem;
+        padding: 2rem;
+        margin-bottom: 2rem;
+    }
+    
+    .notification-header {
+        border-bottom: 1px solid #dee2e6;
+        padding-bottom: 1rem;
+        margin-bottom: 1.5rem;
+    }
+    
+    .notification-title {
+        font-size: 1.5rem;
+        font-weight: 600;
+        color: #212529;
+        margin-bottom: 0.5rem;
+    }
+    
+    .notification-meta {
+        display: flex;
+        gap: 1rem;
+        font-size: 0.875rem;
+        color: #6c757d;
+    }
+    
+    .notification-type-badge {
+        font-size: 0.75rem;
+        padding: 0.25rem 0.5rem;
+        border-radius: 0.25rem;
+        background-color: #e9ecef;
+        color: #495057;
+    }
+    
+    .notification-content {
+        line-height: 1.6;
+        color: #212529;
+        margin-bottom: 2rem;
+    }
+    
+    .notification-actions {
+        border-top: 1px solid #dee2e6;
+        padding-top: 1.5rem;
+        display: flex;
+        gap: 1rem;
+        flex-wrap: wrap;
+    }
+    
+    .related-object {
+        background: #f8f9fa;
+        border: 1px solid #dee2e6;
+        border-radius: 0.375rem;
+        padding: 1rem;
+        margin-top: 1rem;
+    }
+    
+    .related-object h6 {
+        margin-bottom: 0.5rem;
+        color: #495057;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-12">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item">
+                        <a href="{% url 'notifications:notification_list' %}">
+                            <i class="fas fa-bell"></i> Уведомления
+                        </a>
+                    </li>
+                    <li class="breadcrumb-item active" aria-current="page">
+                        {{ notification.title|truncatechars:50 }}
+                    </li>
+                </ol>
+            </nav>
+            
+            <div class="notification-detail">
+                <div class="notification-header">
+                    <div class="notification-title">
+                        {% if not notification.is_read %}
+                            <i class="fas fa-circle text-primary" style="font-size: 0.5rem;"></i>
+                        {% endif %}
+                        {{ notification.title }}
+                    </div>
+                    <div class="notification-meta">
+                        <span class="notification-type-badge">
+                            {{ notification.get_notification_type_display }}
+                        </span>
+                        <span>
+                            <i class="fas fa-clock"></i> {{ notification.created_at|date:"d.m.Y H:i" }}
+                        </span>
+                        {% if notification.is_read %}
+                            <span class="text-success">
+                                <i class="fas fa-check"></i> Прочитано
+                            </span>
+                        {% else %}
+                            <span class="text-warning">
+                                <i class="fas fa-circle"></i> Не прочитано
+                            </span>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <div class="notification-content">
+                    {{ notification.message|linebreaks }}
+                </div>
+                
+                <!-- Связанные объекты -->
+                {% if notification.related_course %}
+                    <div class="related-object">
+                        <h6><i class="fas fa-graduation-cap"></i> Связанный курс</h6>
+                        <p class="mb-2"><strong>{{ notification.related_course.title }}</strong></p>
+                        <p class="mb-0 text-muted">{{ notification.related_course.description|truncatechars:200 }}</p>
+                    </div>
+                {% endif %}
+                
+                {% if notification.related_trajectory %}
+                    <div class="related-object">
+                        <h6><i class="fas fa-route"></i> Связанная траектория</h6>
+                        <p class="mb-2"><strong>{{ notification.related_trajectory.name }}</strong></p>
+                        <p class="mb-0 text-muted">{{ notification.related_trajectory.description|truncatechars:200 }}</p>
+                    </div>
+                {% endif %}
+                
+                {% if notification.related_lesson %}
+                    <div class="related-object">
+                        <h6><i class="fas fa-book"></i> Связанный урок</h6>
+                        <p class="mb-2"><strong>{{ notification.related_lesson.title }}</strong></p>
+                        {% if notification.related_lesson.course %}
+                            <p class="mb-0 text-muted">Курс: {{ notification.related_lesson.course.title }}</p>
+                        {% endif %}
+                    </div>
+                {% endif %}
+                
+                {% if notification.points_change %}
+                    <div class="related-object">
+                        <h6><i class="fas fa-coins"></i> Изменение баллов DASCOIN</h6>
+                        <p class="mb-0">
+                            {% if notification.points_change > 0 %}
+                                <span class="text-success">+{{ notification.points_change }} баллов</span>
+                            {% else %}
+                                <span class="text-danger">{{ notification.points_change }} баллов</span>
+                            {% endif %}
+                        </p>
+                    </div>
+                {% endif %}
+                
+                <div class="notification-actions">
+                    {% if not notification.is_read %}
+                        <form method="post" action="{% url 'notifications:mark_as_read' notification.id %}" style="display: inline;">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-success">
+                                <i class="fas fa-check"></i> Отметить как прочитанное
+                            </button>
+                        </form>
+                    {% endif %}
+                    
+                    {% if notification.get_absolute_url != '#' %}
+                        <a href="{{ notification.get_absolute_url }}" class="btn btn-primary">
+                            <i class="fas fa-external-link-alt"></i> Перейти к связанному объекту
+                        </a>
+                    {% endif %}
+                    
+                    <a href="{% url 'notifications:notification_list' %}" class="btn btn-outline-secondary">
+                        <i class="fas fa-arrow-left"></i> Назад к списку
+                    </a>
+                    
+                    <form method="post" action="{% url 'notifications:delete_notification' notification.id %}" style="display: inline;">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-outline-danger"
+                                onclick="return confirm('Удалить уведомление?')">
+                            <i class="fas fa-trash"></i> Удалить
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 
