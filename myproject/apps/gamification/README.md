@@ -97,6 +97,48 @@ python manage.py create_sample_badges
 python manage.py award_test_points username 500
 ```
 
+### Управление баллами dascoin
+Для расширения команды дополняйте файл
+gamification/management/commands/manage_dascoin.py
+
+Функции выполняемые этой командой описаны в gamification/utils.py
+
+**Команды для отслеживания статистики:**
+```bash
+# Просмотр баллов конкретного пользователя
+python manage.py manage_dascoin show username
+
+# Просмотр с детальной информацией
+python manage.py manage_dascoin show username --detailed
+
+# Или с отдельной командой
+python manage.py show_dascoin username
+python manage.py show_dascoin username --detailed
+
+# Просмотр всех пользователей с баллами
+python manage.py show_dascoin --all
+```
+
+
+Для управления количеством баллов пользователю используейте команды:
+```bash
+# Добавить баллы
+python manage.py manage_dascoin add username 100 --reason "Компенсация за ошибку"
+
+# Списать баллы
+python manage.py manage_dascoin deduct username 50 --reason "Отмена ошибочного начисления"
+
+# Установить точное количество
+python manage.py manage_dascoin set username 250 --reason "Исправление баланса"
+
+# Начисление с указанием администратора
+python manage.py manage_dascoin add username 100 --reason "Компенсация за ошибку" --admin admin_user
+
+# Просмотр истории транзакций
+python manage.py manage_dascoin history username
+python manage.py manage_dascoin history username --detailed
+```
+
 ## Интеграция
 
 Система интегрирована в профиль пользователя и отображает:

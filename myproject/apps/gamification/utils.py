@@ -1,9 +1,12 @@
+import logging
 from django.contrib.auth.models import User
 from django.db import transaction
-from .models import Badge, Achievement, UserBadge, UserAchievement
+from .models import Badge, Achievement, UserBadge, UserAchievement, DascoinTransaction
+
+logger = logging.getLogger(__name__)
 
 
-def award_dascoin_points(user: User, points: int, reason: str = "") -> None:
+def award_dascoin_points(user: User, points: int, reason: str = "", admin_user: User = None) -> None:
     """
     Начисляет баллы DASCOIN пользователю.
     
@@ -11,12 +14,115 @@ def award_dascoin_points(user: User, points: int, reason: str = "") -> None:
         user (User): Пользователь
         points (int): Количество баллов
         reason (str): Причина начисления
+        admin_user (User): Администратор, выполнивший операцию
+
     """
     with transaction.atomic():
         profile = user.profile
-        # Сохраняем причину начисления во временном атрибуте
-        profile._dascoin_reason = reason
+        points_before = profile.dascoin_points
         profile.add_dascoin_points(points)
+        points_after = profile.dascoin_points
+        
+        # Логируем транзакцию
+        DascoinTransaction.objects.create(
+            user=user,
+            transaction_type='award',
+            points_change=points,
+            points_before=points_before,
+            points_after=points_after,
+            reason=reason,
+            admin_user=admin_user
+        )
+        
+        # Логируем в аудит
+        logger.info(
+            f"DASCOIN начисление: пользователь {user.username}, "
+            f"баллов: {points}, причина: {reason}",
+            extra={'user': admin_user.username if admin_user else 'system'}
+        )
+        
+        # Проверяем, нужно ли выдать новые бейджи
+        check_and_award_badges(user)
+
+
+
+def deduct_dascoin_points(user: User, points: int, reason: str = "", admin_user: User = None) -> None:
+    """
+    Списывает баллы DASCOIN у пользователя.
+    
+    Args:
+        user (User): Пользователь
+        points (int): Количество баллов для списания
+        reason (str): Причина списания
+        admin_user (User): Администратор, выполнивший операцию
+    """
+    with transaction.atomic():
+        profile = user.profile
+        points_before = profile.dascoin_points
+        
+        if profile.dascoin_points >= points:
+            profile.dascoin_points -= points
+        else:
+            profile.dascoin_points = 0
+            
+        profile.save()
+        points_after = profile.dascoin_points
+        actual_deduction = points_before - points_after
+        
+        # Логируем транзакцию
+        DascoinTransaction.objects.create(
+            user=user,
+            transaction_type='deduct',
+            points_change=-actual_deduction,
+            points_before=points_before,
+            points_after=points_after,
+            reason=reason,
+            admin_user=admin_user
+        )
+        
+        # Логируем в аудит
+        logger.info(
+            f"DASCOIN списание: пользователь {user.username}, "
+            f"баллов: {actual_deduction}, причина: {reason}",
+            extra={'user': admin_user.username if admin_user else 'system'}
+        )
+
+
+def set_dascoin_points(user: User, points: int, reason: str = "", admin_user: User = None) -> None:
+    """
+    Устанавливает точное количество баллов DASCOIN пользователю.
+    
+    Args:
+        user (User): Пользователь
+        points (int): Новое количество баллов
+        reason (str): Причина изменения
+        admin_user (User): Администратор, выполнивший операцию
+    """
+    with transaction.atomic():
+        profile = user.profile
+        points_before = profile.dascoin_points
+        profile.dascoin_points = max(0, points)
+        profile.save()
+        points_after = profile.dascoin_points
+        points_change = points_after - points_before
+        
+        # Логируем транзакцию
+        DascoinTransaction.objects.create(
+            user=user,
+            transaction_type='set',
+            points_change=points_change,
+            points_before=points_before,
+            points_after=points_after,
+            reason=reason,
+            admin_user=admin_user
+        )
+        
+        # Логируем в аудит
+        logger.info(
+            f"DASCOIN установка: пользователь {user.username}, "
+            f"было: {points_before}, стало: {points_after}, причина: {reason}",
+            extra={'user': admin_user.username if admin_user else 'system'}
+        )
         
         # Проверяем, нужно ли выдать новые бейджи
         check_and_award_badges(user)
@@ -270,39 +376,4 @@ def get_user_gamification_stats(user: User) -> dict:
         'total_achievements': profile.get_achievements().count(),
         'recent_badges': list(profile.get_recent_badges()),
         'recent_achievements': list(profile.get_recent_achievements()),
-        'level': calculate_level(profile.dascoin_points),
-        'progress_to_next_level': calculate_progress_to_next_level(profile.dascoin_points)
     }
-
-
-def calculate_level(points: int) -> int:
-    """
-    Рассчитывает уровень на основе баллов.
-    
-    Args:
-        points (int): Количество баллов
-        
-    Returns:
-        int: Уровень пользователя
-    """
-    level = 1
-    while points >= level * 100:
-        level += 1
-    return level
-
-
-def calculate_progress_to_next_level(points: int) -> int:
-    """
-    Рассчитывает прогресс до следующего уровня.
-    
-    Args:
-        points (int): Количество баллов
-        
-    Returns:
-        int: Прогресс в процентах
-    """
-    level = calculate_level(points)
-    points_for_current_level = (level - 1) * 100
-    points_for_next_level = level * 100
-    progress = ((points - points_for_current_level) / (points_for_next_level - points_for_current_level)) * 100
-    return min(int(progress), 100) 

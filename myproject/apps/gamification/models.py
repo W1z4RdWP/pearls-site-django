@@ -98,3 +98,37 @@ class UserAchievement(models.Model):
     def __str__(self):
         return f"{self.user.username} - {self.achievement.name}"
 
+
+class DascoinTransaction(models.Model):
+    """Модель для логирования транзакций DASCOIN"""
+    
+    TRANSACTION_TYPES = [
+        ('award', 'Начисление'),
+        ('deduct', 'Списание'),
+        ('set', 'Установка'),
+        ('correction', 'Корректировка'),
+    ]
+    
+    user = models.ForeignKey(User, on_delete=models.CASCADE, verbose_name="Пользователь")
+    transaction_type = models.CharField(max_length=20, choices=TRANSACTION_TYPES, verbose_name="Тип транзакции")
+    points_change = models.IntegerField(verbose_name="Изменение баллов")
+    points_before = models.PositiveIntegerField(verbose_name="Баллов до")
+    points_after = models.PositiveIntegerField(verbose_name="Баллов после")
+    reason = models.TextField(blank=True, verbose_name="Причина")
+    admin_user = models.ForeignKey(
+        User, 
+        on_delete=models.SET_NULL, 
+        null=True, 
+        blank=True, 
+        related_name='admin_transactions',
+        verbose_name="Администратор"
+    )
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name="Дата создания")
+    
+    class Meta:
+        verbose_name = "Транзакция DASCOIN"
+        verbose_name_plural = "Транзакции DASCOIN"
+        ordering = ['-created_at']
+    
+    def __str__(self):
+        return f"{self.user.username} - {self.get_transaction_type_display()} {self.points_change} баллов"
