@@ -1,0 +1,1320 @@
+:root {
+    --trajectory-badge-text: #fff;
+    --trajectory-badge-bg: #4e73df;
+    --trajectory-black: #000;
+    --trajectory-table-header-bg: #f8f9fc;
+    --trajectory-table-header-border: #e3e6f0;
+    --trajectory-table-header-color: #5a5c69;
+    --trajectory-table-row-border: #e3e6f0;
+    --trajectory-border-left-primary: #4e73df;
+    --trajectory-border-left-success: #1cc88a;
+    --trajectory-border-left-info: #36b9cc;
+    --trajectory-border-left-warning: #f6c23e;
+    --trajectory-btn-hover-shadow: rgba(0,0,0,0.1);
+    --trajectory-spinner: #4e73df;
+    --trajectory-alert-success-bg: #d4edda;
+    --trajectory-alert-success-color: #155724;
+    --trajectory-alert-danger-bg: #f8d7da;
+    --trajectory-alert-danger-color: #721c24;
+    --trajectory-pagination-link: #4e73df;
+    --trajectory-pagination-link-hover-bg: #eaecf4;
+    --trajectory-pagination-link-hover-border: #e3e6f0;
+    --trajectory-pagination-active-bg: #4e73df;
+    --trajectory-pagination-active-border: #4e73df;
+    --trajectory-input-focus-border: #4e73df;
+    --trajectory-input-focus-shadow: rgba(78, 115, 223, 0.25);
+    --trajectory-empty-bg: #f8f9fc;
+    --trajectory-empty-border-radius: 0.35rem;
+    --trajectory-gray-300: #dddfeb;
+    --trajectory-gray-500: #858796;
+    --trajectory-datatable-paginate-btn: #4e73df;
+    --trajectory-datatable-paginate-btn-border: #e3e6f0;
+    --trajectory-datatable-paginate-btn-hover-bg: #eaecf4;
+    --trajectory-datatable-paginate-btn-current-bg: #4e73df;
+    --trajectory-datatable-paginate-btn-current-color: #fff;
+    --trajectory-form-label: #5a5c69;
+    --trajectory-form-border: #d1d3e2;
+    --trajectory-form-focus-border: #4e73df;
+    --trajectory-form-focus-shadow: rgba(78, 115, 223, 0.25);
+    --trajectory-breadcrumb-separator: #858796;
+    --trajectory-breadcrumb-link: #4e73df;
+    --trajectory-breadcrumb-link-hover: #2e59d9;
+    --trajectory-breadcrumb-active: #858796;
+    --trajectory-card-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.15);
+    --trajectory-card-bg-light-hover: #f8f9fc;
+    --trajectory-card-bg-light-shadow: 0 0.5rem 2rem 0 rgba(58, 59, 69, 0.15);
+    --trajectory-card-title: #5a5c69;
+    --trajectory-card-text: #858796;
+    --trajectory-card-border: #e3e6f0;
+    --trajectory-btn-outline-hover-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    --trajectory-invalid-feedback: #e74a3b;
+    --trajectory-timeline-header-bg: #f8f9fc;
+    --trajectory-timeline-header-border: #e3e6f0;
+    --trajectory-timeline-header-color: #5a5c69;
+    --trajectory-timeline-line-gradient: linear-gradient(to bottom, #4e73df, #36b9cc);
+    --trajectory-timeline-content-bg: #fff;
+    --trajectory-timeline-content-border: #e3e6f0;
+    --trajectory-timeline-content-radius: 0.35rem;
+    --trajectory-timeline-day-badge-bg: linear-gradient(135deg, #4e73df, #36b9cc);
+    --trajectory-timeline-day-badge-color: #fff;
+    --trajectory-timeline-course-title: #5a5c69;
+    --trajectory-timeline-deadline-info: #858796;
+    --trajectory-timeline-item-hover-bg: #f8f9fc;
+    --trajectory-timeline-item-hover-radius: 0.35rem;
+    --trajectory-timeline-item-placeholder-bg: #f8f9fc;
+    --trajectory-timeline-item-placeholder-border: #4e73df;
+    --trajectory-timeline-item-chosen-bg: #e3f2fd;
+    --trajectory-timeline-item-chosen-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.15);
+    --trajectory-timeline-item-drag-bg: #fff;
+    --trajectory-timeline-item-drag-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.15);
+    --trajectory-timeline-item-drag-rotate: 2deg;
+    --trajectory-selectable-course-hover-border: #007bff;
+    --trajectory-selectable-course-selected-border: #28a745;
+    --trajectory-selectable-course-selected-bg: #f8fff9;
+    --trajectory-selectable-course-selected-shadow: 0 4px 12px rgba(40, 167, 69, 0.3);
+    --trajectory-course-selection-overlay-bg: #fff;
+    --trajectory-course-selection-overlay-border: #dee2e6;
+    --trajectory-course-selection-overlay-selected-bg: #28a745;
+    --trajectory-course-selection-overlay-selected-color: #fff;
+    --trajectory-course-selection-overlay-icon: #28a745;
+    --trajectory-course-selection-overlay-selected-icon: #fff;
+    --trajectory-add-selected-courses-btn-shadow: 0 0 0 0 rgba(40, 167, 69, 0.7);
+    --trajectory-add-selected-courses-btn-shadow-70: 0 0 0 10px rgba(40, 167, 69, 0);
+    --trajectory-course-card-hover-border: #4e73df;
+    --trajectory-course-card-hover-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.15);
+    --trajectory-course-thumbnail-border: #e3e6f0;
+    --trajectory-course-placeholder-bg: #f8f9fc;
+    --trajectory-course-placeholder-border: #e3e6f0;
+    --trajectory-course-placeholder-color: #858796;
+    --trajectory-course-title: #5a5c69;
+    --trajectory-course-meta: #858796;
+    --trajectory-course-actions-dropdown-bg: #fff;
+    --trajectory-course-actions-dropdown-border: #e3e6f0;
+    --trajectory-course-actions-dropdown-shadow: 0 2px 8px #e3e8f0;
+    --trajectory-question-block-border: #e3e6f0;
+    --trajectory-question-block-radius: 8px;
+    --trajectory-question-block-hover-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    --trajectory-question-block-header-bg: #f8f9fc;
+    --trajectory-question-block-header-border: #e3e6f0;
+    --trajectory-answer-item-bg: #f8f9fc;
+    --trajectory-answer-item-border: #e3e6f0;
+    --trajectory-answer-item-hover-bg: #e9ecef;
+    --trajectory-answer-item-checked-bg: #28a745;
+    --trajectory-answer-item-checked-border: #28a745;
+    --trajectory-answers-container-border: #e3e6f0;
+    --trajectory-answers-container-bg: #f8f9fc;
+    --trajectory-create-quiz-modal-btn-success-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    --trajectory-create-quiz-modal-btn-success-hover-shadow: 0 4px 8px rgba(0,0,0,0.15);
+    --trajectory-create-quiz-modal-btn-success-active-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+body.theme-dark {
+  --trajectory-badge-text: #fff;
+  --trajectory-badge-bg: #5473B5;
+  --trajectory-black: #fff;
+  --trajectory-table-header-bg: #232a3a;
+  --trajectory-table-header-border: #353535;
+  --trajectory-table-header-color: #eee;
+  --trajectory-table-row-border: #353535;
+  --trajectory-border-left-primary: #5473B5;
+  --trajectory-border-left-success: #218838;
+  --trajectory-border-left-info: #2dabc4;
+  --trajectory-border-left-warning: #bb2d3b;
+  --trajectory-btn-hover-shadow: rgba(0,0,0,0.3);
+  --trajectory-spinner: #5473B5;
+  --trajectory-alert-success-bg: #1e2d1e;
+  --trajectory-alert-success-color: #28a745;
+  --trajectory-alert-danger-bg: #2d1e1e;
+  --trajectory-alert-danger-color: #dc3545;
+  --trajectory-pagination-link: #5473B5;
+  --trajectory-pagination-link-hover-bg: #232a3a;
+  --trajectory-pagination-link-hover-border: #353535;
+  --trajectory-pagination-active-bg: #5473B5;
+  --trajectory-pagination-active-border: #5473B5;
+  --trajectory-input-focus-border: #5473B5;
+  --trajectory-input-focus-shadow: rgba(84, 115, 181, 0.25);
+  --trajectory-empty-bg: #232a3a;
+  --trajectory-empty-border-radius: 0.35rem;
+  --trajectory-gray-300: #444;
+  --trajectory-gray-500: #bdbdbd;
+  --trajectory-datatable-paginate-btn: #5473B5;
+  --trajectory-datatable-paginate-btn-border: #353535;
+  --trajectory-datatable-paginate-btn-hover-bg: #232a3a;
+  --trajectory-datatable-paginate-btn-current-bg: #5473B5;
+  --trajectory-datatable-paginate-btn-current-color: #fff;
+  --trajectory-form-label: #eee;
+  --trajectory-form-border: #353535;
+  --trajectory-form-focus-border: #5473B5;
+  --trajectory-form-focus-shadow: rgba(84, 115, 181, 0.25);
+  --trajectory-breadcrumb-separator: #bdbdbd;
+  --trajectory-breadcrumb-link: #5473B5;
+  --trajectory-breadcrumb-link-hover: #2dabc4;
+  --trajectory-breadcrumb-active: #bdbdbd;
+  --trajectory-card-shadow: 0 0.15rem 1.75rem 0 #0007;
+  --trajectory-card-bg-light-hover: #232a3a;
+  --trajectory-card-bg-light-shadow: 0 0.5rem 2rem 0 #0007;
+  --trajectory-card-title: #eee;
+  --trajectory-card-text: #bdbdbd;
+  --trajectory-card-border: #353535;
+  --trajectory-btn-outline-hover-shadow: 0 2px 4px rgba(0,0,0,0.3);
+  --trajectory-invalid-feedback: #ff4d4f;
+  --trajectory-timeline-header-bg: #232a3a;
+  --trajectory-timeline-header-border: #353535;
+  --trajectory-timeline-header-color: #eee;
+  --trajectory-timeline-line-gradient: linear-gradient(to bottom, #5473B5, #2dabc4);
+  --trajectory-timeline-content-bg: #232a3a;
+  --trajectory-timeline-content-border: #353535;
+  --trajectory-timeline-content-radius: 0.35rem;
+  --trajectory-timeline-day-badge-bg: linear-gradient(135deg, #5473B5, #2dabc4);
+  --trajectory-timeline-day-badge-color: #fff;
+  --trajectory-timeline-course-title: #eee;
+  --trajectory-timeline-deadline-info: #bdbdbd;
+  --trajectory-timeline-item-hover-bg: #353535;
+  --trajectory-timeline-item-hover-radius: 0.35rem;
+  --trajectory-timeline-item-placeholder-bg: #353535;
+  --trajectory-timeline-item-placeholder-border: #5473B5;
+  --trajectory-timeline-item-chosen-bg: #232a3a;
+  --trajectory-timeline-item-chosen-shadow: 0 0.15rem 1.75rem 0 #0007;
+  --trajectory-timeline-item-drag-bg: #232a3a;
+  --trajectory-timeline-item-drag-shadow: 0 0.15rem 1.75rem 0 #0007;
+  --trajectory-timeline-item-drag-rotate: 2deg;
+  --trajectory-selectable-course-hover-border: #2dabc4;
+  --trajectory-selectable-course-selected-border: #28a745;
+  --trajectory-selectable-course-selected-bg: #1e2d1e;
+  --trajectory-selectable-course-selected-shadow: 0 4px 12px rgba(40, 167, 69, 0.3);
+  --trajectory-course-selection-overlay-bg: #232a3a;
+  --trajectory-course-selection-overlay-border: #353535;
+  --trajectory-course-selection-overlay-selected-bg: #28a745;
+  --trajectory-course-selection-overlay-selected-color: #fff;
+  --trajectory-course-selection-overlay-icon: #28a745;
+  --trajectory-course-selection-overlay-selected-icon: #fff;
+  --trajectory-add-selected-courses-btn-shadow: 0 0 0 0 rgba(40, 167, 69, 0.7);
+  --trajectory-add-selected-courses-btn-shadow-70: 0 0 0 10px rgba(40, 167, 69, 0);
+  --trajectory-course-card-hover-border: #5473B5;
+  --trajectory-course-card-hover-shadow: 0 0.15rem 1.75rem 0 #0007;
+  --trajectory-course-thumbnail-border: #353535;
+  --trajectory-course-placeholder-bg: #232a3a;
+  --trajectory-course-placeholder-border: #353535;
+  --trajectory-course-placeholder-color: #bdbdbd;
+  --trajectory-course-title: #eee;
+  --trajectory-course-meta: #bdbdbd;
+  --trajectory-course-actions-dropdown-bg: #232a3a;
+  --trajectory-course-actions-dropdown-border: #353535;
+  --trajectory-course-actions-dropdown-shadow: 0 2px 8px #0007;
+  --trajectory-question-block-border: #353535;
+  --trajectory-question-block-radius: 8px;
+  --trajectory-question-block-hover-shadow: 0 2px 8px rgba(0,0,0,0.3);
+  --trajectory-question-block-header-bg: #232a3a;
+  --trajectory-question-block-header-border: #353535;
+  --trajectory-answer-item-bg: #232a3a;
+  --trajectory-answer-item-border: #353535;
+  --trajectory-answer-item-hover-bg: #353535;
+  --trajectory-answer-item-checked-bg: #28a745;
+  --trajectory-answer-item-checked-border: #28a745;
+  --trajectory-answers-container-border: #353535;
+  --trajectory-answers-container-bg: #232a3a;
+  --trajectory-create-quiz-modal-btn-success-shadow: 0 2px 4px rgba(0,0,0,0.3);
+  --trajectory-create-quiz-modal-btn-success-hover-shadow: 0 4px 8px rgba(0,0,0,0.4);
+  --trajectory-create-quiz-modal-btn-success-active-shadow: 0 2px 4px rgba(0,0,0,0.3);
+}
+
+.text-dark{
+    color: var(--trajectory-black);
+}
+
+/* Карточки статистики */
+.card.border-left-primary {
+    border-left: 0.25rem solid var(--trajectory-border-left-primary) !important;
+}
+
+.card.border-left-success {
+    border-left: 0.25rem solid var(--trajectory-border-left-success) !important;
+}
+
+.card.border-left-info {
+    border-left: 0.25rem solid var(--trajectory-border-left-info) !important;
+}
+
+.card.border-left-warning {
+    border-left: 0.25rem solid var(--trajectory-border-left-warning) !important;
+}
+
+/* Анимации для кнопок */
+.btn-group .btn {
+    transition: all 0.2s ease-in-out;
+}
+
+.btn-group .btn:hover {
+    transform: translateY(-1px);
+    box-shadow: var(--trajectory-btn-hover-shadow);
+}
+
+/* Стили для таблицы */
+.table-responsive {
+    border-radius: 0.35rem;
+}
+
+#trajectoriesTable th {
+    background-color: var(--trajectory-table-header-bg);
+    border-color: var(--trajectory-table-header-border);
+    font-weight: 600;
+    color: var(--trajectory-table-header-color);
+}
+
+#trajectoriesTable td {
+    vertical-align: middle;
+    border-color: var(--trajectory-table-row-border);
+}
+
+/* Стили для бейджей */
+.badge-pill {
+    border-radius: 10rem;
+    color: var(--trajectory-badge-text);
+    background-color: var(--trajectory-badge-bg);
+}
+
+/* Стили для модальных окон */
+.modal-content {
+    border: none;
+    border-radius: 0.35rem;
+    box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.15);
+}
+
+.modal-header {
+    border-bottom: 1px solid #e3e6f0;
+    background-color: #f8f9fc;
+}
+
+.modal-footer {
+    border-top: 1px solid #e3e6f0;
+    background-color: #f8f9fc;
+}
+
+/* Стили для модального окна просмотра траектории */
+#viewTrajectoryModal .modal-dialog {
+    max-width: 900px;
+}
+
+#viewTrajectoryModal .card {
+    margin-bottom: 1rem;
+}
+
+#viewTrajectoryModal .card.border-left-primary,
+#viewTrajectoryModal .card.border-left-success,
+#viewTrajectoryModal .card.border-left-info {
+    border-left: 0.25rem solid;
+}
+
+#viewTrajectoryModal .progress {
+    height: 0.5rem;
+    border-radius: 0.25rem;
+}
+
+#viewTrajectoryModal .list-group-item {
+    border: none;
+    border-bottom: 1px solid #e3e6f0;
+    padding: 0.75rem 0;
+}
+
+#viewTrajectoryModal .list-group-item:last-child {
+    border-bottom: none;
+}
+
+#viewTrajectoryModal .badge {
+    font-size: 0.75rem;
+}
+
+/* Стили для индикатора загрузки */
+.fa-spinner {
+    color: var(--trajectory-spinner);
+}
+
+/* Стили для статистики */
+#viewTrajectoryModal .text-xs {
+    font-size: 0.7rem;
+}
+
+#viewTrajectoryModal .h5 {
+    font-size: 1.25rem;
+}
+
+/* Стили для пагинации */
+.pagination .page-link {
+    color: var(--trajectory-pagination-link);
+    border-color: var(--trajectory-pagination-link-hover-border);
+}
+
+.pagination .page-item.active .page-link {
+    background-color: var(--trajectory-pagination-active-bg);
+    border-color: var(--trajectory-pagination-active-border);
+}
+
+.pagination .page-link:hover {
+    background-color: var(--trajectory-pagination-link-hover-bg);
+    border-color: var(--trajectory-pagination-link-hover-border);
+}
+
+/* Стили для поиска */
+.input-group .form-control:focus {
+    border-color: var(--trajectory-input-focus-border);
+    box-shadow: 0 0 0 0.2rem var(--trajectory-input-focus-shadow);
+}
+
+/* Стили для уведомлений */
+.alert {
+    border: none;
+    border-radius: 0.35rem;
+    box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.15);
+}
+
+.alert-success {
+    background-color: var(--trajectory-alert-success-bg);
+    color: var(--trajectory-alert-success-color);
+}
+
+.alert-danger {
+    background-color: var(--trajectory-alert-danger-bg);
+    color: var(--trajectory-alert-danger-color);
+}
+
+/* Адаптивность для мобильных устройств */
+@media (max-width: 768px) {
+    .btn-group {
+        display: flex;
+        flex-direction: column;
+    }
+    
+    .btn-group .btn {
+        margin-bottom: 0.25rem;
+    }
+    
+    .table-responsive {
+        font-size: 0.875rem;
+    }
+    
+    .badge {
+        font-size: 0.75rem;
+    }
+}
+
+/* Стили для пустого состояния */
+.text-center.py-5 {
+    background-color: var(--trajectory-empty-bg);
+    border-radius: var(--trajectory-empty-border-radius);
+    margin: 2rem 0;
+}
+
+.text-gray-300 {
+    color: var(--trajectory-gray-300) !important;
+}
+
+.text-gray-500 {
+    color: var(--trajectory-gray-500) !important;
+}
+
+/* Стили для DataTables */
+.dataTables_wrapper .dataTables_length,
+.dataTables_wrapper .dataTables_filter,
+.dataTables_wrapper .dataTables_info,
+.dataTables_wrapper .dataTables_processing,
+.dataTables_wrapper .dataTables_paginate {
+    color: var(--trajectory-table-header-color);
+}
+
+.dataTables_wrapper .dataTables_paginate .paginate_button {
+    color: var(--trajectory-datatable-paginate-btn) !important;
+    border: 1px solid var(--trajectory-datatable-paginate-btn-border);
+    background: white;
+}
+
+.dataTables_wrapper .dataTables_paginate .paginate_button:hover {
+    background: var(--trajectory-datatable-paginate-btn-hover-bg) !important;
+    border-color: var(--trajectory-datatable-paginate-btn-border);
+}
+
+.dataTables_wrapper .dataTables_paginate .paginate_button.current {
+    background: var(--trajectory-datatable-paginate-btn-current-bg) !important;
+    border-color: var(--trajectory-datatable-paginate-btn-current-border);
+    color: var(--trajectory-datatable-paginate-btn-current-color) !important;
+}
+
+/* Стили для форм в модальных окнах */
+.form-group label {
+    font-weight: 600;
+    color: var(--trajectory-form-label);
+    margin-bottom: 0.5rem;
+}
+
+.form-control {
+    border-color: var(--trajectory-form-border);
+    border-radius: 0.35rem;
+}
+
+.form-control:focus {
+    border-color: var(--trajectory-form-focus-border);
+    box-shadow: 0 0 0 0.2rem var(--trajectory-form-focus-shadow);
+}
+
+/* Стили для формы редактирования траектории */
+#trajectoryEditForm .form-group {
+    margin-bottom: 1.5rem;
+}
+
+#trajectoryEditForm label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-weight: 600;
+    color: var(--trajectory-form-label);
+}
+
+#trajectoryEditForm .form-control {
+    width: 100%;
+    padding: 0.75rem;
+    font-size: 0.9rem;
+}
+
+#trajectoryEditForm textarea.form-control {
+    min-height: 120px;
+    resize: vertical;
+}
+
+#trajectoryEditForm select[multiple] {
+    min-height: 150px;
+}
+
+/* Стили для хлебных крошек */
+.breadcrumb {
+    background-color: transparent;
+    padding: 0;
+    margin-bottom: 1rem;
+}
+
+.breadcrumb-item + .breadcrumb-item::before {
+    content: ">";
+    color: var(--trajectory-breadcrumb-separator);
+}
+
+.breadcrumb-item a {
+    color: var(--trajectory-breadcrumb-link);
+    text-decoration: none;
+}
+
+.breadcrumb-item a:hover {
+    color: var(--trajectory-breadcrumb-link-hover);
+    text-decoration: underline;
+}
+
+.breadcrumb-item.active {
+    color: var(--trajectory-breadcrumb-active);
+}
+
+/* Стили для боковой панели */
+.card .card-body .mb-3 {
+    border-bottom: 1px solid #e3e6f0;
+    padding-bottom: 0.75rem;
+}
+
+.card .card-body .mb-3:last-child {
+    border-bottom: none;
+    padding-bottom: 0;
+}
+
+/* Стили для быстрых действий */
+.d-grid.gap-2 .btn {
+    text-align: left;
+    padding: 0.5rem 0.75rem;
+}
+
+.d-grid.gap-2 .btn i {
+    margin-right: 0.5rem;
+    width: 16px;
+}
+
+/* Стили для индикатора загрузки в кнопке */
+.btn .fa-spinner {
+    margin-right: 0.25rem;
+}
+
+/* Стили для ошибок валидации */
+.invalid-feedback {
+    display: block;
+    color: var(--trajectory-invalid-feedback);
+    font-size: 0.875rem;
+    margin-top: 0.25rem;
+}
+
+/* Стили для подсказок */
+.form-text {
+    color: var(--trajectory-gray-500);
+    font-size: 0.875rem;
+    margin-top: 0.25rem;
+}
+
+/* Стили для timeline управления курсами */
+.timeline-container {
+    position: relative;
+}
+
+.timeline-header {
+    display: grid;
+    grid-template-columns: 1fr 200px 100px;
+    gap: 1rem;
+    padding: 1rem;
+    background-color: var(--trajectory-timeline-header-bg);
+    border-bottom: 1px solid var(--trajectory-timeline-header-border);
+    font-weight: 600;
+    color: var(--trajectory-timeline-header-color);
+}
+
+.timeline-body {
+    position: relative;
+}
+
+
+
+.timeline-line {
+    position: absolute;
+    left: 25px;
+    top: 0;
+    bottom: 0;
+    width: 2px;
+    background: var(--trajectory-timeline-line-gradient);
+    z-index: 1;
+}
+
+.timeline-content {
+    display: grid;
+    grid-template-columns: 1fr 200px 100px;
+    gap: 1rem;
+    padding: 1rem;
+    background: var(--trajectory-timeline-content-bg);
+    border: 1px solid var(--trajectory-timeline-content-border);
+    border-radius: var(--trajectory-timeline-content-radius);
+    margin-left: 50px;
+    position: relative;
+    z-index: 2;
+}
+
+.day-badge {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background: var(--trajectory-timeline-day-badge-bg);
+    color: var(--trajectory-timeline-day-badge-color);
+    border-radius: 50%;
+    width: 60px;
+    height: 60px;
+    margin: 0 auto;
+}
+
+.day-number {
+    font-size: 1.2rem;
+    font-weight: bold;
+    line-height: 1;
+}
+
+.day-text {
+    font-size: 0.7rem;
+    opacity: 0.9;
+}
+
+.course-item {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    position: relative;
+}
+
+.course-image {
+    flex-shrink: 0;
+}
+
+.course-thumbnail {
+    width: 60px;
+    height: 40px;
+    object-fit: cover;
+    border-radius: 0.25rem;
+    border: 1px solid var(--trajectory-course-thumbnail-border);
+}
+
+.course-placeholder {
+    width: 60px;
+    height: 40px;
+    background-color: var(--trajectory-course-placeholder-bg);
+    border: 1px solid var(--trajectory-course-placeholder-border);
+    border-radius: 0.25rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--trajectory-course-placeholder-color);
+}
+
+.course-info {
+    flex: 1;
+}
+
+.course-title {
+    margin: 0;
+    font-weight: 600;
+    color: var(--trajectory-course-title);
+}
+
+.deadline-info {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: var(--trajectory-timeline-deadline-info);
+}
+
+.course-actions {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    position: relative;
+}
+
+.dropdown-menu-end {
+    right: 0;
+    left: auto;
+    z-index: 9999 !important;
+}
+
+.dropdown-menu {
+    z-index: 9999 !important;
+    position: absolute !important;
+}
+
+.course-actions .dropdown {
+    position: relative;
+    z-index: 1000;
+}
+
+.timeline-item {
+    position: relative;
+    margin-bottom: 1rem;
+    cursor: move;
+    transition: all 0.2s ease;
+    z-index: 1;
+}
+
+.timeline-item:hover {
+    background-color: var(--trajectory-timeline-item-hover-bg);
+    border-radius: var(--trajectory-timeline-item-hover-radius);
+    z-index: 2;
+}
+
+.timeline-item .dropdown.show {
+    z-index: 9999;
+}
+
+/* Стили для модального окна добавления курсов */
+.course-card {
+    cursor: pointer;
+    transition: all 0.2s ease;
+    border: 1px solid var(--trajectory-course-card-border);
+}
+
+.course-card:hover {
+    border-color: var(--trajectory-course-card-hover-border);
+    box-shadow: var(--trajectory-course-card-hover-shadow);
+    transform: translateY(-2px);
+}
+
+.course-thumbnail-small {
+    width: 40px;
+    height: 30px;
+    object-fit: cover;
+    border-radius: 0.25rem;
+}
+
+.course-placeholder-small {
+    width: 40px;
+    height: 30px;
+    background-color: var(--trajectory-course-placeholder-bg);
+    border: 1px solid var(--trajectory-course-placeholder-border);
+    border-radius: 0.25rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--trajectory-course-placeholder-color);
+    font-size: 0.8rem;
+}
+
+/* Стили для Sortable.js */
+.sortable-ghost {
+    opacity: 0.5;
+    background-color: var(--trajectory-timeline-item-drag-bg) !important;
+    border: 2px dashed var(--trajectory-timeline-item-chosen-bg) !important;
+}
+
+.sortable-chosen {
+    background-color: var(--trajectory-timeline-item-chosen-bg) !important;
+    box-shadow: var(--trajectory-timeline-item-chosen-shadow) !important;
+}
+
+.sortable-drag {
+    background: var(--trajectory-timeline-item-drag-bg) !important;
+    box-shadow: var(--trajectory-timeline-item-drag-shadow) !important;
+    transform: rotate(var(--trajectory-timeline-item-drag-rotate)) !important;
+    z-index: 9999 !important;
+}
+
+/* Стили для drag & drop (jQuery UI) */
+.timeline-item.ui-sortable-helper {
+    background: var(--trajectory-timeline-item-drag-bg);
+    box-shadow: var(--trajectory-timeline-item-drag-shadow);
+    transform: rotate(var(--trajectory-timeline-item-drag-rotate));
+}
+
+.timeline-item.ui-sortable-placeholder {
+    background-color: var(--trajectory-timeline-item-placeholder-bg);
+    border: 2px dashed var(--trajectory-timeline-item-placeholder-border);
+    opacity: 0.5;
+}
+
+/* Адаптивность для мобильных устройств */
+@media (max-width: 768px) {
+    .timeline-header,
+    .timeline-content {
+        grid-template-columns: 1fr 80px;
+        gap: 0.5rem;
+        padding: 0.5rem;
+    }
+    
+    .timeline-col:nth-child(2) {
+        display: none;
+    }
+    
+    .day-badge {
+        width: 50px;
+        height: 50px;
+    }
+    
+    .day-number {
+        font-size: 1rem;
+    }
+    
+    .day-text {
+        font-size: 0.6rem;
+    }
+    
+    .course-thumbnail {
+        width: 40px;
+        height: 30px;
+    }
+    
+    .course-placeholder {
+        width: 40px;
+        height: 30px;
+    }
+}
+
+/* Стили для кнопок в модальных окнах */
+.modal-footer .btn {
+    border-radius: 0.35rem;
+    font-weight: 600;
+}
+
+/* Стили для иконок */
+.fas {
+    margin-right: 0.25rem;
+}
+
+/* Стили для заголовков */
+.h3 {
+    font-weight: 700;
+    color: var(--trajectory-card-title);
+}
+
+.text-muted {
+    color: var(--trajectory-gray-500) !important;
+}
+
+/* Стили для карточек */
+.card {
+    border: none;
+    border-radius: 0.35rem;
+    box-shadow: var(--trajectory-card-shadow);
+}
+
+.card-header {
+    background-color: var(--trajectory-timeline-header-bg);
+    border-bottom: 1px solid var(--trajectory-timeline-header-border);
+    font-weight: 700;
+    color: var(--trajectory-card-title);
+}
+
+/* Стили для кнопок действий */
+.btn-outline-info:hover,
+.btn-outline-primary:hover,
+.btn-outline-warning:hover,
+.btn-outline-danger:hover {
+    transform: translateY(-1px);
+    box-shadow: var(--trajectory-btn-outline-hover-shadow);
+}
+
+/* Стили для инпут групп */
+.input-group-append .btn {
+    border-top-left-radius: 0;
+    border-bottom-left-radius: 0;
+}
+
+.input-group .form-control {
+    border-top-right-radius: 0;
+    border-bottom-right-radius: 0;
+}
+
+/* Стили для карточек "Быстрые действия" */
+.card.bg-light {
+    transition: all 0.3s ease;
+    border: 1px solid var(--trajectory-card-border);
+    box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.1);
+}
+
+.card.bg-light:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--trajectory-card-bg-light-shadow);
+}
+
+.card.bg-light .card-body {
+    padding: 1.5rem;
+    min-height: 200px;
+    display: flex;
+    flex-direction: column;
+}
+
+.card.bg-light .card-title {
+    font-size: 1.1rem;
+    font-weight: 600;
+    margin-bottom: 0.75rem;
+    color: #5a5c69;
+}
+
+.card.bg-light .card-text {
+    font-size: 0.9rem;
+    color: #5a5c69;
+    line-height: 1.4;
+    margin-bottom: 1rem;
+}
+
+.card.bg-light .btn {
+    font-size: 0.85rem;
+    padding: 0.5rem 1rem;
+    border-radius: 0.35rem;
+    font-weight: 500;
+    transition: all 0.2s ease;
+}
+
+.card.bg-light .btn:hover {
+    transform: translateY(-1px);
+    box-shadow: var(--trajectory-btn-outline-hover-shadow);
+}
+
+.card.bg-light i.fa-3x {
+    margin-bottom: 1rem;
+}
+
+/* Гарантия одинаковой высоты карточек */
+.row .col-lg-3 .card,
+.row .col-md-6 .card {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+}
+
+.row .col-lg-3 .card .card-body,
+.row .col-md-6 .card .card-body {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+}
+
+/* Адаптивность для мобильных устройств */
+@media (max-width: 768px) {
+    .card.bg-light .card-body {
+        min-height: 180px;
+        padding: 1rem;
+    }
+    
+    .card.bg-light .card-title {
+        font-size: 1rem;
+    }
+    
+    .card.bg-light .card-text {
+        font-size: 0.85rem;
+    }
+    
+    .card.bg-light .btn {
+        font-size: 0.8rem;
+        padding: 0.4rem 0.8rem;
+    }
+}
+
+/* Стили для выбора курсов в модальном окне */
+.selectable-course {
+    position: relative;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    border: 2px solid transparent;
+}
+
+.selectable-course:hover {
+    border-color: var(--trajectory-selectable-course-hover-border);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 123, 255, 0.2);
+}
+
+.selectable-course.selected {
+    border-color: var(--trajectory-selectable-course-selected-border);
+    background-color: var(--trajectory-selectable-course-selected-bg);
+    box-shadow: var(--trajectory-selectable-course-selected-shadow);
+}
+
+.course-selection-overlay {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    width: 20px;
+    height: 20px;
+    background-color: var(--trajectory-course-selection-overlay-bg);
+    border: 2px solid var(--trajectory-course-selection-overlay-border);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: all 0.3s ease;
+    z-index: 10;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+.selectable-course:hover .course-selection-overlay {
+    opacity: 1;
+    border-color: var(--trajectory-selectable-course-hover-border);
+    transform: scale(1.1);
+}
+
+.selectable-course.selected .course-selection-overlay {
+    opacity: 1;
+    border-color: var(--trajectory-course-selection-overlay-selected-border);
+    background-color: var(--trajectory-course-selection-overlay-selected-bg);
+    color: var(--trajectory-course-selection-overlay-selected-color);
+    transform: scale(1.1);
+}
+
+.course-selection-overlay i {
+    font-size: 19px;
+    margin-left: 4px;
+    margin-bottom: 2px;
+    color: var(--trajectory-course-selection-overlay-icon);
+    line-height: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.selectable-course.selected .course-selection-overlay i {
+    color: var(--trajectory-course-selection-overlay-selected-icon);
+}
+
+/* Счетчик выбранных курсов */
+#selectedCoursesCount {
+    font-size: 0.9rem;
+    padding: 0.5rem 0.75rem;
+}
+
+#addSelectedCoursesBtn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+#addSelectedCoursesBtn:not(:disabled) {
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0% {
+        box-shadow: var(--trajectory-add-selected-courses-btn-shadow);
+    }
+    70% {
+        box-shadow: var(--trajectory-add-selected-courses-btn-shadow-70);
+    }
+    100% {
+        box-shadow: var(--trajectory-add-selected-courses-btn-shadow);
+    }
+}
+
+/* Адаптивность для модального окна */
+@media (max-width: 768px) {
+    .selectable-course .course-selection-overlay {
+        width: 18px;
+        height: 18px;
+        top: 6px;
+        right: 6px;
+    }
+    
+    .course-selection-overlay i {
+        font-size: 12px;
+    }
+}
+
+/* Стили для карточек курсов в списке */
+.course-item .card {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    transition: all 0.3s ease;
+    border: 1px solid var(--trajectory-course-card-border);
+    box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.1);
+    position: relative;
+    z-index: 1;
+}
+
+.course-item .card:hover {
+    z-index: 10;
+}
+
+.course-item .card:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--trajectory-card-bg-light-shadow);
+    z-index: 10;
+}
+
+.course-item .card-body {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    padding: 1.25rem;
+}
+
+.course-item .course-image {
+    flex-shrink: 0;
+}
+
+.course-item .course-info {
+    flex: 1;
+    min-width: 0; /* Для правильного переноса текста */
+}
+
+.course-item .course-title {
+    font-size: 1rem;
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+    color: var(--trajectory-course-title);
+    line-height: 1.3;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+}
+
+.course-item .course-meta {
+    margin-top: auto;
+    padding-top: 1rem;
+}
+
+.course-item .course-actions {
+    flex-shrink: 0;
+}
+
+/* Исправление z-index для dropdown меню */
+.course-item .dropdown-menu {
+    z-index: 1050 !important;
+    position: absolute !important;
+}
+
+.course-item .dropdown.show .dropdown-menu {
+    z-index: 1050 !important;
+}
+
+/* Увеличиваем z-index для карточки с открытым dropdown */
+.course-item .card .dropdown.show {
+    z-index: 1050;
+}
+
+.course-item .card:hover .dropdown.show {
+    z-index: 1050;
+}
+
+/* Гарантия одинаковой высоты карточек */
+#coursesGrid .row {
+    display: flex;
+    flex-wrap: wrap;
+}
+
+#coursesGrid .col-lg-4,
+#coursesGrid .col-md-6 {
+    display: flex;
+    margin-bottom: 1.5rem;
+}
+
+#coursesGrid .col-lg-4 .card,
+#coursesGrid .col-md-6 .card {
+    width: 100%;
+}
+
+/* Стили для изображений курсов */
+.course-thumbnail-small {
+    width: 50px;
+    height: 50px;
+    object-fit: cover;
+    border-radius: 8px;
+}
+
+.course-placeholder-small {
+    width: 50px;
+    height: 50px;
+    background-color: var(--trajectory-course-placeholder-bg);
+    border: 2px dashed var(--trajectory-course-placeholder-border);
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--trajectory-course-placeholder-color);
+}
+
+.course-placeholder-small i {
+    font-size: 1.2rem;
+}
+
+/* Адаптивность для карточек курсов */
+@media (max-width: 768px) {
+    .course-item .card-body {
+        padding: 1rem;
+    }
+    
+    .course-item .course-title {
+        font-size: 0.9rem;
+    }
+    
+    .course-thumbnail-small,
+    .course-placeholder-small {
+        width: 40px;
+        height: 40px;
+    }
+    
+    .course-placeholder-small i {
+        font-size: 1rem;
+    }
+}
+
+/* Стили для модального окна создания тестов */
+.question-block {
+    border: 1px solid var(--trajectory-question-block-border);
+    border-radius: var(--trajectory-question-block-radius);
+    margin-bottom: 1rem;
+    transition: all 0.3s ease;
+}
+
+.question-block:hover {
+    box-shadow: var(--trajectory-question-block-hover-shadow);
+}
+
+.question-block .card-header {
+    background-color: var(--trajectory-question-block-header-bg);
+    border-bottom: 1px solid var(--trajectory-question-block-header-border);
+    padding: 0.75rem 1rem;
+}
+
+.question-block .card-body {
+    padding: 1rem;
+}
+
+.answer-item {
+    background-color: var(--trajectory-answer-item-bg);
+    border: 1px solid var(--trajectory-answer-item-border);
+    border-radius: 6px;
+    padding: 0.5rem;
+    margin-bottom: 0.5rem;
+    transition: all 0.2s ease;
+}
+
+.answer-item:hover {
+    background-color: var(--trajectory-answer-item-hover-bg);
+}
+
+.answer-item .form-control-sm {
+    border: 1px solid var(--trajectory-form-border);
+    border-radius: 4px;
+}
+
+.answer-item .form-check-input:checked {
+    background-color: var(--trajectory-answer-item-checked-bg);
+    border-color: var(--trajectory-answer-item-checked-border);
+}
+
+.answers-container {
+    border: 1px solid var(--trajectory-answers-container-border);
+    border-radius: 6px;
+    padding: 1rem;
+    background-color: var(--trajectory-answers-container-bg);
+}
+
+.answers-list {
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+/* Анимации для добавления/удаления вопросов */
+.question-block {
+    animation: slideIn 0.3s ease-out;
+}
+
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateY(-20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Стили для модального окна создания тестов */
+#createQuizModal .modal-xl {
+    max-width: 90%;
+}
+
+#createQuizModal .modal-body {
+    max-height: 70vh;
+    overflow-y: auto;
+}
+
+/* Адаптивность для мобильных устройств */
+@media (max-width: 768px) {
+    .answer-item {
+        flex-direction: column;
+        align-items: stretch !important;
+    }
+    
+    .answer-item .me-2 {
+        margin-right: 0 !important;
+        margin-bottom: 0.5rem;
+    }
+    
+    .answer-item .btn-outline-danger {
+        align-self: flex-end;
+        margin-top: 0.5rem;
+    }
+    
+    #createQuizModal .modal-xl {
+        max-width: 95%;
+    }
+}
+
+/* Стили для кнопки добавления вопроса */
+#createQuizModal .btn-success {
+    transition: all 0.3s ease;
+    box-shadow: var(--trajectory-create-quiz-modal-btn-success-shadow);
+}
+
+#createQuizModal .btn-success:hover {
+    transform: translateY(-1px);
+    box-shadow: var(--trajectory-create-quiz-modal-btn-success-hover-shadow);
+}
+
+#createQuizModal .btn-success:active {
+    transform: translateY(0);
+    box-shadow: var(--trajectory-create-quiz-modal-btn-success-active-shadow);
+}

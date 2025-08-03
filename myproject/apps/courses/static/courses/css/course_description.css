@@ -1,0 +1,89 @@
+.theme-dark {
+    --course-desc-text: #e3e8f0;
+    --course-desc-link: #4d7cff;
+    --course-desc-link-hover: #2dabc4;
+    --course-desc-table-border: #444;
+    --course-desc-table-bg: #232a3a;
+    --course-desc-th-bg: #333;
+    --course-desc-tr-even-bg: #80828a;
+    --course-desc-figcaption-bg: #333;
+    --course-desc-figcaption-text: #bdbdbd;
+}
+:root {
+    --course-desc-text: #212529;
+    --course-desc-link: #0d6efd;
+    --course-desc-link-hover: #0a58ca;
+    --course-desc-table-border: #bbb;
+    --course-desc-table-bg: #fafbfc;
+    --course-desc-th-bg: #f3f3f3;
+    --course-desc-tr-even-bg: #f7f7f7;
+    --course-desc-figcaption-bg: #f3f3f3;
+    --course-desc-figcaption-text: #444;
+}
+
+/* CKEditor content */
+.course-description {
+    display: block;
+    color: var(--course-desc-text);
+    font-size: 1rem;
+    line-height: 1.5;
+    max-height: 40vh;
+    overflow: auto;
+}
+.course-description a {
+    color: var(--course-desc-link);
+    text-decoration: underline;
+}
+.course-description a:hover {
+    color: var(--course-desc-link-hover);
+}
+
+.course-description table {
+    border-collapse: collapse;
+    width: 100%;
+    /* margin: 16px 0; */
+    background: var(--course-desc-table-bg);
+    font-size: 1em;
+}
+.course-description th, .course-description td {
+    border: 1px solid var(--course-desc-table-border);
+    padding: 8px 12px;
+    text-align: left;
+}
+.course-description th {
+    background: var(--course-desc-th-bg);
+    font-weight: 600;
+    text-align: center;
+}
+.course-description tr:nth-child(even) {
+    background: var(--course-desc-tr-even-bg);
+}
+/* Подпись к таблице */
+.course-description figcaption {
+    caption-side: top;
+    font-size: 1.1em;
+    font-weight: 600;
+    margin-bottom: 8px;
+    text-align: center;
+    color: var(--course-desc-figcaption-text);
+    background: var(--course-desc-figcaption-bg);
+    padding: 8px 0 8px 0;
+    border-radius: 4px 4px 0 0;
+    letter-spacing: 0.02em;
+}
+.course-description p {
+    margin: 0 0 12px 0;
+}
+.course-description h1, .course-description h2, .course-description h3 {
+    margin: 18px 0 10px 0;
+    font-weight: 700;
+}
+/* .course-description ul, .course-description ol {
+    margin: 0 0 12px 24px;
+} Возможно затирают иконки в навигации */ 
+.course-description img {
+    max-width: 100%;
+    height: auto;
+    display: block;
+    /* margin: 12px 0; */
+}

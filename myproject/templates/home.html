@@ -1,6 +1,6 @@
 {% extends 'layout.html' %}
 {% load static %}
-{% block title %}Домашняя страница{% endblock %}
+{% block title %}УЦ «Территория Улыбки»{% endblock %}
 
 {% block content %}
 <section class="hero-landing">
@@ -105,11 +105,11 @@
             </div>
              <!-- Стрелочки переключения -->
              <button class="carousel-control-prev" type="button" data-bs-target="#staffCarousel" data-bs-slide="prev">
-                <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+                <span style="color: var(--color-text); font-size: 40px;"><i class="fa-solid fa-chevron-left"></i></span>
                 <span class="visually-hidden">Previous</span>
             </button>
             <button class="carousel-control-next" type="button" data-bs-target="#staffCarousel" data-bs-slide="next">
-                <span class="carousel-control-next-icon" aria-hidden="true"></span>
+                <span style="color: var(--color-text); font-size: 40px;"><i class="fa-solid fa-chevron-right"></i></span>
                 <span class="visually-hidden">Next</span>
             </button>
         </div>
@@ -166,15 +166,15 @@
     </div>
 </section>
 {% comment %} <br><br><br> {% endcomment %}
-<a href="{% url 'course_detail_all' %}"><button class= "btn" id='show_all_courses_btn'>Все курсы</button></a>
+<a href="{% url 'courses:course_detail_all' %}"><button class= "btn" id='show_all_courses_btn'>Все курсы</button></a>
 <div id="courseCarousel" class="carousel slide" data-bs-ride="carousel">
     <div class="carousel-inner">
         {% for course in courses %}
         <div class="carousel-item {% if forloop.first %}active{% endif %}">
             <!-- Если при создании курса загрузили картинку - используется она, иначе используется default.jpg -->
-            <a href="{% url 'course_detail' course.slug|default:'default-slug' %}"><img src="{% if course.image %}{{ course.image.url }}{% else %}{% static 'global/imgs/default.jpg' %}{% endif %}" class="d-block mx-auto" alt="{{ course.title }}" id="course_carousel_img"></a>
+            <a href="{% url 'courses:course_detail' course.slug|default:'default-slug' %}"><img src="{% if course.image %}{{ course.image.url }}{% else %}{% static 'global/imgs/default.jpg' %}{% endif %}" class="d-block mx-auto" alt="{{ course.title }}" id="course_carousel_img"></a>
             <div class="course-info-block">
-                <a href="{% url 'course_detail' course.slug|default:'default-slug' %}"><h5>{{ course.title }}</h5></a>
+                <a href="{% url 'courses:course_detail' course.slug|default:'default-slug' %}"><h5>{{ course.title }}</h5></a>
                 <p>{{ course.description|truncatewords:50|safe }}</p>
             </div>
         </div>
@@ -183,11 +183,11 @@
     <div class="carousel-arrows">
 
         <button class="carousel-control-prev" type="button" data-bs-target="#courseCarousel" data-bs-slide="prev">
-            <span class="carousel-control-prev-icon" aria-hidden="true"></span>
-            <span class="visually-hidden">Previous</span>
+          <span style="color: var(--color-text); font-size: 40px;"><i class="fa-solid fa-chevron-left"></i></span>
+          <span class="visually-hidden">Previous</span>
         </button>
         <button class="carousel-control-next" type="button" data-bs-target="#courseCarousel" data-bs-slide="next">
-            <span class="carousel-control-next-icon" aria-hidden="true"></span>
+            <span style="color: var(--color-text); font-size: 40px;"><i class="fa-solid fa-chevron-right"></i></span>
             <span class="visually-hidden">Next</span>
         </button>
     </div>

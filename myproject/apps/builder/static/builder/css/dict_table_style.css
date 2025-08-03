@@ -1,0 +1,270 @@
+/* Стили для переноса текста в столбце "Описание" */
+.ht-definition-cell {
+  white-space: normal !important;
+  word-break: break-word !important;
+  overflow-wrap: break-word !important;
+  word-wrap: break-word !important;
+  max-width: 320px !important;
+  min-height: 40px !important;
+  height: auto !important;
+  line-height: 1.4 !important;
+  padding: 0px 0px !important;
+}
+
+/* Стили для столбцов "Название" и "Сленг" */
+.handsontable .ht_master .htCore td[data-col="1"],
+.handsontable .ht_master .htCore td[data-col="2"] {
+  white-space: normal !important;
+  word-break: break-word !important;
+  overflow-wrap: break-word !important;
+  word-wrap: break-word !important;
+  min-height: 40px !important;
+  height: auto !important;
+  line-height: 1.4 !important;
+  padding: 0px 0px !important;
+  vertical-align: top !important;
+}
+
+/* Общие стили для всех ячеек */
+.handsontable .ht_master .htCore td {
+  vertical-align: top;
+  height: auto !important;
+  min-height: 40px !important;
+}
+
+/* Стили для строк с переносом */
+.handsontable .ht_master .htCore tr {
+  height: auto !important;
+  min-height: 40px !important;
+}
+
+/* Скрываем скроллбары, но оставляем прокрутку */
+.handsontable .wtHolder::-webkit-scrollbar {
+  width: 0 !important;
+  height: 0 !important;
+}
+
+.handsontable .wtHolder::-webkit-scrollbar-track {
+  display: none !important;
+}
+
+.handsontable .wtHolder::-webkit-scrollbar-thumb {
+  display: none !important;
+}
+
+/* Для Firefox */
+.handsontable .wtHolder {
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
+}
+
+/* Модальное окно для фото */
+.photo-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.8);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 10000;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.photo-modal-overlay.show {
+  opacity: 1;
+}
+
+.photo-modal {
+  background: white;
+  border-radius: 8px;
+  max-width: 90%;
+  max-height: 90%;
+  position: relative;
+  transform: scale(0.7);
+  transition: transform 0.3s ease;
+}
+
+.photo-modal-overlay.show .photo-modal {
+  transform: scale(1);
+}
+
+.photo-modal-header {
+  padding: 10px 15px;
+  border-bottom: 1px solid #eee;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.photo-modal-close {
+  background: none;
+  border: none;
+  font-size: 24px;
+  cursor: pointer;
+  color: #666;
+  padding: 0;
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: background-color 0.2s;
+}
+
+.photo-modal-close:hover {
+  background-color: #f0f0f0;
+  color: #333;
+}
+
+.photo-modal-content {
+  padding: 20px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.photo-modal-image {
+  max-width: 100%;
+  max-height: 70vh;
+  object-fit: contain;
+  border-radius: 4px;
+}
+
+/* Увеличение фото при наведении */
+.handsontable .ht-photo-cell-img {
+  width: 100%;
+  height: 100%;
+  max-height: 150px;
+  object-fit: cover;
+  transition: transform 0.2s ease-in-out;
+  cursor: pointer;
+}
+
+.handsontable .ht-photo-cell-img:hover {
+  transform: scale(2);
+  z-index: 1000;
+  position: relative;
+}
+
+/* Адаптивные стили для мобильных устройств */
+@media (max-width: 768px) {
+  /* Уменьшаем размеры ячеек */
+  .handsontable .ht_master .htCore td {
+    min-height: 30px !important;
+    padding: 4px 2px !important;
+    font-size: 12px !important;
+  }
+  
+  /* Стили для столбца "Описание" на мобильных */
+  .ht-definition-cell {
+    max-width: 200px !important;
+    min-height: 30px !important;
+    font-size: 12px !important;
+  }
+  
+  /* Уменьшаем размеры фото */
+  .handsontable .ht-photo-cell-img {
+    width: 60px;
+    height: 40px;
+  }
+  
+  /* Отключаем hover эффект на мобильных (нет hover) */
+  .handsontable .ht-photo-cell-img:hover {
+    transform: none;
+  }
+  
+  /* Модальное окно для мобильных */
+  .photo-modal {
+    max-width: 95%;
+    max-height: 95%;
+    margin: 10px;
+  }
+  
+  .photo-modal-header {
+    padding: 8px 12px;
+  }
+  
+  .photo-modal-close {
+    width: 35px;
+    height: 35px;
+    font-size: 28px;
+  }
+  
+  .photo-modal-content {
+    padding: 15px;
+  }
+  
+  .photo-modal-image {
+    max-height: 60vh;
+  }
+  
+  /* Скрываем скроллбары на мобильных */
+  .handsontable .wtHolder {
+    -webkit-overflow-scrolling: touch;
+  }
+}
+
+/* Стили для очень маленьких экранов */
+@media (max-width: 480px) {
+  .handsontable .ht_master .htCore td {
+    min-height: 25px !important;
+    padding: 2px 1px !important;
+    font-size: 11px !important;
+  }
+  
+  .ht-definition-cell {
+    max-width: 150px !important;
+    min-height: 25px !important;
+    font-size: 11px !important;
+  }
+  
+  .handsontable .ht-photo-cell-img {
+    width: 50px;
+    height: 35px;
+  }
+  
+  .photo-modal {
+    max-width: 98%;
+    margin: 5px;
+  }
+  
+  .photo-modal-content {
+    padding: 10px;
+  }
+  
+  .photo-modal-image {
+    max-height: 50vh;
+  }
+}
+
+/* Стили для планшетов */
+@media (min-width: 769px) and (max-width: 1024px) {
+  .handsontable .ht_master .htCore td {
+    min-height: 35px !important;
+    padding: 6px 4px !important;
+    font-size: 13px !important;
+  }
+  
+  .ht-definition-cell {
+    max-width: 250px !important;
+    min-height: 35px !important;
+    font-size: 13px !important;
+  }
+  
+  .handsontable .ht-photo-cell-img {
+    width: 80px;
+    height: 60px;
+  }
+  
+  .photo-modal {
+    max-width: 85%;
+  }
+  
+  .photo-modal-image {
+    max-height: 65vh;
+  }
+}

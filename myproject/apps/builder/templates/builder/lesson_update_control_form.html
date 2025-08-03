@@ -1,0 +1,69 @@
+{% extends 'layout.html' %}
+{% load static %}
+
+{% block title %}Контроль обновлений{% endblock %}
+{% block specific_styles %}
+<link rel="stylesheet" href="{% static 'builder/css/builder_style.css' %}">
+<link rel="stylesheet" href="{% static 'builder/css/update_control_form.css' %}">
+{% endblock %}
+{% block content %}
+<div class="update-control-form-bg">
+    <div class="update-control-form-card">
+        <h2>Контроль актуальности уроков</h2>
+        <a href="/builder/content/" class="btn-goback">&times;</a>
+        <form method="get" class="update-filters-form" style="display: flex; flex-wrap: wrap; gap: 8px; align-items: flex-end;">
+            <input type="text" name="title" placeholder="Название урока" value="{{ request.GET.title|default_if_none:'' }}" class="form-control form-control-sm" style="width: 160px;">
+            <input type="date" name="created_from" value="{{ created_from }}" class="form-control form-control-sm" style="width: 135px;">
+            <input type="date" name="created_to" value="{{ created_to }}" class="form-control form-control-sm" style="width: 135px;">
+            <label class="form-check-label" style="margin-left: 8px;">
+                <input type="checkbox" name="overdue" value="1" {% if show_overdue %}checked{% endif %}> <span class="ucf-filter-label">Просроченные</span>
+            </label>
+            <label class="form-check-label" style="margin-left: 8px;">
+                <input type="checkbox" name="no_next" value="1" {% if show_no_next %}checked{% endif %}> <span class="ucf-filter-label">Без даты обновления</span>
+            </label>
+            <label class="form-check-label" style="margin-left: 8px;">
+                <input type="checkbox" name="no_responsible" value="1" {% if show_no_responsible %}checked{% endif %}> <span class="ucf-filter-label">Без ответственных</span>
+            </label>
+            <select name="responsible" class="form-control form-control-sm" style="width: 140px;">
+                <option value="">— Все —</option>
+                {% for role in roles %}
+                    <option value="{{ role.name }}" {% if selected_responsible == role.name %}selected{% endif %}>{{ role.name }}</option>
+                {% endfor %}
+            </select>
+            <button type="submit" class="btn btn-primary btn-sm" style="margin-left: 8px;">Фильтровать</button>
+        </form>
+        <table class="update-control-table" id="update-control-table">
+            <thead>
+                <tr>
+                    <th>№</th>
+                    <th>Дата создания</th>
+                    <th>Название урока</th>
+                    <th>Категория</th>
+                    <th>Дата последнего обновления</th>
+                    <th>Период между обновлениями (дней)</th>
+                    <th>Дата следующего обновления</th>
+                    <th>Должность</th>
+                    <th>Ответственный</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for row in update_rows %}
+                <tr>
+                    <td>{{ forloop.counter }}</td>
+                    <td>{% if row.created %}{{ row.created|date:'d.m.Y' }}{% else %}—{% endif %}</td>
+                    <td><a href="/builder/content/?lesson_id={{ row.lesson_id }}" target="_blank" style="color: #007bff; text-decoration: none;">{{ row.title }}</a></td>
+                    <td>{{ row.category }}</td>
+                    <td>{% if row.last_update %}{{ row.last_update|date:'d.m.Y' }}{% else %}—{% endif %}</td>
+                    <td>{% if row.period_between %}{{ row.period_between }}{% else %}—{% endif %}</td>
+                    <td class="{% if row.is_overdue %}overdue-cell{% endif %}">{% if row.next_update %}{{ row.next_update|date:'d.m.Y' }}{% else %}—{% endif %}</td>
+                    <td>{{ row.responsible_position|default:'—' }}</td>
+                    <td>{{ row.responsible_fio|default:'—' }}</td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="9" style="text-align:center;">Нет данных</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %} 

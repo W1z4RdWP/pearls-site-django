@@ -1,0 +1,159 @@
+{% extends 'layout.html' %}
+{% load static %}
+
+{% block title %}Содержание базы знаний{% endblock %}
+{% block specific_styles %}
+<link rel="stylesheet" href="{% static 'builder/css/builder_style.css' %}">
+<script src="{% static 'builder/js/builder.js' %}" defer></script>
+<script src="{% static 'builder/js/search.js' %}" defer></script>
+<script src="{% static 'builder/js/dictTable.js' %}" defer></script>
+<script src="{% static 'builder/js/ckeditor_target_blank.js' %}" defer></script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/handsontable@12.3.3/dist/handsontable.full.min.css">
+<script src="https://cdn.jsdelivr.net/npm/handsontable@12.3.3/dist/handsontable.full.min.js"></script>
+<link rel="stylesheet" href="{% static 'builder/css/dict_table_style.css' %}">
+{% endblock %}
+
+{% block content %}
+{% csrf_token %}
+<!-- {% if not is_readonly %}
+<a href="{% url 'builder:dashboard' %}" class="btn btn-outline-primary mb-3">← Вернуться в панель управления</a>
+{% endif %} -->
+<div class="container">
+    <div class="master-detail-container">
+        <div class="sidebar" id="sidebar">
+            <button id="toggle-sidebar-btn" class="btn btn-outline-secondary mb-2" type="button" title="Скрыть/показать категории">
+                <span id="toggle-sidebar-icon">⮜</span> Скрыть категории
+            </button>
+            <div class="tabs-switcher" style="display: flex; gap: 2px; margin: 0 0 16px 0;">
+                <button id="tab-categories" class="tab-btn active" type="button">Категории</button>
+                <button id="tab-uncat" class="tab-btn" type="button">Без категории</button>
+                <button id="tab-dict" class="tab-btn" type="button">Словарь</button>
+            </div>
+            <input type="text" id="tree-search-input" class="search-input builder-input" placeholder="Поиск по категориям и урокам...">
+            <div id="categories-block">
+                <div class="category-scroll">
+                    <ul class="category-list">
+                        {% for category in categories %}
+                            {% include "builder/includes/_category_tree.html" with category=category selected_lesson=selected_lesson is_readonly=is_readonly %}
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
+            <div id="uncategorized-block" style="display:none;">
+                <div class="category-scroll">
+                    <ul class="category-list">
+                        {% for lesson in uncategorized_lessons %}
+                        <li class="category-block" data-id="uncat-{{ lesson.id }}"{% if lesson.has_mirrors %} data-has-mirrors="1"{% endif %}>
+                            <div class="category-header">
+                                <input type="radio" class="lesson-select" value="{{ lesson.id }}" style="display: none;">
+                                <span class="lesson-icon" style="margin-right: 8px; display: flex; align-items: center;">
+                                    <svg width="16" height="16" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                        <rect x="4" y="3" width="12" height="14" rx="2" fill="#222" stroke="#bbb" stroke-width="1.2"/>
+                                        <line x1="6.5" y1="7.5" x2="13.5" y2="7.5" stroke="#bbb" stroke-width="1.1"/>
+                                        <line x1="6.5" y1="10.5" x2="13.5" y2="10.5" stroke="#bbb" stroke-width="1.1"/>
+                                        <line x1="6.5" y1="13.5" x2="11.5" y2="13.5" stroke="#bbb" stroke-width="1.1"/>
+                                    </svg>
+                                </span>
+                                <a class="lesson-link">
+                                    {{ lesson.title }}
+                                </a>
+                            </div>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
+            <div id="dict-block" style="display:none;">
+                <div class="category-scroll">
+                    <ul class="dict-list category-list">
+                        {% for section in dictionary_sections %}
+                            <li class="category-block" data-id="dict-section-{{ section.id }}">
+                                <div class="category-header">
+                                    <span class="lesson-icon"><i class="fa-solid fa-info"></i></span>
+                                    <a class="dict-section-link">{{ section.name }}</a>
+                                </div>
+                            </li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
+            <!-- Новый блок действий -->
+            {% if not is_readonly %}
+                <div id="category-actions-block" style="display: flex; gap: 8px; margin: 18px 32px 0 32px;">
+                    <button id="add-root-category" title="Добавить корневую категорию">+|</button>
+                    <button id="add-subcategory" title="Добавить подкатегорию">+</button>
+                    <button id="edit-category" title="Изменить название">v</button>
+                    <button id="delete-category" title="Удалить">x</button>
+                    <button id="add-lesson" title="Добавить урок">📄</button>
+                </div>
+                <div class="sidebar-buttons" style="margin: 18px 32px 0 32px;">
+                    <a href="/builder/update_control/" id="update-control-btn" class="btn btn-outline-primary" style="width:100%;margin-top:8px;">Контроль обновлений</a>
+                </div>
+            {% endif %}
+        </div>
+        <div class="detail" id="detail">
+            {% if selected_lesson %}
+                <script>
+                window._lessonVersions = [{
+                    version: 'base',
+                    title: `{{ selected_lesson.title|escapejs }}`,
+                    content: `{{ selected_lesson.content|default:''|escapejs }}`,
+                    video_id: `{{ selected_lesson.video_id|default:'' }}`
+                    }{% for v in lesson_versions %}
+                    ,{
+                        version: `{{ v.version }}`,
+                        title: `{{ v.title|escapejs }}`,
+                        content: `{{ v.content|escapejs }}`,
+                        video_id: `{{ v.video_id|default:'' }}`
+                    }{% endfor %}
+                ];
+                </script>
+                {% include "builder/includes/_lesson_detail_block.html" with lesson=selected_lesson actualization_history=actualization_history actualization_info=actualization_info roles=roles is_readonly=is_readonly %}
+            {% else %}
+                <p>Выберите урок для просмотра.</p>
+            {% endif %}
+        </div>
+    </div>
+</div>
+<!-- Контекстное меню -->
+<div id="custom-context-menu" class="builder-context-menu">
+    <div id="copy-menu-item" class="builder-context-menu-item">Скопировать</div>
+    <div id="cut-menu-item" class="builder-context-menu-item">Вырезать</div>
+    <div id="paste-menu-item" class="builder-context-menu-item">Вставить</div>
+    <div id="mirror-menu-item" class="builder-context-menu-item">Зеркало</div>
+    <div id="mirror-here-menu-item" class="builder-context-menu-item">Вставить зеркало</div>
+    <div id="show-all-mirrors-menu-item" class="builder-context-menu-item">Показать все зеркала</div>
+    <div id="hide-mirrors-menu-item" class="builder-context-menu-item" style="display:none;">Скрыть</div>
+</div>
+
+<script>
+    window.IS_READONLY = {{ is_readonly|yesno:"true,false" }};
+</script>
+<script>
+    // Если есть ?new_lesson=... в query string, кладём в sessionStorage
+    (function() {
+        const params = new URLSearchParams(window.location.search);
+        const newLesson = params.get('new_lesson');
+        if (newLesson) {
+            sessionStorage.setItem('new_lesson_id', newLesson);
+        }
+    })();
+    // Если есть ?edited_lesson=... в query string, кладём в sessionStorage
+    (function() {
+        const params = new URLSearchParams(window.location.search);
+        const editedLesson = params.get('edited_lesson');
+        if (editedLesson) {
+            sessionStorage.setItem('edited_lesson_id', editedLesson);
+        }
+    })();
+    // Если есть ?lesson_id=... в query string, кладём в sessionStorage для автовыделения
+    (function() {
+        const params = new URLSearchParams(window.location.search);
+        const lessonId = params.get('lesson_id');
+        if (lessonId) {
+            sessionStorage.setItem('selected_lesson_id', lessonId);
+        }
+    })();
+</script>
+
+{% endblock %}

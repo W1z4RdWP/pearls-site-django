@@ -2,8 +2,13 @@
 
 from pathlib import Path
 import os
+import sys
 
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
+
+# Добавляем папку apps в PYTHONPATH
+APPS_DIR = BASE_DIR / 'apps'
+sys.path.insert(0, str(APPS_DIR))
 
 #SECRET_KEY = os.getenv('SECRET_DJANGO') # DJANGO_SECRET_KEY / SECRET_DJANGO
  
@@ -54,12 +59,14 @@ INSTALLED_APPS = [
     'widget_tweaks',
     
 
-    'myapp',
-    'users',
-    'courses',
-    'quizzes',
-    'builder', # БЗ. Конструктор траекторий из уроков.
-    'user_management',
+    'myapp.apps.MyappConfig',
+    'users.apps.UsersConfig',
+    'courses.apps.CoursesConfig',
+    'quizzes.apps.QuizzesConfig',
+    'builder.apps.BuilderConfig', # БЗ. Конструктор траекторий из уроков.
+    'user_management.apps.UserManagementConfig',
+    'gamification.apps.GamificationConfig',
+    'notifications.apps.NotificationsConfig',
 ]
 
 X_FRAME_OPTIONS = "SAMEORIGIN"              # allows you to use modals insated of popups
@@ -238,11 +245,11 @@ CRISPY_ALLOWED_TEMPLATE_PACKS = "bootstrap5"
 CRISPY_TEMPLATE_PACK = 'bootstrap5'
 
 SESSION_ENGINE = 'qsessions.backends.db'
-SESSION_COOKIE_AGE = 7200 # Время сессии в секундах (2 часа)
+SESSION_COOKIE_AGE = 7200 * 12 # Время сессии в секундах (2 часа)
 
 LOGIN_REDIRECT_URL = 'home'
-LOGOUT_REDIRECT_URL = 'login'
-LOGIN_URL = 'login'
+LOGOUT_REDIRECT_URL = 'users:login'
+LOGIN_URL = 'users:login'
 
 CKEDITOR_5_ALLOW_ALL_FILE_TYPES = True
 CKEDITOR_5_UPLOAD_FILE_TYPES = ['jpeg', 'pdf', 'png', 'jpg']
@@ -261,13 +268,13 @@ CKEDITOR_5_CONFIGS = {
             'items': [
                 '|', 'heading',
                 '|', 'outdent', 'indent',
-                '|', 'bold', 'italic', 'link', 'underline', 'strikethrough', 'code', 'subscript', 'superscript',
+                '|', 'bold', 'italic', 'underline', 'strikethrough', 'code', 'subscript', 'superscript',
                 'highlight',
                 '|', 'codeBlock', 'insertImage', 'bulletedList', 'numberedList', 'todoList',
                 '|', 'blockQuote',
                 '|', 'fontSize', 'fontFamily', 'fontColor', 'fontBackgroundColor', 'removeFormat',
-                'insertTable',
-                '|',
+                'insertTable', 
+                '|', 'htmlEmbed', 'link', 
             ],
             'shouldNotGroupWhenFull': True
         },

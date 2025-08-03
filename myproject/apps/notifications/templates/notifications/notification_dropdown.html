@@ -1,0 +1,67 @@
+{% if notifications %}
+    <li>
+        <div class="dropdown-item-text">
+            <div class="d-flex justify-content-between align-items-center">
+                <h6 class="mb-0">Уведомления</h6>
+                <small class="text-muted">{{ total_unread }} непрочитанных</small>
+            </div>
+        </div>
+    </li>
+    <li><hr class="dropdown-divider"></li>
+    
+    {% for notification in notifications %}
+        <li class="notification-item {% if not notification.is_read %}unread{% endif %}" 
+            data-notification-id="{{ notification.id }}">
+            <div class="dropdown-item d-flex align-items-start">
+                <div class="notification-content flex-grow-1">
+                    <div class="notification-title">{{ notification.title }}</div>
+                    <div class="notification-message">{{ notification.message|truncatechars:80 }}</div>
+                    <div class="notification-time">{{ notification.created_at|timesince }} назад</div>
+                </div>
+                <div class="notification-actions ms-2 flex-shrink-0">
+                    <button class="btn btn-sm btn-outline-primary mark-read-btn" 
+                            data-notification-id="{{ notification.id }}"
+                            title="Отметить как прочитанное">
+                        <i class="fas fa-check"></i>
+                    </button>
+                </div>
+            </div>
+        </li>
+    {% endfor %}
+    
+    <li><hr class="dropdown-divider"></li>
+    <li>
+        <div class="dropdown-item-text">
+            <a href="{% url 'notifications:notification_list' %}" class="btn btn-sm btn-primary w-100 mb-2">
+                Посмотреть все уведомления
+            </a>
+            <button class="btn btn-sm btn-outline-secondary mark-all-read-btn w-100">
+                Отметить все как прочитанные
+            </button>
+        </div>
+    </li>
+{% else %}
+    <li>
+        <div class="dropdown-item-text">
+            <div class="d-flex justify-content-between align-items-center">
+                <h6 class="mb-0">Уведомления</h6>
+                <small class="text-muted">Нет непрочитанных</small>
+            </div>
+        </div>
+    </li>
+    <li><hr class="dropdown-divider"></li>
+    <li>
+        <div class="dropdown-item-text text-center">
+            <i class="fas fa-bell-slash text-muted"></i>
+            <p class="mb-0">Нет новых уведомлений</p>
+        </div>
+    </li>
+    <li><hr class="dropdown-divider"></li>
+    <li>
+        <div class="dropdown-item-text">
+            <a href="{% url 'notifications:notification_list' %}" class="btn btn-sm btn-primary w-100">
+                Посмотреть все уведомления
+            </a>
+        </div>
+    </li>
+{% endif %} 
