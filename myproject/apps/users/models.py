@@ -141,11 +141,11 @@ class Profile(models.Model):
         from gamification.models import UserAchievement
         return UserAchievement.objects.filter(user=self.user).select_related('achievement')
     
-    def get_recent_badges(self, limit=3):
+    def get_recent_badges(self, limit=8):
         """Возвращает последние полученные бейджи"""
         return self.get_badges()[:limit]
     
-    def get_recent_achievements(self, limit=3):
+    def get_recent_achievements(self, limit=8):
         """Возвращает последние полученные достижения"""
         return self.get_achievements()[:limit]
 
