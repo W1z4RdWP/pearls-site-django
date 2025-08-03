@@ -100,21 +100,21 @@
                     
                     <!-- Быстрые фильтры -->
                     <div class="mt-3">
-                        <div class="btn-group btn-group-sm" role="group">
+                        <div class="quick-filters" role="group">
                             <a href="{% url 'users:admin_dashboard' %}" 
-                               class="btn btn-outline-secondary {% if not any_filter %}active{% endif %}">
+                               class="quick-filter-btn {% if not any_filter %}active{% endif %}">
                                 Все пользователи
                             </a>
                             <a href="{% url 'users:admin_dashboard' %}?top=10" 
-                               class="btn btn-outline-warning {% if top_users %}active{% endif %}">
+                               class="quick-filter-btn warning {% if top_users %}active{% endif %}">
                                 Топ-10 по баллам
                             </a>
                             <a href="{% url 'users:admin_dashboard' %}?zero_points=1" 
-                               class="btn btn-outline-danger {% if zero_points %}active{% endif %}">
+                               class="quick-filter-btn danger {% if zero_points %}active{% endif %}">
                                 Без баллов
                             </a>
                             <a href="{% url 'users:admin_dashboard' %}?approved=1" 
-                               class="btn btn-outline-success {% if approved_only %}active{% endif %}">
+                               class="quick-filter-btn success {% if approved_only %}active{% endif %}">
                                 Подтвержденные
                             </a>
                         </div>
@@ -325,6 +325,89 @@
         font-weight: 600;
     }
     
+    /* Стили для быстрых фильтров */
+    .quick-filters {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+    }
+    
+    .quick-filter-btn {
+        display: inline-block;
+        padding: 8px 16px;
+        border: 2px solid #6c757d;
+        border-radius: 6px;
+        text-decoration: none;
+        color: #6c757d;
+        font-size: 0.875rem;
+        font-weight: 500;
+        transition: all 0.2s ease;
+        background: white;
+        min-width: 120px;
+        text-align: center;
+    }
+    
+    .quick-filter-btn:hover {
+        text-decoration: none;
+        transform: translateY(-1px);
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    
+    .quick-filter-btn.active {
+        background: #6c757d;
+        color: white;
+        border-color: #6c757d;
+        font-weight: 600;
+    }
+    
+    .quick-filter-btn.warning {
+        border-color: #ffc107;
+        color: #ffc107;
+    }
+    
+    .quick-filter-btn.warning:hover {
+        background: #fff3cd;
+        color: #856404;
+    }
+    
+    .quick-filter-btn.warning.active {
+        background: #ffc107;
+        color: #212529;
+        border-color: #ffc107;
+    }
+    
+    .quick-filter-btn.danger {
+        border-color: #dc3545;
+        color: #dc3545;
+    }
+    
+    .quick-filter-btn.danger:hover {
+        background: #f8d7da;
+        color: #721c24;
+    }
+    
+    .quick-filter-btn.danger.active {
+        background: #dc3545;
+        color: white;
+        border-color: #dc3545;
+    }
+    
+    .quick-filter-btn.success {
+        border-color: #28a745;
+        color: #28a745;
+    }
+    
+    .quick-filter-btn.success:hover {
+        background: #d4edda;
+        color: #155724;
+    }
+    
+    .quick-filter-btn.success.active {
+        background: #28a745;
+        color: white;
+        border-color: #28a745;
+    }
+    
     .card-body {
         padding: 1rem;
     }
@@ -355,6 +438,16 @@
         .btn-group .btn {
             margin: 1px;
             font-size: 0.75rem;
+        }
+        
+        .quick-filters {
+            gap: 4px;
+        }
+        
+        .quick-filter-btn {
+            padding: 6px 12px;
+            font-size: 0.8rem;
+            min-width: 100px;
         }
         
         .table td, .table th {

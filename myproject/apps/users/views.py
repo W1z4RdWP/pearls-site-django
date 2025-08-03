@@ -431,10 +431,6 @@ class AdminDashboardView(LoginRequiredMixin, UserPassesTestMixin, ListView):
             queryset = queryset.filter(profile__dascoin_points__lte=int(points_max))
         
         # Быстрые фильтры
-        top_users = self.request.GET.get('top')
-        if top_users and top_users.isdigit():
-            queryset = queryset.order_by('-profile__dascoin_points')[:int(top_users)]
-        
         zero_points = self.request.GET.get('zero_points')
         if zero_points:
             queryset = queryset.filter(profile__dascoin_points=0)
@@ -443,7 +439,15 @@ class AdminDashboardView(LoginRequiredMixin, UserPassesTestMixin, ListView):
         if approved_only:
             queryset = queryset.filter(profile__is_approved=True)
         
-        return queryset.distinct()
+        # Применяем distinct() до среза
+        queryset = queryset.distinct()
+        
+        # Быстрый фильтр топ-N применяется после distinct()
+        top_users = self.request.GET.get('top')
+        if top_users and top_users.isdigit():
+            queryset = queryset.order_by('-profile__dascoin_points')[:int(top_users)]
+        
+        return queryset
     
     def get_context_data(self, **kwargs):
         """Добавляет дополнительный контекст"""
@@ -522,7 +526,24 @@ def export_admin_stats_excel(request):
     if points_max and points_max.isdigit():
         queryset = queryset.filter(profile__dascoin_points__lte=int(points_max))
     
-    queryset = queryset.order_by('-profile__dascoin_points', 'username')
+    # Быстрые фильтры
+    zero_points = request.GET.get('zero_points')
+    if zero_points:
+        queryset = queryset.filter(profile__dascoin_points=0)
+    
+    approved_only = request.GET.get('approved')
+    if approved_only:
+        queryset = queryset.filter(profile__is_approved=True)
+    
+    # Применяем distinct() до среза
+    queryset = queryset.distinct()
+    
+    # Быстрый фильтр топ-N применяется после distinct()
+    top_users = request.GET.get('top')
+    if top_users and top_users.isdigit():
+        queryset = queryset.order_by('-profile__dascoin_points')[:int(top_users)]
+    else:
+        queryset = queryset.order_by('-profile__dascoin_points', 'username')
     
     wb = Workbook()
     ws = wb.active
@@ -603,20 +624,35 @@ def export_admin_stats_pdf(request):
     if points_max and points_max.isdigit():
         queryset = queryset.filter(profile__dascoin_points__lte=int(points_max))
     
-    queryset = queryset.order_by('-profile__dascoin_points', 'username')
+    # Быстрые фильтры
+    zero_points = request.GET.get('zero_points')
+    if zero_points:
+        queryset = queryset.filter(profile__dascoin_points=0)
+    
+    approved_only = request.GET.get('approved')
+    if approved_only:
+        queryset = queryset.filter(profile__is_approved=True)
+    
+    # Применяем distinct() до среза
+    queryset = queryset.distinct()
+    
+    # Быстрый фильтр топ-N применяется после distinct()
+    top_users = request.GET.get('top')
+    if top_users and top_users.isdigit():
+        queryset = queryset.order_by('-profile__dascoin_points')[:int(top_users)]
+    else:
+        queryset = queryset.order_by('-profile__dascoin_points', 'username')
     
     # Общая статистика
     all_users = User.objects.select_related('profile')
     total_users = all_users.count()
     total_dascoin_points = all_users.aggregate(total=Sum('profile__dascoin_points'))['total'] or 0
-    avg_dascoin_points = all_users.aggregate(avg=Avg('profile__dascoin_points'))['avg'] or 0
     active_users = all_users.filter(is_active=True).count()
     
     html_string = render_to_string('users/admin_stats_pdf.html', {
         'users': queryset,
         'total_users': total_users,
         'total_dascoin_points': total_dascoin_points,
-        'avg_dascoin_points': avg_dascoin_points,
         'active_users': active_users,
         'generated_at': datetime.now(),
         'generated_by': request.user.get_full_name() or request.user.username,
