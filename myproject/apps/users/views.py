@@ -19,7 +19,7 @@ from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.core.paginator import Paginator, PageNotAnInteger, EmptyPage
 from django.views.generic import FormView, ListView
 from django.views.decorators.cache import cache_page
-from django.urls import reverse_lazy
+from django.urls import reverse, reverse_lazy
 from django.utils.encoding import smart_str
 from django.contrib.auth.models import Group
 from django.db.models import Q, Avg, Count, Sum
@@ -328,6 +328,13 @@ class TransactionsListView(LoginRequiredMixin, ListView):
             'correction': all_transactions.filter(transaction_type='correction').count(),
         }
         
+        # Безопасный back_url
+        referer = self.request.META.get('HTTP_REFERER', '')
+        current_host = self.request.get_host()
+        if referer and current_host in referer:
+            context['back_url'] = referer
+        else:
+            context['back_url'] = reverse('users:profile')
         # Логирование действия
         audit_logger.info(
             'Смотрит историю транзакций DASCOIN', 
