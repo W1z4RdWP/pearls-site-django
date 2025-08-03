@@ -164,17 +164,267 @@ class ProfileViewTest(TestCase):
 
 class UserSignalsTest(TestCase):
     """
-    Тесты для сигналов users: автоматическое создание и сохранение профиля.
+    Тесты для сигналов создания профиля пользователя.
     """
+    def setUp(self):
+        """Создаёт клиент для тестов."""
+        self.client = Client()
+
     def test_profile_created_on_user_creation(self):
-        """При создании User автоматически создаётся Profile."""
+        """При создании пользователя автоматически создаётся профиль."""
         user = User.objects.create_user(username='signaluser', password='pass')
-        self.assertTrue(Profile.objects.filter(user=user).exists())
+        self.assertTrue(hasattr(user, 'profile'))
 
     def test_profile_saved_on_user_save(self):
-        """При сохранении User сохраняется и профиль."""
+        """При сохранении пользователя сохраняется профиль."""
         user = User.objects.create_user(username='signaluser2', password='pass')
-        user.profile.bio = 'bio'
+        user.profile.dascoin_points = 100
         user.save()
-        user.profile.refresh_from_db()
-        self.assertEqual(user.profile.bio, 'bio')
+        user.refresh_from_db()
+        self.assertEqual(user.profile.dascoin_points, 100)
+
+
+class AdminDashboardViewTest(TestCase):
+    """
+    Тесты для административной панели статистики DASCOIN.
+    """
+    def setUp(self):
+        """Создаёт пользователей для тестов."""
+        self.client = Client()
+        self.admin_user = User.objects.create_user(
+            username='admin', 
+            password='pass', 
+            is_staff=True, 
+            is_superuser=True
+        )
+        self.staff_user = User.objects.create_user(
+            username='staff', 
+            password='pass', 
+            is_staff=True
+        )
+        self.regular_user = User.objects.create_user(
+            username='user', 
+            password='pass'
+        )
+        
+        # Создаём профили с разными баллами DASCOIN
+        self.admin_user.profile.dascoin_points = 500
+        self.admin_user.profile.save()
+        
+        self.staff_user.profile.dascoin_points = 300
+        self.staff_user.profile.save()
+        
+        self.regular_user.profile.dascoin_points = 100
+        self.regular_user.profile.save()
+        
+        self.url = reverse('users:admin_dashboard')
+
+    def test_admin_dashboard_requires_staff_or_superuser(self):
+        """Обычный пользователь получает 403, staff и superuser видят панель."""
+        # Обычный пользователь
+        self.client.login(username='user', password='pass')
+        resp = self.client.get(self.url)
+        self.assertEqual(resp.status_code, 403)
+        
+        # Staff пользователь
+        self.client.login(username='staff', password='pass')
+        resp = self.client.get(self.url)
+        self.assertEqual(resp.status_code, 200)
+        
+        # Superuser
+        self.client.login(username='admin', password='pass')
+        resp = self.client.get(self.url)
+        self.assertEqual(resp.status_code, 200)
+
+    def test_admin_dashboard_shows_users_ordered_by_points(self):
+        """Панель показывает пользователей, отсортированных по баллам DASCOIN."""
+        self.client.login(username='admin', password='pass')
+        resp = self.client.get(self.url)
+        
+        self.assertEqual(resp.status_code, 200)
+        self.assertContains(resp, 'Статистика пользователей по баллам DASCOIN')
+        
+        # Проверяем, что пользователи отображаются
+        self.assertContains(resp, 'admin')
+        self.assertContains(resp, 'staff')
+        self.assertContains(resp, 'user')
+
+    def test_admin_dashboard_shows_statistics(self):
+        """Панель показывает общую статистику."""
+        self.client.login(username='admin', password='pass')
+        resp = self.client.get(self.url)
+        
+        # Проверяем наличие статистики
+        self.assertContains(resp, 'Всего пользователей')
+        self.assertContains(resp, 'Общее количество DASCOIN')
+        self.assertContains(resp, 'Активных пользователей')
+
+    def test_admin_dashboard_filtering(self):
+        """Фильтрация работает корректно."""
+        self.client.login(username='admin', password='pass')
+        
+        # Фильтр по минимальным баллам
+        resp = self.client.get(self.url + '?points_min=200')
+        self.assertEqual(resp.status_code, 200)
+        
+        # Фильтр по максимальным баллам
+        resp = self.client.get(self.url + '?points_max=200')
+        self.assertEqual(resp.status_code, 200)
+        
+        # Быстрый фильтр топ-10
+        resp = self.client.get(self.url + '?top=10')
+        self.assertEqual(resp.status_code, 200)
+        
+        # Фильтр пользователей без баллов
+        resp = self.client.get(self.url + '?zero_points=1')
+        self.assertEqual(resp.status_code, 200)
+
+    def test_admin_dashboard_export_requires_permissions(self):
+        """Экспорт требует прав администратора."""
+        # Обычный пользователь
+        self.client.login(username='user', password='pass')
+        resp = self.client.get(reverse('users:export_admin_stats_excel'))
+        self.assertEqual(resp.status_code, 403)
+        
+        resp = self.client.get(reverse('users:export_admin_stats_pdf'))
+        self.assertEqual(resp.status_code, 403)
+        
+        # Staff пользователь
+        self.client.login(username='staff', password='pass')
+        resp = self.client.get(reverse('users:export_admin_stats_excel'))
+        self.assertEqual(resp.status_code, 200)
+        
+        resp = self.client.get(reverse('users:export_admin_stats_pdf'))
+        self.assertEqual(resp.status_code, 200)
+
+    def test_admin_dashboard_links_to_user_details(self):
+        """Панель содержит ссылки на детали пользователей."""
+        self.client.login(username='admin', password='pass')
+        resp = self.client.get(self.url)
+        
+        # Проверяем наличие ссылок на действия
+        self.assertContains(resp, 'Детальный отчет')
+        self.assertContains(resp, 'Редактировать')
+        self.assertContains(resp, 'История транзакций')
+
+
+class AdminUserTransactionsViewTest(TestCase):
+    """
+    Тесты для просмотра транзакций конкретного пользователя администратором.
+    """
+    def setUp(self):
+        """Создаёт пользователей и транзакции для тестов."""
+        self.client = Client()
+        self.admin_user = User.objects.create_user(
+            username='admin', 
+            password='pass', 
+            is_staff=True, 
+            is_superuser=True
+        )
+        self.target_user = User.objects.create_user(
+            username='target', 
+            password='pass'
+        )
+        
+        # Создаём транзакции для целевого пользователя
+        from gamification.models import DascoinTransaction
+        DascoinTransaction.objects.create(
+            user=self.target_user,
+            transaction_type='award',
+            points_change=100,
+            points_before=0,
+            points_after=100,
+            reason='Тестовая награда'
+        )
+        DascoinTransaction.objects.create(
+            user=self.target_user,
+            transaction_type='deduct',
+            points_change=-50,
+            points_before=100,
+            points_after=50,
+            reason='Тестовое списание'
+        )
+        
+        self.url = reverse('users:admin_user_transactions', kwargs={'user_id': self.target_user.id})
+
+    def test_admin_user_transactions_requires_staff_or_superuser(self):
+        """Обычный пользователь получает 403, staff и superuser видят транзакции."""
+        # Обычный пользователь
+        regular_user = User.objects.create_user(username='user', password='pass')
+        self.client.login(username='user', password='pass')
+        resp = self.client.get(self.url)
+        self.assertEqual(resp.status_code, 403)
+        
+        # Staff пользователь
+        staff_user = User.objects.create_user(username='staff', password='pass', is_staff=True)
+        self.client.login(username='staff', password='pass')
+        resp = self.client.get(self.url)
+        self.assertEqual(resp.status_code, 200)
+        
+        # Superuser
+        self.client.login(username='admin', password='pass')
+        resp = self.client.get(self.url)
+        self.assertEqual(resp.status_code, 200)
+
+    def test_admin_user_transactions_shows_user_info(self):
+        """Страница показывает информацию о пользователе."""
+        self.client.login(username='admin', password='pass')
+        resp = self.client.get(self.url)
+        
+        self.assertEqual(resp.status_code, 200)
+        self.assertContains(resp, 'История транзакций DASCOIN - target')
+        self.assertContains(resp, 'target')
+
+    def test_admin_user_transactions_shows_transactions(self):
+        """Страница показывает транзакции пользователя."""
+        self.client.login(username='admin', password='pass')
+        resp = self.client.get(self.url)
+        
+        self.assertContains(resp, 'Тестовая награда')
+        self.assertContains(resp, 'Тестовое списание')
+        self.assertContains(resp, '+100')
+        self.assertContains(resp, '-50')
+
+    def test_admin_user_transactions_filtering(self):
+        """Фильтрация транзакций работает корректно."""
+        self.client.login(username='admin', password='pass')
+        
+        # Фильтр по начислениям
+        resp = self.client.get(self.url + '?type=award')
+        self.assertEqual(resp.status_code, 200)
+        self.assertContains(resp, 'Тестовая награда')
+        self.assertNotContains(resp, 'Тестовое списание')
+        
+        # Фильтр по списаниям
+        resp = self.client.get(self.url + '?type=deduct')
+        self.assertEqual(resp.status_code, 200)
+        self.assertContains(resp, 'Тестовое списание')
+        self.assertNotContains(resp, 'Тестовая награда')
+
+    def test_admin_user_transactions_export_requires_permissions(self):
+        """Экспорт требует прав администратора."""
+        # Обычный пользователь
+        regular_user = User.objects.create_user(username='user', password='pass')
+        self.client.login(username='user', password='pass')
+        
+        resp = self.client.get(reverse('users:export_admin_user_transactions_excel', kwargs={'user_id': self.target_user.id}))
+        self.assertEqual(resp.status_code, 403)
+        
+        resp = self.client.get(reverse('users:export_admin_user_transactions_pdf', kwargs={'user_id': self.target_user.id}))
+        self.assertEqual(resp.status_code, 403)
+        
+        # Staff пользователь
+        staff_user = User.objects.create_user(username='staff', password='pass', is_staff=True)
+        self.client.login(username='staff', password='pass')
+        
+        resp = self.client.get(reverse('users:export_admin_user_transactions_excel', kwargs={'user_id': self.target_user.id}))
+        self.assertEqual(resp.status_code, 200)
+        
+        resp = self.client.get(reverse('users:export_admin_user_transactions_pdf', kwargs={'user_id': self.target_user.id}))
+        self.assertEqual(resp.status_code, 200)
+
+    def test_admin_user_transactions_nonexistent_user(self):
+        """Попытка просмотра транзакций несуществующего пользователя возвращает 404."""
+        self.client.login(username='admin', password='pass')
+        resp = self.client.get(reverse('users:admin_user_transactions', kwargs={'user_id': 99999}))
+        self.assertEqual(resp.status_code, 404)

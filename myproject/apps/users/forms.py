@@ -74,7 +74,8 @@ class ProfileUpdateForm(forms.ModelForm):
     date_of_birth = forms.DateField(
         widget=forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}, format='%Y-%m-%d'),
         input_formats=['%Y-%m-%d'],
-        required=False
+        required=False,
+        label="Дата рождения"
     )
 
     class Meta:
@@ -87,7 +88,7 @@ class ProfileUpdateForm(forms.ModelForm):
         """
         
         model = Profile
-        fields = ['middle_name', 'role', 'date_of_birth', 'phone_number', 'image', 'bio']
+        fields = ['middle_name', 'date_of_birth', 'image', 'bio']
         widgets = {
             'phone_number': forms.TextInput(attrs={'class': 'form-control'}),
             'group': forms.Select(attrs={'class': 'form-select'}),
