@@ -41,6 +41,5 @@ def nav_menu(request):
         {'url': 'courses:create-course', 'label': 'Создать курс', 'icon': 'fa-solid fa-plus'},
         {'url': 'quizzes:quizzes', 'label': 'Тесты', 'icon': 'fa-solid fa-clipboard-question'},
         {'url': 'builder:dashboard', 'label': 'Панель управления', 'icon': 'fa-solid fa-cog'},
-        {'url': 'users:admin_dascoin_dashboard', 'label': 'Статистика DASCOIN', 'icon': 'fa-solid fa-chart-line'},
     ]
     return {'nav_public': nav_public, 'nav_staff': nav_staff}
