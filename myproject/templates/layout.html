@@ -51,10 +51,56 @@
                 <a class="navbar-brand" href="{% url 'home' %}" id="logolink">
                     <img src="{% static 'global/imgs/logo_lc.png' %}" alt="Logo" id="logopng">
                 </a>
-                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav"
-                  aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
-                  <span class="navbar-toggler-icon"></span>
-                </button>
+                <div class="d-flex align-items-center">
+                    {% if user.is_authenticated %}
+                    <!-- Уведомления - вынесены за бургер меню для мобильных -->
+                    <div class="d-lg-none me-2">
+                        <div class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle d-flex align-items-center position-relative" href="#" id="notificationDropdownMobile" role="button"
+                              data-bs-toggle="dropdown" aria-expanded="false">
+                              <i class="fas fa-bell"></i>
+                              <span id="notification-badge-mobile" class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" style="display: none;">
+                                0
+                              </span>
+                            </a>
+                            <ul class="dropdown-menu dropdown-menu-end notification-dropdown-menu" aria-labelledby="notificationDropdownMobile" style="width: 300px; max-height: 400px; overflow-y: auto;">
+                              <li id="notification-list-mobile">
+                                <div class="dropdown-item-text text-center">
+                                  <i class="fas fa-spinner fa-spin"></i> Загрузка...
+                                </div>
+                              </li>
+                            </ul>
+                        </div>
+                    </div>
+                    <!-- Профиль - вынесен за бургер меню для мобильных -->
+                    <div class="d-lg-none me-2">
+                        <div class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle d-flex align-items-center" href="#" id="profileDropdownMobile" role="button"
+                              data-bs-toggle="dropdown" aria-expanded="false">
+                              <img src="{{ request.user.profile.image.url|default:'/media/profile_pics/default.jpg' }}" alt="Аватар"
+                                class="navbar-avatar">
+                            </a>
+                            <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="profileDropdownMobile">
+                              <li><a class="dropdown-item" href="{% url 'users:profile' %}">Профиль</a></li>
+                              <li><a class="dropdown-item" href="{% url 'users:transactions' %}">
+                               История транзакций
+                              </a></li>
+                              <li><hr class="dropdown-divider"></li>
+                              <li>
+                                <form action="{% url 'users:logout' %}" method="post" style="display: inline;">
+                                  {% csrf_token %}
+                                  <button type="submit" class="dropdown-item">Выйти</button>
+                                </form>
+                              </li>
+                            </ul>
+                        </div>
+                    </div>
+                    {% endif %}
+                    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav"
+                      aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+                      <span class="navbar-toggler-icon"></span>
+                    </button>
+                </div>
                 <div class="collapse navbar-collapse" id="navbarNav">
                   <ul class="navbar-nav ms-auto custom-nav-list">
                     {% for item in nav_public %}
@@ -81,8 +127,8 @@
                       </li>
                     {% endif %}
                   {% endif %}
-                      <!-- Уведомления -->
-                      <li class="nav-item dropdown">
+                      <!-- Уведомления - только для десктопа -->
+                      <li class="nav-item dropdown d-none d-lg-block">
                         <a class="nav-link dropdown-toggle d-flex align-items-center position-relative" href="#" id="notificationDropdown" role="button"
                           data-bs-toggle="dropdown" aria-expanded="false">
                           <i class="fas fa-bell"></i>
@@ -99,7 +145,8 @@
                         </ul>
                       </li>
                       
-                      <li class="nav-item dropdown">
+                      <!-- Профиль - только для десктопа -->
+                      <li class="nav-item dropdown d-none d-lg-block">
                         <a class="nav-link dropdown-toggle d-flex align-items-center" href="#" id="profileDropdown" role="button"
                           data-bs-toggle="dropdown" aria-expanded="false">
                           <img src="{{ request.user.profile.image.url|default:'/media/profile_pics/default.jpg' }}" alt="Аватар"
@@ -123,6 +170,7 @@
                       <li class="nav-item">
                         <a class="nav-link custom-nav-link" href="{% url 'users:login' %}" title="Вход">
                           <i class="fa-solid fa-right-to-bracket"></i>
+                          <span class="d-md-none">Войти</span>
                         </a>
                       </li>
                     {% endif %}
@@ -214,9 +262,12 @@
                 method: 'GET',
                 success: function(data) {
                     $('#notification-list').html(data);
+                    $('#notification-list-mobile').html(data);
                 },
                 error: function() {
-                    $('#notification-list').html('<li><div class="dropdown-item-text text-center text-danger">Ошибка загрузки</div></li>');
+                    const errorHtml = '<li><div class="dropdown-item-text text-center text-danger">Ошибка загрузки</div></li>';
+                    $('#notification-list').html(errorHtml);
+                    $('#notification-list-mobile').html(errorHtml);
                 }
             });
         }
@@ -229,13 +280,16 @@
                 success: function(data) {
                     const count = data.count;
                     const badge = $('#notification-badge');
+                    const badgeMobile = $('#notification-badge-mobile');
                     const countText = $('#notification-count-text');
                     
                     if (count > 0) {
                         badge.text(count).show();
+                        badgeMobile.text(count).show();
                         countText.text(count + ' непрочитанных');
                     } else {
                         badge.hide();
+                        badgeMobile.hide();
                         countText.text('Нет уведомлений');
                     }
                 }
@@ -279,17 +333,15 @@
             });
         });
         
-        // Загрузка уведомлений при открытии dropdown
-        $('#notificationDropdown').on('show.bs.dropdown', function() {
-            loadNotifications();
-        });
-        
         // Инициализация при загрузке страницы
         $(document).ready(function() {
+            loadNotifications();
             updateNotificationCount();
             
             // Обновление каждые 30 секунд
-            setInterval(updateNotificationCount, 30000);
+            setInterval(function() {
+                updateNotificationCount();
+            }, 30000);
         });
     </script>
     {% endif %}

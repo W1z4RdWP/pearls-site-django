@@ -59,7 +59,7 @@ class Profile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE)
     middle_name = models.CharField(max_length=200, blank=True, null=True, verbose_name="Отчество")
     role = models.ForeignKey(Role, null=True, blank=True, on_delete=models.SET_NULL, verbose_name="Должность")
-    date_of_birth = models.DateField(verbose_name="Дата рождения", blank=True, null=True)
+    date_of_birth = models.DateField(blank=True, null=True, verbose_name="Дата рождения")
     phone_number = models.CharField(
         max_length=18,
         verbose_name="Номер телефона",
@@ -72,7 +72,7 @@ class Profile(models.Model):
         verbose_name="Произвольный формат телефона",
         help_text="Разрешить произвольный формат номера телефона"
     )
-    image = models.ImageField(default='profile_pics/default.jpg', upload_to='profile_pics')
+    image = models.ImageField(default='profile_pics/default.jpg', upload_to='profile_pics', verbose_name="Аватар")
     bio = models.TextField(max_length=500, blank=True, null=True, verbose_name="О себе")
     is_approved = models.BooleanField(default=False, verbose_name="Подвтерждение администратором")
     dascoin_points = models.PositiveIntegerField(default=0, verbose_name="Баллы DASCOIN")
@@ -141,11 +141,11 @@ class Profile(models.Model):
         from gamification.models import UserAchievement
         return UserAchievement.objects.filter(user=self.user).select_related('achievement')
     
-    def get_recent_badges(self, limit=3):
+    def get_recent_badges(self, limit=8):
         """Возвращает последние полученные бейджи"""
         return self.get_badges()[:limit]
     
-    def get_recent_achievements(self, limit=3):
+    def get_recent_achievements(self, limit=8):
         """Возвращает последние полученные достижения"""
         return self.get_achievements()[:limit]
 

@@ -1,7 +1,7 @@
 {% extends 'layout.html' %}
 {% load static %}
 
-{% block title %}История транзакций DASCOIN{% endblock %}
+{% block title %}История транзакций DASCOIN - {{ user.get_full_name|default:user.username }}{% endblock %}
 
 {% block content %}
 <div class="container mt-4">
@@ -11,13 +11,13 @@
                 <div class="card-header d-flex justify-content-between align-items-center py-2">
                     <h3 class="mb-0 fs-5">
                         <i class="fas fa-coins text-warning me-2"></i>
-                        История транзакций DASCOIN
+                        История транзакций DASCOIN - {{ user.get_full_name|default:user.username }}
                     </h3>
                     <div class="btn-group btn-group-sm me-2">
-                        <a href="{% url 'users:export_transactions_excel' %}" class="btn btn-outline-success">
+                        <a href="{% url 'users:export_admin_user_transactions_excel' user.id %}" class="btn btn-outline-success">
                             <i class="fas fa-file-excel me-1"></i>Excel
                         </a>
-                        <a href="{% url 'users:export_transactions_pdf' %}" class="btn btn-outline-danger">
+                        <a href="{% url 'users:export_admin_user_transactions_pdf' user.id %}" class="btn btn-outline-danger">
                             <i class="fas fa-file-pdf me-1"></i>PDF
                         </a>
                     </div>
@@ -25,9 +25,78 @@
                         <span class="badge bg-primary fs-6 me-2">
                             {{ total_transactions }}
                         </span>
-                        <a href="{{ back_url }}" class="btn btn-outline-secondary btn-sm">
-                            <i class="fas fa-arrow-left me-1"></i>Назад
+                        <a href="{% url 'users:admin_dashboard' %}" class="btn btn-outline-secondary btn-sm">
+                            <i class="fas fa-arrow-left me-1"></i>Назад к панели
                         </a>
+                    </div>
+                </div>
+                
+                <!-- Информация о пользователе -->
+                <div class="card-body border-bottom py-3">
+                    <div class="row align-items-center">
+                        <div class="col-md-8">
+                            <div class="d-flex align-items-center">
+                                {% if user.profile.image %}
+                                    <img src="{{ user.profile.image.url }}" 
+                                         class="rounded-circle me-3" 
+                                         width="64" height="64" 
+                                         alt="{{ user.get_full_name }}">
+                                {% else %}
+                                    <div class="bg-secondary rounded-circle me-3 d-flex align-items-center justify-content-center" 
+                                         style="width: 64px; height: 64px;">
+                                        <i class="fas fa-user text-white fa-2x"></i>
+                                    </div>
+                                {% endif %}
+                                <div>
+                                    <h5 class="mb-1">{{ user.get_full_name|default:user.username }}</h5>
+                                    <p class="text-muted mb-1">{{ user.email }}</p>
+                                    <div class="d-flex align-items-center">
+                                        <span class="fw-bold text-warning me-2">
+                                            {{ user.profile.dascoin_points }} DASCOIN
+                                        </span>
+                                        {% if user.profile.dascoin_points > 0 %}
+                                            <i class="fas fa-coins text-warning"></i>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="text-end">
+                                <div class="mb-2">
+                                    {% if user.groups.all %}
+                                        <strong>Группы:</strong><br>
+                                        {% for group in user.groups.all %}
+                                            <span class="badge bg-secondary me-1">{{ group.name }}</span>
+                                        {% endfor %}
+                                    {% endif %}
+                                </div>
+                                <div class="mb-2">
+                                    {% if user.profile.role %}
+                                        <strong>Должность:</strong><br>
+                                        <span class="badge bg-info">{{ user.profile.role.name }}</span>
+                                    {% endif %}
+                                </div>
+                                <div>
+                                    <strong>Статус:</strong><br>
+                                    {% if user.is_active %}
+                                        {% if user.profile.is_approved %}
+                                            <span class="badge bg-success">
+                                                <i class="fas fa-check me-1"></i>Активен
+                                            </span>
+                                        {% else %}
+                                            <span class="badge bg-warning text-dark">
+                                                <i class="fas fa-clock me-1"></i>Ожидает
+                                            </span>
+                                        {% endif %}
+                                    {% else %}
+                                        <span class="badge bg-danger">
+                                            <i class="fas fa-ban me-1"></i>Неактивен
+                                        </span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
                 
@@ -37,23 +106,23 @@
                         <div class="col-md-8">
                             <h6 class="mb-2 small">Фильтр по типу:</h6>
                             <div class="btn-group btn-group-sm" role="group">
-                                <a href="{% url 'users:transactions' %}" 
+                                <a href="{% url 'users:admin_user_transactions' user.id %}" 
                                    class="btn btn-outline-secondary btn-sm {% if not current_filter %}active{% endif %}">
                                     Все ({{ total_transactions }})
                                 </a>
-                                <a href="{% url 'users:transactions' %}?type=award" 
+                                <a href="{% url 'users:admin_user_transactions' user.id %}?type=award" 
                                    class="btn btn-outline-success btn-sm {% if current_filter == 'award' %}active{% endif %}" title="Начисление">
                                     <i class="fas fa-plus me-1"></i>({{ stats.award }})
                                 </a>
-                                <a href="{% url 'users:transactions' %}?type=deduct" 
+                                <a href="{% url 'users:admin_user_transactions' user.id %}?type=deduct" 
                                    class="btn btn-outline-danger btn-sm {% if current_filter == 'deduct' %}active{% endif %}" title="Списание">
                                     <i class="fas fa-minus me-1"></i>({{ stats.deduct }})
                                 </a>
-                                <a href="{% url 'users:transactions' %}?type=set" 
+                                <a href="{% url 'users:admin_user_transactions' user.id %}?type=set" 
                                    class="btn btn-outline-info btn-sm {% if current_filter == 'set' %}active{% endif %}" title="Установка">
                                     <i class="fas fa-equals me-1"></i>({{ stats.set }})
                                 </a>
-                                <a href="{% url 'users:transactions' %}?type=correction" 
+                                <a href="{% url 'users:admin_user_transactions' user.id %}?type=correction" 
                                    class="btn btn-outline-warning btn-sm {% if current_filter == 'correction' %}active{% endif %}" title="Корректировка">
                                     <i class="fas fa-tools me-1"></i>({{ stats.correction }})
                                 </a>
@@ -272,9 +341,9 @@
                             </h4>
                             <p class="text-muted">
                                 {% if current_filter %}
-                                    Попробуйте выбрать другой фильтр или <a href="{% url 'users:transactions' %}">показать все транзакции</a>
+                                    Попробуйте выбрать другой фильтр или <a href="{% url 'users:admin_user_transactions' user.id %}">показать все транзакции</a>
                                 {% else %}
-                                    У вас пока нет транзакций DASCOIN
+                                    У пользователя пока нет транзакций DASCOIN
                                 {% endif %}
                             </p>
                         </div>
