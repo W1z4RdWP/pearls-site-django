@@ -2141,3 +2141,27 @@ main > section > .text-block-2 {
 .navbar-toggler:focus {
     box-shadow: 0 0 0 0.25rem rgba(0, 0, 0, 0.25) !important;
 }
+
+/* Стили для мобильного колокольчика уведомлений */
+@media (max-width: 991px) {
+    .navbar .d-lg-none .nav-link {
+        padding: 0.5rem 0.75rem;
+        color: inherit !important;
+    }
+    
+    .navbar .d-lg-none .nav-link:hover {
+        color: inherit !important;
+        opacity: 0.8;
+    }
+    
+    .navbar .d-lg-none .dropdown-menu {
+        margin-top: 0.5rem;
+        border: 1px solid rgba(0,0,0,.15);
+        box-shadow: 0 0.5rem 1rem rgba(0,0,0,.175);
+    }
+    
+    /* Группировка колокольчика и бургер меню */
+    .navbar .d-flex.align-items-center {
+        margin-left: auto;
+    }
+}
