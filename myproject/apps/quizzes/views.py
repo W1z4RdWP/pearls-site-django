@@ -243,7 +243,7 @@ def get_finish(request) -> HttpResponse:
         percent_score = int((score / (questions_count - text_questions_count)) * 100) if questions_count > 0 else 0 # Процент правильных ответов на вопросы, исключая открытые
 
 
-    passed = percent_score >= 80
+    passed = percent_score >= 80 # Проходной балл
     quiz_result = QuizResult.objects.create(
         user=request.user,
         quiz_title=quiz.name,

@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Отчет по транзакциям DASCOIN</title>
+    <style>
+        @page {
+            size: A4 landscape;
+            margin: 1cm;
+        }
+        body {
+            font-family: 'DejaVu Sans', Arial, sans-serif;
+            font-size: 12px;
+            line-height: 1.4;
+            color: #333;
+            margin: 0;
+            padding: 20px;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            border-bottom: 2px solid #007bff;
+            padding-bottom: 10px;
+        }
+        .header h1 {
+            color: #007bff;
+            margin: 0;
+            font-size: 24px;
+        }
+        .header p {
+            margin: 5px 0;
+            color: #666;
+        }
+        .info-section {
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+        }
+        .info-item {
+            text-align: center;
+            flex: 1;
+        }
+        .info-label {
+            font-weight: bold;
+            color: #007bff;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        th {
+            background-color: #007bff;
+            color: white;
+            padding: 10px;
+            text-align: center;
+            font-weight: bold;
+            border: 1px solid #0056b3;
+        }
+        td {
+            padding: 8px;
+            text-align: center;
+            border: 1px solid #ddd;
+        }
+        tr:nth-child(even) {
+            background-color: #f8f9fa;
+        }
+        tr:hover {
+            background-color: #e9ecef;
+        }
+        .transaction-type {
+            font-weight: bold;
+        }
+        .award {
+            color: #28a745;
+        }
+        .deduct {
+            color: #dc3545;
+        }
+        .set {
+            color: #17a2b8;
+        }
+        .correction {
+            color: #ffc107;
+        }
+        .points-change {
+            font-weight: bold;
+        }
+        .points-positive {
+            color: #28a745;
+        }
+        .points-negative {
+            color: #dc3545;
+        }
+        .footer {
+            margin-top: 30px;
+            text-align: center;
+            font-size: 10px;
+            color: #666;
+            border-top: 1px solid #ddd;
+            padding-top: 10px;
+        }
+        .no-transactions {
+            text-align: center;
+            padding: 50px;
+            color: #666;
+            font-style: italic;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Отчет по транзакциям DASCOIN</h1>
+        <p>Пользователь: {{ user.get_full_name|default:user.username }}</p>
+        <p>Сгенерировано: {{ generated_at|date:"d.m.Y H:i" }}</p>
+    </div>
+    <div class="info-section">
+        <div class="info-item">
+            <div class="info-label">Всего транзакций</div>
+            <div>{{ total_transactions }}</div>
+        </div>
+        <div class="info-item">
+            <div class="info-label">Текущий баланс</div>
+            <div>{{ user.profile.dascoin_points }} баллов</div>
+        </div>
+        <div class="info-item">
+            <div class="info-label">Дата отчета</div>
+            <div>{{ generated_at|date:"d.m.Y" }}</div>
+        </div>
+    </div>
+    {% if transactions %}
+        <table>
+            <thead>
+                <tr>
+                    <th>Дата и время</th>
+                    <th>Тип операции</th>
+                    <th>Изменение баллов</th>
+                    <th>Баллов до</th>
+                    <th>Баллов после</th>
+                    <th>Причина</th>
+                    <th>Администратор</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for transaction in transactions %}
+                <tr>
+                    <td>{{ transaction.created_at|date:"d.m.Y H:i" }}</td>
+                    <td class="transaction-type 
+                        {% if transaction.transaction_type == 'award' %}award
+                        {% elif transaction.transaction_type == 'deduct' %}deduct
+                        {% elif transaction.transaction_type == 'set' %}set
+                        {% elif transaction.transaction_type == 'correction' %}correction
+                        {% endif %}">
+                        {{ transaction.get_transaction_type_display }}
+                    </td>
+                    <td class="points-change 
+                        {% if transaction.points_change > 0 %}points-positive
+                        {% else %}points-negative
+                        {% endif %}">
+                        {% if transaction.points_change > 0 %}+{% endif %}{{ transaction.points_change }}
+                    </td>
+                    <td>{{ transaction.points_before }}</td>
+                    <td>{{ transaction.points_after }}</td>
+                    <td>{{ transaction.reason|default:"Не указана" }}</td>
+                    <td>
+                        {% if transaction.admin_user %}
+                            {{ transaction.admin_user.get_full_name|default:transaction.admin_user.username }}
+                        {% else %}
+                            Система
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% else %}
+        <div class="no-transactions">
+            <h3>История транзакций пуста</h3>
+            <p>У вас пока нет транзакций DASCOIN</p>
+        </div>
+    {% endif %}
+    <div class="footer">
+        <p>Отчет сгенерирован автоматически системой DASCOIN</p>
+        <p>Территория Улыбки - {{ generated_at|date:"d.m.Y H:i" }}</p>
+    </div>
+</body>
+</html>

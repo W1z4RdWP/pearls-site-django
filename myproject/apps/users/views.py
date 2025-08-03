@@ -1,3 +1,9 @@
+from openpyxl import Workbook
+from openpyxl.styles import Font, PatternFill
+from weasyprint import HTML
+from django.template.loader import render_to_string
+from datetime import datetime
+
 from collections import defaultdict
 import logging
 
@@ -11,14 +17,16 @@ from django.contrib.auth.models import User
 from django.contrib.auth.views import LoginView
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.core.paginator import Paginator, PageNotAnInteger, EmptyPage
-from django.views.generic import FormView
+from django.views.generic import FormView, ListView
 from django.views.decorators.cache import cache_page
 from django.urls import reverse_lazy
+from django.utils.encoding import smart_str
+
 
 from myapp.models import UserCourse, UserProgress, QuizResult, UserAnswer
 from quizzes.models import Answer
 from courses.models import UserLessonTrajectory
-from gamification.models import Badge, Achievement
+from gamification.models import Badge, Achievement, DascoinTransaction
 from .forms import UserRegisterForm, UserUpdateForm, ProfileUpdateForm
 from .models import Profile
  
@@ -280,3 +288,104 @@ class CustomLoginView(LoginView):
         )
         auth_login(self.request, user)
         return redirect(self.get_success_url())
+
+
+class TransactionsListView(LoginRequiredMixin, ListView):
+    """CBV для отображения истории транзакций DASCOIN пользователя"""
+    model = DascoinTransaction
+    template_name = 'users/transactions.html'
+    context_object_name = 'transactions'
+    paginate_by = 20
+    ordering = ['-created_at']
+    
+    def get_queryset(self):
+        """Возвращает транзакции только для текущего пользователя с возможностью фильтрации"""
+        queryset = DascoinTransaction.objects.filter(user=self.request.user).order_by('-created_at')
+        
+        # Фильтрация по типу транзакции
+        transaction_type = self.request.GET.get('type')
+        if transaction_type and transaction_type in ['award', 'deduct', 'set', 'correction']:
+            queryset = queryset.filter(transaction_type=transaction_type)
+        
+        return queryset
+    
+    def get_context_data(self, **kwargs):
+        """Добавляет дополнительный контекст"""
+        context = super().get_context_data(**kwargs)
+        
+        context['total_transactions'] = self.get_queryset().count()
+        context['current_filter'] = self.request.GET.get('type', '')
+        
+        # Статистика по типам транзакций
+        all_transactions = DascoinTransaction.objects.filter(user=self.request.user)
+        context['stats'] = {
+            'award': all_transactions.filter(transaction_type='award').count(),
+            'deduct': all_transactions.filter(transaction_type='deduct').count(),
+            'set': all_transactions.filter(transaction_type='set').count(),
+            'correction': all_transactions.filter(transaction_type='correction').count(),
+        }
+        
+        # Логирование действия
+        audit_logger.info(
+            'Смотрит историю транзакций DASCOIN', 
+            extra={
+                'user': self.request.user.username if self.request.user.is_authenticated else 'Anonymous'
+            }
+        )
+        
+        return context
+
+
+@login_required
+def export_transactions_excel(request):
+    transactions = DascoinTransaction.objects.filter(user=request.user).order_by('-created_at')
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Транзакции DASCOIN"
+    headers = ['Дата', 'Тип', 'Изменение', 'До', 'После', 'Причина', 'Администратор']
+    ws.append(headers)
+    for cell in ws[1]:
+        cell.font = Font(bold=True, color="FFFFFF")
+        cell.fill = PatternFill(start_color="366092", end_color="366092", fill_type="solid")
+    for tx in transactions:
+        ws.append([
+            tx.created_at.strftime("%d.%m.%Y %H:%M"),
+            tx.get_transaction_type_display(),
+            tx.points_change,
+            tx.points_before,
+            tx.points_after,
+            tx.reason or "Не указана",
+            tx.admin_user.get_full_name() if tx.admin_user else "Система"
+        ])
+    for column in ws.columns:
+        max_length = max(len(str(cell.value)) for cell in column)
+        ws.column_dimensions[column[0].column_letter].width = min(max_length + 2, 50)
+    response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+    filename = f"transactions_{datetime.now().strftime('%Y%m%d_%H%M')}.xlsx"
+    response['Content-Disposition'] = f'attachment; filename={filename}'
+    wb.save(response)
+    return response
+
+
+@login_required
+def export_transactions_pdf(request):
+    """Экспорт транзакций в PDF с помощью WeasyPrint"""
+    transactions = DascoinTransaction.objects.filter(user=request.user).order_by('-created_at')
+    html_string = render_to_string('users/transactions_pdf.html', {
+        'transactions': transactions,
+        'user': request.user,
+        'generated_at': datetime.now(),
+        'total_transactions': transactions.count(),
+    })
+    html = HTML(string=html_string)
+    pdf = html.write_pdf()
+    response = HttpResponse(pdf, content_type='application/pdf')
+    filename = f"transactions_{datetime.now().strftime('%Y%m%d_%H%M')}.pdf"
+    response['Content-Disposition'] = f'attachment; filename={filename}'
+    audit_logger.info(
+        'Экспортировал транзакции в PDF', 
+        extra={
+            'user': request.user.username if request.user.is_authenticated else 'Anonymous'
+        }
+    )
+    return response
