@@ -397,7 +397,7 @@ def export_transactions_pdf(request):
 class AdminDashboardView(LoginRequiredMixin, UserPassesTestMixin, ListView):
     """CBV для отображения административной панели статистики пользователей по баллам DASCOIN"""
     model = User
-    template_name = 'users/admin_dashboard.html'
+    template_name = 'users/admin_dascoin_dashboard.html'
     context_object_name = 'users'
     paginate_by = 25
     ordering = ['-profile__dascoin_points', 'username']

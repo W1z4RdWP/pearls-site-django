@@ -15,7 +15,7 @@ urlpatterns = [
     path('profile/transactions/export/pdf/', views.export_transactions_pdf, name='export_transactions_pdf'),
     
     # Административная панель статистики DASCOIN
-    path('admin/dashboard/', views.AdminDashboardView.as_view(), name='admin_dashboard'),
+    path('admin/dascoin_dashboard/', views.AdminDashboardView.as_view(), name='admin_dascoin_dashboard'),
     path('admin/stats/export/excel/', views.export_admin_stats_excel, name='export_admin_stats_excel'),
     path('admin/stats/export/pdf/', views.export_admin_stats_pdf, name='export_admin_stats_pdf'),
     
