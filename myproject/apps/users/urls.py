@@ -10,6 +10,7 @@ urlpatterns = [
     path('profile/all-badges/', views.all_badges, name='all_badges'),
     path('profile/all-achievements/', views.all_achievements, name='all_achievements'),
     path('profile/quiz-report/<int:quiz_id>/', views.quiz_report, name='quiz_report'),
+    path('profile/transactions/', views.TransactionsListView.as_view(), name='transactions'),
     
     # Регистрация и аутентификация
     path('register/', views.RegisterView.as_view(), name='register'),

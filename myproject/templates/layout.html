@@ -107,6 +107,10 @@
                         </a>
                         <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="profileDropdown">
                           <li><a class="dropdown-item" href="{% url 'users:profile' %}">Профиль</a></li>
+                          <li><a class="dropdown-item" href="{% url 'users:transactions' %}">
+                           История транзакций
+                          </a></li>
+                          <li><hr class="dropdown-divider"></li>
                           <li>
                             <form action="{% url 'users:logout' %}" method="post" style="display: inline;">
                               {% csrf_token %}
