@@ -28,7 +28,7 @@ from django.utils.http import urlencode
 
 from myapp.models import UserCourse, UserProgress, QuizResult, UserAnswer
 from quizzes.models import Answer
-from courses.models import UserLessonTrajectory
+from courses.models import UserLessonTrajectory, Course
 from gamification.models import Badge, Achievement, DascoinTransaction
 from .forms import UserRegisterForm, UserUpdateForm, ProfileUpdateForm
 from .models import Profile, Role
@@ -77,11 +77,20 @@ def profile(request: HttpRequest) -> HttpResponse:
         return render(request, 'users/profile_error.html', {
             'error_message': 'Профиль пользователя не найден. Пожалуйста, обратитесь к администратору.'
         })
-    started_courses = UserCourse.objects.filter(user=user).select_related('course')
+    # Получаем все доступные курсы через менеджер
+    available_courses = Course.objects.available_for_user(user)
+    # Получаем UserCourse для каждого доступного курса
+    started_courses = []
+    for course in available_courses:
+        user_course = UserCourse.objects.filter(user=user, course=course).first()
+        if user_course:
+            started_courses.append(user_course)
+        else:
+            # Создаем UserCourse если его нет (для курсов из траекторий)
+            user_course = UserCourse.objects.create(user=user, course=course, status='available')
+            started_courses.append(user_course)
     unfinished_courses = []
     finished_courses = []
-    exp = profile.exp
-    level = 1
     quiz_results = QuizResult.objects.filter(user=request.user).order_by('-completed_at')
     # Пагинация для истории тестов
     paginator = Paginator(quiz_results, 4)  # 4 элементов на странице
@@ -144,15 +153,6 @@ def profile(request: HttpRequest) -> HttpResponse:
         # Обновляем флаг завершения всех уроков
         all_lessons_completed = (percent == 100) or all_lessons_completed
 
-    # Функция для расчета уровня и прогресса
-    def count_exp(exp, level):
-        while exp >= level * 100:
-            level += 1
-        progress = ((exp - ((level - 1) * 100)) / 100) * 100
-        return level, min(progress, 100)
-
-    level, progress = count_exp(exp, level)
-
     if request.method == 'POST':
         user_form = UserUpdateForm(request.POST, instance=request.user)
         profile_form = ProfileUpdateForm(request.POST, request.FILES, instance=profile)
@@ -178,9 +178,6 @@ def profile(request: HttpRequest) -> HttpResponse:
         'profile_form': profile_form,
         'unfinished_courses': unfinished_courses,
         'finished_courses': finished_courses,
-        'exp': exp,
-        'progress': int(progress),
-        'level': level,
         'quiz_results': quiz_results,
         'page_obj': page_obj,
         'all_lessons_completed': all_lessons_completed,

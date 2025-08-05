@@ -232,6 +232,7 @@ def get_finish(request) -> HttpResponse:
         return redirect('quizzes')
     
     quiz = get_object_or_404(Quiz, id=quiz_id)
+
     questions_count = Question.objects.filter(quiz=quiz).count() # Количество вопросов в тесте всего
     text_questions_count = Question.objects.filter(question_type='text').filter(quiz=quiz).count() # количество открытых вопросов в тесте
     score = request.session.get('score', 0)
@@ -242,8 +243,15 @@ def get_finish(request) -> HttpResponse:
     else: 
         percent_score = int((score / (questions_count - text_questions_count)) * 100) if questions_count > 0 else 0 # Процент правильных ответов на вопросы, исключая открытые
 
-
     passed = percent_score >= 80 # Проходной балл
+    
+    # Проверяем, был ли тест уже пройден ранее (ДО создания текущего результата)
+    previous_quiz_result = QuizResult.objects.filter(
+        user=request.user,
+        quiz_title=quiz.name,
+        passed=True
+    ).first()
+    
     quiz_result = QuizResult.objects.create(
         user=request.user,
         quiz_title=quiz.name,
@@ -297,15 +305,12 @@ def get_finish(request) -> HttpResponse:
         # Проверяем, является ли этот тест финальным для какого-то курса
         course = Course.objects.filter(final_quiz=quiz).first()
     
-    # Проверяем, был ли тест уже пройден ранее
-    previous_quiz_result = QuizResult.objects.filter(
-        user=request.user,
-        quiz_title=quiz.name,
-        passed=True
-    ).first()
-    
     if course and passed:
+        # Получаем UserCourse
         user_course = UserCourse.objects.filter(user=request.user, course=course).first()
+        if not user_course:
+            user_course = UserCourse.objects.create(user=request.user, course=course, status='available')
+        
         if user_course:
             # Начисляем очки за тест только если он не был пройден ранее
             if not previous_quiz_result:

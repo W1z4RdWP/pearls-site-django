@@ -21,15 +21,7 @@
         </div>
         <a href="{% url 'user_management:user_list' %}" class="um-btn um-btn-secondary">← Назад к списку</a>
     </div>
-    <div class="um-progress-level-block">
-        <div class="um-progress-level-info">
-            <span class="um-progress-level">Уровень: <b>{{ level }}</b></span>
-            <span class="um-progress-exp">Опыт: <b>{{ exp }}</b></span>
-        </div>
-        <div class="um-progress-level-bar">
-            <div class="um-progress-level-bar-inner" style="width: {{ progress }}%;"></div>
-        </div>
-    </div>
+
 
     <!-- Общая статистика -->
     <div class="um-progress-overview">
@@ -157,9 +149,29 @@
                 {% if course_progress.user_course.status == 'completed' %}
                 <div class="um-progress-rewards">
                     <h4>Награды за курс</h4>
-                    <div class="um-progress-reward-item">
-                        <span class="um-reward-icon">⭐</span>
-                        <span class="um-reward-text">{{ course_progress.exp_reward }} опыта</span>
+                    <div class="um-progress-rewards-grid">
+                        <!-- DASCOIN -->
+                        <div class="um-progress-reward-item">
+                            <span class="um-reward-icon">💎</span>
+                            <span class="um-reward-text">{{ course_progress.course.points }} DASCOIN</span>
+                        </div>
+                        
+                        <!-- Бейджи за курс -->
+                        {% for user_badge in target_user.profile.get_badges %}
+                            {% if user_badge.badge.badge_type == 'course' and user_badge.badge.name == 'Курс: '|add:course_progress.course.title %}
+                                <div class="um-progress-reward-item">
+                                    <span class="um-reward-icon">
+                                        {% if user_badge.badge.icon %}
+                                            <img src="{{ user_badge.badge.icon.url }}" alt="{{ user_badge.badge.name }}" class="um-badge-icon">
+                                        {% else %}
+                                            <i class="fa fa-medal"></i>
+                                        {% endif %}
+                                    </span>
+                                    <span class="um-reward-text">{{ user_badge.badge.name }}</span>
+                                    <small class="um-reward-date">{{ user_badge.earned_at|date:"d.m.Y" }}</small>
+                                </div>
+                            {% endif %}
+                        {% endfor %}
                     </div>
                 </div>
                 {% endif %}

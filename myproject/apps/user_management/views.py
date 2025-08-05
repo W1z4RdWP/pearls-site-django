@@ -1,7 +1,7 @@
 from django.shortcuts import render, redirect
 from django.views.generic import ListView, CreateView, UpdateView, DetailView, FormView
 from django.contrib.auth.models import User
-from django.db.models import Q, Count, Max
+from django.db.models import Q, Count, Max, F
 from users.models import Profile, Role
 from django import forms
 from django.urls import reverse_lazy
@@ -45,10 +45,26 @@ class UserListView(ListView):
         elif filter_val == 'not_approved':
             queryset = queryset.filter(profile__is_approved=False)
         elif filter_val == 'responsible':
-            queryset = queryset.filter(profile__role__responsible_user__isnull=False)
+            queryset = queryset.filter(profile__role__responsible_user=F('id'))
         elif filter_val == 'not_responsible':
-            queryset = queryset.filter(profile__role__responsible_user__isnull=True)
+            queryset = queryset.filter(
+                Q(profile__role__responsible_user__isnull=True) |
+                ~Q(profile__role__responsible_user=F('id'))
+            )
+        
+        # Фильтрация по группе
+        group_filter = self.request.GET.get('group')
+        if group_filter:
+            queryset = queryset.filter(groups__id=group_filter)
+        
         return queryset
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        # Добавляем список групп для фильтра
+        from django.contrib.auth.models import Group
+        context['groups'] = Group.objects.all().order_by('name')
+        return context
 
 
 class UserCreateStep1View(CreateView):
@@ -384,10 +400,19 @@ class UserProgressDashboardView(DetailView):
         context = super().get_context_data(**kwargs)
         user = self.get_object()
         profile = user.profile
-        exp = profile.exp 
         
-        # Получаем все курсы пользователя
-        user_courses = UserCourse.objects.filter(user=user).select_related('course')
+        # Получаем все доступные курсы через менеджер
+        available_courses = Course.objects.available_for_user(user)
+        # Получаем UserCourse для каждого доступного курса
+        user_courses = []
+        for course in available_courses:
+            user_course = UserCourse.objects.filter(user=user, course=course).first()
+            if user_course:
+                user_courses.append(user_course)
+            else:
+                # Создаем UserCourse если его нет (для курсов из траекторий)
+                user_course = UserCourse.objects.create(user=user, course=course, status='available')
+                user_courses.append(user_course)
         
         # Получаем все результаты тестирования пользователя ДО цикла по курсам
         quiz_results = list(QuizResult.objects.filter(user=user).order_by('-completed_at'))
@@ -465,8 +490,7 @@ class UserProgressDashboardView(DetailView):
                 'progress_percent': progress_percent,
                 'quiz_passed': quiz_passed,
                 'lessons_detail': lessons_detail,
-                'can_receive_exp': user_course.can_receive_exp(),
-                'exp_reward': user_course.exp_reward() if user_course.status == 'completed' else 0,
+
                 'best_attempt': best_attempt,
             })
         
@@ -480,12 +504,7 @@ class UserProgressDashboardView(DetailView):
         total_lessons_available = sum(cp['total_lessons'] for cp in courses_progress)
         overall_progress = int((total_lessons_completed / total_lessons_available) * 100) if total_lessons_available > 0 else 0
         
-        def count_exp(exp, level=1):
-            while exp >= level * 100:
-                level += 1
-            progress = ((exp - ((level - 1) * 100)) / 100) * 100
-            return level, min(progress, 100)
-        level, progress = count_exp(exp)
+
 
         # Детальная информация о результатах тестов
         detailed_quiz_results = []
@@ -544,9 +563,6 @@ class UserProgressDashboardView(DetailView):
             page_obj_courses = paginator_courses.page(paginator_courses.num_pages)
         
         context.update({
-            'exp': exp,
-            'level': level,
-            'progress': int(progress),
             'courses_progress': courses_progress,
             'total_courses': total_courses,
             'completed_courses': completed_courses,

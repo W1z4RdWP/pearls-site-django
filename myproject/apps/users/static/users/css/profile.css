@@ -396,6 +396,8 @@ legend{
     .badge-item,
     .achievement-item {
         padding: 3px;
+        width: 65px;
+        min-width: 65px;
     }
     
     .badge-icon,
@@ -632,6 +634,12 @@ legend{
     transition: transform 0.2s, box-shadow 0.2s;
     cursor: pointer;
     flex-shrink: 0;
+    width: 80px;
+    min-width: 80px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
 }
 
 .badge-item:hover,
@@ -674,6 +682,10 @@ legend{
     color: var(--primary-text-color);
     margin-bottom: 2px;
     line-height: 1.2;
+    text-align: center;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    hyphens: auto;
 }
 
 .badge-date,

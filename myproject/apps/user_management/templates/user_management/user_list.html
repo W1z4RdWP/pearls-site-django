@@ -35,6 +35,12 @@
             <option value="responsible" {% if request.GET.filter == "responsible" %}selected{% endif %}>Только ответственные</option>
             <option value="not_responsible" {% if request.GET.filter == "not_responsible" %}selected{% endif %}>Только не ответственные</option>
         </select>
+        <select name="group" class="um-user-list-combined-filter">
+            <option value="" {% if request.GET.group == "" %}selected{% endif %}>Все группы</option>
+            {% for group in groups %}
+                <option value="{{ group.id }}" {% if request.GET.group == group.id|stringformat:"s" %}selected{% endif %}>{{ group.name }}</option>
+            {% endfor %}
+        </select>
 
         <button type="submit" class="um-btn um-btn-secondary">Фильтровать</button>
     </form>
@@ -89,10 +95,10 @@
         <ul class="pagination justify-content-center">
             {% if page_obj.has_previous %}
                 <li class="page-item">
-                    <a class="page-link" href="?page=1{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}">Первая</a>
+                    <a class="page-link" href="?page=1{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}{% if request.GET.filter %}&filter={{ request.GET.filter }}{% endif %}{% if request.GET.group %}&group={{ request.GET.group }}{% endif %}">Первая</a>
                 </li>
                 <li class="page-item">
-                    <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}">Назад</a>
+                    <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}{% if request.GET.filter %}&filter={{ request.GET.filter }}{% endif %}{% if request.GET.group %}&group={{ request.GET.group }}{% endif %}">Назад</a>
                 </li>
             {% endif %}
             {% for num in page_obj.paginator.page_range %}
@@ -100,16 +106,16 @@
                     {% if page_obj.number == num %}
                         <li class="page-item active"><span class="page-link">{{ num }}</span></li>
                     {% else %}
-                        <li class="page-item"><a class="page-link" href="?page={{ num }}{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}">{{ num }}</a></li>
+                        <li class="page-item"><a class="page-link" href="?page={{ num }}{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}{% if request.GET.filter %}&filter={{ request.GET.filter }}{% endif %}{% if request.GET.group %}&group={{ request.GET.group }}{% endif %}">{{ num }}</a></li>
                     {% endif %}
                 {% endif %}
             {% endfor %}
             {% if page_obj.has_next %}
                 <li class="page-item">
-                    <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}">Вперед</a>
+                    <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}{% if request.GET.filter %}&filter={{ request.GET.filter }}{% endif %}{% if request.GET.group %}&group={{ request.GET.group }}{% endif %}">Вперед</a>
                 </li>
                 <li class="page-item">
-                    <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}">Последняя</a>
+                    <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}{% if request.GET.filter %}&filter={{ request.GET.filter }}{% endif %}{% if request.GET.group %}&group={{ request.GET.group }}{% endif %}">Последняя</a>
                 </li>
             {% endif %}
         </ul>

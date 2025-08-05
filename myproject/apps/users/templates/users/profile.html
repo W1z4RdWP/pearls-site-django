@@ -62,16 +62,9 @@
             <button class="btn-modern" id="toggle-courses-btn">
                 <i class="fa fa-graduation-cap"></i> Показать завершенные курсы
             </button>
-            <a href="{% url 'courses:user_course_trajectory_list' %}" class="btn-modern" id="trajectories-btn">
-                <i class="fa fa-route"></i> Ваши траектории
-            </a>
+
         </div>
-        <div class="progress-bar-user">
-            <h3>
-                Уровень: {{ level }} | Опыт: {{ exp }}
-            </h3>
-            <div class="inner" style="width: {{ progress }}%;" nonce="{{ request.csp_nonce }}" ></div>
-        </div>
+
         
         <!-- Секция бейджей и достижений -->
         <div class="gamification-section" id="gamification-section">
@@ -93,8 +86,8 @@
                                         <i class="fa fa-medal"></i>
                                     </div>
                                 {% endif %}
-                                <!-- <span class="badge-name">{{ user_badge.badge.name }}</span>
-                                <small class="badge-date">{{ user_badge.earned_at|date:"d.m.Y" }}</small> -->
+                                <span class="badge-name">{{ user_badge.badge.name }}</span>
+                                <small class="badge-date">{{ user_badge.earned_at|date:"d.m.Y" }}</small>
                             </div>
                             {% endfor %}
                         </div>
@@ -133,8 +126,8 @@
                                         <i class="fa fa-trophy"></i>
                                     </div>
                                 {% endif %}
-                                <!-- <span class="achievement-name">{{ user_achievement.achievement.name }}</span>
-                                <small class="achievement-date">{{ user_achievement.earned_at|date:"d.m.Y" }}</small> -->
+                                <span class="achievement-name">{{ user_achievement.achievement.name }}</span>
+                                <small class="achievement-date">{{ user_achievement.earned_at|date:"d.m.Y" }}</small>
                             </div>
                             {% endfor %}
                         </div>

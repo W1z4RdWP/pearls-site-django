@@ -160,7 +160,7 @@
             <div class="confetti"></div>
             <div class="completion-message">
                 <h2>🎉 Курс завершен! 🎉</h2>
-                <p>Вы получили <span>{{ exp_earned }}</span> опыта!</p>
+                <p>Поздравляем с завершением курса!</p>
                 {% if next_course_in_trajectory %}
                     <div class="mt-4">
                         <a href="{% url 'courses:course_detail' slug=next_course_in_trajectory.slug %}" 

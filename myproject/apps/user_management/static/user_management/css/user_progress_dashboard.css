@@ -535,6 +535,13 @@ body.theme-dark {
     border-top: 1px solid var(--um-card-border);
 }
 
+.um-progress-rewards-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 15px;
+    margin-top: 15px;
+}
+
 .um-progress-rewards h4 {
     margin: 0 0 12px 0;
     font-size: 16px;
@@ -555,6 +562,18 @@ body.theme-dark {
 .um-reward-text {
     font-weight: 600;
     color: var(--um-rewards-title);
+}
+
+.um-badge-icon {
+    width: 24px;
+    height: 24px;
+    object-fit: contain;
+}
+
+.um-reward-date {
+    font-size: 12px;
+    color: var(--um-lesson-detail-date);
+    margin-left: auto;
 }
 
 .um-reward-status {
