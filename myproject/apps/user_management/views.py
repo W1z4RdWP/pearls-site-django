@@ -1,7 +1,7 @@
 from django.shortcuts import render, redirect
 from django.views.generic import ListView, CreateView, UpdateView, DetailView, FormView
 from django.contrib.auth.models import User
-from django.db.models import Q, Count, Max
+from django.db.models import Q, Count, Max, F
 from users.models import Profile, Role
 from django import forms
 from django.urls import reverse_lazy
@@ -45,10 +45,26 @@ class UserListView(ListView):
         elif filter_val == 'not_approved':
             queryset = queryset.filter(profile__is_approved=False)
         elif filter_val == 'responsible':
-            queryset = queryset.filter(profile__role__responsible_user__isnull=False)
+            queryset = queryset.filter(profile__role__responsible_user=F('id'))
         elif filter_val == 'not_responsible':
-            queryset = queryset.filter(profile__role__responsible_user__isnull=True)
+            queryset = queryset.filter(
+                Q(profile__role__responsible_user__isnull=True) |
+                ~Q(profile__role__responsible_user=F('id'))
+            )
+        
+        # Фильтрация по группе
+        group_filter = self.request.GET.get('group')
+        if group_filter:
+            queryset = queryset.filter(groups__id=group_filter)
+        
         return queryset
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        # Добавляем список групп для фильтра
+        from django.contrib.auth.models import Group
+        context['groups'] = Group.objects.all().order_by('name')
+        return context
 
 
 class UserCreateStep1View(CreateView):
