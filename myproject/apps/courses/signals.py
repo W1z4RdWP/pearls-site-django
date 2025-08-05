@@ -7,6 +7,7 @@ import logging
 
 logger = logging.getLogger(__name__)
 
+
 @receiver(m2m_changed, sender=User.groups.through)
 def assign_courses_on_group_add(sender, instance, action, pk_set, **kwargs):
     logger.info(f"Сигнал assign_courses_on_group_add: action={action}, user={instance.username}")
@@ -38,6 +39,7 @@ def assign_courses_on_group_add(sender, instance, action, pk_set, **kwargs):
                     UserCourse.objects.filter(user=instance, course=course).delete()
                     logger.info(f"Удален курс {course.title} у пользователя {instance.username}")
 
+
 @receiver(m2m_changed, sender=Course.allowed_groups.through)
 def assign_courses_on_course_update(sender, instance, action, pk_set, **kwargs):
     logger.info(f"Сигнал assign_courses_on_course_update: action={action}, course={instance.title}")
@@ -53,6 +55,7 @@ def assign_courses_on_course_update(sender, instance, action, pk_set, **kwargs):
         for user in users:
             UserCourse.objects.get_or_create(user=user, course=instance)
             logger.info(f"Назначен курс {instance.title} пользователю {user.username}")
+
 
 @receiver(m2m_changed, sender=User.groups.through)
 def assign_trajectories_on_group_add(sender, instance, action, pk_set, **kwargs):
@@ -91,6 +94,7 @@ def assign_trajectories_on_group_add(sender, instance, action, pk_set, **kwargs)
                         user_trajectory.delete()
                         logger.info(f"Удалена траектория {trajectory.name} у пользователя {instance.username}")
 
+
 @receiver(m2m_changed, sender=Trajectory.groups.through)
 def assign_trajectories_on_trajectory_update(sender, instance, action, pk_set, **kwargs):
     logger.info(f"Сигнал assign_trajectories_on_trajectory_update: action={action}, trajectory={instance.name}")
@@ -109,6 +113,7 @@ def assign_trajectories_on_trajectory_update(sender, instance, action, pk_set, *
             if created:
                 logger.info(f"Назначена траектория {instance.name} пользователю {user.username}")
                 assign_courses_from_trajectory(user, instance)
+
 
 @receiver(post_save, sender=TrajectoryCourse)
 def assign_course_to_trajectory_users(sender, instance, created, **kwargs):
@@ -129,6 +134,7 @@ def assign_course_to_trajectory_users(sender, instance, created, **kwargs):
             )
             if course_created:
                 logger.info(f"Назначен курс {instance.course.title} пользователю {user_trajectory.user.username}")
+
 
 def assign_courses_from_trajectory(user, trajectory):
     """

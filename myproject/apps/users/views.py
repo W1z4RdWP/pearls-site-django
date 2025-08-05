@@ -28,7 +28,7 @@ from django.utils.http import urlencode
 
 from myapp.models import UserCourse, UserProgress, QuizResult, UserAnswer
 from quizzes.models import Answer
-from courses.models import UserLessonTrajectory
+from courses.models import UserLessonTrajectory, Course
 from gamification.models import Badge, Achievement, DascoinTransaction
 from .forms import UserRegisterForm, UserUpdateForm, ProfileUpdateForm
 from .models import Profile, Role
@@ -77,7 +77,18 @@ def profile(request: HttpRequest) -> HttpResponse:
         return render(request, 'users/profile_error.html', {
             'error_message': 'Профиль пользователя не найден. Пожалуйста, обратитесь к администратору.'
         })
-    started_courses = UserCourse.objects.filter(user=user).select_related('course')
+    # Получаем все доступные курсы через менеджер
+    available_courses = Course.objects.available_for_user(user)
+    # Получаем UserCourse для каждого доступного курса
+    started_courses = []
+    for course in available_courses:
+        user_course = UserCourse.objects.filter(user=user, course=course).first()
+        if user_course:
+            started_courses.append(user_course)
+        else:
+            # Создаем UserCourse если его нет (для курсов из траекторий)
+            user_course = UserCourse.objects.create(user=user, course=course, status='available')
+            started_courses.append(user_course)
     unfinished_courses = []
     finished_courses = []
     exp = profile.exp

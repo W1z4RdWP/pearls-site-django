@@ -386,8 +386,18 @@ class UserProgressDashboardView(DetailView):
         profile = user.profile
         exp = profile.exp 
         
-        # Получаем все курсы пользователя
-        user_courses = UserCourse.objects.filter(user=user).select_related('course')
+        # Получаем все доступные курсы через менеджер
+        available_courses = Course.objects.available_for_user(user)
+        # Получаем UserCourse для каждого доступного курса
+        user_courses = []
+        for course in available_courses:
+            user_course = UserCourse.objects.filter(user=user, course=course).first()
+            if user_course:
+                user_courses.append(user_course)
+            else:
+                # Создаем UserCourse если его нет (для курсов из траекторий)
+                user_course = UserCourse.objects.create(user=user, course=course, status='available')
+                user_courses.append(user_course)
         
         # Получаем все результаты тестирования пользователя ДО цикла по курсам
         quiz_results = list(QuizResult.objects.filter(user=user).order_by('-completed_at'))

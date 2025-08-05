@@ -305,7 +305,17 @@ def get_finish(request) -> HttpResponse:
     ).first()
     
     if course and passed:
+        # Проверяем доступ к курсу через менеджер
+        available_courses = Course.objects.available_for_user(request.user)
+        if course not in available_courses:
+            messages.error(request, "У вас нет доступа к этому курсу!")
+            return redirect('quizzes')
+
+        # Получаем UserCourse
         user_course = UserCourse.objects.filter(user=request.user, course=course).first()
+        if not user_course:
+            user_course = UserCourse.objects.create(user=request.user, course=course, status='available')
+        
         if user_course:
             # Начисляем очки за тест только если он не был пройден ранее
             if not previous_quiz_result:

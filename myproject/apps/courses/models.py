@@ -9,6 +9,42 @@ from unidecode import unidecode
 from quizzes.models import Quiz
 from builder.models import CategoryName
 
+
+class CourseManager(models.Manager):
+    def available_for_user(self, user):
+        """Все доступные курсы"""
+        if user.is_staff or user.is_superuser:
+            return self.all()
+        
+        return self.filter(
+            models.Q(usercourse__user=user) |
+            models.Q(allowed_groups__in=user.groups.all()) |
+            models.Q(trajectorycourse__trajectory__usercoursetrajectory__user=user)
+        ).distinct()
+    
+    def accessible_via_trajectories(self, user):
+        """Курсы, доступные только через траектории"""
+        return self.filter(
+            trajectorycourse__trajectory__usercoursetrajectory__user=user
+        ).exclude(
+            models.Q(usercourse__user=user) |
+            models.Q(allowed_groups__in=user.groups.all())
+        ).distinct()
+    
+    def accessible_via_groups(self, user):
+        """Курсы, доступные только через группы"""
+        return self.filter(
+            allowed_groups__in=user.groups.all()
+        ).exclude(
+            models.Q(usercourse__user=user) |
+            models.Q(trajectorycourse__trajectory__usercoursetrajectory__user=user)
+        ).distinct()
+    
+    def directly_assigned(self, user):
+        """Курсы, напрямую назначенные пользователю"""
+        return self.filter(usercourse__user=user).distinct()
+
+
 class Course(models.Model):
     """
     Модель представляющая таблицу myapp_course с курсами.
@@ -40,7 +76,8 @@ class Course(models.Model):
         help_text="Группы, которым доступен этот курс"
     )
     points = models.PositiveIntegerField(default=30, verbose_name="Количество DASCOIN за прохождение курса")
-
+    objects = CourseManager()
+    
     class Meta:
         verbose_name = 'Курс'
         verbose_name_plural = 'Курсы'
@@ -168,6 +205,7 @@ class Trajectory(models.Model):
     class Meta:
         verbose_name = 'Траектория курсов'
         verbose_name_plural = 'Траектории курсов'
+        ordering = ['name']
 
     def __str__(self) -> str:
         return self.name
@@ -212,3 +250,5 @@ class UserCourseTrajectory(models.Model):
 
     def __str__(self) -> str:
         return f"{self.user.username} — {self.trajectory.name}"
+
+

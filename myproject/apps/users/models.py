@@ -101,14 +101,21 @@ class Profile(models.Model):
         +500 за каждую завершённую траекторию
         """
         from myapp.models import UserCourse
-        from courses.models import UserCourseTrajectory
+        from courses.models import UserCourseTrajectory, Course
         exp = 0
-        # Курсы
-        for uc in UserCourse.objects.filter(user=self.user, status='completed'):
-            base = 150
-            if getattr(uc.course, 'final_quiz', None):
-                base = int(base * 1.1)
-            exp += base
+        
+        # Получаем все доступные курсы через менеджер
+        available_courses = Course.objects.available_for_user(self.user)
+        
+        # Курсы - считаем только завершенные
+        for course in available_courses:
+            user_course = UserCourse.objects.filter(user=self.user, course=course, status='completed').first()
+            if user_course:
+                base = 150
+                if getattr(course, 'final_quiz', None):
+                    base = int(base * 1.1)
+                exp += base
+        
         # Траектории
         for ut in UserCourseTrajectory.objects.filter(user=self.user, completed=True):
             exp += 500
