@@ -238,14 +238,13 @@ def filter_categories_and_lessons_for_user(user, categories, uncategorized_lesso
     чтобы показывать только те уроки, которые входят в доступные для пользователя курсы
     ИЛИ доступны через группы в allowed_groups (категории и все вложенные).
     """
-    # Получаем все курсы, доступные пользователю
-    user_courses = UserCourse.objects.filter(user=user).select_related('course')
-    allowed_courses = [uc.course for uc in user_courses if uc.status in ['available', 'started', 'completed']]
-    allowed_course_ids = set(c.id for c in allowed_courses)
+    # Получаем все курсы, доступные пользователю через менеджер
+    available_courses = Course.objects.available_for_user(user)
+    allowed_course_ids = set(c.id for c in available_courses)
 
     # Собираем все разрешённые уроки (с учётом траекторий)
     allowed_lesson_ids = set()
-    for course in allowed_courses:
+    for course in available_courses:
         trajectory = UserLessonTrajectory.objects.filter(user=user, course=course).first()
         if trajectory:
             allowed_lesson_ids.update(trajectory.lessons.values_list('id', flat=True))

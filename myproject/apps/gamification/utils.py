@@ -20,7 +20,7 @@ def award_dascoin_points(user: User, points: int, reason: str = "", admin_user: 
     with transaction.atomic():
         profile = user.profile
         points_before = profile.dascoin_points
-        profile.add_dascoin_points(points)
+        profile.add_dascoin_points(points, reason)
         points_after = profile.dascoin_points
         
         # Логируем транзакцию

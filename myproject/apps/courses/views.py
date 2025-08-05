@@ -96,9 +96,18 @@ class CourseDetailView(DetailView):
 
     def get(self, request, *args, **kwargs):
         self.object = self.get_object()
-        # --- Блокировка доступа к курсу вне очереди траектории ---
         user = request.user
+        
         if user.is_authenticated:
+            # Проверяем доступ через менеджер
+            available_courses = Course.objects.available_for_user(user)
+            if self.object not in available_courses:
+                return render(request, 'courses/course_access_denied.html', {
+                    'course': self.object, 
+                    'reason': 'У вас нет доступа к этому курсу.'
+                })
+            
+            # --- Блокировка доступа к курсу вне очереди траектории ---
             user_trajectories = UserCourseTrajectory.objects.filter(user=user, trajectory__courses=self.object)
             for ut in user_trajectories:
                 tc = TrajectoryCourse.objects.filter(trajectory=ut.trajectory, course=self.object).first()
@@ -150,7 +159,6 @@ class CourseDetailView(DetailView):
         trajectory = None
         show_final_quiz = False
         show_completion_animation = False
-        exp_earned = None
         
         # Аудит
         audit_logger.info(
@@ -285,10 +293,6 @@ class CourseDetailView(DetailView):
                     show_completion_animation = True
                     user_course.course_complete_animation_shown = True
                     user_course.save(update_fields=['course_complete_animation_shown'])
-                    # --- вычисляем опыт для модалки ---
-                    exp_earned = 150
-                    if course.final_quiz:
-                        exp_earned = int(exp_earned * 1.1)
             else:
                 # Для статуса 'available' используем все уроки курса
                 lessons = course.lessons.all()
@@ -344,7 +348,6 @@ class CourseDetailView(DetailView):
             'next_lesson': next_lesson,
             'all_completed': all_completed,
             'show_completion_animation': show_completion_animation,
-            'exp_earned': exp_earned,
             'lessons': lessons,
             'show_final_quiz': show_final_quiz,
             'next_course_in_trajectory': next_course_in_trajectory,
@@ -371,9 +374,8 @@ class CourseListView(ListView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        available_courses = []
-        completed_courses_list = []
         user = self.request.user
+        
         if user.is_authenticated:
             if user.is_staff or user.is_superuser:
                 # staff/superuser видят все курсы как доступные
@@ -383,15 +385,27 @@ class CourseListView(ListView):
                 # Исключаем завершённые из доступных
                 available_courses = [c for c in available_courses if c not in completed_courses_list]
             else:
+                # Используем менеджер для получения всех доступных курсов
+                all_available_courses = Course.objects.available_for_user(user)
+                
+                # Получаем статусы курсов пользователя
                 user_courses = UserCourse.objects.filter(user=user).select_related('course')
-                available_courses = [
-                    uc.course for uc in user_courses 
-                    if uc.status in ['available', 'started']
-                ]
-                completed_courses_list = [
-                    uc.course for uc in user_courses 
-                    if uc.status == 'completed'
-                ]
+                user_course_statuses = {uc.course_id: uc.status for uc in user_courses}
+                
+                # Разделяем на доступные и завершенные
+                available_courses = []
+                completed_courses_list = []
+                
+                for course in all_available_courses:
+                    status = user_course_statuses.get(course.id, 'available')
+                    if status == 'completed':
+                        completed_courses_list.append(course)
+                    else:
+                        available_courses.append(course)
+        else:
+            available_courses = []
+            completed_courses_list = []
+        
         context.update({
             'available_courses': available_courses,
             'completed_courses_list': completed_courses_list,
@@ -407,10 +421,16 @@ def lesson_detail(request, course_slug, lesson_id):
     previous_lesson = lesson.get_previous_lesson()
     next_lesson = lesson.get_next_lesson()
 
-    # Проверка доступа к курсу
+    # Проверка доступа к курсу через менеджер
+    available_courses = Course.objects.available_for_user(request.user)
+    if course not in available_courses:
+        return redirect('courses:course_detail', slug=course.slug)
+    
+    # Получаем UserCourse для проверки статуса
     user_course = UserCourse.objects.filter(user=request.user, course=course).first()
     if not user_course:
-        return redirect('courses:course_detail', slug=course.slug)
+        # Создаем UserCourse если его нет (для курсов из траекторий)
+        user_course = UserCourse.objects.create(user=request.user, course=course, status='available')
 
     # Блокируем доступ к уроку, если курс не начат
     if user_course.status not in ['started', 'completed']:
@@ -695,8 +715,15 @@ def complete_lesson(request, course_slug, lesson_id):
     lesson = get_object_or_404(Lesson, id=lesson_id, course=course)
     user = request.user
     
-    if not UserCourse.objects.filter(user=user, course=course).exists():
+    # Проверка доступа через менеджер
+    available_courses = Course.objects.available_for_user(user)
+    if course not in available_courses:
         return redirect('courses:course_detail', slug=course.slug)
+    
+    # Получаем UserCourse
+    user_course = UserCourse.objects.filter(user=user, course=course).first()
+    if not user_course:
+        user_course = UserCourse.objects.create(user=user, course=course, status='available')
     
     # Получаем траекторию пользователя
     trajectory = UserLessonTrajectory.objects.filter(user=user, course=course).first()
