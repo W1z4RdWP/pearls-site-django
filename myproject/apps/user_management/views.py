@@ -400,7 +400,6 @@ class UserProgressDashboardView(DetailView):
         context = super().get_context_data(**kwargs)
         user = self.get_object()
         profile = user.profile
-        exp = profile.exp 
         
         # Получаем все доступные курсы через менеджер
         available_courses = Course.objects.available_for_user(user)
@@ -491,8 +490,7 @@ class UserProgressDashboardView(DetailView):
                 'progress_percent': progress_percent,
                 'quiz_passed': quiz_passed,
                 'lessons_detail': lessons_detail,
-                'can_receive_exp': user_course.can_receive_exp(),
-                'exp_reward': user_course.exp_reward() if user_course.status == 'completed' else 0,
+
                 'best_attempt': best_attempt,
             })
         
@@ -506,12 +504,7 @@ class UserProgressDashboardView(DetailView):
         total_lessons_available = sum(cp['total_lessons'] for cp in courses_progress)
         overall_progress = int((total_lessons_completed / total_lessons_available) * 100) if total_lessons_available > 0 else 0
         
-        def count_exp(exp, level=1):
-            while exp >= level * 100:
-                level += 1
-            progress = ((exp - ((level - 1) * 100)) / 100) * 100
-            return level, min(progress, 100)
-        level, progress = count_exp(exp)
+
 
         # Детальная информация о результатах тестов
         detailed_quiz_results = []
@@ -570,9 +563,6 @@ class UserProgressDashboardView(DetailView):
             page_obj_courses = paginator_courses.page(paginator_courses.num_pages)
         
         context.update({
-            'exp': exp,
-            'level': level,
-            'progress': int(progress),
             'courses_progress': courses_progress,
             'total_courses': total_courses,
             'completed_courses': completed_courses,

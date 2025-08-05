@@ -159,7 +159,6 @@ class CourseDetailView(DetailView):
         trajectory = None
         show_final_quiz = False
         show_completion_animation = False
-        exp_earned = None
         
         # Аудит
         audit_logger.info(
@@ -294,10 +293,6 @@ class CourseDetailView(DetailView):
                     show_completion_animation = True
                     user_course.course_complete_animation_shown = True
                     user_course.save(update_fields=['course_complete_animation_shown'])
-                    # --- вычисляем опыт для модалки ---
-                    exp_earned = 150
-                    if course.final_quiz:
-                        exp_earned = int(exp_earned * 1.1)
             else:
                 # Для статуса 'available' используем все уроки курса
                 lessons = course.lessons.all()
@@ -353,7 +348,6 @@ class CourseDetailView(DetailView):
             'next_lesson': next_lesson,
             'all_completed': all_completed,
             'show_completion_animation': show_completion_animation,
-            'exp_earned': exp_earned,
             'lessons': lessons,
             'show_final_quiz': show_final_quiz,
             'next_course_in_trajectory': next_course_in_trajectory,
