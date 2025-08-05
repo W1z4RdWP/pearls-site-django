@@ -224,14 +224,22 @@ def get_answer(request) -> HttpResponse:
 
 
 def get_finish(request) -> HttpResponse:
+    print("=== НАЧАЛО get_finish ===")
+    print(f"Пользователь: {request.user.username}")
     if not request.user.is_authenticated:
+        print("Пользователь не авторизован")
         return redirect('users:login')
 
     quiz_id = request.session.get('quiz_id')
+    print(f"quiz_id из сессии: {quiz_id}")
+
     if not quiz_id:
+        print("quiz_id не найден в сессии")
         return redirect('quizzes')
     
     quiz = get_object_or_404(Quiz, id=quiz_id)
+    print(f"Тест: {quiz.name}")
+
     questions_count = Question.objects.filter(quiz=quiz).count() # Количество вопросов в тесте всего
     text_questions_count = Question.objects.filter(question_type='text').filter(quiz=quiz).count() # количество открытых вопросов в тесте
     score = request.session.get('score', 0)
@@ -242,8 +250,15 @@ def get_finish(request) -> HttpResponse:
     else: 
         percent_score = int((score / (questions_count - text_questions_count)) * 100) if questions_count > 0 else 0 # Процент правильных ответов на вопросы, исключая открытые
 
-
     passed = percent_score >= 80 # Проходной балл
+    
+    # Проверяем, был ли тест уже пройден ранее (ДО создания текущего результата)
+    previous_quiz_result = QuizResult.objects.filter(
+        user=request.user,
+        quiz_title=quiz.name,
+        passed=True
+    ).first()
+    
     quiz_result = QuizResult.objects.create(
         user=request.user,
         quiz_title=quiz.name,
@@ -297,40 +312,55 @@ def get_finish(request) -> HttpResponse:
         # Проверяем, является ли этот тест финальным для какого-то курса
         course = Course.objects.filter(final_quiz=quiz).first()
     
-    # Проверяем, был ли тест уже пройден ранее
-    previous_quiz_result = QuizResult.objects.filter(
-        user=request.user,
-        quiz_title=quiz.name,
-        passed=True
-    ).first()
-    
     if course and passed:
+
         # Проверяем доступ к курсу через менеджер
         available_courses = Course.objects.available_for_user(request.user)
-        if course not in available_courses:
-            messages.error(request, "У вас нет доступа к этому курсу!")
-            return redirect('quizzes')
-
+        
+        # Отладочная информация
+        print(f"Курс: {course.title}")
+        print(f"Доступные курсы: {[c.title for c in available_courses]}")
+        print(f"Курс в доступных: {course in available_courses}")
         # Получаем UserCourse
         user_course = UserCourse.objects.filter(user=request.user, course=course).first()
+        print(f"UserCourse найден: {user_course is not None}")
+
         if not user_course:
             user_course = UserCourse.objects.create(user=request.user, course=course, status='available')
-        
+            print(f"Создан новый UserCourse: {user_course.id}")
+
         if user_course:
+            print(f"UserCourse статус: {user_course.status}")
+            print(f"previous_quiz_result: {previous_quiz_result}")
             # Начисляем очки за тест только если он не был пройден ранее
             if not previous_quiz_result:
+                print("Начисляем 10 dascoin за тест...")
                 award_dascoin_points(request.user, 10, f"Прохождение теста {quiz.name}")
+                print("Dascoin за тест начислены!")
+            else:
+                print("Тест уже был пройден ранее, dascoin не начисляются")
             
             # Завершаем курс и начисляем очки за курс
             if user_course.status != 'completed':
+                print("Завершаем курс...")
                 user_course.status = 'completed'
                 user_course.save()
+                print(f"Начисляем {course.points} dascoin за курс...")
                 award_dascoin_points(request.user, course.points, f"Завершение курса {course.title}")
                 award_course_badge(request.user, course)
+                print("Dascoin за курс начислены!")
+            else:
+                print("Курс уже был завершен ранее")
+           
             
             if percent_score == 100:
+                print("Начисляем достижение за 100%")    
                 award_achievement(request.user, 'perfect_score', 'Идеальный результат', 'Получили 100% за прохождение теста')
+            
+            print("Редиректим на страницу курса")
             return redirect('courses:course_detail', slug=course.slug)
+        else:
+            print("UserCourse не найден и не создан!")
     elif course and not passed:
         messages.error(request, "Тест не пройден. Попробуйте снова!")
         return redirect('quizzes:quiz_start', quiz_id=quiz.id)

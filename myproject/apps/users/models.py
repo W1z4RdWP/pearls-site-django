@@ -100,13 +100,15 @@ class Profile(models.Model):
         """
         return self.role and self.role.responsible_user == self.user
     
-    def add_dascoin_points(self, points: int) -> None:
+    def add_dascoin_points(self, points: int, reason: str = "") -> None:
         """
         Добавляет баллы DASCOIN пользователю.
         
         Args:
             points (int): Количество баллов для добавления
         """
+
+        self._dascoin_reason = reason
         self.dascoin_points += points
         self.save()
     
