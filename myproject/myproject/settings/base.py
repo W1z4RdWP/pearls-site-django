@@ -4,6 +4,10 @@ from pathlib import Path
 import os
 import sys
 
+from dotenv import load_dotenv
+
+load_dotenv()
+
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
 
 # Добавляем папку apps в PYTHONPATH
@@ -227,6 +231,18 @@ STATICFILES_DIRS = [
     os.path.join(BASE_DIR, 'static'),  # Папка с глобальными файлами
 ]
 
+
+SITE_URL = os.getenv('SITE_URL')
+
+# Email settings
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = os.getenv('EMAIL_HOST') # SMTP сервер
+EMAIL_PORT = int(os.getenv('EMAIL_PORT', 587)) if os.getenv('EMAIL_PORT') else 587
+EMAIL_USE_TLS = os.getenv('EMAIL_USE_TLS', '').lower() == 'true'
+EMAIL_USE_SSL = os.getenv('EMAIL_USE_SSL', '').lower() == 'true'
+EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER')
+EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD')
+DEFAULT_FROM_EMAIL = os.getenv('EMAIL_HOST_USER')
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field
