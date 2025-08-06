@@ -17,6 +17,7 @@ from django.contrib.auth.forms import SetPasswordForm
 from django.views.decorators.http import require_POST
 from django.urls import reverse
 from django.contrib import messages
+from .utils import send_user_credentials_email
 
 class UserListView(ListView):
     model = User
@@ -75,17 +76,23 @@ class UserCreateStep1View(CreateView):
     def form_valid(self, form):
         user = form.save()
         self.request.session['user_create_step1_user_id'] = user.id
+        self.request.session['user_password'] = form.cleaned_data['password1']
         return redirect(self.success_url)
+
+
+
 
 class UserCreateStep2View(CreateView):
     template_name = 'user_management/user_create_step2.html'
     form_class = UserProfileForm
     success_url = reverse_lazy('user_management:user_list')
 
+
     def dispatch(self, request, *args, **kwargs):
         if 'user_create_step1_user_id' not in request.session:
             return redirect('user_management:user_create_step1')
         return super().dispatch(request, *args, **kwargs)
+
 
     def get_form_kwargs(self):
         kwargs = super().get_form_kwargs()
@@ -95,10 +102,29 @@ class UserCreateStep2View(CreateView):
         kwargs['user_instance'] = user
         return kwargs
 
+
     def form_valid(self, form):
         form.save()
+        user_id = self.request.session.get('user_create_step1_user_id')
+        user = User.objects.get(id=user_id)
+        
+        # Получаем пароль из сессии (нужно сохранить его в step1)
+        password = self.request.session.get('user_password')
+        
+        # Отправляем email с данными для входа
+        if password and send_user_credentials_email(user, password):
+            messages.success(self.request, f'Пользователь {user.username} создан. Email с данными для входа отправлен на {user.email}')
+        else:
+            messages.warning(self.request, f'Пользователь {user.username} создан, но не удалось отправить email с данными для входа')
+        
         del self.request.session['user_create_step1_user_id']
+        if 'user_password' in self.request.session:
+            del self.request.session['user_password']
+        
         return redirect(self.success_url)
+
+
+
 
 def get_user_privilege_level(user):
     if user.is_superuser:
@@ -106,6 +132,9 @@ def get_user_privilege_level(user):
     if user.is_staff:
         return 2
     return 1
+
+
+
 
 def role_manage(request):
     if not request.user.is_staff:
@@ -117,6 +146,9 @@ def role_manage(request):
             messages.success(request, f'Должность "{name}" добавлена.')
         return redirect(request.META.get('HTTP_REFERER', reverse('user_management:user_list')))
     return redirect('user_management:user_list')
+
+
+
 
 @require_POST
 def role_delete(request, role_id):
