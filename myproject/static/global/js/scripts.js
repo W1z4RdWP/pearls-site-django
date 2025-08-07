@@ -1,9 +1,8 @@
 // header
 document.addEventListener('DOMContentLoaded', () => {
-  const hero = document.querySelector('.hero');
+  const hero = document.querySelector('.hero-landing');
   const header = document.querySelector('.header');
   const scrollItems = document.querySelectorAll('.scroll-item');
-
 	const scrollAnimation = () => {
 		let windowCenter = (window.innerHeight / 2) + window.scrollY;
 		scrollItems.forEach(el => {
@@ -18,15 +17,25 @@ document.addEventListener('DOMContentLoaded', () => {
 
   const headerFixed = () => {
     let scrollTop = window.scrollY;
-    if (!hero) return;
-    let heroCenter = hero.offsetHeight / 2;
     
-    if (scrollTop >= heroCenter) {
-      header.classList.add('fixed');
-      hero.style.marginTop = `${header.offsetHeight}px`;
+    // Если есть hero-секция, используем её для определения точки закрепления
+    if (hero) {
+      let heroCenter = hero.offsetHeight / 2;
+      
+      if (scrollTop >= heroCenter) {
+        header.classList.add('fixed');
+        hero.style.marginTop = `${header.offsetHeight}px`;
+      } else {
+        header.classList.remove('fixed');
+        hero.style.marginTop = `0px`;
+      }
     } else {
-      header.classList.remove('fixed')
-      hero.style.marginTop = `0px`;
+      // Если hero-секции нет, закрепляем хедер сразу при прокрутке
+      if (scrollTop > 100) {
+        header.classList.add('fixed');
+      } else {
+        header.classList.remove('fixed');
+      }
     }
   }
 
