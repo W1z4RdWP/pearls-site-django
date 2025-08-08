@@ -202,6 +202,13 @@
         {% endblock %}
     </main>
 
+    {% if user.is_authenticated %}
+      <a href="{% url 'tech_support:support_chat' %}" class="support-chat-button" title="Чат поддержки">
+        <div class="pulse"></div>
+        <i class="fas fa-question"></i>
+      </a>
+    {% endif %}
+
     <footer class="footer-main">
         <div class="footer-container">
             <div class="footer-col footer-brand">

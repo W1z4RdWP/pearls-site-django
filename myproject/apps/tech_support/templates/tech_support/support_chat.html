@@ -1,0 +1,305 @@
+{% extends 'layout.html' %}
+{% load static %}
+
+{% block title %}Чат поддержки - УЦ «Территория Улыбки»{% endblock %}
+
+{% block specific_styles %}
+<style>
+    .chat-container {
+        height: 70vh;
+        display: flex;
+        flex-direction: column;
+        background: white;
+        border-radius: 15px;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+        overflow: hidden;
+    }
+    .chat-header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 1rem 1.5rem;
+        border-bottom: 1px solid rgba(255,255,255,0.1);
+    }
+    .chat-messages {
+        flex: 1;
+        overflow-y: auto;
+        padding: 1rem;
+        background: #f8f9fa;
+    }
+    .message {
+        margin-bottom: 1rem;
+        display: flex;
+        align-items: flex-start;
+    }
+    .message.user {
+        justify-content: flex-end;
+    }
+    .message.support {
+        justify-content: flex-start;
+    }
+    .message-bubble {
+        max-width: 70%;
+        padding: 0.75rem 1rem;
+        border-radius: 18px;
+        position: relative;
+        word-wrap: break-word;
+    }
+    .message.user .message-bubble {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border-bottom-right-radius: 5px;
+    }
+    .message.support .message-bubble {
+        background: white;
+        color: #495057;
+        border: 1px solid #e9ecef;
+        border-bottom-left-radius: 5px;
+    }
+    .message-time {
+        font-size: 0.75rem;
+        opacity: 0.7;
+        margin-top: 0.25rem;
+    }
+    .message.user .message-time {
+        text-align: right;
+    }
+    .message.support .message-time {
+        text-align: left;
+    }
+    .chat-input {
+        padding: 1rem;
+        background: white;
+        border-top: 1px solid #e9ecef;
+    }
+    .chat-form {
+        display: flex;
+        gap: 0.5rem;
+    }
+    .chat-input textarea {
+        border-radius: 20px;
+        border: 1px solid #e9ecef;
+        resize: none;
+        padding: 0.75rem 1rem;
+    }
+    .chat-input textarea:focus {
+        border-color: #667eea;
+        box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
+    }
+    .send-btn {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border: none;
+        border-radius: 50%;
+        width: 45px;
+        height: 45px;
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.3s ease;
+    }
+    .send-btn:hover {
+        transform: scale(1.05);
+        box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+    }
+    .send-btn:disabled {
+        opacity: 0.6;
+        transform: none;
+    }
+    .typing-indicator {
+        display: none;
+        padding: 0.5rem 1rem;
+        color: #6c757d;
+        font-style: italic;
+    }
+    .typing-indicator.show {
+        display: block;
+    }
+    .chat-info {
+        background: #e3f2fd;
+        border-radius: 10px;
+        padding: 1.5rem;
+        margin-bottom: 2rem;
+    }
+    .chat-info h5 {
+        color: #1976d2;
+        margin-bottom: 1rem;
+    }
+    .feature-list {
+        list-style: none;
+        padding: 0;
+    }
+    .feature-list li {
+        padding: 0.5rem 0;
+        border-bottom: 1px solid #e3f2fd;
+    }
+    .feature-list li:last-child {
+        border-bottom: none;
+    }
+    .feature-list i {
+        color: #1976d2;
+        margin-right: 0.5rem;
+        width: 20px;
+    }
+    .empty-chat {
+        text-align: center;
+        padding: 3rem 1rem;
+        color: #6c757d;
+    }
+    .empty-chat i {
+        font-size: 4rem;
+        margin-bottom: 1rem;
+        opacity: 0.5;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row justify-content-center">
+        <div class="col-lg-10">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h1 class="h3 mb-0">
+                    <i class="fas fa-comments me-2"></i>
+                    Чат поддержки
+                </h1>
+                <a href="#" class="btn btn-outline-secondary">
+                    <i class="fas fa-ticket-alt me-2"></i>Мои тикеты
+                </a>
+
+            </div>
+
+            <!-- Информация о чате -->
+            <div class="chat-info">
+                <h5>
+                    <i class="fas fa-info-circle me-2"></i>
+                    О чате поддержки
+                </h5>
+                <div class="row">
+                    <div class="col-md-6">
+                        <ul class="feature-list">
+                            <li>
+                                <i class="fas fa-clock"></i>
+                                <strong>Время ответа:</strong> до 30 минут
+                            </li>
+                            <li>
+                                <i class="fas fa-users"></i>
+                                <strong>Специалисты:</strong> доступны в рабочее время
+                            </li>
+                            <li>
+                                <i class="fas fa-shield-alt"></i>
+                                <strong>Безопасность:</strong> все сообщения защищены
+                            </li>
+                        </ul>
+                    </div>
+                    <div class="col-md-6">
+                        <ul class="feature-list">
+                            <li>
+                                <i class="fas fa-history"></i>
+                                <strong>История:</strong> сохраняется автоматически
+                            </li>
+                            <li>
+                                <i class="fas fa-file"></i>
+                                <strong>Файлы:</strong> можно прикрепить скриншоты
+                            </li>
+                            <li>
+                                <i class="fas fa-ticket-alt"></i>
+                                <strong>Тикеты:</strong> можно создать из чата
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Чат -->
+            <div class="chat-container">
+                <div class="chat-header">
+                    <div class="d-flex align-items-center">
+                        <div class="me-3">
+                            <i class="fas fa-headset fa-2x"></i>
+                        </div>
+                        <div>
+                            <h5 class="mb-0">Служба поддержки</h5>
+                            <small class="opacity-75">
+                                {% if chat.is_active %}
+                                    <i class="fas fa-circle text-success me-1"></i>Онлайн
+                                {% else %}
+                                    <i class="fas fa-circle text-muted me-1"></i>Офлайн
+                                {% endif %}
+                            </small>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="chat-messages" id="chatMessages">
+                    {% if messages %}
+                        {% for message in messages %}
+                        <div class="message {% if message.sender == user %}user{% else %}support{% endif %}">
+                            <div class="message-bubble">
+                                <div class="message-content">
+                                    {{ message.content|linebreaks }}
+                                </div>
+                                <div class="message-time">
+                                    {{ message.created_at|date:"H:i" }}
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                        <div class="empty-chat">
+                            <i class="fas fa-comments"></i>
+                            <h5>Начните разговор</h5>
+                            <p>Напишите нам, и мы постараемся помочь вам как можно скорее!</p>
+                        </div>
+                    {% endif %}
+                </div>
+
+                <div class="typing-indicator" id="typingIndicator">
+                    <i class="fas fa-ellipsis-h"></i> Специалист печатает...
+                </div>
+
+                <div class="chat-input">
+                    <form class="chat-form" id="chatForm">
+                        {% csrf_token %}
+                        <div class="flex-grow-1">
+                            <textarea name="content" id="messageInput" class="form-control" 
+                                      placeholder="Введите ваше сообщение..." rows="1" required></textarea>
+                        </div>
+                        <button type="submit" class="send-btn" id="sendBtn">
+                            <i class="fas fa-paper-plane"></i>
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Дополнительные действия -->
+            <div class="row mt-4">
+                <div class="col-md-6">
+                    <div class="card text-center">
+                        <div class="card-body">
+                            <i class="fas fa-ticket-alt fa-2x text-primary mb-2"></i>
+                            <h6>Создать тикет</h6>
+                            <p class="small text-muted">Если нужна более детальная помощь</p>
+                            <a href="#" class="btn btn-outline-primary btn-sm">
+                                Создать тикет
+                            </a>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="card text-center">
+                        <div class="card-body">
+                            <i class="fas fa-question-circle fa-2x text-info mb-2"></i>
+                            <h6>FAQ</h6>
+                            <p class="small text-muted">Часто задаваемые вопросы</p>
+                            <a href="#" class="btn btn-outline-info btn-sm">
+                                Открыть FAQ
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+ 
+{% endblock %}

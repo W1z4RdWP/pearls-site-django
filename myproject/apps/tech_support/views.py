@@ -1,3 +1,5 @@
-from django.shortcuts import render
+from django.views.generic import TemplateView
+from django.contrib.auth.mixins import LoginRequiredMixin
 
-# Create your views here.
+class SupportChatView(LoginRequiredMixin, TemplateView):
+    template_name = 'tech_support/support_chat.html'
