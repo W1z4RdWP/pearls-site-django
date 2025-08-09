@@ -135,4 +135,66 @@ def create_lesson_actualization_reminders():
                 actualization_date = lesson.created_at + timedelta(days=365)  # Пример
                 Notification.create_lesson_actualization_notification(
                     user, lesson, actualization_date
-                ) 
+                )
+
+
+# ==== уведомления для техподдержки ====
+from django.db.models.signals import pre_save as model_pre_save
+from tech_support.models import Ticket, TicketComment
+
+# Храним старый статус по ticket.pk
+_old_ticket_status = {}
+
+@receiver(model_pre_save, sender=Ticket)
+def store_old_ticket_status(sender, instance, **kwargs):
+    if instance.pk:
+        try:
+            old = Ticket.objects.get(pk=instance.pk)
+            _old_ticket_status[instance.pk] = old.status.name if old.status else None
+        except Ticket.DoesNotExist:
+            _old_ticket_status[instance.pk] = None
+    else:
+        _old_ticket_status[instance.pk] = None
+
+@receiver(post_save, sender=Ticket)
+def notify_ticket_status_change(sender, instance, created, **kwargs):
+    if created:
+        return
+    old_name = _old_ticket_status.pop(instance.pk, None)
+    new_name = instance.status.name if instance.status else None
+    if old_name and new_name and old_name != new_name:
+        # Кому слать: автор тикета и назначенный исполнитель (если есть и не равен автору)
+        recipients = set()
+        recipients.add(instance.created_by)
+        if instance.assigned_to and instance.assigned_to != instance.created_by:
+            recipients.add(instance.assigned_to)
+        for user in recipients:
+            Notification.create_ticket_status_notification(
+                user=user,
+                ticket=instance,
+                old_status_name=old_name,
+                new_status_name=new_name,
+            )
+
+@receiver(post_save, sender=TicketComment)
+def notify_ticket_new_comment(sender, instance, created, **kwargs):
+    if not created:
+        return
+    ticket = instance.ticket
+    author = instance.author
+    # Не уведомляем про внутренние комментарии
+    if instance.is_internal:
+        return
+    # Кому слать: автор тикета, назначенный исполнитель; исключить автора комментария
+    recipients = set()
+    if ticket.created_by != author:
+        recipients.add(ticket.created_by)
+    if ticket.assigned_to and ticket.assigned_to != author:
+        recipients.add(ticket.assigned_to)
+    for user in recipients:
+        Notification.create_ticket_comment_notification(
+            user=user,
+            ticket=ticket,
+            author=author,
+            comment_text=instance.content,
+        ) 

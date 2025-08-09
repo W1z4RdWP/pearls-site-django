@@ -14,6 +14,9 @@ class Notification(models.Model):
         ('platform_update', 'Обновление платформы'),
         ('course_reminder', 'Напоминание о курсе'),
         ('lesson_actualization', 'Напоминание об актуализации урока'),
+        # Новые типы: техподдержка
+        ('ticket_status', 'Изменение статуса тикета'),
+        ('ticket_comment', 'Новое сообщение по тикету'),
     ]
     
     user = models.ForeignKey(User, on_delete=models.CASCADE, verbose_name="Пользователь")
@@ -45,6 +48,13 @@ class Notification(models.Model):
         blank=True, 
         verbose_name="Связанный урок"
     )
+    related_ticket = models.ForeignKey(
+        'tech_support.Ticket',
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        verbose_name="Связанный тикет"
+    )
     points_change = models.IntegerField(
         null=True, 
         blank=True, 
@@ -72,6 +82,9 @@ class Notification(models.Model):
             return reverse('courses:trajectory_detail', kwargs={'pk': self.related_trajectory.pk})
         elif self.notification_type == 'lesson_actualization' and self.related_lesson:
             return reverse('courses:lesson_detail', kwargs={'pk': self.related_lesson.pk})
+        # Новые маршруты для тикетов
+        elif self.notification_type in ('ticket_status', 'ticket_comment') and self.related_ticket:
+            return reverse('tech_support:ticket_detail', kwargs={'pk': self.related_ticket.pk})
         return '#'
     
     @classmethod
@@ -149,4 +162,30 @@ class Notification(models.Model):
             title="Напоминание об актуализации",
             message=f"Приближается дата актуализации для урока «{lesson.title}» - {actualization_date.strftime('%d.%m.%Y')}",
             related_lesson=lesson
+        )
+    
+    # Новые helpers для тикетов
+    @classmethod
+    def create_ticket_status_notification(cls, user, ticket, old_status_name, new_status_name):
+        title = f"Статус тикета {ticket.ticket_number} изменён: {old_status_name} → {new_status_name}"
+        message = f"Тикет: {ticket.title}\nБыл: {old_status_name}\nСтал: {new_status_name}"
+        return cls.objects.create(
+            user=user,
+            notification_type='ticket_status',
+            title=title,
+            message=message,
+            related_ticket=ticket,
+        )
+    
+    @classmethod
+    def create_ticket_comment_notification(cls, user, ticket, author, comment_text):
+        author_name = author.get_full_name() or author.username
+        title = f"Новый комментарий в тикете {ticket.ticket_number}"
+        message = f"{author_name}: {comment_text[:400]}"
+        return cls.objects.create(
+            user=user,
+            notification_type='ticket_comment',
+            title=title,
+            message=message,
+            related_ticket=ticket,
         )

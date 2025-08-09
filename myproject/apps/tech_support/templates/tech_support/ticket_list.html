@@ -1,0 +1,53 @@
+{% extends 'layout.html' %}
+
+{% block title %}Тикеты поддержки{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h1 class="h4 mb-0">Тикеты</h1>
+        <a href="{% url 'tech_support:support_chat' %}" class="btn btn-primary btn-sm">Новый тикет</a>
+    </div>
+
+    <div class="card">
+        <div class="table-responsive">
+            <table class="table align-middle mb-0">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Заголовок</th>
+                        <th>Статус</th>
+                        <th>Приоритет</th>
+                        <th>Категория</th>
+                        <th>Автор</th>
+                        <th>Ответственный</th>
+                        <th>Создан</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                {% for t in tickets %}
+                    <tr>
+                        <td>{{ t.ticket_number }}</td>
+                        <td><a href="{% url 'tech_support:ticket_detail' t.pk %}">{{ t.title }}</a></td>
+                        <td>{{ t.status.name }}</td>
+                        <td><span class="badge" style="background: {{ t.priority.color }}">{{ t.priority.name }}</span></td>
+                        <td>{{ t.category.name }}</td>
+                        <td>{{ t.created_by.get_full_name|default:t.created_by.username }}</td>
+                        <td>{% if t.assigned_to %}{{ t.assigned_to.get_full_name|default:t.assigned_to.username }}{% else %}—{% endif %}</td>
+                        <td>{{ t.created_at|date:"d.m.Y H:i" }}</td>
+                        <td class="text-end">
+                            <a href="{% url 'tech_support:ticket_detail' t.pk %}" class="btn btn-sm btn-outline-secondary">Открыть</a>
+                        </td>
+                    </tr>
+                {% empty %}
+                    <tr>
+                        <td colspan="9" class="text-center text-muted py-4">Нет тикетов</td>
+                    </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %} 

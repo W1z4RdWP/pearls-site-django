@@ -202,6 +202,16 @@
         {% endblock %}
     </main>
 
+    {% if user.is_authenticated %}
+      <a href="{% url 'tech_support:support_chat' %}" class="support-chat-button" title="Чат поддержки">
+        <div class="pulse"></div>
+        <i class="fas fa-question"></i>
+        {% if request.user.is_staff %}
+          <span id="new-tickets-indicator" class="new-tickets-indicator" style="display:none;" title="Новые тикеты"></span>
+        {% endif %}
+      </a>
+    {% endif %}
+
     <footer class="footer-main">
         <div class="footer-container">
             <div class="footer-col footer-brand">
@@ -344,9 +354,29 @@
             loadNotifications();
             updateNotificationCount();
             
+            function updateNewTicketsIndicator() {
+                const indicator = $('#new-tickets-indicator');
+                if (!indicator.length) return;
+                $.ajax({
+                    url: '{% url "tech_support:new_tickets_count" %}',
+                    method: 'GET',
+                    success: function(data) {
+                        if (data.has_new) {
+                            indicator.show();
+                        } else {
+                            indicator.hide();
+                        }
+                    }
+                });
+            }
+
+            // начальная проверка
+            updateNewTicketsIndicator();
+
             // Обновление каждые 30 секунд
             setInterval(function() {
                 updateNotificationCount();
+                updateNewTicketsIndicator();
             }, 30000);
         });
     </script>

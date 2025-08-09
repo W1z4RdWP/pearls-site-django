@@ -4,9 +4,9 @@ from .models import Notification
 
 @admin.register(Notification)
 class NotificationAdmin(admin.ModelAdmin):
-    list_display = ['user', 'notification_type', 'title', 'is_read', 'created_at']
-    list_filter = ['notification_type', 'is_read', 'created_at']
-    search_fields = ['user__username', 'user__first_name', 'user__last_name', 'title', 'message']
+    list_display = ("user", "notification_type", "title", "is_read", "created_at", "related_ticket")
+    list_filter = ("notification_type", "is_read", "created_at")
+    search_fields = ("title", "message", "user__username")
     readonly_fields = ['created_at']
     date_hierarchy = 'created_at'
     
