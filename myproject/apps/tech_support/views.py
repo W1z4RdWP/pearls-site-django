@@ -5,6 +5,8 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils import timezone
 from django.views.generic import CreateView, DetailView, ListView, View
+from django.http import JsonResponse
+from django.contrib.auth.decorators import login_required
 
 from .forms import TicketCreateForm, TicketCommentForm, TicketStaffUpdateForm
 from .models import Ticket, TicketStatus, TicketComment
@@ -203,3 +205,13 @@ class UpdateTicketView(View):
         else:
             messages.error(request, 'Исправьте ошибки формы')
         return redirect('tech_support:ticket_detail', pk=pk)
+
+
+# Staff API: наличие новых тикетов (непринятых в работу)
+@login_required
+def new_tickets_count(request):
+    user = request.user
+    if not (user.is_staff or user.is_superuser):
+        return JsonResponse({'detail': 'forbidden'}, status=403)
+    count = Ticket.objects.filter(assigned_to__isnull=True, status__is_active=True).count()
+    return JsonResponse({'count': count, 'has_new': count > 0})

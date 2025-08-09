@@ -221,6 +221,7 @@
 
     const typeCards = document.querySelectorAll('.type-card');
     const ticketTypeSelect = document.getElementById('id_ticket_type');
+    const categorySelect = document.getElementById('id_category');
 
     const labelTitle = document.getElementById('labelTitle');
     const helpTitle = document.getElementById('helpTitle');
@@ -293,6 +294,27 @@
         }
     };
 
+    // Автоподстановка категории по выбранному типу
+    const typeToCategoryName = {
+        academic: 'Учебные вопросы',
+        technical: 'Технические проблемы',
+        administrative: 'Административные запросы',
+        suggestions: 'Предложения/замечания',
+        consultation: 'Консультации'
+    };
+
+    function setCategoryByType(typeValue) {
+        if (!categorySelect) return;
+        const targetName = typeToCategoryName[typeValue];
+        if (!targetName) return;
+        const options = Array.from(categorySelect.options);
+        const match = options.find(opt => opt.text.trim() === targetName);
+        if (match) {
+            categorySelect.value = match.value;
+            categorySelect.dispatchEvent(new Event('change', { bubbles: true }));
+        }
+    }
+
     function setStep(n) {
         if (n === 1) {
             step1.classList.add('active');
@@ -336,6 +358,7 @@
     toStep2Btn.addEventListener('click', () => {
         const value = ticketTypeSelect ? ticketTypeSelect.value : '';
         applyTypeUI(value);
+        setCategoryByType(value);
         setStep(2);
     });
 
@@ -349,6 +372,7 @@
             const preCard = document.querySelector(`.type-card[data-type-value="${preset}"]`);
             if (preCard) { preCard.classList.add('selected'); toStep2Btn.disabled = false; }
             applyTypeUI(preset);
+            setCategoryByType(preset);
             setStep(2);
         } else {
             setStep(1);

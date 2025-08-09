@@ -2197,6 +2197,26 @@ main > section > .text-block-2 {
     text-decoration: none;
 }
 
+/* Индикатор новых тикетов (красная точка) */
+.new-tickets-indicator {
+    position: absolute;
+    top: -6px;
+    right: -6px;
+    width: 16px;
+    height: 16px;
+    background-color: #dc3545;
+    border: 2px solid #fff;
+    border-radius: 50%;
+    box-shadow: 0 0 0 0 rgba(220, 53, 69, 0.5);
+    animation: ticketPulse 1.5s infinite;
+}
+
+@keyframes ticketPulse {
+    0% { box-shadow: 0 0 0 0 rgba(220, 53, 69, 0.7); }
+    70% { box-shadow: 0 0 0 10px rgba(220, 53, 69, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(220, 53, 69, 0); }
+}
+
 .support-chat-button:hover {
     transform: scale(1.1);
     box-shadow: 0 6px 25px rgba(102, 126, 234, 0.4);

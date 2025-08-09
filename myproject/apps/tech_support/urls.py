@@ -22,4 +22,7 @@ urlpatterns = [
     path('ticket/<int:pk>/close/', views.CloseTicketView.as_view(), name='ticket_close'),
     path('ticket/<int:pk>/comment/', views.AddCommentView.as_view(), name='ticket_comment'),
     path('ticket/<int:pk>/update/', views.UpdateTicketView.as_view(), name='ticket_update'),
+
+    # API: новые тикеты (для staff)
+    path('api/new-tickets-count/', views.new_tickets_count, name='new_tickets_count'),
 ]
