@@ -1,7 +1,7 @@
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.contrib import messages
 from django.http import HttpResponseForbidden
-from django.shortcuts import get_object_or_404, redirect
+from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils import timezone
 from django.views.generic import CreateView, DetailView, ListView, View
@@ -18,10 +18,15 @@ class StaffRequiredMixin(UserPassesTestMixin):
         return HttpResponseForbidden('Доступ запрещён')
 
 
-class TicketCreateView(LoginRequiredMixin, CreateView):
+class TicketCreateView(CreateView):
     model = Ticket
     template_name = 'tech_support/support_chat.html'
     form_class = TicketCreateForm
+
+    def dispatch(self, request, *args, **kwargs):
+        if not request.user.is_authenticated:
+            return render(request, '403.html', status=403)
+        return super().dispatch(request, *args, **kwargs)
 
     def form_valid(self, form):
         ticket = form.save(commit=False)
@@ -36,17 +41,27 @@ class TicketCreateView(LoginRequiredMixin, CreateView):
         return redirect('tech_support:ticket_detail', pk=ticket.pk)
 
 
-class TicketListEntryView(LoginRequiredMixin, View):
+class TicketListEntryView(View):
+    def dispatch(self, request, *args, **kwargs):
+        if not request.user.is_authenticated:
+            return render(request, '403.html', status=403)
+        return super().dispatch(request, *args, **kwargs)
+
     def get(self, request):
         if request.user.is_staff or request.user.is_superuser:
             return redirect('tech_support:ticket_list_staff')
         return redirect('tech_support:ticket_list_my')
 
 
-class TicketListView(LoginRequiredMixin, StaffRequiredMixin, ListView):
+class TicketListView(ListView):
     model = Ticket
     template_name = 'tech_support/ticket_list.html'
     context_object_name = 'tickets'
+
+    def dispatch(self, request, *args, **kwargs):
+        if not request.user.is_authenticated or not (request.user.is_staff or request.user.is_superuser):
+            return render(request, '403.html', status=403)
+        return super().dispatch(request, *args, **kwargs)
 
     def get_queryset(self):
         user = self.request.user
@@ -56,21 +71,28 @@ class TicketListView(LoginRequiredMixin, StaffRequiredMixin, ListView):
         return Ticket.objects.filter(assigned_to__in=[None, user]).order_by('-created_at')
 
 
-class MyTicketListView(LoginRequiredMixin, ListView):
+class MyTicketListView(ListView):
     model = Ticket
     template_name = 'tech_support/my_ticket_list.html'
     context_object_name = 'tickets'
+
+    def dispatch(self, request, *args, **kwargs):
+        if not request.user.is_authenticated:
+            return render(request, '403.html', status=403)
+        return super().dispatch(request, *args, **kwargs)
 
     def get_queryset(self):
         return Ticket.objects.filter(created_by=self.request.user).order_by('-created_at')
 
 
-class TicketDetailView(LoginRequiredMixin, DetailView):
+class TicketDetailView(DetailView):
     model = Ticket
     template_name = 'tech_support/ticket_detail.html'
     context_object_name = 'ticket'
 
     def dispatch(self, request, *args, **kwargs):
+        if not request.user.is_authenticated:
+            return render(request, '403.html', status=403)
         self.object = self.get_object()
         user = request.user
         # Доступ: автор тикета, суперюзер, staff если тикет свободен или закреплён за ним
@@ -78,7 +100,7 @@ class TicketDetailView(LoginRequiredMixin, DetailView):
             return super().dispatch(request, *args, **kwargs)
         if user.is_staff and (self.object.assigned_to is None or self.object.assigned_to == user):
             return super().dispatch(request, *args, **kwargs)
-        return HttpResponseForbidden('Доступ запрещён')
+        return render(request, '403.html', status=403)
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -98,7 +120,12 @@ class TicketDetailView(LoginRequiredMixin, DetailView):
         return context
 
 
-class TakeTicketView(LoginRequiredMixin, StaffRequiredMixin, View):
+class TakeTicketView(View):
+    def dispatch(self, request, *args, **kwargs):
+        if not request.user.is_authenticated or not (request.user.is_staff or request.user.is_superuser):
+            return render(request, '403.html', status=403)
+        return super().dispatch(request, *args, **kwargs)
+
     def post(self, request, pk):
         ticket = get_object_or_404(Ticket, pk=pk)
         if ticket.status and not ticket.status.is_active:
@@ -113,7 +140,12 @@ class TakeTicketView(LoginRequiredMixin, StaffRequiredMixin, View):
         return redirect('tech_support:ticket_detail', pk=pk)
 
 
-class CloseTicketView(LoginRequiredMixin, StaffRequiredMixin, View):
+class CloseTicketView(View):
+    def dispatch(self, request, *args, **kwargs):
+        if not request.user.is_authenticated or not (request.user.is_staff or request.user.is_superuser):
+            return render(request, '403.html', status=403)
+        return super().dispatch(request, *args, **kwargs)
+
     def post(self, request, pk):
         ticket = get_object_or_404(Ticket, pk=pk)
         closed_status = TicketStatus.objects.filter(is_active=False).order_by('id').first()
@@ -122,21 +154,26 @@ class CloseTicketView(LoginRequiredMixin, StaffRequiredMixin, View):
             return redirect('tech_support:ticket_detail', pk=pk)
         ticket.status = closed_status
         ticket.assigned_to = ticket.assigned_to or request.user
-        ticket.closed_at = ticket.closed_at or timezone.now()
-        ticket.save(update_fields=['status', 'assigned_to', 'closed_at'])
+        ticket.resolved_at = ticket.resolved_at or timezone.now()
+        ticket.save(update_fields=['status', 'assigned_to', 'resolved_at'])
         messages.success(request, 'Тикет закрыт')
         return redirect('tech_support:ticket_detail', pk=pk)
 
 
-class AddCommentView(LoginRequiredMixin, View):
+class AddCommentView(View):
+    def dispatch(self, request, *args, **kwargs):
+        if not request.user.is_authenticated:
+            return render(request, '403.html', status=403)
+        return super().dispatch(request, *args, **kwargs)
+
     def post(self, request, pk):
         ticket = get_object_or_404(Ticket, pk=pk)
         # Запрещаем комментировать закрытые тикеты
         if ticket.status and not ticket.status.is_active:
-            return HttpResponseForbidden('Тикет закрыт. Добавление комментариев недоступно')
+            return render(request, '403.html', status=403)
         # Разрешаем комментировать автору тикета и персоналу
         if not (request.user == ticket.created_by or request.user.is_staff or request.user.is_superuser):
-            return HttpResponseForbidden('Доступ запрещён')
+            return render(request, '403.html', status=403)
         form = TicketCommentForm(request.POST)
         if form.is_valid():
             TicketComment.objects.create(
@@ -151,7 +188,12 @@ class AddCommentView(LoginRequiredMixin, View):
         return redirect('tech_support:ticket_detail', pk=pk)
 
 
-class UpdateTicketView(LoginRequiredMixin, StaffRequiredMixin, View):
+class UpdateTicketView(View):
+    def dispatch(self, request, *args, **kwargs):
+        if not request.user.is_authenticated or not (request.user.is_staff or request.user.is_superuser):
+            return render(request, '403.html', status=403)
+        return super().dispatch(request, *args, **kwargs)
+
     def post(self, request, pk):
         ticket = get_object_or_404(Ticket, pk=pk)
         form = TicketStaffUpdateForm(request.POST, instance=ticket)
