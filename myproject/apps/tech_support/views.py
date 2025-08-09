@@ -84,9 +84,15 @@ class TicketDetailView(LoginRequiredMixin, DetailView):
         context = super().get_context_data(**kwargs)
         user = self.request.user
         ticket = context['ticket']
-        context['is_staff_view'] = user.is_staff or user.is_superuser
-        if context['is_staff_view']:
+        is_staff_view = user.is_staff or user.is_superuser
+        is_closed = bool(ticket.status and not ticket.status.is_active)
+        can_comment = (is_staff_view or (user == ticket.created_by)) and not is_closed
+        context['is_staff_view'] = is_staff_view
+        context['is_closed'] = is_closed
+        context['can_comment'] = can_comment
+        if can_comment:
             context['comment_form'] = TicketCommentForm()
+        if is_staff_view:
             context['update_form'] = TicketStaffUpdateForm(instance=ticket)
         context['comments'] = TicketComment.objects.filter(ticket=ticket).order_by('created_at')
         return context
@@ -95,6 +101,9 @@ class TicketDetailView(LoginRequiredMixin, DetailView):
 class TakeTicketView(LoginRequiredMixin, StaffRequiredMixin, View):
     def post(self, request, pk):
         ticket = get_object_or_404(Ticket, pk=pk)
+        if ticket.status and not ticket.status.is_active:
+            messages.error(request, 'Тикет закрыт, брать в работу нельзя')
+            return redirect('tech_support:ticket_detail', pk=pk)
         if ticket.assigned_to and ticket.assigned_to != request.user:
             messages.error(request, 'Тикет уже взят другим сотрудником')
             return redirect('tech_support:ticket_detail', pk=pk)
@@ -119,9 +128,15 @@ class CloseTicketView(LoginRequiredMixin, StaffRequiredMixin, View):
         return redirect('tech_support:ticket_detail', pk=pk)
 
 
-class AddCommentView(LoginRequiredMixin, StaffRequiredMixin, View):
+class AddCommentView(LoginRequiredMixin, View):
     def post(self, request, pk):
         ticket = get_object_or_404(Ticket, pk=pk)
+        # Запрещаем комментировать закрытые тикеты
+        if ticket.status and not ticket.status.is_active:
+            return HttpResponseForbidden('Тикет закрыт. Добавление комментариев недоступно')
+        # Разрешаем комментировать автору тикета и персоналу
+        if not (request.user == ticket.created_by or request.user.is_staff or request.user.is_superuser):
+            return HttpResponseForbidden('Доступ запрещён')
         form = TicketCommentForm(request.POST)
         if form.is_valid():
             TicketComment.objects.create(

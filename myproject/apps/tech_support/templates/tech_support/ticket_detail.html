@@ -13,7 +13,7 @@
                 </h1>
                 <div class="d-flex gap-2">
                     {% if is_staff_view %}
-                        {% if not ticket.assigned_to %}
+                        {% if not is_closed and not ticket.assigned_to %}
                             <form method="post" action="{% url 'tech_support:ticket_take' ticket.pk %}">
                                 {% csrf_token %}
                                 <button class="btn btn-outline-primary btn-sm" type="submit">
@@ -21,8 +21,7 @@
                                 </button>
                             </form>
                         {% endif %}
-                        {% if ticket.status and not ticket.status.is_active %}
-                        {% else %}
+                        {% if not is_closed %}
                             <form method="post" action="{% url 'tech_support:ticket_close' ticket.pk %}">
                                 {% csrf_token %}
                                 <button class="btn btn-outline-danger btn-sm" type="submit">
@@ -31,11 +30,9 @@
                             </form>
                         {% endif %}
                     {% endif %}
-                    {% if not is_staff_view %}
                     <a href="{% url 'tech_support:support_chat' %}" class="btn btn-outline-secondary btn-sm">
                         Новый тикет
                     </a>
-                    {% endif %}
                 </div>
             </div>
 
@@ -90,12 +87,28 @@
             </div>
             {% endif %}
 
+            {% if can_comment and not is_staff_view %}
+            <div class="card mb-3">
+                <div class="card-header">Ваш ответ</div>
+                <div class="card-body">
+                    <form method="post" action="{% url 'tech_support:ticket_comment' ticket.pk %}">
+                        {% csrf_token %}
+                        {{ comment_form.content }}
+                        <div class="text-end mt-2">
+                            <button class="btn btn-primary btn-sm" type="submit">Отправить</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            {% endif %}
+
             {% if is_staff_view %}
             <div class="row g-3">
                 <div class="col-md-6">
                     <div class="card h-100">
                         <div class="card-header">Ответ пользователю</div>
                         <div class="card-body">
+                            {% if can_comment %}
                             <form method="post" action="{% url 'tech_support:ticket_comment' ticket.pk %}">
                                 {% csrf_token %}
                                 {{ comment_form.content }}
@@ -103,6 +116,9 @@
                                     <button class="btn btn-primary btn-sm" type="submit">Отправить</button>
                                 </div>
                             </form>
+                            {% else %}
+                            <div class="text-muted">Тикет закрыт. Комментирование недоступно.</div>
+                            {% endif %}
                         </div>
                     </div>
                 </div>
