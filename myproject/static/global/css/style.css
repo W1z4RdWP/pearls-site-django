@@ -44,6 +44,11 @@
     --color-danger-hover: #bb2d3b;
     --color-link: #4d7cff;
     --color-link-hover: #2dabc4;
+    --color-hero-gradient: #e3e8f0;
+    --color-hero-btn-bg: var(--color-accent);
+    --color-hero-btn-text: #fff;
+    --color-hero-btn-hover-bg: var(--color-accent);
+    --color-hero-btn-hover-text: #fff;
     --primary-font: "Onest", sans-serif;
 
 }
@@ -94,6 +99,11 @@ body.theme-dark {
     --color-danger-hover: #bb2d3b;
     --color-link: #4d7cff;
     --color-link-hover: #2dabc4;
+    --color-hero-gradient: #333;
+    --color-hero-btn-bg: #232323;
+    --color-hero-btn-text: var(--color-text);
+    --color-hero-btn-hover-bg: #e3e8f0;
+    --color-hero-btn-hover-text: #232a3a;
 }
 
 
@@ -2019,28 +2029,40 @@ main > section > .text-block-2 {
   }
 
 /* --- HERO LANDING (Skillbox style, адаптация под палитру сайта) --- */
-.hero-landing {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    justify-content: space-between;
-    background: linear-gradient(280deg, var(--bs-primary-border-subtle) 60%, rgba(76, 175, 170, 0.1) 100%);
-    color: #232a3a;
-    border-radius: 24px;
-    padding: 48px 32px;
-    margin-bottom: 32px;    
-  }
+  .hero-landing {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  background: linear-gradient(280deg, var(--color-hero-gradient) 60%, rgba(76, 175, 170, 0.1) 100%);
+  color: var(--color-text);
+  border-radius: 24px;
+  padding: 48px 32px;
+  margin-bottom: 32px;
+  transition: background 0.3s ease, color 0.3s ease;
+}
   .hero-landing__left { flex: 1 1 320px; min-width: 300px; }
   .hero-landing__right { flex: 1 1 420px; min-width: 320px; display: flex; justify-content: center; }
   .hero-landing__stats { display: flex; gap: 32px; margin: 24px 0; }
-  .hero-landing__stat-num { font-size: 2.2rem; font-weight: bold; color: var(--color-accent); }
-  .hero-landing__stat-label { display: block; font-size: 1rem; color: #888; }
+  .hero-landing__stat-num { font-size: 2.2rem; font-weight: bold; color: var(--color-accent); transition: color 0.3s ease; }
+  .hero-landing__stat-label { display: block; font-size: 1rem; color: var(--color-text-secondary); transition: color 0.3s ease; }
   .hero-landing__categories { display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 24px; }
-  .hero-landing__categories button { background: var(--color-accent); color: #fff;
-    border: none; border-radius: 20px; padding: 8px 20px; font-size: 1rem;  cursor: pointer; transition: background 0.2s, color 0.2s;
+  .hero-landing__categories button { 
+    background: var(--color-hero-btn-bg); 
+    color: var(--color-hero-btn-text);
+    border: none; 
+    border-radius: 20px; 
+    padding: 8px 20px; 
+    font-size: 1rem;  
+    cursor: pointer; 
+    transition: background 0.2s, color 0.2s;
   }
 
-  .hero-landing__categories button:hover { border: none;  background: var(--color-accent); color: #fff;}
+  .hero-landing__categories button:hover { 
+    border: none;  
+    background: var(--color-hero-btn-hover-bg); 
+    color: var(--color-hero-btn-hover-text);
+  }
 
   .hero-landing__cta {
     display: inline-block; margin-top: 12px; background: var(--color-accent); color: #fff; padding: 10px 28px; border-radius: 24px; text-decoration: none; font-weight: 500; transition: background 0.2s;
@@ -2071,8 +2093,9 @@ main > section > .text-block-2 {
   }
   .hero-face-label {
     font-size: 0.95rem;
-    color: #232a3a;
+    color: var(--color-hero-face-label);
     text-align: center;
+    transition: color 0.3s ease;
   }
   .hero-emoji { font-size: 3.2rem; }
   @media (max-width: 900px) {
@@ -2081,25 +2104,10 @@ main > section > .text-block-2 {
     .hero-landing__faces { justify-content: center; }
   }
   
-  .theme-dark .hero-landing {
-    background: linear-gradient(280deg, rgba(51,51,51,0.97) 60%, rgba(76, 175, 170, 0.1) 100%);
-    color: var(--color-text);
-  }
-  .theme-dark .hero-face-label {
-      color: var(--color-hero-face-label);
-  }
-  .theme-dark .hero-landing__stat-num {
-      color: var(--color-accent);
-  }
-  .theme-dark .hero-landing__stat-label {
-    color: var(--color-text-secondary);
-  }
-  .theme-dark .hero-landing__categories button {
-      background: #232323; color: var(--color-text);
-  }
-  .theme-dark .hero-landing__categories button:hover {
-      background: #e3e8f0; color: #232a3a;
-  }
+
+
+
+
 
 
 .navbar-avatar {

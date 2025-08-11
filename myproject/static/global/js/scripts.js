@@ -103,8 +103,9 @@ document.addEventListener('DOMContentLoaded', function() {
   const footerLogo = document.getElementById('footerlogo');
   const footerLogoMobile = document.getElementById('footerlogomobile');
 
-  // const darkLogo = "{% static 'global/imgs/logo_lc.png' %}";
-  // const lightLogo = "{% static 'global/imgs/logo_light_theme.png' %}";
+  // Определяем пути к логотипам
+  const darkLogo = "/static/global/imgs/logo_lc.png";
+  const lightLogo = "/static/global/imgs/logo_light_theme.png";
   
   function updateLogo() {
     if (document.body.classList.contains('theme-dark')) {
@@ -117,20 +118,23 @@ document.addEventListener('DOMContentLoaded', function() {
       if (footerLogoMobile) footerLogoMobile.src = lightLogo;
     }
   }
-  if (btn && (logo || footerLogo || footerLogoMobile)) {
+  
+  if (btn) {
     btn.addEventListener('click', function() {
       document.body.classList.toggle('theme-dark');
       btn.textContent = document.body.classList.contains('theme-dark') ? 'Тёмная тема' : 'Светлая тема';
       localStorage.setItem('theme', document.body.classList.contains('theme-dark') ? 'dark' : 'light');
       updateLogo();
     });
+    
+    // Инициализация при загрузке
     if (localStorage.getItem('theme') === 'dark') {
       document.body.classList.add('theme-dark');
       btn.textContent = 'Тёмная тема';
-      updateLogo();
     } else {
-      updateLogo();
+      btn.textContent = 'Светлая тема';
     }
+    updateLogo();
   }
 });
 
