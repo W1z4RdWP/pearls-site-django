@@ -18,16 +18,16 @@
             <div class="profile-main-info">
                 <div class="profile-top-row">
                     
-                    <h2 class="account-heading">{{ user.username }}</h2>
+                    <h2 class="account-heading">{{ user.first_name|default:'-' }} {{ user.last_name|default:'-' }} {% if user.profile.middle_name %}({{ user.last_name|slice:":1" }}{{ user.first_name|slice:":1" }}{{ user.profile.middle_name|slice:":1" }}) {% endif %}</h2>
                     <span class="profile-registered">Дата регистрации: {{ user.date_joined|date:"d.m.Y H:i" }}</span>
                 </div>
                 <div class="profile-details">
                     <p class="text-secondary">{{ user.email }}</p>
                     <p class="text-secondary">{{ user.profile.bio|default:'О себе: нет информации' }}</p>
                     <div class="profile-fields">
-                        <span>Имя: <b>{{ user.first_name|default:'-' }}</b></span>
+                        <!-- <span>Имя: <b>{{ user.first_name|default:'-' }}</b></span>
                         <span>Фамилия: <b>{{ user.last_name|default:'-' }}</b></span>
-                        <span>Отчество: <b>{{ user.profile.middle_name|default:'Отсутствует' }}</b></span>
+                        <span>Отчество: <b>{{ user.profile.middle_name|default:'Отсутствует' }}</b></span> -->
                         <span>Должность: <b>{{ user.profile.role|default:'Отсутствует' }}</b></span>
                         <span>Дата рождения: <b>{{ user.profile.date_of_birth|default:'Отсутствует' }}</b></span>
                         <span>Телефон: <b>{{ user.profile.phone_number|default:'Отсутствует' }}</b></span>
