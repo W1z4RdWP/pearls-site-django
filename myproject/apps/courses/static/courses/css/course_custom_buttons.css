@@ -96,3 +96,35 @@
     background: var(--btn-mini-delete-bg-hover);
     color: var(--btn-mini-delete-color-hover) !important;
 }
+
+/* Большая кнопка "Начать курс" */
+.btn-start-course {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 12px 24px;
+    font-size: 1.1em;
+    font-weight: 600;
+    border: none;
+    border-radius: 10px;
+    cursor: pointer;
+    background: var(--btn-mini-add-bg);
+    color: var(--btn-mini-add-color) !important;
+    box-shadow: 0 2px 8px rgba(60,60,60,0.15);
+    transition: all 0.2s ease;
+    text-decoration: none !important;
+    white-space: nowrap;
+    min-width: 140px;
+}
+
+.btn-start-course:hover {
+    background: var(--btn-mini-add-bg-hover);
+    color: var(--btn-mini-add-color-hover) !important;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(60,60,60,0.25);
+}
+
+.btn-start-course i {
+    margin-right: 8px;
+    font-size: 1.1em;
+}
