@@ -16,6 +16,12 @@ class UserRegisterForm(UserCreationForm):
     captcha = CaptchaField() 
     email = forms.EmailField()
 
+    def clean_email(self):
+        email = self.cleaned_data.get('email')
+        if User.objects.filter(email=email).exists():
+            raise forms.ValidationError('Пользователь с таким email уже существует. Пожалуйста, введите другой email.')
+        return email
+
     class Meta:
         """
         Метаданные формы.
@@ -35,6 +41,12 @@ class UserRegisterNoCaptchaForm(UserCreationForm):
     """
     email = forms.EmailField()
 
+    def clean_email(self):
+        email = self.cleaned_data.get('email')
+        if User.objects.filter(email=email).exists():
+            raise forms.ValidationError('Пользователь с таким email уже существует. Пожалуйста, введите другой email.')
+        return email
+
     class Meta:
         model = User
         fields = ['username', 'email', 'password1', 'password2']
@@ -47,6 +59,12 @@ class UserUpdateForm(forms.ModelForm):
     Attributes:
         Meta: Метаданные формы.
     """
+    
+    def clean_email(self):
+        email = self.cleaned_data.get('email')
+        if User.objects.filter(email=email).exclude(id=self.instance.id).exists():
+            raise forms.ValidationError('Пользователь с таким email уже существует. Пожалуйста, введите другой email.')
+        return email
         
     class Meta:
         """

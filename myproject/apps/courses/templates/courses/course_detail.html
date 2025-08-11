@@ -57,7 +57,17 @@
     
     <div class="row">
         <div class="col-md-8">
-            <h3>Уроки курса</h3>
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h3>Уроки курса</h3>
+                {% if user_course and user_course.status == 'available' %}
+                    <form method="POST" action="{% url 'courses:course_detail' slug=course.slug %}" style="margin: 0;">
+                        {% csrf_token %}
+                        <button type="submit" name="start_course" class="btn-start-course">
+                            <i class="fa fa-play"></i> <span class="d-none d-sm-inline">Начать курс</span>
+                        </button>
+                    </form>
+                {% endif %}
+            </div>
             <div class="list-group">
                 {% for lesson in lessons %} 
                 <a href="{% url 'courses:lesson_detail' course.slug lesson.id %}" 
@@ -77,12 +87,6 @@
                     {% if user_course %}
                         {# Статус: Курс доступен #}
                         {% if user_course.status == 'available' %}
-                            <form method="POST" action="{% url 'courses:course_detail' slug=course.slug %}" style='text-align: center;'>
-                                {% csrf_token %}
-                                <button type="submit" name="start_course" class="btn-mini add">
-                                    <i class="fa fa-play"></i> <span class="d-none d-sm-inline">Начать</span>
-                                </button>
-                            </form>
                             <img src="{% if course.image %}{{ course.image.url }}{% else %}{% static 'imgs/default.jpg' %}{% endif %}" 
                                 alt="Course Image" id="course_detail_img">
 

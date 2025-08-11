@@ -26,7 +26,8 @@ class UserProgress(models.Model):
 
     def save(self, *args, **kwargs):
         if not self.course_id:
-            self.course = self.lesson.course
+            # Получаем первый курс из связанных с уроком
+            self.course = self.lesson.courses.first()
         super().save(*args, **kwargs)
 
 

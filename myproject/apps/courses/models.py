@@ -88,6 +88,10 @@ class Course(models.Model):
             )
         ]
 
+    @property
+    def lessons(self):
+        """Получение уроков курса через связь many-to-many"""
+        return self.course_lessons.all().order_by('order')
 
     def save(self, *args, **kwargs):
         if not self.slug:  # Генерируем slug только если он пустой
@@ -109,13 +113,11 @@ class Lesson(models.Model):
     """
     Класс отвечающий за таблицу уроков в БД.
     Attrs:
-        course - Внешний ключ на курс к которому относится урок.
         title - название урока.
         content - содержимое урока. Заполняется администратором сайта.
         video_id - идентификатор прикрепленного видео из рутуб. Максимальное количество символов для передачи в форму 
                     задается параметром max_length.
     """
-    course = models.ForeignKey(Course, on_delete=models.CASCADE, null=True, blank=True, related_name='lessons', verbose_name="Курс")
     title = models.CharField(max_length=200, verbose_name="Название урока")
     content = CKEditor5Field('Content', config_name='extends')
     video_id = models.CharField(
@@ -136,27 +138,50 @@ class Lesson(models.Model):
     )
     created_at = models.DateTimeField(auto_now_add=True, verbose_name="Дата создания")
     points = models.PositiveIntegerField(default=10, verbose_name="Количество DASCOIN за прохождение урока")
-
+    
+    # Связь many-to-many с курсами для гибкости
+    courses = models.ManyToManyField(
+        Course,
+        blank=True,
+        related_name='course_lessons',
+        verbose_name="Курсы, в которых используется урок"
+    )
 
     class Meta:
         verbose_name = 'Урок'
         verbose_name_plural = 'Уроки'
         ordering = ['order']
         indexes = [
-            models.Index(fields=['course', 'order'], name='lesson_course_order_idx'),
+            models.Index(fields=['order'], name='lesson_order_idx'),
         ]
 
-    def get_previous_lesson(self):
-        return Lesson.objects.filter(
-            course=self.course, 
-            order__lt=self.order
-        ).order_by('-order').first()
+    def get_previous_lesson(self, course=None):
+        """Получение предыдущего урока в контексте курса или глобально"""
+        if course:
+            # Если указан курс, ищем предыдущий урок в этом курсе
+            return Lesson.objects.filter(
+                courses=course, 
+                order__lt=self.order
+            ).order_by('-order').first()
+        else:
+            # Иначе ищем глобально по порядку
+            return Lesson.objects.filter(
+                order__lt=self.order
+            ).order_by('-order').first()
 
-    def get_next_lesson(self):
-        return Lesson.objects.filter(
-            course=self.course, 
-            order__gt=self.order
-        ).order_by('order').first()
+    def get_next_lesson(self, course=None):
+        """Получение следующего урока в контексте курса или глобально"""
+        if course:
+            # Если указан курс, ищем следующий урок в этом курсе
+            return Lesson.objects.filter(
+                courses=course, 
+                order__gt=self.order
+            ).order_by('order').first()
+        else:
+            # Иначе ищем глобально по порядку
+            return Lesson.objects.filter(
+                order__gt=self.order
+            ).order_by('order').first()
 
     def __str__(self):
         return self.title

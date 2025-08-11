@@ -449,7 +449,7 @@ class LessonMasterDetailView(TemplateView):
 
 class LessonCreateView(CreateView):
     model = Lesson
-    fields = ['title', 'content', 'video_id', 'course', 'category']
+    fields = ['title', 'content', 'video_id', 'courses', 'category']
     template_name = 'builder/lesson_form.html'
     success_url = reverse_lazy('builder:lesson_master')
 
@@ -486,6 +486,7 @@ class LessonCreateView(CreateView):
             max_order = Lesson.objects.filter(category__isnull=True).aggregate(Max('order'))['order__max'] or 0
         lesson.order = max_order + 1
         lesson.save()
+        form.save_m2m()  # Сохраняем связи many-to-many с курсами
         # --- Создаём первую версию ---
         from django.utils import timezone
         today = timezone.now().date()
@@ -509,7 +510,7 @@ class LessonCreateView(CreateView):
 
 class LessonUpdateView(UpdateView):
     model = Lesson
-    fields = ['title', 'content', 'video_id', 'order', 'course', 'category']
+    fields = ['title', 'content', 'video_id', 'order', 'courses', 'category']
     template_name = 'builder/lesson_form.html'
     success_url = reverse_lazy('builder:lesson_master')
 
@@ -1271,7 +1272,7 @@ class UpdateControlStandaloneView(TemplateView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         from courses.models import Lesson
-        from builder.models import LessonVersion
+        from .models import LessonVersion
         from django.utils import timezone
         lessons = Lesson.objects.select_related('category').all()
         today = timezone.now().date()
@@ -1400,7 +1401,7 @@ def actualize_version(request):
         responsible_id = data.get('responsible_id')
     except Exception as e:
         return JsonResponse({'error': 'bad json'}, status=400)
-    from courses.models import Lesson
+    from ..courses.models import Lesson
     try:
         lesson = Lesson.objects.get(pk=lesson_id)
     except Lesson.DoesNotExist:
@@ -1453,7 +1454,7 @@ def save_terms(request):
         data = json.loads(request.body)
         section_id = data.get('section_id')
         terms = data.get('terms', [])
-        from builder.models import DictionarySection, DictionaryTerm
+        from .models import DictionarySection, DictionaryTerm
         section = DictionarySection.objects.get(id=section_id)
         existing_terms = {t.id: t for t in section.terms.all()}
         sent_ids = set()
