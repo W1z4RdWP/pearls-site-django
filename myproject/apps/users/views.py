@@ -48,7 +48,7 @@ class RegisterView(LoginRequiredMixin, FormView):
         audit_logger.info(
             'Зарегистрировался на платформе', 
             extra={
-                'user': user.username if user.is_authenticated else 'Anonymous'
+                'user': user.email if user.is_authenticated else 'Anonymous'
             }
         )
                 
@@ -107,10 +107,10 @@ def profile(request: HttpRequest) -> HttpResponse:
     if request.headers.get('x-requested-with') == 'XMLHttpRequest':
         # Логирование действия
         audit_logger.info(
-            'Смотрит истории своих тестов в профиле', 
-            extra={
-                'user': request.user.username if request.user.is_authenticated else 'Anonymous'
-            }
+                    'Смотрит истории своих тестов в профиле', 
+        extra={
+            'user': request.user.email if request.user.is_authenticated else 'Anonymous'
+        }
         )
         return render(request, 'users/includes/_quiz_history.html', {'page_obj': page_obj})
 
@@ -169,7 +169,7 @@ def profile(request: HttpRequest) -> HttpResponse:
     audit_logger.info(
         'Перешёл в свой профиль', 
         extra={
-            'user': request.user.username if request.user.is_authenticated else 'Anonymous'
+            'user': request.user.email if request.user.is_authenticated else 'Anonymous'
         }
     )
 
@@ -256,6 +256,13 @@ class CustomLoginView(LoginView):
     то пользователю, при попытке входа, будет выводится сообщение "Ваш аккаунт ожидает подтверждения администратором."
     """
     template_name = "users/login.html"
+    
+    def get_form(self, form_class=None):
+        form = super().get_form(form_class)
+        # Заменяем label для поля username на email
+        form.fields['username'].label = 'Email'
+        form.fields['username'].help_text = 'Введите ваш email'
+        return form
 
     def dispatch(self, request, *args, **kwargs):
         if request.user.is_authenticated:
@@ -275,7 +282,7 @@ class CustomLoginView(LoginView):
             audit_logger.info(
                 'Хочет авторизоваться, но профиль не подтверждён', 
                 extra={
-                    'user': user.username if user.is_authenticated else 'Anonymous'
+                    'user': user.email if user.is_authenticated else 'Anonymous'
                 }
             )
             messages.error(self.request, "Ваш аккаунт ожидает подтверждения администратором.")
@@ -283,7 +290,7 @@ class CustomLoginView(LoginView):
         audit_logger.info(
             'Вошёл в систему', 
             extra={
-                'user': user.username if user.is_authenticated else 'Anonymous'
+                'user': user.email if user.is_authenticated else 'Anonymous'
             }
         )
         auth_login(self.request, user)
@@ -336,7 +343,7 @@ class TransactionsListView(LoginRequiredMixin, ListView):
         audit_logger.info(
             'Смотрит историю транзакций DASCOIN', 
             extra={
-                'user': self.request.user.username if self.request.user.is_authenticated else 'Anonymous'
+                'user': self.request.user.email if self.request.user.is_authenticated else 'Anonymous'
             }
         )
         
@@ -392,7 +399,7 @@ def export_transactions_pdf(request):
     audit_logger.info(
         'Экспортировал транзакции в PDF', 
         extra={
-            'user': request.user.username if request.user.is_authenticated else 'Anonymous'
+            'user': request.user.email if request.user.is_authenticated else 'Anonymous'
         }
     )
     return response
@@ -404,7 +411,7 @@ class AdminDashboardView(LoginRequiredMixin, UserPassesTestMixin, ListView):
     template_name = 'users/admin_dascoin_dashboard.html'
     context_object_name = 'users'
     paginate_by = 25
-    ordering = ['-profile__dascoin_points', 'username']
+    ordering = ['-profile__dascoin_points', 'email']
     
     def test_func(self):
         """Проверяет, что пользователь является staff или superuser"""
@@ -412,7 +419,7 @@ class AdminDashboardView(LoginRequiredMixin, UserPassesTestMixin, ListView):
     
     def get_queryset(self):
         """Возвращает пользователей с фильтрацией"""
-        queryset = User.objects.select_related('profile', 'profile__role').prefetch_related('groups').order_by('-profile__dascoin_points', 'username')
+        queryset = User.objects.select_related('profile', 'profile__role').prefetch_related('groups').order_by('-profile__dascoin_points', 'email')
         
         # Фильтрация по группе
         group_id = self.request.GET.get('group')
@@ -497,7 +504,7 @@ class AdminDashboardView(LoginRequiredMixin, UserPassesTestMixin, ListView):
         audit_logger.info(
             'Просматривает административную панель статистики DASCOIN', 
             extra={
-                'user': self.request.user.username if self.request.user.is_authenticated else 'Anonymous'
+                'user': self.request.user.email if self.request.user.is_authenticated else 'Anonymous'
             }
         )
         
@@ -547,7 +554,7 @@ def export_admin_stats_excel(request):
     if top_users and top_users.isdigit():
         queryset = queryset.order_by('-profile__dascoin_points')[:int(top_users)]
     else:
-        queryset = queryset.order_by('-profile__dascoin_points', 'username')
+        queryset = queryset.order_by('-profile__dascoin_points', 'email')
     
     wb = Workbook()
     ws = wb.active
@@ -574,7 +581,7 @@ def export_admin_stats_excel(request):
             status = 'Неактивен'
         
         ws.append([
-            user.get_full_name() or user.username,
+            user.get_full_name() or user.email,
             user.email,
             groups,
             role,
@@ -596,7 +603,7 @@ def export_admin_stats_excel(request):
     audit_logger.info(
         'Экспортировал статистику администратора в Excel', 
         extra={
-            'user': request.user.username if request.user.is_authenticated else 'Anonymous'
+            'user': request.user.email if request.user.is_authenticated else 'Anonymous'
         }
     )
     return response
@@ -645,7 +652,7 @@ def export_admin_stats_pdf(request):
     if top_users and top_users.isdigit():
         queryset = queryset.order_by('-profile__dascoin_points')[:int(top_users)]
     else:
-        queryset = queryset.order_by('-profile__dascoin_points', 'username')
+        queryset = queryset.order_by('-profile__dascoin_points', 'email')
     
     # Общая статистика
     all_users = User.objects.select_related('profile')
@@ -659,7 +666,7 @@ def export_admin_stats_pdf(request):
         'total_dascoin_points': total_dascoin_points,
         'active_users': active_users,
         'generated_at': datetime.now(),
-        'generated_by': request.user.get_full_name() or request.user.username,
+        'generated_by': request.user.get_full_name() or request.user.email,
     })
     
     html = HTML(string=html_string)
@@ -671,7 +678,7 @@ def export_admin_stats_pdf(request):
     audit_logger.info(
         'Экспортировал статистику администратора в PDF', 
         extra={
-            'user': request.user.username if request.user.is_authenticated else 'Anonymous'
+            'user': request.user.email if request.user.is_authenticated else 'Anonymous'
         }
     )
     return response
@@ -722,10 +729,10 @@ class AdminUserTransactionsView(LoginRequiredMixin, UserPassesTestMixin, ListVie
         
         # Логирование действия
         audit_logger.info(
-            f'Просматривает историю транзакций пользователя {self.user.username}', 
+            f'Просматривает историю транзакций пользователя {self.user.email}', 
             extra={
-                'user': self.request.user.username if self.request.user.is_authenticated else 'Anonymous',
-                'target_user': self.user.username
+                'user': self.request.user.email if self.request.user.is_authenticated else 'Anonymous',
+                'target_user': self.user.email
             }
         )
         
@@ -748,7 +755,7 @@ def export_admin_user_transactions_excel(request, user_id):
     
     wb = Workbook()
     ws = wb.active
-    ws.title = f"Транзакции {user.username}"
+    ws.title = f"Транзакции {user.email}"
     
     headers = ['Дата', 'Тип', 'Изменение', 'До', 'После', 'Причина', 'Администратор']
     ws.append(headers)
@@ -775,15 +782,15 @@ def export_admin_user_transactions_excel(request, user_id):
         ws.column_dimensions[column[0].column_letter].width = min(max_length + 2, 50)
     
     response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
-    filename = f"transactions_{user.username}_{datetime.now().strftime('%Y%m%d_%H%M')}.xlsx"
+    filename = f"transactions_{user.email}_{datetime.now().strftime('%Y%m%d_%H%M')}.xlsx"
     response['Content-Disposition'] = f'attachment; filename={filename}'
     wb.save(response)
     
     audit_logger.info(
-        f'Экспортировал транзакции пользователя {user.username} в Excel', 
+        f'Экспортировал транзакции пользователя {user.email} в Excel', 
         extra={
-            'user': request.user.username if request.user.is_authenticated else 'Anonymous',
-            'target_user': user.username
+            'user': request.user.email if request.user.is_authenticated else 'Anonymous',
+            'target_user': user.email
         }
     )
     return response
@@ -809,20 +816,20 @@ def export_admin_user_transactions_pdf(request, user_id):
         'generated_at': datetime.now(),
         'total_transactions': transactions.count(),
         'is_admin_view': True,
-        'generated_by': request.user.get_full_name() or request.user.username,
+        'generated_by': request.user.get_full_name() or request.user.email,
     })
     
     html = HTML(string=html_string)
     pdf = html.write_pdf()
     response = HttpResponse(pdf, content_type='application/pdf')
-    filename = f"transactions_{user.username}_{datetime.now().strftime('%Y%m%d_%H%M')}.pdf"
+    filename = f"transactions_{user.email}_{datetime.now().strftime('%Y%m%d_%H%M')}.pdf"
     response['Content-Disposition'] = f'attachment; filename={filename}'
     
     audit_logger.info(
-        f'Экспортировал транзакции пользователя {user.username} в PDF', 
+        f'Экспортировал транзакции пользователя {user.email} в PDF', 
         extra={
-            'user': request.user.username if request.user.is_authenticated else 'Anonymous',
-            'target_user': user.username
+            'user': request.user.email if request.user.is_authenticated else 'Anonymous',
+            'target_user': user.email
         }
     )
     return response

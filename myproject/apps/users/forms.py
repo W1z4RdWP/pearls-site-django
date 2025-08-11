@@ -22,6 +22,14 @@ class UserRegisterForm(UserCreationForm):
             raise forms.ValidationError('Пользователь с таким email уже существует. Пожалуйста, введите другой email.')
         return email
 
+    def save(self, commit=True):
+        user = super().save(commit=False)
+        # Генерируем username из email
+        user.username = self.cleaned_data['email']
+        if commit:
+            user.save()
+        return user
+
     class Meta:
         """
         Метаданные формы.
@@ -32,7 +40,7 @@ class UserRegisterForm(UserCreationForm):
         """
 
         model = User
-        fields = ['username', 'email', 'password1', 'password2']
+        fields = ['email', 'password1', 'password2']
 
 
 class UserRegisterNoCaptchaForm(UserCreationForm):
@@ -47,9 +55,17 @@ class UserRegisterNoCaptchaForm(UserCreationForm):
             raise forms.ValidationError('Пользователь с таким email уже существует. Пожалуйста, введите другой email.')
         return email
 
+    def save(self, commit=True):
+        user = super().save(commit=False)
+        # Генерируем username из email
+        user.username = self.cleaned_data['email']
+        if commit:
+            user.save()
+        return user
+
     class Meta:
         model = User
-        fields = ['username', 'email', 'password1', 'password2']
+        fields = ['email', 'password1', 'password2']
 
 
 class UserUpdateForm(forms.ModelForm):
@@ -76,7 +92,7 @@ class UserUpdateForm(forms.ModelForm):
         """
                 
         model = User
-        fields = ['username', 'email', 'first_name', 'last_name']
+        fields = ['email', 'first_name', 'last_name']
 
 
 

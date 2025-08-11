@@ -12,7 +12,7 @@ class ApprovalBackendTest(TestCase):
     """
     def setUp(self):
         """Создаёт пользователя и профиль для тестов."""
-        self.user = User.objects.create_user(username='user1', password='pass')
+        self.user = User.objects.create_user(username='user1@example.com', email='user1@example.com', password='pass')
         self.profile = self.user.profile
         self.profile.is_approved = True
         self.profile.save()
@@ -30,7 +30,7 @@ class ApprovalBackendTest(TestCase):
 
     def test_user_cannot_authenticate_no_profile(self):
         """Пользователь без профиля не может аутентифицироваться."""
-        user2 = User.objects.create_user(username='user2', password='pass')
+        user2 = User.objects.create_user(username='user2@example.com', email='user2@example.com', password='pass')
         Profile.objects.filter(user=user2).delete()
         self.assertFalse(self.backend.user_can_authenticate(user2))
 
@@ -53,21 +53,20 @@ class RegisterViewTest(TestCase):
     def test_register_post_creates_user_and_profile(self):
         """POST-запрос создаёт пользователя и профиль, is_approved=False."""
         data = {
-            'username': 'newuser',
             'email': 'newuser@example.com',
             'password1': 'Testpass123!',
             'password2': 'Testpass123!',
         }
         resp = self.client.post(self.url, data, follow=True)
-        self.assertEqual(User.objects.filter(username='newuser').count(), 1)
-        user = User.objects.get(username='newuser')
+        self.assertEqual(User.objects.filter(email='newuser@example.com').count(), 1)
+        user = User.objects.get(email='newuser@example.com')
         self.assertTrue(hasattr(user, 'profile'))
         self.assertFalse(user.profile.is_approved)
 
     def test_register_redirects_if_authenticated(self):
         """Авторизованный пользователь получает редирект при попытке регистрации."""
-        user = User.objects.create_user(username='authuser', password='pass')
-        self.client.login(username='authuser', password='pass')
+        user = User.objects.create_user(username='authuser@example.com', email='authuser@example.com', password='pass')
+        self.client.login(username='authuser@example.com', password='pass')
         resp = self.client.get(self.url, follow=True)
         self.assertNotEqual(resp.redirect_chain, [])
 
@@ -80,7 +79,7 @@ class CustomLoginViewTest(TestCase):
         """Создаёт пользователя и url логина."""
         self.client = Client()
         self.url = reverse('users:login')
-        self.user = User.objects.create_user(username='loginuser', password='pass')
+        self.user = User.objects.create_user(username='loginuser@example.com', email='loginuser@example.com', password='pass')
         self.profile = self.user.profile
 
     def test_login_get(self):
@@ -93,7 +92,7 @@ class CustomLoginViewTest(TestCase):
         """Пользователь с is_approved=False не может войти."""
         self.profile.is_approved = False
         self.profile.save()
-        resp = self.client.post(self.url, {'username': 'loginuser', 'password': 'pass'}, follow=True)
+        resp = self.client.post(self.url, {'username': 'loginuser@example.com', 'password': 'pass'}, follow=True)
         self.assertIn('ожидает подтверждения', resp.content.decode('utf-8'))
         self.assertFalse('_auth_user_id' in self.client.session)
 
@@ -101,7 +100,7 @@ class CustomLoginViewTest(TestCase):
         """Пользователь с is_approved=True может войти."""
         self.profile.is_approved = True
         self.profile.save()
-        resp = self.client.post(self.url, {'username': 'loginuser', 'password': 'pass'}, follow=True)
+        resp = self.client.post(self.url, {'username': 'loginuser@example.com', 'password': 'pass'}, follow=True)
         self.assertTrue('_auth_user_id' in self.client.session)
 
     def test_login_redirect_if_authenticated(self):
@@ -120,7 +119,7 @@ class ProfileViewTest(TestCase):
     def setUp(self):
         """Создаёт пользователя и url профиля."""
         self.client = Client()
-        self.user = User.objects.create_user(username='profileuser', password='pass', email='profile@example.com')
+        self.user = User.objects.create_user(username='profileuser@example.com', email='profile@example.com', password='pass')
         self.user.profile.is_approved = True
         self.user.profile.save()
         self.url = reverse('users:profile')
@@ -132,16 +131,15 @@ class ProfileViewTest(TestCase):
 
     def test_profile_get(self):
         """Авторизованный пользователь видит свой профиль."""
-        self.client.login(username='profileuser', password='pass')
+        self.client.login(username='profileuser@example.com', password='pass')
         resp = self.client.get(self.url)
         self.assertEqual(resp.status_code, 200)
-        self.assertIn('profileuser', resp.content.decode('utf-8'))
+        self.assertIn('profileuser@example.com', resp.content.decode('utf-8'))
 
     def test_profile_post_update(self):
         """POST-запрос обновляет профиль пользователя."""
-        self.client.login(username='profileuser', password='pass')
+        self.client.login(username='profileuser@example.com', password='pass')
         data = {
-            'username': 'profileuser',
             'email': 'newmail@example.com',
             'first_name': 'Имя',
             'last_name': 'Фамилия',
@@ -157,10 +155,10 @@ class ProfileViewTest(TestCase):
 
     def test_profile_error_if_no_profile(self):
         """Если профиль удалён — возвращается страница ошибки."""
-        self.client.login(username='profileuser', password='pass')
+        self.client.login(username='profileuser@example.com', password='pass')
         resp = self.client.get(self.url)
         self.assertEqual(resp.status_code, 200)
-        self.assertIn('profileuser', resp.content.decode('utf-8'))
+        self.assertIn('profileuser@example.com', resp.content.decode('utf-8'))
 
 class UserSignalsTest(TestCase):
     """
@@ -172,12 +170,12 @@ class UserSignalsTest(TestCase):
 
     def test_profile_created_on_user_creation(self):
         """При создании пользователя автоматически создаётся профиль."""
-        user = User.objects.create_user(username='signaluser', password='pass')
+        user = User.objects.create_user(username='signaluser@example.com', email='signaluser@example.com', password='pass')
         self.assertTrue(hasattr(user, 'profile'))
 
     def test_profile_saved_on_user_save(self):
         """При сохранении пользователя сохраняется профиль."""
-        user = User.objects.create_user(username='signaluser2', password='pass')
+        user = User.objects.create_user(username='signaluser2@example.com', email='signaluser2@example.com', password='pass')
         user.profile.dascoin_points = 100
         user.save()
         user.refresh_from_db()
