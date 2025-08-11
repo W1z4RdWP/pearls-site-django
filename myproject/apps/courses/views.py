@@ -617,6 +617,19 @@ def add_lesson(request, course_slug):
                         lesson.order = current_order
                         lesson.save()
                         current_order += 1
+                        
+                elif item_id.startswith('uncategorized_'):
+                    # Добавляем урок без категории
+                    lesson_id = item_id.replace('uncategorized_', '')
+                    lesson = get_object_or_404(Lesson, id=lesson_id)
+                    
+                    # Проверяем, что урок еще не добавлен в курс
+                    if course not in lesson.courses.all():
+                        lesson.courses.add(course)
+                        # Обновляем порядок урока в контексте курса
+                        lesson.order = current_order
+                        lesson.save()
+                        current_order += 1
             
             return redirect('courses:course_detail', slug=course.slug)
         elif 'create_new' in request.POST:
@@ -624,9 +637,13 @@ def add_lesson(request, course_slug):
     
     categories_data = get_categories_with_lessons()
     
+    # Получаем уроки без категории
+    uncategorized_lessons = Lesson.objects.filter(category__isnull=True).order_by('order', 'title')
+    
     return render(request, 'courses/add_lesson.html', {
         'course': course,
         'categories_data': categories_data,
+        'uncategorized_lessons': uncategorized_lessons,
     })
 
 

@@ -295,3 +295,34 @@
     border-color: #6f42c1;
     box-shadow: 0 0 0 2px rgba(111, 66, 193, 0.2);
 }
+
+/* Стили для вкладок */
+.tabs-switcher {
+    border-bottom: 1px solid #e0e0e0;
+    padding-bottom: 8px;
+}
+
+.tab-btn {
+    background: transparent;
+    border: none;
+    padding: 8px 16px;
+    cursor: pointer;
+    font-size: 14px;
+    color: #666;
+    border-radius: 4px;
+    transition: background-color 0.2s, color 0.2s;
+}
+
+.tab-btn:hover {
+    background-color: #f5f5f5;
+    color: #333;
+}
+
+.tab-btn.active {
+    background-color: #6f42c1;
+    color: white;
+}
+
+.tab-btn.active:hover {
+    background-color: #5a32a3;
+}

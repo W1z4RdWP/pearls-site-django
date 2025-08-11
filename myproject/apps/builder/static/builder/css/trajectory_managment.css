@@ -1030,7 +1030,7 @@ body.theme-dark {
     cursor: not-allowed;
 }
 
-#addSelectedCoursesBtn:not(:disabled) {
+/* #addSelectedCoursesBtn:not(:disabled) {
     animation: pulse 2s infinite;
 }
 
@@ -1044,7 +1044,7 @@ body.theme-dark {
     100% {
         box-shadow: var(--trajectory-add-selected-courses-btn-shadow);
     }
-}
+} */
 
 /* Адаптивность для модального окна */
 @media (max-width: 768px) {
