@@ -31,11 +31,10 @@ class UserListView(ListView):
         return super().dispatch(request, *args, **kwargs)
 
     def get_queryset(self):
-        queryset = super().get_queryset().order_by('username')
+        queryset = super().get_queryset().order_by('email')
         q = self.request.GET.get('q')
         if q:
             queryset = queryset.filter(
-                Q(username__icontains=q) |
                 Q(email__icontains=q) |
                 Q(first_name__icontains=q) |
                 Q(last_name__icontains=q)
@@ -113,9 +112,9 @@ class UserCreateStep2View(CreateView):
         
         # Отправляем email с данными для входа
         if password and send_user_credentials_email(user, password):
-            messages.success(self.request, f'Пользователь {user.username} создан. Email с данными для входа отправлен на {user.email}')
+            messages.success(self.request, f'Пользователь {user.email} создан. Email с данными для входа отправлен на {user.email}')
         else:
-            messages.warning(self.request, f'Пользователь {user.username} создан, но не удалось отправить email с данными для входа')
+            messages.warning(self.request, f'Пользователь {user.email} создан, но не удалось отправить email с данными для входа')
         
         del self.request.session['user_create_step1_user_id']
         if 'user_password' in self.request.session:
@@ -386,7 +385,7 @@ def lesson_remove_allowed_role(request, lesson_id, role_id):
 class UserUpdateView(UpdateView):
     model = User
     template_name = 'user_management/user_form.html'
-    fields = ['username', 'email', 'first_name', 'last_name', 'groups', 'is_active']
+    fields = ['email', 'first_name', 'last_name', 'groups', 'is_active']
     success_url = reverse_lazy('user_management:user_list')
 
     def dispatch(self, request, *args, **kwargs):

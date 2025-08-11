@@ -14,8 +14,6 @@
         {% csrf_token %}
         <div class="form-section">
             <h2 class="section-title">Основные данные</h2>
-            {{ form.username.label_tag }}{{ form.username }}
-            {% if form.username.help_text %}<div class="um-help-text">{{ form.username.help_text }}</div>{% endif %}
             {{ form.email.label_tag }}{{ form.email }}
             {% if form.email.help_text %}<div class="um-help-text">{{ form.email.help_text }}</div>{% endif %}
             {{ form.password1.label_tag }}{{ form.password1 }}
