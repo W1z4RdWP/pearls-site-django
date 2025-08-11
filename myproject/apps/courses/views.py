@@ -199,7 +199,7 @@ class CourseDetailView(DetailView):
                         course=course,
                         completed=True,
                         lesson_id__in=lesson_ids
-                    ).aggregate(max_order=Max('lesson__order'))['max_order'] or 0
+                    ).select_related('lesson').aggregate(max_order=Max('lesson__order'))['max_order'] or 0
 
                     next_lesson = Lesson.objects.filter(
                         id__in=lesson_ids,
@@ -226,10 +226,10 @@ class CourseDetailView(DetailView):
                         user=user,
                         course=course,
                         completed=True
-                    ).aggregate(max_order=Max('lesson__order'))['max_order'] or 0
+                    ).select_related('lesson').aggregate(max_order=Max('lesson__order'))['max_order'] or 0
 
                     next_lesson = Lesson.objects.filter(
-                        course=course,
+                        courses=course,
                         order__gt=max_completed_order
                     ).order_by('order').first() or course.lessons.first()
                 
@@ -417,9 +417,9 @@ def lesson_detail(request, course_slug, lesson_id):
         return redirect('users:login')
 
     course = get_object_or_404(Course, slug=course_slug)
-    lesson = get_object_or_404(Lesson, id=lesson_id, course=course)
-    previous_lesson = lesson.get_previous_lesson()
-    next_lesson = lesson.get_next_lesson()
+    lesson = get_object_or_404(Lesson, id=lesson_id, courses=course)
+    previous_lesson = lesson.get_previous_lesson(course)
+    next_lesson = lesson.get_next_lesson(course)
 
     # Проверка доступа к курсу через менеджер
     available_courses = Course.objects.available_for_user(request.user)
@@ -443,7 +443,7 @@ def lesson_detail(request, course_slug, lesson_id):
         if lesson not in lessons_in_trajectory:
             return render(request, 'courses/lesson_access_denied.html', {'course': course, 'lesson': lesson})
     if trajectory:
-        trajectory_lessons = trajectory.lessons.all().order_by('order').select_related('course') 
+        trajectory_lessons = trajectory.lessons.all().order_by('order')
         previous_lesson = trajectory_lessons.filter(
             order__lt=lesson.order
         ).order_by('-order').first()
@@ -451,8 +451,8 @@ def lesson_detail(request, course_slug, lesson_id):
             order__gt=lesson.order
         ).order_by('order').first()
     else:
-        previous_lesson = lesson.get_previous_lesson()
-        next_lesson = lesson.get_next_lesson()
+        previous_lesson = lesson.get_previous_lesson(course)
+        next_lesson = lesson.get_next_lesson(course)
 
     # Помечаем урок как просмотренный (но не завершенный)
     UserProgress.objects.get_or_create(
@@ -462,6 +462,7 @@ def lesson_detail(request, course_slug, lesson_id):
     )
 
     context = {
+        'course': course,
         'lesson': lesson,
         'previous_lesson': previous_lesson,
         'next_lesson': next_lesson,
@@ -515,15 +516,15 @@ def create_lesson(request, course_slug):
     course = get_object_or_404(Course, slug=course_slug)
     max_order = course.lessons.aggregate(models.Max('order'))['order__max'] or 0
     if request.method == 'POST':
-        form = LessonForm(request.POST, initial={'order': max_order + 1}, hide_order=True)
+        form = LessonForm(request.POST, initial={'order': max_order + 1, 'courses': [course]}, hide_order=True)
         if form.is_valid():
             lesson = form.save(commit=False)
-            lesson.course = course
             lesson.order = max_order + 1
             lesson.save()
+            form.save_m2m()  # Сохраняем связь many-to-many с курсами
             return redirect('courses:course_detail', course_slug)
     else:
-        form = LessonForm(initial={'order': max_order + 1}, hide_order=True)
+        form = LessonForm(initial={'order': max_order + 1, 'courses': [course]}, hide_order=True)
     return render(request, 'courses/create_lesson.html', {'form': form, 'course': course})
 
 
@@ -597,8 +598,9 @@ def add_lesson(request, course_slug):
                     
                     for lesson in lessons:
                         # Проверяем, что урок еще не добавлен в курс
-                        if lesson.course != course:
-                            lesson.course = course
+                        if course not in lesson.courses.all():
+                            lesson.courses.add(course)
+                            # Обновляем порядок урока в контексте курса
                             lesson.order = current_order
                             lesson.save()
                             current_order += 1
@@ -609,8 +611,9 @@ def add_lesson(request, course_slug):
                     lesson = get_object_or_404(Lesson, id=lesson_id)
                     
                     # Проверяем, что урок еще не добавлен в курс
-                    if lesson.course != course:
-                        lesson.course = course
+                    if course not in lesson.courses.all():
+                        lesson.courses.add(course)
+                        # Обновляем порядок урока в контексте курса
                         lesson.order = current_order
                         lesson.save()
                         current_order += 1
@@ -643,10 +646,17 @@ def delete_course(request, slug):
 @user_passes_test(is_admin, login_url='/')
 def delete_lesson(request, lesson_id):
     lesson = get_object_or_404(Lesson, id=lesson_id)
-    course_slug = lesson.course.slug
-    if request.method == 'POST':
-        lesson.delete()
-    return redirect('courses:course_detail', course_slug)
+    # Получаем первый курс для редиректа (или можно изменить логику)
+    course = lesson.courses.first()
+    if course and request.method == 'POST':
+        # Удаляем связь с курсом, а не сам урок
+        lesson.courses.remove(course)
+        return redirect('courses:course_detail', course_slug=course.slug)
+    elif course:
+        return redirect('courses:course_detail', course_slug=course.slug)
+    else:
+        # Если урок не связан ни с одним курсом, редиректим на главную
+        return redirect('home')
 
 
 @login_required
@@ -673,19 +683,23 @@ def edit_course(request, slug):
 @user_passes_test(is_admin, login_url='/')
 def edit_lesson(request, lesson_id):
     lesson = get_object_or_404(Lesson, id=lesson_id)
-    course = lesson.course
+    # Получаем первый курс для контекста (или можно изменить логику)
+    course = lesson.courses.first()
     
     if request.method == 'POST':
         form = LessonForm(request.POST, instance=lesson)
         if form.is_valid():
             form.save()
-            return redirect('courses:lesson_detail', course_slug=course.slug, lesson_id=lesson.id)
+            if course:
+                return redirect('courses:lesson_detail', course_slug=course.slug, lesson_id=lesson.id)
+            else:
+                return redirect('home')
     else:
         form = LessonForm(instance=lesson)
     
     return render(request, 'courses/edit_lesson.html', {
         'form': form,
-        'course': lesson.course,
+        'course': course,
         'lesson': lesson
     })
 
@@ -712,7 +726,7 @@ def complete_lesson(request, course_slug, lesson_id):
         return redirect('users:login')
     
     course = get_object_or_404(Course, slug=course_slug)
-    lesson = get_object_or_404(Lesson, id=lesson_id, course=course)
+    lesson = get_object_or_404(Lesson, id=lesson_id, courses=course)
     user = request.user
     
     # Проверка доступа через менеджер
