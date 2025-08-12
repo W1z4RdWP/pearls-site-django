@@ -6,6 +6,13 @@ from typing import Any
 
 
 class Role(models.Model):
+    """
+    Модель должности.
+
+    Attributes:
+        name (CharField): Название должности.
+        responsible_user (OneToOneField): Связь с моделью User.
+    """
     name = models.CharField(max_length=200, unique=True, verbose_name="Название должности")
     responsible_user = models.OneToOneField(
         User, 
@@ -37,6 +44,29 @@ class Role(models.Model):
         super().save(*args, **kwargs)
 
 
+class Department(models.Model):
+    """
+    Модель подразделения.
+
+    Attributes:
+        name (CharField): Название подразделения.
+    """
+    name = models.CharField(max_length=200, unique=True, verbose_name="Название подразделения")
+
+    class Meta:
+        app_label = 'users'
+        verbose_name = 'Подразделение'
+        verbose_name_plural = 'Подразделения'
+        ordering = ['name']
+
+    def __str__(self):
+        return self.name
+
+    def save(self, *args, **kwargs):
+        self.clean()
+        super().save(*args, **kwargs)
+
+
         
 
 class Profile(models.Model):
@@ -47,6 +77,7 @@ class Profile(models.Model):
         user (User): Связь один-к-одному с моделью User.
         first_name (CharField): Имя пользователя, сейчас является необязательным аттрибутом, но при сбросе БД, следует изменить на обязательное
         last_name (CharField): Фамилия пользователя, сейчас является необязательным аттрибутом, но при сбросе БД, следует изменить на обязательное
+        role (ForeignKey): Связь с моделью Role (Должность).
         middle_name (CharField): Отчество пользователя, является необязательным аттрибутом.
         date_of_birth (DateField): Дата рождения
         phone_number (CharField): Номер телефона в формате +7XXXXXXXXXX
@@ -59,6 +90,7 @@ class Profile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE)
     middle_name = models.CharField(max_length=200, blank=True, null=True, verbose_name="Отчество")
     role = models.ForeignKey(Role, null=True, blank=True, on_delete=models.SET_NULL, verbose_name="Должность")
+    department = models.ForeignKey(Department, null=True, blank=True, on_delete=models.SET_NULL, verbose_name="Подразделение")
     date_of_birth = models.DateField(blank=True, null=True, verbose_name="Дата рождения")
     phone_number = models.CharField(
         max_length=18,
