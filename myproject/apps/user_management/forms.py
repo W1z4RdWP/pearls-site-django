@@ -1,11 +1,18 @@
 from django import forms
 from users.models import Profile, Role
 from django.db import models
+from django.contrib.auth.models import Group
 
 class UserProfileForm(forms.ModelForm):
     phone_arbitrary_format = forms.BooleanField(
         label='Произвольный формат', required=False,
         help_text='Разрешить произвольный формат номера телефона'
+    )
+    groups = forms.ModelMultipleChoiceField(
+        queryset=Group.objects.all(),
+        widget=forms.CheckboxSelectMultiple,
+        required=False,
+        label='Группы пользователя'
     )
     def __init__(self, *args, **kwargs):
         self.user_instance = kwargs.pop('user_instance', None)
@@ -37,6 +44,10 @@ class UserProfileForm(forms.ModelForm):
             phone_arbitrary = self.data.get('phone_arbitrary_format') in ['on', 'true', 'True', True]
         self.fields['phone_arbitrary_format'].initial = phone_arbitrary
         self.fields['phone_number'].required = not phone_arbitrary
+        
+        # Инициализация групп пользователя
+        if self.user_instance:
+            self.fields['groups'].initial = self.user_instance.groups.all()
 
     def save(self, commit=True):
         profile = super().save(commit=False)
@@ -46,6 +57,9 @@ class UserProfileForm(forms.ModelForm):
             self.user_instance.last_name = self.cleaned_data['last_name']
             if commit:
                 self.user_instance.save()
+                # Сохраняем группы пользователя
+                groups = self.cleaned_data.get('groups', [])
+                self.user_instance.groups.set(groups)
         if commit:
             profile.save()
         return profile
