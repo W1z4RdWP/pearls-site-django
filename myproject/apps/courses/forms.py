@@ -7,7 +7,7 @@ import re
 class CourseForm(forms.ModelForm):
     class Meta:
         model = Course
-        fields = ['title', 'description', 'image', 'slug', 'final_quiz', 'allowed_groups']
+        fields = ['title', 'description', 'image', 'slug', 'final_quiz', 'allowed_groups', 'certificate']
         labels = {'slug': 'ЧПУ (оставьте пустым для автогенерации)'}
         required = {'slug': False}  # Поле slug не обязательно
         widgets = {
@@ -142,7 +142,7 @@ class TrajectoryForm(forms.ModelForm):
     """
     class Meta:
         model = Trajectory
-        fields = ['name', 'description', 'groups', 'courses']
+        fields = ['name', 'description', 'groups', 'courses', 'certificate']
         widgets = {
             'groups': forms.SelectMultiple(attrs={'class': 'form-select'}),
             'courses': forms.SelectMultiple(attrs={'class': 'form-select'}),

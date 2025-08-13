@@ -1,6 +1,6 @@
 from django.contrib import admin
 from django import forms
-from .models import Course, Lesson, UserLessonTrajectory, Trajectory, TrajectoryCourse, UserCourseTrajectory
+from .models import Course, Lesson, UserLessonTrajectory, Trajectory, TrajectoryCourse, UserCourseTrajectory, Certificate
 
 class UserLessonTrajectoryLessonInline(admin.TabularInline):
     model = UserLessonTrajectory.lessons.through
@@ -107,3 +107,16 @@ class UserLessonTrajectoryAdmin(admin.ModelAdmin):
     def get_lessons_count(self, obj):
         return obj.lessons.count()
     get_lessons_count.short_description = 'Кол-во уроков'
+
+
+@admin.register(Certificate)
+class CertificateAdmin(admin.ModelAdmin):
+    list_display = ('certificate_id', 'user', 'certificate_type', 'course', 'trajectory', 'issued_at')
+    list_filter = ('certificate_type', 'issued_at')
+    search_fields = ('user__username', 'certificate_id', 'course__title', 'trajectory__name')
+    readonly_fields = ('certificate_id', 'issued_at')
+    autocomplete_fields = ['user', 'course', 'trajectory']
+    
+    def has_add_permission(self, request):
+        # Сертификаты создаются автоматически системой
+        return False

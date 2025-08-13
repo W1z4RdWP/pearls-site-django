@@ -48,6 +48,21 @@
                         </div>
 
                         <div class="form-group">
+                            <div class="form-check">
+                                {{ form.certificate }}
+                                <label class="form-check-label" for="{{ form.certificate.id_for_label }}">
+                                    <i class="fas fa-certificate text-warning"></i> Выдавать сертификат
+                                </label>
+                                {% if form.certificate.errors %}
+                                    <div class="invalid-feedback d-block">
+                                        {{ form.certificate.errors.0 }}
+                                    </div>
+                                {% endif %}
+                                <small class="form-text text-muted">Отметьте, если нужно выдавать сертификат пользователям при завершении траектории</small>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
                             <button type="submit" class="btn btn-primary">
                                 <i class="fas fa-save"></i> Создать траекторию
                             </button>

@@ -25,7 +25,7 @@ class Question(models.Model):
   ]
 
   quiz = models.ForeignKey(Quiz, on_delete=models.CASCADE)
-  text = models.CharField(max_length=300)
+  text = models.CharField(max_length=1000)
   question_type = models.CharField(
       max_length=10,
       choices=QUESTION_TYPES,
@@ -44,7 +44,7 @@ class Question(models.Model):
 
 class Answer(models.Model):
   question = models.ForeignKey(Question, on_delete=models.CASCADE)
-  text = models.CharField(max_length=300)
+  text = models.CharField(max_length=1000)
   is_correct = models.BooleanField(default=False)
 
   class Meta:

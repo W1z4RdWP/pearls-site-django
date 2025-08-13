@@ -1,0 +1,111 @@
+{% extends "layout.html" %}
+
+{% block title %}Мои сертификаты{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-md-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2><i class="fas fa-certificate text-warning"></i> Мои сертификаты</h2>
+                <div class="badge badge-secondary">Всего: {{ total_count }}</div>
+            </div>
+
+            {% if total_count == 0 %}
+                <div class="alert alert-info text-center">
+                    <i class="fas fa-info-circle"></i>
+                    У вас пока нет сертификатов. Завершите курс или траекторию с включенной опцией "Сертификат", чтобы получить ваш первый сертификат!
+                </div>
+            {% else %}
+                
+                {% if course_certificates %}
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5 class="mb-0"><i class="fas fa-book text-primary"></i> Сертификаты за курсы</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            {% for cert in course_certificates %}
+                            <div class="col-md-6 mb-3">
+                                <div class="card border-primary">
+                                    <div class="card-body">
+                                        <div class="d-flex justify-content-between align-items-start">
+                                            <div>
+                                                <h6 class="card-title">{{ cert.course.title }}</h6>
+                                                <p class="card-text text-muted small">
+                                                    <strong>№ {{ cert.certificate_id }}</strong><br>
+                                                    Выдан: {{ cert.issued_at|date:"d.m.Y в H:i" }}
+                                                </p>
+                                                <a href="{% url 'courses:download_certificate_pdf' cert.certificate_id %}" 
+                                                   class="btn btn-primary btn-sm">
+                                                    <i class="fas fa-download"></i> Скачать PDF
+                                                </a>
+                                            </div>
+                                            <i class="fas fa-certificate text-warning fa-2x"></i>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+
+                {% if trajectory_certificates %}
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0"><i class="fas fa-route text-success"></i> Сертификаты за траектории</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            {% for cert in trajectory_certificates %}
+                            <div class="col-md-6 mb-3">
+                                <div class="card border-success">
+                                    <div class="card-body">
+                                        <div class="d-flex justify-content-between align-items-start">
+                                            <div>
+                                                <h6 class="card-title">{{ cert.trajectory.name }}</h6>
+                                                <p class="card-text text-muted small">
+                                                    <strong>№ {{ cert.certificate_id }}</strong><br>
+                                                    Выдан: {{ cert.issued_at|date:"d.m.Y в H:i" }}
+                                                </p>
+                                                <a href="{% url 'courses:download_certificate_pdf' cert.certificate_id %}" 
+                                                   class="btn btn-success btn-sm">
+                                                    <i class="fas fa-download"></i> Скачать PDF
+                                                </a>
+                                            </div>
+                                            <i class="fas fa-medal text-gold fa-2x"></i>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<style>
+.text-gold {
+    color: #ffd700;
+}
+
+.fa-certificate, .fa-medal {
+    opacity: 0.7;
+}
+
+.card {
+    transition: transform 0.2s;
+}
+
+.card:hover {
+    transform: translateY(-2px);
+}
+</style>
+{% endblock %}

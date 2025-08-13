@@ -76,6 +76,7 @@ class Course(models.Model):
         help_text="Группы, которым доступен этот курс"
     )
     points = models.PositiveIntegerField(default=30, verbose_name="Количество DASCOIN за прохождение курса")
+    certificate = models.BooleanField(default=False, verbose_name="Выдавать сертификат", help_text="Выдавать сертификат пользователю при завершении курса")
     objects = CourseManager()
     
     class Meta:
@@ -226,6 +227,7 @@ class Trajectory(models.Model):
         verbose_name="Курсы в траектории"
     )
     points = models.PositiveIntegerField(default=100, verbose_name="Количество DASCOIN за прохождение траектории")
+    certificate = models.BooleanField(default=False, verbose_name="Выдавать сертификат", help_text="Выдавать сертификат пользователю при завершении траектории")
 
     class Meta:
         verbose_name = 'Траектория курсов'
@@ -275,5 +277,48 @@ class UserCourseTrajectory(models.Model):
 
     def __str__(self) -> str:
         return f"{self.user.username} — {self.trajectory.name}"
+
+
+class Certificate(models.Model):
+    """
+    Модель для хранения выданных сертификатов пользователям.
+    """
+    CERTIFICATE_TYPE_CHOICES = [
+        ('course', 'За курс'),
+        ('trajectory', 'За траекторию'),
+    ]
+    
+    user = models.ForeignKey(User, on_delete=models.CASCADE, verbose_name="Пользователь")
+    certificate_type = models.CharField(max_length=20, choices=CERTIFICATE_TYPE_CHOICES, verbose_name="Тип сертификата")
+    course = models.ForeignKey(Course, on_delete=models.CASCADE, null=True, blank=True, verbose_name="Курс", related_name='certificates')
+    trajectory = models.ForeignKey(Trajectory, on_delete=models.CASCADE, null=True, blank=True, verbose_name="Траектория", related_name='certificates')
+    issued_at = models.DateTimeField(auto_now_add=True, verbose_name="Дата выдачи")
+    certificate_id = models.CharField(max_length=50, unique=True, verbose_name="Уникальный номер сертификата")
+    
+    class Meta:
+        verbose_name = 'Сертификат'
+        verbose_name_plural = 'Сертификаты'
+        ordering = ['-issued_at']
+        unique_together = [
+            ('user', 'course'),
+            ('user', 'trajectory'),
+        ]
+        indexes = [
+            models.Index(fields=['user', 'certificate_type'], name='cert_user_type_idx'),
+            models.Index(fields=['certificate_id'], name='cert_id_idx'),
+        ]
+    
+    def save(self, *args, **kwargs):
+        if not self.certificate_id:
+            # Генерируем уникальный ID сертификата
+            import uuid
+            self.certificate_id = f"CERT-{uuid.uuid4().hex[:12].upper()}"
+        super().save(*args, **kwargs)
+    
+    def __str__(self):
+        if self.certificate_type == 'course':
+            return f"Сертификат {self.user.username} за курс {self.course.title}"
+        else:
+            return f"Сертификат {self.user.username} за траекторию {self.trajectory.name}"
 
 
