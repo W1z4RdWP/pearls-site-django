@@ -22,6 +22,7 @@ def send_user_credentials_email(user, password):
     html_message = render_to_string(
         'user_management/email/user_credentials.html',
         {
+            'user': user,
             'username': user.username,
             'password': password,
             'full_name': full_name,
