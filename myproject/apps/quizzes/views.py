@@ -488,4 +488,4 @@ class QuizCreateView(UserPassesTestMixin, CreateView):
             'id': quiz.id, 
             'name': quiz.name,
             'questions_count': quiz.question_set.count()
-        })
+        }, content_type='application/json')
