@@ -1,14 +1,17 @@
 from django.utils import timezone
 from django.shortcuts import render, redirect, get_object_or_404
 from django.db.models import Max
-from django.views.generic import DetailView, ListView
+from django.views.generic import DetailView, ListView, TemplateView
 from django.contrib.auth.models import User
 from django.db import transaction, models
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.views.decorators.http import require_POST, require_http_methods
-from django.http import JsonResponse
+from django.http import JsonResponse, HttpResponse
+from django.template.loader import render_to_string
+from weasyprint import HTML
+from datetime import datetime
 from .forms import CourseForm, CourseModalForm, LessonForm
-from .models import Course, Lesson, UserLessonTrajectory, Trajectory, UserCourseTrajectory, TrajectoryCourse
+from .models import Course, Lesson, UserLessonTrajectory, Trajectory, UserCourseTrajectory, TrajectoryCourse, Certificate
 from myapp.models import UserProgress, UserCourse, QuizResult
 from myapp.views import is_admin, is_author_or_admin
 import logging
@@ -16,6 +19,7 @@ from builder.models import CategoryName
 from django.contrib.auth import get_user_model
 from django.utils.decorators import method_decorator
 from gamification.utils import award_dascoin_points, award_course_badge, award_trajectory_badge
+from .utils import issue_certificate, get_user_certificates
 
 
 logger = logging.getLogger(__name__)
@@ -65,6 +69,9 @@ class UserCourseTrajectoryDetailView(DetailView):
             
             # Выдаем бейдж за траекторию
             award_trajectory_badge(user_trajectory.user, user_trajectory.trajectory.name)
+            
+            # Выдаем сертификат за траекторию (если настроено)
+            issue_certificate(user_trajectory.user, trajectory=user_trajectory.trajectory)
             
             # Логируем завершение траектории
             audit_logger.info(
@@ -256,6 +263,8 @@ class CourseDetailView(DetailView):
                                 # Начисляем очки только если курс только что завершен
                                 award_dascoin_points(user, course.points, f"Завершение курса {course.title}")
                                 award_course_badge(user, course)
+                                # Выдаем сертификат за курс (если настроено)
+                                issue_certificate(user, course=course)
                             else:
                                 # Курс уже был завершен, просто обновляем статус
                                 user_course.status = 'completed'
@@ -812,6 +821,8 @@ def complete_lesson(request, course_slug, lesson_id):
                 user_course.save()
                 award_dascoin_points(user, course.points, f"Завершение курса {course.title}")
                 award_course_badge(user, course)
+                # Выдаем сертификат за курс (если настроено)
+                issue_certificate(user, course=course)
             else:
                 # Курс уже был завершен, просто обновляем статус
                 user_course.status = 'completed'
@@ -839,6 +850,8 @@ def complete_course(request, course_id):
                 user_course.save()
                 award_dascoin_points(user, course.points, f"Завершение курса {course.title}") 
                 award_course_badge(user, course)
+                # Выдаем сертификат за курс (если настроено)
+                issue_certificate(user, course=course)
             else:
                 # Курс уже был завершен, просто обновляем статус
                 user_course.status = 'completed'
@@ -854,6 +867,8 @@ def complete_course(request, course_id):
             user_course.save()
             award_dascoin_points(user, course.points, f"Завершение курса {course.title}") 
             award_course_badge(user, course)
+            # Выдаем сертификат за курс (если настроено)
+            issue_certificate(user, course=course)
         else:
             # Курс уже был завершен, просто обновляем статус
             user_course.status = 'completed'
@@ -888,7 +903,7 @@ class TrajectoryCreateView(UserPassesTestMixin, CreateView):
     Создание новой траектории курсов.
     """
     model = Trajectory
-    fields = ['name', 'description', 'groups']
+    fields = ['name', 'description', 'groups', 'certificate']
     template_name = 'courses/trajectory_form.html'
     success_url = '/builder/trajectory-management/'
 
@@ -900,5 +915,56 @@ class TrajectoryCreateView(UserPassesTestMixin, CreateView):
         if self.request.headers.get('X-Requested-With') == 'XMLHttpRequest':
             return JsonResponse({'success': True, 'id': self.object.id, 'name': self.object.name})
         return response
+
+
+@method_decorator(login_required, name='dispatch')
+class CertificateListView(TemplateView):
+    """
+    Представление для отображения сертификатов пользователя.
+    """
+    template_name = 'courses/user_certificates.html'
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        certificates = get_user_certificates(self.request.user)
+        context.update(certificates)
+        return context
+
+
+@login_required
+def download_certificate_pdf(request, certificate_id):
+    """
+    Скачивание сертификата в формате PDF.
+    """
+    # Получаем сертификат и проверяем права доступа
+    certificate = get_object_or_404(Certificate, certificate_id=certificate_id, user=request.user)
+    
+    # Генерируем HTML из шаблона
+    html_string = render_to_string('courses/certificate_pdf.html', {
+        'certificate': certificate,
+        'generated_at': datetime.now(),
+    })
+    
+    # Создаем PDF с помощью WeasyPrint
+    html = HTML(string=html_string)
+    pdf = html.write_pdf()
+    
+    # Формируем имя файла
+    if certificate.certificate_type == 'course':
+        filename = f"certificate_course_{certificate.course.slug}_{certificate.certificate_id}.pdf"
+    else:
+        filename = f"certificate_trajectory_{certificate.trajectory.id}_{certificate.certificate_id}.pdf"
+    
+    # Возвращаем PDF как HttpResponse
+    response = HttpResponse(pdf, content_type='application/pdf')
+    response['Content-Disposition'] = f'attachment; filename="{filename}"'
+    
+    # Логируем скачивание
+    logger.info(
+        f'Скачан сертификат {certificate.certificate_id} пользователем {request.user.username}',
+        extra={'user': request.user.username, 'certificate_id': certificate.certificate_id}
+    )
+    
+    return response
     
 

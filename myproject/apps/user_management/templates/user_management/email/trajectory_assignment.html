@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Назначена траектория обучения</title>
+</head>
+<body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; background-color: #f4f4f4; margin: 0; padding: 20px;">
+    <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 8px; overflow: hidden;">
+        
+        <!-- Header -->
+        <div style="background-color: #28a745; color: white; padding: 30px 20px; text-align: center;">
+            <h1 style="margin: 0; font-size: 24px; font-weight: 600;">🎯 Вам назначена траектория обучения!</h1>
+        </div>
+        
+        <!-- Content -->
+        <div style="padding: 30px 20px;">
+            <p>Здравствуйте, <strong>{{ full_name }}</strong>!</p>
+            
+            <p>Отличная новость! Вам назначена новая траектория обучения. Это структурированный путь развития, который поможет вам достичь ваших целей.</p>
+            
+            <!-- Trajectory Info -->
+            <div style="background-color: #f8f9fa; border: 1px solid #e9ecef; border-radius: 8px; padding: 20px; margin: 20px 0;">
+                <div style="font-size: 20px; font-weight: 600; color: #495057; margin: 0 0 10px 0;">{{ trajectory.name }}</div>
+                {% if trajectory.description %}
+                <div style="color: #6c757d; margin: 0 0 15px 0;">{{ trajectory.description }}</div>
+                {% endif %}
+                
+                {% if first_course %}
+                <div style="background-color: #e8f5e8; border-left: 4px solid #28a745; padding: 15px; margin-top: 15px; border-radius: 0 8px 8px 0;">
+                    <div style="color: #28a745; font-size: 12px; font-weight: 600; text-transform: uppercase; margin: 0;">Первый курс для изучения:</div>
+                    <div style="font-weight: 600; color: #155724; margin: 0;">{{ first_course.title }}</div>
+                </div>
+                {% endif %}
+            </div>
+            
+            <!-- Features -->
+            <div style="margin: 20px 0;">
+                <div style="margin: 10px 0; color: #495057;">
+                    <span style="margin-right: 10px; font-size: 16px;">📚</span>
+                    <span>Последовательное изучение курсов</span>
+                </div>
+                <div style="margin: 10px 0; color: #495057;">
+                    <span style="margin-right: 10px; font-size: 16px;">⏱️</span>
+                    <span>Обучение в удобном темпе</span>
+                </div>
+                <div style="margin: 10px 0; color: #495057;">
+                    <span style="margin-right: 10px; font-size: 16px;">🏆</span>
+                    <span>Получение сертификатов за прогресс</span>
+                </div>
+            </div>
+            
+            <!-- Buttons -->
+            <div style="text-align: center; margin: 30px 0;">
+                {% if first_course %}
+                <a href="{{ first_course_url }}" style="display: inline-block; background-color: #28a745; color: white; padding: 15px 30px; text-decoration: none; border-radius: 25px; font-weight: 600; font-size: 16px; margin: 0 5px 10px 0;">🚀 Начать обучение</a>
+                {% endif %}
+                <a href="{{ trajectory_url }}" style="display: inline-block; background-color: #6c757d; color: white; padding: 15px 30px; text-decoration: none; border-radius: 25px; font-weight: 600; font-size: 16px; margin: 0 5px 10px 0;">📋 Посмотреть траекторию</a>
+            </div>
+            
+            <p>Эта траектория разработана специально для вашего профессионального развития. Следуйте рекомендуемому порядку изучения для достижения наилучших результатов.</p>
+            
+            <div style="font-size: 12px; color: #6c757d; word-break: break-all; margin-top: 15px;">
+                Ссылки для перехода:<br>
+                {% if first_course %}Начать обучение: {{ first_course_url }}<br>{% endif %}
+                Траектория: {{ trajectory_url }}
+            </div>
+        </div>
+        
+        <!-- Footer -->
+        <div style="background-color: #f8f9fa; padding: 20px; text-align: center; color: #6c757d; font-size: 12px;">
+            <p>С уважением,<br>Команда образовательной платформы</p>
+            <p>Это автоматическое сообщение, пожалуйста, не отвечайте на него.</p>
+        </div>
+    </div>
+</body>
+</html>

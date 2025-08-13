@@ -113,24 +113,34 @@ class Notification(models.Model):
     @classmethod
     def create_course_assignment_notification(cls, user, course):
         """Создает уведомление о назначении курса"""
-        return cls.objects.create(
+        notification = cls.objects.create(
             user=user,
             notification_type='course_assigned',
             title=f"Вам назначен курс",
             message=f"Вам назначен курс «{course.title}»",
             related_course=course
         )
+        
+        # НЕ отправляем email отсюда - email отправляется из сигналов courses/signals.py
+        # чтобы избежать дублирования и правильно обрабатывать случаи с траекториями
+        
+        return notification
     
     @classmethod
     def create_trajectory_assignment_notification(cls, user, trajectory):
         """Создает уведомление о назначении траектории"""
-        return cls.objects.create(
+        notification = cls.objects.create(
             user=user,
             notification_type='trajectory_assigned',
             title=f"Вам назначена траектория",
             message=f"Вам назначена траектория «{trajectory.name}»",
             related_trajectory=trajectory
         )
+        
+        # НЕ отправляем email отсюда - email отправляется из сигналов courses/signals.py
+        # чтобы избежать дублирования
+        
+        return notification
     
     @classmethod
     def create_platform_update_notification(cls, user, title, message):

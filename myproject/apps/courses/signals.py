@@ -3,6 +3,7 @@ from django.dispatch import receiver
 from django.contrib.auth.models import User,Group
 from courses.models import Course, Trajectory, UserCourseTrajectory, TrajectoryCourse
 from myapp.models import UserCourse
+from user_management.utils import send_course_assignment_email, send_trajectory_assignment_email
 import logging
 
 logger = logging.getLogger(__name__)
@@ -21,8 +22,22 @@ def assign_courses_on_group_add(sender, instance, action, pk_set, **kwargs):
         
         # Создать UserCourse для каждого подходящего курса
         for course in courses:
-            UserCourse.objects.get_or_create(user=instance, course=course)
-            logger.info(f"Назначен курс {course.title} пользователю {instance.username}")
+            user_course, created = UserCourse.objects.get_or_create(user=instance, course=course)
+            if created:
+                logger.info(f"Назначен курс {course.title} пользователю {instance.username}")
+                # Создаем внутреннее уведомление
+                try:
+                    from notifications.models import Notification
+                    Notification.create_course_assignment_notification(instance, course)
+                except Exception as e:
+                    logger.error(f"Ошибка создания внутреннего уведомления о курсе {course.title}: {e}")
+                
+                # Отправляем email уведомление
+                try:
+                    send_course_assignment_email(instance, course)
+                    logger.info(f"Отправлено email уведомление о курсе {course.title} пользователю {instance.email}")
+                except Exception as e:
+                    logger.error(f"Ошибка отправки email уведомления о курсе {course.title}: {e}")
     elif action == "post_remove":
         # При удалении пользователя из группы
         removed_groups = Group.objects.filter(pk__in=pk_set)
@@ -53,8 +68,22 @@ def assign_courses_on_course_update(sender, instance, action, pk_set, **kwargs):
         
         # Назначить курс пользователям
         for user in users:
-            UserCourse.objects.get_or_create(user=user, course=instance)
-            logger.info(f"Назначен курс {instance.title} пользователю {user.username}")
+            user_course, created = UserCourse.objects.get_or_create(user=user, course=instance)
+            if created:
+                logger.info(f"Назначен курс {instance.title} пользователю {user.username}")
+                # Создаем внутреннее уведомление
+                try:
+                    from notifications.models import Notification
+                    Notification.create_course_assignment_notification(user, instance)
+                except Exception as e:
+                    logger.error(f"Ошибка создания внутреннего уведомления о курсе {instance.title}: {e}")
+                
+                # Отправляем email уведомление
+                try:
+                    send_course_assignment_email(user, instance)
+                    logger.info(f"Отправлено email уведомление о курсе {instance.title} пользователю {user.email}")
+                except Exception as e:
+                    logger.error(f"Ошибка отправки email уведомления о курсе {instance.title}: {e}")
 
 
 @receiver(m2m_changed, sender=User.groups.through)
@@ -69,7 +98,22 @@ def assign_trajectories_on_group_add(sender, instance, action, pk_set, **kwargs)
             # Если траектория только что создана, назначаем курсы из неё
             if created:
                 logger.info(f"Назначена траектория {trajectory.name} пользователю {instance.username}")
-                assign_courses_from_trajectory(instance, trajectory)
+                # Назначаем курсы БЕЗ отправки email уведомлений о курсах и БЕЗ создания внутренних уведомлений
+                assign_courses_from_trajectory(instance, trajectory, send_email_notifications=False, create_notifications=False)
+                
+                # Создаем внутреннее уведомление о траектории
+                try:
+                    from notifications.models import Notification
+                    Notification.create_trajectory_assignment_notification(instance, trajectory)
+                except Exception as e:
+                    logger.error(f"Ошибка создания внутреннего уведомления о траектории {trajectory.name}: {e}")
+                
+                # Отправляем ТОЛЬКО одно email уведомление о траектории
+                try:
+                    send_trajectory_assignment_email(instance, trajectory)
+                    logger.info(f"Отправлено email уведомление о траектории {trajectory.name} пользователю {instance.email}")
+                except Exception as e:
+                    logger.error(f"Ошибка отправки email уведомления о траектории {trajectory.name}: {e}")
     elif action == "post_remove":
         # При удалении пользователя из группы
         removed_groups = Group.objects.filter(pk__in=pk_set)
@@ -112,7 +156,22 @@ def assign_trajectories_on_trajectory_update(sender, instance, action, pk_set, *
             # Если траектория только что создана, назначаем курсы из неё
             if created:
                 logger.info(f"Назначена траектория {instance.name} пользователю {user.username}")
-                assign_courses_from_trajectory(user, instance)
+                # Назначаем курсы БЕЗ отправки email уведомлений о курсах и БЕЗ создания внутренних уведомлений
+                assign_courses_from_trajectory(user, instance, send_email_notifications=False, create_notifications=False)
+                
+                # Создаем внутреннее уведомление о траектории
+                try:
+                    from notifications.models import Notification
+                    Notification.create_trajectory_assignment_notification(user, instance)
+                except Exception as e:
+                    logger.error(f"Ошибка создания внутреннего уведомления о траектории {instance.name}: {e}")
+                
+                # Отправляем ТОЛЬКО одно email уведомление о траектории
+                try:
+                    send_trajectory_assignment_email(user, instance)
+                    logger.info(f"Отправлено email уведомление о траектории {instance.name} пользователю {user.email}")
+                except Exception as e:
+                    logger.error(f"Ошибка отправки email уведомления о траектории {instance.name}: {e}")
 
 
 @receiver(post_save, sender=TrajectoryCourse)
@@ -134,11 +193,19 @@ def assign_course_to_trajectory_users(sender, instance, created, **kwargs):
             )
             if course_created:
                 logger.info(f"Назначен курс {instance.course.title} пользователю {user_trajectory.user.username}")
+                # НЕ отправляем email уведомление, так как курс является частью траектории
+                # Пользователь уже получил уведомление о назначении траектории
 
 
-def assign_courses_from_trajectory(user, trajectory):
+def assign_courses_from_trajectory(user, trajectory, send_email_notifications=False, create_notifications=False):
     """
     Назначает пользователю курсы из траектории в правильном порядке
+    
+    Args:
+        user: Пользователь
+        trajectory: Траектория
+        send_email_notifications: Отправлять ли email уведомления для каждого курса (по умолчанию False)
+        create_notifications: Создавать ли внутренние уведомления для каждого курса (по умолчанию False)
     """
     logger.info(f"Назначаем курсы из траектории {trajectory.name} пользователю {user.username}")
     
@@ -152,3 +219,19 @@ def assign_courses_from_trajectory(user, trajectory):
         )
         if created:
             logger.info(f"Назначен курс {tc.course.title} пользователю {user.username}")
+            
+            # Создаем внутреннее уведомление только если это явно запрошено
+            if create_notifications:
+                try:
+                    from notifications.models import Notification
+                    Notification.create_course_assignment_notification(user, tc.course)
+                except Exception as e:
+                    logger.error(f"Ошибка создания внутреннего уведомления о курсе {tc.course.title}: {e}")
+            
+            # Отправляем email уведомление только если это явно запрошено
+            if send_email_notifications:
+                try:
+                    send_course_assignment_email(user, tc.course)
+                    logger.info(f"Отправлено email уведомление о курсе {tc.course.title} пользователю {user.email}")
+                except Exception as e:
+                    logger.error(f"Ошибка отправки email уведомления о курсе {tc.course.title}: {e}")

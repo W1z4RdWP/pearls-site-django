@@ -11,6 +11,7 @@ from courses.models import Course  # Добавлен импорт модели 
 from .models import Quiz, Question, Answer
 from .utils import DataMixin
 from gamification.utils import award_dascoin_points, award_achievement, award_course_badge
+from courses.utils import issue_certificate
 from typing import Optional
 import logging
 
@@ -322,6 +323,8 @@ def get_finish(request) -> HttpResponse:
                 user_course.save()
                 award_dascoin_points(request.user, course.points, f"Завершение курса {course.title}")
                 award_course_badge(request.user, course)
+                # Выдаем сертификат за курс (если настроено)
+                issue_certificate(request.user, course=course)
             
             if percent_score == 100:
                 award_achievement(request.user, 'perfect_score', 'Идеальный результат', 'Получили 100% за прохождение теста')
@@ -485,4 +488,4 @@ class QuizCreateView(UserPassesTestMixin, CreateView):
             'id': quiz.id, 
             'name': quiz.name,
             'questions_count': quiz.question_set.count()
-        })
+        }, content_type='application/json')
