@@ -46,11 +46,13 @@ def create_dascoin_notification(sender, instance, created, **kwargs):
 
 
 
-@receiver(post_save, sender='courses.UserCourseTrajectory')
-def create_trajectory_assignment_notification_individual(sender, instance, created, **kwargs):
-    """Создает уведомление при индивидуальном назначении траектории"""
-    if created:
-        Notification.create_trajectory_assignment_notification(instance.user, instance.trajectory)
+# Отключен - уведомления о траекториях теперь создаются в courses/signals.py
+# чтобы избежать дублирования и правильно обрабатывать email
+# @receiver(post_save, sender='courses.UserCourseTrajectory')
+# def create_trajectory_assignment_notification_individual(sender, instance, created, **kwargs):
+#     """Создает уведомление при индивидуальном назначении траектории"""
+#     if created:
+#         Notification.create_trajectory_assignment_notification(instance.user, instance.trajectory)
 
 
 def create_platform_update_notification_for_all(title, message):
