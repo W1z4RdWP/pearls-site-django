@@ -2,7 +2,7 @@ from django.db import models
 
 
 class Quiz(models.Model):
-  name = models.CharField(max_length=300)
+  name = models.CharField(max_length=1000)
   points = models.PositiveIntegerField(default=10, verbose_name="Количество DASCOIN за прохождение теста")
   class Meta:
     verbose_name = "Тест" # Как будет отображаться в админ панели

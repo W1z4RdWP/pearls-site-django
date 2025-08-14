@@ -1,139 +1,1594 @@
+# Медицинская викторина для клиники
 - model: quizzes.quiz
-  pk: 2
+  pk: 1
   fields:
-    name: Dental Health
+    name: "Аттестация после 1 месяца работы Холл"
 
+# Вопрос 1 - множественный выбор
 - model: quizzes.question
-  pk: 2
+  pk: 1
   fields:
-    quiz: 2
-    text: "How often is it recommended to visit the dentist for a check-up?"
+    quiz: 1
+    text: "Отметьте докторов из списка, занимающихся терапевтическим лечением в нашей клинике (включая детских докторов)"
+    question_type: "multiple"
+
+- model: quizzes.answer
+  pk: 1
+  fields:
+    question: 1
+    text: "МБП"
+    is_correct: true
 
 - model: quizzes.answer
   pk: 2
   fields:
-    question: 2
-    text: "Every 3 months"
-    is_correct: false
+    question: 1
+    text: "ЛКВ"
+    is_correct: true
 
 - model: quizzes.answer
   pk: 3
   fields:
-    question: 2
-    text: "Every 6 months"
+    question: 1
+    text: "ГЕА"
     is_correct: true
 
 - model: quizzes.answer
   pk: 4
   fields:
-    question: 2
-    text: "Once a year"
-    is_correct: false
-
-- model: quizzes.question
-  pk: 3
-  fields:
-    quiz: 2
-    text: "What is the primary cause of tooth decay?"
+    question: 1
+    text: "КМФ"
+    is_correct: true
 
 - model: quizzes.answer
   pk: 5
   fields:
-    question: 3
-    text: "Sugar consumption"
-    is_correct: false
+    question: 1
+    text: "ПВР"
+    is_correct: true
 
 - model: quizzes.answer
   pk: 6
   fields:
-    question: 3
-    text: "Bacterial plaque accumulation"
+    question: 1
+    text: "ННН"
     is_correct: true
 
 - model: quizzes.answer
   pk: 7
   fields:
-    question: 3
-    text: "Drinking cold water"
-    is_correct: false
-
-- model: quizzes.question
-  pk: 4
-  fields:
-    quiz: 2
-    text: "What mineral helps strengthen tooth enamel?"
+    question: 1
+    text: "НПС"
+    is_correct: true
 
 - model: quizzes.answer
   pk: 8
   fields:
-    question: 4
-    text: "Calcium"
-    is_correct: false
+    question: 1
+    text: "ЗВВт"
+    is_correct: true
 
 - model: quizzes.answer
   pk: 9
   fields:
-    question: 4
-    text: "Fluoride"
+    question: 1
+    text: "ТЕС"
     is_correct: true
 
 - model: quizzes.answer
   pk: 10
   fields:
-    question: 4
-    text: "Iron"
-    is_correct: false
-
-- model: quizzes.question
-  pk: 5
-  fields:
-    quiz: 2
-    text: "What is the first stage of gum disease?"
+    question: 1
+    text: "БОА"
+    is_correct: true
 
 - model: quizzes.answer
   pk: 11
   fields:
-    question: 5
-    text: "Periodontitis"
-    is_correct: false
+    question: 1
+    text: "НАА"
+    is_correct: true
 
 - model: quizzes.answer
   pk: 12
   fields:
-    question: 5
-    text: "Gingivitis"
+    question: 1
+    text: "МАСх"
     is_correct: true
+
+# Вопрос 2 - один ответ
+- model: quizzes.question
+  pk: 2
+  fields:
+    quiz: 1
+    text: "Верно ли ответил администратор на вопрос пациента? Почему в вашей клинике все врачи такие молодые, не влияет ли это на качество лечения? В нашей клинике есть и молодые врачи, но оче имеют нема лучших опыт; постоянно проходят различные обучения, поэтому смогут помочь вам не хуже, чем любой другой доктор, имеющий большой опыт."
+    question_type: "single"
 
 - model: quizzes.answer
   pk: 13
   fields:
-    question: 5
-    text: "Tooth abscess"
-    is_correct: false
-
-- model: quizzes.question
-  pk: 6
-  fields:
-    quiz: 2
-    text: "What is the recommended duration for brushing teeth?"
+    question: 2
+    text: "Верно"
+    is_correct: true
 
 - model: quizzes.answer
   pk: 14
   fields:
-    question: 6
-    text: "1 minute"
+    question: 2
+    text: "Неверно"
     is_correct: false
+
+# Вопрос 3 - один ответ
+- model: quizzes.question
+  pk: 3
+  fields:
+    quiz: 1
+    text: "Какие будут ваши действия, если пришел пациент и начинает кричать и звать руководство?"
+    question_type: "single"
 
 - model: quizzes.answer
   pk: 15
   fields:
-    question: 6
-    text: "2 minutes"
+    question: 3
+    text: "Уточнить в чем заключается проблема. Если пациент обращается на повышенных тонах то надо его пригласить в свободный кабинет, узнаем в чем его недовольство; в зависимости от сложности ситуации либо решаем конфликт самостоятельно или обращаемся к руководству, либо предлагаем написать заявление, которое будет рассмотрено в течение 3х рабочих дней при условии, что руководства нет в клинике."
     is_correct: true
 
 - model: quizzes.answer
   pk: 16
   fields:
-    question: 6
-    text: "30 seconds"
+    question: 3
+    text: "Не удалять его в свободный кабинет, сразу позвать руководство и разбираться в зоне ресепшн"
     is_correct: false
+
+- model: quizzes.answer
+  pk: 17
+  fields:
+    question: 3
+    text: "Вызвать его к клинике такого пациента и внести его в черный список."
+    is_correct: false
+
+# Вопрос 4 - множественный выбор
+- model: quizzes.question
+  pk: 4
+  fields:
+    quiz: 1
+    text: "Перечислите всех имплантологов, работающих в нашей клинике"
+    question_type: "multiple"
+
+- model: quizzes.answer
+  pk: 18
+  fields:
+    question: 4
+    text: "ОСА"
+    is_correct: true
+
+- model: quizzes.answer
+  pk: 19
+  fields:
+    question: 4
+    text: "ЛОА"
+    is_correct: true
+
+- model: quizzes.answer
+  pk: 20
+  fields:
+    question: 4
+    text: "БЕФ"
+    is_correct: true
+
+- model: quizzes.answer
+  pk: 21
+  fields:
+    question: 4
+    text: "МАСх"
+    is_correct: true
+
+- model: quizzes.answer
+  pk: 22
+  fields:
+    question: 4
+    text: "ЗВВх"
+    is_correct: true
+
+- model: quizzes.answer
+  pk: 23
+  fields:
+    question: 4
+    text: "ТЕС"
+    is_correct: true
+
+- model: quizzes.answer
+  pk: 24
+  fields:
+    question: 4
+    text: "МБП"
+    is_correct: false
+
+- model: quizzes.answer
+  pk: 25
+  fields:
+    question: 4
+    text: "КВВ"
+    is_correct: false
+
+- model: quizzes.answer
+  pk: 26
+  fields:
+    question: 4
+    text: "ПВА"
+    is_correct: false
+
+# Вопрос 5 - множественный выбор
+- model: quizzes.question
+  pk: 5
+  fields:
+    quiz: 1
+    text: "Кто из докторов может удалять молочные зубы в нашей клинике?"
+    question_type: "multiple"
+
+- model: quizzes.answer
+  pk: 27
+  fields:
+    question: 5
+    text: "ПВР"
+    is_correct: true
+
+- model: quizzes.answer
+  pk: 28
+  fields:
+    question: 5
+    text: "БОА"
+    is_correct: true
+
+- model: quizzes.answer
+  pk: 29
+  fields:
+    question: 5
+    text: "ЧНС"
+    is_correct: false
+
+- model: quizzes.answer
+  pk: 30
+  fields:
+    question: 5
+    text: "НАА"
+    is_correct: false
+
+- model: quizzes.answer
+  pk: 31
+  fields:
+    question: 5
+    text: "ЗЕА"
+    is_correct: false
+
+- model: quizzes.answer
+  pk: 32
+  fields:
+    question: 5
+    text: "МАСх"
+    is_correct: true
+
+- model: quizzes.answer
+  pk: 33
+  fields:
+    question: 5
+    text: "ЗВВх"
+    is_correct: true
+
+# Вопрос 6 - один ответ
+- model: quizzes.question
+  pk: 6
+  fields:
+    quiz: 1
+    text: "С какого возраста у нас в клинике ведется прием детей?"
+    question_type: "single"
+
+- model: quizzes.answer
+  pk: 34
+  fields:
+    question: 6
+    text: "с 8 лет"
+    is_correct: false
+
+- model: quizzes.answer
+  pk: 35
+  fields:
+    question: 6
+    text: "с 5 лет"
+    is_correct: false
+
+- model: quizzes.answer
+  pk: 36
+  fields:
+    question: 6
+    text: "с 9 лет"
+    is_correct: true
+
+# Вопрос 7 - один ответ
+- model: quizzes.question
+  pk: 7
+  fields:
+    quiz: 1
+    text: "Что первое включить: ноутбук или Атол и почему?"
+    question_type: "single"
+
+- model: quizzes.answer
+  pk: 37
+  fields:
+    question: 7
+    text: "Атол потому что иначе будет нарушена работа кассы. Того требует инструкция."
+    is_correct: true
+
+- model: quizzes.answer
+  pk: 38
+  fields:
+    question: 7
+    text: "Ноутбук, потому что иначе будет нарушена работа. Того требует инструкция."
+    is_correct: false
+
+- model: quizzes.answer
+  pk: 39
+  fields:
+    question: 7
+    text: "Неправильны в порядке включения."
+    is_correct: false
+
+# Вопрос 8 - множественный выбор
+- model: quizzes.question
+  pk: 8
+  fields:
+    quiz: 1
+    text: "На какие цвета мы обращаем внимание, когда напечатали список для поиска карт на следующий день?"
+    question_type: "multiple"
+
+- model: quizzes.answer
+  pk: 40
+  fields:
+    question: 8
+    text: "Бирюзовый (Архив)"
+    is_correct: true
+
+- model: quizzes.answer
+  pk: 41
+  fields:
+    question: 8
+    text: "Оранжевый (ДМС)"
+    is_correct: true
+
+- model: quizzes.answer
+  pk: 42
+  fields:
+    question: 8
+    text: "Бирюзовый (ДМС)"
+    is_correct: false
+
+- model: quizzes.answer
+  pk: 43
+  fields:
+    question: 8
+    text: "Оранжевый (Архив)"
+    is_correct: false
+
+# Вопрос 9 - один ответ
+- model: quizzes.question
+  pk: 9
+  fields:
+    quiz: 1
+    text: "Сколько по времени мы оставляем ортодонту на первичный прием?"
+    question_type: "single"
+
+- model: quizzes.answer
+  pk: 44
+  fields:
+    question: 9
+    text: "В зависимости от раздела врача, в среднем 45 минут."
+    is_correct: true
+
+- model: quizzes.answer
+  pk: 45
+  fields:
+    question: 9
+    text: "В зависимости от врача, в среднем 60 минут."
+    is_correct: false
+
+- model: quizzes.answer
+  pk: 46
+  fields:
+    question: 9
+    text: "Первичный прием ортодонта длится 30 минут."
+    is_correct: false
+
+# Вопрос 10 - один ответ
+- model: quizzes.question
+  pk: 10
+  fields:
+    quiz: 1
+    text: "В какой момент на кассе снимается отчет с гашением?"
+    question_type: "single"
+
+- model: quizzes.answer
+  pk: 47
+  fields:
+    question: 10
+    text: "При закрытии смены."
+    is_correct: true
+
+- model: quizzes.answer
+  pk: 48
+  fields:
+    question: 10
+    text: "При открытии смены."
+    is_correct: false
+
+- model: quizzes.answer
+  pk: 49
+  fields:
+    question: 10
+    text: "Во время смены."
+    is_correct: false
+
+# Вопрос 11 - множественный выбор
+- model: quizzes.question
+  pk: 11
+  fields:
+    quiz: 1
+    text: "В течение дня вам необходимо посчитать кассу. Ваши действия."
+    question_type: "multiple"
+
+- model: quizzes.answer
+  pk: 50
+  fields:
+    question: 11
+    text: "Сделать отчет без гашения"
+    is_correct: true
+
+- model: quizzes.answer
+  pk: 51
+  fields:
+    question: 11
+    text: "Зайти в отчеты, выбрать нужную кассу и сформировать отчет"
+    is_correct: true
+
+- model: quizzes.answer
+  pk: 52
+  fields:
+    question: 11
+    text: "В строке 'итого' сверить наличные и безналичные в День и по чеку"
+    is_correct: true
+
+- model: quizzes.answer
+  pk: 53
+  fields:
+    question: 11
+    text: "Получить 2 чека из Атола и сверить безналичные по ним"
+    is_correct: true
+
+- model: quizzes.answer
+  pk: 54
+  fields:
+    question: 11
+    text: "Сделать отчет с гашением"
+    is_correct: false
+
+# Вопрос 12 - один ответ
+- model: quizzes.question
+  pk: 12
+  fields:
+    quiz: 1
+    text: "Если пациент ребенок, 16 лет, пришел к нам вместе с родителем, они оба принесли паспорта, чьи паспортные данные мы вносим в карту?"
+    question_type: "single"
+
+- model: quizzes.answer
+  pk: 55
+  fields:
+    question: 12
+    text: "Паспортные данные ребенка и паспортные данные родителя, поскольку ребенок несовершеннолетний и платежщиком выступает родитель."
+    is_correct: true
+
+- model: quizzes.answer
+  pk: 56
+  fields:
+    question: 12
+    text: "Только паспортные данные ребенка, поскольку у него уже есть свой паспорт."
+    is_correct: false
+
+- model: quizzes.answer
+  pk: 57
+  fields:
+    question: 12
+    text: "Только паспортные данные родителя, поскольку ребенок несовершеннолетний."
+    is_correct: false
+
+# Вопрос 13 - множественный выбор
+- model: quizzes.question
+  pk: 13
+  fields:
+    quiz: 1
+    text: "Если первичный пациент не пришел на прием и не отвечает на звонки, то как мы с ним поступаем в программе ДВН?"
+    question_type: "multiple"
+
+- model: quizzes.answer
+  pk: 58
+  fields:
+    question: 13
+    text: "Кидаем в ЛО через 3 дня."
+    is_correct: true
+
+- model: quizzes.answer
+  pk: 59
+  fields:
+    question: 13
+    text: "Кидаем в Архосич через 7 дней."
+    is_correct: true
+
+- model: quizzes.answer
+  pk: 60
+  fields:
+    question: 13
+    text: "Оставляем без внимания, пациент запишется самостоятельно."
+    is_correct: false
+
+- model: quizzes.answer
+  pk: 61
+  fields:
+    question: 13
+    text: "Ставим незаку, прописываем комментарий"
+    is_correct: true
+
+# Вопрос 15 - множественный выбор
+- model: quizzes.question
+  pk: 15
+  fields:
+    quiz: 1
+    text: "Какие документы потребуются пациенту, который пришел на ОПГГ?"
+    question_type: "multiple"
+
+- model: quizzes.answer
+  pk: 62
+  fields:
+    question: 15
+    text: "Паспорт"
+    is_correct: true
+
+- model: quizzes.answer
+  pk: 63
+  fields:
+    question: 15
+    text: "Направление"
+    is_correct: true
+
+- model: quizzes.answer
+  pk: 64
+  fields:
+    question: 15
+    text: "Анкета здоровья"
+    is_correct: false
+
+# Вопрос 16 - один ответ
+- model: quizzes.question
+  pk: 16
+  fields:
+    quiz: 1
+    text: "Пациент хочет оплатить часть суммы картой, а часть - наличными. Можем ли мы это сделать и, если да, то как именно?"
+    question_type: "single"
+
+- model: quizzes.answer
+  pk: 65
+  fields:
+    question: 16
+    text: "Да, это возможно. Узнаем какую сумму пациент хочет оплатить наличными, а какую - картой. Затем уже принимаем оплату по банковской карте и наличными на отдельные суммы. Обязательно печатаем квитанции и чек."
+    is_correct: true
+
+- model: quizzes.answer
+  pk: 66
+  fields:
+    question: 16
+    text: "Нет, это невозможно."
+    is_correct: false
+
+- model: quizzes.answer
+  pk: 67
+  fields:
+    question: 16
+    text: "Да, это возможно. Узнаем какую сумму пациент хочет оплатить наличными, а какую - картой. Принимаем оплату по банковской карте и наличными на отдельные суммы. Обязательно печатаем квитанции и чек недостаточны."
+    is_correct: false
+
+# Вопрос 17 - множественный выбор
+- model: quizzes.question
+  pk: 17
+  fields:
+    quiz: 1
+    text: "Выберите ФИО докторов, которые занимаются лечением на микроскопе"
+    question_type: "multiple"
+
+- model: quizzes.answer
+  pk: 68
+  fields:
+    question: 17
+    text: "КМФ"
+    is_correct: true
+
+- model: quizzes.answer
+  pk: 69
+  fields:
+    question: 17
+    text: "ПВР"
+    is_correct: true
+
+- model: quizzes.answer
+  pk: 70
+  fields:
+    question: 17
+    text: "ГЕА"
+    is_correct: true
+
+- model: quizzes.answer
+  pk: 71
+  fields:
+    question: 17
+    text: "МБП"
+    is_correct: true
+
+- model: quizzes.answer
+  pk: 72
+  fields:
+    question: 17
+    text: "МАСТ"
+    is_correct: true
+
+- model: quizzes.answer
+  pk: 73
+  fields:
+    question: 17
+    text: "ААН"
+    is_correct: true
+
+- model: quizzes.answer
+  pk: 74
+  fields:
+    question: 17
+    text: "ЗВВт"
+    is_correct: true
+
+- model: quizzes.answer
+  pk: 75
+  fields:
+    question: 17
+    text: "НПС"
+    is_correct: true
+
+- model: quizzes.answer
+  pk: 76
+  fields:
+    question: 17
+    text: "ДАА"
+    is_correct: false
+
+# Вопрос 18 - один ответ
+- model: quizzes.question
+  pk: 18
+  fields:
+    quiz: 1
+    text: "Выберите ФИО заведующего терапевтическим отделением"
+    question_type: "single"
+
+- model: quizzes.answer
+  pk: 77
+  fields:
+    question: 18
+    text: "Мельник Богдан Павлович (МБП)"
+    is_correct: true
+
+- model: quizzes.answer
+  pk: 78
+  fields:
+    question: 18
+    text: "Мальчик Богдан Петрович (МБП)"
+    is_correct: false
+
+- model: quizzes.answer
+  pk: 79
+  fields:
+    question: 18
+    text: "Мельник Борис Павлович (МБП)"
+    is_correct: false
+
+# Вопрос 19 - множественный выбор
+- model: quizzes.question
+  pk: 19
+  fields:
+    quiz: 1
+    text: "Выберите ФИО главврача и директора клиники"
+    question_type: "multiple"
+
+- model: quizzes.answer
+  pk: 80
+  fields:
+    question: 19
+    text: "Данилов Алексей Сергеевич - главврач"
+    is_correct: true
+
+- model: quizzes.answer
+  pk: 81
+  fields:
+    question: 19
+    text: "Данилова Татьяна Евгеньевна - директор клиники"
+    is_correct: true
+
+- model: quizzes.answer
+  pk: 82
+  fields:
+    question: 19
+    text: "Данилов Алексей Сергеевич - директор клиники"
+    is_correct: false
+
+- model: quizzes.answer
+  pk: 83
+  fields:
+    question: 19
+    text: "Данилова Татьяна Евгеньевна - главврач"
+    is_correct: false
+
+# Дополнительный тест - Группа вопросов 1
+- model: quizzes.quiz
+  pk: 2
+  fields:
+    name: "Аттестация на 1 категорию холл"
+
+# Вопрос 1 - множественный выбор
+- model: quizzes.question
+  pk: 20
+  fields:
+    quiz: 2
+    text: "Что делать, если не работают рольставни?"
+    question_type: "multiple"
+
+- model: quizzes.answer
+  pk: 84
+  fields:
+    question: 20
+    text: "Открыть палатку администраторов и следовать по алгоритму"
+    is_correct: true
+
+- model: quizzes.answer
+  pk: 85
+  fields:
+    question: 20
+    text: "Позвать мастера, который починит их"
+    is_correct: true
+
+- model: quizzes.answer
+  pk: 86
+  fields:
+    question: 20
+    text: "Позвать старшего админа, он знает как починить"
+    is_correct: true
+
+# Вопрос 2 - множественный выбор
+- model: quizzes.question
+  pk: 21
+  fields:
+    quiz: 2
+    text: "Пришел старый сахарный пациент и кричит на ресепшене, что у него была имплант. Предполагаю, что на месте управляющей старшего администратора в ДАС/ДЖЕ - тоже. Ваши действия?"
+    question_type: "multiple"
+
+- model: quizzes.answer
+  pk: 87
+  fields:
+    question: 21
+    text: "Уточнить жалобу пациента"
+    is_correct: true
+
+- model: quizzes.answer
+  pk: 88
+  fields:
+    question: 21
+    text: "Записать к любому хирургу на ближайшее время"
+    is_correct: true
+
+- model: quizzes.answer
+  pk: 89
+  fields:
+    question: 21
+    text: "Предупредить доктора к которому записали пациента"
+    is_correct: true
+
+- model: quizzes.answer
+  pk: 90
+  fields:
+    question: 21
+    text: "Сообщить в группе о данной ситуации"
+    is_correct: true
+
+- model: quizzes.answer
+  pk: 91
+  fields:
+    question: 21
+    text: "Сказать пациенту, что нет того человека в клинике, который смог бы помочь ему и записать на следующий раз"
+    is_correct: false
+
+- model: quizzes.answer
+  pk: 92
+  fields:
+    question: 21
+    text: "Записать пациента к любому свободному врачу или откт предупредить"
+    is_correct: false
+
+# Вопрос 3 - эссе/открытый
+- model: quizzes.question
+  pk: 22
+  fields:
+    quiz: 2
+    text: "К вам подошел доктор с пациентом и говорит, что пациент интересуется расценкой ваши действия?"
+    question_type: "essay"
+
+# Вопрос 4 - эссе/открытый
+- model: quizzes.question
+  pk: 23
+  fields:
+    quiz: 2
+    text: "Сделайте презентацию КТ (не менее 3 пунктов)"
+    question_type: "essay"
+
+# Вопрос 5 - множественный выбор
+- model: quizzes.question
+  pk: 24
+  fields:
+    quiz: 2
+    text: "Каким цветами помечаются умершие пациенты в календаре?"
+    question_type: "multiple"
+
+- model: quizzes.answer
+  pk: 93
+  fields:
+    question: 24
+    text: "умершие - серый"
+    is_correct: true
+
+- model: quizzes.answer
+  pk: 94
+  fields:
+    question: 24
+    text: "аллергики - красный"
+    is_correct: true
+
+- model: quizzes.answer
+  pk: 95
+  fields:
+    question: 24
+    text: "умершие - красный"
+    is_correct: false
+
+- model: quizzes.answer
+  pk: 96
+  fields:
+    question: 24
+    text: "аллергики - серый"
+    is_correct: false
+
+# Вопрос 6 - эссе/открытый
+- model: quizzes.question
+  pk: 25
+  fields:
+    quiz: 2
+    text: "Пациент говорит, что ему дорого стоила имплант. Какие ваши аргументы, чтобы убедить пациента?"
+    question_type: "essay"
+
+# Вопрос 7 - множественный выбор
+- model: quizzes.question
+  pk: 26
+  fields:
+    quiz: 2
+    text: "Не работает банковский терминал. Нет Интернета. включает только белых в кафе/у. Будем принимать оплату карточкой? и почему?"
+    question_type: "multiple"
+
+- model: quizzes.answer
+  pk: 97
+  fields:
+    question: 26
+    text: "не будем принимать оплату, т.к. как программа работает только при подключении к интернету"
+    is_correct: true
+
+- model: quizzes.answer
+  pk: 98
+  fields:
+    question: 26
+    text: "попросим пациента перевести деньги на карту по реквизитам"
+    is_correct: true
+
+- model: quizzes.answer
+  pk: 99
+  fields:
+    question: 26
+    text: "если у пациента есть следующий прием, то он может оплатить в следующий раз"
+    is_correct: true
+
+- model: quizzes.answer
+  pk: 100
+  fields:
+    question: 26
+    text: "если нет необходимых распечать расчётку"
+    is_correct: true
+
+- model: quizzes.answer
+  pk: 101
+  fields:
+    question: 26
+    text: "попросим пациента сходить на банкомат, чтобы он мог оплатить наличными"
+    is_correct: true
+
+# Вопрос 8 - соответствие
+- model: quizzes.question
+  pk: 27
+  fields:
+    quiz: 2
+    text: "Выберите соответствие: КТ, ОПГГ, ТРГ"
+    question_type: "matching"
+
+- model: quizzes.answer
+  pk: 102
+  fields:
+    question: 27
+    text: "КТ - это 3д процедура всей челюсти"
+    is_correct: true
+
+- model: quizzes.answer
+  pk: 103
+  fields:
+    question: 27
+    text: "ОПГГ - панорамная процедура полости рта"
+    is_correct: true
+
+- model: quizzes.answer
+  pk: 104
+  fields:
+    question: 27
+    text: "ТРГ - процедура вместе с черепом головы"
+    is_correct: true
+
+# Вопрос 9 - множественный выбор
+- model: quizzes.question
+  pk: 28
+  fields:
+    quiz: 2
+    text: "Пациент не хочет давать свои паспортные данные и полное Ф.И.О. Как действовать в такой ситуации?"
+    question_type: "multiple"
+
+- model: quizzes.answer
+  pk: 105
+  fields:
+    question: 28
+    text: "Объяснить пациенту для чего нам нужны его данные"
+    is_correct: true
+
+- model: quizzes.answer
+  pk: 106
+  fields:
+    question: 28
+    text: "Пациент должен обязательно предоставить договор"
+    is_correct: true
+
+- model: quizzes.answer
+  pk: 107
+  fields:
+    question: 28
+    text: "Отказать в приеме такому пациенту"
+    is_correct: true
+
+- model: quizzes.answer
+  pk: 108
+  fields:
+    question: 28
+    text: "Принять пациента без подписания документов"
+    is_correct: false
+
+# Вопрос 10 - один ответ
+- model: quizzes.question
+  pk: 29
+  fields:
+    quiz: 2
+    text: "Какую поставим услугу при внесении в КД, если пациент говорит, что у него один зуб удалят (он знает уже конкретную/конкретные) - кармес:"
+    question_type: "single"
+
+- model: quizzes.answer
+  pk: 109
+  fields:
+    question: 29
+    text: "Терапия"
+    is_correct: true
+
+- model: quizzes.answer
+  pk: 110
+  fields:
+    question: 29
+    text: "Хирургия"
+    is_correct: false
+
+- model: quizzes.answer
+  pk: 111
+  fields:
+    question: 29
+    text: "Терапия + Хирургия"
+    is_correct: false
+
+# Вопрос 11 - множественный выбор
+- model: quizzes.question
+  pk: 30
+  fields:
+    quiz: 2
+    text: "Пациент пришел за 40 минут раньше назначенного времени, ваши действия?"
+    question_type: "multiple"
+
+- model: quizzes.answer
+  pk: 112
+  fields:
+    question: 30
+    text: "Поставить явку"
+    is_correct: true
+
+- model: quizzes.answer
+  pk: 113
+  fields:
+    question: 30
+    text: "Проверить, может доктор свободен"
+    is_correct: true
+
+- model: quizzes.answer
+  pk: 114
+  fields:
+    question: 30
+    text: "Предложить чай/кофе"
+    is_correct: true
+
+# Вопрос 12 - эссе/открытый
+- model: quizzes.question
+  pk: 31
+  fields:
+    quiz: 2
+    text: "При посещении понимайте, что касса у вас не сходится, ваши действия?"
+    question_type: "essay"
+
+# Вопрос 13 - множественный выбор
+- model: quizzes.question
+  pk: 32
+  fields:
+    quiz: 2
+    text: "Посетитель, которому назначена встреча с одним из руководителей компании, ждет уже 10 минут. В этот момент руководитель сообщает вам, что будет через 15 минут. Ваши действия?"
+    question_type: "multiple"
+
+- model: quizzes.answer
+  pk: 115
+  fields:
+    question: 32
+    text: "извиниться"
+    is_correct: true
+
+- model: quizzes.answer
+  pk: 116
+  fields:
+    question: 32
+    text: "передать информацию о задержке руководителя посетителю"
+    is_correct: true
+
+- model: quizzes.answer
+  pk: 117
+  fields:
+    question: 32
+    text: "предложить кофе/чай пока ожидает"
+    is_correct: true
+
+- model: quizzes.answer
+  pk: 118
+  fields:
+    question: 32
+    text: "поторопить руководителя"
+    is_correct: true
+
+- model: quizzes.answer
+  pk: 119
+  fields:
+    question: 32
+    text: "никак не реагировать на посетителя"
+    is_correct: false
+
+# Вопрос 14 - эссе/открытый
+- model: quizzes.question
+  pk: 33
+  fields:
+    quiz: 2
+    text: "Вы сообщаете отметку карточку отсутствующего пациента в кабинет врачу, но в этот момент два пациента поговоим что ранее записывался администратор в данный момент не слышат Работайте в этот день частой. Опишите ваши действия."
+    question_type: "essay"
+
+# Вопрос 15 - множественный выбор
+- model: quizzes.question
+  pk: 34
+  fields:
+    quiz: 2
+    text: "После того как пациента сказали, что недоволен и требует возврат денег, что вы ответите?"
+    question_type: "multiple"
+
+- model: quizzes.answer
+  pk: 120
+  fields:
+    question: 34
+    text: "уточнить, чем пациентка недовольна"
+    is_correct: true
+
+- model: quizzes.answer
+  pk: 121
+  fields:
+    question: 34
+    text: "передать информацию доктору, у которого она была или позвать его и сообщить в группу об этом"
+    is_correct: true
+
+- model: quizzes.answer
+  pk: 122
+  fields:
+    question: 34
+    text: "добавить информацию"
+    is_correct: false
+
+- model: quizzes.answer
+  pk: 123
+  fields:
+    question: 34
+    text: "позвать доктора, чтобы он самостоятельно разбирался в ситуации"
+    is_correct: true
+
+- model: quizzes.answer
+  pk: 124
+  fields:
+    question: 34
+    text: "позвать главврача, чтобы он разобрался в данной ситуации"
+    is_correct: true
+
+- model: quizzes.answer
+  pk: 125
+  fields:
+    question: 34
+    text: "записать пациенту снова на прием на другой день"
+    is_correct: true
+
+# Третий тест - Аттестация на 1 категорию холл
+- model: quizzes.quiz
+  pk: 3
+  fields:
+    name: "Аттестация на 2 категорию холл"
+
+# Вопрос 1 - множественный выбор
+- model: quizzes.question
+  pk: 35
+  fields:
+    quiz: 3
+    text: "По паспорту он старше 50 лет и говорит, что сахарный диабет у пациента. У него стоит брекеты, но его не устраивает работа его ортодонта. Что вы ответите пациенту? Возможно ли продолжение лечения в нашей клинике?"
+    question_type: "multiple"
+
+- model: quizzes.answer
+  pk: 126
+  fields:
+    question: 35
+    text: "о возможности продолжения лечения сможет ответить только доктор"
+    is_correct: true
+
+- model: quizzes.answer
+  pk: 127
+  fields:
+    question: 35
+    text: "стоимость приема ортодонта - 3 000 руб."
+    is_correct: true
+
+- model: quizzes.answer
+  pk: 128
+  fields:
+    question: 35
+    text: "на прием необходимо взять с собой снимки и выписки из медицинской карты"
+    is_correct: true
+
+- model: quizzes.answer
+  pk: 129
+  fields:
+    question: 35
+    text: "запросить справку об отсутствии задолженности"
+    is_correct: true
+
+- model: quizzes.answer
+  pk: 130
+  fields:
+    question: 35
+    text: "продолжение лечения возможно, стоимость приема для консультации - 3 000 руб."
+    is_correct: false
+
+- model: quizzes.answer
+  pk: 131
+  fields:
+    question: 35
+    text: "мы не можем продолжить лечение других специалистов"
+    is_correct: false
+
+# Вопрос 2 - множественный выбор
+- model: quizzes.question
+  pk: 36
+  fields:
+    quiz: 3
+    text: "Пациент пришел, которому 3 года назад сделал протез врач, который сейчас не работает у нас. Протез сломался, и пациентка хочет записаться на починку к ЛОА. Опишите ваши действия."
+    question_type: "multiple"
+
+- model: quizzes.answer
+  pk: 132
+  fields:
+    question: 36
+    text: "объяснить пациенту, что ЛОА не занимается починкой протезов"
+    is_correct: true
+
+- model: quizzes.answer
+  pk: 133
+  fields:
+    question: 36
+    text: "предложить другого доктора"
+    is_correct: true
+
+- model: quizzes.answer
+  pk: 134
+  fields:
+    question: 36
+    text: "записать к ЛОА, чтобы он починил протез"
+    is_correct: false
+
+- model: quizzes.answer
+  pk: 135
+  fields:
+    question: 36
+    text: "предложить найти клинику, в которой сейчас данный врач работает"
+    is_correct: false
+
+# Вопрос 3 - эссе/открытый
+- model: quizzes.question
+  pk: 37
+  fields:
+    quiz: 3
+    text: "Что будете делать, если первичный пациент опаздывает на прием, но настаивает на том, что его должны принять именно сегодня?"
+    question_type: "essay"
+
+# Вопрос 4 - множественный выбор
+- model: quizzes.question
+  pk: 38
+  fields:
+    quiz: 3
+    text: "Врач записал пациента на дальнейшее лечение, но после оплаты пациент сказал, что он не хочет больше лечиться у этого врача и хочет к другому. Опишите ваши действия."
+    question_type: "multiple"
+
+- model: quizzes.answer
+  pk: 136
+  fields:
+    question: 38
+    text: "уточнить, что именно его не устраивает в этом докторе"
+    is_correct: true
+
+- model: quizzes.answer
+  pk: 137
+  fields:
+    question: 38
+    text: "описать причину в комментариях"
+    is_correct: true
+
+- model: quizzes.answer
+  pk: 138
+  fields:
+    question: 38
+    text: "кинуть в Переводка"
+    is_correct: true
+
+- model: quizzes.answer
+  pk: 139
+  fields:
+    question: 38
+    text: "перезаписать"
+    is_correct: true
+
+- model: quizzes.answer
+  pk: 140
+  fields:
+    question: 38
+    text: "объяснить, что лечение может продолжаться только данного специалиста"
+    is_correct: false
+
+- model: quizzes.answer
+  pk: 141
+  fields:
+    question: 38
+    text: "просто перезаписать пациента"
+    is_correct: false
+
+# Вопрос 5 - один ответ
+- model: quizzes.question
+  pk: 39
+  fields:
+    quiz: 3
+    text: "В клинику пришел пациент, которому МАС удалил зуб 2 дня назад, с острой болью в области удаления зуба. МАС сегодня не работает. Как действовать? Администратор решил найти любого свободного хирурга. Объяснить доктору ситуацию, чтобы он осмотрел пациента."
+    question_type: "single"
+
+- model: quizzes.answer
+  pk: 142
+  fields:
+    question: 39
+    text: "Верно"
+    is_correct: true
+
+- model: quizzes.answer
+  pk: 143
+  fields:
+    question: 39
+    text: "Неверно"
+    is_correct: false
+
+# Вопрос 6 - эссе/открытый
+- model: quizzes.question
+  pk: 40
+  fields:
+    quiz: 3
+    text: "После имплантации пациент должен был оплатить 45 000, но с собой у него оказалось только 30 000. Опишите ваши действия."
+    question_type: "essay"
+
+# Вопрос 7 - эссе/открытый
+- model: quizzes.question
+  pk: 41
+  fields:
+    quiz: 3
+    text: "На ресепшн с улицы зашел человек в нетрезвом состоянии. На просьбы выйти из клиники не реагирует, что вы будете делать?"
+    question_type: "essay"
+
+# Вопрос 8 - один ответ
+- model: quizzes.question
+  pk: 42
+  fields:
+    quiz: 3
+    text: "Пациент лечился по барьеру, страховка покрыла все, но у него осталось что-то на лечение. Где вы можете узнать эту информацию?"
+    question_type: "single"
+
+- model: quizzes.answer
+  pk: 144
+  fields:
+    question: 42
+    text: "в информации о заявке в программе"
+    is_correct: true
+
+- model: quizzes.answer
+  pk: 145
+  fields:
+    question: 42
+    text: "в журнале 'Вартар'"
+    is_correct: false
+
+- model: quizzes.answer
+  pk: 146
+  fields:
+    question: 42
+    text: "уточнить у руководителя"
+    is_correct: false
+
+# Вопрос 9 - множественный выбор
+- model: quizzes.question
+  pk: 43
+  fields:
+    quiz: 3
+    text: "К кому в клинике можно записать пациента, интересующегося винирами? Какую примерную цену ему озвучить?"
+    question_type: "multiple"
+
+- model: quizzes.answer
+  pk: 147
+  fields:
+    question: 43
+    text: "От 7 500 руб. (без анестезии) композитные виниры к терапевту"
+    is_correct: true
+
+- model: quizzes.answer
+  pk: 148
+  fields:
+    question: 43
+    text: "От 15 000 руб. керамические виниры к ортопеду"
+    is_correct: true
+
+- model: quizzes.answer
+  pk: 149
+  fields:
+    question: 43
+    text: "От 7 500 руб. (без анестезии) композитные виниры к ортопеду"
+    is_correct: false
+
+- model: quizzes.answer
+  pk: 150
+  fields:
+    question: 43
+    text: "От 15 000 руб. просто виниры к терапевту"
+    is_correct: false
+
+# Вопрос 10 - один ответ
+- model: quizzes.question
+  pk: 44
+  fields:
+    quiz: 3
+    text: "Сколько в нашей клинике стоит бюгельный протез?"
+    question_type: "single"
+
+- model: quizzes.answer
+  pk: 151
+  fields:
+    question: 44
+    text: "От 26 000 руб."
+    is_correct: true
+
+- model: quizzes.answer
+  pk: 152
+  fields:
+    question: 44
+    text: "От 25 000 руб."
+    is_correct: false
+
+- model: quizzes.answer
+  pk: 153
+  fields:
+    question: 44
+    text: "От 27 000 руб."
+    is_correct: false
+
+# Вопрос 11 - один ответ
+- model: quizzes.question
+  pk: 45
+  fields:
+    quiz: 3
+    text: "Сколько в нашей клинике стоит снятие брекетов и что входит в стоимость?"
+    question_type: "single"
+
+- model: quizzes.answer
+  pk: 154
+  fields:
+    question: 45
+    text: "От 20 000 руб. включая ретейнеры и капы"
+    is_correct: true
+
+- model: quizzes.answer
+  pk: 155
+  fields:
+    question: 45
+    text: "От 20 000 руб. без ретейнеров и кап"
+    is_correct: false
+
+- model: quizzes.answer
+  pk: 156
+  fields:
+    question: 45
+    text: "От 30 000 руб. включая ретейнеры и капы"
+    is_correct: false
+
+# Вопрос 12 - один ответ
+- model: quizzes.question
+  pk: 46
+  fields:
+    quiz: 3
+    text: "После удаления пациент не сможет прийти на осмотр, но врач просит позвонить ему через 3 дня. Освободить его от самостоятельного. Каким образом вы поступите?"
+    question_type: "single"
+
+- model: quizzes.answer
+  pk: 157
+  fields:
+    question: 46
+    text: "кинуть его в ГПС через 3 дня и прописать комментарий"
+    is_correct: true
+
+- model: quizzes.answer
+  pk: 158
+  fields:
+    question: 46
+    text: "кинуть его в Архосич через 3 дня и прописать комментарий"
+    is_correct: false
+
+- model: quizzes.answer
+  pk: 159
+  fields:
+    question: 46
+    text: "кинуть его в КД через 3 дня и прописать комментарий"
+    is_correct: false
+
+# Вопрос 13 - эссе/открытый
+- model: quizzes.question
+  pk: 47
+  fields:
+    quiz: 3
+    text: "В клинику пришел мужчина и просит провести его к руководству. Опишите ваши действия."
+    question_type: "essay"
+
+# Вопрос 14 - один ответ
+- model: quizzes.question
+  pk: 48
+  fields:
+    quiz: 3
+    text: "Ваши архивные во взрослении пациента 'По-ему уезжаю за границу на 2500 рублей я вам откладываю его из расчета-расчет'."
+    question_type: "single"
+
+- model: quizzes.answer
+  pk: 160
+  fields:
+    question: 48
+    text: "все операции не расписываются, но мы предоставляем диск и можем отправить по почте"
+    is_correct: true
+
+- model: quizzes.answer
+  pk: 161
+  fields:
+    question: 48
+    text: "снимок остается в клинике и не передается пациенту"
+    is_correct: false
+
+# Вопрос 15 - эссе/открытый
+- model: quizzes.question
+  pk: 49
+  fields:
+    quiz: 3
+    text: "Пациент хочет на лечение только к АДЛ. Ваши аргументы в пользу записи к другому стоматологу."
+    question_type: "essay"
+
+# Вопрос 16 - множественный выбор
+- model: quizzes.question
+  pk: 50
+  fields:
+    quiz: 3
+    text: "Пациент хочет взять рассрочку, но не хочет делать это через банк. Что вы ему ответите? Возможно ли взять рассрочку в общем банке?"
+    question_type: "multiple"
+
+- model: quizzes.answer
+  pk: 162
+  fields:
+    question: 50
+    text: "нет, мы предоставляем рассрочку только через банк"
+    is_correct: true
+
+- model: quizzes.answer
+  pk: 163
+  fields:
+    question: 50
+    text: "да мы можем предоставить рассрочку от клиники"
+    is_correct: false
+
+- model: quizzes.answer
+  pk: 164
+  fields:
+    question: 50
+    text: "да у нас есть рассрочка на бумаге на время лечения"
+    is_correct: false
+
+# Вопрос 17 - один ответ
+- model: quizzes.question
+  pk: 51
+  fields:
+    quiz: 3
+    text: "Нужно ли отмечать явку к детям, когда вы приходите на общее собрание или собрание администраторов?"
+    question_type: "single"
+
+- model: quizzes.answer
+  pk: 165
+  fields:
+    question: 51
+    text: "на общее собрание нет, собрание администраторов да"
+    is_correct: true
+
+- model: quizzes.answer
+  pk: 166
+  fields:
+    question: 51
+    text: "на общее собрание да, собрание администраторов нет"
+    is_correct: false
+
+- model: quizzes.answer
+  pk: 167
+  fields:
+    question: 51
+    text: "на любое собрание нужно отмечать явку"
+    is_correct: false
+
+# Вопрос 18 - эссе/открытый (как указано пользователем)
+- model: quizzes.question
+  pk: 52
+  fields:
+    quiz: 3
+    text: "В 21:00 вы последний в кассу и поняли, что безналичный расчет не сходится. Старшего администратора и управляющего в клинике нет. Каким образом вы попытаетесь решить проблему?"
+    question_type: "essay"
