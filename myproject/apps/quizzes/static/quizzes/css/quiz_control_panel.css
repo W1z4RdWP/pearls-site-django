@@ -1,0 +1,175 @@
+/* Стили для панели управления тестами */
+
+/* Карточки тестов на главной странице */
+.quiz-card {
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.quiz-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+
+.btn-group-actions {
+    gap: 0.5rem;
+}
+
+.quiz-info {
+    flex-grow: 1;
+}
+
+.quiz-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    min-width: 120px;
+}
+
+@media (max-width: 768px) {
+    .quiz-actions {
+        flex-direction: row;
+        min-width: auto;
+    }
+}
+
+/* Стили для редактирования тестов */
+.question-block {
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    padding: 20px;
+    margin-bottom: 20px;
+    background: #f8f9fa;
+}
+
+.question-header {
+    display: flex;
+    justify-content-between;
+    align-items-center;
+    margin-bottom: 15px;
+}
+
+.answer-item {
+    display: flex;
+    align-items-center;
+    margin-bottom: 10px;
+    padding: 10px;
+    background: white;
+    border-radius: 5px;
+    border: 1px solid #e0e0e0;
+}
+
+.answer-item input[type="text"] {
+    flex-grow: 1;
+    margin-right: 10px;
+}
+
+.add-question-btn {
+    width: 100%;
+    padding: 15px;
+    border: 2px dashed #007bff;
+    background: transparent;
+    color: #007bff;
+    border-radius: 8px;
+    margin-bottom: 20px;
+}
+
+.add-question-btn:hover {
+    background: #f8f9fa;
+}
+
+.remove-btn {
+    background: #dc3545;
+    border: none;
+    color: white;
+    border-radius: 50%;
+    width: 30px;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.remove-btn:hover {
+    background: #c82333;
+    color: white;
+}
+
+/* Дополнительные стили для улучшения UX */
+.modal-body .form-control:focus {
+    border-color: #007bff;
+    box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+}
+
+.btn-delete-quiz {
+    transition: all 0.2s ease;
+}
+
+.btn-delete-quiz:hover {
+    transform: scale(1.02);
+}
+
+.answers-container {
+    border-left: 3px solid #007bff;
+    padding-left: 15px;
+    margin-left: 10px;
+}
+
+.question-block .card-title {
+    color: #495057;
+    font-weight: 600;
+}
+
+.quiz-card .card-body {
+    padding: 1.5rem;
+}
+
+.quiz-actions .btn {
+    font-size: 0.875rem;
+    padding: 0.5rem 0.75rem;
+}
+
+/* Анимации */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.question-block {
+    animation: fadeIn 0.3s ease-out;
+}
+
+.answer-item {
+    animation: fadeIn 0.2s ease-out;
+}
+
+/* Индикаторы загрузки */
+.loading {
+    opacity: 0.6;
+    pointer-events: none;
+}
+
+.loading::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 20px;
+    height: 20px;
+    margin: -10px 0 0 -10px;
+    border: 2px solid #007bff;
+    border-radius: 50%;
+    border-top-color: transparent;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}

@@ -27,7 +27,7 @@ class StartQuizView(LoginRequiredMixin, UserPassesTestMixin, DataMixin, Template
      - template_name - путь к шаблону;
      - get_context_data() - в шаблон передается переменная topics, которая возвращает количество вопросов в каждом тесте
     """
-    template_name = 'quizzes/start.html'
+    template_name = 'quizzes/quiz_control_panel.html'
     login_url = 'users:login'  # URL для перенаправления неавторизованных пользователей
     permission_denied_message = "Доступ разрешен только администраторам сайта"
 
@@ -375,9 +375,10 @@ def start_quiz_handler(request):
     return redirect('quizzes')
 
 
-from django.views.generic import CreateView
+from django.views.generic import CreateView, UpdateView, DeleteView
 from django.contrib.auth.mixins import UserPassesTestMixin
 from django.http import JsonResponse
+from django.urls import reverse_lazy
 
 class QuizCreateView(UserPassesTestMixin, CreateView):
     """
@@ -489,3 +490,122 @@ class QuizCreateView(UserPassesTestMixin, CreateView):
             'name': quiz.name,
             'questions_count': quiz.question_set.count()
         }, content_type='application/json')
+
+
+class QuizEditView(UserPassesTestMixin, UpdateView):
+    """
+    Редактирование существующего теста с вопросами и ответами.
+    """
+    model = Quiz
+    fields = ['name']
+    template_name = 'quizzes/quiz_edit.html'
+    success_url = reverse_lazy('quizzes:quizzes')
+    pk_url_kwarg = 'quiz_id'
+
+    def test_func(self):
+        return self.request.user.is_staff or self.request.user.is_superuser
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        quiz = self.get_object()
+        
+        # Получаем все вопросы с ответами
+        questions = Question.objects.filter(quiz=quiz).prefetch_related('answer_set')
+        context['questions'] = questions
+        context['question_types'] = Question.QUESTION_TYPES
+        
+        return context
+
+    def form_valid(self, form):
+        # Если это AJAX запрос
+        if self.request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            try:
+                quiz = form.save()
+                
+                # Удаляем все существующие вопросы и ответы
+                Question.objects.filter(quiz=quiz).delete()
+                
+                # Обрабатываем новые вопросы и ответы (аналогично созданию)
+                questions_dict = {}
+                for key, value in self.request.POST.items():
+                    if key.startswith('questions['):
+                        try:
+                            parts = key.replace('questions[', '').replace(']', '').split('[')
+                            question_num = int(parts[0])
+                            
+                            if question_num not in questions_dict:
+                                questions_dict[question_num] = {'text': '', 'type': 'single', 'answers': {}}
+                            
+                            if len(parts) == 2:
+                                if parts[1] == 'text':
+                                    questions_dict[question_num]['text'] = value
+                                elif parts[1] == 'type':
+                                    questions_dict[question_num]['type'] = value
+                            elif len(parts) == 4 and parts[1] == 'answers':
+                                answer_num = int(parts[2])
+                                answer_field = parts[3]
+                                
+                                if answer_num not in questions_dict[question_num]['answers']:
+                                    questions_dict[question_num]['answers'][answer_num] = {'text': '', 'correct': False}
+                                
+                                if answer_field == 'text':
+                                    questions_dict[question_num]['answers'][answer_num]['text'] = value
+                                elif answer_field == 'correct':
+                                    questions_dict[question_num]['answers'][answer_num]['correct'] = True
+                        except (ValueError, IndexError):
+                            continue
+
+                # Создаем новые вопросы и ответы
+                for question_num, question_data in questions_dict.items():
+                    if question_data['text'].strip():
+                        question = Question.objects.create(
+                            quiz=quiz,
+                            text=question_data['text'],
+                            question_type=question_data['type']
+                        )
+                        
+                        if question_data['type'] in ['single', 'multiple']:
+                            for answer_num, answer_data in question_data['answers'].items():
+                                if answer_data['text'].strip():
+                                    Answer.objects.create(
+                                        question=question,
+                                        text=answer_data['text'],
+                                        is_correct=answer_data['correct']
+                                    )
+
+                return JsonResponse({
+                    'success': True,
+                    'message': 'Тест успешно обновлен'
+                })
+                
+            except Exception as e:
+                return JsonResponse({
+                    'success': False,
+                    'error': f'Ошибка при обновлении теста: {str(e)}'
+                })
+        
+        return super().form_valid(form)
+
+
+class QuizDeleteView(UserPassesTestMixin, DeleteView):
+    """
+    Удаление теста.
+    """
+    model = Quiz
+    success_url = reverse_lazy('quizzes:quizzes')
+    pk_url_kwarg = 'quiz_id'
+
+    def test_func(self):
+        return self.request.user.is_staff or self.request.user.is_superuser
+
+    def delete(self, request, *args, **kwargs):
+        quiz = self.get_object()
+        quiz_name = quiz.name
+        
+        try:
+            quiz.delete()
+            messages.success(request, f'Тест "{quiz_name}" успешно удален')
+        except Exception as e:
+            messages.error(request, f'Ошибка при удалении теста: {str(e)}')
+            
+        return redirect(self.success_url)

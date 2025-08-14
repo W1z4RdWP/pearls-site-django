@@ -12,4 +12,6 @@ urlpatterns = [
     path('get-answer', views.get_answer, name='get-answer'),
     path('get-finish', views.get_finish, name='get-finish'),
     path('create/', views.QuizCreateView.as_view(), name='quiz_create'),
+    path('edit/<int:quiz_id>/', views.QuizEditView.as_view(), name='quiz_edit'),
+    path('delete/<int:quiz_id>/', views.QuizDeleteView.as_view(), name='quiz_delete'),
 ]
