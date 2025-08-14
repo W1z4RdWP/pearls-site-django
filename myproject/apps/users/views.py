@@ -227,7 +227,7 @@ def all_achievements(request: HttpRequest) -> HttpResponse:
 @login_required
 def quiz_report(request, quiz_id):
     quiz_result = get_object_or_404(QuizResult, id=quiz_id, user=request.user)
-    answers = quiz_result.answers.select_related('question', 'selected_answer').all()
+    answers = quiz_result.answers.select_related('question', 'selected_answer').order_by('question__id').all()
 
     # Создаем словарь, где ключ - вопрос, значение - список выбранных ответов
     multiple_choice_answers = {}
