@@ -7,6 +7,7 @@ from django import forms
 from django.urls import reverse_lazy
 from django.core.exceptions import PermissionDenied
 from myapp.models import UserProgress, UserCourse, QuizResult, UserAnswer
+from quizzes.models import Quiz, QuizLock
 from courses.models import Course, Lesson, UserLessonTrajectory
 from django.core.paginator import Paginator, PageNotAnInteger, EmptyPage
 from django.utils.decorators import method_decorator
@@ -656,3 +657,110 @@ class UserPasswordChangeView(FormView):
         context = super().get_context_data(**kwargs)
         context['object'] = User.objects.get(pk=self.kwargs['pk'])
         return context
+
+
+class UserQuizAttemptsView(DetailView):
+    """
+    Страница управления доступом к тестам для пользователя.
+    """
+    model = User
+    template_name = 'user_management/user_quiz_attempts.html'
+    context_object_name = 'target_user'
+
+    def dispatch(self, request, *args, **kwargs):
+        if not request.user.is_authenticated or not (request.user.is_staff or request.user.is_superuser):
+            raise PermissionDenied("У вас нет доступа к управлению пользователями.")
+        return super().dispatch(request, *args, **kwargs)
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        user = self.get_object()
+        
+        # Получаем все тесты
+        quizzes = Quiz.objects.all().order_by('name')
+        
+        quiz_data = {}
+        for quiz in quizzes:
+            # Получаем результаты тестов
+            results = QuizResult.objects.filter(
+                user=user,
+                quiz_title=quiz.name
+            ).order_by('-completed_at')
+            
+            # Просто показываем все результаты
+            attempts_with_results = []
+            for i, result in enumerate(results, 1):
+                attempts_with_results.append({
+                    'result': result,
+                    'attempt_number': i,  # Порядковый номер результата
+                    'started_at': result.completed_at,
+                    'completed_at': result.completed_at
+                })
+            
+            # Статистика
+            total_attempts = results.count()  # Общее количество результатов
+            passed_attempts = results.filter(passed=True).count()
+            failed_attempts = results.filter(passed=False).count()
+            best_result = results.order_by('-percent').first()
+            best_score = best_result.percent if best_result else None
+            
+            # Проверяем блокировку теста
+            quiz_lock = QuizLock.objects.filter(user=user, quiz=quiz).first()
+            is_blocked = quiz_lock.is_locked if quiz_lock else False
+            
+            quiz_data[quiz] = {
+                'attempts': attempts_with_results,
+                'total_attempts': total_attempts,
+                'passed_attempts': passed_attempts,
+                'failed_attempts': failed_attempts,
+                'best_score': best_score,
+                'is_blocked': is_blocked
+            }
+        
+        context['quiz_data'] = quiz_data
+        return context
+
+
+
+@require_POST  
+def unlock_quiz_access(request, user_id, quiz_id):
+    """
+    Разблокирует доступ к тесту для пользователя.
+    Позволяет пройти тест еще 1 раз сверх ограничения попыток.
+    """
+    if not request.user.is_staff or not request.user.is_superuser:
+        raise PermissionDenied("У вас нет доступа к этому действию.")
+    
+    try:
+        user = User.objects.get(id=user_id)
+        quiz = Quiz.objects.get(id=quiz_id)
+        
+        # Разблокируем тест
+        quiz_lock, created = QuizLock.objects.get_or_create(
+            user=user,
+            quiz=quiz,
+            defaults={'is_locked': False}
+        )
+        
+        if quiz_lock.is_locked:
+            quiz_lock.is_locked = False
+            quiz_lock.locked_at = None
+            quiz_lock.save()
+            
+            messages.success(
+                request,
+                f'Тест "{quiz.name}" разблокирован для пользователя {user.get_full_name()}. '
+                f'Пользователь может пройти еще одну попытку.'
+            )
+        else:
+            messages.info(
+                request,
+                f'Тест "{quiz.name}" уже разблокирован для пользователя {user.get_full_name()}.'
+            )
+        
+    except (User.DoesNotExist, Quiz.DoesNotExist):
+        messages.error(request, 'Пользователь или тест не найден.')
+    except Exception as e:
+        messages.error(request, f'Ошибка при разблокировке: {str(e)}')
+    
+    return redirect('user_management:user_quiz_attempts', pk=user_id)

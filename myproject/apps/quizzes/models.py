@@ -78,4 +78,23 @@ class QuizAttempt(models.Model):
     
   def __str__(self):
     return f"{self.user.username} - {self.quiz.name} (попытка {self.attempt_number})"
+
+
+class QuizLock(models.Model):
+  """Модель для отслеживания блокировки тестов для пользователей"""
+  user = models.ForeignKey('auth.User', on_delete=models.CASCADE, verbose_name="Пользователь")
+  quiz = models.ForeignKey(Quiz, on_delete=models.CASCADE, verbose_name="Тест")
+  is_locked = models.BooleanField(default=False, verbose_name="Заблокирован")
+  locked_at = models.DateTimeField(null=True, blank=True, verbose_name="Дата блокировки")
   
+  class Meta:
+    verbose_name = "Блокировка теста"
+    verbose_name_plural = "Блокировки тестов"
+    unique_together = ('user', 'quiz')
+    indexes = [
+      models.Index(fields=['user', 'quiz'], name='quiz_lock_user_quiz_idx'),
+    ]
+    
+  def __str__(self):
+    status = "заблокирован" if self.is_locked else "разблокирован"
+    return f"{self.user.username} - {self.quiz.name} ({status})"

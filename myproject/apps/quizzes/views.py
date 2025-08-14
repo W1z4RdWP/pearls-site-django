@@ -60,17 +60,25 @@ def get_questions(request, quiz_id: int = None, is_start: bool = False) -> HttpR
         # Проверяем ограничения попыток при старте теста
         if is_start and request.user.is_authenticated:
             quiz = get_object_or_404(Quiz, id=quiz_id)
-            if quiz.attempt_limit > 0:
-                attempts_count = QuizAttempt.objects.filter(user=request.user, quiz=quiz).count()
-                if attempts_count >= quiz.attempt_limit:
-                    return redirect('quizzes:attempt_limit_exceeded', quiz_id=quiz.id)
+            
+            # Проверяем блокировку теста для этого пользователя
+            from .models import QuizLock
+            quiz_lock, created = QuizLock.objects.get_or_create(
+                user=request.user,
+                quiz=quiz,
+                defaults={'is_locked': False}
+            )
+            
+            if quiz_lock.is_locked:
+                return redirect('quizzes:attempt_limit_exceeded', quiz_id=quiz.id)
                 
-                # Создаем новую попытку
-                QuizAttempt.objects.create(
-                    user=request.user,
-                    quiz=quiz,
-                    attempt_number=attempts_count + 1
-                )
+            # Создаем новую попытку
+            attempts_count = QuizAttempt.objects.filter(user=request.user, quiz=quiz).count()
+            QuizAttempt.objects.create(
+                user=request.user,
+                quiz=quiz,
+                attempt_number=attempts_count + 1
+            )
         
         # Если не стартовая страница, получаем quiz_id из сессии
         if not is_start:
@@ -301,6 +309,29 @@ def get_finish(request) -> HttpResponse:
         if current_attempt:
             current_attempt.completed_at = timezone.now()
             current_attempt.save()
+    
+    # Проверяем, нужно ли заблокировать тест
+    if request.user.is_authenticated and not passed and quiz.attempt_limit > 0:
+        from .models import QuizLock
+        
+        # Считаем количество неуспешных попыток
+        failed_attempts = QuizResult.objects.filter(
+            user=request.user,
+            quiz_title=quiz.name,
+            passed=False
+        ).count()
+        
+        # Если достигли лимита - блокируем тест
+        if failed_attempts >= quiz.attempt_limit:
+            quiz_lock, created = QuizLock.objects.get_or_create(
+                user=request.user,
+                quiz=quiz,
+                defaults={'is_locked': True, 'locked_at': timezone.now()}
+            )
+            if not created:
+                quiz_lock.is_locked = True
+                quiz_lock.locked_at = timezone.now()
+                quiz_lock.save()
 
     # --- СОХРАНЯЕМ ОТВЕТЫ ПОЛЬЗОВАТЕЛЯ ---
     quiz_answers = request.session.get('quiz_answers', {})
