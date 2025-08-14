@@ -179,7 +179,7 @@ function addQuestion() {
                     <i class="fas fa-times"></i>
                 </button>
             </div>
-            <button type="button" class="btn btn-outline-primary btn-sm mt-2" onclick="addAnswer(this)">
+            <button type="button" class="btn-mini primary btn-sm mt-2" onclick="addAnswer(this)">
                 <i class="fas fa-plus"></i> Добавить ответ
             </button>
         </div>
