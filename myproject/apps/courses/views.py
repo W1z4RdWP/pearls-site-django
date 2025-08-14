@@ -25,6 +25,27 @@ from .utils import issue_certificate, get_user_certificates
 logger = logging.getLogger(__name__)
 audit_logger = logging.getLogger('audit')
 
+
+def auto_unlock_quiz_if_lessons_completed(user, course):
+    """
+    Автоматически разблокирует финальный тест курса, если пользователь завершил все уроки
+    после того как тест был заблокирован.
+    """
+    if not course.final_quiz:
+        return False
+    
+    from quizzes.models import QuizLock
+    quiz_lock = QuizLock.objects.filter(user=user, quiz=course.final_quiz).first()
+    
+    if quiz_lock and quiz_lock.is_locked:
+        quiz_lock.is_locked = False
+        quiz_lock.locked_at = None
+        quiz_lock.save()
+        return True
+    
+    return False
+
+
 @method_decorator(login_required, name='dispatch')
 class UserCourseTrajectoryDetailView(DetailView):
     """
@@ -269,6 +290,9 @@ class CourseDetailView(DetailView):
                                 # Курс уже был завершен, просто обновляем статус
                                 user_course.status = 'completed'
                                 user_course.save()
+                        else:
+                            # Тест не пройден, но все уроки завершены - автоматически разблокируем тест
+                            auto_unlock_quiz_if_lessons_completed(user, course)
                     else:
                         # Если теста нет - завершаем автоматически
                         # Проверяем, был ли курс уже завершен ранее
@@ -812,6 +836,17 @@ def complete_lesson(request, course_slug, lesson_id):
     
     if all_completed:
         if course.final_quiz:
+            # Автоматически разблокируем финальный тест, если пользователь повторно завершил все уроки
+            unlocked = auto_unlock_quiz_if_lessons_completed(user, course)
+            if unlocked:
+                # Добавляем сообщение о разблокировке
+                from django.contrib import messages
+                messages.success(
+                    request, 
+                    f'Отлично! Вы повторно завершили все уроки курса. '
+                    f'Финальный тест "{course.final_quiz.name}" разблокирован! Можете пересдать его.'
+                )
+            
             return redirect('courses:redir_to_quiz', course_slug=course_slug)
         else:
             # Проверяем, был ли курс уже завершен ранее
