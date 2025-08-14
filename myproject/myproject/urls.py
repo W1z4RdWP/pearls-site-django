@@ -21,15 +21,34 @@ from django.views.static import serve
 from django.conf import settings
 from django.conf.urls.static import static
 from django.views.decorators.cache import cache_page
+from django.views.generic import TemplateView
+from django.contrib.sitemaps.views import sitemap
 from debug_toolbar.toolbar import debug_toolbar_urls
 from myapp import views
 from myapp.views import page_not_found_view, PrivacyPolicyView
 from quizzes.models import Answer
+from .sitemaps import (
+    StaticViewSitemap,
+    CourseSitemap,
+    LessonSitemap,
+    TrajectorySitemap,
+    QuizSitemap
+)
 
+# Словарь с карты сайта
+sitemaps = {
+    'static': StaticViewSitemap,
+    'courses': CourseSitemap,
+    'lessons': LessonSitemap,
+    'trajectories': TrajectorySitemap,
+    'quizzes': QuizSitemap,
+}
 
 urlpatterns = [
     re_path(r'^media/(?P<path>.*)$', serve,{'document_root': settings.MEDIA_ROOT}),
     re_path(r'^static/(?P<path>.*)$', serve,{'document_root': settings.STATIC_ROOT}),
+    path('robots.txt', TemplateView.as_view(template_name='robots.txt', content_type='text/plain')),
+    path('sitemap.xml', sitemap, {'sitemaps': sitemaps}, name='django.contrib.sitemaps.views.sitemap'),
     path('admin/', admin.site.urls),
     path('', (views.IndexView.as_view()), name='home'),
     path('captcha/', include('captcha.urls')),

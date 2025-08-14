@@ -1,0 +1,187 @@
+{% extends "layout.html" %}
+{% block title %}Редактирование теста: {{ object.name }}{% endblock %}
+{% load static %}
+
+{% block specific_styles %}
+<link rel="stylesheet" href="{% static 'quizzes/css/quiz_styles.css' %}">
+<link rel="stylesheet" href="{% static 'quizzes/css/quiz_control_panel.css' %}">
+<script src="{% static 'quizzes/js/quiz_control_panel.js' %}" defer></script>
+
+{% endblock %}
+
+{% block content %}
+<div class="container mt-5" 
+     data-quizzes-url="{% url 'quizzes:quizzes' %}">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h1>Редактирование теста</h1>
+                <a href="{% url 'quizzes:quizzes' %}" class="btn-mini secondary">
+                    <i class="fas fa-arrow-left"></i> Назад к списку
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <form id="editQuizForm" method="POST">
+        {% csrf_token %}
+        
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5>Основная информация</h5>
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <label for="quizName" class="form-label">Название теста</label>
+                    <input type="text" class="form-control" id="quizName" name="name" 
+                           value="{{ object.name }}" required>
+                </div>
+                
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label for="attemptLimit" class="form-label">Ограничение попыток</label>
+                            <input type="number" class="form-control" id="attemptLimit" name="attempt_limit" 
+                                   value="{{ object.attempt_limit|default:0 }}" min="0" 
+                                   placeholder="0 = без ограничений">
+                            <div class="form-text">0 означает неограниченное количество попыток</div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label for="passThreshold" class="form-label">Проходной балл (%)</label>
+                            <input type="number" class="form-control" id="passThreshold" name="pass_threshold" 
+                                   value="{{ object.pass_threshold|default:70 }}" min="1" max="100" required>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5>Вопросы</h5>
+                <span class="badge bg-secondary" id="questionsCount">
+                    Всего: {{ questions.count }}
+                </span>
+            </div>
+            <div class="card-body">
+                <div id="questionsContainer">
+                    {% for question in questions %}
+                    <div class="question-block" data-question-id="{{ forloop.counter }}">
+                        <div class="question-header">
+                            <h6>Вопрос {{ forloop.counter }}</h6>
+                            <button type="button" class="remove-btn" onclick="removeQuestion(this)">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label">Текст вопроса</label>
+                            <textarea class="form-control" 
+                                    name="questions[{{ forloop.counter }}][text]" 
+                                    rows="3" required>{{ question.text }}</textarea>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Тип вопроса</label>
+                            <select class="form-select" 
+                                    name="questions[{{ forloop.counter }}][type]" 
+                                    onchange="toggleAnswers(this)">
+                                {% for type_value, type_label in question_types %}
+                                <option value="{{ type_value }}" 
+                                        {% if question.question_type == type_value %}selected{% endif %}>
+                                    {{ type_label }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <div class="answers-container" 
+                             {% if question.question_type == 'text' %}style="display: none;"{% endif %}>
+                            <label class="form-label">Варианты ответов</label>
+                            {% for answer in question.answer_set.all %}
+                            <div class="answer-item">
+                                <input type="text" class="form-control" 
+                                       name="questions[{{ forloop.parentloop.counter }}][answers][{{ forloop.counter }}][text]" 
+                                       value="{{ answer.text }}" 
+                                       placeholder="Текст ответа" 
+                                       {% if question.question_type != 'text' %}required{% endif %}>
+                                <div class="form-check">
+                                    {% if question.question_type == 'single' %}
+                                        <input type="radio" class="form-check-input" 
+                                               name="questions[{{ forloop.parentloop.counter }}][correct_answer]"
+                                               value="{{ forloop.counter }}"
+                                               {% if answer.is_correct %}checked{% endif %}>
+                                    {% else %}
+                                        <input type="checkbox" class="form-check-input" 
+                                               name="questions[{{ forloop.parentloop.counter }}][answers][{{ forloop.counter }}][correct]"
+                                               {% if answer.is_correct %}checked{% endif %}>
+                                    {% endif %}
+                                    <label class="form-check-label">Правильный</label>
+                                </div>
+                                <button type="button" class="remove-btn ms-2" onclick="removeAnswer(this)">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </div>
+                            {% empty %}
+                            <div class="answer-item">
+                                <input type="text" class="form-control" 
+                                       name="questions[{{ forloop.counter }}][answers][1][text]" 
+                                       placeholder="Текст ответа" 
+                                       {% if question.question_type != 'text' %}required{% endif %}>
+                                <div class="form-check">
+                                    {% if question.question_type == 'single' %}
+                                        <input type="radio" class="form-check-input" 
+                                               name="questions[{{ forloop.counter }}][correct_answer]"
+                                               value="1">
+                                    {% else %}
+                                        <input type="checkbox" class="form-check-input" 
+                                               name="questions[{{ forloop.counter }}][answers][1][correct]">
+                                    {% endif %}
+                                    <label class="form-check-label">Правильный</label>
+                                </div>
+                                <button type="button" class="remove-btn ms-2" onclick="removeAnswer(this)">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </div>
+                            {% endfor %}
+                            
+                            <button type="button" class="btn-mini primary btn-sm mt-2" 
+                                    onclick="addAnswer(this)">
+                                <i class="fas fa-plus"></i> Добавить ответ
+                            </button>
+                        </div>
+                    </div>
+                    {% empty %}
+                    <!-- Пустое состояние будет обработано JavaScript -->
+                    {% endfor %}
+                </div>
+
+                <button type="button" class="add-question-btn" onclick="addQuestion()">
+                    <i class="fas fa-plus"></i> Добавить вопрос
+                </button>
+
+                <div class="d-flex gap-3">
+                    <button type="submit" class="btn-mini success btn-lg flex-fill">
+                        <i class="fas fa-save"></i> Сохранить изменения
+                    </button>
+                    <a href="{% url 'quizzes:quiz_start' quiz_id=object.id %}" 
+                       class="btn-mini primary btn-lg">
+                        <i class="fas fa-play"></i> Протестировать
+                    </a>
+                </div>
+            </div>
+        </div>
+    </form>
+</div>
+
+<script>
+    // Передаем количество вопросов в JavaScript
+    window.initialQuestionCounter = {{ questions.count|default:0 }};
+</script>
+
+{% endblock %}
+
+
+

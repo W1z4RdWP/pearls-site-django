@@ -94,6 +94,7 @@
                     <div class="um-action-btns">
                         <a href="{% url 'user_management:user_edit' user.pk %}" class="um-action-btn" title="Редактировать"><i class="fa-solid fa-pen-to-square"></i></a>
                         <a href="{% url 'user_management:user_progress' user.pk %}" class="um-action-btn" title="Прогресс обучения"><i class="fa-solid fa-chart-line"></i></a>
+                        <a href="{% url 'user_management:user_quiz_attempts' user.pk %}" class="um-action-btn" title="Тесты пользователя"><i class="fa-solid fa-clipboard-question"></i></a>
                     </div>
                 </td>
 

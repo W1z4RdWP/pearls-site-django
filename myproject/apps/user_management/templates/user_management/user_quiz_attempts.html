@@ -1,0 +1,309 @@
+{% extends 'layout.html' %}
+{% load static %}
+
+{% block title %}Тесты пользователя {{ target_user.get_full_name|default:target_user.username }}{% endblock %}
+
+{% block specific_styles %}
+<link rel="stylesheet" href="{% static 'user_management/css/user_list.css' %}">
+<style>
+    .quiz-attempts-container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 20px;
+    }
+    
+    .user-info-card {
+        background: #f8f9fa;
+        border-radius: 12px;
+        padding: 20px;
+        margin-bottom: 30px;
+        border: 1px solid #dee2e6;
+    }
+    
+    .quiz-card {
+        background: white;
+        border-radius: 12px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+        margin-bottom: 20px;
+        overflow: hidden;
+        border: 1px solid #e9ecef;
+    }
+    
+    .quiz-header {
+        background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
+        color: white;
+        padding: 15px 20px;
+        font-weight: 600;
+    }
+    
+    .quiz-body {
+        padding: 20px;
+    }
+    
+    .quiz-stats {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+        gap: 15px;
+        margin-bottom: 20px;
+    }
+    
+    .stat-item {
+        text-align: center;
+        padding: 10px;
+        background: #f8f9fa;
+        border-radius: 8px;
+    }
+    
+    .stat-value {
+        font-size: 1.5rem;
+        font-weight: bold;
+        color: #007bff;
+    }
+    
+    .stat-label {
+        font-size: 0.9rem;
+        color: #6c757d;
+        margin-top: 5px;
+    }
+    
+    .attempts-table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 15px;
+    }
+    
+    .attempts-table th,
+    .attempts-table td {
+        padding: 8px 12px;
+        text-align: left;
+        border-bottom: 1px solid #dee2e6;
+    }
+    
+    .attempts-table th {
+        background: #f8f9fa;
+        font-weight: 600;
+        color: #495057;
+    }
+    
+    .status-badge {
+        padding: 4px 8px;
+        border-radius: 4px;
+        font-size: 0.85rem;
+        font-weight: 500;
+    }
+    
+    .status-passed {
+        background: #d4edda;
+        color: #155724;
+    }
+    
+    .status-failed {
+        background: #f8d7da;
+        color: #721c24;
+    }
+    
+    .status-blocked {
+        background: #fff3cd;
+        color: #856404;
+    }
+    
+    .quiz-actions {
+        margin-top: 20px;
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+    }
+    
+
+    
+    .btn-unlock {
+        background: #28a745;
+        color: white;
+        border: none;
+        padding: 8px 16px;
+        border-radius: 6px;
+        font-size: 0.9rem;
+        cursor: pointer;
+        transition: background-color 0.3s;
+    }
+    
+    .btn-unlock:hover {
+        background: #218838;
+    }
+    
+    .no-attempts {
+        text-align: center;
+        color: #6c757d;
+        font-style: italic;
+        padding: 40px;
+    }
+    
+    .alert-info {
+        background: #d1ecf1;
+        border: 1px solid #bee5eb;
+        color: #0c5460;
+        padding: 12px 16px;
+        border-radius: 8px;
+        margin-bottom: 20px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="quiz-attempts-container">
+    <!-- Навигация -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="h3 mb-0">
+            <i class="fas fa-clipboard-question me-2"></i>
+            Тесты пользователя
+        </h1>
+        <a href="{% url 'user_management:user_list' %}" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left me-2"></i>Вернуться к списку пользователей
+        </a>
+    </div>
+
+    <!-- Информация о пользователе -->
+    <div class="user-info-card">
+        <div class="row align-items-center">
+            <div class="col-md-2">
+                <img src="{{ target_user.profile.image.url }}" alt="avatar" 
+                     class="rounded-circle" style="width: 80px; height: 80px; object-fit: cover;">
+            </div>
+            <div class="col-md-10">
+                <h4 class="mb-1">{{ target_user.get_full_name|default:target_user.username }}</h4>
+                <p class="text-muted mb-1">{{ target_user.email }}</p>
+                <p class="mb-0">
+                    <strong>Группы:</strong> 
+                    {% for group in target_user.groups.all %}
+                        <span class="badge bg-primary me-1">{{ group.name }}</span>
+                    {% empty %}
+                        <span class="text-muted">Не назначены</span>
+                    {% endfor %}
+                </p>
+            </div>
+        </div>
+    </div>
+
+    {% if quiz_data %}
+        {% for quiz, data in quiz_data.items %}
+        <div class="quiz-card">
+            <div class="quiz-header">
+                <div class="d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">{{ quiz.name }}</h5>
+                    <div class="text-end">
+                        <small>ID: {{ quiz.id }}</small><br>
+                        <small>
+                            Лимит: {% if quiz.attempt_limit > 0 %}{{ quiz.attempt_limit }}{% else %}∞{% endif %} | 
+                            Проходной балл: {{ quiz.pass_threshold }}%
+                        </small>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="quiz-body">
+                <!-- Статистика -->
+                <div class="quiz-stats">
+                    <div class="stat-item">
+                        <div class="stat-value">{{ data.total_attempts }}</div>
+                        <div class="stat-label">Всего попыток</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value">{{ data.passed_attempts }}</div>
+                        <div class="stat-label">Успешных</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value">{{ data.failed_attempts }}</div>
+                        <div class="stat-label">Неуспешных {% if quiz.attempt_limit > 0 %}(из {{ quiz.attempt_limit }}){% endif %}</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value">
+                            {% if data.best_score %}{{ data.best_score }}%{% else %}—{% endif %}
+                        </div>
+                        <div class="stat-label">Лучший результат</div>
+                    </div>
+                </div>
+
+                <!-- Статус доступа -->
+                <div class="alert-info">
+                    <strong>Статус доступа:</strong>
+                    {% if data.is_blocked %}
+                        <span class="status-badge status-blocked">
+                            <i class="fas fa-lock me-1"></i>Заблокирован (превышен лимит неуспешных попыток)
+                        </span>
+                    {% else %}
+                        <span class="status-badge status-passed">
+                            <i class="fas fa-unlock me-1"></i>Доступен
+                        </span>
+                    {% endif %}
+                </div>
+
+                <!-- Таблица попыток -->
+                {% if data.attempts %}
+                <table class="attempts-table">
+                    <thead>
+                        <tr>
+                            <th>№</th>
+                            <th>Дата</th>
+                            <th>Результат</th>
+                            <th>Статус</th>
+                            <th>Действия</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for attempt in data.attempts %}
+                        <tr>
+                            <td>{{ attempt.attempt_number }}</td>
+                            <td>{{ attempt.started_at|date:"d.m.Y H:i" }}</td>
+                            <td>
+                                {{ attempt.result.score }}/{{ attempt.result.total_questions }} 
+                                ({{ attempt.result.percent }}%)
+                            </td>
+                            <td>
+                                {% if attempt.result.passed %}
+                                    <span class="status-badge status-passed">Пройден</span>
+                                {% else %}
+                                    <span class="status-badge status-failed">Не пройден</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <a href="{% url 'user_management:user_quiz_report' attempt.result.id %}" 
+                                   class="btn btn-sm btn-outline-primary" title="Посмотреть отчет">
+                                    <i class="fas fa-file-alt me-1"></i>Отчет
+                                </a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                {% else %}
+                <div class="no-attempts">
+                    <i class="fas fa-info-circle me-2"></i>
+                    Пользователь еще не проходил этот тест
+                </div>
+                {% endif %}
+
+                <!-- Действия -->
+                <div class="quiz-actions">
+                    {% if data.is_blocked %}
+                    <form method="post" action="{% url 'user_management:unlock_quiz_access' target_user.pk quiz.pk %}" style="display: inline;">
+                        {% csrf_token %}
+                        <button type="submit" class="btn-unlock" onclick="return confirm('Разблокировать доступ к тесту? Пользователь сможет пройти еще одну попытку.')">
+                            <i class="fas fa-unlock me-1"></i>Разблокировать
+                        </button>
+                    </form>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    {% else %}
+    <div class="card">
+        <div class="card-body text-center py-5">
+            <i class="fas fa-clipboard-question fa-3x text-muted mb-3"></i>
+            <h5 class="text-muted">Нет данных о тестах</h5>
+            <p class="text-muted">Пользователь еще не проходил ни одного теста</p>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
