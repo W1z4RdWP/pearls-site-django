@@ -31,6 +31,14 @@
                     <div class="quiz-info">
                         <h5 class="card-title mb-1">{{ topic.name }}</h5>
                         <p class="text-muted mb-2">{{ topic.questions_count }} вопросов</p>
+                        <p class="text-muted mb-1">
+                            <i class="fas fa-redo-alt"></i> 
+                            Лимит попыток: {% if topic.attempt_limit > 0 %}{{ topic.attempt_limit }}{% else %}∞{% endif %}
+                        </p>
+                        <p class="text-muted mb-2">
+                            <i class="fas fa-percentage"></i> 
+                            Проходной балл: {{ topic.pass_threshold }}%
+                        </p>
                         <small class="text-secondary">ID: {{ topic.id }}</small>
                     </div>
                     <div class="quiz-actions">
@@ -78,6 +86,25 @@
                         <label for="quizName" class="form-label">Название теста</label>
                         <input type="text" class="form-control" id="quizName" name="name" required>
                     </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="attemptLimit" class="form-label">Ограничение попыток</label>
+                                <input type="number" class="form-control" id="attemptLimit" name="attempt_limit" 
+                                       value="0" min="0" placeholder="0 = без ограничений">
+                                <div class="form-text">0 означает неограниченное количество попыток</div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="passThreshold" class="form-label">Проходной балл (%)</label>
+                                <input type="number" class="form-control" id="passThreshold" name="pass_threshold" 
+                                       value="70" min="1" max="100" required>
+                            </div>
+                        </div>
+                    </div>
+                    
                     <div id="questionsContainer">
                         <h6>Вопросы</h6>
                         <div class="alert alert-info">

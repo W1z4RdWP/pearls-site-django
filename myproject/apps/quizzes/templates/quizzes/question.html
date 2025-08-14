@@ -20,6 +20,16 @@
         </div>
     </div>
 
+    {% if attempts_info.max_attempts %}
+    <div class="alert alert-info mb-4">
+        <i class="fas fa-info-circle"></i> 
+        Попытка {{ attempts_info.current_attempts }} из {{ attempts_info.max_attempts }}
+        {% if attempts_info.attempts_left > 0 %}
+            (осталось: {{ attempts_info.attempts_left }})
+        {% endif %}
+    </div>
+    {% endif %}
+
     <div class="card shadow">
         <div class="card-header bg-primary text-white">
             <h3 class="mb-0">{{ question.text }}</h3>

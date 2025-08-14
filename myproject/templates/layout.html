@@ -210,7 +210,7 @@
     </main>
 
     {% if user.is_authenticated %}
-      <a href="{% url 'tech_support:support_chat' %}" class="support-chat-button" title="Чат поддержки">
+      <a href="{% url 'tech_support:support_chat' %}" class="support-chat-button" title="Служба поддержки">
         <div class="pulse"></div>
         <i class="fas fa-question"></i>
         {% if request.user.is_staff %}

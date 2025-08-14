@@ -62,7 +62,19 @@ function initializeMainPageHandlers() {
                     'X-Requested-With': 'XMLHttpRequest',
                 },
             })
-            .then(response => response.json())
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                return response.text().then(text => {
+                    try {
+                        return JSON.parse(text);
+                    } catch (e) {
+                        console.error('Не JSON ответ:', text);
+                        throw new Error('Сервер вернул некорректный ответ');
+                    }
+                });
+            })
             .then(data => {
                 if (data.success) {
                     location.reload();
@@ -71,7 +83,7 @@ function initializeMainPageHandlers() {
                 }
             })
             .catch(error => {
-                alert('Произошла ошибка при создании теста');
+                alert('Произошла ошибка при создании теста: ' + error.message);
                 console.error('Error:', error);
             })
             .finally(() => {
@@ -116,7 +128,12 @@ function initializeEditPageHandlers() {
                 'X-Requested-With': 'XMLHttpRequest',
             },
         })
-        .then(response => response.json())
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
+            return response.json();
+        })
         .then(data => {
             if (data.success) {
                 alert('Тест успешно обновлен!');
@@ -126,7 +143,7 @@ function initializeEditPageHandlers() {
             }
         })
         .catch(error => {
-            alert('Произошла ошибка при сохранении теста');
+            alert('Произошла ошибка при сохранении теста: ' + error.message);
             console.error('Error:', error);
         })
         .finally(() => {
@@ -172,7 +189,7 @@ function addQuestion() {
                 <input type="text" class="form-control" name="questions[${questionCounter}][answers][1][text]" 
                        placeholder="Текст ответа" required>
                 <div class="form-check">
-                    <input type="checkbox" class="form-check-input" name="questions[${questionCounter}][answers][1][correct]">
+                    <input type="radio" class="form-check-input" name="questions[${questionCounter}][correct_answer]" value="1">
                     <label class="form-check-label">Правильный</label>
                 </div>
                 <button type="button" class="remove-btn ms-2" onclick="removeAnswer(this)">
@@ -206,12 +223,25 @@ function addAnswer(button) {
     const questionId = questionBlock.dataset.questionId;
     const answerCount = answersContainer.querySelectorAll('.answer-item').length + 1;
     
+    // Определяем тип вопроса
+    const questionType = questionBlock.querySelector('select[name*="[type]"]').value;
+    
+    let correctAnswerField = '';
+    if (questionType === 'single') {
+        correctAnswerField = `<input type="radio" class="form-check-input" name="questions[${questionId}][correct_answer]" value="${answerCount}">`;
+    } else {
+        correctAnswerField = `<input type="checkbox" class="form-check-input" name="questions[${questionId}][answers][${answerCount}][correct]">`;
+    }
+    
+    // Проверяем нужен ли required (только для не-текстовых вопросов)
+    const isRequired = questionType !== 'text' ? 'required' : '';
+    
     const answerHtml = `
     <div class="answer-item">
         <input type="text" class="form-control" name="questions[${questionId}][answers][${answerCount}][text]" 
-               placeholder="Текст ответа" required>
+               placeholder="Текст ответа" ${isRequired}>
         <div class="form-check">
-            <input type="checkbox" class="form-check-input" name="questions[${questionId}][answers][${answerCount}][correct]">
+            ${correctAnswerField}
             <label class="form-check-label">Правильный</label>
         </div>
         <button type="button" class="remove-btn ms-2" onclick="removeAnswer(this)">
@@ -234,13 +264,36 @@ function removeAnswer(button) {
 }
 
 function toggleAnswers(select) {
-    const answersContainer = select.closest('.question-block').querySelector('.answers-container');
+    const questionBlock = select.closest('.question-block');
+    const answersContainer = questionBlock.querySelector('.answers-container');
+    const questionId = questionBlock.dataset.questionId;
+    
     if (select.value === 'text') {
         answersContainer.style.display = 'none';
-        answersContainer.querySelectorAll('input[required]').forEach(input => input.required = false);
+        // Убираем required с полей ответов для текстовых вопросов
+        answersContainer.querySelectorAll('input[type="text"]').forEach(input => input.required = false);
     } else {
         answersContainer.style.display = 'block';
+        // Добавляем required для полей ответов
         answersContainer.querySelectorAll('input[type="text"]').forEach(input => input.required = true);
+        
+        // Конвертируем поля правильности ответов при смене типа
+        const answerItems = answersContainer.querySelectorAll('.answer-item');
+        answerItems.forEach((item, index) => {
+            const formCheck = item.querySelector('.form-check');
+            const answerNumber = index + 1;
+            
+            let newInput = '';
+            if (select.value === 'single') {
+                // Меняем на радиокнопки
+                newInput = `<input type="radio" class="form-check-input" name="questions[${questionId}][correct_answer]" value="${answerNumber}">`;
+            } else {
+                // Меняем на чекбоксы
+                newInput = `<input type="checkbox" class="form-check-input" name="questions[${questionId}][answers][${answerNumber}][correct]">`;
+            }
+            
+            formCheck.innerHTML = newInput + '<label class="form-check-label">Правильный</label>';
+        });
     }
 }
 
@@ -316,8 +369,12 @@ function validateQuizForm(form) {
             for (let answer of answers) {
                 if (answer.value.trim()) {
                     hasAnswerText = true;
+                    
+                    // Проверяем правильность ответа (чекбокс или радиокнопка)
                     const checkbox = answer.closest('.answer-item').querySelector('input[type="checkbox"]');
-                    if (checkbox.checked) {
+                    const radio = answer.closest('.answer-item').querySelector('input[type="radio"]');
+                    
+                    if ((checkbox && checkbox.checked) || (radio && radio.checked)) {
                         hasCorrectAnswer = true;
                     }
                 }
