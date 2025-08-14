@@ -4,6 +4,7 @@
 {% block specific_styles %}
 <link rel="stylesheet" href="{% static 'quizzes/css/quiz_styles.css' %}">
 <link rel="stylesheet" href="{% static 'quizzes/css/quiz_control_panel.css' %}">
+<script src="{% static 'quizzes/js/quiz_control_panel.js' %}" defer></script>
 {% endblock %}
 
 {% block content %}
@@ -116,8 +117,4 @@
     </div>
 </div>
 
-{% endblock %}
-
-{% block extra_js %}
-<script src="{% static 'quizzes/js/quiz_control_panel.js' %}"></script>
 {% endblock %}

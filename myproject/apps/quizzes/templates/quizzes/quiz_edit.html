@@ -5,6 +5,8 @@
 {% block specific_styles %}
 <link rel="stylesheet" href="{% static 'quizzes/css/quiz_styles.css' %}">
 <link rel="stylesheet" href="{% static 'quizzes/css/quiz_control_panel.css' %}">
+<script src="{% static 'quizzes/js/quiz_control_panel.js' %}" defer></script>
+
 {% endblock %}
 
 {% block content %}
@@ -140,12 +142,12 @@
     </form>
 </div>
 
+<script>
+    // Передаем количество вопросов в JavaScript
+    window.initialQuestionCounter = {{ questions.count|default:0 }};
+</script>
+
 {% endblock %}
 
-{% block extra_js %}
-<script>
-// Передаем количество вопросов в JavaScript
-window.initialQuestionCounter = {{ questions.count|default:0 }};
-</script>
-<script src="{% static 'quizzes/js/quiz_control_panel.js' %}"></script>
-{% endblock %}
+
+
