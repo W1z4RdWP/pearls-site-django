@@ -384,6 +384,7 @@ body.theme-dark {
     font-size: 1rem;
     line-height: 1.5;
     overflow: auto;
+    min-height: 70vh;
 }
 .lesson-content a {
     color: #0d6efd;
