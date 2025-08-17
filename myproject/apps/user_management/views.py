@@ -677,7 +677,23 @@ class UserQuizAttemptsView(DetailView):
         user = self.get_object()
         
         # Получаем все тесты
-        quizzes = Quiz.objects.all().order_by('name')
+        # quizzes = Quiz.objects.all().order_by('name') # TODO: Фильтровать по доступности
+        
+        # Получаем все курсы, доступные пользователю
+        available_courses = Course.objects.available_for_user(user)
+
+        # Собираем тесты из доступных курсов
+        quizzes = set()
+        for course in available_courses:
+            if course.final_quiz:
+                quizzes.add(course.final_quiz)
+        
+        # Добавляем тесты, которые напрямую доступны пользователю (если есть такая логика)
+        # На данный момент считаем, что все тесты привязаны к курсам или доступны глобально.
+        # Если в будущем появится логика для отдельно доступных тестов, нужно добавить ее сюда.
+        # Пример: quizzes.update(Quiz.objects.filter(is_globally_available=True))
+
+        quizzes = sorted(list(quizzes), key=lambda q: q.name) # Сортируем для единообразия
         
         quiz_data = {}
         for quiz in quizzes:

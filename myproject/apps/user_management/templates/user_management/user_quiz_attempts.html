@@ -18,6 +18,13 @@
         padding: 20px;
         margin-bottom: 30px;
         border: 1px solid #dee2e6;
+        position: relative; /* Добавляем для позиционирования дочерних элементов */
+    }
+    
+    .admin-badge-position {
+        position: absolute;
+        top: 15px;
+        right: 20px;
     }
     
     .quiz-card {
@@ -170,7 +177,7 @@
                      class="rounded-circle" style="width: 80px; height: 80px; object-fit: cover;">
             </div>
             <div class="col-md-10">
-                <h4 class="mb-1">{{ target_user.get_full_name|default:target_user.username }}</h4>
+                <h4 class="mb-1">{{ target_user.get_full_name|default:target_user.username }} {% if target_user.profile.middle_name %}({{ target_user.last_name|slice:":1" }}{{ target_user.first_name|slice:":1" }}{{ target_user.profile.middle_name|slice:":1" }}) {% endif %}</h4>
                 <p class="text-muted mb-1">{{ target_user.email }}</p>
                 <p class="mb-0">
                     <strong>Группы:</strong> 
@@ -180,6 +187,9 @@
                         <span class="text-muted">Не назначены</span>
                     {% endfor %}
                 </p>
+                {% if target_user.is_staff or target_user.is_superuser %}
+                    <span class="badge bg-warning text-dark me-1 admin-badge-position"><i class="fas fa-user-shield me-1"></i>Администратор УЦ</span>
+                {% endif %}
             </div>
         </div>
     </div>
