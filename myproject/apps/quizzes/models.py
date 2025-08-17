@@ -16,6 +16,7 @@ class Quiz(models.Model):
   def __str__(self):
     return f"{self.name}" # Так будет отображаться в админ панели
 
+
 class Question(models.Model):
   SINGLE = 'single'
   MULTIPLE = 'multiple'
@@ -43,6 +44,7 @@ class Question(models.Model):
 
   def __str__(self):
     return f"Вопрос {self.text} из теста: {self.quiz}"
+
 
 class Answer(models.Model):
   question = models.ForeignKey(Question, on_delete=models.CASCADE)
