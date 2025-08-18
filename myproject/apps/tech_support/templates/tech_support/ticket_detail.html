@@ -102,6 +102,30 @@
 <div class="container-fluid py-4">
     <!-- Заголовок тикета -->
     <div class="ticket-header">
+        <div class="d-flex gap-2 justify-content-end">
+            {% if is_staff_view %}
+                {% if not is_closed and not ticket.assigned_to %}
+                    <form method="post" action="{% url 'tech_support:ticket_take' ticket.pk %}">
+                        {% csrf_token %}
+                        <button class="btn btn-primary btn-sm shadow-sm" type="submit">
+                            Взять в работу
+                        </button>
+                    </form>
+                {% endif %}
+                {% if not is_closed %}
+                    <form method="post" action="{% url 'tech_support:ticket_close' ticket.pk %}">
+                        {% csrf_token %}
+                        <button class="btn btn-danger btn-sm shadow-sm" type="submit">
+                            Закрыть тикет
+                        </button>
+                    </form>
+                {% endif %}
+            {% endif %}
+
+            <a href="{% url 'tech_support:ticket_list_entry' %}" class="btn btn-light text-dark shadow-sm">
+                <i class="fas fa-arrow-left me-2"></i>Назад к списку
+            </a>
+        </div>
         <div class="row align-items-center">
             <div class="col-md-8">
                 <h1 class="h3 mb-2">
@@ -109,6 +133,7 @@
                     {{ ticket.ticket_number }}
                 </h1>
                 <h2 class="h4 mb-3">{{ ticket.title }}</h2>
+                
                 <div class="d-flex align-items-center flex-wrap">
                     <span class="status-badge me-2" style="background-color: {{ ticket.status.color }}; color: white;">
                         {{ ticket.status.name }}
@@ -125,12 +150,8 @@
                     </span>
                     {% endif %}
                 </div>
-            </div>
-            <div class="col-md-4 text-end">
-                <a href="{% url 'tech_support:ticket_list_entry' %}" class="btn btn-outline-light">
-                    <i class="fas fa-arrow-left me-2"></i>Назад к списку
-                </a>
-            </div>
+            </div> 
+            
         </div>
     </div>
 

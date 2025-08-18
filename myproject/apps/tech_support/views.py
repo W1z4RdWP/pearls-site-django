@@ -251,7 +251,13 @@ class TakeTicketView(View):
             messages.error(request, 'Тикет уже взят другим сотрудником')
             return redirect('tech_support:ticket_detail', pk=pk)
         ticket.assigned_to = request.user
-        ticket.save(update_fields=['assigned_to'])
+        update_fields = ['assigned_to']
+        # Пытаемся установить статус "В работе" при взятии тикета
+        in_progress_status = TicketStatus.objects.filter(name__iexact='В работе', is_active=True).first()
+        if in_progress_status and ticket.status_id != in_progress_status.id:
+            ticket.status = in_progress_status
+            update_fields.append('status')
+        ticket.save(update_fields=update_fields)
         messages.success(request, 'Тикет принят в работу')
         return redirect('tech_support:ticket_detail', pk=pk)
 
