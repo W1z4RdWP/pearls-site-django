@@ -149,7 +149,7 @@
 
     <div class="row">
         <!-- Основная информация -->
-        <div class="col-lg-8">
+        <div class="col-lg-12">
             <div class="ticket-info">
                 <h4 class="mb-3">
                     <i class="fas fa-info-circle me-2"></i>
@@ -258,11 +258,13 @@
                 {% else %}
                     <p class="text-muted">Пока нет комментариев</p>
                 {% endif %}
+                
+            
 
                 <!-- Форма добавления комментария -->
                 <hr class="my-4">
                 <h5>Добавить комментарий</h5>
-                <form method="post">
+                <form method="post" action="{% url 'tech_support:ticket_comment' ticket.pk %}">
                     {% csrf_token %}
                     <div class="mb-3">
                         {{ comment_form.content }}
@@ -284,12 +286,63 @@
                         </div>
                     </div>
                     {% endif %}
-                    <button type="submit" name="add_comment" class="btn btn-primary">
-                        <i class="fas fa-paper-plane me-2"></i>Отправить комментарий
-                    </button>
+                    {% if can_comment %}
+                        <button type="submit" name="add_comment" class="btn btn-primary">
+                            <i class="fas fa-paper-plane me-2"></i>Отправить комментарий
+                        </button>
+                    {% else %}
+                        <div class="text-muted">Тикет закрыт. Комментирование недоступно.</div>
+                    {% endif %}
                 </form>
             </div>
         </div>
+
+        {% if is_staff_view %}
+            <div class="row g-3">
+                <div class="col-md-12">
+                    <div class="card h-100">
+                        <div class="card-header">Параметры тикета</div>
+                        <div class="card-body">
+                            <form method="post" action="{% url 'tech_support:ticket_update' ticket.pk %}">
+                                {% csrf_token %}
+                                <div class="mb-2">
+                                    <label class="form-label">Заголовок</label>
+                                    {{ update_form.title }}
+                                </div>
+                                <div class="row g-2">
+                                    <div class="col-md-6">
+                                        <label class="form-label">Статус</label>
+                                        {{ update_form.status }}
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label">Приоритет</label>
+                                        {{ update_form.priority }}
+                                    </div>
+                                </div>
+                                <div class="row g-2 mt-1">
+                                    <div class="col-md-6">
+                                        <label class="form-label">Категория</label>
+                                        {{ update_form.category }}
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label">Дедлайн</label>
+                                        {{ update_form.deadline }}
+                                    </div>
+                                </div>
+                                <div class="mt-2">
+                                    <label class="form-label">Ответственный</label>
+                                    {{ update_form.assigned_to }}
+                                </div>
+                                <div class="text-end mt-3">
+                                    <button class="btn btn-outline-primary btn-sm" type="submit">Сохранить</button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
 
         <!-- Боковая панель -->
         <div class="col-lg-4">
