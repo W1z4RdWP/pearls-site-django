@@ -58,9 +58,9 @@ class TicketCommentForm(forms.ModelForm):
 
 class TicketStaffUpdateForm(forms.ModelForm):
     assigned_to = forms.ModelChoiceField(
-        queryset=User.objects.none(),
+        queryset=User.objects.filter(is_staff=True),
         required=False,
-        widget=forms.Select(attrs={'class': 'form-select'})
+        widget=forms.Select(attrs={'class': 'form-select'}),
     )
 
     class Meta:
@@ -76,4 +76,5 @@ class TicketStaffUpdateForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.fields['assigned_to'].queryset = User.objects.filter(is_staff=True) 
+        self.fields['assigned_to'].label_from_instance = \
+            lambda obj: f"{obj.get_full_name() or obj.username} ({obj.profile.role.name if hasattr(obj, 'profile') and obj.profile and obj.profile.role else 'Без должности'})" 
