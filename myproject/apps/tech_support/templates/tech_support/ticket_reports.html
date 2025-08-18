@@ -1,0 +1,266 @@
+{% extends 'layout.html' %}
+{% load static %}
+{% load tech_support_extras %}
+
+{% block title %}Отчеты по тикетам - УЦ «Территория Улыбки»{% endblock %}
+
+{% block specific_styles %}
+<style>
+    .report-card {
+        background: white;
+        border-radius: 15px;
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+    .stats-number {
+        font-size: 2rem;
+        font-weight: bold;
+        color: #007bff;
+    }
+    .performer-card {
+        border: 1px solid #e9ecef;
+        border-radius: 10px;
+        padding: 1rem;
+        margin-bottom: 1rem;
+        transition: all 0.3s ease;
+    }
+    .performer-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    }
+    .rating-stars {
+        color: #ffc107;
+    }
+    .period-selector {
+        background: #f8f9fa;
+        border-radius: 10px;
+        padding: 1rem;
+        margin-bottom: 1.5rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h1 class="h3 mb-0">
+                    <i class="fas fa-chart-bar me-2"></i>
+                    Отчеты по тикетам
+                </h1>
+                <div>
+                    <a href="{% url 'tech_support:staff_dashboard' %}" class="btn btn-outline-primary me-2">
+                        <i class="fas fa-tachometer-alt me-2"></i>Дашборд
+                    </a>
+                    <a href="{% url 'tech_support:ticket_list_staff' %}" class="btn btn-outline-secondary">
+                        <i class="fas fa-list me-2"></i>Тикеты
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Выбор периода -->
+    <div class="period-selector">
+        <h5 class="mb-3">
+            <i class="fas fa-calendar me-2"></i>
+            Выберите период для отчета
+        </h5>
+        <div class="btn-group" role="group">
+            <a href="?period=week" class="btn btn-outline-primary {% if period == 'week' %}active{% endif %}">
+                <i class="fas fa-calendar-week me-1"></i>Неделя
+            </a>
+            <a href="?period=month" class="btn btn-outline-primary {% if period == 'month' %}active{% endif %}">
+                <i class="fas fa-calendar-alt me-1"></i>Месяц
+            </a>
+            <a href="?period=year" class="btn btn-outline-primary {% if period == 'year' %}active{% endif %}">
+                <i class="fas fa-calendar me-1"></i>Год
+            </a>
+        </div>
+    </div>
+
+    <!-- Общая статистика -->
+    <div class="row">
+        <div class="col-md-3">
+            <div class="report-card text-center">
+                <i class="fas fa-ticket-alt fa-2x text-primary mb-2"></i>
+                <div class="stats-number">{{ total_resolved }}</div>
+                <div class="text-muted">Решенных тикетов</div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="report-card text-center">
+                <i class="fas fa-clock fa-2x text-warning mb-2"></i>
+                <div class="stats-number">{{ avg_resolution_time }}</div>
+                <div class="text-muted">Среднее время решения (часы)</div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="report-card text-center">
+                <i class="fas fa-users fa-2x text-success mb-2"></i>
+                <div class="stats-number">{{ performer_stats|length }}</div>
+                <div class="text-muted">Активных исполнителей</div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="report-card text-center">
+                <i class="fas fa-star fa-2x text-warning mb-2"></i>
+                <div class="stats-number">4.2</div>
+                <div class="text-muted">Средняя оценка</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Статистика по исполнителям -->
+    <div class="row">
+        <div class="col-12">
+            <div class="report-card">
+                <h5 class="mb-3">
+                    <i class="fas fa-users me-2"></i>
+                    Статистика по исполнителям
+                </h5>
+                {% if performer_stats %}
+                    <div class="row">
+                        {% for performer in performer_stats %}
+                        <div class="col-md-6 col-lg-4">
+                            <div class="performer-card">
+                                <div class="d-flex justify-content-between align-items-start mb-2">
+                                    <h6 class="mb-0">{{ performer.assigned_to__username }}</h6>
+                                    <span class="badge bg-primary">{{ performer.total }} тикетов</span>
+                                </div>
+                                <div class="row text-center">
+                                    <div class="col-4">
+                                        <div class="h5 text-success mb-0">{{ performer.resolved }}</div>
+                                        <small class="text-muted">Решено</small>
+                                    </div>
+                                    <div class="col-4">
+                                        <div class="h5 text-warning mb-0">
+                                            {% if performer.avg_rating %}
+                                                {{ performer.avg_rating|floatformat:1 }}
+                                            {% else %}
+                                                -
+                                            {% endif %}
+                                        </div>
+                                        <small class="text-muted">Оценка</small>
+                                    </div>
+                                    <div class="col-4">
+                                                                            <div class="h5 text-info mb-0">
+                                        {% if performer.total > 0 %}
+                                            {% widthratio performer.resolved performer.total 100 %}%
+                                        {% else %}
+                                            0%
+                                        {% endif %}
+                                    </div>
+                                        <small class="text-muted">Успешность</small>
+                                    </div>
+                                </div>
+                                {% if performer.avg_rating %}
+                                <div class="rating-stars mt-2">
+                                    {% for i in "12345" %}
+                                        {% if forloop.counter <= performer.avg_rating|floatformat:0 %}
+                                            <i class="fas fa-star"></i>
+                                        {% else %}
+                                            <i class="far fa-star"></i>
+                                        {% endif %}
+                                    {% endfor %}
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <p class="text-muted">Нет данных для отображения</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Статистика по периодам -->
+    <div class="row">
+        <div class="col-12">
+            <div class="report-card">
+                <h5 class="mb-3">
+                    <i class="fas fa-chart-line me-2"></i>
+                    Динамика тикетов по дням
+                </h5>
+                {% if tickets_by_period %}
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Дата</th>
+                                    <th>Количество тикетов</th>
+                                    <th>Процент от общего</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for day in tickets_by_period %}
+                                <tr>
+                                    <td>{{ day.day }}</td>
+                                    <td>
+                                        <div class="d-flex align-items-center">
+                                            <div class="progress flex-grow-1 me-2" style="height: 20px;">
+                                                <div class="progress-bar" role="progressbar" 
+                                                     style="width: {% widthratio day.count total_resolved 100 %}%">
+                                                </div>
+                                            </div>
+                                            <span class="badge bg-primary">{{ day.count }}</span>
+                                        </div>
+                                    </td>
+                                    <td>{% widthratio day.count total_resolved 100 %}%</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <p class="text-muted">Нет данных для отображения</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Рекомендации -->
+    <div class="row">
+        <div class="col-12">
+            <div class="report-card">
+                <h5 class="mb-3">
+                    <i class="fas fa-lightbulb me-2"></i>
+                    Рекомендации по улучшению
+                </h5>
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="alert alert-info">
+                            <h6><i class="fas fa-clock me-2"></i>Время ответа</h6>
+                            <p class="mb-0">
+                                Среднее время решения: <strong>{{ avg_resolution_time }} часов</strong><br>
+                                {% if avg_resolution_time > 24 %}
+                                    <span class="text-warning">Рекомендуется улучшить время ответа</span>
+                                {% else %}
+                                    <span class="text-success">Время ответа в норме</span>
+                                {% endif %}
+                            </p>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="alert alert-success">
+                            <h6><i class="fas fa-users me-2"></i>Исполнители</h6>
+                            <p class="mb-0">
+                                Активных исполнителей: <strong>{{ performer_stats|length }}</strong><br>
+                                {% if performer_stats|length < 3 %}
+                                    <span class="text-warning">Рекомендуется увеличить количество исполнителей</span>
+                                {% else %}
+                                    <span class="text-success">Достаточно исполнителей</span>
+                                {% endif %}
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,9 +1,11 @@
 from . import views
 from django.urls import path
+from .views import TicketReportsView, StaffDashboardView
 
 app_name = 'tech_support'
 
 urlpatterns = [
+    path('dashboard/', StaffDashboardView.as_view(), name='staff_dashboard'),
     # Форма обращения (заменяет чат)
     path('chat/', views.TicketCreateView.as_view(), name='support_chat'),
 
@@ -25,4 +27,5 @@ urlpatterns = [
 
     # API: новые тикеты (для staff)
     path('api/new-tickets-count/', views.new_tickets_count, name='new_tickets_count'),
+    path('reports/', TicketReportsView.as_view(), name='ticket_reports'),
 ]
