@@ -1,0 +1,171 @@
+{% extends 'layout.html' %}
+
+{% block title %}Тикет {{ ticket.ticket_number }} - {{ ticket.title }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row justify-content-center">
+        <div class="col-lg-10">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h1 class="h4 mb-0">
+                    <i class="fas fa-ticket-alt me-2"></i>
+                    {{ ticket.ticket_number }} — {{ ticket.title }}
+                </h1>
+                <div class="d-flex gap-2">
+                    {% if is_staff_view %}
+                        {% if not is_closed and not ticket.assigned_to %}
+                            <form method="post" action="{% url 'tech_support:ticket_take' ticket.pk %}">
+                                {% csrf_token %}
+                                <button class="btn btn-outline-primary btn-sm" type="submit">
+                                    Взять в работу
+                                </button>
+                            </form>
+                        {% endif %}
+                        {% if not is_closed %}
+                            <form method="post" action="{% url 'tech_support:ticket_close' ticket.pk %}">
+                                {% csrf_token %}
+                                <button class="btn btn-outline-danger btn-sm" type="submit">
+                                    Закрыть тикет
+                                </button>
+                            </form>
+                        {% endif %}
+                    {% endif %}
+                    <a href="{% url 'tech_support:support_chat' %}" class="btn btn-outline-secondary btn-sm">
+                        Новый тикет
+                    </a>
+                </div>
+            </div>
+
+            <div class="card mb-3">
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-md-3">
+                            <div class="text-muted small">Статус</div>
+                            <div class="fw-semibold">{{ ticket.status.name }}</div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="text-muted small">Приоритет</div>
+                            <div>
+                                <span class="badge" style="background: {{ ticket.priority.color }}">{{ ticket.priority.name }}</span>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="text-muted small">Категория</div>
+                            <div>{{ ticket.category.name }}</div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="text-muted small">Создан</div>
+                            <div>{{ ticket.created_at|date:"d.m.Y H:i" }}</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card mb-3">
+                <div class="card-header">Описание</div>
+                <div class="card-body">
+                    <div>{{ ticket.description|linebreaks }}</div>
+                </div>
+            </div>
+
+            {% if comments %}
+            <div class="card mb-3">
+                <div class="card-header">Обратная связь</div>
+                <div class="card-body">
+                    <div class="list-group list-group-flush">
+                        {% for c in comments %}
+                            <div class="list-group-item">
+                                <div class="d-flex justify-content-between">
+                                    <div class="fw-semibold">{{ c.author.get_full_name|default:c.author.username }}</div>
+                                    <div class="text-muted small">{{ c.created_at|date:"d.m.Y H:i" }}</div>
+                                </div>
+                                <div class="mt-1">{{ c.content|linebreaks }}</div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
+            {% if can_comment and not is_staff_view %}
+            <div class="card mb-3">
+                <div class="card-header">Ваш ответ</div>
+                <div class="card-body">
+                    <form method="post" action="{% url 'tech_support:ticket_comment' ticket.pk %}">
+                        {% csrf_token %}
+                        {{ comment_form.content }}
+                        <div class="text-end mt-2">
+                            <button class="btn btn-primary btn-sm" type="submit">Отправить</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            {% endif %}
+
+            {% if is_staff_view %}
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <div class="card h-100">
+                        <div class="card-header">Ответ пользователю</div>
+                        <div class="card-body">
+                            {% if can_comment %}
+                            <form method="post" action="{% url 'tech_support:ticket_comment' ticket.pk %}">
+                                {% csrf_token %}
+                                {{ comment_form.content }}
+                                <div class="text-end mt-2">
+                                    <button class="btn btn-primary btn-sm" type="submit">Отправить</button>
+                                </div>
+                            </form>
+                            {% else %}
+                            <div class="text-muted">Тикет закрыт. Комментирование недоступно.</div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="card h-100">
+                        <div class="card-header">Параметры тикета</div>
+                        <div class="card-body">
+                            <form method="post" action="{% url 'tech_support:ticket_update' ticket.pk %}">
+                                {% csrf_token %}
+                                <div class="mb-2">
+                                    <label class="form-label">Заголовок</label>
+                                    {{ update_form.title }}
+                                </div>
+                                <div class="row g-2">
+                                    <div class="col-md-6">
+                                        <label class="form-label">Статус</label>
+                                        {{ update_form.status }}
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label">Приоритет</label>
+                                        {{ update_form.priority }}
+                                    </div>
+                                </div>
+                                <div class="row g-2 mt-1">
+                                    <div class="col-md-6">
+                                        <label class="form-label">Категория</label>
+                                        {{ update_form.category }}
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label">Дедлайн</label>
+                                        {{ update_form.deadline }}
+                                    </div>
+                                </div>
+                                <div class="mt-2">
+                                    <label class="form-label">Ответственный</label>
+                                    {{ update_form.assigned_to }}
+                                </div>
+                                <div class="text-end mt-3">
+                                    <button class="btn btn-outline-primary btn-sm" type="submit">Сохранить</button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %} 

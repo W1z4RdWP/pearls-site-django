@@ -7,8 +7,10 @@ from django.utils import timezone
 from django.views.generic import CreateView, DetailView, ListView, View
 from django.http import JsonResponse
 from django.contrib.auth.decorators import login_required
+from django.db.models import Count, Avg, Q
+from datetime import timedelta
 
-from .forms import TicketCreateForm, TicketCommentForm, TicketStaffUpdateForm
+from .forms import TicketCreateForm, TicketCommentForm, TicketStaffUpdateForm, TicketRatingForm
 from .models import Ticket, TicketStatus, TicketComment
 
 
@@ -118,8 +120,148 @@ class TicketDetailView(DetailView):
             context['comment_form'] = TicketCommentForm()
         if is_staff_view:
             context['update_form'] = TicketStaffUpdateForm(instance=ticket)
+        if (user == ticket.created_by) and is_closed and not ticket.rating:
+            context['rating_form'] = TicketRatingForm(instance=ticket)
         context['comments'] = TicketComment.objects.filter(ticket=ticket).order_by('created_at')
         return context
+
+
+    def post(self, request, *args, **kwargs):
+        """
+        Отправка оценки автором тикета.
+        Доступно автору, когда тикет закрыт и ещё не оценён.
+        """
+        self.object = self.get_object()
+        ticket = self.object
+        user = request.user
+
+        if 'rate_ticket' not in request.POST:
+            return redirect('tech_support:ticket_detail', pk=ticket.pk)
+
+        is_closed = bool(ticket.status and not ticket.status.is_active)
+        if not (user == ticket.created_by and is_closed and not ticket.rating):
+            return render(request, '403.html', status=403)
+
+        form = TicketRatingForm(request.POST, instance=ticket)
+        if form.is_valid():
+            instance = form.save(commit=False)
+            instance.save(update_fields=['rating', 'student_feedback'])
+            messages.success(request, 'Спасибо! Ваша оценка отправлена.')
+        else:
+            messages.error(request, 'Исправьте ошибки формы оценки.')
+        return redirect('tech_support:ticket_detail', pk=ticket.pk)
+
+
+class TicketReportsView(LoginRequiredMixin, StaffRequiredMixin, View):
+    """
+    Представление для отображения отчетов по тикетам.
+    """
+    def test_func(self):
+        return self.request.user.is_staff or self.request.user.is_superuser
+
+    def get(self, request, *args, **kwargs):
+        period = request.GET.get('period', 'month')
+        if period == 'week':
+            start_date = timezone.now() - timedelta(days=7)
+        elif period == 'month':
+            start_date = timezone.now() - timedelta(days=30)
+        else:
+            start_date = timezone.now() - timedelta(days=365)
+
+        tickets_by_period = Ticket.objects.filter(
+            created_at__gte=start_date
+        ).extra(
+            select={'day': 'date(created_at)'}
+        ).values('day').annotate(count=Count('id')).order_by('day')
+
+        performer_stats = Ticket.objects.filter(
+            assigned_to__isnull=False,
+            created_at__gte=start_date
+        ).values(
+            'assigned_to__username'
+        ).annotate(
+            total=Count('id'),
+            resolved=Count('id', filter=Q(status__name='Решена')),
+            avg_rating=Avg('rating')
+        ).order_by('-total')
+
+        resolved_tickets = Ticket.objects.filter(
+            status__name='Решена',
+            resolved_at__isnull=False,
+            created_at__gte=start_date
+        )
+
+        avg_resolution_time = 0
+        if resolved_tickets.exists():
+            total_time = sum([
+                (ticket.resolved_at - ticket.created_at).total_seconds() / 3600
+                for ticket in resolved_tickets
+            ])
+            avg_resolution_time = total_time / resolved_tickets.count()
+
+        context = {
+            'period': period,
+            'tickets_by_period': tickets_by_period,
+            'performer_stats': performer_stats,
+            'avg_resolution_time': round(avg_resolution_time, 1),
+            'total_resolved': resolved_tickets.count(),
+        }
+        return render(request, 'tech_support/ticket_reports.html', context)
+
+
+
+class StaffDashboardView(LoginRequiredMixin, StaffRequiredMixin, View):
+    """
+    Представление для отображения дашборда для сотрудников поддержки.
+    """
+    def test_func(self):
+        return self.request.user.is_staff or self.request.user.is_superuser
+
+    def get(self, request, *args, **kwargs):
+        total_tickets = Ticket.objects.count()
+        active_tickets = Ticket.objects.filter(status__is_active=True).count()
+        resolved_tickets = Ticket.objects.filter(status__name='Решена').count()
+        overdue_tickets = Ticket.objects.filter(
+            status__is_active=True,
+            deadline__lt=timezone.now()
+        ).count()
+
+        priority_stats = Ticket.objects.filter(status__is_active=True).values(
+            'priority__name'
+        ).annotate(count=Count('id')).order_by('priority__level')
+
+        type_stats = Ticket.objects.values('ticket_type').annotate(
+            count=Count('id')
+        ).order_by('-count')
+
+        ticket_type_map = dict(Ticket.TICKET_TYPES)
+        for stat in type_stats:
+            stat['ticket_type_display'] = ticket_type_map.get(stat['ticket_type'], stat['ticket_type'])
+
+        avg_rating = Ticket.objects.filter(rating__isnull=False).aggregate(
+            avg_rating=Avg('rating')
+        )['avg_rating'] or 0
+
+        recent_tickets = Ticket.objects.order_by('-created_at')[:10]
+
+        overdue_tickets_list = Ticket.objects.filter(
+            status__is_active=True,
+            deadline__lt=timezone.now()
+        ).order_by('deadline')[:10]
+
+        context = {
+            'total_tickets': total_tickets,
+            'active_tickets': active_tickets,
+            'resolved_tickets': resolved_tickets,
+            'overdue_tickets': overdue_tickets,
+            'priority_stats': priority_stats,
+            'type_stats': type_stats,
+            'avg_rating': round(avg_rating, 1),
+            'recent_tickets': recent_tickets,
+            'overdue_tickets_list': overdue_tickets_list,
+        }
+        return render(request, 'tech_support/staff_dashboard.html', context)
+
 
 
 class TakeTicketView(View):
@@ -137,7 +279,13 @@ class TakeTicketView(View):
             messages.error(request, 'Тикет уже взят другим сотрудником')
             return redirect('tech_support:ticket_detail', pk=pk)
         ticket.assigned_to = request.user
-        ticket.save(update_fields=['assigned_to'])
+        update_fields = ['assigned_to']
+        # Пытаемся установить статус "В работе" при взятии тикета
+        in_progress_status = TicketStatus.objects.filter(name__iexact='В работе', is_active=True).first()
+        if in_progress_status and ticket.status_id != in_progress_status.id:
+            ticket.status = in_progress_status
+            update_fields.append('status')
+        ticket.save(update_fields=update_fields)
         messages.success(request, 'Тикет принят в работу')
         return redirect('tech_support:ticket_detail', pk=pk)
 
@@ -198,9 +346,26 @@ class UpdateTicketView(View):
 
     def post(self, request, pk):
         ticket = get_object_or_404(Ticket, pk=pk)
+        old_deadline = ticket.deadline
         form = TicketStaffUpdateForm(request.POST, instance=ticket)
         if form.is_valid():
+            new_deadline = form.cleaned_data.get('deadline')
             form.save()
+            if old_deadline != new_deadline:
+                def fmt(dt):
+                    if not dt:
+                        return 'не задан'
+                    try:
+                        return timezone.localtime(dt).strftime('%d.%m.%Y %H:%M')
+                    except Exception:
+                        return dt.strftime('%d.%m.%Y %H:%M')
+                full_name = request.user.get_full_name() or request.user.username
+                TicketComment.objects.create(
+                    ticket=ticket,
+                    author=request.user,
+                    content=f'{full_name} изменил дедлайн: {fmt(old_deadline)} -> {fmt(new_deadline)}',
+                    is_internal=True
+                )
             messages.success(request, 'Тикет обновлён')
         else:
             messages.error(request, 'Исправьте ошибки формы')

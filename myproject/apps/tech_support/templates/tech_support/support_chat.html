@@ -44,6 +44,11 @@
                     <i class="fas fa-life-ring me-2"></i>
                     Обращение в поддержку
                 </h1>
+                {% if user.is_staff %}
+                    <a href="{% url 'tech_support:staff_dashboard' %}" class="btn btn-outline-primary me-2">
+                        <i class="fas fa-tachometer-alt me-2"></i>Дашборд
+                    </a>
+                {% endif %}
                 <a href="{% url 'tech_support:ticket_list_entry' %}" class="btn btn-outline-secondary">
                     <i class="fas fa-ticket-alt me-2"></i>{% if user.is_staff %}Список тикетов{% else %}Мои тикеты{% endif %}
                 </a>
