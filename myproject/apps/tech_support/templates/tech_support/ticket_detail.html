@@ -298,16 +298,6 @@
                             </div>
                         {% endif %}
                     </div>
-                    {% if user.is_staff %}
-                    <div class="mb-3">
-                        <div class="form-check">
-                            {{ comment_form.is_internal }}
-                            <label class="form-check-label" for="{{ comment_form.is_internal.id_for_label }}">
-                                Внутренний комментарий (виден только сотрудникам)
-                            </label>
-                        </div>
-                    </div>
-                    {% endif %}
                     {% if can_comment %}
                         <button type="submit" name="add_comment" class="btn btn-primary">
                             <i class="fas fa-paper-plane me-2"></i>Отправить комментарий
@@ -393,7 +383,7 @@
             {% endif %}
 
             <!-- Оценка (только для создателя тикета) -->
-            {% if ticket.created_by == user and ticket.status.name == 'Решена' and not ticket.rating %}
+            {% if ticket.created_by == user and is_closed and not ticket.rating %}
             <div class="ticket-info">
                 <h5 class="mb-3">
                     <i class="fas fa-star me-2"></i>
@@ -421,7 +411,11 @@
             <div class="ticket-info">
                 <h5 class="mb-3">
                     <i class="fas fa-star me-2"></i>
-                    Ваша оценка
+                    {% if user == ticket.created_by %}
+                        Ваша оценка
+                    {% else %}
+                        {{ ticket.created_by.get_full_name|default:ticket.created_by.username }}
+                    {% endif %}
                 </h5>
                 <div class="rating-stars mb-2">
                     {% for i in "12345" %}

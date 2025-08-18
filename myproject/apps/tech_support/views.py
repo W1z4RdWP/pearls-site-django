@@ -10,7 +10,7 @@ from django.contrib.auth.decorators import login_required
 from django.db.models import Count, Avg, Q
 from datetime import timedelta
 
-from .forms import TicketCreateForm, TicketCommentForm, TicketStaffUpdateForm
+from .forms import TicketCreateForm, TicketCommentForm, TicketStaffUpdateForm, TicketRatingForm
 from .models import Ticket, TicketStatus, TicketComment
 
 
@@ -120,8 +120,36 @@ class TicketDetailView(DetailView):
             context['comment_form'] = TicketCommentForm()
         if is_staff_view:
             context['update_form'] = TicketStaffUpdateForm(instance=ticket)
+        if (user == ticket.created_by) and is_closed and not ticket.rating:
+            context['rating_form'] = TicketRatingForm(instance=ticket)
         context['comments'] = TicketComment.objects.filter(ticket=ticket).order_by('created_at')
         return context
+
+
+    def post(self, request, *args, **kwargs):
+        """
+        Отправка оценки автором тикета.
+        Доступно автору, когда тикет закрыт и ещё не оценён.
+        """
+        self.object = self.get_object()
+        ticket = self.object
+        user = request.user
+
+        if 'rate_ticket' not in request.POST:
+            return redirect('tech_support:ticket_detail', pk=ticket.pk)
+
+        is_closed = bool(ticket.status and not ticket.status.is_active)
+        if not (user == ticket.created_by and is_closed and not ticket.rating):
+            return render(request, '403.html', status=403)
+
+        form = TicketRatingForm(request.POST, instance=ticket)
+        if form.is_valid():
+            instance = form.save(commit=False)
+            instance.save(update_fields=['rating', 'student_feedback'])
+            messages.success(request, 'Спасибо! Ваша оценка отправлена.')
+        else:
+            messages.error(request, 'Исправьте ошибки формы оценки.')
+        return redirect('tech_support:ticket_detail', pk=ticket.pk)
 
 
 class TicketReportsView(LoginRequiredMixin, StaffRequiredMixin, View):
@@ -318,9 +346,26 @@ class UpdateTicketView(View):
 
     def post(self, request, pk):
         ticket = get_object_or_404(Ticket, pk=pk)
+        old_deadline = ticket.deadline
         form = TicketStaffUpdateForm(request.POST, instance=ticket)
         if form.is_valid():
+            new_deadline = form.cleaned_data.get('deadline')
             form.save()
+            if old_deadline != new_deadline:
+                def fmt(dt):
+                    if not dt:
+                        return 'не задан'
+                    try:
+                        return timezone.localtime(dt).strftime('%d.%m.%Y %H:%M')
+                    except Exception:
+                        return dt.strftime('%d.%m.%Y %H:%M')
+                full_name = request.user.get_full_name() or request.user.username
+                TicketComment.objects.create(
+                    ticket=ticket,
+                    author=request.user,
+                    content=f'{full_name} изменил дедлайн: {fmt(old_deadline)} -> {fmt(new_deadline)}',
+                    is_internal=True
+                )
             messages.success(request, 'Тикет обновлён')
         else:
             messages.error(request, 'Исправьте ошибки формы')
