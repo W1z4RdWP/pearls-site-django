@@ -8,11 +8,17 @@
     <h4>Детализация по вопросам:</h4>
     <div class="list-group">
         {% for question, answers in grouped_answers.items %}
-            <div class="list-group-item mb-2
-                {% if question.question_type == 'text' %}list-group-item-warning
-                {% elif answers.0.is_correct %}list-group-item-success
-                {% else %}list-group-item-danger
-                {% endif %}">
+        <div class="list-group-item mb-2
+        {% if question.question_type == 'text' %}
+            {% if answers.0.is_correct is None %}list-group-item-warning
+            {% elif answers.0.is_correct %}list-group-item-success
+            {% else %}list-group-item-danger
+            {% endif %}
+        {% else %}
+            {% if answers.0.is_correct %}list-group-item-success
+            {% else %}list-group-item-danger
+            {% endif %}
+        {% endif %}">
                 <strong>Вопрос {{ forloop.counter }}:</strong> {{ question.text }}<br>
                 <strong>Ваш ответ:</strong>
                 {% if question.question_type == 'multiple' %}
@@ -47,11 +53,13 @@
                             <button type="submit" class="btn btn-sm btn-outline-primary">Сохранить</button>
                         </div>
                     </form>
-                    <span class="badge bg-info">Пользователь дал ответ</span>
-                {% else %}
-                    <span class="badge {% if answers.0.is_correct %}bg-success{% else %}bg-danger{% endif %}">
-                        {% if answers.0.is_correct %}Верно{% else %}Неверно{% endif %}
-                    </span>
+                    {% if answers.0.is_correct is None %}
+                        <span class="badge bg-info">Пользователь дал ответ</span>
+                    {% else %}
+                        <span class="badge {% if answers.0.is_correct %}bg-success{% else %}bg-danger{% endif %}">
+                            {% if answers.0.is_correct %}Верно{% else %}Неверно{% endif %}
+                        </span>
+                    {% endif %}
                 {% endif %}
             </div>
         {% endfor %}

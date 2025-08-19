@@ -632,6 +632,27 @@ class UserQuizReportView(DetailView):
         return context
 
 
+    def post(self, request, *args, **kwargs):
+        quiz_result = self.get_object()
+        for key, val in request.POST.items():
+            if not key.startswith('text_eval_'):
+                continue
+            try:
+                ua_id = int(key.replace('text_eval_', ''))
+            except ValueError:
+                continue
+            if val == '':
+                new_val = None
+            elif val == 'true':
+                new_val = True
+            elif val == 'false':
+                new_val = False
+            else:
+                continue
+            quiz_result.answers.filter(id=ua_id, question__question_type='text').update(is_correct=new_val)
+        return redirect(request.path)
+
+
 class UserPasswordChangeView(FormView):
     template_name = 'user_management/user_password_change.html'
     form_class = SetPasswordForm

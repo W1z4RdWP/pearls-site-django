@@ -355,7 +355,7 @@ def get_finish(request) -> HttpResponse:
                 quiz_result=quiz_result,
                 question=q,
                 selected_answer=None,
-                is_correct=False,
+                is_correct=None,
                 answer_text=ans_data.get('answer_text', '')
             )
         else:
