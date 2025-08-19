@@ -108,7 +108,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const cancelEditBtn = document.getElementById('cancel-edit-btn');
     const editProfileForm = document.getElementById('edit-profile-form');
     const progressBar = document.querySelector('.progress-bar-user');
-    const trajectoriesBtn = document.getElementById('trajectories-btn');
     const gamificationSection = document.getElementById('gamification-section');
 
     if (editProfileBtn && cancelEditBtn && editProfileForm) {
@@ -118,7 +117,6 @@ document.addEventListener('DOMContentLoaded', () => {
             if (toggleCoursesBtn) toggleCoursesBtn.style.display = 'none';
             if (toggleQuizzesBtn) toggleQuizzesBtn.style.display = 'none';
             if (progressBar) progressBar.style.display = 'none';
-            if (trajectoriesBtn) trajectoriesBtn.style.display = 'none';
             if (gamificationSection) gamificationSection.style.display = 'none';
         });
 
@@ -129,7 +127,6 @@ document.addEventListener('DOMContentLoaded', () => {
             if (toggleCoursesBtn) toggleCoursesBtn.style.display = 'block';
             if (toggleQuizzesBtn) toggleQuizzesBtn.style.display = 'block';
             if (progressBar) progressBar.style.display = 'block';
-            if (trajectoriesBtn) trajectoriesBtn.style.display = 'block';
             if (gamificationSection) gamificationSection.style.display = 'block';
         });
     }

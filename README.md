@@ -47,6 +47,14 @@ sudo apt install libpango-1.0-0 libpangocairo-1.0-0 libcairo2 libcairo2-dev libg
 Также убедитесь что установлены все пакеты:
 `pip install -r requirements.txt`
 
+## Скрипт
+Вместо того, чтобы выполнять все вышеперечисленные действия вручную, запустите shell скрипт из директории *scripts/*
+```sh
+bash scripts/update.sh
+```
+
+Данный скрипт соберет все статические файлы, установит пакеты из requirements.txt и сделает миграции.
+
 # Dockerized
 1) Склонируйте репозиторий на свой Linux сервер.
 2) Перейдите в каталог проекта `cd pearls-site-django/`

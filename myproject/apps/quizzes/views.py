@@ -6,13 +6,15 @@ from django.contrib import messages  # Добавлен импорт
 from django.views.generic import DetailView, TemplateView
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 
-from myapp.models import QuizResult, UserCourse, UserAnswer
+from myapp.models import QuizResult, UserCourse, UserAnswer, UserProgress
 from courses.models import Course  # Добавлен импорт модели Course
-from .models import Quiz, Question, Answer
+from .models import Quiz, Question, Answer, QuizAttempt
 from .utils import DataMixin
 from gamification.utils import award_dascoin_points, award_achievement, award_course_badge
+from courses.utils import issue_certificate
 from typing import Optional
 import logging
+from django.utils import timezone
 
 
 audit_logger = logging.getLogger('audit')
@@ -26,7 +28,7 @@ class StartQuizView(LoginRequiredMixin, UserPassesTestMixin, DataMixin, Template
      - template_name - путь к шаблону;
      - get_context_data() - в шаблон передается переменная topics, которая возвращает количество вопросов в каждом тесте
     """
-    template_name = 'quizzes/start.html'
+    template_name = 'quizzes/quiz_control_panel.html'
     login_url = 'users:login'  # URL для перенаправления неавторизованных пользователей
     permission_denied_message = "Доступ разрешен только администраторам сайта"
 
@@ -54,6 +56,29 @@ def get_questions(request, quiz_id: int = None, is_start: bool = False) -> HttpR
         # Если is_start=True, quiz_id берется из URL
         if is_start and not quiz_id:
             return redirect('quizzes')
+        
+        # Проверяем ограничения попыток при старте теста
+        if is_start and request.user.is_authenticated:
+            quiz = get_object_or_404(Quiz, id=quiz_id)
+            
+            # Проверяем блокировку теста для этого пользователя
+            from .models import QuizLock
+            quiz_lock, created = QuizLock.objects.get_or_create(
+                user=request.user,
+                quiz=quiz,
+                defaults={'is_locked': False}
+            )
+            
+            if quiz_lock.is_locked:
+                return redirect('quizzes:attempt_limit_exceeded', quiz_id=quiz.id)
+                
+            # Создаем новую попытку
+            attempts_count = QuizAttempt.objects.filter(user=request.user, quiz=quiz).count()
+            QuizAttempt.objects.create(
+                user=request.user,
+                quiz=quiz,
+                attempt_number=attempts_count + 1
+            )
         
         # Если не стартовая страница, получаем quiz_id из сессии
         if not is_start:
@@ -106,13 +131,26 @@ def get_questions(request, quiz_id: int = None, is_start: bool = False) -> HttpR
 
 
         
+        # Получаем информацию о попытках для отображения
+        attempts_info = {}
+        if request.user.is_authenticated:
+            quiz_obj = Quiz.objects.get(id=quiz_id)
+            if quiz_obj.attempt_limit > 0:
+                current_attempts = QuizAttempt.objects.filter(user=request.user, quiz=quiz_obj).count()
+                attempts_info = {
+                    'current_attempts': current_attempts,
+                    'max_attempts': quiz_obj.attempt_limit,
+                    'attempts_left': quiz_obj.attempt_limit - current_attempts
+                }
+
         return render(request, 'quizzes/question.html', {
             'question': question,
             'answers': answers,
             'is_last': is_last,
             'current_question_number': current_index,
             'total_questions': total_questions,
-            'progress_percent': progress_percent
+            'progress_percent': progress_percent,
+            'attempts_info': attempts_info
         })
     
     return redirect(request.META['HTTP_REFERER'])
@@ -232,6 +270,7 @@ def get_finish(request) -> HttpResponse:
         return redirect('quizzes')
     
     quiz = get_object_or_404(Quiz, id=quiz_id)
+
     questions_count = Question.objects.filter(quiz=quiz).count() # Количество вопросов в тесте всего
     text_questions_count = Question.objects.filter(question_type='text').filter(quiz=quiz).count() # количество открытых вопросов в тесте
     score = request.session.get('score', 0)
@@ -242,8 +281,15 @@ def get_finish(request) -> HttpResponse:
     else: 
         percent_score = int((score / (questions_count - text_questions_count)) * 100) if questions_count > 0 else 0 # Процент правильных ответов на вопросы, исключая открытые
 
-
-    passed = percent_score >= 80 # Проходной балл
+    passed = percent_score >= quiz.pass_threshold # Проходной балл из настроек теста
+    
+    # Проверяем, был ли тест уже пройден ранее (ДО создания текущего результата)
+    previous_quiz_result = QuizResult.objects.filter(
+        user=request.user,
+        quiz_title=quiz.name,
+        passed=True
+    ).first()
+    
     quiz_result = QuizResult.objects.create(
         user=request.user,
         quiz_title=quiz.name,
@@ -252,6 +298,40 @@ def get_finish(request) -> HttpResponse:
         percent=percent_score,
         passed=passed
     )
+    
+    # Отмечаем текущую попытку как завершенную
+    if request.user.is_authenticated:
+        current_attempt = QuizAttempt.objects.filter(
+            user=request.user, 
+            quiz=quiz, 
+            completed_at__isnull=True
+        ).first()
+        if current_attempt:
+            current_attempt.completed_at = timezone.now()
+            current_attempt.save()
+    
+    # Проверяем, нужно ли заблокировать тест
+    if request.user.is_authenticated and not passed and quiz.attempt_limit > 0:
+        from .models import QuizLock
+        
+        # Считаем количество неуспешных попыток
+        failed_attempts = QuizResult.objects.filter(
+            user=request.user,
+            quiz_title=quiz.name,
+            passed=False
+        ).count()
+        
+        # Если достигли лимита - блокируем тест
+        if failed_attempts >= quiz.attempt_limit:
+            quiz_lock, created = QuizLock.objects.get_or_create(
+                user=request.user,
+                quiz=quiz,
+                defaults={'is_locked': True, 'locked_at': timezone.now()}
+            )
+            if not created:
+                quiz_lock.is_locked = True
+                quiz_lock.locked_at = timezone.now()
+                quiz_lock.save()
 
     # --- СОХРАНЯЕМ ОТВЕТЫ ПОЛЬЗОВАТЕЛЯ ---
     quiz_answers = request.session.get('quiz_answers', {})
@@ -275,7 +355,7 @@ def get_finish(request) -> HttpResponse:
                 quiz_result=quiz_result,
                 question=q,
                 selected_answer=None,
-                is_correct=False,
+                is_correct=None,
                 answer_text=ans_data.get('answer_text', '')
             )
         else:
@@ -297,15 +377,12 @@ def get_finish(request) -> HttpResponse:
         # Проверяем, является ли этот тест финальным для какого-то курса
         course = Course.objects.filter(final_quiz=quiz).first()
     
-    # Проверяем, был ли тест уже пройден ранее
-    previous_quiz_result = QuizResult.objects.filter(
-        user=request.user,
-        quiz_title=quiz.name,
-        passed=True
-    ).first()
-    
     if course and passed:
+        # Получаем UserCourse
         user_course = UserCourse.objects.filter(user=request.user, course=course).first()
+        if not user_course:
+            user_course = UserCourse.objects.create(user=request.user, course=course, status='available')
+        
         if user_course:
             # Начисляем очки за тест только если он не был пройден ранее
             if not previous_quiz_result:
@@ -317,12 +394,29 @@ def get_finish(request) -> HttpResponse:
                 user_course.save()
                 award_dascoin_points(request.user, course.points, f"Завершение курса {course.title}")
                 award_course_badge(request.user, course)
+                # Выдаем сертификат за курс (если настроено)
+                issue_certificate(request.user, course=course)
             
             if percent_score == 100:
                 award_achievement(request.user, 'perfect_score', 'Идеальный результат', 'Получили 100% за прохождение теста')
             return redirect('courses:course_detail', slug=course.slug)
     elif course and not passed:
-        messages.error(request, "Тест не пройден. Попробуйте снова!")
+        # Проверяем, является ли этот тест финальным для курса
+        if course.final_quiz == quiz:
+            # Сбрасываем прогресс курса - отмечаем все уроки как незавершенные
+            UserProgress.objects.filter(user=request.user, course=course).update(completed=False)
+            
+            # Также сбрасываем статус курса на "начат"
+            user_course = UserCourse.objects.filter(user=request.user, course=course).first()
+            if user_course and user_course.status == 'completed':
+                user_course.status = 'started'
+                user_course.end_date = None
+                user_course.save()
+            
+            messages.error(request, f"Финальный тест не пройден! Прогресс курса '{course.title}' сброшен. Попробуйте снова!")
+        else:
+            messages.error(request, "Тест не пройден. Попробуйте снова!")
+        
         return redirect('quizzes:quiz_start', quiz_id=quiz.id)
     elif passed:
         # Если тест не привязан к курсу, но пройден - начисляем очки только если не был пройден ранее
@@ -367,16 +461,17 @@ def start_quiz_handler(request):
     return redirect('quizzes')
 
 
-from django.views.generic import CreateView
+from django.views.generic import CreateView, UpdateView, DeleteView
 from django.contrib.auth.mixins import UserPassesTestMixin
 from django.http import JsonResponse
+from django.urls import reverse_lazy
 
 class QuizCreateView(UserPassesTestMixin, CreateView):
     """
     Создание нового теста с вопросами и ответами.
     """
     model = Quiz
-    fields = ['name']
+    fields = ['name', 'attempt_limit', 'pass_threshold']
     template_name = 'quizzes/quiz_form.html'
     success_url = '/builder/trajectory-management/'
 
@@ -419,13 +514,15 @@ class QuizCreateView(UserPassesTestMixin, CreateView):
                         question_num = int(parts[0])
                         
                         if question_num not in questions_dict:
-                            questions_dict[question_num] = {'text': '', 'type': 'single', 'answers': {}}
+                            questions_dict[question_num] = {'text': '', 'type': 'single', 'answers': {}, 'correct_answer': None}
                         
                         if len(parts) == 2:
                             if parts[1] == 'text':
                                 questions_dict[question_num]['text'] = value
                             elif parts[1] == 'type':
                                 questions_dict[question_num]['type'] = value
+                            elif parts[1] == 'correct_answer':
+                                questions_dict[question_num]['correct_answer'] = int(value)
                         elif len(parts) == 4 and parts[1] == 'answers':
                             answer_num = int(parts[2])
                             answer_field = parts[3]
@@ -461,10 +558,15 @@ class QuizCreateView(UserPassesTestMixin, CreateView):
                     if question_data['type'] in ['single', 'multiple']:
                         for answer_num, answer_data in question_data['answers'].items():
                             if answer_data['text'].strip():  # Проверяем, что текст ответа не пустой
+                                # Для single вопросов правильность определяется через correct_answer
+                                is_correct = answer_data['correct']
+                                if question_data['type'] == 'single' and question_data['correct_answer']:
+                                    is_correct = (answer_num == question_data['correct_answer'])
+                                
                                 Answer.objects.create(
                                     question=question,
                                     text=answer_data['text'],
-                                    is_correct=answer_data['correct']
+                                    is_correct=is_correct
                                 )
         except Exception as e:
             # Если произошла ошибка при создании вопросов, удаляем созданный тест
@@ -480,4 +582,159 @@ class QuizCreateView(UserPassesTestMixin, CreateView):
             'id': quiz.id, 
             'name': quiz.name,
             'questions_count': quiz.question_set.count()
-        })
+        }, content_type='application/json')
+
+
+class QuizEditView(UserPassesTestMixin, UpdateView):
+    """
+    Редактирование существующего теста с вопросами и ответами.
+    """
+    model = Quiz
+    fields = ['name', 'attempt_limit', 'pass_threshold']
+    template_name = 'quizzes/quiz_edit.html'
+    success_url = reverse_lazy('quizzes:quizzes')
+    pk_url_kwarg = 'quiz_id'
+
+    def test_func(self):
+        return self.request.user.is_staff or self.request.user.is_superuser
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        quiz = self.get_object()
+        
+        # Получаем все вопросы с ответами
+        questions = Question.objects.filter(quiz=quiz).prefetch_related('answer_set')
+        context['questions'] = questions
+        context['question_types'] = Question.QUESTION_TYPES
+        
+        return context
+
+    def form_valid(self, form):
+        # Если это AJAX запрос
+        if self.request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            try:
+                quiz = form.save()
+                
+                # Удаляем все существующие вопросы и ответы
+                Question.objects.filter(quiz=quiz).delete()
+                
+                # Обрабатываем новые вопросы и ответы (аналогично созданию)
+                questions_dict = {}
+                for key, value in self.request.POST.items():
+                    if key.startswith('questions['):
+                        try:
+                            parts = key.replace('questions[', '').replace(']', '').split('[')
+                            question_num = int(parts[0])
+                            
+                            if question_num not in questions_dict:
+                                questions_dict[question_num] = {'text': '', 'type': 'single', 'answers': {}, 'correct_answer': None}
+                            
+                            if len(parts) == 2:
+                                if parts[1] == 'text':
+                                    questions_dict[question_num]['text'] = value
+                                elif parts[1] == 'type':
+                                    questions_dict[question_num]['type'] = value
+                                elif parts[1] == 'correct_answer':
+                                    questions_dict[question_num]['correct_answer'] = int(value)
+                            elif len(parts) == 4 and parts[1] == 'answers':
+                                answer_num = int(parts[2])
+                                answer_field = parts[3]
+                                
+                                if answer_num not in questions_dict[question_num]['answers']:
+                                    questions_dict[question_num]['answers'][answer_num] = {'text': '', 'correct': False}
+                                
+                                if answer_field == 'text':
+                                    questions_dict[question_num]['answers'][answer_num]['text'] = value
+                                elif answer_field == 'correct':
+                                    questions_dict[question_num]['answers'][answer_num]['correct'] = True
+                        except (ValueError, IndexError):
+                            continue
+
+                # Создаем новые вопросы и ответы
+                for question_num, question_data in questions_dict.items():
+                    if question_data['text'].strip():
+                        question = Question.objects.create(
+                            quiz=quiz,
+                            text=question_data['text'],
+                            question_type=question_data['type']
+                        )
+                        
+                        if question_data['type'] in ['single', 'multiple']:
+                            for answer_num, answer_data in question_data['answers'].items():
+                                if answer_data['text'].strip():
+                                    # Для single вопросов правильность определяется через correct_answer
+                                    is_correct = answer_data['correct']
+                                    if question_data['type'] == 'single' and question_data['correct_answer']:
+                                        is_correct = (answer_num == question_data['correct_answer'])
+                                    
+                                    Answer.objects.create(
+                                        question=question,
+                                        text=answer_data['text'],
+                                        is_correct=is_correct
+                                    )
+
+                return JsonResponse({
+                    'success': True,
+                    'message': 'Тест успешно обновлен'
+                })
+                
+            except Exception as e:
+                return JsonResponse({
+                    'success': False,
+                    'error': f'Ошибка при обновлении теста: {str(e)}'
+                })
+        
+        return super().form_valid(form)
+
+
+class QuizDeleteView(UserPassesTestMixin, DeleteView):
+    """
+    Удаление теста.
+    """
+    model = Quiz
+    success_url = reverse_lazy('quizzes:quizzes')
+    pk_url_kwarg = 'quiz_id'
+
+    def test_func(self):
+        return self.request.user.is_staff or self.request.user.is_superuser
+
+
+class AttemptLimitExceededView(LoginRequiredMixin, DetailView):
+    """
+    Страница превышения лимита попыток для теста.
+    """
+    model = Quiz
+    template_name = 'quizzes/attempt_limit_exceeded.html'
+    context_object_name = 'quiz'
+    pk_url_kwarg = 'quiz_id'
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        quiz = self.get_object()
+        
+        # Получаем количество попыток пользователя
+        attempts_count = QuizAttempt.objects.filter(
+            user=self.request.user, 
+            quiz=quiz
+        ).count()
+        
+        # Проверяем, является ли этот тест финальным для какого-то курса
+        course = Course.objects.filter(final_quiz=quiz).first()
+        
+        # Если тест финальный и у пользователя есть прогресс по курсу - проверяем сброшен ли он
+        course_progress_reset = False
+        if course:
+            user_course = UserCourse.objects.filter(user=self.request.user, course=course).first()
+            if user_course:
+                # Проверяем есть ли проваленные попытки финального теста
+                failed_attempts = QuizResult.objects.filter(
+                    user=self.request.user,
+                    quiz_title=quiz.name,
+                    passed=False
+                ).exists()
+                course_progress_reset = failed_attempts
+        
+        context['attempts_count'] = attempts_count
+        context['course'] = course
+        context['course_progress_reset'] = course_progress_reset
+        return context

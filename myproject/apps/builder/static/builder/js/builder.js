@@ -699,16 +699,16 @@ document.addEventListener('DOMContentLoaded', function() {
                 document.getElementById('detail').innerHTML = html;
                 
                 // Выполняем скрипты из загруженного HTML
-                const scripts = document.getElementById('detail').querySelectorAll('script');
-                scripts.forEach(script => {
-                    if (script.textContent) {
-                        try {
-                            eval(script.textContent);
-                        } catch (e) {
-                            console.error('Ошибка выполнения скрипта:', e);
-                        }
-                    }
-                });
+                // const scripts = document.getElementById('detail').querySelectorAll('script');
+                // scripts.forEach(script => {
+                //     if (script.textContent) {
+                //         try {
+                //             eval(script.textContent);
+                //         } catch (e) {
+                //             console.error('Ошибка выполнения скрипта:', e);
+                //         }
+                //     }
+                // });
                 
                 initVersionHistoryDropdown();
                 if (typeof initActualizationHistoryDropdown === 'function') initActualizationHistoryDropdown();
@@ -1442,53 +1442,65 @@ document.addEventListener('DOMContentLoaded', function() {
             form.onsubmit = function(ev) {
                 ev.preventDefault();
                 confirmBtn.disabled = true;
+                
                 // Собираем данные
                 const id = document.getElementById('actualize-lesson-id')?.value;
-                if (!id) { alert('Не удалось определить ID урока'); return; }
+                if (!id) { 
+                    alert('Не удалось определить ID урока'); 
+                    confirmBtn.disabled = false;
+                    return; 
+                }
+                
                 // Получаем ID ответственного пользователя из выбранной роли
                 const roleId = roleSelect.value;
-                fetch(`/user_management/roles/${roleId}/users/`)
-                    .then(response => response.json())
-                    .then(userData => {
-                        const responsibleUser = userData.users.find(user => user.is_responsible);
-                        if (!responsibleUser) {
-                            alert('Для выбранной роли не найден ответственный пользователь');
-                            confirmBtn.disabled = false;
-                            return;
-                        }
-                        
-                        return fetch('/builder/actualize_version/', {
-                            method: 'POST',
-                            headers: {
-                                'X-CSRFToken': (document.querySelector('[name=csrfmiddlewaretoken]')||{}).value || '',
-                                'Content-Type': 'application/json',
-                            },
-                            body: JSON.stringify({
-                                lesson_id: id,
-                                period: parseInt(periodInput.value, 10),
-                                next_update: nextUpdateInput.value,
-                                responsible_id: responsibleUser.id
-                            })
-                        });
+                if (!roleId) {
+                    alert('Выберите роль ответственного');
+                    confirmBtn.disabled = false;
+                    return;
+                }
+                
+                // Проверяем CSRF токен
+                const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value;
+                if (!csrfToken) {
+                    alert('Ошибка: CSRF токен не найден');
+                    confirmBtn.disabled = false;
+                    return;
+                }
+                
+                // Отправляем запрос на актуализацию
+                fetch('/builder/actualize_version/', {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': csrfToken,
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        lesson_id: id,
+                        period: parseInt(periodInput.value, 10),
+                        next_update: nextUpdateInput.value,
+                        responsible_id: roleId
                     })
-                    .then(data => {
+                })
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                    }
+                    return response.json();
+                })
+                .then(data => {
                     if (data.error) {
                         alert('Ошибка: ' + data.error);
                         confirmBtn.disabled = false;
                         return;
                     }
+                    
+                    // Успешно - закрываем модалку и обновляем страницу
                     modal.style.display = 'none';
-                    // Обновляем detail-блок (AJAX reload)
-                    const lessonId = id;
-                    fetch(`/builder/lesson/${lessonId}/?ajax=1`)
-                        .then(r => r.text())
-                        .then(html => {
-                            document.getElementById('detail').innerHTML = html;
-                            initActualizationHistoryDropdown();
-                        });
+                    window.location.reload();
                 })
-                .catch(() => {
-                    alert('Ошибка сети');
+                .catch(error => {
+                    console.error('Ошибка актуализации:', error);
+                    alert('Ошибка сети: ' + error.message);
                     confirmBtn.disabled = false;
                 });
             };

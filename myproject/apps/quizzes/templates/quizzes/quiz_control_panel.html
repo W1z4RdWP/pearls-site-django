@@ -1,0 +1,147 @@
+{% extends "layout.html" %}
+{% block title %}Панель управления тестами{% endblock %}
+{% load static %}
+{% block specific_styles %}
+<link rel="stylesheet" href="{% static 'quizzes/css/quiz_styles.css' %}">
+<link rel="stylesheet" href="{% static 'quizzes/css/quiz_control_panel.css' %}">
+<script src="{% static 'quizzes/js/quiz_control_panel.js' %}" defer></script>
+{% endblock %}
+
+{% block content %}
+
+<div class="container mt-5" 
+     data-delete-url="{% url 'quizzes:quiz_delete' quiz_id=0 %}"
+     data-quizzes-url="{% url 'quizzes:quizzes' %}">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h1>Панель управления тестами</h1>
+                <button type="button" class="btn-mini primary btn-create-quiz" data-bs-toggle="modal" data-bs-target="#createQuizModal">
+                    <i class="fas fa-plus"></i> Создать тест
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        {% for topic in topics %}
+        <div class="col-12 mb-3">
+            <div class="card quiz-card shadow-sm h-100">
+                <div class="card-body d-flex align-items-center">
+                    <div class="quiz-info">
+                        <h5 class="card-title mb-1">{{ topic.name }}</h5>
+                        <p class="text-muted mb-2">{{ topic.questions_count }} вопросов</p>
+                        <p class="text-muted mb-1">
+                            <i class="fas fa-redo-alt"></i> 
+                            Лимит попыток: {% if topic.attempt_limit > 0 %}{{ topic.attempt_limit }}{% else %}∞{% endif %}
+                        </p>
+                        <p class="text-muted mb-2">
+                            <i class="fas fa-percentage"></i> 
+                            Проходной балл: {{ topic.pass_threshold }}%
+                        </p>
+                        <small class="text-secondary">ID: {{ topic.id }}</small>
+                    </div>
+                    <div class="quiz-actions">
+                        <a href="{% url 'quizzes:quiz_start' quiz_id=topic.id %}" 
+                           class="btn-mini success btn-sm">
+                            <i class="fas fa-play"></i> Запустить
+                        </a>
+                        <a href="{% url 'quizzes:quiz_edit' quiz_id=topic.id %}" 
+                           class="btn-mini edit btn-sm">
+                            <i class="fas fa-edit"></i> Редактировать
+                        </a>
+                        <button type="button" 
+                                class="btn-mini delete btn-sm btn-delete-quiz"
+                                data-quiz-id="{{ topic.id }}"
+                                data-quiz-name="{{ topic.name }}">
+                            <i class="fas fa-trash"></i> Удалить
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% empty %}
+        <div class="col-12">
+            <div class="alert alert-info text-center">
+                <h4>Нет доступных тестов</h4>
+                <p>Создайте первый тест, нажав на кнопку "Создать тест"</p>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<!-- Модальное окно создания теста -->
+<div class="modal fade" id="createQuizModal" tabindex="-1" aria-labelledby="createQuizModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="createQuizModalLabel">Создать новый тест</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Закрыть"></button>
+            </div>
+            <form id="createQuizForm" method="POST" action="{% url 'quizzes:quiz_create' %}">
+                <div class="modal-body">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <label for="quizName" class="form-label">Название теста</label>
+                        <input type="text" class="form-control" id="quizName" name="name" required>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="attemptLimit" class="form-label">Ограничение попыток</label>
+                                <input type="number" class="form-control" id="attemptLimit" name="attempt_limit" 
+                                       value="0" min="0" placeholder="0 = без ограничений">
+                                <div class="form-text">0 означает неограниченное количество попыток</div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="passThreshold" class="form-label">Проходной балл (%)</label>
+                                <input type="number" class="form-control" id="passThreshold" name="pass_threshold" 
+                                       value="70" min="1" max="100" required>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div id="questionsContainer">
+                        <h6>Вопросы</h6>
+                        <div class="alert alert-info">
+                            <small>После создания теста вы сможете добавить вопросы через редактирование</small>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn-mini secondary" data-bs-dismiss="modal">Отмена</button>
+                    <button type="submit" class="btn-mini primary">Создать тест</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Модальное окно подтверждения удаления -->
+<div class="modal fade" id="deleteQuizModal" tabindex="-1" aria-labelledby="deleteQuizModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="deleteQuizModalLabel">Подтверждение удаления</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Закрыть"></button>
+            </div>
+            <div class="modal-body">
+                <p>Вы уверены, что хотите удалить тест <strong id="quizNameToDelete"></strong>?</p>
+                <p class="text-danger"><small>Это действие нельзя отменить. Все вопросы и результаты прохождения будут удалены.</small></p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn-mini secondary" data-bs-dismiss="modal">Отмена</button>
+                <form id="deleteQuizForm" method="POST" style="display: inline;">
+                    {% csrf_token %}
+                    <button type="submit" class="btn-mini delete">Удалить</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}

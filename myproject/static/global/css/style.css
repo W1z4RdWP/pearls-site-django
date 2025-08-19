@@ -44,6 +44,11 @@
     --color-danger-hover: #bb2d3b;
     --color-link: #4d7cff;
     --color-link-hover: #2dabc4;
+    --color-hero-gradient: #e3e8f0;
+    --color-hero-btn-bg: var(--color-accent);
+    --color-hero-btn-text: #fff;
+    --color-hero-btn-hover-bg: var(--color-accent);
+    --color-hero-btn-hover-text: #fff;
     --primary-font: "Onest", sans-serif;
 
 }
@@ -94,6 +99,11 @@ body.theme-dark {
     --color-danger-hover: #bb2d3b;
     --color-link: #4d7cff;
     --color-link-hover: #2dabc4;
+    --color-hero-gradient: #333;
+    --color-hero-btn-bg: #232323;
+    --color-hero-btn-text: var(--color-text);
+    --color-hero-btn-hover-bg: #e3e8f0;
+    --color-hero-btn-hover-text: #232a3a;
 }
 
 
@@ -188,6 +198,7 @@ main {
     width: 100%;
     max-width: 1400px;
     margin: 0 auto;
+    margin-top: 100px;
 }
 
 main section {
@@ -2007,30 +2018,51 @@ main > section > .text-block-2 {
     transform: rotate(-8deg) scale(1.08);
 } */
 
-/* --- HERO LANDING (Skillbox style, адаптация под палитру сайта) --- */
-.hero-landing {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    justify-content: space-between;
-    background: linear-gradient(280deg, var(--bs-primary-border-subtle) 60%, rgba(76, 175, 170, 0.1) 100%);
-    color: #232a3a;
-    border-radius: 24px;
-    padding: 48px 32px;
-    margin-bottom: 32px;
-    
+
+.header.always-visible {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 1000;
+    background: white; /* или какой у тебя фон */
   }
+
+/* --- HERO LANDING (Skillbox style, адаптация под палитру сайта) --- */
+  .hero-landing {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  background: linear-gradient(280deg, var(--color-hero-gradient) 60%, rgba(76, 175, 170, 0.1) 100%);
+  color: var(--color-text);
+  border-radius: 24px;
+  padding: 48px 32px;
+  margin-bottom: 32px;
+  transition: background 0.3s ease, color 0.3s ease;
+}
   .hero-landing__left { flex: 1 1 320px; min-width: 300px; }
   .hero-landing__right { flex: 1 1 420px; min-width: 320px; display: flex; justify-content: center; }
   .hero-landing__stats { display: flex; gap: 32px; margin: 24px 0; }
-  .hero-landing__stat-num { font-size: 2.2rem; font-weight: bold; color: var(--color-accent); }
-  .hero-landing__stat-label { display: block; font-size: 1rem; color: #888; }
+  .hero-landing__stat-num { font-size: 2.2rem; font-weight: bold; color: var(--color-accent); transition: color 0.3s ease; }
+  .hero-landing__stat-label { display: block; font-size: 1rem; color: var(--color-text-secondary); transition: color 0.3s ease; }
   .hero-landing__categories { display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 24px; }
-  .hero-landing__categories button { background: var(--color-accent); color: #fff;
-    border: none; border-radius: 20px; padding: 8px 20px; font-size: 1rem;  cursor: pointer; transition: background 0.2s, color 0.2s;
+  .hero-landing__categories button { 
+    background: var(--color-hero-btn-bg); 
+    color: var(--color-hero-btn-text);
+    border: none; 
+    border-radius: 20px; 
+    padding: 8px 20px; 
+    font-size: 1rem;  
+    cursor: pointer; 
+    transition: background 0.2s, color 0.2s;
   }
 
-  .hero-landing__categories button:hover { border: none;  background: var(--color-accent); color: #fff;}
+  .hero-landing__categories button:hover { 
+    border: none;  
+    background: var(--color-hero-btn-hover-bg); 
+    color: var(--color-hero-btn-hover-text);
+  }
 
   .hero-landing__cta {
     display: inline-block; margin-top: 12px; background: var(--color-accent); color: #fff; padding: 10px 28px; border-radius: 24px; text-decoration: none; font-weight: 500; transition: background 0.2s;
@@ -2061,8 +2093,9 @@ main > section > .text-block-2 {
   }
   .hero-face-label {
     font-size: 0.95rem;
-    color: #232a3a;
+    color: var(--color-hero-face-label);
     text-align: center;
+    transition: color 0.3s ease;
   }
   .hero-emoji { font-size: 3.2rem; }
   @media (max-width: 900px) {
@@ -2071,25 +2104,10 @@ main > section > .text-block-2 {
     .hero-landing__faces { justify-content: center; }
   }
   
-  .theme-dark .hero-landing {
-    background: linear-gradient(280deg, rgba(51,51,51,0.97) 60%, rgba(76, 175, 170, 0.1) 100%);
-    color: var(--color-text);
-  }
-  .theme-dark .hero-face-label {
-      color: var(--color-hero-face-label);
-  }
-  .theme-dark .hero-landing__stat-num {
-      color: var(--color-accent);
-  }
-  .theme-dark .hero-landing__stat-label {
-    color: var(--color-text-secondary);
-  }
-  .theme-dark .hero-landing__categories button {
-      background: #232323; color: var(--color-text);
-  }
-  .theme-dark .hero-landing__categories button:hover {
-      background: #e3e8f0; color: #232a3a;
-  }
+
+
+
+
 
 
 .navbar-avatar {
@@ -2126,5 +2144,128 @@ main > section > .text-block-2 {
         transform: translateX(-50%) !important;
         right: auto !important;
         min-width: 140px;
+    }
+}
+
+/* Стили для бургер меню - делаем его черным */
+.navbar-toggler {
+    border-color: #000 !important;
+}
+
+.navbar-toggler-icon {
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 30 30'%3e%3cpath stroke='%23000' stroke-linecap='round' stroke-miterlimit='10' stroke-width='2' d='M4 7h22M4 15h22M4 23h22'/%3e%3c/svg%3e") !important;
+}
+
+.navbar-toggler:focus {
+    box-shadow: 0 0 0 0.25rem rgba(0, 0, 0, 0.25) !important;
+}
+
+/* Стили для мобильного колокольчика уведомлений */
+@media (max-width: 991px) {
+    .navbar .d-lg-none .nav-link {
+        padding: 0.5rem 0.75rem;
+        color: inherit !important;
+    }
+    
+    .navbar .d-lg-none .nav-link:hover {
+        color: inherit !important;
+        opacity: 0.8;
+    }
+    
+    .navbar .d-lg-none .dropdown-menu {
+        margin-top: 0.5rem;
+        border: 1px solid rgba(0,0,0,.15);
+        box-shadow: 0 0.5rem 1rem rgba(0,0,0,.175);
+    }
+    
+    /* Группировка колокольчика и бургер меню */
+    .navbar .d-flex.align-items-center {
+        margin-left: auto;
+    }
+}
+
+/* Стили для плавающей кнопки чата поддержки */
+.support-chat-button {
+    position: fixed;
+    bottom: 2rem;
+    right: 2rem;
+    z-index: 999;
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border: none;
+    color: var(--color-btn-text);
+    font-size: 1.5rem;
+    box-shadow: 0 4px 20px rgba(102, 126, 234, 0.3);
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-decoration: none;
+}
+
+/* Индикатор новых тикетов (красная точка) */
+.new-tickets-indicator {
+    position: absolute;
+    top: -6px;
+    right: -6px;
+    width: 16px;
+    height: 16px;
+    background-color: #dc3545;
+    border: 2px solid #fff;
+    border-radius: 50%;
+    box-shadow: 0 0 0 0 rgba(220, 53, 69, 0.5);
+    animation: ticketPulse 1.5s infinite;
+}
+
+@keyframes ticketPulse {
+    0% { box-shadow: 0 0 0 0 rgba(220, 53, 69, 0.7); }
+    70% { box-shadow: 0 0 0 10px rgba(220, 53, 69, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(220, 53, 69, 0); }
+}
+
+.support-chat-button:hover {
+    transform: scale(1.1);
+    box-shadow: 0 6px 25px rgba(102, 126, 234, 0.4);
+    color: var(--color-btn-text);
+    text-decoration: none;
+}
+
+.support-chat-button:acitve{
+    transform: scale(0.95);
+}
+
+.support-chat-button .pulse {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 50%;
+    animation: pulse 2s infinite;
+}
+@keyframes pulse {
+    0% {
+        transform: scale(1);
+        opacity: 1;
+    }
+    50% {
+        transform: scale(1.25);
+        opacity: 0.5
+    }
+    100%{
+        transform: scale(1.5);
+        opacity: 0;
+    }
+}
+@media (max-width: 768px) {
+    .support-chat-button {
+        bottom: 1rem;
+        right: 1rem;
+        width: 50px;
+        height: 50px;
+        font-size: 1.2rem;
     }
 }

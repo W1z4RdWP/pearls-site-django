@@ -14,15 +14,21 @@
             <a href="{% url 'builder:lesson_master' %}" class="list-group-item list-group-item-action {% if request.resolver_match.url_name == 'lesson_master' %}active{% endif %}">
                 <i class="fas fa-book"></i> База знаний
             </a>
-            <a href="{% url 'builder:documents' %}" class="list-group-item list-group-item-action {% if request.resolver_match.url_name == 'documents' %}active{% endif %}">
+            <!-- <a href="{% url 'builder:documents' %}" class="list-group-item list-group-item-action {% if request.resolver_match.url_name == 'documents' %}active{% endif %}">
                 <i class="fas fa-file-alt"></i> Документы
             </a>
             <a href="{% url 'builder:incidents' %}" class="list-group-item list-group-item-action {% if request.resolver_match.url_name == 'incidents' %}active{% endif %}">
                 <i class="fas fa-exclamation-triangle"></i> Инциденты
-            </a>
+            </a> -->
             <a href="{% url 'builder:trajectory_management' %}" class="list-group-item list-group-item-action {% if request.resolver_match.url_name == 'trajectory_management' %}active{% endif %}">
                 <i class="fas fa-route"></i> Управление траекториями
             </a>
+            <a href="{% url 'users:admin_dascoin_dashboard' %}" class="list-group-item list-group-item-action {% if request.resolver_match.url_name == 'admin_dascoin_dashboard' %}active{% endif %}">
+                <i class="fas fa-chart-line"></i> Статистика DASCOIN
+            </a>
+            <div class="list-group-item list-group-item-action">
+                <i class="fas fa-clock"></i> Время сессии: <span id="session-timer">{{ request.session.get_expiry_age|floatformat:0 }}</span>
+            </div>
         </div>
     </div>
     <div class="col-md-9">
@@ -36,4 +42,47 @@
         </div>
     </div>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    let sessionTimeLeft = parseInt(document.getElementById('session-timer').textContent);
+    const timerElement = document.getElementById('session-timer');
+    
+    function formatTime(seconds) {
+        const hours = Math.floor(seconds / 3600);
+        const minutes = Math.floor((seconds % 3600) / 60);
+        const secs = seconds % 60;
+        return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+    }
+    
+    function updateTimer() {
+        if (sessionTimeLeft <= 0) {
+            timerElement.textContent = '00:00:00 - Сессия истекла';
+            timerElement.style.color = '#dc3545';
+            return;
+        }
+        
+        timerElement.textContent = formatTime(sessionTimeLeft);
+        sessionTimeLeft--;
+        
+        // Предупреждение за 5 минут до окончания
+        if (sessionTimeLeft <= 300) {
+            timerElement.style.color = '#ffc107';
+        }
+        
+        // Критическое предупреждение за 1 минуту
+        if (sessionTimeLeft <= 60) {
+            timerElement.style.color = '#dc3545';
+            timerElement.style.fontWeight = 'bold';
+        }
+    }
+    
+    // Устанавливаем начальное значение
+    updateTimer();
+    
+    // Обновляем каждую секунду
+    setInterval(updateTimer, 1000);
+});
+</script>
+
 {% endblock %} 

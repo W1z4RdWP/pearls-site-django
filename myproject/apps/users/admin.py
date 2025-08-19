@@ -1,6 +1,6 @@
 from rangefilter.filters import DateRangeFilterBuilder
 from django.contrib import admin
-from .models import Profile, Role
+from .models import Profile, Role, Department
 
 @admin.register(Profile)
 class ProfileAdmin(admin.ModelAdmin):
@@ -24,5 +24,11 @@ class ProfileAdmin(admin.ModelAdmin):
 
 @admin.register(Role)
 class RoleAdmin(admin.ModelAdmin):
+    list_display = ['name']
+    search_fields = ['name']
+
+
+@admin.register(Department)
+class DepartmentAdmin(admin.ModelAdmin):
     list_display = ['name']
     search_fields = ['name']

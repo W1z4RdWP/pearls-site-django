@@ -1,12 +1,13 @@
 from django.shortcuts import render, redirect
 from django.views.generic import ListView, CreateView, UpdateView, DetailView, FormView
 from django.contrib.auth.models import User
-from django.db.models import Q, Count, Max
+from django.db.models import Q, Count, Max, F
 from users.models import Profile, Role
 from django import forms
 from django.urls import reverse_lazy
 from django.core.exceptions import PermissionDenied
 from myapp.models import UserProgress, UserCourse, QuizResult, UserAnswer
+from quizzes.models import Quiz, QuizLock
 from courses.models import Course, Lesson, UserLessonTrajectory
 from django.core.paginator import Paginator, PageNotAnInteger, EmptyPage
 from django.utils.decorators import method_decorator
@@ -17,6 +18,7 @@ from django.contrib.auth.forms import SetPasswordForm
 from django.views.decorators.http import require_POST
 from django.urls import reverse
 from django.contrib import messages
+from .utils import send_user_credentials_email
 
 class UserListView(ListView):
     model = User
@@ -30,11 +32,10 @@ class UserListView(ListView):
         return super().dispatch(request, *args, **kwargs)
 
     def get_queryset(self):
-        queryset = super().get_queryset().order_by('username')
+        queryset = super().get_queryset().order_by('email')
         q = self.request.GET.get('q')
         if q:
             queryset = queryset.filter(
-                Q(username__icontains=q) |
                 Q(email__icontains=q) |
                 Q(first_name__icontains=q) |
                 Q(last_name__icontains=q)
@@ -45,10 +46,26 @@ class UserListView(ListView):
         elif filter_val == 'not_approved':
             queryset = queryset.filter(profile__is_approved=False)
         elif filter_val == 'responsible':
-            queryset = queryset.filter(profile__role__responsible_user__isnull=False)
+            queryset = queryset.filter(profile__role__responsible_user=F('id'))
         elif filter_val == 'not_responsible':
-            queryset = queryset.filter(profile__role__responsible_user__isnull=True)
+            queryset = queryset.filter(
+                Q(profile__role__responsible_user__isnull=True) |
+                ~Q(profile__role__responsible_user=F('id'))
+            )
+        
+        # Фильтрация по группе
+        group_filter = self.request.GET.get('group')
+        if group_filter:
+            queryset = queryset.filter(groups__id=group_filter)
+        
         return queryset
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        # Добавляем список групп для фильтра
+        from django.contrib.auth.models import Group
+        context['groups'] = Group.objects.all().order_by('name')
+        return context
 
 
 class UserCreateStep1View(CreateView):
@@ -59,17 +76,23 @@ class UserCreateStep1View(CreateView):
     def form_valid(self, form):
         user = form.save()
         self.request.session['user_create_step1_user_id'] = user.id
+        self.request.session['user_password'] = form.cleaned_data['password1']
         return redirect(self.success_url)
+
+
+
 
 class UserCreateStep2View(CreateView):
     template_name = 'user_management/user_create_step2.html'
     form_class = UserProfileForm
     success_url = reverse_lazy('user_management:user_list')
 
+
     def dispatch(self, request, *args, **kwargs):
         if 'user_create_step1_user_id' not in request.session:
             return redirect('user_management:user_create_step1')
         return super().dispatch(request, *args, **kwargs)
+
 
     def get_form_kwargs(self):
         kwargs = super().get_form_kwargs()
@@ -79,10 +102,29 @@ class UserCreateStep2View(CreateView):
         kwargs['user_instance'] = user
         return kwargs
 
+
     def form_valid(self, form):
         form.save()
+        user_id = self.request.session.get('user_create_step1_user_id')
+        user = User.objects.get(id=user_id)
+        
+        # Получаем пароль из сессии (нужно сохранить его в step1)
+        password = self.request.session.get('user_password')
+        
+        # Отправляем email с данными для входа
+        if password and send_user_credentials_email(user, password):
+            messages.success(self.request, f'Пользователь {user.email} создан. Email с данными для входа отправлен на {user.email}')
+        else:
+            messages.warning(self.request, f'Пользователь {user.email} создан, но не удалось отправить email с данными для входа')
+        
         del self.request.session['user_create_step1_user_id']
+        if 'user_password' in self.request.session:
+            del self.request.session['user_password']
+        
         return redirect(self.success_url)
+
+
+
 
 def get_user_privilege_level(user):
     if user.is_superuser:
@@ -90,6 +132,9 @@ def get_user_privilege_level(user):
     if user.is_staff:
         return 2
     return 1
+
+
+
 
 def role_manage(request):
     if not request.user.is_staff:
@@ -101,6 +146,9 @@ def role_manage(request):
             messages.success(request, f'Должность "{name}" добавлена.')
         return redirect(request.META.get('HTTP_REFERER', reverse('user_management:user_list')))
     return redirect('user_management:user_list')
+
+
+
 
 @require_POST
 def role_delete(request, role_id):
@@ -338,7 +386,7 @@ def lesson_remove_allowed_role(request, lesson_id, role_id):
 class UserUpdateView(UpdateView):
     model = User
     template_name = 'user_management/user_form.html'
-    fields = ['username', 'email', 'first_name', 'last_name', 'groups', 'is_active']
+    fields = ['email', 'first_name', 'last_name', 'groups', 'is_active']
     success_url = reverse_lazy('user_management:user_list')
 
     def dispatch(self, request, *args, **kwargs):
@@ -384,10 +432,19 @@ class UserProgressDashboardView(DetailView):
         context = super().get_context_data(**kwargs)
         user = self.get_object()
         profile = user.profile
-        exp = profile.exp 
         
-        # Получаем все курсы пользователя
-        user_courses = UserCourse.objects.filter(user=user).select_related('course')
+        # Получаем все доступные курсы через менеджер
+        available_courses = Course.objects.available_for_user(user)
+        # Получаем UserCourse для каждого доступного курса
+        user_courses = []
+        for course in available_courses:
+            user_course = UserCourse.objects.filter(user=user, course=course).first()
+            if user_course:
+                user_courses.append(user_course)
+            else:
+                # Создаем UserCourse если его нет (для курсов из траекторий)
+                user_course = UserCourse.objects.create(user=user, course=course, status='available')
+                user_courses.append(user_course)
         
         # Получаем все результаты тестирования пользователя ДО цикла по курсам
         quiz_results = list(QuizResult.objects.filter(user=user).order_by('-completed_at'))
@@ -465,8 +522,7 @@ class UserProgressDashboardView(DetailView):
                 'progress_percent': progress_percent,
                 'quiz_passed': quiz_passed,
                 'lessons_detail': lessons_detail,
-                'can_receive_exp': user_course.can_receive_exp(),
-                'exp_reward': user_course.exp_reward() if user_course.status == 'completed' else 0,
+
                 'best_attempt': best_attempt,
             })
         
@@ -480,12 +536,7 @@ class UserProgressDashboardView(DetailView):
         total_lessons_available = sum(cp['total_lessons'] for cp in courses_progress)
         overall_progress = int((total_lessons_completed / total_lessons_available) * 100) if total_lessons_available > 0 else 0
         
-        def count_exp(exp, level=1):
-            while exp >= level * 100:
-                level += 1
-            progress = ((exp - ((level - 1) * 100)) / 100) * 100
-            return level, min(progress, 100)
-        level, progress = count_exp(exp)
+
 
         # Детальная информация о результатах тестов
         detailed_quiz_results = []
@@ -544,9 +595,6 @@ class UserProgressDashboardView(DetailView):
             page_obj_courses = paginator_courses.page(paginator_courses.num_pages)
         
         context.update({
-            'exp': exp,
-            'level': level,
-            'progress': int(progress),
             'courses_progress': courses_progress,
             'total_courses': total_courses,
             'completed_courses': completed_courses,
@@ -584,6 +632,27 @@ class UserQuizReportView(DetailView):
         return context
 
 
+    def post(self, request, *args, **kwargs):
+        quiz_result = self.get_object()
+        for key, val in request.POST.items():
+            if not key.startswith('text_eval_'):
+                continue
+            try:
+                ua_id = int(key.replace('text_eval_', ''))
+            except ValueError:
+                continue
+            if val == '':
+                new_val = None
+            elif val == 'true':
+                new_val = True
+            elif val == 'false':
+                new_val = False
+            else:
+                continue
+            quiz_result.answers.filter(id=ua_id, question__question_type='text').update(is_correct=new_val)
+        return redirect(request.path)
+
+
 class UserPasswordChangeView(FormView):
     template_name = 'user_management/user_password_change.html'
     form_class = SetPasswordForm
@@ -609,3 +678,126 @@ class UserPasswordChangeView(FormView):
         context = super().get_context_data(**kwargs)
         context['object'] = User.objects.get(pk=self.kwargs['pk'])
         return context
+
+
+class UserQuizAttemptsView(DetailView):
+    """
+    Страница управления доступом к тестам для пользователя.
+    """
+    model = User
+    template_name = 'user_management/user_quiz_attempts.html'
+    context_object_name = 'target_user'
+
+    def dispatch(self, request, *args, **kwargs):
+        if not request.user.is_authenticated or not (request.user.is_staff or request.user.is_superuser):
+            raise PermissionDenied("У вас нет доступа к управлению пользователями.")
+        return super().dispatch(request, *args, **kwargs)
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        user = self.get_object()
+        
+        # Получаем все тесты
+        # quizzes = Quiz.objects.all().order_by('name') # TODO: Фильтровать по доступности
+        
+        # Получаем все курсы, доступные пользователю
+        available_courses = Course.objects.available_for_user(user)
+
+        # Собираем тесты из доступных курсов
+        quizzes = set()
+        for course in available_courses:
+            if course.final_quiz:
+                quizzes.add(course.final_quiz)
+        
+        # Добавляем тесты, которые напрямую доступны пользователю (если есть такая логика)
+        # На данный момент считаем, что все тесты привязаны к курсам или доступны глобально.
+        # Если в будущем появится логика для отдельно доступных тестов, нужно добавить ее сюда.
+        # Пример: quizzes.update(Quiz.objects.filter(is_globally_available=True))
+
+        quizzes = sorted(list(quizzes), key=lambda q: q.name) # Сортируем для единообразия
+        
+        quiz_data = {}
+        for quiz in quizzes:
+            # Получаем результаты тестов
+            results = QuizResult.objects.filter(
+                user=user,
+                quiz_title=quiz.name
+            ).order_by('-completed_at')
+            
+            # Просто показываем все результаты
+            attempts_with_results = []
+            for i, result in enumerate(results, 1):
+                attempts_with_results.append({
+                    'result': result,
+                    'attempt_number': i,  # Порядковый номер результата
+                    'started_at': result.completed_at,
+                    'completed_at': result.completed_at
+                })
+            
+            # Статистика
+            total_attempts = results.count()  # Общее количество результатов
+            passed_attempts = results.filter(passed=True).count()
+            failed_attempts = results.filter(passed=False).count()
+            best_result = results.order_by('-percent').first()
+            best_score = best_result.percent if best_result else None
+            
+            # Проверяем блокировку теста
+            quiz_lock = QuizLock.objects.filter(user=user, quiz=quiz).first()
+            is_blocked = quiz_lock.is_locked if quiz_lock else False
+            
+            quiz_data[quiz] = {
+                'attempts': attempts_with_results,
+                'total_attempts': total_attempts,
+                'passed_attempts': passed_attempts,
+                'failed_attempts': failed_attempts,
+                'best_score': best_score,
+                'is_blocked': is_blocked
+            }
+        
+        context['quiz_data'] = quiz_data
+        return context
+
+
+
+@require_POST  
+def unlock_quiz_access(request, user_id, quiz_id):
+    """
+    Разблокирует доступ к тесту для пользователя.
+    Позволяет пройти тест еще 1 раз сверх ограничения попыток.
+    """
+    if not request.user.is_staff or not request.user.is_superuser:
+        raise PermissionDenied("У вас нет доступа к этому действию.")
+    
+    try:
+        user = User.objects.get(id=user_id)
+        quiz = Quiz.objects.get(id=quiz_id)
+        
+        # Разблокируем тест
+        quiz_lock, created = QuizLock.objects.get_or_create(
+            user=user,
+            quiz=quiz,
+            defaults={'is_locked': False}
+        )
+        
+        if quiz_lock.is_locked:
+            quiz_lock.is_locked = False
+            quiz_lock.locked_at = None
+            quiz_lock.save()
+            
+            messages.success(
+                request,
+                f'Тест "{quiz.name}" разблокирован для пользователя {user.get_full_name()}. '
+                f'Пользователь может пройти еще одну попытку.'
+            )
+        else:
+            messages.info(
+                request,
+                f'Тест "{quiz.name}" уже разблокирован для пользователя {user.get_full_name()}.'
+            )
+        
+    except (User.DoesNotExist, Quiz.DoesNotExist):
+        messages.error(request, 'Пользователь или тест не найден.')
+    except Exception as e:
+        messages.error(request, f'Ошибка при разблокировке: {str(e)}')
+    
+    return redirect('user_management:user_quiz_attempts', pk=user_id)

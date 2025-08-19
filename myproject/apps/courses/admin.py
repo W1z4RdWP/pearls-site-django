@@ -1,31 +1,27 @@
 from django.contrib import admin
 from django import forms
-from .models import Course, Lesson, UserLessonTrajectory, Trajectory, TrajectoryCourse, UserCourseTrajectory
+from .models import Course, Lesson, UserLessonTrajectory, Trajectory, TrajectoryCourse, UserCourseTrajectory, Certificate
 
-class LessonInlineForm(forms.ModelForm):
-    class Meta:
-        model = UserLessonTrajectory.lessons.through
-        fields = '__all__'
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        if self.instance.pk and hasattr(self.instance, 'userlessontrajectory'):
-            trajectory = self.instance.userlessontrajectory
-            self.fields['lesson'].queryset = Lesson.objects.filter(course=trajectory.course)
-
-class LessonInline(admin.TabularInline):
+class UserLessonTrajectoryLessonInline(admin.TabularInline):
     model = UserLessonTrajectory.lessons.through
-    form = LessonInlineForm
     extra = 1
-    verbose_name = "Урок в траектории"
-    verbose_name_plural = "Уроки в траектории"
+    verbose_name = "Урок в траектории пользователя"
+    verbose_name_plural = "Уроки в траектории пользователя"
     autocomplete_fields = ['lesson']
 
     def get_formset(self, request, obj=None, **kwargs):
         formset = super().get_formset(request, obj, **kwargs)
         if obj:
-            formset.form.base_fields['lesson'].queryset = Lesson.objects.filter(course=obj.course)
+            # Фильтруем уроки по курсу траектории
+            formset.form.base_fields['lesson'].queryset = Lesson.objects.filter(courses=obj.course)
         return formset
+
+class LessonInline(admin.TabularInline):
+    model = Lesson.courses.through
+    extra = 1
+    verbose_name = "Урок в курсе"
+    verbose_name_plural = "Уроки в курсе"
+    autocomplete_fields = ['lesson']
 
 @admin.register(Course)
 class CourseAdmin(admin.ModelAdmin):
@@ -34,28 +30,21 @@ class CourseAdmin(admin.ModelAdmin):
     prepopulated_fields = {'slug': ('title',)}
     autocomplete_fields = ['final_quiz']  # Для удобного поиска тестов
     filter_horizontal = ('allowed_groups',)
+    inlines = [LessonInline]
 
 
 
 @admin.register(Lesson)
 class LessonAdmin(admin.ModelAdmin):
-    list_display = ['title', 'order', 'course']
-    list_filter = ['course']
-    search_fields = ['title', 'course__title']
+    list_display = ['title', 'order', 'get_courses', 'category']
+    list_filter = ['category', 'courses']
+    search_fields = ['title', 'courses__title']
+    filter_horizontal = ['courses']
+    
+    def get_courses(self, obj):
+        return ", ".join([course.title for course in obj.courses.all()])
+    get_courses.short_description = 'Курсы'
 
-
-@admin.register(UserLessonTrajectory)
-class UserLessonTrajectoryAdmin(admin.ModelAdmin):
-    list_display = ('user', 'course', 'get_lessons_count')
-    list_filter = ('course', 'user')
-    search_fields = ('user__username', 'course__title')
-    inlines = [LessonInline]
-    exclude = ('lessons',)
-    autocomplete_fields = ['course', 'lessons']
-
-    def get_lessons_count(self, obj):
-        return obj.lessons.count()
-    get_lessons_count.short_description = 'Кол-во уроков'
 
 class TrajectoryCourseInline(admin.TabularInline):
     model = TrajectoryCourse
@@ -106,15 +95,28 @@ class TrajectoryCourseAdmin(admin.ModelAdmin):
 #     verbose_name = "Урок в траектории"
 #     verbose_name_plural = "Уроки в траектории"
 
-# @admin.register(UserLessonTrajectory)
-# class UserLessonTrajectoryAdmin(admin.ModelAdmin):
-#     form = UserLessonTrajectoryForm
-#     list_display = ('user', 'course')
-#     list_filter = ('course', 'user')
-#     search_fields = ('user__username', 'course__title')
-#     inlines = [LessonInline]
-#     exclude = ('lessons',)
+@admin.register(UserLessonTrajectory)
+class UserLessonTrajectoryAdmin(admin.ModelAdmin):
+    list_display = ('user', 'course', 'get_lessons_count')
+    list_filter = ('course', 'user')
+    search_fields = ('user__username', 'course__title')
+    inlines = [UserLessonTrajectoryLessonInline]
+    exclude = ('lessons',)
+    autocomplete_fields = ['course']
+
+    def get_lessons_count(self, obj):
+        return obj.lessons.count()
+    get_lessons_count.short_description = 'Кол-во уроков'
+
+
+@admin.register(Certificate)
+class CertificateAdmin(admin.ModelAdmin):
+    list_display = ('certificate_id', 'user', 'certificate_type', 'course', 'trajectory', 'issued_at')
+    list_filter = ('certificate_type', 'issued_at')
+    search_fields = ('user__username', 'certificate_id', 'course__title', 'trajectory__name')
+    readonly_fields = ('certificate_id', 'issued_at')
+    autocomplete_fields = ['user', 'course', 'trajectory']
     
-#     def get_lessons_count(self, obj):
-#         return obj.lessons.count()
-#     get_lessons_count.short_description = 'Кол-во уроков'
+    def has_add_permission(self, request):
+        # Сертификаты создаются автоматически системой
+        return False

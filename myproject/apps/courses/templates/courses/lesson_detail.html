@@ -12,7 +12,7 @@
 
     <div class="lesson-navigation">
         {% if previous_lesson %}
-            <a href="{% url 'courses:lesson_detail' course_slug=lesson.course.slug lesson_id=previous_lesson.id %}" 
+            <a href="{% url 'courses:lesson_detail' course_slug=course.slug lesson_id=previous_lesson.id %}" 
             class="btn btn-primary">
                 ← {{ previous_lesson.title }}
             </a>
@@ -21,7 +21,7 @@
         {% endif %}
 
         {% if next_lesson %}
-            <a href="{% url 'courses:lesson_detail' course_slug=lesson.course.slug lesson_id=next_lesson.id %}" 
+            <a href="{% url 'courses:lesson_detail' course_slug=course.slug lesson_id=next_lesson.id %}" 
             class="btn btn-primary">
                 {{ next_lesson.title }} →
             </a>
@@ -31,7 +31,7 @@
     </div>
 
     <div class="content-section">
-        <h1>{{ lesson.course.title }}</h1>
+        <h1>{{ course.title }}</h1>
         <h2>{{ lesson.title }}</h2>
         <div class="lesson-content ck-content">
             {{ lesson.content|safe }}
@@ -43,12 +43,20 @@
                         allowfullscreen>
                 </iframe>
             </div>
-
             {% endif %}
         </div>
+        
+        <!-- Галочка подтверждения -->
+        <div class="confirmation-checkbox" style="margin: 30px 0; padding: 20px; border: 1px solid #ddd; border-radius: 8px; background-color: #f9f9f9;">
+            <label style="display: flex; align-items: center; cursor: pointer; font-size: 16px;">
+                <input type="checkbox" id="lessonConfirmation" style="margin-right: 12px; transform: scale(1.2);">
+                <span>Подтверждаю ознакомление с учебным материалом и полное понимание его содержания. Дополнительных вопросов не имеется.</span>
+            </label>
+        </div>
     </div>
+    
     <div class="lesson-actions">
-        <form method="POST" action="{% url 'courses:complete_lesson' course_slug=lesson.course.slug lesson_id=lesson.id %}">
+        <form method="POST" action="{% url 'courses:complete_lesson' course_slug=course.slug lesson_id=lesson.id %}" id="completeLessonForm" style="display: none;">
             {% csrf_token %}
             <button type="submit" class="btn-lesson complete">
                 <i class="fa fa-check"></i> Завершить урок
@@ -69,6 +77,15 @@
     </div>
 
     <script>
+        // Показываем/скрываем кнопку "Завершить" в зависимости от состояния галочки
+        document.getElementById('lessonConfirmation').addEventListener('change', function() {
+            const completeForm = document.getElementById('completeLessonForm');
+            if (this.checked) {
+                completeForm.style.display = 'block';
+            } else {
+                completeForm.style.display = 'none';
+            }
+        });
         
         function informUser() {
             alert("Обратитесь к администратору сайта, чтобы изменить содержимое урока.");

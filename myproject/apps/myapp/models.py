@@ -26,7 +26,8 @@ class UserProgress(models.Model):
 
     def save(self, *args, **kwargs):
         if not self.course_id:
-            self.course = self.lesson.course
+            # Получаем первый курс из связанных с уроком
+            self.course = self.lesson.courses.first()
         super().save(*args, **kwargs)
 
 
@@ -69,22 +70,6 @@ class UserCourse(models.Model):
     def __str__(self):
         return f"{self.user.username} - {self.course.title} ({self.get_status_display()})"
     
-    def can_receive_exp(self) -> bool:
-        """
-        Всегда False, т.к. exp теперь считается динамически и не начисляется вручную.
-        Оставлено для обратной совместимости с шаблонами/старым кодом.
-        """
-        return False
-
-    def exp_reward(self) -> int:
-        """
-        Возвращает количество опыта за этот курс: 150 (+10% если есть финальный тест).
-        """
-        base = 150
-        if getattr(self.course, 'final_quiz', None):
-            base = int(base * 1.1)
-        return base
-
 
 class QuizResult(models.Model):
     """
@@ -137,9 +122,8 @@ class UserAnswer(models.Model):
     quiz_result = models.ForeignKey('QuizResult', on_delete=models.CASCADE, related_name='answers')
     question = models.ForeignKey('quizzes.Question', on_delete=models.CASCADE)
     selected_answer = models.ForeignKey('quizzes.Answer', on_delete=models.SET_NULL, null=True, blank=True)
-    is_correct = models.BooleanField()
+    is_correct = models.BooleanField(null=True, blank=True, help_text="Для открытых ответов: None = не оценено")
     answer_text = models.CharField(max_length=500, blank=True, null=True)
-    #text_answer = models.CharField(max_length=500, blank=True, null=True)
 
     class Meta:
         indexes = [

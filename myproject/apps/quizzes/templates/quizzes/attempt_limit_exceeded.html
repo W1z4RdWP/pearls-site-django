@@ -1,0 +1,121 @@
+{% extends "layout.html" %}
+{% block title %}Превышен лимит попыток - {{ quiz.name }}{% endblock %}
+{% load static %}
+
+{% block specific_styles %}
+<link rel="stylesheet" href="{% static 'quizzes/css/quiz_styles.css' %}">
+<style>
+    .limit-exceeded-container {
+        max-width: 600px;
+        margin: 0 auto;
+        text-align: center;
+        padding: 2rem;
+    }
+    
+    .warning-icon {
+        font-size: 4rem;
+        color: #ffc107;
+        margin-bottom: 1.5rem;
+    }
+    
+    .quiz-name {
+        color: #007bff;
+        font-weight: 600;
+    }
+    
+    .support-btn {
+        background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
+        border: none;
+        padding: 0.75rem 2rem;
+        font-size: 1.1rem;
+        font-weight: 600;
+        border-radius: 8px;
+        box-shadow: 0 4px 15px rgba(0, 123, 255, 0.3);
+        transition: all 0.3s ease;
+    }
+    
+    .support-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(0, 123, 255, 0.4);
+    }
+    
+    .back-link {
+        color: #6c757d;
+        text-decoration: none;
+        font-size: 0.95rem;
+    }
+    
+    .back-link:hover {
+        color: #495057;
+        text-decoration: underline;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="limit-exceeded-container">
+        <div class="warning-icon">
+            <i class="fas fa-exclamation-triangle"></i>
+        </div>
+        
+        <h1 class="h3 mb-4">Превышен лимит попыток</h1>
+        
+        <div class="alert alert-warning" role="alert">
+            <p class="mb-2">
+                Вы превысили лимит попыток для прохождения теста 
+                <span class="quiz-name">"{{ quiz.name }}"</span>
+            </p>
+            <p class="mb-0">
+                <strong>Использовано попыток:</strong> {{ attempts_count }} из {{ quiz.attempt_limit }}
+            </p>
+        </div>
+        
+        {% if course and course_progress_reset %}
+        <div class="alert alert-danger" role="alert">
+            <h6 class="alert-heading">
+                <i class="fas fa-exclamation-circle me-2"></i>
+                Прогресс курса сброшен
+            </h6>
+            <p class="mb-2">
+                Ваш прогресс для курса <strong>"{{ course.title }}"</strong> обнулен.
+            </p>
+            <p class="mb-0">
+                <strong>Необходимо повторить материал</strong> перед следующей попыткой финального тестирования.
+            </p>
+        </div>
+        {% endif %}
+        
+        <div class="card border-info mb-4">
+            <div class="card-body">
+                <h5 class="card-title text-info">
+                    <i class="fas fa-info-circle me-2"></i>
+                    Что делать дальше?
+                </h5>
+                <p class="card-text">
+                    Для получения дополнительной попытки прохождения теста обратитесь к администрации платформы УЦ "Территория Улыбки"
+                </p>
+            </div>
+        </div>
+        
+        <div class="d-grid gap-3">
+            <a href="{% url 'tech_support:support_chat' %}" class="btn btn-primary support-btn">
+                <i class="fas fa-life-ring me-2"></i>
+                Написать в службу поддержки
+            </a>
+            
+            {% if course %}
+            <a href="{% url 'courses:course_detail' slug=course.slug %}" class="btn btn-outline-primary">
+                <i class="fas fa-book me-2"></i>
+                Вернуться к курсу "{{ course.title }}"
+            </a>
+            {% endif %}
+            
+            <a href="{% url 'quizzes:quizzes' %}" class="back-link">
+                <i class="fas fa-arrow-left me-1"></i>
+                Вернуться к списку тестов
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,470 @@
+{% extends 'layout.html' %}
+{% load static %}
+
+{% block title %}История транзакций DASCOIN - {{ user.get_full_name|default:user.username }}{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center py-2">
+                    <h3 class="mb-0 fs-5">
+                        <i class="fas fa-coins text-warning me-2"></i>
+                        История транзакций DASCOIN - {{ user.get_full_name|default:user.username }}
+                    </h3>
+                    <div class="btn-group btn-group-sm me-2">
+                        <a href="{% url 'users:export_admin_user_transactions_excel' user.id %}" class="btn btn-outline-success">
+                            <i class="fas fa-file-excel me-1"></i>Excel
+                        </a>
+                        <a href="{% url 'users:export_admin_user_transactions_pdf' user.id %}" class="btn btn-outline-danger">
+                            <i class="fas fa-file-pdf me-1"></i>PDF
+                        </a>
+                    </div>
+                    <div class="d-flex align-items-center">
+                        <span class="badge bg-primary fs-6 me-2">
+                            {{ total_transactions }}
+                        </span>
+                        <a href="{% url 'users:admin_dascoin_dashboard' %}" class="btn btn-outline-secondary btn-sm">
+                            <i class="fas fa-arrow-left me-1"></i>Назад к панели
+                        </a>
+                    </div>
+                </div>
+                
+                <!-- Информация о пользователе -->
+                <div class="card-body border-bottom py-3">
+                    <div class="row align-items-center">
+                        <div class="col-md-8">
+                            <div class="d-flex align-items-center">
+                                {% if user.profile.image %}
+                                    <img src="{{ user.profile.image.url }}" 
+                                         class="rounded-circle me-3" 
+                                         width="64" height="64" 
+                                         alt="{{ user.get_full_name }}">
+                                {% else %}
+                                    <div class="bg-secondary rounded-circle me-3 d-flex align-items-center justify-content-center" 
+                                         style="width: 64px; height: 64px;">
+                                        <i class="fas fa-user text-white fa-2x"></i>
+                                    </div>
+                                {% endif %}
+                                <div>
+                                    <h5 class="mb-1">{{ user.get_full_name|default:user.username }}</h5>
+                                    <p class="text-muted mb-1">{{ user.email }}</p>
+                                    <div class="d-flex align-items-center">
+                                        <span class="fw-bold text-warning me-2">
+                                            {{ user.profile.dascoin_points }} DASCOIN
+                                        </span>
+                                        {% if user.profile.dascoin_points > 0 %}
+                                            <i class="fas fa-coins text-warning"></i>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="text-end">
+                                <div class="mb-2">
+                                    {% if user.groups.all %}
+                                        <strong>Группы:</strong><br>
+                                        {% for group in user.groups.all %}
+                                            <span class="badge bg-secondary me-1">{{ group.name }}</span>
+                                        {% endfor %}
+                                    {% endif %}
+                                </div>
+                                <div class="mb-2">
+                                    {% if user.profile.role %}
+                                        <strong>Должность:</strong><br>
+                                        <span class="badge bg-info">{{ user.profile.role.name }}</span>
+                                    {% endif %}
+                                </div>
+                                <div>
+                                    <strong>Статус:</strong><br>
+                                    {% if user.is_active %}
+                                        {% if user.profile.is_approved %}
+                                            <span class="badge bg-success">
+                                                <i class="fas fa-check me-1"></i>Активен
+                                            </span>
+                                        {% else %}
+                                            <span class="badge bg-warning text-dark">
+                                                <i class="fas fa-clock me-1"></i>Ожидает
+                                            </span>
+                                        {% endif %}
+                                    {% else %}
+                                        <span class="badge bg-danger">
+                                            <i class="fas fa-ban me-1"></i>Неактивен
+                                        </span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Фильтры и статистика -->
+                <div class="card-body border-bottom py-2">
+                    <div class="row align-items-center">
+                        <div class="col-md-8">
+                            <h6 class="mb-2 small">Фильтр по типу:</h6>
+                            <div class="btn-group btn-group-sm" role="group">
+                                <a href="{% url 'users:admin_user_transactions' user.id %}" 
+                                   class="btn btn-outline-secondary btn-sm {% if not current_filter %}active{% endif %}">
+                                    Все ({{ total_transactions }})
+                                </a>
+                                <a href="{% url 'users:admin_user_transactions' user.id %}?type=award" 
+                                   class="btn btn-outline-success btn-sm {% if current_filter == 'award' %}active{% endif %}" title="Начисление">
+                                    <i class="fas fa-plus me-1"></i>({{ stats.award }})
+                                </a>
+                                <a href="{% url 'users:admin_user_transactions' user.id %}?type=deduct" 
+                                   class="btn btn-outline-danger btn-sm {% if current_filter == 'deduct' %}active{% endif %}" title="Списание">
+                                    <i class="fas fa-minus me-1"></i>({{ stats.deduct }})
+                                </a>
+                                <a href="{% url 'users:admin_user_transactions' user.id %}?type=set" 
+                                   class="btn btn-outline-info btn-sm {% if current_filter == 'set' %}active{% endif %}" title="Установка">
+                                    <i class="fas fa-equals me-1"></i>({{ stats.set }})
+                                </a>
+                                <a href="{% url 'users:admin_user_transactions' user.id %}?type=correction" 
+                                   class="btn btn-outline-warning btn-sm {% if current_filter == 'correction' %}active{% endif %}" title="Корректировка">
+                                    <i class="fas fa-tools me-1"></i>({{ stats.correction }})
+                                </a>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="text-end">
+                                <h6 class="mb-1 small">Статистика:</h6>
+                                <div class="row text-center">
+                                    <div class="col-3">
+                                        <div class="text-success">
+                                            <i class="fas fa-plus-circle small"></i>
+                                            <div class="small">{{ stats.award }}</div>
+                                        </div>
+                                    </div>
+                                    <div class="col-3">
+                                        <div class="text-danger">
+                                            <i class="fas fa-minus-circle small"></i>
+                                            <div class="small">{{ stats.deduct }}</div>
+                                        </div>
+                                    </div>
+                                    <div class="col-3">
+                                        <div class="text-info">
+                                            <i class="fas fa-equals small"></i>
+                                            <div class="small">{{ stats.set }}</div>
+                                        </div>
+                                    </div>
+                                    <div class="col-3">
+                                        <div class="text-warning">
+                                            <i class="fas fa-tools small"></i>
+                                            <div class="small">{{ stats.correction }}</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="card-body">
+                    {% if transactions %}
+                        <div class="table-responsive">
+                            <table class="table table-hover table-sm">
+                                <thead class="table-dark">
+                                    <tr>
+                                        <th class="py-2">Дата</th>
+                                        <th class="py-2">Тип</th>
+                                        <th class="py-2">Изменение</th>
+                                        <th class="py-2">До</th>
+                                        <th class="py-2">После</th>
+                                        <th class="py-2">Причина</th>
+                                        <th class="py-2">Админ</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for transaction in transactions %}
+                                    <tr>
+                                        <td class="py-1">
+                                            <div class="small text-muted">
+                                                {{ transaction.created_at|date:"d.m.Y" }}
+                                            </div>
+                                            <div class="small text-muted">
+                                                {{ transaction.created_at|date:"H:i" }}
+                                            </div>
+                                        </td>
+                                        <td class="py-1">
+                                            {% if transaction.transaction_type == 'award' %}
+                                                <span class="badge bg-success badge-sm">
+                                                    <i class="fas fa-plus me-1"></i> Начисление
+                                                </span>
+                                            {% elif transaction.transaction_type == 'deduct' %}
+                                                <span class="badge bg-danger badge-sm">
+                                                    <i class="fas fa-minus me-1"></i> Списание
+                                                </span>
+                                            {% elif transaction.transaction_type == 'set' %}
+                                                <span class="badge bg-info badge-sm">
+                                                    <i class="fas fa-equals me-1"></i> Установка
+                                                </span>
+                                            {% elif transaction.transaction_type == 'correction' %}
+                                                <span class="badge bg-warning text-dark badge-sm">
+                                                    <i class="fas fa-tools me-1"></i> Корректировка
+                                                </span>
+                                            {% endif %}
+                                        </td>
+                                        <td class="py-1">
+                                            {% if transaction.points_change > 0 %}
+                                                <span class="text-success fw-bold small">
+                                                    +{{ transaction.points_change }}
+                                                </span>
+                                            {% else %}
+                                                <span class="text-danger fw-bold small">
+                                                    {{ transaction.points_change }}
+                                                </span>
+                                            {% endif %}
+                                        </td>
+                                        <td class="py-1">
+                                            <span class="text-muted small">{{ transaction.points_before }}</span>
+                                        </td>
+                                        <td class="py-1">
+                                            <span class="fw-bold small">{{ transaction.points_after }}</span>
+                                        </td>
+                                        <td class="py-1">
+                                            {% if transaction.reason %}
+                                                <span class="text-break small">{{ transaction.reason|truncatechars:30 }}</span>
+                                            {% else %}
+                                                <span class="text-muted small">—</span>
+                                            {% endif %}
+                                        </td>
+                                        <td class="py-1">
+                                            {% if transaction.admin_user %}
+                                                <small class="text-muted">
+                                                    {{ transaction.admin_user.get_full_name|default:transaction.admin_user.username|truncatechars:15 }}
+                                                </small>
+                                            {% else %}
+                                                <small class="text-muted">Система</small>
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                        
+                        <!-- Улучшенная пагинация -->
+                        {% if is_paginated %}
+                        <nav aria-label="Навигация по страницам транзакций" class="mt-3">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div class="text-muted small">
+                                    {{ page_obj.start_index }}-{{ page_obj.end_index }} из {{ page_obj.paginator.count }}
+                                </div>
+                                <ul class="pagination pagination-sm mb-0">
+                                    <!-- Первая страница -->
+                                    {% if page_obj.has_previous %}
+                                        <li class="page-item">
+                                            <a class="page-link" href="?page=1{% if current_filter %}&type={{ current_filter }}{% endif %}" title="Первая страница">
+                                                <i class="fas fa-angle-double-left"></i>
+                                            </a>
+                                        </li>
+                                        <li class="page-item">
+                                            <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if current_filter %}&type={{ current_filter }}{% endif %}" title="Предыдущая страница">
+                                                <i class="fas fa-angle-left"></i>
+                                            </a>
+                                        </li>
+                                    {% else %}
+                                        <li class="page-item disabled">
+                                            <span class="page-link">
+                                                <i class="fas fa-angle-double-left"></i>
+                                            </span>
+                                        </li>
+                                        <li class="page-item disabled">
+                                            <span class="page-link">
+                                                <i class="fas fa-angle-left"></i>
+                                            </span>
+                                        </li>
+                                    {% endif %}
+                                    
+                                    <!-- Номера страниц -->
+                                    {% for num in page_obj.paginator.page_range %}
+                                        {% if num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                                            {% if page_obj.number == num %}
+                                                <li class="page-item active">
+                                                    <span class="page-link">{{ num }}</span>
+                                                </li>
+                                            {% else %}
+                                                <li class="page-item">
+                                                    <a class="page-link" href="?page={{ num }}{% if current_filter %}&type={{ current_filter }}{% endif %}">{{ num }}</a>
+                                                </li>
+                                            {% endif %}
+                                        {% endif %}
+                                    {% endfor %}
+                                    
+                                    <!-- Следующая страница -->
+                                    {% if page_obj.has_next %}
+                                        <li class="page-item">
+                                            <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if current_filter %}&type={{ current_filter }}{% endif %}" title="Следующая страница">
+                                                <i class="fas fa-angle-right"></i>
+                                            </a>
+                                        </li>
+                                        <li class="page-item">
+                                            <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}{% if current_filter %}&type={{ current_filter }}{% endif %}" title="Последняя страница">
+                                                <i class="fas fa-angle-double-right"></i>
+                                            </a>
+                                        </li>
+                                    {% else %}
+                                        <li class="page-item disabled">
+                                            <span class="page-link">
+                                                <i class="fas fa-angle-right"></i>
+                                            </span>
+                                        </li>
+                                        <li class="page-item disabled">
+                                            <span class="page-link">
+                                                <i class="fas fa-angle-double-right"></i>
+                                            </span>
+                                        </li>
+                                    {% endif %}
+                                </ul>
+                            </div>
+                            
+                            <!-- Информация о страницах -->
+                            <div class="text-center mt-1">
+                                <small class="text-muted">
+                                    {{ page_obj.number }}/{{ page_obj.paginator.num_pages }}
+                                </small>
+                            </div>
+                        </nav>
+                        {% endif %}
+                    {% else %}
+                        <div class="text-center py-5">
+                            <i class="fas fa-coins fa-3x text-muted mb-3"></i>
+                            <h4 class="text-muted">
+                                {% if current_filter %}
+                                    Транзакции типа "{{ current_filter }}" не найдены
+                                {% else %}
+                                    История транзакций пуста
+                                {% endif %}
+                            </h4>
+                            <p class="text-muted">
+                                {% if current_filter %}
+                                    Попробуйте выбрать другой фильтр или <a href="{% url 'users:admin_user_transactions' user.id %}">показать все транзакции</a>
+                                {% else %}
+                                    У пользователя пока нет транзакций DASCOIN
+                                {% endif %}
+                            </p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .table th {
+        font-weight: 600;
+        border-top: none;
+        font-size: 0.85rem;
+        padding: 0.5rem 0.25rem;
+    }
+    
+    .table td {
+        vertical-align: middle;
+        padding: 0.25rem 0.25rem;
+        font-size: 0.85rem;
+    }
+    
+    .table-sm td, .table-sm th {
+        padding: 0.25rem 0.25rem;
+    }
+    
+    .badge {
+        font-size: 0.7rem;
+        padding: 0.25rem 0.4rem;
+    }
+    
+    .badge-sm {
+        font-size: 0.65rem;
+        padding: 0.2rem 0.35rem;
+    }
+    
+    .text-break {
+        word-break: break-word;
+        max-width: 150px;
+    }
+    
+    .small {
+        font-size: 0.8rem;
+    }
+    
+    .table-hover tbody tr:hover {
+        background-color: rgba(0, 123, 255, 0.05);
+    }
+    
+    .pagination .page-link {
+        border-radius: 0.25rem;
+        margin: 0 1px;
+    }
+    
+    .pagination .page-item.active .page-link {
+        background-color: #007bff;
+        border-color: #007bff;
+    }
+    
+    .pagination .page-item.disabled .page-link {
+        color: #6c757d;
+        background-color: #fff;
+        border-color: #dee2e6;
+    }
+    
+    .btn-group .btn {
+        border-radius: 0.25rem;
+        margin: 0 1px;
+    }
+    
+    .btn-group .btn.active {
+        font-weight: 600;
+    }
+    
+    /* Компактные отступы для карточки */
+    .card-body {
+        padding: 1rem;
+    }
+    
+    .card-header {
+        padding: 0.75rem 1rem;
+    }
+    
+    @media (max-width: 768px) {
+        .card-header {
+            flex-direction: column;
+            gap: 1rem;
+        }
+        
+        .table-responsive {
+            font-size: 0.8rem;
+        }
+        
+        .text-break {
+            max-width: 120px;
+        }
+        
+        .pagination {
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        
+        .pagination .page-item {
+            margin: 1px;
+        }
+        
+        .btn-group {
+            flex-wrap: wrap;
+        }
+        
+        .btn-group .btn {
+            margin: 1px;
+            font-size: 0.75rem;
+        }
+        
+        .table td, .table th {
+            padding: 0.2rem 0.15rem;
+            font-size: 0.8rem;
+        }
+    }
+</style>
+{% endblock %} 

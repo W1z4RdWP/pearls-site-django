@@ -9,6 +9,42 @@ from unidecode import unidecode
 from quizzes.models import Quiz
 from builder.models import CategoryName
 
+
+class CourseManager(models.Manager):
+    def available_for_user(self, user):
+        """Все доступные курсы"""
+        if user.is_staff or user.is_superuser:
+            return self.all()
+        
+        return self.filter(
+            models.Q(usercourse__user=user) |
+            models.Q(allowed_groups__in=user.groups.all()) |
+            models.Q(trajectorycourse__trajectory__usercoursetrajectory__user=user)
+        ).distinct()
+    
+    def accessible_via_trajectories(self, user):
+        """Курсы, доступные только через траектории"""
+        return self.filter(
+            trajectorycourse__trajectory__usercoursetrajectory__user=user
+        ).exclude(
+            models.Q(usercourse__user=user) |
+            models.Q(allowed_groups__in=user.groups.all())
+        ).distinct()
+    
+    def accessible_via_groups(self, user):
+        """Курсы, доступные только через группы"""
+        return self.filter(
+            allowed_groups__in=user.groups.all()
+        ).exclude(
+            models.Q(usercourse__user=user) |
+            models.Q(trajectorycourse__trajectory__usercoursetrajectory__user=user)
+        ).distinct()
+    
+    def directly_assigned(self, user):
+        """Курсы, напрямую назначенные пользователю"""
+        return self.filter(usercourse__user=user).distinct()
+
+
 class Course(models.Model):
     """
     Модель представляющая таблицу myapp_course с курсами.
@@ -24,7 +60,7 @@ class Course(models.Model):
     description = CKEditor5Field('Описание курса', config_name='noTablesImages')
     author = models.ForeignKey(User, on_delete=models.CASCADE, verbose_name="Автор")
     created_at = models.DateTimeField(auto_now_add=True, verbose_name="Дата создания")
-    image = models.ImageField(upload_to='course_images/', blank=True, null=True, verbose_name="Изображение курса")
+    image = models.ImageField(upload_to='course_images/', default='course_images/default.jpg', blank=True, null=True, verbose_name="Изображение курса")
     slug = models.SlugField(max_length=200, unique=True, blank=True)
     final_quiz = models.ForeignKey(
         Quiz,
@@ -40,7 +76,9 @@ class Course(models.Model):
         help_text="Группы, которым доступен этот курс"
     )
     points = models.PositiveIntegerField(default=30, verbose_name="Количество DASCOIN за прохождение курса")
-
+    certificate = models.BooleanField(default=False, verbose_name="Выдавать сертификат", help_text="Выдавать сертификат пользователю при завершении курса")
+    objects = CourseManager()
+    
     class Meta:
         verbose_name = 'Курс'
         verbose_name_plural = 'Курсы'
@@ -51,6 +89,10 @@ class Course(models.Model):
             )
         ]
 
+    @property
+    def lessons(self):
+        """Получение уроков курса через связь many-to-many"""
+        return self.course_lessons.all().order_by('order')
 
     def save(self, *args, **kwargs):
         if not self.slug:  # Генерируем slug только если он пустой
@@ -72,13 +114,11 @@ class Lesson(models.Model):
     """
     Класс отвечающий за таблицу уроков в БД.
     Attrs:
-        course - Внешний ключ на курс к которому относится урок.
         title - название урока.
         content - содержимое урока. Заполняется администратором сайта.
         video_id - идентификатор прикрепленного видео из рутуб. Максимальное количество символов для передачи в форму 
                     задается параметром max_length.
     """
-    course = models.ForeignKey(Course, on_delete=models.CASCADE, null=True, blank=True, related_name='lessons', verbose_name="Курс")
     title = models.CharField(max_length=200, verbose_name="Название урока")
     content = CKEditor5Field('Content', config_name='extends')
     video_id = models.CharField(
@@ -99,27 +139,50 @@ class Lesson(models.Model):
     )
     created_at = models.DateTimeField(auto_now_add=True, verbose_name="Дата создания")
     points = models.PositiveIntegerField(default=10, verbose_name="Количество DASCOIN за прохождение урока")
-
+    
+    # Связь many-to-many с курсами для гибкости
+    courses = models.ManyToManyField(
+        Course,
+        blank=True,
+        related_name='course_lessons',
+        verbose_name="Курсы, в которых используется урок"
+    )
 
     class Meta:
         verbose_name = 'Урок'
         verbose_name_plural = 'Уроки'
         ordering = ['order']
         indexes = [
-            models.Index(fields=['course', 'order'], name='lesson_course_order_idx'),
+            models.Index(fields=['order'], name='lesson_order_idx'),
         ]
 
-    def get_previous_lesson(self):
-        return Lesson.objects.filter(
-            course=self.course, 
-            order__lt=self.order
-        ).order_by('-order').first()
+    def get_previous_lesson(self, course=None):
+        """Получение предыдущего урока в контексте курса или глобально"""
+        if course:
+            # Если указан курс, ищем предыдущий урок в этом курсе
+            return Lesson.objects.filter(
+                courses=course, 
+                order__lt=self.order
+            ).order_by('-order').first()
+        else:
+            # Иначе ищем глобально по порядку
+            return Lesson.objects.filter(
+                order__lt=self.order
+            ).order_by('-order').first()
 
-    def get_next_lesson(self):
-        return Lesson.objects.filter(
-            course=self.course, 
-            order__gt=self.order
-        ).order_by('order').first()
+    def get_next_lesson(self, course=None):
+        """Получение следующего урока в контексте курса или глобально"""
+        if course:
+            # Если указан курс, ищем следующий урок в этом курсе
+            return Lesson.objects.filter(
+                courses=course, 
+                order__gt=self.order
+            ).order_by('order').first()
+        else:
+            # Иначе ищем глобально по порядку
+            return Lesson.objects.filter(
+                order__gt=self.order
+            ).order_by('order').first()
 
     def __str__(self):
         return self.title
@@ -164,10 +227,12 @@ class Trajectory(models.Model):
         verbose_name="Курсы в траектории"
     )
     points = models.PositiveIntegerField(default=100, verbose_name="Количество DASCOIN за прохождение траектории")
+    certificate = models.BooleanField(default=False, verbose_name="Выдавать сертификат", help_text="Выдавать сертификат пользователю при завершении траектории")
 
     class Meta:
         verbose_name = 'Траектория курсов'
         verbose_name_plural = 'Траектории курсов'
+        ordering = ['name']
 
     def __str__(self) -> str:
         return self.name
@@ -212,3 +277,48 @@ class UserCourseTrajectory(models.Model):
 
     def __str__(self) -> str:
         return f"{self.user.username} — {self.trajectory.name}"
+
+
+class Certificate(models.Model):
+    """
+    Модель для хранения выданных сертификатов пользователям.
+    """
+    CERTIFICATE_TYPE_CHOICES = [
+        ('course', 'За курс'),
+        ('trajectory', 'За траекторию'),
+    ]
+    
+    user = models.ForeignKey(User, on_delete=models.CASCADE, verbose_name="Пользователь")
+    certificate_type = models.CharField(max_length=20, choices=CERTIFICATE_TYPE_CHOICES, verbose_name="Тип сертификата")
+    course = models.ForeignKey(Course, on_delete=models.CASCADE, null=True, blank=True, verbose_name="Курс", related_name='certificates')
+    trajectory = models.ForeignKey(Trajectory, on_delete=models.CASCADE, null=True, blank=True, verbose_name="Траектория", related_name='certificates')
+    issued_at = models.DateTimeField(auto_now_add=True, verbose_name="Дата выдачи")
+    certificate_id = models.CharField(max_length=50, unique=True, verbose_name="Уникальный номер сертификата")
+    
+    class Meta:
+        verbose_name = 'Сертификат'
+        verbose_name_plural = 'Сертификаты'
+        ordering = ['-issued_at']
+        unique_together = [
+            ('user', 'course'),
+            ('user', 'trajectory'),
+        ]
+        indexes = [
+            models.Index(fields=['user', 'certificate_type'], name='cert_user_type_idx'),
+            models.Index(fields=['certificate_id'], name='cert_id_idx'),
+        ]
+    
+    def save(self, *args, **kwargs):
+        if not self.certificate_id:
+            # Генерируем уникальный ID сертификата
+            import uuid
+            self.certificate_id = f"CERT-{uuid.uuid4().hex[:12].upper()}"
+        super().save(*args, **kwargs)
+    
+    def __str__(self):
+        if self.certificate_type == 'course':
+            return f"Сертификат {self.user.username} за курс {self.course.title}"
+        else:
+            return f"Сертификат {self.user.username} за траекторию {self.trajectory.name}"
+
+

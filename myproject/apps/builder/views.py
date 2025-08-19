@@ -238,14 +238,13 @@ def filter_categories_and_lessons_for_user(user, categories, uncategorized_lesso
     чтобы показывать только те уроки, которые входят в доступные для пользователя курсы
     ИЛИ доступны через группы в allowed_groups (категории и все вложенные).
     """
-    # Получаем все курсы, доступные пользователю
-    user_courses = UserCourse.objects.filter(user=user).select_related('course')
-    allowed_courses = [uc.course for uc in user_courses if uc.status in ['available', 'started', 'completed']]
-    allowed_course_ids = set(c.id for c in allowed_courses)
+    # Получаем все курсы, доступные пользователю через менеджер
+    available_courses = Course.objects.available_for_user(user)
+    allowed_course_ids = set(c.id for c in available_courses)
 
     # Собираем все разрешённые уроки (с учётом траекторий)
     allowed_lesson_ids = set()
-    for course in allowed_courses:
+    for course in available_courses:
         trajectory = UserLessonTrajectory.objects.filter(user=user, course=course).first()
         if trajectory:
             allowed_lesson_ids.update(trajectory.lessons.values_list('id', flat=True))
@@ -450,7 +449,7 @@ class LessonMasterDetailView(TemplateView):
 
 class LessonCreateView(CreateView):
     model = Lesson
-    fields = ['title', 'content', 'video_id', 'course', 'category']
+    fields = ['title', 'content', 'video_id', 'courses', 'category']
     template_name = 'builder/lesson_form.html'
     success_url = reverse_lazy('builder:lesson_master')
 
@@ -487,6 +486,7 @@ class LessonCreateView(CreateView):
             max_order = Lesson.objects.filter(category__isnull=True).aggregate(Max('order'))['order__max'] or 0
         lesson.order = max_order + 1
         lesson.save()
+        form.save_m2m()  # Сохраняем связи many-to-many с курсами
         # --- Создаём первую версию ---
         from django.utils import timezone
         today = timezone.now().date()
@@ -510,7 +510,7 @@ class LessonCreateView(CreateView):
 
 class LessonUpdateView(UpdateView):
     model = Lesson
-    fields = ['title', 'content', 'video_id', 'order', 'course', 'category']
+    fields = ['title', 'content', 'video_id', 'order', 'courses', 'category']
     template_name = 'builder/lesson_form.html'
     success_url = reverse_lazy('builder:lesson_master')
 
@@ -1272,7 +1272,7 @@ class UpdateControlStandaloneView(TemplateView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         from courses.models import Lesson
-        from builder.models import LessonVersion
+        from .models import LessonVersion
         from django.utils import timezone
         lessons = Lesson.objects.select_related('category').all()
         today = timezone.now().date()
@@ -1380,7 +1380,6 @@ class UpdateControlStandaloneView(TemplateView):
         return self.render_to_response(context)
 
 
-@csrf_exempt
 @login_required
 def actualize_version(request):
     """
@@ -1388,32 +1387,56 @@ def actualize_version(request):
     Создаёт новую версию LessonVersion для урока (копирует поля из последней, увеличивает номер, next_update и ответственный — из формы)
     """
     import json
+    import logging
     from django.utils import timezone
+    from .models import LessonVersion
+    from django.http import JsonResponse
+    
+    logger = logging.getLogger(__name__)
+    logger.info(f"actualize_version called by user {request.user.username}")
+    
     if not (request.user.is_staff or request.user.is_superuser):
-        return JsonResponse({'error': 'forbidden'}, status=403)
+        logger.warning(f"Access denied for user {request.user.username}")
+        return JsonResponse({'error': 'Доступ запрещен'}, status=403)
     if request.method != 'POST':
-        return JsonResponse({'error': 'method not allowed'}, status=405)
+        logger.warning(f"Invalid method {request.method} for user {request.user.username}")
+        return JsonResponse({'error': 'Метод не разрешен'}, status=405)
     try:
         data = json.loads(request.body.decode('utf-8'))
         lesson_id = int(data.get('lesson_id'))
         period = int(data.get('period', 90))
         next_update_str = data.get('next_update')
         responsible_id = data.get('responsible_id')
+        
+        logger.info(f"Received data: lesson_id={lesson_id}, period={period}, next_update={next_update_str}, responsible_id={responsible_id}")
+        
+        # Валидация данных
+        if not lesson_id:
+            return JsonResponse({'error': 'lesson_id обязателен'}, status=400)
+        if period < 1 or period > 180:
+            return JsonResponse({'error': 'period должен быть от 1 до 180 дней'}, status=400)
     except Exception as e:
-        return JsonResponse({'error': 'bad json'}, status=400)
+        logger.error(f"JSON parsing error: {e}")
+        return JsonResponse({'error': f'Ошибка парсинга JSON: {str(e)}'}, status=400)
     from courses.models import Lesson
     try:
         lesson = Lesson.objects.get(pk=lesson_id)
+        logger.info(f"Lesson found: {lesson.id} - {lesson.title}")
     except Lesson.DoesNotExist:
-        return JsonResponse({'error': 'lesson not found'}, status=404)
+        logger.error(f"Lesson not found: {lesson_id}")
+        return JsonResponse({'error': 'Урок не найден'}, status=404)
+    
     last_version = lesson.versions.order_by('-version').first()
     if not last_version:
-        return JsonResponse({'error': 'no versions'}, status=400)
+        logger.error(f"No versions found for lesson {lesson_id}")
+        return JsonResponse({'error': 'У урока нет версий'}, status=400)
+    
+    logger.info(f"Last version: {last_version.version}")
     today = timezone.now().date()
     new_version = last_version.version + 1
 
     # Парсим дату next_update (YYYY-MM-DD или DD.MM.YYYY)
-    from datetime import datetime
+    from datetime import datetime, timedelta
     next_update = None
     if next_update_str:
         try:
@@ -1421,40 +1444,73 @@ def actualize_version(request):
                 next_update = datetime.strptime(next_update_str, '%Y-%m-%d').date()
             else:
                 next_update = datetime.strptime(next_update_str, '%d.%m.%Y').date()
-        except Exception:
-            next_update = today + timezone.timedelta(days=period)
+            logger.info(f"Parsed next_update: {next_update}")
+        except Exception as e:
+            logger.warning(f"Failed to parse next_update '{next_update_str}': {e}, using calculated date")
+            next_update = today + timedelta(days=period)
     else:
-        next_update = today + timezone.timedelta(days=period)
+        next_update = today + timedelta(days=period)
+        logger.info(f"No next_update provided, using calculated date: {next_update}")
+    
+    logger.info(f"Final next_update: {next_update}")
 
-    # Определяем ответственного
+    # Определяем ответственного пользователя по роли
     from django.contrib.auth import get_user_model
+    from users.models import Role
     User = get_user_model()
     try:
-        updated_by = User.objects.get(id=responsible_id)
-    except Exception:
-        updated_by = request.user
+        if responsible_id:
+            # Получаем роль и находим ответственного пользователя
+            try:
+                role = Role.objects.get(id=responsible_id)
+                logger.info(f"Role found: {role.id} - {role.name}")
+                updated_by = role.responsible_user if role.responsible_user else request.user
+                logger.info(f"Responsible user: {updated_by.username if updated_by else 'None'}")
+            except Role.DoesNotExist:
+                logger.error(f"Role not found: {responsible_id}")
+                return JsonResponse({'error': 'Роль не найдена'}, status=400)
+        else:
+            updated_by = request.user
+            logger.info(f"Using request user as responsible: {updated_by.username}")
+    except Exception as e:
+        logger.error(f"Error getting role: {e}")
+        return JsonResponse({'error': f'Ошибка получения роли: {str(e)}'}, status=400)
 
-    lv = LessonVersion.objects.create(
-        lesson=lesson,
-        version=new_version,
-        title=last_version.title,
-        content=last_version.content,
-        video_id=last_version.video_id,
-        updated_by=updated_by,
-        next_update=next_update,
-        update_period_days=period
-    )
-    return JsonResponse({'ok': True, 'new_version': lv.version, 'next_update': lv.next_update.strftime('%d.%m.%Y')})
+    try:
+        logger.info(f"Creating LessonVersion: lesson={lesson.id}, version={new_version}, updated_by={updated_by.id if updated_by else 'None'}")
+        
+        lv = LessonVersion.objects.create(
+            lesson=lesson,
+            version=new_version,
+            title=last_version.title,
+            content=last_version.content,
+            video_id=last_version.video_id,
+            updated_by=updated_by,
+            next_update=next_update,
+            update_period_days=period
+        )
+        
+        logger.info(f"LessonVersion created successfully: id={lv.id}")
+        response_data = {'ok': True, 'new_version': lv.version, 'next_update': lv.next_update.strftime('%d.%m.%Y')}
+        logger.info(f"Returning success response: {response_data}")
+        return JsonResponse(response_data)
+    except Exception as e:
+        import traceback
+        error_msg = f"Ошибка создания LessonVersion: {e}"
+        logger.error(error_msg)
+        logger.error(traceback.format_exc())
+        logger.error(f"Returning error response: {error_msg}")
+        return JsonResponse({'error': error_msg}, status=500)
 
 @csrf_exempt  # Для продакшена лучше использовать CSRF и авторизацию!
 def save_terms(request):
     if request.method != 'POST':
-        return JsonResponse({'error': 'method not allowed'}, status=405)
+        return JsonResponse({'error': 'Метод не разрешен'}, status=405)
     try:
         data = json.loads(request.body)
         section_id = data.get('section_id')
         terms = data.get('terms', [])
-        from builder.models import DictionarySection, DictionaryTerm
+        from .models import DictionarySection, DictionaryTerm
         section = DictionarySection.objects.get(id=section_id)
         existing_terms = {t.id: t for t in section.terms.all()}
         sent_ids = set()

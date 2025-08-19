@@ -6,6 +6,13 @@ from typing import Any
 
 
 class Role(models.Model):
+    """
+    Модель должности.
+
+    Attributes:
+        name (CharField): Название должности.
+        responsible_user (OneToOneField): Связь с моделью User.
+    """
     name = models.CharField(max_length=200, unique=True, verbose_name="Название должности")
     responsible_user = models.OneToOneField(
         User, 
@@ -37,6 +44,29 @@ class Role(models.Model):
         super().save(*args, **kwargs)
 
 
+class Department(models.Model):
+    """
+    Модель подразделения.
+
+    Attributes:
+        name (CharField): Название подразделения.
+    """
+    name = models.CharField(max_length=200, unique=True, verbose_name="Название подразделения")
+
+    class Meta:
+        app_label = 'users'
+        verbose_name = 'Подразделение'
+        verbose_name_plural = 'Подразделения'
+        ordering = ['name']
+
+    def __str__(self):
+        return self.name
+
+    def save(self, *args, **kwargs):
+        self.clean()
+        super().save(*args, **kwargs)
+
+
         
 
 class Profile(models.Model):
@@ -47,6 +77,7 @@ class Profile(models.Model):
         user (User): Связь один-к-одному с моделью User.
         first_name (CharField): Имя пользователя, сейчас является необязательным аттрибутом, но при сбросе БД, следует изменить на обязательное
         last_name (CharField): Фамилия пользователя, сейчас является необязательным аттрибутом, но при сбросе БД, следует изменить на обязательное
+        role (ForeignKey): Связь с моделью Role (Должность).
         middle_name (CharField): Отчество пользователя, является необязательным аттрибутом.
         date_of_birth (DateField): Дата рождения
         phone_number (CharField): Номер телефона в формате +7XXXXXXXXXX
@@ -59,7 +90,8 @@ class Profile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE)
     middle_name = models.CharField(max_length=200, blank=True, null=True, verbose_name="Отчество")
     role = models.ForeignKey(Role, null=True, blank=True, on_delete=models.SET_NULL, verbose_name="Должность")
-    date_of_birth = models.DateField(verbose_name="Дата рождения", blank=True, null=True)
+    department = models.ForeignKey(Department, null=True, blank=True, on_delete=models.SET_NULL, verbose_name="Подразделение")
+    date_of_birth = models.DateField(blank=True, null=True, verbose_name="Дата рождения")
     phone_number = models.CharField(
         max_length=18,
         verbose_name="Номер телефона",
@@ -72,7 +104,7 @@ class Profile(models.Model):
         verbose_name="Произвольный формат телефона",
         help_text="Разрешить произвольный формат номера телефона"
     )
-    image = models.ImageField(default='profile_pics/default.jpg', upload_to='profile_pics')
+    image = models.ImageField(default='profile_pics/default.jpg', upload_to='profile_pics', verbose_name="Аватар")
     bio = models.TextField(max_length=500, blank=True, null=True, verbose_name="О себе")
     is_approved = models.BooleanField(default=False, verbose_name="Подвтерждение администратором")
     dascoin_points = models.PositiveIntegerField(default=0, verbose_name="Баллы DASCOIN")
@@ -94,40 +126,21 @@ class Profile(models.Model):
         return f'Учётная запись {self.user.username}'
     
     @property
-    def exp(self) -> int:
-        """
-        Динамически считает опыт пользователя:
-        +150 за каждый завершённый курс (+10% если есть финальный тест)
-        +500 за каждую завершённую траекторию
-        """
-        from myapp.models import UserCourse
-        from courses.models import UserCourseTrajectory
-        exp = 0
-        # Курсы
-        for uc in UserCourse.objects.filter(user=self.user, status='completed'):
-            base = 150
-            if getattr(uc.course, 'final_quiz', None):
-                base = int(base * 1.1)
-            exp += base
-        # Траектории
-        for ut in UserCourseTrajectory.objects.filter(user=self.user, completed=True):
-            exp += 500
-        return exp
-
-    @property
     def is_responsible(self) -> bool:
         """
         Проверяет, является ли пользователь ответственным за свою должность.
         """
         return self.role and self.role.responsible_user == self.user
     
-    def add_dascoin_points(self, points: int) -> None:
+    def add_dascoin_points(self, points: int, reason: str = "") -> None:
         """
         Добавляет баллы DASCOIN пользователю.
         
         Args:
             points (int): Количество баллов для добавления
         """
+
+        self._dascoin_reason = reason
         self.dascoin_points += points
         self.save()
     
@@ -141,11 +154,11 @@ class Profile(models.Model):
         from gamification.models import UserAchievement
         return UserAchievement.objects.filter(user=self.user).select_related('achievement')
     
-    def get_recent_badges(self, limit=3):
+    def get_recent_badges(self, limit=8):
         """Возвращает последние полученные бейджи"""
         return self.get_badges()[:limit]
     
-    def get_recent_achievements(self, limit=3):
+    def get_recent_achievements(self, limit=8):
         """Возвращает последние полученные достижения"""
         return self.get_achievements()[:limit]
 

@@ -18,13 +18,22 @@
             {{ form.last_name.label_tag }}{{ form.last_name }}
             {{ form.middle_name.label_tag }}{{ form.middle_name }}
             {{ form.role.label_tag }}{{ form.role }}
+            <label for="id_groups">Группы пользователя</label>
+            <div class="um-user-groups-checkboxes">
+                {% for group in form.groups.field.queryset %}
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" name="groups" id="group_{{ group.id }}" value="{{ group.id }}" {% if group.id in form.groups.value %}checked{% endif %}>
+                        <label class="form-check-label" for="group_{{ group.id }}">{{ group.name }}</label>
+                    </div>
+                {% endfor %}
+            </div>
             {{ form.date_of_birth.label_tag }}{{ form.date_of_birth }}
             <div class="phone-field-wrapper">
                 <label for="id_phone_number">{{ form.phone_number.label }}</label>
                 <input type="text" id="id_phone_number" name="phone_number" class="form-control" maxlength="12" autocomplete="off" value="{{ form.phone_number.value|default:'' }}"/>
                 <div class="form-check">
-                    <input type="checkbox" id="arbitrary_format_checkbox" class="form-check-input"/>
-                    <label for="arbitrary_format_checkbox" class="form-check-label">Произвольный формат</label>
+                    {{ form.phone_arbitrary_format }}
+                    <label for="id_phone_arbitrary_format" class="form-check-label">Произвольный формат</label>
                 </div>
             </div>
             {{ form.bio.label_tag }}{{ form.bio }}
@@ -41,5 +50,16 @@
     </form>
 </div>
 <script src="{% static 'user_management/js/phone_field.js' %}" defer></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    var arb = document.getElementById('id_phone_arbitrary_format');
+    var cb = document.getElementById('arbitrary_format_checkbox');
+    if (cb && arb) {
+        cb.checked = arb.checked;
+        cb.addEventListener('change', function() { arb.checked = cb.checked; });
+        arb.addEventListener('change', function() { cb.checked = arb.checked; });
+    }
+});
+</script>
 {% endblock %}
     

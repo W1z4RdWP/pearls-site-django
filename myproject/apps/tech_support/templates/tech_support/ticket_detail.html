@@ -1,0 +1,475 @@
+{% extends 'layout.html' %}
+{% load static %}
+{% load tech_support_extras %}
+
+{% block title %}{{ ticket.ticket_number }} - {{ ticket.title }} - УЦ «Территория Улыбки»{% endblock %}
+
+{% block specific_styles %}
+<style>
+    .ticket-header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border-radius: 10px;
+        padding: 2rem;
+        margin-bottom: 2rem;
+    }
+    .ticket-info {
+        background: white;
+        border-radius: 10px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+    }
+    .status-badge {
+        font-size: 0.9rem;
+        padding: 0.5rem 1rem;
+        border-radius: 20px;
+    }
+    .priority-badge {
+        font-size: 0.8rem;
+        padding: 0.4rem 0.8rem;
+        border-radius: 15px;
+    }
+    .comment-section {
+        background: white;
+        border-radius: 10px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+    }
+    .comment {
+        border-left: 3px solid #007bff;
+        padding: 1rem;
+        margin-bottom: 1rem;
+        background: #f8f9fa;
+        border-radius: 0 8px 8px 0;
+    }
+    .comment.internal {
+        border-left-color: #dc3545;
+        background: #fff5f5;
+    }
+    .comment-author {
+        font-weight: 600;
+        color: #495057;
+    }
+    .comment-time {
+        font-size: 0.8rem;
+        color: #6c757d;
+    }
+    .history-item {
+        padding: 0.5rem 0;
+        border-bottom: 1px solid #e9ecef;
+    }
+    .history-item:last-child {
+        border-bottom: none;
+    }
+    .history-time {
+        font-size: 0.8rem;
+        color: #6c757d;
+    }
+    .attachment-item {
+        display: flex;
+        align-items: center;
+        padding: 0.5rem;
+        border: 1px solid #e9ecef;
+        border-radius: 5px;
+        margin-bottom: 0.5rem;
+        background: #f8f9fa;
+    }
+    .attachment-icon {
+        font-size: 1.5rem;
+        margin-right: 1rem;
+        color: #007bff;
+    }
+    .overdue-warning {
+        background: linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%);
+        color: white;
+        border-radius: 8px;
+        padding: 1rem;
+        margin-bottom: 1rem;
+    }
+    .rating-stars {
+        color: #ffc107;
+        font-size: 1.2rem;
+    }
+    .form-control:focus {
+        border-color: #007bff;
+        box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <!-- Заголовок тикета -->
+    <div class="ticket-header">
+        <div class="d-flex gap-2 justify-content-end">
+            {% if is_staff_view %}
+                {% if not is_closed and not ticket.assigned_to %}
+                    <form method="post" action="{% url 'tech_support:ticket_take' ticket.pk %}">
+                        {% csrf_token %}
+                        <button class="btn btn-primary btn-sm shadow-sm" type="submit">
+                            Взять в работу
+                        </button>
+                    </form>
+                {% endif %}
+                {% if not is_closed %}
+                    <form method="post" action="{% url 'tech_support:ticket_close' ticket.pk %}">
+                        {% csrf_token %}
+                        <button class="btn btn-danger btn-sm shadow-sm" type="submit">
+                            Закрыть тикет
+                        </button>
+                    </form>
+                {% endif %}
+            {% endif %}
+
+            <a href="{% url 'tech_support:ticket_list_entry' %}" class="btn btn-light text-dark shadow-sm">
+                <i class="fas fa-arrow-left me-2"></i>Назад к списку
+            </a>
+        </div>
+        <div class="row align-items-center">
+            <div class="col-md-8">
+                <h1 class="h3 mb-2">
+                    <i class="fas fa-ticket-alt me-2"></i>
+                    {{ ticket.ticket_number }}
+                </h1>
+                <h2 class="h4 mb-3">{{ ticket.title }}</h2>
+                
+                <div class="d-flex align-items-center flex-wrap">
+                    <span class="status-badge me-2" style="background-color: {{ ticket.status.color }}; color: white;">
+                        {{ ticket.status.name }}
+                    </span>
+                    <span class="priority-badge me-2" style="background-color: {{ ticket.priority.color }}; color: white;">
+                        {{ ticket.priority.name }}
+                    </span>
+                    <span class="badge bg-secondary me-2">
+                        {{ ticket.get_ticket_type_display }}
+                    </span>
+                    {% if ticket.is_anonymous %}
+                    <span class="badge bg-warning">
+                        <i class="fas fa-user-secret me-1"></i>Анонимный
+                    </span>
+                    {% endif %}
+                </div>
+            </div> 
+            
+        </div>
+    </div>
+
+    <!-- Предупреждение о просрочке -->
+    {% if ticket.is_overdue %}
+    <div class="overdue-warning">
+        <div class="d-flex align-items-center">
+            <i class="fas fa-exclamation-triangle fa-2x me-3"></i>
+            <div>
+                <h5 class="mb-1">Тикет просрочен!</h5>
+                <p class="mb-0">Дедлайн: {{ ticket.deadline|date:"d.m.Y H:i" }}</p>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <div class="row">
+        <!-- Основная информация -->
+        <div class="col-lg-12">
+            <div class="ticket-info">
+                <h4 class="mb-3">
+                    <i class="fas fa-info-circle me-2"></i>
+                    Описание проблемы
+                </h4>
+                <div class="mb-4">
+                    {{ ticket.description|linebreaks }}
+                </div>
+                
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6><i class="fas fa-user me-2"></i>Создатель</h6>
+                        <p class="mb-3">
+                            {% if ticket.is_anonymous %}
+                                <em>Анонимный пользователь</em>
+                            {% else %}
+                                {{ ticket.created_by.get_full_name|default:ticket.created_by.username }}
+                                <br><small class="text-muted">{{ ticket.created_by.email }}</small>
+                            {% endif %}
+                        </p>
+                    </div>
+                    <div class="col-md-6">
+                        <h6><i class="fas fa-calendar me-2"></i>Дата создания</h6>
+                        <p class="mb-3">{{ ticket.created_at|date:"d.m.Y H:i" }}</p>
+                    </div>
+                </div>
+                
+                {% if ticket.assigned_to %}
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6><i class="fas fa-user-tie me-2"></i>Исполнитель</h6>
+                        <p class="mb-3">
+                            {{ ticket.assigned_to.get_full_name|default:ticket.assigned_to.username }}
+                            <br><small class="text-muted">{{ ticket.assigned_to.email }}</small>
+                        </p>
+                    </div>
+                    <div class="col-md-6">
+                        <h6><i class="fas fa-clock me-2"></i>Дедлайн</h6>
+                        <p class="mb-3">
+                            {{ ticket.deadline|date:"d.m.Y H:i" }}
+                            {% if ticket.time_to_deadline %}
+                                <br><small class="text-muted">
+                                    {% if ticket.is_overdue %}
+                                        Просрочен на {{ ticket.time_to_deadline|timedelta_hours|floatformat:0 }} часов
+                                    {% elif ticket.has_time_left %}
+                                        Осталось {{ ticket.time_to_deadline|timedelta_hours|floatformat:0 }} часов
+                                    {% endif %}
+                                </small>
+                            {% endif %}
+                        </p>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- Вложения -->
+            {% if attachments %}
+            <div class="ticket-info">
+                <h4 class="mb-3">
+                    <i class="fas fa-paperclip me-2"></i>
+                    Вложения
+                </h4>
+                {% for attachment in attachments %}
+                <div class="attachment-item">
+                    <div class="attachment-icon">
+                        <i class="fas fa-file"></i>
+                    </div>
+                    <div class="flex-grow-1">
+                        <div class="fw-bold">{{ attachment.filename }}</div>
+                        <small class="text-muted">Загружено {{ attachment.uploaded_at|date:"d.m.Y H:i" }}</small>
+                    </div>
+                    <a href="{{ attachment.file.url }}" class="btn btn-outline-primary btn-sm" target="_blank">
+                        <i class="fas fa-download me-1"></i>Скачать
+                    </a>
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+
+            <!-- Комментарии -->
+            <div class="comment-section">
+                <h4 class="mb-3">
+                    <i class="fas fa-comments me-2"></i>
+                    Комментарии
+                </h4>
+                
+                {% if comments %}
+                    {% for comment in comments %}
+                    <div class="comment {% if comment.is_internal %}internal{% endif %}">
+                        <div class="d-flex justify-content-between align-items-start mb-2">
+                            <div class="comment-author">
+                                {{ comment.author.get_full_name|default:comment.author.username }}
+                                {% if comment.is_internal %}
+                                    <span class="badge bg-danger ms-2">Внутренний</span>
+                                {% endif %}
+                            </div>
+                            <div class="comment-time">
+                                {{ comment.created_at|date:"d.m.Y H:i" }}
+                            </div>
+                        </div>
+                        <div class="comment-content">
+                            {{ comment.content|linebreaks }}
+                        </div>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <p class="text-muted">Пока нет комментариев</p>
+                {% endif %}
+                
+            
+
+                <!-- Форма добавления комментария -->
+                <hr class="my-4">
+                <h5>Добавить комментарий</h5>
+                <form method="post" action="{% url 'tech_support:ticket_comment' ticket.pk %}">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        {{ comment_form.content }}
+                        {% if comment_form.content.errors %}
+                            <div class="text-danger small mt-1">
+                                {% for error in comment_form.content.errors %}
+                                    {{ error }}
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
+                    {% if can_comment %}
+                        <button type="submit" name="add_comment" class="btn btn-primary">
+                            <i class="fas fa-paper-plane me-2"></i>Отправить комментарий
+                        </button>
+                    {% else %}
+                        <div class="text-muted">Тикет закрыт. Комментирование недоступно.</div>
+                    {% endif %}
+                </form>
+            </div>
+        </div>
+
+        {% if is_staff_view %}
+            <div class="row g-3">
+                <div class="col-md-12">
+                    <div class="card h-100">
+                        <div class="card-header">Параметры тикета</div>
+                        <div class="card-body">
+                            <form method="post" action="{% url 'tech_support:ticket_update' ticket.pk %}">
+                                {% csrf_token %}
+                                <div class="mb-2">
+                                    <label class="form-label">Заголовок</label>
+                                    {{ update_form.title }}
+                                </div>
+                                <div class="row g-2">
+                                    <div class="col-md-6">
+                                        <label class="form-label">Статус</label>
+                                        {{ update_form.status }}
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label">Приоритет</label>
+                                        {{ update_form.priority }}
+                                    </div>
+                                </div>
+                                <div class="row g-2 mt-1">
+                                    <div class="col-md-6">
+                                        <label class="form-label">Категория</label>
+                                        {{ update_form.category }}
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label">Дедлайн</label>
+                                        {{ update_form.deadline }}
+                                    </div>
+                                </div>
+                                <div class="mt-2">
+                                    <label class="form-label">Ответственный</label>
+                                    {{ update_form.assigned_to }}
+                                </div>
+                                <div class="text-start mt-3">
+                                    <button class="btn btn-outline-primary btn-sm" type="submit">Сохранить</button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
+
+        <!-- Боковая панель -->
+        <div class="col-lg-4">
+            <!-- Обновление статуса (только для сотрудников) -->
+            {% if status_form %}
+            <div class="ticket-info">
+                <h5 class="mb-3">
+                    <i class="fas fa-cog me-2"></i>
+                    Управление тикетом
+                </h5>
+                <form method="post">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <label for="{{ status_form.status.id_for_label }}" class="form-label">Статус</label>
+                        {{ status_form.status }}
+                    </div>
+                    <div class="mb-3">
+                        <label for="{{ status_form.assigned_to.id_for_label }}" class="form-label">Исполнитель</label>
+                        {{ status_form.assigned_to }}
+                    </div>
+                    <button type="submit" name="update_status" class="btn btn-primary w-100">
+                        <i class="fas fa-save me-2"></i>Обновить статус
+                    </button>
+                </form>
+            </div>
+            {% endif %}
+
+            <!-- Оценка (только для создателя тикета) -->
+            {% if ticket.created_by == user and is_closed and not ticket.rating %}
+            <div class="ticket-info">
+                <h5 class="mb-3">
+                    <i class="fas fa-star me-2"></i>
+                    Оценить решение
+                </h5>
+                <form method="post">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <label for="{{ rating_form.rating.id_for_label }}" class="form-label">Оценка</label>
+                        {{ rating_form.rating }}
+                    </div>
+                    <div class="mb-3">
+                        <label for="{{ rating_form.student_feedback.id_for_label }}" class="form-label">Отзыв</label>
+                        {{ rating_form.student_feedback }}
+                    </div>
+                    <button type="submit" name="rate_ticket" class="btn btn-success w-100">
+                        <i class="fas fa-star me-2"></i>Отправить оценку
+                    </button>
+                </form>
+            </div>
+            {% endif %}
+
+            <!-- Показать оценку если есть -->
+            {% if ticket.rating %}
+            <div class="ticket-info">
+                <h5 class="mb-3">
+                    <i class="fas fa-star me-2"></i>
+                    {% if user == ticket.created_by %}
+                        Ваша оценка
+                    {% else %}
+                        {{ ticket.created_by.get_full_name|default:ticket.created_by.username }}
+                    {% endif %}
+                </h5>
+                <div class="rating-stars mb-2">
+                    {% for i in "12345" %}
+                        {% if forloop.counter <= ticket.rating %}
+                            <i class="fas fa-star"></i>
+                        {% else %}
+                            <i class="far fa-star"></i>
+                        {% endif %}
+                    {% endfor %}
+                    <span class="ms-2 text-muted">({{ ticket.rating }}/5)</span>
+                </div>
+                {% if ticket.student_feedback %}
+                <p class="mb-0"><em>"{{ ticket.student_feedback }}"</em></p>
+                {% endif %}
+            </div>
+            {% endif %}
+
+            <!-- История изменений -->
+            {% if history %}
+            <div class="ticket-info">
+                <h5 class="mb-3">
+                    <i class="fas fa-history me-2"></i>
+                    История изменений
+                </h5>
+                {% for item in history %}
+                <div class="history-item">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            <strong>{{ item.action }}</strong>
+                            <br><small class="text-muted">{{ item.user.get_full_name|default:item.user.username }}</small>
+                        </div>
+                        <div class="history-time">
+                            {{ item.timestamp|date:"d.m.Y H:i" }}
+                        </div>
+                    </div>
+                    {% if item.old_value or item.new_value %}
+                    <div class="mt-2">
+                        {% if item.old_value %}
+                        <div class="small text-muted">
+                            <strong>Было:</strong> {{ item.old_value }}
+                        </div>
+                        {% endif %}
+                        {% if item.new_value %}
+                        <div class="small">
+                            <strong>Стало:</strong> {{ item.new_value }}
+                        </div>
+                        {% endif %}
+                    </div>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -27,7 +27,7 @@
       <button>Психология</button>
       <button>Все курсы</button>
     </div>
-    <a href="#courseCarousel" class="hero-landing__cta">Выбрать курс</a>
+    <a href="{% if user.is_authenticated %}#courseCarousel{% else %}{% url 'users:login' %}{% endif %}" class="hero-landing__cta">Выбрать курс</a>
   </div>
   <div class="hero-landing__right">
     <div class="hero-landing__faces">

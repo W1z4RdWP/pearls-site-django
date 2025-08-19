@@ -1,0 +1,400 @@
+{% extends 'layout.html' %}
+{% load static %}
+{% load tech_support_extras %}
+
+{% block title %}Дашборд поддержки - УЦ «Территория Улыбки»{% endblock %}
+
+{% block specific_styles %}
+<style>
+    .stats-card {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border-radius: 15px;
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    }
+    .stats-card.warning {
+        background: linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%);
+    }
+    .stats-card.success {
+        background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+    }
+    .stats-card.info {
+        background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+    }
+    .stats-number {
+        font-size: 2.5rem;
+        font-weight: bold;
+        margin-bottom: 0.5rem;
+    }
+    .stats-label {
+        font-size: 1rem;
+        opacity: 0.9;
+    }
+    .chart-container {
+        background: white;
+        border-radius: 15px;
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+    .ticket-list {
+        background: white;
+        border-radius: 15px;
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+    .ticket-item {
+        border-left: 4px solid #007bff;
+        padding: 1rem;
+        margin-bottom: 1rem;
+        background: #f8f9fa;
+        border-radius: 0 8px 8px 0;
+        transition: all 0.3s ease;
+    }
+    .ticket-item:hover {
+        transform: translateX(5px);
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    .ticket-item.overdue {
+        border-left-color: #dc3545;
+        background: #fff5f5;
+    }
+    .ticket-item.high-priority {
+        border-left-color: #dc3545;
+    }
+    .ticket-item.medium-priority {
+        border-left-color: #ffc107;
+    }
+    .ticket-item.low-priority {
+        border-left-color: #28a745;
+    }
+    .priority-badge {
+        font-size: 0.7rem;
+        padding: 0.2rem 0.5rem;
+        border-radius: 10px;
+    }
+    .status-badge {
+        font-size: 0.8rem;
+        padding: 0.3rem 0.8rem;
+        border-radius: 15px;
+    }
+    .quick-actions {
+        background: white;
+        border-radius: 15px;
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+    .action-btn {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 1rem;
+        border-radius: 10px;
+        text-decoration: none;
+        color: white;
+        margin-bottom: 1rem;
+        transition: all 0.3s ease;
+    }
+    .action-btn:hover {
+        transform: translateY(-2px);
+        color: white;
+        text-decoration: none;
+    }
+    .action-btn.primary {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    }
+    .action-btn.success {
+        background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+    }
+    .action-btn.warning {
+        background: linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%);
+    }
+    .action-btn.info {
+        background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h1 class="h3 mb-0">
+                    <i class="fas fa-tachometer-alt me-2"></i>
+                    Дашборд поддержки
+                </h1>
+                <div>
+                    <a href="{% url 'tech_support:ticket_list_staff' %}" class="btn btn-primary me-2">
+                        <i class="fas fa-list me-2"></i>Все тикеты
+                    </a>
+                    <a href="{% url 'tech_support:ticket_reports' %}" class="btn btn-outline-primary">
+                        <i class="fas fa-chart-bar me-2"></i>Отчеты
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Статистика -->
+    <div class="row">
+        <div class="col-md-3">
+            <div class="stats-card">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="stats-number">{{ total_tickets }}</div>
+                        <div class="stats-label">Всего тикетов</div>
+                    </div>
+                    <i class="fas fa-ticket-alt fa-2x opacity-75"></i>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stats-card warning">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="stats-number">{{ active_tickets }}</div>
+                        <div class="stats-label">Активных</div>
+                    </div>
+                    <i class="fas fa-clock fa-2x opacity-75"></i>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stats-card success">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="stats-number">{{ resolved_tickets }}</div>
+                        <div class="stats-label">Решенных</div>
+                    </div>
+                    <i class="fas fa-check-circle fa-2x opacity-75"></i>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stats-card info">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="stats-number">{{ overdue_tickets }}</div>
+                        <div class="stats-label">Просроченных</div>
+                    </div>
+                    <i class="fas fa-exclamation-triangle fa-2x opacity-75"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Быстрые действия -->
+        <div class="col-md-4">
+            <div class="quick-actions">
+                <h5 class="mb-3">
+                    <i class="fas fa-bolt me-2"></i>
+                    Быстрые действия
+                </h5>
+                <a href="{% url 'tech_support:ticket_list_staff' %}?status=&priority=&ticket_type=&search=&date_from=&date_to=" class="action-btn primary">
+                    <i class="fas fa-list me-2"></i>
+                    Просмотр всех тикетов
+                </a>
+                <a href="{% url 'tech_support:ticket_list_staff' %}?status=&priority=3&ticket_type=&search=&date_from=&date_to=" class="action-btn warning">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    Высокий приоритет
+                </a>
+                <a href="{% url 'tech_support:ticket_list_staff' %}?status=&priority=&ticket_type=&search=просрочен&date_from=&date_to=" class="action-btn success">
+                    <i class="fas fa-clock me-2"></i>
+                    Просроченные тикеты
+                </a>
+                <a href="{% url 'tech_support:ticket_list_staff' %}?status={{ status_in_progress_id }}&priority=&ticket_type=&search=&date_from=&date_to=" class="action-btn info">
+                    <i class="fas fa-comments me-2"></i>
+                    Активные чаты
+                </a>
+            </div>
+        </div>
+
+        <!-- Статистика по приоритетам -->
+        <div class="col-md-8">
+            <div class="chart-container">
+                <h5 class="mb-3">
+                    <i class="fas fa-chart-pie me-2"></i>
+                    Распределение по приоритетам
+                </h5>
+                {% if priority_stats %}
+                    <div class="row">
+                        {% for stat in priority_stats %}
+                        <div class="col-md-4 mb-3">
+                            <div class="card text-center">
+                                <div class="card-body">
+                                    <h6 class="card-title">{{ stat.priority__name }}</h6>
+                                    <div class="h3 text-primary">{{ stat.count }}</div>
+                                    <small class="text-muted">тикетов</small>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <p class="text-muted">Нет данных для отображения</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Последние тикеты -->
+        <div class="col-md-6">
+            <div class="ticket-list">
+                <h5 class="mb-3">
+                    <i class="fas fa-history me-2"></i>
+                    Последние тикеты
+                </h5>
+                {% if recent_tickets %}
+                    {% for ticket in recent_tickets %}
+                    <div class="ticket-item {% if ticket.is_overdue %}overdue{% endif %} {% if ticket.priority.level == 3 %}high-priority{% elif ticket.priority.level == 2 %}medium-priority{% else %}low-priority{% endif %}">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div class="flex-grow-1">
+                                <h6 class="mb-1">
+                                    <a href="{% url 'tech_support:ticket_detail' ticket.id %}" class="text-decoration-none">
+                                        {{ ticket.ticket_number }} - {{ ticket.title }}
+                                    </a>
+                                </h6>
+                                <p class="mb-2 text-muted small">{{ ticket.description|truncatewords:15 }}</p>
+                                <div class="d-flex align-items-center">
+                                    <span class="priority-badge me-2" style="background-color: {{ ticket.priority.color }}; color: white;">
+                                        {{ ticket.priority.name }}
+                                    </span>
+                                    <span class="status-badge me-2" style="background-color: {{ ticket.status.color }}; color: white;">
+                                        {{ ticket.status.name }}
+                                    </span>
+                                    <small class="text-muted">{{ ticket.created_at|date:"d.m.Y H:i" }}</small>
+                                </div>
+                            </div>
+                            {% if ticket.is_overdue %}
+                            <span class="badge bg-danger">
+                                <i class="fas fa-exclamation-triangle me-1"></i>ПРОСРОЧЕН
+                            </span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <p class="text-muted">Нет тикетов для отображения</p>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Просроченные тикеты -->
+        <div class="col-md-6">
+            <div class="ticket-list">
+                <h5 class="mb-3">
+                    <i class="fas fa-exclamation-triangle me-2 text-danger"></i>
+                    Просроченные тикеты
+                </h5>
+                {% if overdue_tickets_list %}
+                    {% for ticket in overdue_tickets_list %}
+                    <div class="ticket-item overdue">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div class="flex-grow-1">
+                                <h6 class="mb-1">
+                                    <a href="{% url 'tech_support:ticket_detail' ticket.id %}" class="text-decoration-none">
+                                        {{ ticket.ticket_number }} - {{ ticket.title }}
+                                    </a>
+                                </h6>
+                                <p class="mb-2 text-muted small">{{ ticket.description|truncatewords:10 }}</p>
+                                <div class="d-flex align-items-center">
+                                    <span class="priority-badge me-2" style="background-color: {{ ticket.priority.color }}; color: white;">
+                                        {{ ticket.priority.name }}
+                                    </span>
+                                    <small class="text-danger">
+                                        <i class="fas fa-clock me-1"></i>
+                                        Просрочен на {{ ticket.time_to_deadline|floatformat:0|add:"0"|floatformat:0 }}ч
+                                    </small>
+                                </div>
+                            </div>
+                            <span class="badge bg-danger">
+                                <i class="fas fa-exclamation-triangle me-1"></i>ПРОСРОЧЕН
+                            </span>
+                        </div>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <p class="text-success">
+                        <i class="fas fa-check-circle me-2"></i>
+                        Нет просроченных тикетов!
+                    </p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Статистика по типам -->
+    <div class="row">
+        <div class="col-12">
+            <div class="chart-container">
+                <h5 class="mb-3">
+                    <i class="fas fa-chart-bar me-2"></i>
+                    Статистика по типам тикетов
+                </h5>
+                {% if type_stats %}
+                    <div class="row">
+                        {% for stat in type_stats %}
+                        <div class="col-md-2 mb-3">
+                            <div class="card text-center">
+                                <div class="card-body">
+                                    <h6 class="card-title">{{ stat.ticket_type_display }}</h6>
+                                    <small class="text-muted">кол-во тикетов: </small>
+                                    <div class="h3 text-primary">{{ stat.count }}</div>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <p class="text-muted">Нет данных для отображения</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Средняя оценка -->
+    <div class="row">
+        <div class="col-12">
+            <div class="chart-container">
+                <h5 class="mb-3">
+                    <i class="fas fa-star me-2"></i>
+                    Качество обслуживания
+                </h5>
+                <div class="row align-items-center">
+                    <div class="col-md-6">
+                        <div class="text-center">
+                            <div class="h1 text-warning mb-2">{{ avg_rating }}/5</div>
+                            <div class="mb-3">
+                                {% for i in "12345" %}
+                                    {% if forloop.counter <= avg_rating|floatformat:0 %}
+                                        <i class="fas fa-star text-warning"></i>
+                                    {% else %}
+                                        <i class="far fa-star text-warning"></i>
+                                    {% endif %}
+                                {% endfor %}
+                            </div>
+                            <p class="text-muted">Средняя оценка пользователей</p>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="progress mb-2" style="height: 25px;">
+                            <div class="progress-bar bg-warning" role="progressbar" 
+                                 style="width: {% widthratio avg_rating 5 100 %}%">
+                                {% widthratio avg_rating 5 100 %}%
+                            </div>
+                        </div>
+                        <small class="text-muted">Уровень удовлетворенности</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

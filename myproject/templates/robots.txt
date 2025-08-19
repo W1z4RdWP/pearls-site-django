@@ -1,0 +1,29 @@
+User-agent: *
+Allow: /
+Allow: /courses/
+Allow: /about/
+Allow: /privacy-policy/
+Allow: /changelog/
+
+# Запретить доступ к административным разделам
+Disallow: /admin/
+Disallow: /user_management/
+Disallow: /builder/
+
+# Запретить доступ к пользовательским данным
+Disallow: /users/
+Disallow: /notifications/
+
+# Запретить доступ к техническим разделам
+Disallow: /captcha/
+Disallow: /i18n/
+Disallow: /ckeditor5/
+Disallow: /tech_support/
+
+# Запретить доступ к медиа файлам пользователей
+Disallow: /media/
+
+# Разрешить доступ к общедоступным статическим файлам
+Allow: /static/
+
+Sitemap: https://lc.smileterritory.ru/sitemap.xml

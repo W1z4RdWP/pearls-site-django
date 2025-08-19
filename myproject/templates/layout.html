@@ -38,6 +38,10 @@
         if (localStorage.getItem('theme') === 'dark') {
           document.documentElement.classList.add('theme-dark');
           document.body.classList.add('theme-dark');
+        } else {
+          // Убираем классы темной темы если тема светлая
+          document.documentElement.classList.remove('theme-dark');
+          document.body.classList.remove('theme-dark');
         }
       } catch(e){}
     })();
@@ -51,10 +55,59 @@
                 <a class="navbar-brand" href="{% url 'home' %}" id="logolink">
                     <img src="{% static 'global/imgs/logo_lc.png' %}" alt="Logo" id="logopng">
                 </a>
-                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav"
-                  aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
-                  <span class="navbar-toggler-icon"></span>
-                </button>
+                <div class="d-flex align-items-center">
+                    {% if user.is_authenticated %}
+                    <!-- Уведомления - вынесены за бургер меню для мобильных -->
+                    <div class="d-lg-none me-2">
+                        <div class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle d-flex align-items-center position-relative" href="#" id="notificationDropdownMobile" role="button"
+                              data-bs-toggle="dropdown" aria-expanded="false">
+                              <i class="fas fa-bell"></i>
+                              <span id="notification-badge-mobile" class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" style="display: none;">
+                                0
+                              </span>
+                            </a>
+                            <ul class="dropdown-menu dropdown-menu-end notification-dropdown-menu" aria-labelledby="notificationDropdownMobile" style="width: 300px; max-height: 400px; overflow-y: auto;">
+                              <li id="notification-list-mobile">
+                                <div class="dropdown-item-text text-center">
+                                  <i class="fas fa-spinner fa-spin"></i> Загрузка...
+                                </div>
+                              </li>
+                            </ul>
+                        </div>
+                    </div>
+                    <!-- Профиль - вынесен за бургер меню для мобильных -->
+                    <div class="d-lg-none me-2">
+                        <div class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle d-flex align-items-center" href="#" id="profileDropdownMobile" role="button"
+                              data-bs-toggle="dropdown" aria-expanded="false">
+                              <img src="{{ request.user.profile.image.url|default:'/media/profile_pics/default.jpg' }}" alt="Аватар"
+                                class="navbar-avatar">
+                            </a>
+                            <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="profileDropdownMobile">
+                              <li><a class="dropdown-item" href="{% url 'users:profile' %}">Профиль</a></li>
+                              <li><a class="dropdown-item" href="{% url 'users:transactions' %}">
+                               История транзакций
+                              </a></li>
+                              <li><a class="dropdown-item" href="{% url 'courses:user_course_trajectory_list' %}">
+                                Ваши траектории
+                              </a></li>
+                              <li><hr class="dropdown-divider"></li>
+                              <li>
+                                <form action="{% url 'users:logout' %}" method="post" style="display: inline;">
+                                  {% csrf_token %}
+                                  <button type="submit" class="dropdown-item">Выйти</button>
+                                </form>
+                              </li>
+                            </ul>
+                        </div>
+                    </div>
+                    {% endif %}
+                    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav"
+                      aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+                      <span class="navbar-toggler-icon"></span>
+                    </button>
+                </div>
                 <div class="collapse navbar-collapse" id="navbarNav">
                   <ul class="navbar-nav ms-auto custom-nav-list">
                     {% for item in nav_public %}
@@ -81,8 +134,8 @@
                       </li>
                     {% endif %}
                   {% endif %}
-                      <!-- Уведомления -->
-                      <li class="nav-item dropdown">
+                      <!-- Уведомления - только для десктопа -->
+                      <li class="nav-item dropdown d-none d-lg-block">
                         <a class="nav-link dropdown-toggle d-flex align-items-center position-relative" href="#" id="notificationDropdown" role="button"
                           data-bs-toggle="dropdown" aria-expanded="false">
                           <i class="fas fa-bell"></i>
@@ -99,7 +152,8 @@
                         </ul>
                       </li>
                       
-                      <li class="nav-item dropdown">
+                      <!-- Профиль - только для десктопа -->
+                      <li class="nav-item dropdown d-none d-lg-block">
                         <a class="nav-link dropdown-toggle d-flex align-items-center" href="#" id="profileDropdown" role="button"
                           data-bs-toggle="dropdown" aria-expanded="false">
                           <img src="{{ request.user.profile.image.url|default:'/media/profile_pics/default.jpg' }}" alt="Аватар"
@@ -109,6 +163,12 @@
                           <li><a class="dropdown-item" href="{% url 'users:profile' %}">Профиль</a></li>
                           <li><a class="dropdown-item" href="{% url 'users:transactions' %}">
                            История транзакций
+                          </a></li>
+                          <li><a class="dropdown-item" href="{% url 'courses:user_course_trajectory_list' %}">
+                            Ваши траектории
+                          </a></li>
+                          <li><a class="dropdown-item" href="{% url 'courses:user_certificates' %}">
+                            Ваши сертификаты
                           </a></li>
                           <li><hr class="dropdown-divider"></li>
                           <li>
@@ -123,6 +183,7 @@
                       <li class="nav-item">
                         <a class="nav-link custom-nav-link" href="{% url 'users:login' %}" title="Вход">
                           <i class="fa-solid fa-right-to-bracket"></i>
+                          <span class="d-md-none">Войти</span>
                         </a>
                       </li>
                     {% endif %}
@@ -147,6 +208,16 @@
             <!-- Уникальный контент каждой страницы будет здесь -->
         {% endblock %}
     </main>
+
+    {% if user.is_authenticated %}
+      <a href="{% url 'tech_support:support_chat' %}" class="support-chat-button" title="Служба поддержки">
+        <div class="pulse"></div>
+        <i class="fas fa-question"></i>
+        {% if request.user.is_staff %}
+          <span id="new-tickets-indicator" class="new-tickets-indicator" style="display:none;" title="Новые тикеты"></span>
+        {% endif %}
+      </a>
+    {% endif %}
 
     <footer class="footer-main">
         <div class="footer-container">
@@ -187,6 +258,15 @@
                     <li><a href="https://32cdi.ru/contacts/" target="_blank">г. Саратов, ул. Огородная, 144/146</a></li>
                 </ul>
             </div>
+            <div class="footer-col footer-contact">
+                <h5>Реквизиты</h5>
+                <ul>
+                    <li>ИП Данилова Татьяна Евгеньевна</li>
+                    <li>ИНН: 645103548600</li>
+                    <li>ОГРНИП: 408028109291300006299</li>
+                    <li>г. Саратов, ул. Томская, 7, 82</li>
+                </ul>
+            </div>
         </div>
         <div class="footer-bottom">
             <span class="site-version">Версия: {{ latest_version }}</span>
@@ -214,9 +294,12 @@
                 method: 'GET',
                 success: function(data) {
                     $('#notification-list').html(data);
+                    $('#notification-list-mobile').html(data);
                 },
                 error: function() {
-                    $('#notification-list').html('<li><div class="dropdown-item-text text-center text-danger">Ошибка загрузки</div></li>');
+                    const errorHtml = '<li><div class="dropdown-item-text text-center text-danger">Ошибка загрузки</div></li>';
+                    $('#notification-list').html(errorHtml);
+                    $('#notification-list-mobile').html(errorHtml);
                 }
             });
         }
@@ -229,13 +312,16 @@
                 success: function(data) {
                     const count = data.count;
                     const badge = $('#notification-badge');
+                    const badgeMobile = $('#notification-badge-mobile');
                     const countText = $('#notification-count-text');
                     
                     if (count > 0) {
                         badge.text(count).show();
+                        badgeMobile.text(count).show();
                         countText.text(count + ' непрочитанных');
                     } else {
                         badge.hide();
+                        badgeMobile.hide();
                         countText.text('Нет уведомлений');
                     }
                 }
@@ -279,17 +365,35 @@
             });
         });
         
-        // Загрузка уведомлений при открытии dropdown
-        $('#notificationDropdown').on('show.bs.dropdown', function() {
-            loadNotifications();
-        });
-        
         // Инициализация при загрузке страницы
         $(document).ready(function() {
+            loadNotifications();
             updateNotificationCount();
             
+            function updateNewTicketsIndicator() {
+                const indicator = $('#new-tickets-indicator');
+                if (!indicator.length) return;
+                $.ajax({
+                    url: '{% url "tech_support:new_tickets_count" %}',
+                    method: 'GET',
+                    success: function(data) {
+                        if (data.has_new) {
+                            indicator.show();
+                        } else {
+                            indicator.hide();
+                        }
+                    }
+                });
+            }
+
+            // начальная проверка
+            updateNewTicketsIndicator();
+
             // Обновление каждые 30 секунд
-            setInterval(updateNotificationCount, 30000);
+            setInterval(function() {
+                updateNotificationCount();
+                updateNewTicketsIndicator();
+            }, 30000);
         });
     </script>
     {% endif %}

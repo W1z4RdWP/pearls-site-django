@@ -1,32 +1,41 @@
 // header
 document.addEventListener('DOMContentLoaded', () => {
-  const hero = document.querySelector('.hero');
+  const hero = document.querySelector('.hero-landing');
   const header = document.querySelector('.header');
   const scrollItems = document.querySelectorAll('.scroll-item');
-
-	const scrollAnimation = () => {
-		let windowCenter = (window.innerHeight / 2) + window.scrollY;
-		scrollItems.forEach(el => {
-			let scrollOffset = el.offsetTop + (el.offsetHeight / 2) + 100;
-			if (windowCenter >= scrollOffset) {
-				el.classList.add('animation-class');
-			} else {
-				el.classList.remove('animation-class');
-			}
-		});
-	};
+  
+  // Добавляем класс для хедера сразу
+  header.classList.add('always-visible');
+  
+  const scrollAnimation = () => {
+    let windowCenter = (window.innerHeight / 2) + window.scrollY;
+    scrollItems.forEach(el => {
+      let scrollOffset = el.offsetTop + (el.offsetHeight / 2) + 100;
+      if (windowCenter >= scrollOffset) {
+        el.classList.add('animation-class');
+      } else {
+        el.classList.remove('animation-class');
+      }
+    });
+  };
 
   const headerFixed = () => {
     let scrollTop = window.scrollY;
-    if (!hero) return;
-    let heroCenter = hero.offsetHeight / 2;
     
-    if (scrollTop >= heroCenter) {
-      header.classList.add('fixed');
-      hero.style.marginTop = `${header.offsetHeight}px`;
+    if (hero) {
+      let heroCenter = hero.offsetHeight / 2;
+      
+      if (scrollTop >= heroCenter) {
+        header.classList.add('fixed');
+      } else {
+        header.classList.remove('fixed');
+      }
     } else {
-      header.classList.remove('fixed')
-      hero.style.marginTop = `0px`;
+      if (scrollTop > 100) {
+        header.classList.add('fixed');
+      } else {
+        header.classList.remove('fixed');
+      }
     }
   }
 
@@ -35,7 +44,6 @@ document.addEventListener('DOMContentLoaded', () => {
   window.addEventListener('scroll', () => {
     headerFixed();
     scrollAnimation();
-    
   });
 });
 
@@ -95,8 +103,9 @@ document.addEventListener('DOMContentLoaded', function() {
   const footerLogo = document.getElementById('footerlogo');
   const footerLogoMobile = document.getElementById('footerlogomobile');
 
-  // const darkLogo = "{% static 'global/imgs/logo_lc.png' %}";
-  // const lightLogo = "{% static 'global/imgs/logo_light_theme.png' %}";
+  // Определяем пути к логотипам
+  const darkLogo = "/static/global/imgs/logo_lc.png";
+  const lightLogo = "/static/global/imgs/logo_light_theme.png";
   
   function updateLogo() {
     if (document.body.classList.contains('theme-dark')) {
@@ -109,20 +118,23 @@ document.addEventListener('DOMContentLoaded', function() {
       if (footerLogoMobile) footerLogoMobile.src = lightLogo;
     }
   }
-  if (btn && (logo || footerLogo || footerLogoMobile)) {
+  
+  if (btn) {
     btn.addEventListener('click', function() {
       document.body.classList.toggle('theme-dark');
       btn.textContent = document.body.classList.contains('theme-dark') ? 'Тёмная тема' : 'Светлая тема';
       localStorage.setItem('theme', document.body.classList.contains('theme-dark') ? 'dark' : 'light');
       updateLogo();
     });
+    
+    // Инициализация при загрузке
     if (localStorage.getItem('theme') === 'dark') {
       document.body.classList.add('theme-dark');
       btn.textContent = 'Тёмная тема';
-      updateLogo();
     } else {
-      updateLogo();
+      btn.textContent = 'Светлая тема';
     }
+    updateLogo();
   }
 });
 
