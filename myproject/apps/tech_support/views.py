@@ -68,11 +68,65 @@ class TicketListView(ListView):
         return super().dispatch(request, *args, **kwargs)
 
     def get_queryset(self):
+        """
+        Фильтрация списка тикетов по GET-параметрам:
+        - status: id статуса или название (строкой)
+        - priority: id приоритета или уровень (level)
+        - ticket_type: одно из значений choices
+        - search: полнотекстовый поиск; ключевое слово 'просроч' включает фильтр по дедлайну
+        - date_from, date_to: YYYY-MM-DD, фильтруют по created_at
+        """
         user = self.request.user
-        if user.is_superuser:
-            return Ticket.objects.all().order_by('-created_at')
-        # staff: показываем только незакреплённые или закреплённые за текущим
-        return Ticket.objects.filter(assigned_to__in=[None, user]).order_by('-created_at')
+        qs = (
+            Ticket.objects.all()
+            if user.is_superuser
+            else Ticket.objects.filter(Q(assigned_to__isnull=True) | Q(assigned_to=user))
+        )
+
+        status_param = self.request.GET.get('status')
+        if status_param:
+            if status_param.isdigit():
+                qs = qs.filter(status_id=int(status_param))
+            else:
+                qs = qs.filter(Q(status__name__iexact=status_param) | Q(status__name__icontains=status_param))
+
+        priority_param = self.request.GET.get('priority')
+        if priority_param:
+            if priority_param.isdigit():
+                p = int(priority_param)
+                qs = qs.filter(Q(priority_id=p) | Q(priority__level=p))
+            else:
+                qs = qs.filter(priority__name__icontains=priority_param)
+
+        ticket_type = self.request.GET.get('ticket_type')
+        if ticket_type:
+            qs = qs.filter(ticket_type=ticket_type)
+
+        search = self.request.GET.get('search')
+        if search:
+            s = search.strip()
+            if 'просроч' in s.lower():
+                qs = qs.filter(status__is_active=True, deadline__lt=timezone.now())
+            else:
+                qs = qs.filter(Q(title__icontains=s) | Q(description__icontains=s) | Q(ticket_number__icontains=s))
+
+        date_from = self.request.GET.get('date_from')
+        date_to = self.request.GET.get('date_to')
+        start_dt = end_dt = None
+        if date_from:
+            d = parse_date(date_from)
+            if d:
+                start_dt = timezone.make_aware(datetime.datetime.combine(d, datetime.time.min))
+        if date_to:
+            d = parse_date(date_to)
+            if d:
+                end_dt = timezone.make_aware(datetime.datetime.combine(d, datetime.time.max))
+        if start_dt:
+            qs = qs.filter(created_at__gte=start_dt)
+        if end_dt:
+            qs = qs.filter(created_at__lte=end_dt)
+
+        return qs.order_by('-created_at')
 
 
 class MyTicketListView(ListView):
@@ -249,6 +303,12 @@ class StaffDashboardView(LoginRequiredMixin, StaffRequiredMixin, View):
             deadline__lt=timezone.now()
         ).order_by('deadline')[:10]
 
+        # id статуса "В работе" (fallback: любой активный, кроме "Решена")
+        in_progress_status_id = TicketStatus.objects.filter(name__icontains='работ').values_list('id', flat=True).first()
+        if in_progress_status_id is None:
+            in_progress_status_id = TicketStatus.objects.filter(is_active=True).exclude(name__iexact='Решена').order_by('id').values_list('id', flat=True).first()
+
+
         context = {
             'total_tickets': total_tickets,
             'active_tickets': active_tickets,
@@ -259,6 +319,7 @@ class StaffDashboardView(LoginRequiredMixin, StaffRequiredMixin, View):
             'avg_rating': round(avg_rating, 1),
             'recent_tickets': recent_tickets,
             'overdue_tickets_list': overdue_tickets_list,
+            'status_in_progress_id': in_progress_status_id,
         }
         return render(request, 'tech_support/staff_dashboard.html', context)
 

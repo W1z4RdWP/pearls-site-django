@@ -216,7 +216,7 @@
                                 <br><small class="text-muted">
                                     {% if ticket.is_overdue %}
                                         Просрочен на {{ ticket.time_to_deadline|timedelta_hours|floatformat:0 }} часов
-                                    {% else %}
+                                    {% elif ticket.has_time_left %}
                                         Осталось {{ ticket.time_to_deadline|timedelta_hours|floatformat:0 }} часов
                                     {% endif %}
                                 </small>

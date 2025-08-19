@@ -117,6 +117,13 @@ class Ticket(models.Model):
         return None
 
 
+    @property
+    def has_time_left(self) -> bool:
+        """True если дедлайн в будущем"""
+        if self.deadline:
+            return timezone.now() < self.deadline
+        return False
+
 class TicketAttachment(models.Model):
     """Вложения к тикетам"""
     ticket = models.ForeignKey(Ticket, on_delete=models.CASCADE, related_name='attachments', verbose_name="Тикет")
