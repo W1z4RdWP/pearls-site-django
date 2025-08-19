@@ -92,11 +92,11 @@
         display: flex;
         align-items: center;
         justify-content: center;
-        padding: 1rem;
+        padding: 1%;
         border-radius: 10px;
         text-decoration: none;
         color: white;
-        margin-bottom: 1rem;
+        margin-bottom: 1%;
         transition: all 0.3s ease;
     }
     .action-btn:hover {
@@ -208,7 +208,7 @@
                     <i class="fas fa-clock me-2"></i>
                     Просроченные тикеты
                 </a>
-                <a href="{% url 'tech_support:ticket_list_staff' %}" class="action-btn info">
+                <a href="{% url 'tech_support:ticket_list_staff' %}?status={{ status_in_progress_id }}&priority=&ticket_type=&search=&date_from=&date_to=" class="action-btn info">
                     <i class="fas fa-comments me-2"></i>
                     Активные чаты
                 </a>
