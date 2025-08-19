@@ -124,6 +124,7 @@ class Ticket(models.Model):
             return timezone.now() < self.deadline
         return False
 
+
 class TicketAttachment(models.Model):
     """Вложения к тикетам"""
     ticket = models.ForeignKey(Ticket, on_delete=models.CASCADE, related_name='attachments', verbose_name="Тикет")
