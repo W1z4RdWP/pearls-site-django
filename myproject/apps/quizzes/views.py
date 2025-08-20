@@ -4,6 +4,7 @@ from django.views.decorators.http import require_http_methods
 from django.db.models import Count, Exists, OuterRef
 from django.contrib import messages  # Добавлен импорт
 from django.views.generic import DetailView, TemplateView
+from django.core.paginator import Paginator
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 
 from myapp.models import QuizResult, UserCourse, UserAnswer, UserProgress
@@ -32,21 +33,23 @@ class StartQuizView(LoginRequiredMixin, UserPassesTestMixin, DataMixin, Template
     login_url = 'users:login'  # URL для перенаправления неавторизованных пользователей
     permission_denied_message = "Доступ разрешен только администраторам сайта"
 
-    
     def test_func(self):
         """Проверка административных привилегий"""
         return self.request.user.is_authenticated and self.request.user.is_staff
 
-    def get_context_data(self, **kwargs):
-        
-        context = super().get_context_data(**kwargs)
-        return self.get_mixin_context(context, topics=Quiz.objects.annotate(questions_count=Count('question'))) # Добавлено возвращение количества вопросов в каждом тесте
-        # context['topics'] = Quiz.objects.annotate(questions_count=Count('question')) 
-        # return context
 
-# def start_quiz_view(request) -> HttpResponse:
-#     topics = Quiz.objects.annotate(questions_count=Count('question'))
-#     return render(request, 'quizzes/start.html', {'topics': topics})
+    def get_context_data(self, **kwargs):        
+        context = super().get_context_data(**kwargs)
+        quizzes = Quiz.objects.annotate(questions_count=Count('question')).order_by('-id')
+        paginator = Paginator(quizzes, 5)  # Показывать 10 тестов на странице
+        page_number = self.request.GET.get('page', 1)
+        page_obj = paginator.get_page(page_number)
+        context = self.get_mixin_context(context, topics=page_obj)
+        context['page_obj'] = page_obj  # Для управления пагинацией в шаблоне
+        context = self.get_mixin_context(context)
+        return context
+
+
 
 def get_questions(request, quiz_id: int = None, is_start: bool = False) -> HttpResponse:
     """
