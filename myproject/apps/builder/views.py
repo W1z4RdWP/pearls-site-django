@@ -372,7 +372,7 @@ class LessonMasterDetailView(TemplateView):
                 versions_data = []
                 for v in lesson_versions:
                     versions_data.append({
-                        'version': str(v.version),
+                        'version': v.version,  # Оставляем как число для корректного сравнения в JS
                         'title': v.title,
                         'content': v.content,
                         'video_id': v.video_id or ''

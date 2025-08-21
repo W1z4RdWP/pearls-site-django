@@ -318,6 +318,25 @@ class CourseDetailView(DetailView):
                     ).exists()
                     if quiz_passed:
                         show_final_quiz = True
+                    
+                    # Получаем информацию о попытках для финального теста
+                    failed_attempts = QuizResult.objects.filter(
+                        user=user,
+                        quiz_title=course.final_quiz.name,
+                        passed=False
+                    ).count()
+                    
+                    # Проверяем реальное состояние блокировки теста
+                    from quizzes.models import QuizLock
+                    quiz_lock = QuizLock.objects.filter(user=user, quiz=course.final_quiz).first()
+                    is_actually_locked = quiz_lock.is_locked if quiz_lock else False
+                    
+                    quiz_attempts_info = {
+                        'failed_attempts': failed_attempts,
+                        'attempt_limit': course.final_quiz.attempt_limit,
+                        'attempts_left': course.final_quiz.attempt_limit - failed_attempts if course.final_quiz.attempt_limit > 0 else None,
+                        'is_locked': is_actually_locked
+                    }
                 elif all_completed:
                     show_final_quiz = True
 
@@ -385,6 +404,7 @@ class CourseDetailView(DetailView):
             'show_final_quiz': show_final_quiz,
             'next_course_in_trajectory': next_course_in_trajectory,
             'user_trajectories_info': user_trajectories_info,
+            'quiz_attempts_info': locals().get('quiz_attempts_info'),
         })
         
         return context
@@ -803,9 +823,18 @@ def complete_lesson(request, course_slug, lesson_id):
         defaults={'completed': False, 'course': course}
     )
     
-    # Начисляем очки только если урок завершается впервые
-    if not progress.completed:
-        award_dascoin_points(user, lesson.points, f"Завершение урока {lesson.title}")
+    # Проверяем, получал ли пользователь уже баллы за этот урок в рамках данного курса
+    from gamification.models import DascoinTransaction
+    lesson_reward_reason = f"Завершение урока {lesson.title}"
+    already_rewarded = DascoinTransaction.objects.filter(
+        user=user,
+        reason=lesson_reward_reason,
+        transaction_type='award'
+    ).exists()
+    
+    # Начисляем очки только если урок завершается впервые И баллы не были начислены ранее
+    if not progress.completed and not already_rewarded:
+        award_dascoin_points(user, lesson.points, lesson_reward_reason)
     
     # Создаем или обновляем прогресс
     UserProgress.objects.update_or_create(

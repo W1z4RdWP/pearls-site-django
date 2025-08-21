@@ -4,6 +4,7 @@ from django.views.decorators.http import require_http_methods
 from django.db.models import Count, Exists, OuterRef
 from django.contrib import messages  # Добавлен импорт
 from django.views.generic import DetailView, TemplateView
+from django.core.paginator import Paginator
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 
 from myapp.models import QuizResult, UserCourse, UserAnswer, UserProgress
@@ -32,21 +33,23 @@ class StartQuizView(LoginRequiredMixin, UserPassesTestMixin, DataMixin, Template
     login_url = 'users:login'  # URL для перенаправления неавторизованных пользователей
     permission_denied_message = "Доступ разрешен только администраторам сайта"
 
-    
     def test_func(self):
         """Проверка административных привилегий"""
         return self.request.user.is_authenticated and self.request.user.is_staff
 
-    def get_context_data(self, **kwargs):
-        
-        context = super().get_context_data(**kwargs)
-        return self.get_mixin_context(context, topics=Quiz.objects.annotate(questions_count=Count('question'))) # Добавлено возвращение количества вопросов в каждом тесте
-        # context['topics'] = Quiz.objects.annotate(questions_count=Count('question')) 
-        # return context
 
-# def start_quiz_view(request) -> HttpResponse:
-#     topics = Quiz.objects.annotate(questions_count=Count('question'))
-#     return render(request, 'quizzes/start.html', {'topics': topics})
+    def get_context_data(self, **kwargs):        
+        context = super().get_context_data(**kwargs)
+        quizzes = Quiz.objects.annotate(questions_count=Count('question')).order_by('-id')
+        paginator = Paginator(quizzes, 5)  # Показывать 10 тестов на странице
+        page_number = self.request.GET.get('page', 1)
+        page_obj = paginator.get_page(page_number)
+        context = self.get_mixin_context(context, topics=page_obj)
+        context['page_obj'] = page_obj  # Для управления пагинацией в шаблоне
+        context = self.get_mixin_context(context)
+        return context
+
+
 
 def get_questions(request, quiz_id: int = None, is_start: bool = False) -> HttpResponse:
     """
@@ -136,11 +139,16 @@ def get_questions(request, quiz_id: int = None, is_start: bool = False) -> HttpR
         if request.user.is_authenticated:
             quiz_obj = Quiz.objects.get(id=quiz_id)
             if quiz_obj.attempt_limit > 0:
-                current_attempts = QuizAttempt.objects.filter(user=request.user, quiz=quiz_obj).count()
+                # Считаем неудачные попытки (как в course_detail.html)
+                failed_attempts = QuizResult.objects.filter(
+                    user=request.user,
+                    quiz_title=quiz_obj.name,
+                    passed=False
+                ).count()
                 attempts_info = {
-                    'current_attempts': current_attempts,
-                    'max_attempts': quiz_obj.attempt_limit,
-                    'attempts_left': quiz_obj.attempt_limit - current_attempts
+                    'failed_attempts': failed_attempts,
+                    'attempt_limit': quiz_obj.attempt_limit,
+                    'attempts_left': quiz_obj.attempt_limit - failed_attempts
                 }
 
         return render(request, 'quizzes/question.html', {
@@ -233,6 +241,9 @@ def get_answer(request) -> HttpResponse:
                     'question_type': 'single'
                 }
 
+                # Получаем правильные ответы (может быть несколько)
+                correct_answers = Answer.objects.filter(question=question, is_correct=True)
+                
                 context = {
                     'current_question_number': list(Question.objects.filter(quiz_id=quiz_id).order_by('id').values_list('id', flat=True)).index(current_question_id) + 1,
                     'total_questions': Question.objects.filter(quiz_id=quiz_id).count(),
@@ -240,7 +251,7 @@ def get_answer(request) -> HttpResponse:
                     'is_correct': is_correct,
                     'question': question,
                     'submitted_answer': submitted_answer,
-                    'correct_answer': Answer.objects.get(question=question, is_correct=True),
+                    'correct_answers': correct_answers,
                     
                 }
             else:
@@ -378,42 +389,78 @@ def get_finish(request) -> HttpResponse:
         course = Course.objects.filter(final_quiz=quiz).first()
     
     if course and passed:
-        # Получаем UserCourse
-        user_course = UserCourse.objects.filter(user=request.user, course=course).first()
-        if not user_course:
-            user_course = UserCourse.objects.create(user=request.user, course=course, status='available')
+        # Получаем UserCourse ТОЛЬКО если пользователь действительно проходит этот курс
+        user_course = UserCourse.objects.filter(user=request.user, course=course, status='started').first()
         
         if user_course:
-            # Начисляем очки за тест только если он не был пройден ранее
+            # Проверяем, что все уроки курса завершены
+            completed_lessons = UserProgress.objects.filter(
+                user=request.user,
+                course=course,
+                completed=True
+            ).count()
+            total_lessons = course.lessons.count()
+            
+            # Завершаем курс только если все уроки пройдены
+            if completed_lessons >= total_lessons:
+                # Начисляем очки за тест только если он не был пройден ранее
+                if not previous_quiz_result:
+                    award_dascoin_points(request.user, 10, f"Прохождение теста {quiz.name}")
+                
+                # Завершаем курс и начисляем очки за курс
+                if user_course.status != 'completed':
+                    user_course.status = 'completed'
+                    user_course.save()
+                    award_dascoin_points(request.user, course.points, f"Завершение курса {course.title}")
+                    award_course_badge(request.user, course)
+                    # Выдаем сертификат за курс (если настроено)
+                    issue_certificate(request.user, course=course)
+                
+                if percent_score == 100:
+                    award_achievement(request.user, 'perfect_score', 'Идеальный результат', 'Получили 100% за прохождение теста')
+                return redirect('courses:course_detail', slug=course.slug)
+            else:
+                # Если не все уроки завершены, начисляем только очки за тест
+                if not previous_quiz_result:
+                    award_dascoin_points(request.user, 10, f"Прохождение теста {quiz.name}")
+                if percent_score == 100:
+                    award_achievement(request.user, 'perfect_score', 'Идеальный результат', 'Получили 100% за прохождение теста')
+                return redirect('courses:course_detail', slug=course.slug)
+        else:
+            # Если пользователь не проходит этот курс, начисляем только очки за тест
             if not previous_quiz_result:
                 award_dascoin_points(request.user, 10, f"Прохождение теста {quiz.name}")
-            
-            # Завершаем курс и начисляем очки за курс
-            if user_course.status != 'completed':
-                user_course.status = 'completed'
-                user_course.save()
-                award_dascoin_points(request.user, course.points, f"Завершение курса {course.title}")
-                award_course_badge(request.user, course)
-                # Выдаем сертификат за курс (если настроено)
-                issue_certificate(request.user, course=course)
-            
             if percent_score == 100:
                 award_achievement(request.user, 'perfect_score', 'Идеальный результат', 'Получили 100% за прохождение теста')
-            return redirect('courses:course_detail', slug=course.slug)
     elif course and not passed:
         # Проверяем, является ли этот тест финальным для курса
         if course.final_quiz == quiz:
-            # Сбрасываем прогресс курса - отмечаем все уроки как незавершенные
-            UserProgress.objects.filter(user=request.user, course=course).update(completed=False)
+            # Считаем количество неуспешных попыток для этого теста
+            failed_attempts = QuizResult.objects.filter(
+                user=request.user,
+                quiz_title=quiz.name,
+                passed=False
+            ).count()
             
-            # Также сбрасываем статус курса на "начат"
-            user_course = UserCourse.objects.filter(user=request.user, course=course).first()
-            if user_course and user_course.status == 'completed':
-                user_course.status = 'started'
-                user_course.end_date = None
-                user_course.save()
-            
-            messages.error(request, f"Финальный тест не пройден! Прогресс курса '{course.title}' сброшен. Попробуйте снова!")
+            # Сбрасываем прогресс курса ТОЛЬКО если исчерпаны все попытки
+            if quiz.attempt_limit > 0 and failed_attempts >= quiz.attempt_limit:
+                # Сбрасываем прогресс курса - отмечаем все уроки как незавершенные
+                UserProgress.objects.filter(user=request.user, course=course).update(completed=False)
+                
+                # Также сбрасываем статус курса на "начат"
+                user_course = UserCourse.objects.filter(user=request.user, course=course).first()
+                if user_course and user_course.status == 'completed':
+                    user_course.status = 'started'
+                    user_course.end_date = None
+                    user_course.save()
+                
+                messages.error(request, f"Финальный тест не пройден! Исчерпаны все попытки. Прогресс курса '{course.title}' сброшен. Необходимо повторить материал.")
+                return redirect('quizzes:attempt_limit_exceeded', quiz_id=quiz.id)
+            else:
+                # Обычная неудачная попытка - не сбрасываем прогресс
+                attempts_left = quiz.attempt_limit - failed_attempts if quiz.attempt_limit > 0 else "неограниченно"
+                attempts_text = f"Осталось попыток: {attempts_left}" if quiz.attempt_limit > 0 else "Попыток неограниченно"
+                messages.error(request, f"Финальный тест не пройден! {attempts_text}. Попробуйте снова!")
         else:
             messages.error(request, "Тест не пройден. Попробуйте снова!")
         
@@ -718,8 +765,16 @@ class AttemptLimitExceededView(LoginRequiredMixin, DetailView):
             quiz=quiz
         ).count()
         
-        # Проверяем, является ли этот тест финальным для какого-то курса
-        course = Course.objects.filter(final_quiz=quiz).first()
+        # Получаем курс из сессии, если он есть
+        course_slug = self.request.session.get('course_slug')
+        course = None
+
+        if course_slug:
+            course = Course.objects.filter(slug=course_slug).first()
+        
+        if not course:
+            # Если курс не найден в сессии, ищем через final_quiz (fallback)
+            course = Course.objects.filter(final_quiz=quiz).first()
         
         # Если тест финальный и у пользователя есть прогресс по курсу - проверяем сброшен ли он
         course_progress_reset = False

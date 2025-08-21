@@ -784,10 +784,29 @@ def unlock_quiz_access(request, user_id, quiz_id):
             quiz_lock.locked_at = None
             quiz_lock.save()
             
+            # Восстанавливаем прогресс курса, если тест является финальным
+            course = Course.objects.filter(final_quiz=quiz).first()
+            if course:
+                user_course = UserCourse.objects.filter(user=user, course=course).first()
+                if user_course:
+                    # Отмечаем все уроки курса как завершенные
+                    from myapp.models import UserProgress
+                    for lesson in course.lessons.all():
+                        UserProgress.objects.update_or_create(
+                            user=user,
+                            course=course,
+                            lesson=lesson,
+                            defaults={'completed': True}
+                        )
+                    
+                    # Устанавливаем статус курса как "начат" (не завершен, так как тест еще не пройден)
+                    user_course.status = 'started'
+                    user_course.save()
+            
             messages.success(
                 request,
                 f'Тест "{quiz.name}" разблокирован для пользователя {user.get_full_name()}. '
-                f'Пользователь может пройти еще одну попытку.'
+                f'Прогресс курса восстановлен. Пользователь может пройти еще одну попытку.'
             )
         else:
             messages.info(

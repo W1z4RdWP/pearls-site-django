@@ -145,9 +145,18 @@ def profile(request: HttpRequest) -> HttpResponse:
             ).exists()
             course_data['quiz_passed'] = quiz_passed
 
-        if percent == 100:
+        # Курс считается завершенным только если все уроки пройдены И финальный тест пройден
+        if percent == 100 and course.final_quiz:
+            if quiz_passed:
+                finished_courses.append(course_data)
+            else:
+                # Все уроки пройдены, но тест не пройден - оставляем в незавершенных
+                unfinished_courses.append(course_data)
+        elif percent == 100 and not course.final_quiz:
+            # Все уроки пройдены и нет финального теста - курс завершен
             finished_courses.append(course_data)
         else:
+            # Не все уроки пройдены - курс незавершен
             unfinished_courses.append(course_data)
 
         # Обновляем флаг завершения всех уроков
