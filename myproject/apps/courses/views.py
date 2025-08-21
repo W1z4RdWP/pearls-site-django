@@ -326,11 +326,16 @@ class CourseDetailView(DetailView):
                         passed=False
                     ).count()
                     
+                    # Проверяем реальное состояние блокировки теста
+                    from quizzes.models import QuizLock
+                    quiz_lock = QuizLock.objects.filter(user=user, quiz=course.final_quiz).first()
+                    is_actually_locked = quiz_lock.is_locked if quiz_lock else False
+                    
                     quiz_attempts_info = {
                         'failed_attempts': failed_attempts,
                         'attempt_limit': course.final_quiz.attempt_limit,
                         'attempts_left': course.final_quiz.attempt_limit - failed_attempts if course.final_quiz.attempt_limit > 0 else None,
-                        'is_locked': course.final_quiz.attempt_limit > 0 and failed_attempts >= course.final_quiz.attempt_limit
+                        'is_locked': is_actually_locked
                     }
                 elif all_completed:
                     show_final_quiz = True
