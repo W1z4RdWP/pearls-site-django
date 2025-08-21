@@ -188,6 +188,8 @@ document.addEventListener('DOMContentLoaded', function() {
                     window._dictSectionData = resp.data;
                     window._dictSectionId = resp.section_id;
                     // тут потом инициализация таблицы
+                    initVersionHistoryDropdown();
+                    if (typeof initActualizationHistoryDropdown === 'function') initActualizationHistoryDropdown();
                     initDictHotTable();
                 })
                 .catch(e => alert('Ошибка загрузки отдела: ' + e.message));
@@ -639,24 +641,24 @@ document.addEventListener('DOMContentLoaded', function() {
                     if (!r.ok) throw new Error('Ошибка загрузки');
                     return r.text();
                 })
-                            .then(html => {
-                document.getElementById('detail').innerHTML = html;
-                
-                // Выполняем скрипты из загруженного HTML
-                const scripts = document.getElementById('detail').querySelectorAll('script');
-                scripts.forEach(script => {
-                    if (script.textContent) {
-                        try {
-                            eval(script.textContent);
-                        } catch (e) {
-                            console.error('Ошибка выполнения скрипта:', e);
+                .then(html => {
+                    document.getElementById('detail').innerHTML = html;
+                    
+                    // Выполняем скрипты из загруженного HTML
+                    const scripts = document.getElementById('detail').querySelectorAll('script');
+                    scripts.forEach(script => {
+                        if (script.textContent) {
+                            try {
+                                eval(script.textContent);
+                            } catch (e) {
+                                console.error('Ошибка выполнения скрипта:', e);
+                            }
                         }
-                    }
-                });
-                
-                initVersionHistoryDropdown();
-                if (typeof initActualizationHistoryDropdown === 'function') initActualizationHistoryDropdown();
-            })
+                    });
+                    
+                    initVersionHistoryDropdown();
+                    if (typeof initActualizationHistoryDropdown === 'function') initActualizationHistoryDropdown();
+                })
                 .catch(e => {
                     alert('Ошибка загрузки урока: ' + e.message);
                 });
@@ -699,16 +701,16 @@ document.addEventListener('DOMContentLoaded', function() {
                 document.getElementById('detail').innerHTML = html;
                 
                 // Выполняем скрипты из загруженного HTML
-                // const scripts = document.getElementById('detail').querySelectorAll('script');
-                // scripts.forEach(script => {
-                //     if (script.textContent) {
-                //         try {
-                //             eval(script.textContent);
-                //         } catch (e) {
-                //             console.error('Ошибка выполнения скрипта:', e);
-                //         }
-                //     }
-                // });
+                const scripts = document.getElementById('detail').querySelectorAll('script');
+                scripts.forEach(script => {
+                    if (script.textContent) {
+                        try {
+                            eval(script.textContent);
+                        } catch (e) {
+                            console.error('Ошибка выполнения скрипта:', e);
+                        }
+                    }
+                });
                 
                 initVersionHistoryDropdown();
                 if (typeof initActualizationHistoryDropdown === 'function') initActualizationHistoryDropdown();
@@ -1166,8 +1168,14 @@ document.addEventListener('DOMContentLoaded', function() {
                 const version = cell.getAttribute('data-version');
                 
                 // Ищем версию в массиве
-                const v = (window._lessonVersions||[]).find(x => String(x.version) === String(version));
-                                
+                const v = (window._lessonVersions||[]).find(x => x.version == version);
+                
+                // Проверяем, что версия найдена
+                if (!v) {
+                    console.error('Версия не найдена:', version);
+                    console.log('Доступные версии:', window._lessonVersions);
+                    return;
+                }
                 
                 // Обновляем содержимое урока
                 const titleElement = document.querySelector('h2');
