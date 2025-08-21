@@ -197,11 +197,13 @@
                                 <div class="quiz-status">
                                 {% if progress.quiz_passed %}
                                     <span class="badge bg-success">Тест пройден</span>
-                                {% else %}
+                                {% elif progress.percent == 100 %}
                                     <span class="badge bg-warning">Требуется тест</span>
                                     <a href="{% url 'quizzes:quiz_start' progress.course.final_quiz.id %}" 
                                     class="btn btn-sm btn-primary">
                                     Пройти тест</a>
+                                {% else %}
+                                    <span class="badge bg-info">После завершения уроков курса, необходимо пройти тест</span>
                                 {% endif %}
                                 </div>
                             {% endif %}
@@ -211,11 +213,6 @@
                             class="btn btn-primary">
                                 Перейти к курсу
                             </a>
-                            {% if progress.percent == 100 and finished_courses %}
-                            <span class="btn btn-success disabled">
-                                Курс завершен
-                            </span>
-                            {% endif %}
                         </div>
                     </div>
                 </div>
