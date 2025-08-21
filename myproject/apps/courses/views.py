@@ -823,9 +823,18 @@ def complete_lesson(request, course_slug, lesson_id):
         defaults={'completed': False, 'course': course}
     )
     
-    # Начисляем очки только если урок завершается впервые
-    if not progress.completed:
-        award_dascoin_points(user, lesson.points, f"Завершение урока {lesson.title}")
+    # Проверяем, получал ли пользователь уже баллы за этот урок в рамках данного курса
+    from gamification.models import DascoinTransaction
+    lesson_reward_reason = f"Завершение урока {lesson.title}"
+    already_rewarded = DascoinTransaction.objects.filter(
+        user=user,
+        reason=lesson_reward_reason,
+        transaction_type='award'
+    ).exists()
+    
+    # Начисляем очки только если урок завершается впервые И баллы не были начислены ранее
+    if not progress.completed and not already_rewarded:
+        award_dascoin_points(user, lesson.points, lesson_reward_reason)
     
     # Создаем или обновляем прогресс
     UserProgress.objects.update_or_create(
