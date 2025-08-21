@@ -93,15 +93,50 @@
                         {# Статус: Курс начат #}
                         {% elif user_course.status == 'started' %}
                             <p class="text-success">Вы начали этот курс {{ user_course.start_date|date:"d.m.Y" }}</p>
-                            {% if all_completed %}
-                                {% if course.final_quiz and not show_final_quiz %}
-                                    <div class="alert alert-info">
-                                        Для завершения курса необходимо пройти финальный тест
-                                        <a href="{% url 'quizzes:quiz_start' quiz_id=course.final_quiz.id %}" class="btn-modern">
-                                            <i class="fa fa-check-circle"></i> Пройти тест
-                                        </a>
-                                    </div>
-                                {% endif %}
+                            
+                            {# Блок с финальным тестом - всегда видим #}
+                            {% if course.final_quiz %}
+                                <div class="alert alert-info">
+                                    {% if all_completed %}
+                                        <p>Для завершения курса необходимо пройти финальный тест</p>
+                                        
+                                        {% if quiz_attempts_info %}
+                                            {% if quiz_attempts_info.is_locked %}
+                                                <div class="alert alert-warning mt-2 mb-2">
+                                                    <i class="fa fa-exclamation-triangle"></i>
+                                                    <strong>Тест заблокирован!</strong> Исчерпаны все попытки.
+                                                    <p class="mb-1 mt-2">Необходимо повторить материал курса для разблокировки теста.</p>
+                                                </div>
+                                            {% else %}
+                                                {% if quiz_attempts_info.attempt_limit > 0 %}
+                                                    <p class="small text-muted mb-2">
+                                                        <i class="fa fa-info-circle"></i> 
+                                                        Лимит попыток: {{ quiz_attempts_info.attempt_limit }}
+                                                        {% if quiz_attempts_info.failed_attempts > 0 %}
+                                                            <br>Использовано: {{ quiz_attempts_info.failed_attempts }}
+                                                            <br>Осталось: {{ quiz_attempts_info.attempts_left }}
+                                                        {% endif %}
+                                                    </p>
+                                                {% endif %}
+                                            {% endif %}
+                                        {% endif %}
+                                        
+                                        {% if quiz_attempts_info and quiz_attempts_info.is_locked %}
+                                            <span class="btn-modern disabled" style="opacity: 0.6; cursor: not-allowed;">
+                                                <i class="fa fa-lock"></i> Тест заблокирован
+                                            </span>
+                                        {% else %}
+                                            <a href="{% url 'quizzes:quiz_start' quiz_id=course.final_quiz.id %}" class="btn-modern">
+                                                <i class="fa fa-check-circle"></i> Пройти тест
+                                            </a>
+                                        {% endif %}
+                                    {% else %}
+                                        <p>Финальный тест будет доступен после завершения всех уроков курса</p>
+                                        <span class="btn-modern disabled" style="opacity: 0.6; cursor: not-allowed;">
+                                            <i class="fa fa-lock"></i> Пройти тест
+                                        </span>
+                                    {% endif %}
+                                </div>
                             {% endif %}
                             {% if next_lesson.id %}
                                 <a href="{% url 'courses:lesson_detail' course.slug next_lesson.id %}" 

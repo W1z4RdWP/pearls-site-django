@@ -318,6 +318,20 @@ class CourseDetailView(DetailView):
                     ).exists()
                     if quiz_passed:
                         show_final_quiz = True
+                    
+                    # Получаем информацию о попытках для финального теста
+                    failed_attempts = QuizResult.objects.filter(
+                        user=user,
+                        quiz_title=course.final_quiz.name,
+                        passed=False
+                    ).count()
+                    
+                    quiz_attempts_info = {
+                        'failed_attempts': failed_attempts,
+                        'attempt_limit': course.final_quiz.attempt_limit,
+                        'attempts_left': course.final_quiz.attempt_limit - failed_attempts if course.final_quiz.attempt_limit > 0 else None,
+                        'is_locked': course.final_quiz.attempt_limit > 0 and failed_attempts >= course.final_quiz.attempt_limit
+                    }
                 elif all_completed:
                     show_final_quiz = True
 
@@ -385,6 +399,7 @@ class CourseDetailView(DetailView):
             'show_final_quiz': show_final_quiz,
             'next_course_in_trajectory': next_course_in_trajectory,
             'user_trajectories_info': user_trajectories_info,
+            'quiz_attempts_info': locals().get('quiz_attempts_info'),
         })
         
         return context
