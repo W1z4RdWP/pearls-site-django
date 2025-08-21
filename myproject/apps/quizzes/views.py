@@ -241,6 +241,9 @@ def get_answer(request) -> HttpResponse:
                     'question_type': 'single'
                 }
 
+                # Получаем правильные ответы (может быть несколько)
+                correct_answers = Answer.objects.filter(question=question, is_correct=True)
+                
                 context = {
                     'current_question_number': list(Question.objects.filter(quiz_id=quiz_id).order_by('id').values_list('id', flat=True)).index(current_question_id) + 1,
                     'total_questions': Question.objects.filter(quiz_id=quiz_id).count(),
@@ -248,7 +251,7 @@ def get_answer(request) -> HttpResponse:
                     'is_correct': is_correct,
                     'question': question,
                     'submitted_answer': submitted_answer,
-                    'correct_answer': Answer.objects.get(question=question, is_correct=True),
+                    'correct_answers': correct_answers,
                     
                 }
             else:
@@ -391,7 +394,6 @@ def get_finish(request) -> HttpResponse:
         
         if user_course:
             # Проверяем, что все уроки курса завершены
-            from myapp.models import UserProgress
             completed_lessons = UserProgress.objects.filter(
                 user=request.user,
                 course=course,
