@@ -1,207 +1,320 @@
 <!DOCTYPE html>
+{% load static %}
 <html>
 <head>
     <meta charset="utf-8">
     <title>Сертификат - {{ certificate.certificate_id }}</title>
     <style>
-        @page {
-            size: A4 landscape;
-            margin: 15mm;
-        }
-        
-        body {
-            font-family: 'DejaVu Sans', Arial, sans-serif;
-            margin: 0;
-            padding: 0;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: #333;
-            height: 100vh;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-        }
-        
-        .certificate {
-            background: white;
-            padding: 40px;
-            border-radius: 15px;
-            box-shadow: 0 15px 30px rgba(0,0,0,0.1);
-            text-align: center;
-            max-width: 650px;
-            width: 90%;
-            border: 6px solid #f8f9fa;
-            position: relative;
-        }
-        
-        .certificate::before {
-            content: '';
-            position: absolute;
-            top: -3px;
-            left: -3px;
-            right: -3px;
-            bottom: -3px;
-            background: linear-gradient(45deg, #007bff, #6f42c1, #20c997, #fd7e14);
-            border-radius: 18px;
-            z-index: -1;
-        }
-        
-        .header {
-            margin-bottom: 25px;
-        }
-        
-        .certificate-title {
-            font-size: 36px;
-            font-weight: bold;
-            color: #2c3e50;
-            margin-bottom: 8px;
-            text-transform: uppercase;
-            letter-spacing: 2px;
-        }
-        
-        .subtitle {
-            font-size: 16px;
-            color: #7f8c8d;
-            margin-bottom: 20px;
-        }
-        
-        .recipient-section {
-            margin: 25px 0;
-        }
-        
-        .awarded-to {
-            font-size: 18px;
-            color: #34495e;
-            margin-bottom: 10px;
-        }
-        
-        .recipient-name {
-            font-size: 28px;
-            font-weight: bold;
-            color: #2980b9;
-            margin-bottom: 20px;
-            border-bottom: 2px solid #3498db;
-            padding-bottom: 8px;
-            display: inline-block;
-        }
-        
-        .decoration {
-            margin: 15px 0;
-            font-size: 36px;
-        }
-        
-        .achievement-section {
-            margin: 25px 0;
-        }
-        
-        .achievement-text {
-            font-size: 16px;
-            color: #2c3e50;
-            margin-bottom: 10px;
-        }
-        
-        .course-name {
-            font-size: 22px;
-            font-weight: bold;
-            color: #27ae60;
-            margin: 15px 0;
-        }
-        
-        .trajectory-name {
-            font-size: 22px;
-            font-weight: bold;
-            color: #8e44ad;
-            margin: 15px 0;
-        }
-        
-        .achievement-badge {
-            display: inline-block;
-            background: linear-gradient(45deg, #28a745, #20c997);
-            color: white;
-            padding: 8px 16px;
-            border-radius: 20px;
-            font-size: 12px;
-            font-weight: bold;
-            margin: 10px 0;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-        }
-        
-        .course-badge {
-            background: linear-gradient(45deg, #007bff, #6610f2);
-        }
-        
-        .trajectory-badge {
-            background: linear-gradient(45deg, #6f42c1, #e83e8c);
-        }
-        
-        .footer {
-            margin-top: 30px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        
-        .date-issued {
-            text-align: left;
-        }
-        
-        .certificate-number {
-            text-align: right;
-        }
-        
-        .date-issued h4, .certificate-number h4 {
-            font-size: 11px;
-            color: #7f8c8d;
-            margin-bottom: 3px;
-            text-transform: uppercase;
-        }
-        
-        .date-issued p, .certificate-number p {
-            font-size: 13px;
-            color: #2c3e50;
-            font-weight: bold;
-            margin: 0;
-        }
+@import url('https://fonts.googleapis.com/css2?family=Onest:wght@400;500;600;800;900&display=swap');
+
+@page {
+    size: A4 landscape;
+    margin: 0;
+}
+
+body {
+    font-family: 'Onest', sans-serif;
+    margin: 0;
+    padding: 2%;
+    background: #5473B4;
+    background-size: cover;
+    height: 100vh;
+    position: relative;
+    overflow: hidden;
+}
+
+.certificate-container {
+    width: 100%;
+    height: 100vh;
+    position: relative;
+    background: #5473B4;
+    z-index: 100;
+}
+
+.right-aligned-container{
+    background: url('{% static "courses/imgs/cert_srcs/background.png" %}') no-repeat center right;
+    background-size: contain;
+    width: 60%;
+    height: 100vh;
+    top: 4%;
+    right: 3%;
+    position: absolute;
+    opacity: 1;
+    z-index: 1;
+}
+
+/* Верхний заголовок */
+.top-header {
+    display: flex;
+    justify-content: flex-start;
+    align-items: center;
+    gap: 2rem;
+    padding: 30px 160px;
+    color: white;
+    z-index: 100;
+}
+
+.logo-section {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    z-index: 100;
+}
+
+.logo {
+    font-family: 'Onest', sans-serif;
+    font-weight: 900;
+    font-size: 20px;
+    line-height: 1.2;
+    width: 12vw;
+    height: 8vh;
+}
+
+.logo-img {
+    width: 100%;
+    height: 100%;
+}
+
+.logo-subtitle {
+    background: rgba(255, 255, 255, 0.2);
+    padding: 4px 12px;
+    border-radius: 15px;
+    font-size: 14px;
+    font-weight: 500;
+    margin-top: 5px;
+}
+
+.divider {
+    width: 2px;
+    height: 80px;
+    background: rgba(255, 255, 255, 0.7);
+}
+
+.location-year {
+    font-family: 'Onest', sans-serif;
+    font-weight: 600;
+    font-size: 28px;
+    text-align: left;
+    line-height: 1.3;
+}
+
+/* Основной блок сертификата */
+.certificate-main {
+    background: rgba(168, 188, 230, 0.8);
+    margin: -20px auto 40px auto;
+    padding: 40px 60px 60px 60px;
+    border-radius: 0;
+    position: relative;
+    z-index: 2;
+    height: calc(100vh - 300px);
+    width: 70%;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+}
+
+.certificate-title {
+    font-family: 'Onest', sans-serif;
+    font-weight: 900;
+    padding-top: 40px;
+    font-size: 48px;
+    color: #3F578A;
+    margin-bottom: 85px;
+    text-align: left;
+}
+
+.recipient-name {
+    font-family: 'Onest', sans-serif;
+    font-weight: 900;
+    font-size: 48px;
+    color: #3F578A;
+    margin-bottom: 10px;
+    display: block;
+    text-align: center;
+    width: 90%;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.recipient-underline {
+    width: 100%;
+    height: 3px;
+    background: #3F578A;
+    margin: 0 auto 15px auto;
+}
+
+.course-section {
+    margin-top: 30px;
+    text-align: left;
+}
+
+.course-label {
+    font-family: 'Onest', sans-serif;
+    font-weight: 500;
+    font-size: 28px;
+    color: #3F578A;
+    margin-bottom: 5px;
+    margin-top: 40px;
+}
+
+.course-name, .trajectory-name {
+    font-family: 'Onest', sans-serif;
+    font-weight: 500;
+    font-size: 28px;
+    color: white;
+    line-height: 1.1;
+}
+
+/* Подпись внизу */
+.signature {
+    margin-top: auto;
+    text-align: right;
+    color: #3F578A;
+    min-width: 300px;
+    padding-bottom: 10px;
+}
+
+.signature-line {
+    width: 42%;
+    height: 3px;
+    background: #3F578A;
+    margin-bottom: 10px;
+    margin-left: auto;
+}
+
+.signature-text {
+    font-family: 'Onest', sans-serif;
+    font-weight: 600;
+    font-size: 28px;
+}
+
+/* Дата слева снаружи блока */
+.date-info {
+    position: absolute;
+    bottom: 50px;
+    left: 150px;
+    color: white;
+    font-family: 'Onest', sans-serif;
+    font-weight: 500;
+    font-size: 14px;
+}
+
+/* Номер справа снаружи блока */
+.certificate-number-info {
+    position: absolute;
+    bottom: 50px;
+    right: 150px;
+    color: white;
+    font-family: 'Onest', sans-serif;
+    font-weight: 500;
+    font-size: 14px;
+    text-align: right;
+}
+
+@media (max-width: 1400px) {
+    .certificate-container {
+        width: 100%;
+        height: 100vh;
+        position: relative;
+        background: #5473B4;
+        z-index: 100;
+        margin-top: -20px;
+    }
+
+    .top-header{
+        padding: 25px 160px;
+    }
+
+    .right-aligned-container{
+        position: absolute;
+        right: 35px;
+        top: 35px;
+    }
+
+    .certificate-title{
+        margin-bottom: 70px;
+        padding-top: 0;
+    }
+
+    .recipient-name{
+        margin-bottom: 10px;
+        margin-right: 8%;
+        white-space: nowrap;
+    }
+    
+    .recipient-underline {
+        width: 100% !important;
+        height: 3px !important;
+        min-height: 3px !important;
+        background: #3F578A !important;
+        margin: 0 auto 15px auto !important;
+        display: block !important;
+        border: 1px solid #3F578A !important;
+        box-sizing: border-box !important;
+    }
+
+
+    .signature-line{
+        width: 52%;
+    }
+}
+
     </style>
 </head>
 <body>
-    <div class="certificate">
-        <div class="header">
-            <div class="certificate-title">Сертификат</div>
-            <div class="subtitle">об успешном завершении</div>
-        </div>
-        
-        <div class="recipient-section">
-            <div class="awarded-to">настоящим удостоверяется, что</div>
-            <div class="recipient-name">{{ certificate.user.get_full_name|default:certificate.user.username }}</div>
-        </div>
-        
-        <div class="decoration">🎓</div>
-        
-        <div class="achievement-section">
-            {% if certificate.certificate_type == 'course' %}
-                <div class="achievement-text">успешно завершил(а) курс</div>
-                <div class="course-name">{{ certificate.course.title }}</div>
-                <div class="achievement-badge course-badge">Курс завершен</div>
-            {% else %}
-                <div class="achievement-text">успешно завершил(а) траекторию</div>
-                <div class="trajectory-name">{{ certificate.trajectory.name }}</div>
-                <div class="achievement-badge trajectory-badge">Траектория завершена</div>
-            {% endif %}
-        </div>
-        
-        <div class="footer">
-            <div class="date-issued">
-                <h4>Дата выдачи</h4>
-                <p>{{ certificate.issued_at|date:"d.m.Y" }}</p>
+    <div class="certificate-container">
+        <div class="right-aligned-container"></div>
+        <!-- Верхний заголовок -->
+        <div class="top-header">
+            <div class="logo-section">
+                <div>
+                    <div class="logo">
+                        <img src="{% static 'courses/imgs/cert_srcs/logo_white_horiz.png' %}" alt="logo" class="logo-img">
+                    </div>
+                </div>
+                <div class="divider"></div>
             </div>
+            <div class="location-year">
+                Саратов<br>2025
+            </div>
+        </div>
+        
+        <!-- Основной блок сертификата -->
+        <div class="certificate-main">
+            <div class="certificate-title">Сертификат выдан:</div>
+            <div class="recipient-name">{{ certificate.user.last_name }} {{ certificate.user.first_name }}{% if certificate.user.profile.middle_name %} {{ certificate.user.profile.middle_name }}{% endif %}</div>
+            <div class="recipient-underline"></div>
             
-            <div class="certificate-number">
-                <h4>Номер сертификата</h4>
-                <p>{{ certificate.certificate_id }}</p>
+
+            <div class="achievement-section">
+                {% if certificate.certificate_type == 'course' %}
+                    <div class="course-label">успешно завершил(а) курс</div>
+                    <div class="course-name">{{ certificate.course.title }}</div>
+                {% else %}
+                    <div class="achievement-text">успешно завершил(а) траекторию</div>
+                    <div class="trajectory-name">{{ certificate.trajectory.name }}</div>
+                    <div class="achievement-badge trajectory-badge">Траектория завершена</div>
+                {% endif %}
             </div>
+
+            
+            <!-- Подпись -->
+            <div class="signature">
+                <div class="signature-line"></div>
+                <div class="signature-text">Учебный центр «Территория Улыбки»</div>
+            </div>
+        </div>
+        
+        <!-- Дата слева -->
+        <div class="date-info">
+            {{ certificate.issued_at|date:"d.m.Y" }}
+        </div>
+        
+        <!-- Номер справа -->
+        <div class="certificate-number-info">
+            № {{ certificate.certificate_id }}
         </div>
     </div>
 </body>
 </html>
+
