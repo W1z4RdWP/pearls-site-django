@@ -7,6 +7,13 @@
     <style>
 @import url('https://fonts.googleapis.com/css2?family=Onest:wght@400;500;600;800;900&display=swap');
 
+@font-face {
+    font-family: 'CustomHandwriting';
+    src: url('{% static "courses/fonts/brushscriptstd.ttf" %}') format('truetype');
+    font-weight: normal;
+    font-style: normal;
+}
+
 @page {
     size: A4 landscape;
     margin: 0;
@@ -182,6 +189,15 @@ body {
     margin-left: auto;
 }
 
+.signature-name {
+    font-family: 'CustomHandwriting', cursive;
+    font-weight: 600;
+    font-size: 32px;
+    color: #3F578A;
+    margin-bottom: 5px;
+    text-align: right;
+}
+
 .signature-text {
     font-family: 'Onest', sans-serif;
     font-weight: 600;
@@ -300,6 +316,7 @@ body {
             
             <!-- Подпись -->
             <div class="signature">
+                <div class="signature-name">Данилов А.С.</div>
                 <div class="signature-line"></div>
                 <div class="signature-text">Учебный центр «Территория Улыбки»</div>
             </div>
