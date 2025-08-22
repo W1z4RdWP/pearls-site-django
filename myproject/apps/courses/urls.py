@@ -23,4 +23,5 @@ urlpatterns = [
     path('trajectory-create/', course_views.TrajectoryCreateView.as_view(), name='trajectory_create'),
     path('user-certificates/', course_views.CertificateListView.as_view(), name='user_certificates'),
     path('certificate/<str:certificate_id>/download/', course_views.download_certificate_pdf, name='download_certificate_pdf'),
+    path('certificate/<str:certificate_id>/view/', course_views.view_certificate_pdf, name='view_certificate_pdf'),
 ]

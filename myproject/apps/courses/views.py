@@ -995,6 +995,16 @@ class CertificateListView(TemplateView):
         return context
 
 
+
+
+def view_certificate_pdf(request, certificate_id):
+    """
+    Представление для просмотра сертификата в формате PDF.
+    """
+    certificate = get_object_or_404(Certificate, certificate_id=certificate_id, user=request.user)
+    return render(request, 'courses/certificate_pdf.html', {'certificate': certificate})
+
+
 @login_required
 def download_certificate_pdf(request, certificate_id):
     """
@@ -1031,4 +1041,3 @@ def download_certificate_pdf(request, certificate_id):
     
     return response
     
-

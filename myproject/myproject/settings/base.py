@@ -61,8 +61,7 @@ INSTALLED_APPS = [
     'debug_toolbar',
     'qsessions',
     'rangefilter',
-    'widget_tweaks',
-    
+    'widget_tweaks',    
 
     'myapp.apps.MyappConfig',
     'users.apps.UsersConfig',

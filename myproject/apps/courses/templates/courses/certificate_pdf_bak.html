@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+{% load static %}
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Сертификат - {{ certificate.certificate_id }}</title>
+    <link rel="stylesheet" href="{% static 'courses/css/certificate_pdf.css' %}">
+</head>
+<body>
+    <div class="certificate">
+        <div class="header">
+            <div class="certificate-title">Сертификат</div>
+            <div class="subtitle">об успешном завершении</div>
+        </div>
+        
+        <div class="recipient-section">
+            <div class="awarded-to">настоящим удостоверяется, что</div>
+            <div class="recipient-name">{{ certificate.user.get_full_name|default:certificate.user.username }}</div>
+        </div>
+        
+        <div class="decoration">🎓</div>
+        
+        <div class="achievement-section">
+            {% if certificate.certificate_type == 'course' %}
+                <div class="achievement-text">успешно завершил(а) курс</div>
+                <div class="course-name">{{ certificate.course.title }}</div>
+                <div class="achievement-badge course-badge">Курс завершен</div>
+            {% else %}
+                <div class="achievement-text">успешно завершил(а) траекторию</div>
+                <div class="trajectory-name">{{ certificate.trajectory.name }}</div>
+                <div class="achievement-badge trajectory-badge">Траектория завершена</div>
+            {% endif %}
+        </div>
+        
+        <div class="footer">
+            <div class="date-issued">
+                <h4>Дата выдачи</h4>
+                <p>{{ certificate.issued_at|date:"d.m.Y" }}</p>
+            </div>
+            
+            <div class="certificate-number">
+                <h4>Номер сертификата</h4>
+                <p>{{ certificate.certificate_id }}</p>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
