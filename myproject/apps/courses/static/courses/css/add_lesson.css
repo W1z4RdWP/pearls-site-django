@@ -145,11 +145,12 @@
 .lesson-item {
     display: flex;
     align-items: center;
-    padding: 6px 12px;
+    padding: 4px 12px;
     border-radius: 4px;
     cursor: pointer;
     transition: background-color 0.2s;
     margin-bottom: 2px;
+    min-height: 20px;
 }
 
 .lesson-item:hover {
@@ -168,6 +169,9 @@
 
 .lesson-title {
     flex: 1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
     font-size: 13px;
 }
 
