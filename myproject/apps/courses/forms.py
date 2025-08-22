@@ -58,7 +58,7 @@ class CourseModalForm(forms.ModelForm):
 class LessonForm(forms.ModelForm):
     class Meta:
         model = Lesson
-        fields = ['title', 'content', 'video_id', 'order', 'courses']
+        fields = ['title', 'content', 'order', 'courses']
         widgets = {
             'content': CKEditor5Widget(
                 attrs={'class': 'django_ckeditor_5'}, 
@@ -68,12 +68,10 @@ class LessonForm(forms.ModelForm):
         }
 
         labels = {
-            'video_id': 'Ссылка на видео с Rutube',
             'courses': 'Курсы, в которых используется урок'
         }
 
         help_texts = {
-            'video_id': 'Введите полную ссылку на видео. Пример: https://rutube.ru/video/abcdef12345/',
             'courses': 'Выберите курсы, в которых будет использоваться этот урок'
         }
 

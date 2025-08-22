@@ -449,7 +449,7 @@ class LessonMasterDetailView(TemplateView):
 
 class LessonCreateView(CreateView):
     model = Lesson
-    fields = ['title', 'content', 'video_id', 'courses', 'category']
+    fields = ['title', 'content', 'courses', 'category']
     template_name = 'builder/lesson_form.html'
     success_url = reverse_lazy('builder:lesson_master')
 
@@ -510,7 +510,7 @@ class LessonCreateView(CreateView):
 
 class LessonUpdateView(UpdateView):
     model = Lesson
-    fields = ['title', 'content', 'video_id', 'order', 'courses', 'category']
+    fields = ['title', 'content', 'order', 'courses', 'category']
     template_name = 'builder/lesson_form.html'
     success_url = reverse_lazy('builder:lesson_master')
 
