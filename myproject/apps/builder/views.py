@@ -1,5 +1,6 @@
-from django.views.generic import DetailView, TemplateView
-from django.shortcuts import get_object_or_404, render
+from django.views.generic import DetailView, TemplateView, View
+from django.shortcuts import get_object_or_404, render, redirect
+from django.http import Http404
 from courses.models import Course, Lesson
 from myapp.models import UserProgress
 from django.contrib.auth.decorators import login_required, permission_required      
@@ -598,8 +599,7 @@ class CategoryUpdateView(UpdateView):
         return super().dispatch(request, *args, **kwargs)
 
 
-class CategoryDeleteView(DeleteView):
-    model = CategoryName
+class CategoryDeleteView(View):
     template_name = 'builder/category_confirm_delete.html'
     success_url = reverse_lazy('builder:lesson_master')
 
@@ -607,6 +607,118 @@ class CategoryDeleteView(DeleteView):
         if not request.user.is_authenticated or not (request.user.is_staff or request.user.is_superuser):
             return render(request, '403.html', status=403)
         return super().dispatch(request, *args, **kwargs)
+
+    def get(self, request, pk):
+        try:
+            category = CategoryName.objects.get(pk=pk)
+        except CategoryName.DoesNotExist:
+            raise Http404("Категория не найдена")
+        
+        # Подсчитаем вложенные категории и уроки (рекурсивно)
+        stats = self._get_category_stats(category)
+        
+        context = {
+            'object': category,
+            'subcategories_count': stats['subcategories'],
+            'lessons_count': stats['lessons'],
+            'mirrors_count': stats['mirrors'],
+            'total_items': stats['total']
+        }
+        return render(request, self.template_name, context)
+
+    def post(self, request, pk):
+        from django.http import JsonResponse
+        from courses.models import Lesson
+        
+        try:
+            category = CategoryName.objects.get(pk=pk)
+        except CategoryName.DoesNotExist:
+            raise Http404("Категория не найдена")
+        
+        action = request.POST.get('action')
+        
+        if action == 'move_to_none':
+            # Переместить в "Без категории" 
+            self._move_category_content_to_none(category)
+            return redirect(self.success_url)
+            
+        elif action == 'delete_all':
+            # Удалить безвозвратно все содержимое
+            self._delete_category_recursive(category)
+            return redirect(self.success_url)
+        
+        # Если действие не определено, возвращаемся к форме
+        return self.get(request, pk)
+
+    def _move_category_content_to_none(self, category):
+        """
+        Рекурсивно перемещает содержимое категории в "Без категории"
+        """
+        # Перемещаем все подкатегории в корень (без родителя)
+        for subcategory in category.subcategories.all():
+            subcategory.parent = None
+            subcategory.save()
+        
+        # Перемещаем все уроки в "Без категории"
+        for lesson in category.lessons.all():
+            lesson.category = None
+            lesson.save()
+        
+        # Зеркала уроков просто удаляются (они привязаны к категории)
+        category.mirrored_lessons.all().delete()
+        
+        # Удаляем саму категорию
+        category.delete()
+
+    def _delete_category_recursive(self, category):
+        """
+        Рекурсивно удаляет категорию и все её содержимое
+        """
+        # Сначала рекурсивно удаляем все подкатегории
+        for subcategory in category.subcategories.all():
+            self._delete_category_recursive(subcategory)
+        
+        # Удаляем уроки в этой категории
+        for lesson in category.lessons.all():
+            # Проверяем, есть ли у урока зеркала в других категориях
+            other_mirrors = lesson.mirrors.exclude(category=category)
+            if other_mirrors.exists() or lesson.category != category:
+                # Есть зеркала в других категориях или урок принадлежит другой категории
+                # Просто убираем связь с текущей категорией (если есть)
+                if lesson.category == category:
+                    lesson.category = None
+                    lesson.save()
+            else:
+                # Нет зеркал в других категориях - удаляем урок полностью
+                lesson.delete()
+        
+        # Зеркала уроков в этой категории удаляются автоматически через CASCADE
+        
+        # Удаляем саму категорию
+        category.delete()
+
+    def _get_category_stats(self, category):
+        """
+        Рекурсивно подсчитывает количество подкатегорий, уроков и зеркал
+        """
+        subcategories = 0
+        lessons = category.lessons.count()
+        mirrors = category.mirrored_lessons.count()
+        
+        # Рекурсивно подсчитываем для всех подкатегорий
+        for subcategory in category.subcategories.all():
+            subcategories += 1  # сама подкатегория
+            substats = self._get_category_stats(subcategory)
+            subcategories += substats['subcategories']
+            lessons += substats['lessons']
+            mirrors += substats['mirrors']
+        
+        return {
+            'subcategories': subcategories,
+            'lessons': lessons,
+            'mirrors': mirrors,
+            'total': subcategories + lessons + mirrors
+        }
 
 
 class DashboardView(TemplateView):
