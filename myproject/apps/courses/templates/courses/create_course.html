@@ -1,19 +1,204 @@
-{% extends "layout.html" %}
-{% load crispy_forms_tags %}
+{% extends 'layout.html' %}
+{% load static %}
+{% block specific_styles %} 
+    <link rel="stylesheet" href="{% static 'user_management/css/user_form.css' %}">
+{% endblock %}
 
 {% block title %}Создать курс{% endblock %}
+
 {% block content %}
-<div class="content-section">
-    <form method="POST" enctype="multipart/form-data">
+<div class="user-form-wrapper">
+    <div class="user-form-header">
+        <h1 class="form-title" style="margin: auto;">Создать курс</h1>
+    </div>
+    <form method="post" enctype="multipart/form-data" class="user-form">
         {% csrf_token %}
         {{ form.media }}
-        <fieldset class="form-group">
-            <legend class="border-bottom mb-4">Создать курс</legend>
-            {{ form|crispy }}
-        </fieldset>
-        <div class="form-group">
-            <button class="btn btn-outline-info" type="submit">Создать</button>
+        
+        <div class="form-section">
+            <h2 class="section-title">Основная информация</h2>
+            
+            {{ form.title.label_tag }}{{ form.title }}
+            {% if form.title.errors %}
+                <div class="field-errors">{{ form.title.errors }}</div>
+            {% endif %}
+            
+            {{ form.description.label_tag }}
+            <div class="ckeditor-wrapper">
+                {{ form.description }}
+            </div>
+            {% if form.description.errors %}
+                <div class="field-errors">{{ form.description.errors }}</div>
+            {% endif %}
+            
+            {{ form.image.label_tag }}{{ form.image }}
+            {% if form.image.help_text %}
+                <small class="form-help-text">{{ form.image.help_text }}</small>
+            {% endif %}
+            {% if form.image.errors %}
+                <div class="field-errors">{{ form.image.errors }}</div>
+            {% endif %}
+        </div>
+
+        <div class="form-section">            
+            {{ form.slug.label_tag }}{{ form.slug }}
+            {% if form.slug.help_text %}
+                <small class="form-help-text">{{ form.slug.help_text }}</small>
+            {% endif %}
+            {% if form.slug.errors %}
+                <div class="field-errors">{{ form.slug.errors }}</div>
+            {% endif %}
+            
+            {{ form.final_quiz.label_tag }}{{ form.final_quiz }}
+            {% if form.final_quiz.errors %}
+                <div class="field-errors">{{ form.final_quiz.errors }}</div>
+            {% endif %}
+            
+            <label for="id_allowed_groups">{{ form.allowed_groups.label }}</label>
+            <div class="um-user-groups-checkboxes">
+                {% for group in form.allowed_groups.field.queryset %}
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" name="allowed_groups" 
+                               id="group_{{ group.id }}" value="{{ group.id }}"
+                               style="pointer-events: auto; cursor: pointer;">
+                        <label class="form-check-label" for="group_{{ group.id }}" style="cursor: pointer;">{{ group.name }}</label>
+                    </div>
+                {% endfor %}
+            </div>
+            {% if form.allowed_groups.errors %}
+                <div class="field-errors">{{ form.allowed_groups.errors }}</div>
+            {% endif %}
+            <hr>
+            <div class="form-check">
+                {{ form.certificate }}
+                <label for="id_certificate" class="form-check-label">
+                    {{ form.certificate.label }}
+                </label>
+            </div>
+            {% if form.certificate.help_text %}
+                <small class="form-help-text">{{ form.certificate.help_text }}</small>
+            {% endif %}
+            {% if form.certificate.errors %}
+                <div class="field-errors">{{ form.certificate.errors }}</div>
+            {% endif %}
+        </div>
+
+        <div class="form-actions">
+            <button type="submit" class="btn btn-primary">Создать курс</button>
+            <a href="{% url 'courses:course_detail_all' %}" class="btn btn-secondary">Отмена</a>
         </div>
     </form>
 </div>
+
+<style>
+/* Дополнительные стили для CKEditor */
+.ckeditor-wrapper {
+    margin-bottom: 1rem;
+}
+
+.ckeditor-wrapper .ck-editor {
+    border-radius: var(--um-input-radius);
+}
+
+/* Фикс z-index для панели инструментов CKEditor */
+.ck.ck-toolbar.ck-toolbar_sticky {
+    z-index: 999 !important; /* Меньше чем у header (1000) */
+}
+
+.ck.ck-sticky-panel .ck-toolbar {
+    z-index: 999 !important;
+}
+
+.field-errors {
+    color: var(--um-warning-color);
+    font-size: 0.875rem;
+    margin-top: 0.25rem;
+    margin-bottom: 0.5rem;
+}
+
+.form-help-text {
+    color: var(--um-help-text);
+    font-size: 0.875rem;
+    display: block;
+    margin-top: 0.25rem;
+    margin-bottom: 0.5rem;
+}
+
+/* Адаптация стилей для групп */
+.um-user-groups-checkboxes {
+    margin-bottom: 1rem;
+}
+
+.um-user-groups-checkboxes .form-check {
+    margin-bottom: 0.5rem;
+    display: flex !important;
+    align-items: center;
+    padding-left: 0 !important;
+}
+
+.um-user-groups-checkboxes .form-check-input {
+    background-color: var(--um-checkbox-bg) !important;
+    border: 1px solid var(--um-checkbox-border) !important;
+    width: 1rem !important;
+    height: 1rem !important;
+    margin-left: 0 !important;
+    margin-right: 0.5rem !important;
+    margin-top: 0 !important;
+    float: none !important;
+    position: static !important;
+    appearance: none !important;
+    -webkit-appearance: none !important;
+    -moz-appearance: none !important;
+    border-radius: 0.25em !important;
+    background-repeat: no-repeat !important;
+    background-position: center !important;
+    background-size: contain !important;
+}
+
+.um-user-groups-checkboxes .form-check-input:checked {
+    background-color: #0d6efd !important;
+    border-color: #0d6efd !important;
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'%3e%3cpath fill='none' stroke='%23fff' stroke-linecap='round' stroke-linejoin='round' stroke-width='3' d='m6 10 3 3 6-6'/%3e%3c/svg%3e") !important;
+}
+
+.um-user-groups-checkboxes .form-check-label {
+    color: var(--um-checkbox-color);
+    margin-left: 0;
+    cursor: pointer;
+}
+</style>
+
+<script>
+// Сохранение состояния чекбоксов при ошибках валидации
+document.addEventListener('DOMContentLoaded', function() {
+    const checkboxes = document.querySelectorAll('input[name="allowed_groups"]');
+    
+    // Сохранение состояния при изменении
+    checkboxes.forEach(checkbox => {
+        checkbox.addEventListener('change', function() {
+            const checkedGroups = Array.from(checkboxes)
+                .filter(cb => cb.checked)
+                .map(cb => cb.value);
+            localStorage.setItem('course_form_groups', JSON.stringify(checkedGroups));
+        });
+    });
+    
+    // Очистка localStorage при успешной отправке
+    const form = document.querySelector('.user-form');
+    form.addEventListener('submit', function() {
+        setTimeout(() => {
+            localStorage.removeItem('course_form_groups');
+        }, 100);
+    });
+});
+</script>
 {% endblock content %}
+
+
+
+
+
+
+
+
+

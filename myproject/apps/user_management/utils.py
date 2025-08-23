@@ -9,6 +9,9 @@ def send_user_credentials_email(user, password):
     """
     subject = 'Данные для входа в систему'
     
+    # Генерируем ссылку для входа
+    login_url = f"{settings.SITE_URL}{reverse('users:login')}"
+
     # Генерируем ссылку для смены пароля
     change_password_url = f"{settings.SITE_URL}{reverse('users:password_change')}"    
     # Получаем ФИО пользователя
@@ -27,6 +30,7 @@ def send_user_credentials_email(user, password):
             'password': password,
             'full_name': full_name,
             'change_password_url': change_password_url,
+            'login_url': login_url,
         }
     )
     

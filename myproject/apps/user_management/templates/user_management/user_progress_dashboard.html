@@ -11,7 +11,7 @@
         <div class="um-progress-user-info">
             <img src="{{ target_user.profile.image.url }}" alt="avatar" class="um-progress-user-avatar">
             <div class="um-progress-user-details">
-                <h1 class="um-progress-user-name">{{ target_user.get_full_name|default:target_user.username }} {% if target_user.profile.middle_name %}({{ target_user.last_name|slice:":1" }}{{ target_user.first_name|slice:":1" }}{{ target_user.profile.middle_name|slice:":1" }}) {% endif %}</h1>
+                <h1 class="um-progress-user-name">{{ target_user.get_full_name|default:target_user.username }} </h1>
                 <p class="um-progress-user-email">{{ target_user.email }}</p>
                 <p class="um-progress-user-role">{{ target_user.profile.role }}</p>
                 <p class="um-progress-user-groups">

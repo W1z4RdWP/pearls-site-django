@@ -177,7 +177,7 @@
                      class="rounded-circle" style="width: 80px; height: 80px; object-fit: cover;">
             </div>
             <div class="col-md-10">
-                <h4 class="mb-1">{{ target_user.get_full_name|default:target_user.username }} {% if target_user.profile.middle_name %}({{ target_user.last_name|slice:":1" }}{{ target_user.first_name|slice:":1" }}{{ target_user.profile.middle_name|slice:":1" }}) {% endif %}</h4>
+                <h4 class="mb-1">{{ target_user.get_full_name|default:target_user.username }} </h4>
                 <p class="text-muted mb-1">{{ target_user.email }}</p>
                 <p class="mb-0">
                     <strong>Группы:</strong> 

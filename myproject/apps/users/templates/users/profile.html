@@ -12,13 +12,13 @@
                 <img class="rounded-circle account-img" src="{{ user.profile.image.url|default:'https://via.placeholder.com/150' }}" alt="Profile Image">
                 <div class="dascoin-badge">
                     <i class="fa fa-coins"></i>
-                    <span>{{ dascoin_points }}</span>
+                    <span style="font-size: 1.2em; color:red; font-weight: bold;">{{ dascoin_points }}</span>
                 </div>
             </div>
             <div class="profile-main-info">
                 <div class="profile-top-row">
                     
-                    <h2 class="account-heading">{{ user.first_name|default:'-' }} {{ user.last_name|default:'-' }} {% if user.profile.middle_name %}({{ user.last_name|slice:":1" }}{{ user.first_name|slice:":1" }}{{ user.profile.middle_name|slice:":1" }}) {% endif %}</h2>
+                    <h2 class="account-heading">{{ user.first_name|default:'-' }} {{ user.last_name|default:'-' }} </h2>
                     <span class="profile-registered">Дата регистрации: {{ user.date_joined|date:"d.m.Y H:i" }}</span>
                 </div>
                 <div class="profile-details">

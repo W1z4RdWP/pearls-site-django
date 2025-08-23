@@ -123,10 +123,10 @@ class Lesson(models.Model):
     content = CKEditor5Field('Content', config_name='extends')
     video_id = models.CharField(
         max_length=100, 
-        verbose_name="ID видео с Rutube", 
+        verbose_name="ID видео с Rutube (не используется)", 
         blank=True, 
         null=True,
-        help_text="Пример: https://rutube.ru/video/VIDEO_ID/ - вводите только VIDEO_ID"
+        help_text="ПОЛЕ НЕ ИСПОЛЬЗУЕТСЯ"
     )
     order = models.PositiveIntegerField(verbose_name="Порядок урока")
     category = models.ForeignKey(

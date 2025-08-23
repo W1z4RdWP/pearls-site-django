@@ -230,8 +230,8 @@ body.theme-dark {
     background: var(--builder-lesson-bg);
     border-radius: 5px;
     font-size: 0.97em;
-    min-height: 26px;
-    line-height: 1.2;
+    min-height: 16px;
+    line-height: 1.1;
     cursor: pointer;
     transition: background-color 0.2s ease;
 }
@@ -244,7 +244,7 @@ body.theme-dark {
     display: block;
     color: var(--builder-lesson-text);
     text-decoration: none;
-    padding: 8px 0 8px 8px;
+    padding: 2px 0 2px 8px;
     border-left: 4px solid transparent;
     transition: background 0.2s, border-color 0.2s, color 0.2s;
     font-size: 1.1em;
@@ -255,8 +255,9 @@ body.theme-dark {
     flex: 1;
     color: var(--builder-lesson-text);
     text-decoration: none;
-    white-space: normal;
-    word-wrap: break-word;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
     padding-right: 8px;
     line-height: 1.2;
     font-size: 1em;

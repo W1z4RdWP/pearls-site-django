@@ -19,24 +19,6 @@
     </div>
     
     {% if is_readonly %}
-        {% if category.filtered_subcategories %}
-            <ul class="subcategory-list category-list" style="display: none;">
-                {% for subcat in category.filtered_subcategories %}
-                    {% include "builder/includes/_category_tree.html" with category=subcat selected_lesson=selected_lesson is_readonly=is_readonly %}
-                {% endfor %}
-            </ul>
-        {% endif %}
-    {% else %}
-        {% if category.subcategories %}
-            <ul class="subcategory-list category-list" style="display: none;">
-                {% for subcat in category.subcategories %}
-                    {% include "builder/includes/_category_tree.html" with category=subcat selected_lesson=selected_lesson is_readonly=is_readonly %}
-                {% endfor %}
-            </ul>
-        {% endif %}
-    {% endif %}
-
-    {% if is_readonly %}
         {% if category.filtered_lessons %}
             <ul class="lesson-list" style='display: none;'>
                 {% for lesson in category.filtered_lessons %}
@@ -91,6 +73,24 @@
                          {% endif %}
                      </a>
                     </li>
+                {% endfor %}
+            </ul>
+        {% endif %}
+    {% endif %}
+
+    {% if is_readonly %}
+        {% if category.filtered_subcategories %}
+            <ul class="subcategory-list category-list" style="display: none;">
+                {% for subcat in category.filtered_subcategories %}
+                    {% include "builder/includes/_category_tree.html" with category=subcat selected_lesson=selected_lesson is_readonly=is_readonly %}
+                {% endfor %}
+            </ul>
+        {% endif %}
+    {% else %}
+        {% if category.subcategories %}
+            <ul class="subcategory-list category-list" style="display: none;">
+                {% for subcat in category.subcategories %}
+                    {% include "builder/includes/_category_tree.html" with category=subcat selected_lesson=selected_lesson is_readonly=is_readonly %}
                 {% endfor %}
             </ul>
         {% endif %}

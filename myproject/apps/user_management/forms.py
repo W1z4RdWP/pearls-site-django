@@ -72,6 +72,8 @@ class UserProfileForm(forms.ModelForm):
         }
 
 
+
+
 class RoleResponsibleForm(forms.ModelForm):
     """
     Форма для назначения ответственного в роли

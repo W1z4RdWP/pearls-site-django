@@ -4,13 +4,76 @@
 {% block title %}Удаление категории{% endblock %}
 
 {% block content %}
-<div class="container" style="max-width: 600px; margin-top: 48px;">
+<div class="container" style="max-width: 700px; margin-top: 48px;">
     <h2>Удалить категорию "{{ object.name }}"?</h2>
-    <p>Это действие нельзя будет отменить.</p>
-    <form method="post" class="bg-light p-4 rounded shadow-sm" style="color: black;">
-        {% csrf_token %}
-        <button type="submit" class="btn btn-danger">Подтвердить удаление</button>
-        <a href="{% url 'builder:lesson_master' %}" class="btn btn-secondary">Отмена</a>
-    </form>
+    
+    {% if total_items > 0 %}
+        <div class="alert alert-warning mb-4">
+            <strong>Внимание!</strong> При удалении категории <strong>{{ object.name }}</strong> все внутренние категории и уроки перемещаются во вкладку "Без категории" или удаляются безвозвратно.<br><br>
+            
+            В категории содержится:
+            <ul class="mb-0 mt-2">
+                {% if subcategories_count > 0 %}
+                    <li>Подкатегорий: <strong>{{ subcategories_count }}</strong></li>
+                {% endif %}
+                {% if lessons_count > 0 %}
+                    <li>Уроков: <strong>{{ lessons_count }}</strong></li>
+                {% endif %}
+                {% if mirrors_count > 0 %}
+                    <li>Зеркал уроков: <strong>{{ mirrors_count }}</strong></li>
+                {% endif %}
+            </ul>
+        </div>
+    {% endif %}
+    
+    <div class="bg-light p-4 rounded shadow-sm" style="color: black;">
+        <p class="mb-4"><strong>Выберите действие:</strong></p>
+        
+        <form method="post" id="deleteForm">
+            {% csrf_token %}
+            
+            <div class="mb-3">
+                <button type="button" class="btn btn-warning btn-lg w-100 mb-2" onclick="submitAction('move_to_none')">
+                    <i class="fas fa-arrow-right me-2"></i>
+                    Переместить в "Без категории"
+                </button>
+                <small class="text-muted d-block">
+                    Все подкатегории и уроки станут корневыми элементами. Зеркала уроков будут удалены.
+                </small>
+            </div>
+            
+            <div class="mb-3">
+                <button type="button" class="btn btn-danger btn-lg w-100 mb-2" onclick="confirmDeleteAll()">
+                    <i class="fas fa-trash me-2"></i>
+                    Удалить безвозвратно
+                </button>
+                <small class="text-muted d-block">
+                    Все подкатегории, уроки и зеркала будут удалены навсегда. Это действие нельзя отменить!
+                </small>
+            </div>
+            
+            <div class="mb-3">
+                <a href="{% url 'builder:lesson_master' %}" class="btn btn-secondary btn-lg w-100">
+                    <i class="fas fa-times me-2"></i>
+                    Отмена
+                </a>
+            </div>
+            
+            <input type="hidden" name="action" id="actionInput">
+        </form>
+    </div>
 </div>
+
+<script>
+function submitAction(action) {
+    document.getElementById('actionInput').value = action;
+    document.getElementById('deleteForm').submit();
+}
+
+function confirmDeleteAll() {
+    if (confirm('Точно удалить? Это действие нельзя будет отменить. Все содержимое категории "{{ object.name }}" будет удалено безвозвратно.')) {
+        submitAction('delete_all');
+    }
+}
+</script>
 {% endblock %}

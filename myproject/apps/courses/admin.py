@@ -40,6 +40,7 @@ class LessonAdmin(admin.ModelAdmin):
     list_filter = ['category', 'courses']
     search_fields = ['title', 'courses__title']
     filter_horizontal = ['courses']
+    exclude = ['video_id']
     
     def get_courses(self, obj):
         return ", ".join([course.title for course in obj.courses.all()])
