@@ -7,14 +7,6 @@
         {% endif %}
     </div>
     
-    {% if category.subcategories %}
-        <ul class="subcategory-list category-tree" style="display: none;">
-            {% for subcategory in category.subcategories %}
-                {% include "courses/includes/_category_tree_item.html" with category=subcategory %}
-            {% endfor %}
-        </ul>
-    {% endif %}
-    
     {% if category.lessons %}
         <ul class="lesson-list" style="display: none;">
             {% for lesson in category.lessons %}
@@ -22,6 +14,14 @@
                     <span class="lesson-icon">📄</span>
                     <span class="lesson-title">{{ lesson.title }}</span>
                 </li>
+            {% endfor %}
+        </ul>
+    {% endif %}
+    
+    {% if category.subcategories %}
+        <ul class="subcategory-list category-tree" style="display: none;">
+            {% for subcategory in category.subcategories %}
+                {% include "courses/includes/_category_tree_item.html" with category=subcategory %}
             {% endfor %}
         </ul>
     {% endif %}
