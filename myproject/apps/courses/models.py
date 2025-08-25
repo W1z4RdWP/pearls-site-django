@@ -88,6 +88,7 @@ class Course(models.Model):
                 name='unique_course_per_author'
             )
         ]
+        ordering = ['-created_at']
 
     @property
     def lessons(self):

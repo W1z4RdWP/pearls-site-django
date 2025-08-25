@@ -97,9 +97,16 @@ class Ticket(models.Model):
     def save(self, *args, **kwargs):
         if not self.ticket_number:
             self.ticket_number = f"TICKET-{uuid.uuid4().hex[:8].upper()}"
-        if not self.deadline and self.priority:
+        
+        # Пересчитываем дедлайн при изменении приоритета или если он не задан
+        if self.priority:
             from datetime import timedelta
-            self.deadline = timezone.now() + timedelta(hours=self.priority.response_time_hours)
+            # Если это новый тикет или приоритет изменился
+            if not self.pk or (self.pk and hasattr(self, '_priority_changed') and self._priority_changed):
+                self.deadline = self.created_at + timedelta(hours=self.priority.response_time_hours) if self.created_at else timezone.now() + timedelta(hours=self.priority.response_time_hours)
+            elif not self.deadline:
+                self.deadline = self.created_at + timedelta(hours=self.priority.response_time_hours) if self.created_at else timezone.now() + timedelta(hours=self.priority.response_time_hours)
+        
         super().save(*args, **kwargs)
     
     @property

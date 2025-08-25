@@ -10,8 +10,6 @@ class TicketCreateForm(forms.ModelForm):
             'title',
             'description',
             'ticket_type',
-            'category',
-            'priority',
             'is_anonymous',
         ]
         widgets = {
@@ -25,8 +23,6 @@ class TicketCreateForm(forms.ModelForm):
                 'placeholder': 'Подробно опишите проблему, шаги воспроизведения, ожидаемый результат и т.п.',
             }),
             'ticket_type': forms.Select(attrs={'class': 'form-select'}),
-            'category': forms.Select(attrs={'class': 'form-select'}),
-            'priority': forms.Select(attrs={'class': 'form-select'}),
             'is_anonymous': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
         }
 

@@ -11,7 +11,7 @@ from django.db.models import Count, Avg, Q
 from datetime import timedelta
 
 from .forms import TicketCreateForm, TicketCommentForm, TicketStaffUpdateForm, TicketRatingForm
-from .models import Ticket, TicketStatus, TicketComment
+from .models import Ticket, TicketStatus, TicketComment, TicketCategory, TicketPriority
 
 
 class StaffRequiredMixin(UserPassesTestMixin):
@@ -35,11 +35,43 @@ class TicketCreateView(CreateView):
     def form_valid(self, form):
         ticket = form.save(commit=False)
         ticket.created_by = self.request.user
+        
+        # Установка статуса по умолчанию
         default_status = TicketStatus.objects.order_by('id').first()
         if default_status is None:
             form.add_error(None, 'Не настроены статусы тикетов. Обратитесь к администратору.')
             return self.form_invalid(form)
         ticket.status = default_status
+        
+        # Автоматическая установка категории по типу тикета
+        ticket_type = ticket.ticket_type
+        type_to_category_name = {
+            'academic': 'Учебные вопросы',
+            'technical': 'Технические проблемы', 
+            'administrative': 'Административные запросы',
+            'suggestions': 'Предложения/замечания',
+            'consultation': 'Консультации'
+        }
+        
+        category_name = type_to_category_name.get(ticket_type)
+        if category_name:
+            category = TicketCategory.objects.filter(name=category_name).first()
+            if category:
+                ticket.category = category
+            else:
+                # Если категория не найдена, используем первую доступную
+                ticket.category = TicketCategory.objects.first()
+        else:
+            ticket.category = TicketCategory.objects.first()
+            
+        # Автоматическая установка высокого приоритета
+        high_priority = TicketPriority.objects.order_by('-level').first()  # Самый высокий приоритет
+        if high_priority:
+            ticket.priority = high_priority
+        else:
+            # Если приоритеты не настроены, используем первый доступный
+            ticket.priority = TicketPriority.objects.first()
+            
         ticket.save()
         messages.success(self.request, 'Тикет создан')
         return redirect('tech_support:ticket_detail', pk=ticket.pk)
@@ -408,10 +440,23 @@ class UpdateTicketView(View):
     def post(self, request, pk):
         ticket = get_object_or_404(Ticket, pk=pk)
         old_deadline = ticket.deadline
+        old_priority = ticket.priority
+        
         form = TicketStaffUpdateForm(request.POST, instance=ticket)
         if form.is_valid():
-            new_deadline = form.cleaned_data.get('deadline')
+            new_priority = form.cleaned_data.get('priority')
+            
+            # Отмечаем, что приоритет изменился, чтобы модель пересчитала дедлайн
+            if old_priority != new_priority:
+                ticket._priority_changed = True
+            
             form.save()
+            
+            # Обновляем ticket из базы, чтобы получить актуальный дедлайн
+            ticket.refresh_from_db()
+            new_deadline = ticket.deadline
+            
+            # Проверяем изменения дедлайна
             if old_deadline != new_deadline:
                 def fmt(dt):
                     if not dt:
@@ -420,11 +465,19 @@ class UpdateTicketView(View):
                         return timezone.localtime(dt).strftime('%d.%m.%Y %H:%M')
                     except Exception:
                         return dt.strftime('%d.%m.%Y %H:%M')
+                
                 full_name = request.user.get_full_name() or request.user.username
+                
+                # Если изменился приоритет, указываем это в комментарии
+                if old_priority != new_priority:
+                    priority_text = f" (приоритет изменён с '{old_priority}' на '{new_priority}')"
+                else:
+                    priority_text = ""
+                
                 TicketComment.objects.create(
                     ticket=ticket,
                     author=request.user,
-                    content=f'{full_name} изменил дедлайн: {fmt(old_deadline)} -> {fmt(new_deadline)}',
+                    content=f'{full_name} изменил дедлайн: {fmt(old_deadline)} -> {fmt(new_deadline)}{priority_text}',
                     is_internal=True
                 )
             messages.success(request, 'Тикет обновлён')
