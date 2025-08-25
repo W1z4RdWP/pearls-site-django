@@ -328,12 +328,12 @@ class StaffDashboardView(LoginRequiredMixin, StaffRequiredMixin, View):
             avg_rating=Avg('rating')
         )['avg_rating'] or 0
 
-        recent_tickets = Ticket.objects.order_by('-created_at')[:10]
+        recent_tickets = Ticket.objects.order_by('-created_at')[:5]
 
         overdue_tickets_list = Ticket.objects.filter(
             status__is_active=True,
             deadline__lt=timezone.now()
-        ).order_by('deadline')[:10]
+        ).order_by('deadline')[:5]
 
         # id статуса "В работе" (fallback: любой активный, кроме "Решена")
         in_progress_status_id = TicketStatus.objects.filter(name__icontains='работ').values_list('id', flat=True).first()
