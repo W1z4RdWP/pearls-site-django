@@ -41,18 +41,19 @@ function toggleSubcat(header) {
     const isNowOpen = header.classList.contains('open');
     saveCategoryState(categoryId, isNowOpen);
 
-    function toggleDisplay(element) {
-        if (!element) return;
-        const isVisible = element.style.display === 'block';
-        element.style.display = isVisible ? 'none' : 'block';
+    // Показываем/скрываем содержимое категории
+    if (isNowOpen) {
+        // Категория раскрыта - показываем всё содержимое
+        if (subcatList) subcatList.style.display = 'block';
+        if (lessonList) lessonList.style.display = 'block';
+    } else {
+        // Категория закрыта - скрываем всё содержимое
+        if (subcatList) subcatList.style.display = 'none';
+        if (lessonList) lessonList.style.display = 'none';
     }
 
-    toggleDisplay(subcatList);
-    toggleDisplay(lessonList);
-
     if (arrow) {
-        const anyOpen = (subcatList && subcatList.style.display === 'block') || (lessonList && lessonList.style.display === 'block');
-        arrow.innerHTML = anyOpen ? '&#9660;' : '&#9654;'; // ▼ или ▶
+        arrow.innerHTML = isNowOpen ? '&#9660;' : '&#9654;'; // ▼ или ▶
     }
 }
 
