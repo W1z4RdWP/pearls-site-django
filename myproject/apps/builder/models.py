@@ -1,6 +1,9 @@
 from django.db import models
 from django.contrib.auth import get_user_model
 from django.conf import settings
+from django.contrib.contenttypes.models import ContentType
+from django.contrib.contenttypes.fields import GenericForeignKey
+import json
 
 
 class CategoryName(models.Model):
@@ -191,3 +194,90 @@ class LessonAllowedRole(models.Model):
         if self.role.responsible_user:
             return self.role.responsible_user.get_full_name()
         return "— не назначен —"
+
+
+class AuditLog(models.Model):
+    """
+    Модель для логирования всех операций в базе знаний
+    """
+    ACTION_CHOICES = [
+        ('create', 'Создание'),
+        ('update', 'Изменение'),
+        ('delete', 'Удаление'),
+        ('copy', 'Копирование'),
+        ('move', 'Перемещение'),
+        ('mirror', 'Создание зеркала'),
+        ('reorder', 'Изменение порядка'),
+        ('actualize', 'Актуализация'),
+    ]
+    
+    # Кто выполнил действие
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL, 
+        on_delete=models.SET_NULL, 
+        null=True, 
+        verbose_name='Пользователь'
+    )
+    
+    # Когда выполнено
+    timestamp = models.DateTimeField(auto_now_add=True, verbose_name='Время')
+    
+    # Тип действия
+    action = models.CharField(
+        max_length=20, 
+        choices=ACTION_CHOICES, 
+        verbose_name='Действие'
+    )
+    
+    # Объект, над которым выполнено действие (Generic FK)
+    content_type = models.ForeignKey(ContentType, on_delete=models.CASCADE)
+    object_id = models.PositiveIntegerField()
+    content_object = GenericForeignKey('content_type', 'object_id')
+    
+    # Название объекта (для случаев когда объект удален)
+    object_name = models.CharField(max_length=255, verbose_name='Название объекта')
+    
+    # Модель объекта
+    model_name = models.CharField(max_length=100, verbose_name='Модель')
+    
+    # IP адрес пользователя
+    ip_address = models.GenericIPAddressField(null=True, blank=True, verbose_name='IP адрес')
+    
+    # Дополнительные данные в JSON
+    extra_data = models.JSONField(default=dict, blank=True, verbose_name='Дополнительные данные')
+    
+    # Данные до изменения (для update)
+    old_values = models.JSONField(default=dict, blank=True, verbose_name='Старые значения')
+    
+    # Данные после изменения (для create/update)
+    new_values = models.JSONField(default=dict, blank=True, verbose_name='Новые значения')
+    
+    # Комментарий к действию
+    comment = models.TextField(blank=True, verbose_name='Комментарий')
+    
+    class Meta:
+        verbose_name = 'Запись аудита'
+        verbose_name_plural = 'Записи аудита'
+        ordering = ['-timestamp']
+        indexes = [
+            models.Index(fields=['user'], name='auditlog_user_idx'),
+            models.Index(fields=['timestamp'], name='auditlog_timestamp_idx'),
+            models.Index(fields=['action'], name='auditlog_action_idx'),
+            models.Index(fields=['content_type', 'object_id'], name='auditlog_object_idx'),
+            models.Index(fields=['model_name'], name='auditlog_model_idx'),
+        ]
+    
+    def __str__(self):
+        user_name = self.user.get_full_name() if self.user else 'Система'
+        return f"{user_name} - {self.get_action_display()} - {self.object_name} ({self.timestamp.strftime('%d.%m.%Y %H:%M')})"
+    
+    def get_changes_summary(self):
+        """Возвращает краткое описание изменений"""
+        if self.action == 'update' and self.old_values and self.new_values:
+            changes = []
+            for field, new_value in self.new_values.items():
+                old_value = self.old_values.get(field)
+                if old_value != new_value:
+                    changes.append(f"{field}: '{old_value}' → '{new_value}'")
+            return '; '.join(changes)
+        return ''

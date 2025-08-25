@@ -56,4 +56,7 @@ urlpatterns = [
     path('trajectories/<int:trajectory_id>/delete/', views.trajectory_delete, name='trajectory_delete'),
     path('courses/', views.CourseListView.as_view(), name='course_list'),
     path('documents/<int:pk>/delete/', views.DocumentDeleteView.as_view(), name='document_delete'),
+    # Audit API endpoints
+    path('api/audit/history/', views.audit_history_api, name='audit_history_api'),
+    path('api/audit/search/', views.audit_search_api, name='audit_search_api'),
 ]
