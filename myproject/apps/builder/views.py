@@ -26,6 +26,11 @@ from courses.models import Trajectory, TrajectoryCourse, UserCourseTrajectory
 from quizzes.models import Quiz, Question, Answer
 from django.db import models
 from django.http import Http404
+from .audit_logger import (
+    log_create, log_update, log_delete, log_copy, log_move, 
+    log_reorder, log_mirror, log_actualize, serialize_model_data,
+    AuditLoggerMixin
+)
 
 
 def get_compact_fio(user):
@@ -448,7 +453,7 @@ class LessonMasterDetailView(TemplateView):
         return self.render_to_response(context)
 
 
-class LessonCreateView(CreateView):
+class LessonCreateView(CreateView, AuditLoggerMixin):
     model = Lesson
     fields = ['title', 'content', 'courses', 'category']
     template_name = 'builder/lesson_form.html'
@@ -488,11 +493,15 @@ class LessonCreateView(CreateView):
         lesson.order = max_order + 1
         lesson.save()
         form.save_m2m()  # Сохраняем связи many-to-many с курсами
+        
+        # Логируем создание урока
+        self.log_create_action(lesson, "Создан новый урок")
+        
         # --- Создаём первую версию ---
         from django.utils import timezone
         today = timezone.now().date()
         # Для первой версии используем того, кто создал урок
-        LessonVersion.objects.create(
+        lesson_version = LessonVersion.objects.create(
             lesson=lesson,
             version=1,
             title=lesson.title,
@@ -502,6 +511,11 @@ class LessonCreateView(CreateView):
             next_update=today + timezone.timedelta(days=90),  # Стандартный период 90 дней
             update_period_days=90
         )
+        
+        # Логируем создание первой версии
+        log_create(self.request.user, lesson_version, self.request, 
+                  comment="Создана первая версия урока")
+        
         return super().form_valid(form)
 
 
@@ -509,7 +523,7 @@ class LessonCreateView(CreateView):
         return f"{reverse('builder:lesson_master')}?new_lesson={self.object.id}"
 
 
-class LessonUpdateView(UpdateView):
+class LessonUpdateView(UpdateView, AuditLoggerMixin):
     model = Lesson
     fields = ['title', 'content', 'order', 'courses', 'category']
     template_name = 'builder/lesson_form.html'
@@ -519,8 +533,18 @@ class LessonUpdateView(UpdateView):
         if not request.user.is_authenticated or not (request.user.is_staff or request.user.is_superuser):
             return render(request, '403.html', status=403)
         return super().dispatch(request, *args, **kwargs)
+    
+    def get_object(self, queryset=None):
+        """Сохраняем старые значения для аудита"""
+        obj = super().get_object(queryset)
+        # Сохраняем старые значения в атрибуте объекта
+        self.old_values = serialize_model_data(obj)
+        return obj
 
     def form_valid(self, form):
+        # Логируем изменения урока
+        self.log_update_action(self.object, self.old_values, "Обновлен урок")
+        
         response = super().form_valid(form)
         lesson = self.object
         
@@ -536,7 +560,7 @@ class LessonUpdateView(UpdateView):
         # Определяем ответственного пользователя
         responsible_user = get_responsible_user_for_lesson(last_version) if last_version else self.request.user
         
-        LessonVersion.objects.create(
+        lesson_version = LessonVersion.objects.create(
             lesson=lesson,
             version=next_version,
             title=lesson.title,
@@ -546,6 +570,11 @@ class LessonUpdateView(UpdateView):
             next_update=today + timezone.timedelta(days=period),
             update_period_days=period
         )
+        
+        # Логируем создание новой версии
+        log_create(self.request.user, lesson_version, self.request,
+                  comment=f"Создана версия {next_version} при обновлении урока")
+        
         return response
 
     def get_success_url(self):
@@ -553,7 +582,7 @@ class LessonUpdateView(UpdateView):
         return f"{reverse('builder:lesson_master')}?edited_lesson={self.object.id}"
 
 
-class LessonDeleteView(DeleteView):
+class LessonDeleteView(DeleteView, AuditLoggerMixin):
     model = Lesson
     template_name = 'builder/lesson_confirm_delete.html'
     success_url = reverse_lazy('builder:lesson_master')
@@ -562,6 +591,13 @@ class LessonDeleteView(DeleteView):
         if not request.user.is_authenticated or not (request.user.is_staff or request.user.is_superuser):
             return render(request, '403.html', status=403)
         return super().dispatch(request, *args, **kwargs)
+    
+    def delete(self, request, *args, **kwargs):
+        """Логируем удаление урока"""
+        self.object = self.get_object()
+        # Логируем удаление урока
+        self.log_delete_action(self.object, "Удален урок")
+        return super().delete(request, *args, **kwargs)
 
 
 class CategoryListView(ListView):
@@ -575,7 +611,7 @@ class CategoryListView(ListView):
         return super().dispatch(request, *args, **kwargs)
 
 
-class CategoryCreateView(CreateView):
+class CategoryCreateView(CreateView, AuditLoggerMixin):
     model = CategoryName
     fields = ['name', 'parent', 'order', 'allowed_groups']
     template_name = 'builder/category_form.html'
@@ -585,9 +621,15 @@ class CategoryCreateView(CreateView):
         if not request.user.is_authenticated or not (request.user.is_staff or request.user.is_superuser):
             return render(request, '403.html', status=403)
         return super().dispatch(request, *args, **kwargs)
+    
+    def form_valid(self, form):
+        response = super().form_valid(form)
+        # Логируем создание категории
+        self.log_create_action(self.object, "Создана новая категория")
+        return response
 
 
-class CategoryUpdateView(UpdateView):
+class CategoryUpdateView(UpdateView, AuditLoggerMixin):
     model = CategoryName
     fields = ['name', 'parent', 'order', 'allowed_groups']
     template_name = 'builder/category_form.html'
@@ -597,6 +639,17 @@ class CategoryUpdateView(UpdateView):
         if not request.user.is_authenticated or not (request.user.is_staff or request.user.is_superuser):
             return render(request, '403.html', status=403)
         return super().dispatch(request, *args, **kwargs)
+    
+    def get_object(self, queryset=None):
+        """Сохраняем старые значения для аудита"""
+        obj = super().get_object(queryset)
+        self.old_values = serialize_model_data(obj)
+        return obj
+    
+    def form_valid(self, form):
+        # Логируем изменения категории
+        self.log_update_action(self.object, self.old_values, "Обновлена категория")
+        return super().form_valid(form)
 
 
 class CategoryDeleteView(View):
@@ -737,7 +790,7 @@ class DashboardView(TemplateView):
 
 
        
-class DocumentListView(ListView, FormView):
+class DocumentListView(ListView, FormView, AuditLoggerMixin):
     """
     Страница для просмотра и загрузки документов в базу знаний.
     """
@@ -754,7 +807,9 @@ class DocumentListView(ListView, FormView):
         return super().dispatch(request, *args, **kwargs)
 
     def form_valid(self, form):
-        form.save()
+        document = form.save()
+        # Логируем создание документа
+        self.log_create_action(document, "Загружен новый документ")
         return super().form_valid(form)
 
     def get_context_data(self, **kwargs):
@@ -777,7 +832,7 @@ class IncidentListView(ListView):
             return render(request, '403.html', status=403)
         return super().dispatch(request, *args, **kwargs)
 
-class IncidentCreateView(CreateView):
+class IncidentCreateView(CreateView, AuditLoggerMixin):
     """
     Создание инцидента (ручное или автоматическое).
     """
@@ -789,6 +844,12 @@ class IncidentCreateView(CreateView):
     form_class = IncidentForm
     template_name = 'builder/incident_form.html'
     success_url = '/builder/incidents/'
+    
+    def form_valid(self, form):
+        response = super().form_valid(form)
+        # Логируем создание инцидента
+        self.log_create_action(self.object, "Создан новый инцидент")
+        return response
 
 
 @csrf_exempt
@@ -803,6 +864,10 @@ def ajax_add_root_category(request):
         return JsonResponse({'error': 'empty name'}, status=400)
     max_order = CategoryName.objects.filter(parent__isnull=True).aggregate(Max('order'))['order__max'] or 0
     cat = CategoryName.objects.create(name=name, parent=None, order=max_order+1)
+    
+    # Логируем создание корневой категории
+    log_create(request.user, cat, request, comment="Создана корневая категория через AJAX")
+    
     return JsonResponse({'id': cat.id, 'name': cat.name, 'order': cat.order})
 
 @csrf_exempt
@@ -829,6 +894,12 @@ def ajax_add_subcategory(request):
         return JsonResponse({'error': 'parent not found'}, status=404)
     max_order = parent.subcategories.aggregate(Max('order'))['order__max'] or 0
     cat = CategoryName.objects.create(name=name, parent=parent, order=max_order+1)
+    
+    # Логируем создание подкатегории
+    log_create(request.user, cat, request, 
+              extra_data={'parent_category': str(parent)},
+              comment="Создана подкатегория через AJAX")
+    
     return JsonResponse({'id': cat.id, 'name': cat.name, 'order': cat.order, 'parent': parent.id})
 
 @csrf_exempt
@@ -851,8 +922,17 @@ def ajax_rename_category(request):
         cat = CategoryName.objects.get(pk=cat_id)
     except CategoryName.DoesNotExist:
         return JsonResponse({'error': 'not found'}, status=404)
+    
+    # Сохраняем старые значения для аудита
+    old_values = {'name': cat.name}
+    
     cat.name = name
     cat.save(update_fields=['name'])
+    
+    # Логируем переименование категории
+    log_update(request.user, cat, old_values, request,
+               comment="Переименована категория через AJAX")
+    
     return JsonResponse({'id': cat.id, 'name': cat.name})
 
 @csrf_exempt
@@ -1122,11 +1202,19 @@ def ajax_paste(request):
                     category_id=target_category if target_category else None,
                     order=max_order + 1
                 )
+                
+                # Логируем копирование урока
+                log_copy(user, lesson, new_lesson, request,
+                        extra_data={'target_category_id': target_category},
+                        comment="Скопирован урок через AJAX")
+                
                 result = {'id': new_lesson.id, 'title': new_lesson.title}
                 # Не очищаем буфер при copy
                 return JsonResponse({'ok': True, 'result': result})
             else:  # cut
                 # Перемещаем урок
+                old_category = lesson.category
+                
                 if target_category:
                     max_order = Lesson.objects.filter(category_id=target_category).aggregate(Max('order'))['order__max'] or 0
                 else:
@@ -1134,6 +1222,12 @@ def ajax_paste(request):
                 lesson.category_id = target_category if target_category else None
                 lesson.order = max_order + 1
                 lesson.save(update_fields=['category', 'order'])
+                
+                # Логируем перемещение урока
+                new_category = CategoryName.objects.get(pk=target_category) if target_category else None
+                log_move(user, lesson, old_category, new_category, request,
+                        comment="Перемещен урок через AJAX")
+                
                 result = {'id': lesson.id, 'title': lesson.title}
                 # Очищаем буфер после вырезания
                 del request.session['clipboard']
@@ -1214,6 +1308,11 @@ def ajax_mirror(request):
             category=category,
             order=max_order + 1
         )
+        
+        # Логируем создание зеркала
+        log_mirror(request.user, lesson, category, mirror, request,
+                  comment="Создано зеркало урока через AJAX")
+        
         return JsonResponse({'ok': True, 'mirror_id': mirror.id})
     except Lesson.DoesNotExist:
         return JsonResponse({'error': 'lesson not found'}, status=404)
@@ -1250,6 +1349,8 @@ def ajax_delete_lesson_instance(request):
         # Удаляем только зеркало
         try:
             mirror = LessonCategoryMirror.objects.get(id=mirror_id)
+            # Логируем удаление зеркала
+            log_delete(request.user, mirror, request, comment="Удалено зеркало урока через AJAX")
             mirror.delete()
             return JsonResponse({'result': 'mirror_deleted'})
         except LessonCategoryMirror.DoesNotExist:
@@ -1260,17 +1361,22 @@ def ajax_delete_lesson_instance(request):
         mirrors_count = lesson.mirrors.count()
         if mirrors_count == 0:
             # Нет зеркал — удаляем сам урок
+            log_delete(request.user, lesson, request, comment="Удален урок через AJAX")
             lesson.delete()
             return JsonResponse({'result': 'lesson_deleted'})
         else:
             # Есть зеркала — удаляем только связь с категорией (делаем category=None)
             if lesson.category_id is None:
                 # Уже без категории — значит это единственный экземпляр, удаляем Lesson
+                log_delete(request.user, lesson, request, comment="Удален урок без категории через AJAX")
                 lesson.delete()
                 return JsonResponse({'result': 'lesson_deleted'})
             elif str(lesson.category_id) == str(category_id):
+                old_values = {'category': lesson.category}
                 lesson.category = None
                 lesson.save()
+                log_update(request.user, lesson, old_values, request,
+                          comment="Урок отвязан от категории через AJAX")
                 return JsonResponse({'result': 'category_unlinked'})
             else:
                 return JsonResponse({'error': 'category mismatch'}, status=400)
@@ -1602,6 +1708,9 @@ def actualize_version(request):
             update_period_days=period
         )
         
+        # Логируем актуализацию урока
+        log_actualize(request.user, lv, request, comment="Актуализация урока через AJAX")
+        
         logger.info(f"LessonVersion created successfully: id={lv.id}")
         response_data = {'ok': True, 'new_version': lv.version, 'next_update': lv.next_update.strftime('%d.%m.%Y')}
         logger.info(f"Returning success response: {response_data}")
@@ -1645,10 +1754,14 @@ def save_terms(request):
                     definition=term_data.get('definition', ''),
                     order=term_data.get('order', 0)
                 )
+                # Логируем создание нового термина
+                log_create(request.user, new_term, request, comment="Создан новый термин словаря")
                 sent_ids.add(new_term.id)
         # Удаляем термины, которых нет в присланном списке
         for tid, term in existing_terms.items():
             if tid not in sent_ids:
+                # Логируем удаление термина
+                log_delete(request.user, term, request, comment="Удален термин словаря")
                 term.delete()
         return JsonResponse({'ok': True})
     except Exception as e:
@@ -2111,7 +2224,7 @@ class CourseListView(ListView):
         return context
 
 
-class DocumentDeleteView(DeleteView):
+class DocumentDeleteView(DeleteView, AuditLoggerMixin):
     model = Document
     template_name = 'builder/document_confirm_delete.html'
     success_url = reverse_lazy('builder:documents')
@@ -2120,6 +2233,188 @@ class DocumentDeleteView(DeleteView):
         if not request.user.is_authenticated or not (request.user.is_staff or request.user.is_superuser):
             return render(request, '403.html', status=403)
         return super().dispatch(request, *args, **kwargs)
+    
+    def delete(self, request, *args, **kwargs):
+        """Логируем удаление документа"""
+        self.object = self.get_object()
+        # Логируем удаление документа
+        self.log_delete_action(self.object, "Удален документ")
+        return super().delete(request, *args, **kwargs)
+
+@csrf_exempt
+@login_required
+def audit_history_api(request):
+    """
+    API endpoint для получения истории изменений объекта
+    GET параметры:
+    - model_name: название модели (lesson, categoryname, document, etc.)
+    - object_id: ID объекта
+    - limit: количество записей (по умолчанию 50)
+    - offset: смещение для пагинации (по умолчанию 0)
+    """
+    if not (request.user.is_staff or request.user.is_superuser):
+        return JsonResponse({'error': 'forbidden'}, status=403)
+    
+    if request.method != 'GET':
+        return JsonResponse({'error': 'method not allowed'}, status=405)
+    
+    model_name = request.GET.get('model_name')
+    object_id = request.GET.get('object_id')
+    limit = int(request.GET.get('limit', 50))
+    offset = int(request.GET.get('offset', 0))
+    
+    if not model_name or not object_id:
+        return JsonResponse({'error': 'model_name and object_id are required'}, status=400)
+    
+    try:
+        # Получаем записи аудита для объекта
+        from .models import AuditLog
+        audit_logs = AuditLog.objects.filter(
+            model_name=model_name.lower(),
+            object_id=object_id
+        ).order_by('-timestamp')[offset:offset + limit]
+        
+        # Формируем ответ
+        history = []
+        for log in audit_logs:
+            user_name = log.user.get_full_name() if log.user else 'Система'
+            if not user_name.strip():
+                user_name = log.user.username if log.user else 'Система'
+            
+            history.append({
+                'id': log.id,
+                'timestamp': log.timestamp.isoformat(),
+                'user': user_name,
+                'user_id': log.user.id if log.user else None,
+                'action': log.get_action_display(),
+                'action_code': log.action,
+                'object_name': log.object_name,
+                'comment': log.comment,
+                'changes_summary': log.get_changes_summary(),
+                'ip_address': log.ip_address,
+                'old_values': log.old_values,
+                'new_values': log.new_values,
+                'extra_data': log.extra_data
+            })
+        
+        # Подсчитываем общее количество записей
+        total_count = AuditLog.objects.filter(
+            model_name=model_name.lower(),
+            object_id=object_id
+        ).count()
+        
+        return JsonResponse({
+            'history': history,
+            'total_count': total_count,
+            'offset': offset,
+            'limit': limit,
+            'has_more': (offset + limit) < total_count
+        })
+        
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+
+
+@csrf_exempt
+@login_required  
+def audit_search_api(request):
+    """
+    API endpoint для поиска записей аудита
+    GET параметры:
+    - user_id: ID пользователя
+    - action: тип действия
+    - model_name: название модели
+    - date_from: дата начала (YYYY-MM-DD)
+    - date_to: дата окончания (YYYY-MM-DD)
+    - search: поиск по названию объекта или комментарию
+    - limit: количество записей (по умолчанию 50)
+    - offset: смещение для пагинации (по умолчанию 0)
+    """
+    if not (request.user.is_staff or request.user.is_superuser):
+        return JsonResponse({'error': 'forbidden'}, status=403)
+    
+    if request.method != 'GET':
+        return JsonResponse({'error': 'method not allowed'}, status=405)
+    
+    from .models import AuditLog
+    from django.db.models import Q
+    from datetime import datetime
+    
+    # Получаем параметры фильтрации
+    user_id = request.GET.get('user_id')
+    action = request.GET.get('action')
+    model_name = request.GET.get('model_name')
+    date_from = request.GET.get('date_from')
+    date_to = request.GET.get('date_to')
+    search = request.GET.get('search')
+    limit = int(request.GET.get('limit', 50))
+    offset = int(request.GET.get('offset', 0))
+    
+    try:
+        # Строим запрос с фильтрами
+        queryset = AuditLog.objects.all()
+        
+        if user_id:
+            queryset = queryset.filter(user_id=user_id)
+        
+        if action:
+            queryset = queryset.filter(action=action)
+        
+        if model_name:
+            queryset = queryset.filter(model_name=model_name.lower())
+        
+        if date_from:
+            date_from_obj = datetime.strptime(date_from, '%Y-%m-%d').date()
+            queryset = queryset.filter(timestamp__date__gte=date_from_obj)
+        
+        if date_to:
+            date_to_obj = datetime.strptime(date_to, '%Y-%m-%d').date()
+            queryset = queryset.filter(timestamp__date__lte=date_to_obj)
+        
+        if search:
+            queryset = queryset.filter(
+                Q(object_name__icontains=search) | 
+                Q(comment__icontains=search)
+            )
+        
+        # Подсчитываем общее количество
+        total_count = queryset.count()
+        
+        # Получаем записи с пагинацией
+        audit_logs = queryset.order_by('-timestamp')[offset:offset + limit]
+        
+        # Формируем ответ
+        history = []
+        for log in audit_logs:
+            user_name = log.user.get_full_name() if log.user else 'Система'
+            if not user_name.strip():
+                user_name = log.user.username if log.user else 'Система'
+            
+            history.append({
+                'id': log.id,
+                'timestamp': log.timestamp.isoformat(),
+                'user': user_name,
+                'user_id': log.user.id if log.user else None,
+                'action': log.get_action_display(),
+                'action_code': log.action,
+                'model_name': log.model_name,
+                'object_name': log.object_name,
+                'comment': log.comment,
+                'changes_summary': log.get_changes_summary(),
+                'ip_address': log.ip_address
+            })
+        
+        return JsonResponse({
+            'history': history,
+            'total_count': total_count,
+            'offset': offset,
+            'limit': limit,
+            'has_more': (offset + limit) < total_count
+        })
+        
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+
 
 def get_responsible_user_for_lesson(lesson_version):
     """

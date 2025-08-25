@@ -91,6 +91,26 @@ body.theme-dark {
     }
 }
 
+@media (min-width: 2201px) and (max-width: 2400px) {
+    .master-detail-container {
+        margin-left: -21vw;
+    }
+}
+
+
+@media (min-width: 2100px) and (max-width: 2200px) {
+    .master-detail-container {
+        margin-left: -17vw;
+    }
+}
+
+@media (min-width: 1700px) and (max-width: 1800px) {
+    .master-detail-container {
+        margin-left: -10vw;
+    }
+}
+
+
 @media (min-width: 2600px) {
     .master-detail-container {
         margin-left: -28vw;
@@ -110,6 +130,11 @@ body.theme-dark {
     }
 }
 
+@media (max-width: 1100px) {
+    .master-detail-container {
+        margin-left: -9vw;
+    }
+}
 .sidebar {
     width: 320px;
     min-width: 180px;
