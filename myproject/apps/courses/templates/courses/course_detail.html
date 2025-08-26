@@ -62,9 +62,15 @@
                 {% if user_course and user_course.status == 'available' %}
                     <form method="POST" action="{% url 'courses:course_detail' slug=course.slug %}" style="margin: 0;">
                         {% csrf_token %}
-                        <button type="submit" name="start_course" class="btn-start-course">
-                            <i class="fa fa-play"></i> <span class="d-none d-sm-inline">Начать курс</span>
-                        </button>
+                        {% if lessons or course.final_quiz %}
+                            <button type="submit" name="start_course" class="btn-start-course">
+                                <i class="fa fa-play"></i> <span class="d-none d-sm-inline">Начать курс</span>
+                            </button>
+                        {% else %}
+                            <button type="button" class="btn-start-course" disabled style="opacity: 0.6; cursor: not-allowed;" title="Курс не содержит уроков">
+                                <i class="fa fa-play"></i> <span class="d-none d-sm-inline">Начать курс</span>
+                            </button>
+                        {% endif %}
                     </form>
                 {% endif %}
             </div>
