@@ -11,7 +11,11 @@
     
     {% for notification in notifications %}
         <li class="notification-item {% if not notification.is_read %}unread{% endif %}" 
-            data-notification-id="{{ notification.id }}">
+            data-notification-id="{{ notification.id }}"
+            {% if notification.get_absolute_url != '#' %}
+                onclick="window.location.href='{{ notification.get_absolute_url }}'"
+                style="cursor: pointer;"
+            {% endif %}>
             <div class="dropdown-item d-flex align-items-start">
                 <div class="notification-content flex-grow-1">
                     <div class="notification-title">{{ notification.title }}</div>
@@ -21,7 +25,8 @@
                 <div class="notification-actions ms-2 flex-shrink-0">
                     <button class="btn btn-sm btn-outline-primary mark-read-btn" 
                             data-notification-id="{{ notification.id }}"
-                            title="Отметить как прочитанное">
+                            title="Отметить как прочитанное"
+                            onclick="event.stopPropagation();">
                         <i class="fas fa-check"></i>
                     </button>
                 </div>
