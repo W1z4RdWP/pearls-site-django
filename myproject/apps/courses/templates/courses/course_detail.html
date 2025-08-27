@@ -15,11 +15,7 @@
     <div class="course-description" id="course-description">
         <h1>{{ course.title }}</h1>
         <p class="lead">{{ course.description|safe }}</p>
-        <hr>
-        <span>
-            <p class="lead">Автор курса: {{ course_author }}</p>
-            <p>{{ course.author.email }}</p>
-        </span>
+
         
         {% if user_trajectories_info %}
             <div class="mt-3">
@@ -89,7 +85,7 @@
             <div class="card">
                 <div class="card-body">
                     {% if user_course %}
-                        {# Статус: Курс доступен #}
+                        
                         {% if user_course.status == 'available' %}
                             <img src="{% if course.image %}{{ course.image.url }}{% else %}{% static 'imgs/default.jpg' %}{% endif %}" 
                                 alt="Course Image" id="course_detail_img">
@@ -133,7 +129,7 @@
                                             </a>
                                         {% endif %}
                                     {% else %}
-                                        <p>Финальный тест будет доступен после завершения всех уроков курса</p>
+                                        <p>Для успешной сдачи финального тестирования, пожалуйста, внимательно изучите весь представленный материал. Тест будет назначен по завершении обучения.</p>
                                         <span class="btn-modern disabled" style="opacity: 0.6; cursor: not-allowed;">
                                             <i class="fa fa-lock"></i> Пройти тест
                                         </span>
