@@ -210,8 +210,16 @@ def award_first_lesson_badge(user: User) -> None:
         user (User): Пользователь
     """
     try:
-        badge = Badge.objects.get(name='Первый шаг', badge_type='lesson')
-        UserBadge.objects.get_or_create(user=user, badge=badge)
+        # Импортируем UserProgress здесь, чтобы избежать циклических импортов
+        from myapp.models import UserProgress
+        
+        # Проверяем, что у пользователя это первый завершенный урок
+        completed_lessons_count = UserProgress.objects.filter(user=user, completed=True).count()
+        
+        # Выдаем бейдж только если это первый завершенный урок
+        if completed_lessons_count == 1:
+            badge = Badge.objects.get(name='Первый шаг', badge_type='skill')
+            UserBadge.objects.get_or_create(user=user, badge=badge)
     except Badge.DoesNotExist:
         pass
 
