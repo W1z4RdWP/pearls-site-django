@@ -169,9 +169,12 @@
             </form>
         </div>
     </div>
-    <div class="container mt-4">
+    <div class="profile-courses-progress-header">
         <h2>Ваш прогресс</h2>
-        
+        <button id="toggle-courses-progress-btn" onclick="toggleCoursesProgress()">❌</button>
+    </div>
+    <div class="container mt-4 profile-courses-progress" id="profile-courses-progress">
+            
         <!-- Блок для незавершенных курсов -->
         <div id="unfinished-courses">
             {% if unfinished_courses %}
