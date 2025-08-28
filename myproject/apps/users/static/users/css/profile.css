@@ -1074,3 +1074,167 @@ legend{
         font-size: 1.1em;
     }
 }
+
+/* Стили для камеры аватара */
+.avatar-upload-container {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    padding: 20px;
+    border: 2px dashed #dee2e6;
+    border-radius: 12px;
+    background: #f8f9fa;
+    margin: 10px 0;
+}
+
+.upload-method,
+.camera-method {
+    text-align: center;
+    padding: 10px;
+}
+
+.upload-divider {
+    position: relative;
+    text-align: center;
+    margin: 10px 0;
+}
+
+.upload-divider::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: #dee2e6;
+}
+
+.upload-divider span {
+    background: #f8f9fa;
+    padding: 0 15px;
+    color: #6c757d;
+    font-size: 0.9em;
+}
+
+#camera-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    min-width: 150px;
+    margin: 0 auto;
+}
+
+#camera-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+/* Стили модального окна камеры */
+.camera-container {
+    text-align: center;
+}
+
+#camera-video {
+    width: 100%;
+    max-width: 640px;
+    height: auto;
+    border-radius: 12px;
+    background: #000;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+#camera-canvas {
+    max-width: 100%;
+}
+
+#photo-preview {
+    width: 100%;
+    max-width: 640px;
+    margin: 0 auto;
+}
+
+#preview-image {
+    width: 100%;
+    height: auto;
+    border-radius: 12px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.camera-controls {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+    flex-wrap: wrap;
+}
+
+.camera-controls .btn {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    min-width: 120px;
+    justify-content: center;
+}
+
+#camera-error {
+    margin-top: 15px;
+    text-align: left;
+}
+
+/* Адаптивность для камеры */
+@media (max-width: 768px) {
+    .avatar-upload-container {
+        padding: 15px;
+        gap: 12px;
+    }
+    
+    .upload-method,
+    .camera-method {
+        padding: 8px;
+    }
+    
+    #camera-btn {
+        min-width: 130px;
+        font-size: 0.9em;
+    }
+    
+    .camera-controls {
+        gap: 8px;
+    }
+    
+    .camera-controls .btn {
+        min-width: 100px;
+        font-size: 0.85em;
+        padding: 6px 12px;
+    }
+    
+    #camera-video,
+    #photo-preview {
+        max-width: 100%;
+    }
+}
+
+@media (max-width: 512px) {
+    .avatar-upload-container {
+        padding: 12px;
+        gap: 10px;
+    }
+    
+    #camera-btn {
+        min-width: 120px;
+        font-size: 0.85em;
+        padding: 8px 15px;
+    }
+    
+    .camera-controls {
+        flex-direction: column;
+        align-items: center;
+        gap: 6px;
+    }
+    
+    .camera-controls .btn {
+        width: 100%;
+        max-width: 200px;
+        min-width: auto;
+    }
+}
