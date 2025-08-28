@@ -18,7 +18,7 @@ import logging
 from builder.models import CategoryName
 from django.contrib.auth import get_user_model
 from django.utils.decorators import method_decorator
-from gamification.utils import award_dascoin_points, award_course_badge, award_trajectory_badge
+from gamification.utils import award_dascoin_points, award_course_badge, award_trajectory_badge, award_first_lesson_badge
 from .utils import issue_certificate, get_user_certificates
 from quizzes.models import Quiz
 

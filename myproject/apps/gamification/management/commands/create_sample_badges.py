@@ -15,7 +15,7 @@ class Command(BaseCommand):
             {
                 'name': 'Первый шаг',
                 'description': 'Мотивация к началу обучения',
-                'badge_type': 'lesson',
+                'badge_type': 'skill',
                 'points_required': 0
             },
             {
