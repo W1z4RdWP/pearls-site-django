@@ -173,58 +173,28 @@
                                 <span>или</span>
                             </div>
                             
-                            <!-- Кнопка для камеры -->
+                            <!-- Поле для съемки с камеры -->
                             <div class="camera-method">
+                                <input type="file" 
+                                       id="camera-input" 
+                                       accept="image/*" 
+                                       capture="user" 
+                                       style="display: none;">
                                 <button type="button" class="btn btn-outline-primary" id="camera-btn">
                                     <i class="fa fa-camera"></i> Сделать фото
                                 </button>
-                                <small class="form-text text-muted">Сделайте фото с помощью камеры</small>
-                                <div id="https-warning" class="alert alert-warning" style="display: none; margin-top: 10px;">
-                                    <small><i class="fa fa-exclamation-triangle"></i> Для работы камеры требуется HTTPS соединение</small>
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <!-- Модальное окно камеры -->
-                        <div class="modal fade" id="cameraModal" tabindex="-1" aria-hidden="true">
-                            <div class="modal-dialog modal-lg">
-                                <div class="modal-content">
-                                    <div class="modal-header">
-                                        <h5 class="modal-title">Сделать фото для аватара</h5>
-                                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                                    </div>
-                                    <div class="modal-body">
-                                        <div class="camera-container">
-                                            <video id="camera-video" autoplay muted></video>
-                                            <canvas id="camera-canvas" style="display: none;"></canvas>
-                                            
-                                            <!-- Превью снятого фото -->
-                                            <div id="photo-preview" style="display: none;">
-                                                <img id="preview-image" alt="Снятое фото">
-                                            </div>
-                                            
-                                            <!-- Сообщения об ошибках -->
-                                            <div id="camera-error" class="alert alert-danger" style="display: none;"></div>
-                                        </div>
-                                    </div>
-                                    <div class="modal-footer">
-                                        <div class="camera-controls">
-                                            <button type="button" class="btn btn-info" id="camera-switch" style="display: none;">
-                                                <i class="fa fa-sync-alt"></i> Переключить камеру
-                                            </button>
-                                            <button type="button" class="btn btn-secondary" id="camera-retry" style="display: none;">
-                                                <i class="fa fa-redo"></i> Переснять
-                                            </button>
-                                            <button type="button" class="btn btn-primary" id="camera-capture">
-                                                <i class="fa fa-camera"></i> Снять
-                                            </button>
-                                            <button type="button" class="btn btn-success" id="camera-use" style="display: none;">
-                                                <i class="fa fa-check"></i> Использовать фото
-                                            </button>
-                                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
-                                                Отмена
-                                            </button>
-                                        </div>
+                                <small class="form-text text-muted">Откроет камеру устройства для съемки</small>
+                                
+                                <!-- Превью снятого фото -->
+                                <div id="camera-preview" style="display: none; margin-top: 15px;">
+                                    <img id="camera-preview-img" style="max-width: 200px; max-height: 200px; border-radius: 8px; border: 2px solid #dee2e6;">
+                                    <div style="margin-top: 10px;">
+                                        <button type="button" class="btn btn-success btn-sm" id="use-camera-photo">
+                                            <i class="fa fa-check"></i> Использовать это фото
+                                        </button>
+                                        <button type="button" class="btn btn-secondary btn-sm" id="retake-photo">
+                                            <i class="fa fa-camera"></i> Переснять
+                                        </button>
                                     </div>
                                 </div>
                             </div>
