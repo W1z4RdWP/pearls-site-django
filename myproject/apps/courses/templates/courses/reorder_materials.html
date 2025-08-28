@@ -1,0 +1,166 @@
+{% extends 'layout.html' %}
+{% load static %}
+
+{% block specific_styles %}
+<link rel="stylesheet" href="{% static 'courses/css/reorder_materials.css' %}">
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
+{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2>Изменить порядок материалов</h2>
+            <p class="text-muted">Курс: {{ course.title }}</p>
+        </div>
+        <div>
+            <a href="{% url 'courses:course_detail' slug=course.slug %}" class="btn btn-secondary">
+                <i class="fa fa-arrow-left"></i> Вернуться к курсу
+            </a>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fa fa-sort"></i> Перетащите материалы для изменения порядка
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div id="materials-list" class="materials-list">
+                        {% for material in materials %}
+                        <div class="material-item" data-type="{{ material.type }}" data-id="{{ material.id }}">
+                            <div class="material-content">
+                                <div class="material-icon">
+                                    {% if material.type == 'lesson' %}
+                                        📄
+                                    {% else %}
+                                        🧪
+                                    {% endif %}
+                                </div>
+                                <div class="material-info">
+                                    <div class="material-title">{{ material.title }}</div>
+                                    <div class="material-meta">
+                                        {% if material.type == 'lesson' %}
+                                            <span class="badge bg-primary">Урок</span>
+                                        {% else %}
+                                            <span class="badge bg-info">Тест</span>
+                                            <small class="text-muted">{{ material.object.points }} DASCOIN</small>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                <div class="material-handle">
+                                    <i class="fa fa-grip-vertical"></i>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header">
+                    <h6 class="mb-0">Инструкции</h6>
+                </div>
+                <div class="card-body">
+                    <ul class="list-unstyled">
+                        <li><i class="fa fa-hand-pointer-o text-primary"></i> Перетащите элементы для изменения порядка</li>
+                        <li><i class="fa fa-save text-success"></i> Изменения сохраняются автоматически</li>
+                        <li><i class="fa fa-file-text-o text-info"></i> 📄 - Уроки</li>
+                        <li><i class="fa fa-flask text-warning"></i> 🧪 - Тесты</li>
+                    </ul>
+                </div>
+            </div>
+            
+            <div class="card mt-3">
+                <div class="card-body text-center">
+                    <button id="save-order" class="btn btn-success" disabled>
+                        <i class="fa fa-save"></i> Сохранить порядок
+                    </button>
+                    <div id="save-status" class="mt-2"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const materialsList = document.getElementById('materials-list');
+    const saveButton = document.getElementById('save-order');
+    const saveStatus = document.getElementById('save-status');
+    let hasChanges = false;
+    
+    // Инициализация Sortable.js
+    const sortable = new Sortable(materialsList, {
+        handle: '.material-handle',
+        animation: 150,
+        ghostClass: 'sortable-ghost',
+        chosenClass: 'sortable-chosen',
+        dragClass: 'sortable-drag',
+        onEnd: function(evt) {
+            hasChanges = true;
+            saveButton.disabled = false;
+            saveStatus.innerHTML = '<small class="text-warning"><i class="fa fa-exclamation-triangle"></i> Есть несохраненные изменения</small>';
+        }
+    });
+    
+    // Сохранение порядка
+    saveButton.addEventListener('click', function() {
+        if (!hasChanges) return;
+        
+        const materials = Array.from(materialsList.children).map((item, index) => ({
+            type: item.dataset.type,
+            id: parseInt(item.dataset.id),
+            order: index + 1
+        }));
+        
+        saveButton.disabled = true;
+        saveStatus.innerHTML = '<small class="text-info"><i class="fa fa-spinner fa-spin"></i> Сохранение...</small>';
+        
+        fetch(window.location.href, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-CSRFToken': '{{ csrf_token }}'
+            },
+            body: JSON.stringify({
+                materials_order: materials
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                hasChanges = false;
+                saveStatus.innerHTML = '<small class="text-success"><i class="fa fa-check"></i> Порядок сохранен</small>';
+                setTimeout(() => {
+                    saveStatus.innerHTML = '';
+                }, 3000);
+            } else {
+                saveStatus.innerHTML = '<small class="text-danger"><i class="fa fa-exclamation-triangle"></i> Ошибка сохранения</small>';
+                saveButton.disabled = false;
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            saveStatus.innerHTML = '<small class="text-danger"><i class="fa fa-exclamation-triangle"></i> Ошибка сети</small>';
+            saveButton.disabled = false;
+        });
+    });
+    
+    // Предупреждение при уходе со страницы с несохраненными изменениями
+    window.addEventListener('beforeunload', function(e) {
+        if (hasChanges) {
+            e.preventDefault();
+            e.returnValue = 'У вас есть несохраненные изменения. Вы уверены, что хотите покинуть страницу?';
+        }
+    });
+});
+</script>
+{% endblock %}

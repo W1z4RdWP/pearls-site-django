@@ -119,20 +119,39 @@ def profile(request: HttpRequest) -> HttpResponse:
 
     for user_course in started_courses:
         course = user_course.course
-        completed = UserProgress.objects.filter(
+        
+        # Подсчет завершенных уроков
+        completed_lessons = UserProgress.objects.filter(
             user=user,
             course=course,
             completed=True
         ).count()
 
         trajectory = UserLessonTrajectory.objects.filter(user=request.user, course=course).first()
-        total = trajectory.lessons.count() if trajectory else course.lessons.count()
-        percent = int((completed / total) * 100) if total > 0 else 0
+        total_lessons = trajectory.lessons.count() if trajectory else course.lessons.count()
+        
+        # Подсчет завершенных тестов в рамках этого курса
+        completed_quizzes = QuizResult.objects.filter(
+            user=user,
+            course=course,
+            quiz_title__in=[quiz.name for quiz in course.quizzes.all()],
+            passed=True
+        ).count()
+        total_quizzes = course.quizzes.count()
+        
+        # Общий подсчет материалов
+        completed_materials = completed_lessons + completed_quizzes
+        total_materials = total_lessons + total_quizzes
+        percent = int((completed_materials / total_materials) * 100) if total_materials > 0 else 0
 
         course_data = {
             'course': course,
-            'completed': completed,
-            'total': total,
+            'completed': completed_lessons,
+            'completed_quizzes': completed_quizzes,
+            'total': total_lessons,
+            'total_quizzes': total_quizzes,
+            'completed_materials': completed_materials,
+            'total_materials': total_materials,
             'percent': percent,
             'status': user_course.status
         }
@@ -140,23 +159,26 @@ def profile(request: HttpRequest) -> HttpResponse:
         if course.final_quiz:
             quiz_passed = QuizResult.objects.filter(
                 user=request.user,
-                quiz_title=course.final_quiz,
+                course=course,
+                quiz_title=course.final_quiz.name,
                 passed=True
             ).exists()
             course_data['quiz_passed'] = quiz_passed
 
-        # Курс считается завершенным только если все уроки пройдены И финальный тест пройден
-        if percent == 100 and course.final_quiz:
+        # Курс считается завершенным только если все материалы пройдены И финальный тест пройден
+        all_materials_completed = (completed_lessons >= total_lessons and completed_quizzes >= total_quizzes)
+        
+        if all_materials_completed and course.final_quiz:
             if quiz_passed:
                 finished_courses.append(course_data)
             else:
-                # Все уроки пройдены, но тест не пройден - оставляем в незавершенных
+                # Все материалы пройдены, но финальный тест не пройден - оставляем в незавершенных
                 unfinished_courses.append(course_data)
-        elif percent == 100 and not course.final_quiz:
-            # Все уроки пройдены и нет финального теста - курс завершен
+        elif all_materials_completed and not course.final_quiz:
+            # Все материалы пройдены и нет финального теста - курс завершен
             finished_courses.append(course_data)
         else:
-            # Не все уроки пройдены - курс незавершен
+            # Не все материалы пройдены - курс незавершен
             unfinished_courses.append(course_data)
 
         # Обновляем флаг завершения всех уроков

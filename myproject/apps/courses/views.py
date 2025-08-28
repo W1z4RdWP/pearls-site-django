@@ -20,6 +20,7 @@ from django.contrib.auth import get_user_model
 from django.utils.decorators import method_decorator
 from gamification.utils import award_dascoin_points, award_course_badge, award_trajectory_badge
 from .utils import issue_certificate, get_user_certificates
+from quizzes.models import Quiz
 
 
 logger = logging.getLogger(__name__)
@@ -180,10 +181,14 @@ class CourseDetailView(DetailView):
         user_course = None
         progress = 0
         completed_lessons = 0
+        completed_quizzes = 0
         total_lessons = course.lessons.count()
+        total_quizzes = course.quizzes.count()
+        total_materials = total_lessons + total_quizzes
         next_lesson = None
         all_completed = False
         completed_lessons_ids = None
+        completed_quizzes_ids = None
         trajectory = None
         show_final_quiz = False
         show_completion_animation = False
@@ -221,6 +226,17 @@ class CourseDetailView(DetailView):
                             lesson_id__in=lesson_ids
                         ).values_list('lesson_id', flat=True)
                     )
+                    
+                    # Получаем пройденные тесты в рамках этого курса
+                    completed_quizzes_ids = list(
+                        QuizResult.objects.filter(
+                            user=user,
+                            course=course,
+                            quiz_title__in=[quiz.name for quiz in course.quizzes],
+                            passed=True
+                        ).values_list('quiz_title', flat=True)
+                    )
+                    completed_quizzes = len(completed_quizzes_ids)
 
                     max_completed_order = UserProgress.objects.filter(
                         user=user,
@@ -249,6 +265,17 @@ class CourseDetailView(DetailView):
                             completed=True
                         ).values_list('lesson_id', flat=True)
                     )
+                    
+                    # Получаем пройденные тесты в рамках этого курса
+                    completed_quizzes_ids = list(
+                        QuizResult.objects.filter(
+                            user=user,
+                            course=course,
+                            quiz_title__in=[quiz.name for quiz in course.quizzes],
+                            passed=True
+                        ).values_list('quiz_title', flat=True)
+                    )
+                    completed_quizzes = len(completed_quizzes_ids)
 
                     max_completed_order = UserProgress.objects.filter(
                         user=user,
@@ -261,16 +288,18 @@ class CourseDetailView(DetailView):
                         order__gt=max_completed_order
                     ).order_by('order').first() or course.lessons.first()
                 
-                # Вычисляем прогресс
-                progress = int((completed_lessons / total_lessons) * 100) if total_lessons > 0 else 0
-                all_completed = completed_lessons >= total_lessons
+                # Вычисляем прогресс с учетом уроков и тестов
+                completed_materials = completed_lessons + completed_quizzes
+                progress = int((completed_materials / total_materials) * 100) if total_materials > 0 else 0
+                all_completed = completed_lessons >= total_lessons and completed_quizzes >= total_quizzes
 
                 # Автоматическое завершение курса при выполнении условий
                 if user_course.status == 'started' and all_completed:
-                    # Если есть финальный тест, проверяем его прохождение
+                    # Если есть финальный тест, проверяем его прохождение в рамках этого курса
                     if course.final_quiz:
                         quiz_passed = QuizResult.objects.filter(
                             user=user,
+                            course=course,
                             quiz_title=course.final_quiz.name,
                             passed=True
                         ).exists()
@@ -313,15 +342,17 @@ class CourseDetailView(DetailView):
                 if course.final_quiz:
                     quiz_passed = QuizResult.objects.filter(
                         user=user,
+                        course=course,
                         quiz_title=course.final_quiz.name,
                         passed=True
                     ).exists()
                     if quiz_passed:
                         show_final_quiz = True
                     
-                    # Получаем информацию о попытках для финального теста
+                    # Получаем информацию о попытках для финального теста в рамках этого курса
                     failed_attempts = QuizResult.objects.filter(
                         user=user,
+                        course=course,
                         quiz_title=course.final_quiz.name,
                         passed=False
                     ).count()
@@ -395,8 +426,12 @@ class CourseDetailView(DetailView):
             'user_course': user_course,
             'progress': progress,
             'completed_lessons': completed_lessons,
+            'completed_quizzes': completed_quizzes,
             'completed_lessons_ids': completed_lessons_ids or [],
+            'completed_quizzes_ids': completed_quizzes_ids or [],
             'total_lessons': total_lessons,
+            'total_quizzes': total_quizzes,
+            'total_materials': total_materials,
             'next_lesson': next_lesson,
             'all_completed': all_completed,
             'show_completion_animation': show_completion_animation,
@@ -683,6 +718,19 @@ def add_lesson(request, course_slug):
                         lesson.order = current_order
                         lesson.save()
                         current_order += 1
+                        
+                elif item_id.startswith('quiz_'):
+                    # Добавляем тест
+                    quiz_id = item_id.replace('quiz_', '')
+                    quiz = get_object_or_404(Quiz, id=quiz_id)
+                    
+                    # Проверяем, что тест еще не добавлен в курс
+                    if course not in quiz.courses.all():
+                        quiz.courses.add(course)
+                        # Устанавливаем порядок теста
+                        quiz.order = current_order
+                        quiz.save()
+                        current_order += 1
             
             return redirect('courses:course_detail', slug=course.slug)
         elif 'create_new' in request.POST:
@@ -693,10 +741,59 @@ def add_lesson(request, course_slug):
     # Получаем уроки без категории
     uncategorized_lessons = Lesson.objects.filter(category__isnull=True).order_by('order', 'title')
     
+    # Получаем все тесты
+    all_quizzes = Quiz.objects.all().order_by('name')
+    
     return render(request, 'courses/add_lesson.html', {
         'course': course,
         'categories_data': categories_data,
         'uncategorized_lessons': uncategorized_lessons,
+        'all_quizzes': all_quizzes,
+    })
+
+
+@login_required
+@user_passes_test(is_admin, login_url='/')
+def reorder_materials(request, course_slug):
+    """Страница для изменения порядка материалов курса (уроков и тестов)"""
+    course = get_object_or_404(Course, slug=course_slug)
+    
+    if request.method == 'POST':
+        # Обработка AJAX запроса для сохранения нового порядка
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            import json
+            try:
+                data = json.loads(request.body)
+                materials_order = data.get('materials_order', [])
+                
+                # Обновляем порядок для каждого материала
+                for index, material_data in enumerate(materials_order):
+                    material_type = material_data['type']
+                    material_id = material_data['id']
+                    new_order = index + 1
+                    
+                    if material_type == 'lesson':
+                        lesson = Lesson.objects.get(id=material_id)
+                        lesson.order = new_order
+                        lesson.save()
+                    elif material_type == 'quiz':
+                        quiz = Quiz.objects.get(id=material_id)
+                        quiz.order = new_order
+                        quiz.save()
+                
+                return JsonResponse({'success': True})
+            except Exception as e:
+                return JsonResponse({'success': False, 'error': str(e)})
+        else:
+            # Обычная форма - редирект обратно к курсу
+            return redirect('courses:course_detail', slug=course.slug)
+    
+    # GET запрос - показываем страницу с интерфейсом
+    materials = course.get_course_materials()
+    
+    return render(request, 'courses/reorder_materials.html', {
+        'course': course,
+        'materials': materials,
     })
 
 
@@ -843,23 +940,34 @@ def complete_lesson(request, course_slug, lesson_id):
         defaults={'completed': True, 'course': course}
     )
 
-    # Получаем общее количество уроков для пользователя
+    # Получаем общее количество материалов для пользователя
     if trajectory:
         total_lessons = trajectory.lessons.count()
         lesson_ids = trajectory.lessons.values_list('id', flat=True)
     else:
         total_lessons = course.lessons.count()
         lesson_ids = course.lessons.values_list('id', flat=True)
+    
+    total_quizzes = course.quizzes.count()
 
-    # Считаем ТОЛЬКО уроки из траектории
+    # Считаем пройденные уроки
     completed_lessons = UserProgress.objects.filter(
         user=user,
         course=course,
         completed=True,
         lesson_id__in=lesson_ids
     ).count()
+    
+    # Считаем пройденные тесты в рамках этого курса
+    completed_quizzes = QuizResult.objects.filter(
+        user=user,
+        course=course,
+        quiz_title__in=[quiz.name for quiz in course.quizzes],
+        passed=True
+    ).count()
 
-    all_completed = completed_lessons >= total_lessons
+    # Курс завершен только если пройдены ВСЕ уроки И ВСЕ тесты
+    all_completed = completed_lessons >= total_lessons and completed_quizzes >= total_quizzes
 
     user_course = UserCourse.objects.get(user=user, course=course)
     

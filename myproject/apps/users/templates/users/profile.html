@@ -189,7 +189,7 @@
                             </div>
                         </div>
                         <p class="mt-2">
-                            Пройдено уроков: {{ progress.completed }} из {{ progress.total }}
+                            Пройдено уроков: {{ progress.completed }} из {{ progress.total }}{% if progress.total_quizzes > 0 %}, тестов: {{ progress.completed_quizzes }} из {{ progress.total_quizzes }}{% endif %}
                         </p>
 
                         {% if progress.status == 'started' %}
@@ -239,7 +239,7 @@
                             </div>
                         </div>
                         <p class="mt-2">
-                            Пройдено уроков: {{ progress.completed }} из {{ progress.total }}
+                            Пройдено уроков: {{ progress.completed }} из {{ progress.total }}{% if progress.total_quizzes > 0 %}, тестов: {{ progress.completed_quizzes }} из {{ progress.total_quizzes }}{% endif %}
                         </p>
                         <div class="btn-group">
                             <a href="{% url 'courses:course_detail' progress.course.slug %}" 

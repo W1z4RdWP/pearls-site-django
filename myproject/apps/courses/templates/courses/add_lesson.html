@@ -21,6 +21,7 @@
                     <div class="tabs-switcher" style="display: flex; gap: 2px; margin: 0 0 16px 0;">
                         <button id="tab-categories" class="tab-btn active" type="button">Категории</button>
                         <button id="tab-uncat" class="tab-btn" type="button">Без категории</button>
+                        <button id="tab-tests" class="tab-btn" type="button">Тесты</button>
                     </div>
                     <div style="display: flex; align-items: center; gap: 10px;">
                         <span id="panel-title">Категории</span>
@@ -47,6 +48,16 @@
                             <li class="lesson-item" data-lesson-id="{{ lesson.id }}" onclick="selectItem(this, 'uncategorized', '{{ lesson.id }}', '{{ lesson.title }}')">
                                 <span class="lesson-icon">📄</span>
                                 <span class="lesson-title">{{ lesson.title }}</span>
+                            </li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                    <div id="tests-block" style="display:none;">
+                        <ul class="category-tree">
+                            {% for quiz in all_quizzes %}
+                            <li class="lesson-item" data-quiz-id="{{ quiz.id }}" onclick="selectItem(this, 'quiz', '{{ quiz.id }}', '{{ quiz.name }}')">
+                                <span class="lesson-icon">🧪</span>
+                                <span class="lesson-title">{{ quiz.name }}</span>
                             </li>
                             {% endfor %}
                         </ul>

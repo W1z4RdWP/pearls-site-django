@@ -49,8 +49,8 @@ function addSelectedItem(itemId, type, title) {
     item.className = 'selected-item';
     item.dataset.itemId = itemId;
     
-    const icon = type === 'category' ? '📁' : '📄';
-    const typeText = type === 'category' ? 'Категория' : (type === 'uncategorized' ? 'Урок (без категории)' : 'Урок');
+    const icon = type === 'category' ? '📁' : (type === 'quiz' ? '🧪' : '📄');
+    const typeText = type === 'category' ? 'Категория' : (type === 'uncategorized' ? 'Урок (без категории)' : (type === 'quiz' ? 'Тест' : 'Урок'));
     
     item.innerHTML = `
         <span class="selected-item-icon">${icon}</span>
@@ -96,6 +96,11 @@ function removeSelectedItem(itemId) {
         }
     } else if (type === 'uncategorized') {
         const leftPanelItem = document.querySelector(`#uncategorized-block [data-lesson-id="${id}"]`);
+        if (leftPanelItem) {
+            leftPanelItem.classList.remove('selected');
+        }
+    } else if (type === 'quiz') {
+        const leftPanelItem = document.querySelector(`#tests-block [data-quiz-id="${id}"]`);
         if (leftPanelItem) {
             leftPanelItem.classList.remove('selected');
         }
@@ -218,22 +223,34 @@ function performSearch(searchTerm) {
 function switchTab(tabName) {
     const categoriesTab = document.getElementById('tab-categories');
     const uncatTab = document.getElementById('tab-uncat');
+    const testsTab = document.getElementById('tab-tests');
     const categoriesBlock = document.getElementById('categories-block');
     const uncatBlock = document.getElementById('uncategorized-block');
+    const testsBlock = document.getElementById('tests-block');
     const panelTitle = document.getElementById('panel-title');
+    
+    // Убираем активный класс со всех вкладок
+    categoriesTab.classList.remove('active');
+    uncatTab.classList.remove('active');
+    testsTab.classList.remove('active');
+    
+    // Скрываем все блоки
+    categoriesBlock.style.display = 'none';
+    uncatBlock.style.display = 'none';
+    testsBlock.style.display = 'none';
     
     if (tabName === 'categories') {
         categoriesTab.classList.add('active');
-        uncatTab.classList.remove('active');
         categoriesBlock.style.display = 'block';
-        uncatBlock.style.display = 'none';
         panelTitle.textContent = 'Категории';
     } else if (tabName === 'uncategorized') {
-        categoriesTab.classList.remove('active');
         uncatTab.classList.add('active');
-        categoriesBlock.style.display = 'none';
         uncatBlock.style.display = 'block';
         panelTitle.textContent = 'Без категории';
+    } else if (tabName === 'tests') {
+        testsTab.classList.add('active');
+        testsBlock.style.display = 'block';
+        panelTitle.textContent = 'Тесты';
     }
 }
 
@@ -279,6 +296,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // Добавляем обработчики для вкладок
     const categoriesTab = document.getElementById('tab-categories');
     const uncatTab = document.getElementById('tab-uncat');
+    const testsTab = document.getElementById('tab-tests');
     
     if (categoriesTab) {
         categoriesTab.addEventListener('click', function() {
@@ -289,6 +307,12 @@ document.addEventListener('DOMContentLoaded', function() {
     if (uncatTab) {
         uncatTab.addEventListener('click', function() {
             switchTab('uncategorized');
+        });
+    }
+    
+    if (testsTab) {
+        testsTab.addEventListener('click', function() {
+            switchTab('tests');
         });
     }
 });
