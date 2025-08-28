@@ -296,221 +296,45 @@ function toggleCoursesProgress() {
     }
 }
 
-// --- Работа с камерой для аватара ---
+// --- Работа с камерой для аватара (встроенное приложение) ---
 document.addEventListener('DOMContentLoaded', function() {
     const cameraBtn = document.getElementById('camera-btn');
-    const cameraModal = document.getElementById('cameraModal');
-    const video = document.getElementById('camera-video');
-    const canvas = document.getElementById('camera-canvas');
-    const captureBtn = document.getElementById('camera-capture');
-    const retryBtn = document.getElementById('camera-retry');
-    const useBtn = document.getElementById('camera-use');
-    const switchBtn = document.getElementById('camera-switch');
-    const previewDiv = document.getElementById('photo-preview');
-    const previewImage = document.getElementById('preview-image');
-    const errorDiv = document.getElementById('camera-error');
+    const cameraInput = document.getElementById('camera-input');
     const imageInput = document.getElementById('id_image');
-    const httpsWarning = document.getElementById('https-warning');
-    
-    let stream = null;
-    let capturedImageBlob = null;
-    let currentFacingMode = 'user'; // 'user' для фронтальной, 'environment' для задней
-    let availableCameras = [];
+    const cameraPreview = document.getElementById('camera-preview');
+    const cameraPreviewImg = document.getElementById('camera-preview-img');
+    const useCameraPhotoBtn = document.getElementById('use-camera-photo');
+    const retakePhotoBtn = document.getElementById('retake-photo');
 
-    // Универсальная функция получения доступа к камере
-    async function getUserMedia(constraints) {
-        // Современный API
-        if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
-            return await navigator.mediaDevices.getUserMedia(constraints);
-        }
-        
-        // Fallback для старых браузеров
-        const getUserMedia = navigator.getUserMedia || 
-                            navigator.webkitGetUserMedia || 
-                            navigator.mozGetUserMedia;
-        
-        if (getUserMedia) {
-            return new Promise((resolve, reject) => {
-                getUserMedia.call(navigator, constraints, resolve, reject);
-            });
-        }
-        
-        throw new Error('getUserMedia не поддерживается');
+    // Открытие встроенной камеры устройства
+    if (cameraBtn && cameraInput) {
+        cameraBtn.addEventListener('click', function() {
+            cameraInput.click();
+        });
     }
 
-    // Получение списка доступных камер
-    async function getAvailableCameras() {
-        try {
-            if (navigator.mediaDevices && navigator.mediaDevices.enumerateDevices) {
-                const devices = await navigator.mediaDevices.enumerateDevices();
-                availableCameras = devices.filter(device => device.kind === 'videoinput');
-                return availableCameras.length > 1; // Возвращаем true если есть несколько камер
-            }
-        } catch (error) {
-            console.log('Не удалось получить список камер:', error);
-        }
-        return false;
-    }
-
-    // Запуск камеры с указанными параметрами
-    async function startCamera(facingMode = 'user') {
-        const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-        
-        // Сначала пробуем с подробными настройками
-        let constraints = {
-            video: isMobile ? {
-                facingMode: facingMode,
-                width: { ideal: 480 },
-                height: { ideal: 640 }
-            } : {
-                width: { ideal: 640 }, 
-                height: { ideal: 480 },
-                facingMode: facingMode
-            }
-        };
-        
-        try {
-            return await getUserMedia(constraints);
-        } catch (error) {
-            console.log('Попытка с упрощенными настройками...', error);
-            
-            // Fallback: пробуем с минимальными настройками
-            constraints = {
-                video: {
-                    facingMode: facingMode
-                }
-            };
-            
-            try {
-                return await getUserMedia(constraints);
-            } catch (error2) {
-                console.log('Попытка без facingMode...', error2);
-                
-                // Последняя попытка: совсем простые настройки
-                constraints = {
-                    video: true
+    // Обработка выбранного фото с камеры
+    if (cameraInput) {
+        cameraInput.addEventListener('change', function(event) {
+            const file = event.target.files[0];
+            if (file) {
+                // Показываем превью
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    cameraPreviewImg.src = e.target.result;
+                    cameraPreview.style.display = 'block';
                 };
-                
-                return await getUserMedia(constraints);
-            }
-        }
-    }
-
-    // Открытие камеры
-    if (cameraBtn) {
-        cameraBtn.addEventListener('click', async function() {
-            try {
-                // Проверяем доступность нескольких камер
-                const hasMultipleCameras = await getAvailableCameras();
-                if (hasMultipleCameras && switchBtn) {
-                    switchBtn.style.display = 'inline-block';
-                }
-                
-                stream = await startCamera(currentFacingMode);
-                video.srcObject = stream;
-                
-                // Показываем модальное окно
-                const modal = new bootstrap.Modal(cameraModal);
-                modal.show();
-                
-                // Сбрасываем состояние
-                resetCameraState();
-                
-            } catch (error) {
-                console.error('Ошибка доступа к камере:', error);
-                
-                let errorMessage = 'Не удалось получить доступ к камере. ';
-                
-                if (error.name === 'NotAllowedError' || error.name === 'PermissionDeniedError') {
-                    errorMessage += 'Разрешите доступ к камере в настройках браузера.';
-                } else if (error.name === 'NotFoundError' || error.name === 'DevicesNotFoundError') {
-                    errorMessage += 'Камера не найдена на устройстве.';
-                } else if (error.name === 'NotSupportedError') {
-                    errorMessage += 'Камера не поддерживается в данном браузере.';
-                } else if (error.name === 'NotReadableError' || error.name === 'TrackStartError') {
-                    errorMessage += 'Камера уже используется другим приложением.';
-                } else {
-                    errorMessage += 'Попробуйте перезагрузить страницу или использовать другой браузер.';
-                }
-                
-                showError(errorMessage);
+                reader.readAsDataURL(file);
             }
         });
     }
 
-    // Переключение камеры
-    if (switchBtn) {
-        switchBtn.addEventListener('click', async function() {
-            try {
-                // Останавливаем текущий поток
-                stopCamera();
-                
-                // Переключаем режим камеры
-                currentFacingMode = currentFacingMode === 'user' ? 'environment' : 'user';
-                
-                // Запускаем новую камеру
-                stream = await startCamera(currentFacingMode);
-                video.srcObject = stream;
-                
-            } catch (error) {
-                console.error('Ошибка переключения камеры:', error);
-                showError('Не удалось переключить камеру. Попробуйте еще раз.');
-                
-                // Возвращаем предыдущий режим
-                currentFacingMode = currentFacingMode === 'user' ? 'environment' : 'user';
-            }
-        });
-    }
-
-    // Съемка фото
-    if (captureBtn) {
-        captureBtn.addEventListener('click', function() {
-            if (stream) {
-                // Устанавливаем размеры canvas равными размерам видео
-                canvas.width = video.videoWidth;
-                canvas.height = video.videoHeight;
-                
-                // Рисуем кадр из видео на canvas
-                const ctx = canvas.getContext('2d');
-                ctx.drawImage(video, 0, 0);
-                
-                // Конвертируем в blob
-                canvas.toBlob(function(blob) {
-                    capturedImageBlob = blob;
-                    
-                    // Показываем превью
-                    const url = URL.createObjectURL(blob);
-                    previewImage.src = url;
-                    
-                    // Переключаем интерфейс
-                    video.style.display = 'none';
-                    previewDiv.style.display = 'block';
-                    captureBtn.style.display = 'none';
-                    retryBtn.style.display = 'inline-block';
-                    useBtn.style.display = 'inline-block';
-                    
-                }, 'image/jpeg', 0.8);
-            }
-        });
-    }
-
-    // Переснять фото
-    if (retryBtn) {
-        retryBtn.addEventListener('click', function() {
-            resetCameraState();
-        });
-    }
-
-    // Использовать снятое фото
-    if (useBtn) {
-        useBtn.addEventListener('click', function() {
-            if (capturedImageBlob) {
-                // Создаем File объект из blob
-                const file = new File([capturedImageBlob], 'camera-photo.jpg', { 
-                    type: 'image/jpeg' 
-                });
-                
-                // Создаем DataTransfer для установки файла в input
+    // Использование снятого фото
+    if (useCameraPhotoBtn) {
+        useCameraPhotoBtn.addEventListener('click', function() {
+            const file = cameraInput.files[0];
+            if (file) {
+                // Передаем файл в основное поле загрузки
                 const dataTransfer = new DataTransfer();
                 dataTransfer.items.add(file);
                 imageInput.files = dataTransfer.files;
@@ -518,56 +342,19 @@ document.addEventListener('DOMContentLoaded', function() {
                 // Показываем уведомление
                 showSuccess('Фото с камеры выбрано для загрузки');
                 
-                // Закрываем модальное окно
-                const modal = bootstrap.Modal.getInstance(cameraModal);
-                modal.hide();
+                // Скрываем превью
+                cameraPreview.style.display = 'none';
             }
         });
     }
 
-    // Очистка ресурсов при закрытии модального окна
-    if (cameraModal) {
-        cameraModal.addEventListener('hidden.bs.modal', function() {
-            stopCamera();
-            resetCameraState();
+    // Переснять фото
+    if (retakePhotoBtn) {
+        retakePhotoBtn.addEventListener('click', function() {
+            cameraInput.value = '';
+            cameraPreview.style.display = 'none';
+            cameraInput.click();
         });
-    }
-
-    // Функция сброса состояния камеры
-    function resetCameraState() {
-        video.style.display = 'block';
-        previewDiv.style.display = 'none';
-        captureBtn.style.display = 'inline-block';
-        retryBtn.style.display = 'none';
-        useBtn.style.display = 'none';
-        errorDiv.style.display = 'none';
-        
-        // Показываем кнопку переключения только если есть несколько камер
-        if (switchBtn && availableCameras.length > 1) {
-            switchBtn.style.display = 'inline-block';
-        }
-        
-        capturedImageBlob = null;
-        
-        if (previewImage.src) {
-            URL.revokeObjectURL(previewImage.src);
-            previewImage.src = '';
-        }
-    }
-
-    // Функция остановки камеры
-    function stopCamera() {
-        if (stream) {
-            stream.getTracks().forEach(track => track.stop());
-            stream = null;
-            video.srcObject = null;
-        }
-    }
-
-    // Функция показа ошибки
-    function showError(message) {
-        errorDiv.textContent = message;
-        errorDiv.style.display = 'block';
     }
 
     // Функция показа успешного сообщения
@@ -592,51 +379,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 alert.parentNode.removeChild(alert);
             }
         }, 3000);
-    }
-
-    // Проверяем поддержку getUserMedia с улучшенной совместимостью
-    function checkCameraSupport() {
-        // Проверяем HTTPS (обязательно для камеры в большинстве браузеров)
-        const isSecure = location.protocol === 'https:' || location.hostname === 'localhost' || location.hostname === '127.0.0.1';
-        
-        if (!isSecure) {
-            if (httpsWarning) {
-                httpsWarning.style.display = 'block';
-            }
-            return false;
-        }
-        
-        // Проверяем современный API
-        if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
-            return true;
-        }
-        
-        // Проверяем старые API для совместимости
-        if (navigator.getUserMedia || navigator.webkitGetUserMedia || navigator.mozGetUserMedia) {
-            return true;
-        }
-        
-        // Проверяем через MediaDevices polyfill
-        if (window.MediaStreamTrack && window.MediaStreamTrack.getSources) {
-            return true;
-        }
-        
-        return false;
-    }
-    
-    if (!checkCameraSupport()) {
-        if (cameraBtn) {
-            cameraBtn.disabled = true;
-            const isSecure = location.protocol === 'https:' || location.hostname === 'localhost' || location.hostname === '127.0.0.1';
-            
-            if (!isSecure) {
-                cameraBtn.innerHTML = '<i class="fa fa-lock"></i> Требуется HTTPS';
-                cameraBtn.title = 'Для работы камеры требуется защищенное соединение HTTPS';
-            } else {
-                cameraBtn.innerHTML = '<i class="fa fa-camera-slash"></i> Камера недоступна';
-                cameraBtn.title = 'Ваш браузер не поддерживает доступ к камере';
-            }
-        }
     }
 });
 
