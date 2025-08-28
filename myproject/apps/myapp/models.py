@@ -79,6 +79,7 @@ class QuizResult(models.Model):
     Attrs:
         - user(ForeignKey) - ссылка на пользователя, который прошел тест;
         - quiz_title(CharField) - название пройденного теста;
+        - course(ForeignKey) - ссылка на курс, в рамках которого пройден тест;
         - score(Integer) - правильных ответов дано;
         - total_questions(Integer) - всего было вопросов в данном тесте;
         - percent(Float) - вычисление правильных ответов на вопросы данных пользователем в процентном соотношении;
@@ -88,6 +89,7 @@ class QuizResult(models.Model):
     """
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     quiz_title = models.CharField(max_length=200)
+    course = models.ForeignKey(Course, on_delete=models.CASCADE, null=True, blank=True, verbose_name="Курс")
     score = models.IntegerField()
     total_questions = models.IntegerField()
     percent = models.FloatField()

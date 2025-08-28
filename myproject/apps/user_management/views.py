@@ -480,20 +480,34 @@ class UserProgressDashboardView(DetailView):
                     completed=True
                 ).count()
             
-            # Вычисляем процент прогресса
-            progress_percent = int((completed_lessons / total_lessons) * 100) if total_lessons > 0 else 0
+            # Подсчитываем завершенные тесты в рамках этого курса
+            completed_quizzes = QuizResult.objects.filter(
+                user=user,
+                course=course,
+                quiz_title__in=[quiz.name for quiz in course.quizzes.all()],
+                passed=True
+            ).count()
+            total_quizzes = course.quizzes.count()
             
-            # Проверяем прохождение финального теста
+            # Вычисляем процент прогресса с учетом уроков и тестов
+            total_materials = total_lessons + total_quizzes
+            completed_materials = completed_lessons + completed_quizzes
+            progress_percent = int((completed_materials / total_materials) * 100) if total_materials > 0 else 0
+            
+            # Проверяем прохождение финального теста в рамках этого курса
             quiz_passed = False
             if course.final_quiz:
                 quiz_passed = QuizResult.objects.filter(
                     user=user,
+                    course=course,
                     quiz_title=course.final_quiz.name,
                     passed=True
                 ).exists()
             
-            # Получаем детальную информацию об уроках
-            lessons_detail = []
+            # Получаем детальную информацию об уроках и тестах
+            materials_detail = []
+            
+            # Добавляем уроки
             for lesson in lessons:
                 progress = UserProgress.objects.filter(
                     user=user,
@@ -501,12 +515,38 @@ class UserProgressDashboardView(DetailView):
                     completed=True
                 ).first()
                 
-                lessons_detail.append({
+                materials_detail.append({
+                    'type': 'lesson',
                     'lesson': lesson,
                     'completed': progress is not None,
                     'completed_at': progress.completed_at if progress else None,
-                    'order': lesson.order
+                    'order': lesson.order,
+                    'title': lesson.title
                 })
+            
+            # Добавляем тесты курса
+            for quiz in course.quizzes.all():
+                quiz_result = QuizResult.objects.filter(
+                    user=user,
+                    course=course,
+                    quiz_title=quiz.name,
+                    passed=True
+                ).first()
+                
+                materials_detail.append({
+                    'type': 'quiz',
+                    'quiz': quiz,
+                    'completed': quiz_result is not None,
+                    'completed_at': quiz_result.completed_at if quiz_result else None,
+                    'order': quiz.order,
+                    'title': quiz.name
+                })
+            
+            # Сортируем материалы по порядку
+            materials_detail.sort(key=lambda x: x['order'])
+            
+            # Для совместимости с шаблоном сохраняем старое название
+            lessons_detail = materials_detail
             
             best_attempt = None
             if course.final_quiz:
@@ -519,10 +559,13 @@ class UserProgressDashboardView(DetailView):
                 'user_course': user_course,
                 'total_lessons': total_lessons,
                 'completed_lessons': completed_lessons,
+                'total_quizzes': total_quizzes,
+                'completed_quizzes': completed_quizzes,
+                'total_materials': total_materials,
+                'completed_materials': completed_materials,
                 'progress_percent': progress_percent,
                 'quiz_passed': quiz_passed,
                 'lessons_detail': lessons_detail,
-
                 'best_attempt': best_attempt,
             })
         
@@ -532,9 +575,13 @@ class UserProgressDashboardView(DetailView):
         started_courses = len([cp for cp in courses_progress if cp['user_course'].status == 'started'])
         available_courses = len([cp for cp in courses_progress if cp['user_course'].status == 'available'])
         
+        total_materials_completed = sum(cp['completed_materials'] for cp in courses_progress)
+        total_materials_available = sum(cp['total_materials'] for cp in courses_progress)
+        overall_progress = int((total_materials_completed / total_materials_available) * 100) if total_materials_available > 0 else 0
+        
+        # Для совместимости с шаблоном сохраняем старые переменные
         total_lessons_completed = sum(cp['completed_lessons'] for cp in courses_progress)
         total_lessons_available = sum(cp['total_lessons'] for cp in courses_progress)
-        overall_progress = int((total_lessons_completed / total_lessons_available) * 100) if total_lessons_available > 0 else 0
         
 
 

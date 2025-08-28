@@ -6,6 +6,16 @@ class Quiz(models.Model):
   points = models.PositiveIntegerField(default=10, verbose_name="Количество DASCOIN за прохождение теста")
   attempt_limit = models.PositiveIntegerField(default=0, verbose_name="Ограничение попыток", help_text="0 = без ограничений")
   pass_threshold = models.PositiveIntegerField(default=70, verbose_name="Проходной балл (%)")
+  order = models.PositiveIntegerField(default=0, verbose_name="Порядок в курсе")
+  
+  # Связь many-to-many с курсами для гибкости
+  courses = models.ManyToManyField(
+      'courses.Course',
+      blank=True,
+      related_name='course_quizzes',
+      verbose_name="Курсы, в которых используется тест"
+  )
+  
   class Meta:
     verbose_name = "Тест" # Как будет отображаться в админ панели
     verbose_name_plural = "Тесты" # Отображаться в множественном числе

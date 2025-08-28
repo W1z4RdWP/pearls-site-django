@@ -94,6 +94,39 @@ class Course(models.Model):
     def lessons(self):
         """Получение уроков курса через связь many-to-many"""
         return self.course_lessons.all().order_by('order')
+    
+    @property
+    def quizzes(self):
+        """Получение тестов курса через связь many-to-many"""
+        return self.course_quizzes.all().order_by('order', 'name')
+    
+    def get_course_materials(self):
+        """Получение всех материалов курса (уроки + тесты) в порядке добавления"""
+        materials = []
+        
+        # Добавляем уроки
+        for lesson in self.lessons:
+            materials.append({
+                'type': 'lesson',
+                'object': lesson,
+                'order': lesson.order,
+                'title': lesson.title,
+                'id': lesson.id
+            })
+        
+        # Добавляем тесты
+        for quiz in self.quizzes:
+            materials.append({
+                'type': 'quiz',
+                'object': quiz,
+                'order': quiz.order,
+                'title': quiz.name,
+                'id': quiz.id
+            })
+        
+        # Сортируем по порядку
+        materials.sort(key=lambda x: x['order'])
+        return materials
 
     def save(self, *args, **kwargs):
         if not self.slug:  # Генерируем slug только если он пустой

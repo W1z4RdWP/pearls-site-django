@@ -33,11 +33,11 @@ def get_changelog(request):
 def nav_menu(request):
     nav_public = [
         {'url': 'home', 'label': 'Главная', 'icon': 'fa-solid fa-house'},
-        {'url': 'changelog', 'label': 'Список изменений', 'icon': 'fa-solid fa-list-check'},
         {'url': 'about', 'label': 'О нас', 'icon': 'fa-solid fa-circle-info'},
         {'url': 'builder:lesson_master', 'label': 'База знаний', 'icon': 'fa-solid fa-book'},
     ]
     nav_staff = [
+        {'url': 'changelog', 'label': 'Список изменений', 'icon': 'fa-solid fa-list-check'},
         {'url': 'courses:create-course', 'label': 'Создать курс', 'icon': 'fa-solid fa-plus'},
         {'url': 'quizzes:quizzes', 'label': 'Тесты', 'icon': 'fa-solid fa-clipboard-question'},
         {'url': 'builder:dashboard', 'label': 'Панель управления', 'icon': 'fa-solid fa-cog'},

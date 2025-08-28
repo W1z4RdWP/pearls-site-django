@@ -98,7 +98,7 @@
                             <span class="um-progress-percent">{{ course_progress.progress_percent }}%</span>
                         </div>
                         <div class="um-progress-lessons-count">
-                            {{ course_progress.completed_lessons }} из {{ course_progress.total_lessons }} уроков
+                            {{ course_progress.completed_lessons }} из {{ course_progress.total_lessons }} уроков{% if course_progress.total_quizzes > 0 %}, {{ course_progress.completed_quizzes }} из {{ course_progress.total_quizzes }} тестов{% endif %}
                         </div>
                     </div>
                 </div>
@@ -120,21 +120,27 @@
                 </div>
                 {% endif %}
 
-                <!-- Детали по урокам -->
+                <!-- Детали по материалам -->
                 <div class="um-progress-lessons-detail">
-                    <h4>Уроки курса</h4>
+                    <h4>Материалы курса</h4>
                     <div class="um-progress-lessons-list">
-                        {% for lesson_detail in course_progress.lessons_detail %}
-                        <div class="um-progress-lesson-item {% if lesson_detail.completed %}um-lesson-completed{% endif %}">
+                        {% for material_detail in course_progress.lessons_detail %}
+                        <div class="um-progress-lesson-item {% if material_detail.completed %}um-lesson-completed{% endif %}">
                             <div class="um-progress-lesson-info">
-                                <span class="um-progress-lesson-order">{{ lesson_detail.order }}.</span>
-                                <span class="um-progress-lesson-title">{{ lesson_detail.lesson.title }}</span>
+                                <span class="um-progress-lesson-order">{{ material_detail.order }}.</span>
+                                <span class="um-progress-lesson-title">
+                                    {% if material_detail.type == 'lesson' %}
+                                        📄 {{ material_detail.title }}
+                                    {% elif material_detail.type == 'quiz' %}
+                                        🎓 {{ material_detail.title }}
+                                    {% endif %}
+                                </span>
                             </div>
                             <div class="um-progress-lesson-status">
-                                {% if lesson_detail.completed %}
+                                {% if material_detail.completed %}
                                     <span class="um-lesson-completed-badge">✓</span>
                                     <span class="um-lesson-completed-date">
-                                        {{ lesson_detail.completed_at|date:'d.m.Y H:i' }}
+                                        {{ material_detail.completed_at|date:'d.m.Y H:i' }}
                                     </span>
                                 {% else %}
                                     <span class="um-lesson-not-completed-badge">○</span>

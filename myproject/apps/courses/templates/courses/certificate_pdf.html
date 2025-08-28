@@ -4,6 +4,7 @@
 <head>
     <meta charset="utf-8">
     <title>Сертификат - {{ certificate.certificate_id }}</title>
+    <link rel="shortcut icon" href="favicon.ico" type="image/x-icon">
     <style>
 @import url('https://fonts.googleapis.com/css2?family=Onest:wght@400;500;600;800;900&display=swap');
 
@@ -204,6 +205,12 @@ body {
     font-size: 28px;
 }
 
+.signature-img{
+    position: absolute;
+    bottom: 9vh;
+    right: 14vw;
+    width: 15%;
+}
 /* Дата слева снаружи блока */
 .date-info {
     position: absolute;
@@ -225,6 +232,195 @@ body {
     font-weight: 500;
     font-size: 14px;
     text-align: right;
+}
+
+@media (min-width: 2500px) and (max-width: 2600px){
+
+    /* Верхний заголовок */
+    .top-header {
+        display: flex;
+        justify-content: flex-start;
+        align-items: center;
+        gap: 3rem;
+        padding: 20px 180px 40px 220px;
+        color: white;
+        z-index: 100;
+    }
+
+    .logo-section {
+        display: flex;
+        align-items: center;
+        gap: 20px;
+        z-index: 100;
+    }
+
+    .logo {
+        font-family: 'Onest', sans-serif;
+        font-weight: 900;
+        font-size: 20px;
+        line-height: 1.2;
+        width: 12vw;
+        height: 8vh;
+    }
+
+    .logo-img {
+        width: 100%;
+        height: 100%;
+    }
+
+    .logo-subtitle {
+        background: rgba(255, 255, 255, 0.2);
+        padding: 4px 12px;
+        border-radius: 15px;
+        font-size: 14px;
+        font-weight: 500;
+        margin-top: 5px;
+    }
+
+    .divider {
+        width: 3px;
+        height: 100px;
+        background: rgba(255, 255, 255, 0.7);
+    }
+
+    .location-year {
+        font-family: 'Onest', sans-serif;
+        font-weight: 600;
+        font-size: 36px;
+        text-align: left;
+        line-height: 1.3;
+    }
+    
+    /* Основной блок сертификата */
+    .certificate-main {
+        background: rgba(168, 188, 230, 0.8);
+        margin: -20px auto 40px auto;
+        padding: 40px 60px 60px 60px;
+        border-radius: 0;
+        position: relative;
+        z-index: 2;
+        height: calc(100vh - 400px);
+        width: 70%;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+    }
+
+    .certificate-title {
+        font-family: 'Onest', sans-serif;
+        font-weight: 900;
+        padding-top: 70px;
+        font-size: 60px;
+        color: #3F578A;
+        margin-bottom: 225px;
+        text-align: left;
+    }
+
+    .recipient-name {
+        font-family: 'Onest', sans-serif;
+        font-weight: 900;
+        font-size: 60px;
+        color: #3F578A;
+        margin-bottom: 10px;
+        display: block;
+        text-align: center;
+        width: 90%;
+        margin-left: auto;
+        margin-right: auto;
+    }
+
+    .recipient-underline {
+        width: 100%;
+        height: 3px;
+        background: #3F578A;
+        margin: 0 auto 15px auto;
+    }
+
+    .course-section {
+        margin-top: 30px;
+        text-align: left;
+    }
+
+    .course-label {
+        font-family: 'Onest', sans-serif;
+        font-weight: 500;
+        font-size: 36px;
+        color: #3F578A;
+        margin-bottom: 5px;
+        margin-top: 80px;
+    }
+
+    .course-name, .trajectory-name {
+        font-family: 'Onest', sans-serif;
+        font-weight: 500;
+        font-size: 36px;
+        color: white;
+        line-height: 1.1;
+    }
+
+    /* Подпись внизу */
+    .signature {
+        margin-top: auto;
+        text-align: right;
+        color: #3F578A;
+        min-width: 300px;
+        padding-bottom: 10px;
+    }
+
+    .signature-line {
+        width: 35%;
+        height: 3px;
+        background: #3F578A;
+        margin-bottom: 40px;
+        margin-left: auto;
+    }
+
+    .signature-name {
+        font-family: 'CustomHandwriting', cursive;
+        font-weight: 600;
+        font-size: 32px;
+        color: #3F578A;
+        margin-bottom: 5px;
+        text-align: right;
+    }
+
+    .signature-text {
+        font-family: 'Onest', sans-serif;
+        font-weight: 600;
+        font-size: 36px;
+
+    }
+
+    .signature-img{
+        position: absolute;
+        bottom: 9vh;
+        right: 10vw;
+        width: 15%;
+    }
+
+    /* Дата слева снаружи блока */
+    .date-info {
+        position: absolute;
+        bottom: 100px;
+        left: 250px;
+        color: white;
+        font-family: 'Onest', sans-serif;
+        font-weight: 500;
+        font-size: 16px;
+    }
+
+    /* Номер справа снаружи блока */
+    .certificate-number-info {
+        position: absolute;
+        bottom: 100px;
+        right: 250px;
+        color: white;
+        font-family: 'Onest', sans-serif;
+        font-weight: 500;
+        font-size: 16px;
+        text-align: right;
+    }
+
 }
 
 @media (max-width: 1800px){
@@ -762,9 +958,7 @@ body {
             
             <!-- Подпись -->
             <div class="signature">
-                <!-- <div class="signature-img">
-                    <img src="{% static 'courses/imgs/cert_srcs/signature.png' %}" alt="signature" class="signature-img">
-                </div> -->
+                <img src="{% static 'courses/imgs/cert_srcs/sign_new.png' %}" alt="signature" class="signature-img">
                 <div class="signature-name">Данилов А.С.</div>
                 <div class="signature-line"></div>
                 <div class="signature-text">Учебный центр «Территория Улыбки»</div>

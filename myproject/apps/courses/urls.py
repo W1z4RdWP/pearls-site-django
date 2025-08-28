@@ -12,6 +12,7 @@ urlpatterns = [
     path('course/<slug:course_slug>/lesson/<int:lesson_id>/', course_views.lesson_detail, name='lesson_detail'),
     path('course/<slug:course_slug>/create-lesson/', course_views.create_lesson, name='create_lesson'),
     path('course/<slug:course_slug>/add-lesson/', course_views.add_lesson, name='add_lesson'),
+    path('course/<slug:course_slug>/reorder-materials/', course_views.reorder_materials, name='reorder_materials'),
     path('course/<slug:slug>/delete/', course_views.delete_course, name='delete_course'),
     path('lesson/<int:lesson_id>/delete/', course_views.delete_lesson, name='delete_lesson'),
     path('course/<slug:course_slug>/lesson/<int:lesson_id>/complete/', course_views.complete_lesson, name='complete_lesson'),

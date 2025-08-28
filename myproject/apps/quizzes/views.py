@@ -98,6 +98,11 @@ def get_questions(request, quiz_id: int = None, is_start: bool = False) -> HttpR
             request.session['score'] = 0
             request.session['current_question_id'] = None
             
+            # Сохраняем course_slug если он передан в GET параметрах
+            course_slug = request.GET.get('course_slug')
+            if course_slug:
+                request.session['course_slug'] = course_slug
+            
             # Получаем первый вопрос
             question = _get_first_question(quiz_id)
             audit_logger.info(
@@ -294,16 +299,24 @@ def get_finish(request) -> HttpResponse:
 
     passed = percent_score >= quiz.pass_threshold # Проходной балл из настроек теста
     
-    # Проверяем, был ли тест уже пройден ранее (ДО создания текущего результата)
+    # Получаем курс для сохранения в результате
+    course_slug = request.session.get('course_slug')
+    course = None
+    if course_slug:
+        course = Course.objects.filter(slug=course_slug).first()
+    
+    # Проверяем, был ли тест уже пройден ранее в рамках этого курса
     previous_quiz_result = QuizResult.objects.filter(
         user=request.user,
         quiz_title=quiz.name,
+        course=course,
         passed=True
     ).first()
     
     quiz_result = QuizResult.objects.create(
         user=request.user,
         quiz_title=quiz.name,
+        course=course,
         score=score,
         total_questions=questions_count - text_questions_count, # Всего вопросов без учёта открытых
         percent=percent_score,
@@ -325,10 +338,11 @@ def get_finish(request) -> HttpResponse:
     if request.user.is_authenticated and not passed and quiz.attempt_limit > 0:
         from .models import QuizLock
         
-        # Считаем количество неуспешных попыток
+        # Считаем количество неуспешных попыток в рамках этого курса
         failed_attempts = QuizResult.objects.filter(
             user=request.user,
             quiz_title=quiz.name,
+            course=course,
             passed=False
         ).count()
         
@@ -380,13 +394,17 @@ def get_finish(request) -> HttpResponse:
             )
     # --------------------------------------------
 
-    # Обработка привязки к курсу
-    course = None
-    if hasattr(quiz, 'course') and quiz.course:
-        course = quiz.course
-    else:
-        # Проверяем, является ли этот тест финальным для какого-то курса
-        course = Course.objects.filter(final_quiz=quiz).first()
+    # Обработка привязки к курсу (используем уже определенный курс из блока выше)
+    if not course:
+        # Fallback: старая логика если course_slug не указан или курс не найден
+        if hasattr(quiz, 'course') and quiz.course:
+            course = quiz.course
+        else:
+            # Проверяем, является ли этот тест финальным для какого-то курса
+            course = Course.objects.filter(final_quiz=quiz).first()
+            # Если тест используется в нескольких курсах, берем первый попавшийся
+            if not course:
+                course = quiz.courses.first()
     
     if course and passed:
         # Получаем UserCourse ТОЛЬКО если пользователь действительно проходит этот курс
@@ -401,8 +419,17 @@ def get_finish(request) -> HttpResponse:
             ).count()
             total_lessons = course.lessons.count()
             
-            # Завершаем курс только если все уроки пройдены
-            if completed_lessons >= total_lessons:
+            # Проверяем, что все тесты курса пройдены в рамках этого курса
+            completed_quizzes = QuizResult.objects.filter(
+                user=request.user,
+                course=course,
+                quiz_title__in=[q.name for q in course.quizzes.all()],
+                passed=True
+            ).count()
+            total_quizzes = course.quizzes.count()
+            
+            # Завершаем курс только если все уроки И все тесты пройдены
+            if completed_lessons >= total_lessons and completed_quizzes >= total_quizzes:
                 # Начисляем очки за тест только если он не был пройден ранее
                 if not previous_quiz_result:
                     award_dascoin_points(request.user, 10, f"Прохождение теста {quiz.name}")
@@ -435,9 +462,10 @@ def get_finish(request) -> HttpResponse:
     elif course and not passed:
         # Проверяем, является ли этот тест финальным для курса
         if course.final_quiz == quiz:
-            # Считаем количество неуспешных попыток для этого теста
+            # Считаем количество неуспешных попыток для этого теста в рамках курса
             failed_attempts = QuizResult.objects.filter(
                 user=request.user,
+                course=course,
                 quiz_title=quiz.name,
                 passed=False
             ).count()

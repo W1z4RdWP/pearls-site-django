@@ -281,3 +281,20 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 });
 
+
+// --- Отключение блока прогресса курсов ---
+const toggleCoursesProgressBtn = document.getElementById('toggle-courses-progress-btn');
+const profileCoursesProgress = document.getElementById('profile-courses-progress');
+
+function toggleCoursesProgress() {
+    if (profileCoursesProgress.style.display === 'block') {
+        profileCoursesProgress.style.display = 'none';
+        toggleCoursesProgressBtn.innerHTML = '📂';
+    } else {
+        profileCoursesProgress.style.display = 'block';
+        toggleCoursesProgressBtn.innerHTML = '📁';
+    }
+}
+
+
+
