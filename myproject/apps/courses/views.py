@@ -939,6 +939,9 @@ def complete_lesson(request, course_slug, lesson_id):
         lesson=lesson,
         defaults={'completed': True, 'course': course}
     )
+    
+    # Проверяем и выдаем бейдж "Первый шаг" за первый урок после регистрации
+    award_first_lesson_badge(user)
 
     # Получаем общее количество материалов для пользователя
     if trajectory:
