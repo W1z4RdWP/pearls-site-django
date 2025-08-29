@@ -243,6 +243,7 @@ class UserLessonTrajectory(models.Model):
     def __str__(self):
         return f"Траектория {self.user.username} для {self.course.title}"
 
+
 class Trajectory(models.Model):
     """
     Траектория курсов. Может быть назначена нескольким группам и содержать курсы в определённом порядке.
@@ -271,6 +272,7 @@ class Trajectory(models.Model):
     def __str__(self) -> str:
         return self.name
 
+
 class TrajectoryCourse(models.Model):
     """
     Промежуточная модель для связи Trajectory и Course с порядком (order).
@@ -290,6 +292,7 @@ class TrajectoryCourse(models.Model):
 
     def __str__(self) -> str:
         return f"{self.trajectory.name}: {self.course.title} (#{self.order})"
+
 
 class UserCourseTrajectory(models.Model):
     """

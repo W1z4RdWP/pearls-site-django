@@ -954,7 +954,7 @@ def ajax_search_tree(request):
     is_readonly = not (user.is_staff or user.is_superuser)
     
     if is_readonly:
-        # Для readonly пользователей получаем доступные уроки
+        # Для readonly пользователей получаем доступные уроки через курсы
         user_courses = UserCourse.objects.filter(user=user).select_related('course')
         allowed_courses = [uc.course for uc in user_courses if uc.status in ['available', 'started', 'completed']]
         allowed_lesson_ids = set()
@@ -965,11 +965,34 @@ def ajax_search_tree(request):
             else:
                 allowed_lesson_ids.update(course.lessons.values_list('id', flat=True))
         
+        # ДОБАВЛЯЕМ доступ через группы (как в filter_categories_and_lessons_for_user)
+        def collect_group_accessible_lessons():
+            group_lesson_ids = set()
+            root_categories = CategoryName.objects.filter(parent=None)
+            for cat in root_categories:
+                cat_data = get_category_tree_data(cat.id)
+                if cat_data:
+                    def collect_from_category(cat_data, parent_access=False):
+                        cat_id = cat_data['id']
+                        cat_obj = CategoryName.objects.get(id=cat_id)
+                        has_access = parent_access or user_has_category_access(user, cat_obj)
+                        group_ids = set()
+                        if has_access:
+                            group_ids.update(lesson['id'] for lesson in cat_data['lessons'])
+                        for subcat in cat_data['subcategories']:
+                            group_ids.update(collect_from_category(subcat, has_access))
+                        return group_ids
+                    group_lesson_ids.update(collect_from_category(cat_data))
+            return group_lesson_ids
+        
+        group_access_lesson_ids = collect_group_accessible_lessons()
+        allowed_lesson_ids.update(group_access_lesson_ids)
+        
         # Ищем уроки только среди разрешенных
-        lessons = Lesson.objects.filter(
+        lessons = list(Lesson.objects.filter(
             title__icontains=q,
             id__in=allowed_lesson_ids
-        ).values_list('id', flat=True)
+        ).values_list('id', flat=True))
         
         # Для категорий нужно найти только те, которые содержат доступные уроки
         # Получаем все категории с уроками, содержащими поисковый запрос
@@ -1018,7 +1041,7 @@ def ajax_search_tree(request):
         categories = list(CategoryName.objects.filter(name__icontains=q).values_list('id', flat=True))
         lessons = list(Lesson.objects.filter(title__icontains=q).values_list('id', flat=True))
     
-    return JsonResponse({'categories': categories, 'lessons': list(lessons)})
+    return JsonResponse({'categories': categories, 'lessons': lessons})
 
 @csrf_exempt
 @login_required

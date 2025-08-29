@@ -23,4 +23,16 @@ urlpatterns = [
     path('lessons/<int:lesson_id>/allowed-roles/', views.lesson_allowed_roles_json, name='lesson_allowed_roles_json'),
     path('lessons/<int:lesson_id>/allowed-roles/add/', views.lesson_add_allowed_role, name='lesson_add_allowed_role'),
     path('lessons/<int:lesson_id>/allowed-roles/<int:role_id>/remove/', views.lesson_remove_allowed_role, name='lesson_remove_allowed_role'),
+
+
+    # Административная панель статистики DASCOIN
+    path('admin/dascoin_dashboard/', views.AdminDashboardView.as_view(), name='admin_dascoin_dashboard'),
+    path('admin/stats/export/excel/', views.export_admin_stats_excel, name='export_admin_stats_excel'),
+    path('admin/stats/export/pdf/', views.export_admin_stats_pdf, name='export_admin_stats_pdf'),
+
+    # Административный просмотр транзакций пользователей
+    path('admin/user/<int:user_id>/transactions/', views.AdminUserTransactionsView.as_view(), name='admin_user_transactions'),
+    path('admin/user/<int:user_id>/transactions/export/excel/', views.export_admin_user_transactions_excel, name='export_admin_user_transactions_excel'),
+    path('admin/user/<int:user_id>/transactions/export/pdf/', views.export_admin_user_transactions_pdf, name='export_admin_user_transactions_pdf'),
+
 ]

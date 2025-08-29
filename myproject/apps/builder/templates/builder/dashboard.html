@@ -23,7 +23,7 @@
             <a href="{% url 'builder:trajectory_management' %}" class="list-group-item list-group-item-action {% if request.resolver_match.url_name == 'trajectory_management' %}active{% endif %}">
                 <i class="fas fa-route"></i> Управление траекториями
             </a>
-            <a href="{% url 'users:admin_dascoin_dashboard' %}" class="list-group-item list-group-item-action {% if request.resolver_match.url_name == 'admin_dascoin_dashboard' %}active{% endif %}">
+            <a href="{% url 'user_management:admin_dascoin_dashboard' %}" class="list-group-item list-group-item-action {% if request.resolver_match.url_name == 'admin_dascoin_dashboard' %}active{% endif %}">
                 <i class="fas fa-chart-line"></i> Статистика DASCOIN
             </a>
             <div class="list-group-item list-group-item-action">
