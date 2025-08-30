@@ -1,5 +1,6 @@
 from django.utils import timezone
 from django.shortcuts import render, redirect, get_object_or_404
+from django.urls import reverse
 from django.db.models import Max
 from django.views.generic import DetailView, ListView, TemplateView
 from django.contrib.auth.models import User
@@ -1079,11 +1080,13 @@ class TrajectoryCreateView(UserPassesTestMixin, CreateView):
     """
     model = Trajectory
     fields = ['name', 'description', 'groups', 'certificate']
-    template_name = 'courses/trajectory_form.html'
-    success_url = '/builder/trajectory-management/'
+    template_name = 'courses/create_trajectory.html'
 
     def test_func(self):
         return self.request.user.is_staff or self.request.user.is_superuser
+
+    def get_success_url(self):
+        return reverse('builder:trajectory_courses', kwargs={'trajectory_id': self.object.id})
 
     def form_valid(self, form):
         response = super().form_valid(form)

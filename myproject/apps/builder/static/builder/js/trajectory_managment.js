@@ -8,10 +8,7 @@ function showCreateCourseModal() {
     modal.show();
 }
 
-function showCreateTrajectoryModal() {
-    var modal = new bootstrap.Modal(document.getElementById('createTrajectoryModal'));
-    modal.show();
-}
+
 
 function showCreateQuizModal() {
     var modal = new bootstrap.Modal(document.getElementById('createQuizModal'));
@@ -263,47 +260,7 @@ $(document).ready(function() {
         });
     });
 
-    // Обработка создания траектории
-    $('#createTrajectoryForm').on('submit', function(e) {
-        e.preventDefault();
-        var form = $(this);
-        var submitBtn = form.find('button[type="submit"]');
-        var originalText = submitBtn.text();
-        
-        // Показываем индикатор загрузки
-        submitBtn.prop('disabled', true).text('Создание...');
-        
-        $.ajax({
-            url: form.attr('action'),
-            method: 'POST',
-            data: form.serialize(),
-            headers: {
-                'X-Requested-With': 'XMLHttpRequest'
-            },
-            success: function(data) {
-                if (data.success) {
-                    showNotification('Траектория успешно создана!', 'success');
-                    var modal = bootstrap.Modal.getInstance(document.getElementById('createTrajectoryModal'));
-                    modal.hide();
-                    // Перезагружаем страницу для обновления статистики
-                    setTimeout(function() {
-                        location.reload();
-                    }, 1000);
-                } else {
-                    showNotification('Ошибка при создании траектории', 'error');
-                }
-            },
-            error: function(xhr, status, error) {
-                console.error('Ошибка AJAX:', error);
-                console.error('Статус:', xhr.status);
-                console.error('Ответ:', xhr.responseText);
-                showNotification('Ошибка при создании траектории: ' + error, 'error');
-            },
-            complete: function() {
-                submitBtn.prop('disabled', false).text(originalText);
-            }
-        });
-    });
+
 
     // Обработка создания теста
     $('#createQuizForm').on('submit', function(e) {
