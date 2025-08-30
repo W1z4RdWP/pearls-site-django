@@ -541,12 +541,20 @@ class UserProgressDashboardView(DetailView):
             
             # Добавляем тесты курса
             for quiz in course.quizzes.all():
-                quiz_result = QuizResult.objects.filter(
+                # Получаем все попытки теста
+                quiz_attempts = QuizResult.objects.filter(
                     user=user,
                     course=course,
-                    quiz_title=quiz.name,
-                    passed=True
-                ).first()
+                    quiz_title=quiz.name
+                ).order_by('-completed_at')
+                
+                # Проверяем, есть ли успешная попытка
+                quiz_result = quiz_attempts.filter(passed=True).first()
+                
+                # Получаем лучшую попытку (по проценту, затем по дате)
+                best_attempt = None
+                if quiz_attempts.exists():
+                    best_attempt = sorted(quiz_attempts, key=lambda x: (x.percent, x.completed_at), reverse=True)[0]
                 
                 materials_detail.append({
                     'type': 'quiz',
@@ -554,7 +562,9 @@ class UserProgressDashboardView(DetailView):
                     'completed': quiz_result is not None,
                     'completed_at': quiz_result.completed_at if quiz_result else None,
                     'order': quiz.order,
-                    'title': quiz.name
+                    'title': quiz.name,
+                    'attempts_count': quiz_attempts.count(),
+                    'best_attempt': best_attempt
                 })
             
             # Сортируем материалы по порядку

@@ -2,13 +2,13 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.http import HttpRequest, HttpResponse, JsonResponse
 from django.views.decorators.http import require_http_methods
 from django.db.models import Count, Exists, OuterRef
-from django.contrib import messages  # Добавлен импорт
+from django.contrib import messages
 from django.views.generic import DetailView, TemplateView
 from django.core.paginator import Paginator
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 
 from myapp.models import QuizResult, UserCourse, UserAnswer, UserProgress
-from courses.models import Course  # Добавлен импорт модели Course
+from courses.models import Course
 from .models import Quiz, Question, Answer, QuizAttempt
 from .utils import DataMixin
 from gamification.utils import award_dascoin_points, award_achievement, award_course_badge
@@ -63,6 +63,41 @@ def get_questions(request, quiz_id: int = None, is_start: bool = False) -> HttpR
         # Проверяем ограничения попыток при старте теста
         if is_start and request.user.is_authenticated:
             quiz = get_object_or_404(Quiz, id=quiz_id)
+            
+            # Проверяем доступ к курсу, если тест связан с курсом
+            course_slug = request.GET.get('course_slug')
+            if course_slug:
+                try:
+                    course = Course.objects.get(slug=course_slug)
+                    # Получаем UserCourse для проверки статуса
+                    user_course = UserCourse.objects.filter(user=request.user, course=course).first()
+                    if not user_course:
+                        # Создаем UserCourse если его нет
+                        user_course = UserCourse.objects.create(user=request.user, course=course, status='available')
+                    
+                    # Блокируем доступ к тесту, если курс не начат
+                    if user_course.status not in ['started', 'completed']:
+                        return render(request, 'courses/quiz_start_required.html', {'course': course})
+                except Course.DoesNotExist:
+                    pass
+            else:
+                # Если course_slug не передан, проверяем связь теста с курсом через модели
+                from django.db import models
+                # Ищем курсы, связанные с этим тестом
+                related_courses = Course.objects.filter(
+                    models.Q(final_quiz=quiz) | models.Q(course_quizzes=quiz)
+                ).distinct()
+                
+                if related_courses.exists():
+                    # Проверяем статус курса для пользователя
+                    for course in related_courses:
+                        user_course = UserCourse.objects.filter(user=request.user, course=course).first()
+                        if not user_course:
+                            user_course = UserCourse.objects.create(user=request.user, course=course, status='available')
+                        
+                        # Блокируем доступ к тесту, если курс не начат
+                        if user_course.status not in ['started', 'completed']:
+                            return render(request, 'courses/quiz_start_required.html', {'course': course})
             
             # Проверяем блокировку теста для этого пользователя
             from .models import QuizLock

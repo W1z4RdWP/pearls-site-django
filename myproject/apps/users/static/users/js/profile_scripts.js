@@ -289,10 +289,10 @@ const profileCoursesProgress = document.getElementById('profile-courses-progress
 function toggleCoursesProgress() {
     if (profileCoursesProgress.style.display === 'block') {
         profileCoursesProgress.style.display = 'none';
-        toggleCoursesProgressBtn.innerHTML = '📂';
+        toggleCoursesProgressBtn.innerHTML = '📁';
     } else {
         profileCoursesProgress.style.display = 'block';
-        toggleCoursesProgressBtn.innerHTML = '📁';
+        toggleCoursesProgressBtn.innerHTML = '📂';
     }
 }
 

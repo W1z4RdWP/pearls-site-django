@@ -1241,6 +1241,7 @@ legend{
     border-radius: 12px;
     background: #f8f9fa;
     margin: 10px 0;
+    overflow: hidden;
 }
 
 .upload-method,
