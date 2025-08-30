@@ -1,0 +1,50 @@
+{% extends "layout.html" %}
+{% load static %}
+
+{% block specific_styles %}
+    <link rel="stylesheet" href="{% static 'quizzes/css/quiz_styles.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="quiz-container">
+    <div class="quiz-header">
+        <h2>{{ quiz.name }}</h2>
+        <p class="text-muted">Курс: {{ course.title }}</p>
+    </div>
+    
+    <div class="result-summary">
+        {% if passed %}
+            <div class="alert alert-success">
+                <h4><i class="fa fa-check-circle"></i> Тест пройден!</h4>
+                <p><strong>Результат:</strong> {{ best_result.score }}/{{ best_result.total_questions }} правильных ответов</p>
+                <p><strong>Ваш результат:</strong> {{ best_result.percent }}%</p>
+                <p><strong>Проходной балл:</strong> {{ pass_threshold }}%</p>
+                <p><strong>Дата сдачи теста:</strong> {{ last_attempt.completed_at|date:"d.m.Y H:i" }}</p>
+            </div>
+        {% else %}
+            <div class="alert alert-warning">
+                <h4><i class="fa fa-exclamation-triangle"></i> Тест не пройден</h4>
+                <p><strong>Лучший результат:</strong> {{ best_result.score }}/{{ best_result.total_questions }} правильных ответов</p>
+                <p><strong>Ваш результат:</strong> {{ best_result.percent }}%</p>
+                <p><strong>Проходной балл:</strong> {{ pass_threshold }}%</p>
+                <p><strong>Последняя попытка:</strong> {{ last_attempt.completed_at|date:"d.m.Y H:i" }}</p>
+
+            </div>
+        {% endif %}
+        
+        <div class="progress-bar-finish mb-4">
+            <div class="progress-bar-finish__progress" style="width: {{ best_result.percent }}%"></div>
+        </div>
+        
+        <div class="d-flex gap-3 justify-content-center">
+            <a href="{% url 'quizzes:quiz_start' quiz_id=quiz.id %}?course_slug={{ course.slug }}" class="btn-quiz">
+                <i class="fa fa-redo"></i> Пройти еще раз
+            </a>
+            
+            <a href="{% url 'courses:course_detail' slug=course.slug %}" class="btn-quiz finish-btn">
+                <i class="fa fa-arrow-left"></i> Вернуться к курсу
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %} 

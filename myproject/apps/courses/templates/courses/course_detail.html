@@ -90,16 +90,24 @@
                             {% endif %}
                         </a>
                     {% elif material.type == 'quiz' %}
-                        <a href="{% url 'quizzes:quiz_start' quiz_id=material.id %}?course_slug={{ course.slug }}" 
-                           class="list-group-item list-group-item-action d-flex align-items-center">
-                            <span class="me-2">🎓 (<i>Тест</i>)</span>
-                            <div class="flex-grow-1">
-                                {{ material.title }}
-                            </div>
-                            {% if user_course and user_course.status in 'started,completed' and material.title in completed_quizzes_ids %}
+                        {% if user_course and user_course.status in 'started,completed' and material.title in completed_quizzes_ids %}
+                            <a href="{% url 'quizzes:quiz_best_result' quiz_id=material.id %}?course_slug={{ course.slug }}" 
+                               class="list-group-item list-group-item-action d-flex align-items-center">
+                                <span class="me-2">🎓 (<i>Тест</i>)</span>
+                                <div class="flex-grow-1">
+                                    {{ material.title }}
+                                </div>
                                 <span class="badge bg-success">✓</span>
-                            {% endif %}
-                        </a>
+                            </a>
+                        {% else %}
+                            <a href="{% url 'quizzes:quiz_start' quiz_id=material.id %}?course_slug={{ course.slug }}" 
+                               class="list-group-item list-group-item-action d-flex align-items-center">
+                                <span class="me-2">🎓 (<i>Тест</i>)</span>
+                                <div class="flex-grow-1">
+                                    {{ material.title }}
+                                </div>
+                            </a>
+                        {% endif %}
                     {% endif %}
                 {% endfor %}
             </div>
@@ -148,9 +156,15 @@
                                                 <i class="fa fa-lock"></i> Тест заблокирован
                                             </span>
                                         {% else %}
-                                            <a href="{% url 'quizzes:quiz_start' quiz_id=course.final_quiz.id %}?course_slug={{ course.slug }}" class="btn-modern">
-                                                <i class="fa fa-check-circle"></i> Пройти тест
-                                            </a>
+                                            {% if quiz_passed %}
+                                                <a href="{% url 'quizzes:quiz_best_result' quiz_id=course.final_quiz.id %}?course_slug={{ course.slug }}" class="btn-modern">
+                                                    <i class="fa fa-check-circle"></i> Посмотреть результат
+                                                </a>
+                                            {% else %}
+                                                <a href="{% url 'quizzes:quiz_start' quiz_id=course.final_quiz.id %}?course_slug={{ course.slug }}" class="btn-modern">
+                                                    <i class="fa fa-check-circle"></i> Пройти тест
+                                                </a>
+                                            {% endif %}
                                         {% endif %}
                                     {% else %}
                                         <p>Для успешной сдачи финального тестирования, пожалуйста, внимательно изучите весь представленный материал. Тест будет назначен по завершении обучения.</p>

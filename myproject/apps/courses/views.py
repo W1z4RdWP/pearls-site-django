@@ -441,6 +441,7 @@ class CourseDetailView(DetailView):
             'next_course_in_trajectory': next_course_in_trajectory,
             'user_trajectories_info': user_trajectories_info,
             'quiz_attempts_info': locals().get('quiz_attempts_info'),
+            'quiz_passed': locals().get('quiz_passed', False),
         })
         
         return context

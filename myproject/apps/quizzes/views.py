@@ -556,6 +556,52 @@ def _reset_quiz(request) -> HttpRequest:
             del request.session[key]
     return request
 
+def quiz_best_result(request, quiz_id: int) -> HttpResponse:
+    """
+    Отображает лучший результат теста для пользователя в рамках курса.
+    Если тест пройден выше проходного балла - показывает дату сдачи,
+    если ниже - показывает последнюю попытку.
+    """
+    if not request.user.is_authenticated:
+        return redirect('users:login')
+    
+    quiz = get_object_or_404(Quiz, id=quiz_id)
+    course_slug = request.GET.get('course_slug')
+    
+    if not course_slug:
+        return redirect('quizzes')
+    
+    course = get_object_or_404(Course, slug=course_slug)
+    
+    # Получаем лучший результат теста для этого пользователя в рамках курса
+    best_result = QuizResult.objects.filter(
+        user=request.user,
+        quiz_title=quiz.name,
+        course=course
+    ).order_by('-percent', '-completed_at').first()
+    
+    if not best_result:
+        # Если результатов нет, перенаправляем на начало теста
+        return redirect('quizzes:quiz_start', quiz_id=quiz_id)
+    
+    # Получаем последнюю попытку для отображения даты
+    last_attempt = QuizResult.objects.filter(
+        user=request.user,
+        quiz_title=quiz.name,
+        course=course
+    ).order_by('-completed_at').first()
+    
+    context = {
+        'quiz': quiz,
+        'course': course,
+        'best_result': best_result,
+        'last_attempt': last_attempt,
+        'passed': best_result.passed,
+        'pass_threshold': quiz.pass_threshold,
+    }
+    
+    return render(request, 'quizzes/quiz_best_result.html', context)
+
 def start_quiz_handler(request):
     if request.method == 'POST':
         quiz_id = request.POST.get('quiz_id')
