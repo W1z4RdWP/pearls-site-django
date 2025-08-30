@@ -188,7 +188,12 @@ def course_progress(request: HttpRequest) -> HttpResponse:
         # Общий подсчет материалов
         completed_materials = completed_lessons + completed_quizzes
         total_materials = total_lessons + total_quizzes
-        percent = int((completed_materials / total_materials) * 100) if total_materials > 0 else 0
+        
+        # Если у курса нет материалов, считаем его доступным
+        if total_materials == 0:
+            percent = 0
+        else:
+            percent = int((completed_materials / total_materials) * 100)
 
         # Определяем статус курса
         if course.final_quiz:
@@ -200,17 +205,17 @@ def course_progress(request: HttpRequest) -> HttpResponse:
             ).exists()
             
             # Курс считается завершенным только если все материалы пройдены И финальный тест пройден
-            if completed_materials >= total_materials and quiz_passed:
+            if total_materials > 0 and completed_materials >= total_materials and quiz_passed:
                 status = 'completed'
-            elif completed_materials > 0:
+            elif completed_materials > 0 or user_course.status in ['started', 'in_progress']:
                 status = 'in_progress'
             else:
                 status = 'available'
         else:
             # Если нет финального теста, курс завершен когда все материалы пройдены
-            if completed_materials >= total_materials:
+            if total_materials > 0 and completed_materials >= total_materials:
                 status = 'completed'
-            elif completed_materials > 0:
+            elif completed_materials > 0 or user_course.status in ['started', 'in_progress']:
                 status = 'in_progress'
             else:
                 status = 'available'
