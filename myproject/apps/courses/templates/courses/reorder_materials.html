@@ -35,9 +35,9 @@
                             <div class="material-content">
                                 <div class="material-icon">
                                     {% if material.type == 'lesson' %}
-                                        📄
+                                        📄 <i>(Урок)</i>
                                     {% else %}
-                                        🧪
+                                        🎓 <i>(Тест)</i>
                                     {% endif %}
                                 </div>
                                 <div class="material-info">
@@ -69,10 +69,10 @@
                 </div>
                 <div class="card-body">
                     <ul class="list-unstyled">
-                        <li><i class="fa fa-hand-pointer-o text-primary"></i> Перетащите элементы для изменения порядка</li>
+                        <li><i class="fa-regular fa-hand-pointer"></i> Перетащите элементы для изменения порядка</li>
                         <li><i class="fa fa-save text-success"></i> Изменения сохраняются автоматически</li>
-                        <li><i class="fa fa-file-text-o text-info"></i> 📄 - Уроки</li>
-                        <li><i class="fa fa-flask text-warning"></i> 🧪 - Тесты</li>
+                        <li>📄 - Уроки</li>
+                        <li>🎓 - Тесты</li>
                     </ul>
                 </div>
             </div>

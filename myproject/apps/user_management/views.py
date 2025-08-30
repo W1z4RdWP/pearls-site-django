@@ -951,6 +951,29 @@ class AdminDashboardView(LoginRequiredMixin, UserPassesTestMixin, ListView):
         context['total_dascoin_points'] = all_users.aggregate(total=Sum('profile__dascoin_points'))['total'] or 0
         context['active_users'] = all_users.filter(is_active=True).count()
         
+        # Статистика по баллам DASCOIN
+        from gamification.models import DascoinTransaction
+        
+        # Общее количество потраченных баллов (все списания)
+        total_spent_points = DascoinTransaction.objects.filter(
+            transaction_type='deduct'
+        ).aggregate(total=Sum('points_change'))['total'] or 0
+        context['total_spent_points'] = abs(total_spent_points)  # Берем абсолютное значение
+        
+        # Время последнего начисления баллов
+        last_award_transaction = DascoinTransaction.objects.filter(
+            transaction_type='award'
+        ).order_by('-created_at').first()
+        
+        if last_award_transaction:
+            context['last_award_date'] = last_award_transaction.created_at
+            context['last_award_user'] = last_award_transaction.user
+            context['last_award_points'] = last_award_transaction.points_change
+        else:
+            context['last_award_date'] = None
+            context['last_award_user'] = None
+            context['last_award_points'] = None
+        
         # Группы и должности для фильтров
         context['groups'] = Group.objects.all().order_by('name')
         context['roles'] = Role.objects.all().order_by('name')
@@ -1141,11 +1164,28 @@ def export_admin_stats_pdf(request):
     total_dascoin_points = all_users.aggregate(total=Sum('profile__dascoin_points'))['total'] or 0
     active_users = all_users.filter(is_active=True).count()
     
+    # Статистика по баллам DASCOIN
+    total_spent_points = DascoinTransaction.objects.filter(
+        transaction_type='deduct'
+    ).aggregate(total=Sum('points_change'))['total'] or 0
+    total_spent_points = abs(total_spent_points)
+    
+    # Время последнего начисления баллов
+    last_award_transaction = DascoinTransaction.objects.filter(
+        transaction_type='award'
+    ).order_by('-created_at').first()
+    
+    last_award_date = None
+    if last_award_transaction:
+        last_award_date = last_award_transaction.created_at
+    
     html_string = render_to_string('user_management/admin_stats_pdf.html', {
         'users': queryset,
         'total_users': total_users,
         'total_dascoin_points': total_dascoin_points,
         'active_users': active_users,
+        'total_spent_points': total_spent_points,
+        'last_award_date': last_award_date,
         'generated_at': datetime.now(),
         'generated_by': request.user.get_full_name() or request.user.email,
     })

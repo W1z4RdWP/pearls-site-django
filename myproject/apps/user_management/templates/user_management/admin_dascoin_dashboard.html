@@ -24,29 +24,49 @@
                 </div>
                 
                 <!-- Общая статистика -->
-                <div class="card-body border-bottom py-3">
-                    <div class="row text-center">
+                <div class="card-body border-bottom py-2">
+                    <div class="row g-2">
                         <div class="col-md-4">
-                            <div class="card bg-primary text-white">
-                                <div class="card-body py-3">
-                                    <h4 class="mb-1">{{ total_users }}</h4>
-                                    <small>Всего пользователей</small>
+                            <div class="stat-card stat-card-spent">
+                                <div class="stat-content">
+                                    <div class="stat-icon">
+                                        <i class="fas fa-minus-circle"></i>
+                                    </div>
+                                    <div class="stat-info">
+                                        <div class="stat-value">{{ total_spent_points }}</div>
+                                        <div class="stat-label">Потрачено баллов</div>
+                                    </div>
                                 </div>
                             </div>
                         </div>
                         <div class="col-md-4">
-                            <div class="card bg-success text-white">
-                                <div class="card-body py-3">
-                                    <h4 class="mb-1">{{ total_dascoin_points }}</h4>
-                                    <small>Общее количество DASCOIN</small>
+                            <div class="stat-card stat-card-total">
+                                <div class="stat-content">
+                                    <div class="stat-icon">
+                                        <i class="fas fa-coins"></i>
+                                    </div>
+                                    <div class="stat-info">
+                                        <div class="stat-value">{{ total_dascoin_points }}</div>
+                                        <div class="stat-label">Общее количество DASCOIN</div>
+                                    </div>
                                 </div>
                             </div>
                         </div>
                         <div class="col-md-4">
-                            <div class="card bg-warning text-dark">
-                                <div class="card-body py-3">
-                                    <h4 class="mb-1">{{ active_users }}</h4>
-                                    <small>Активных пользователей</small>
+                            <div class="stat-card stat-card-last">
+                                <div class="stat-content">
+                                    <div class="stat-icon">
+                                        <i class="fas fa-clock"></i>
+                                    </div>
+                                    <div class="stat-info">
+                                        {% if last_award_date %}
+                                            <div class="stat-value">{{ last_award_date|date:"d.m.Y" }}</div>
+                                            <div class="stat-label">{{ last_award_date|date:"H:i" }} - Последнее начисление</div>
+                                        {% else %}
+                                            <div class="stat-value">—</div>
+                                            <div class="stat-label">Нет данных</div>
+                                        {% endif %}
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -293,6 +313,72 @@
 </div>
 
 <style>
+    /* Стили для блоков статистики */
+    .stat-card {
+        background: #f8f9fa;
+        border: 1px solid #e9ecef;
+        border-radius: 8px;
+        padding: 1rem;
+        transition: all 0.2s ease;
+        height: 100%;
+    }
+    
+    .stat-card:hover {
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        transform: translateY(-1px);
+    }
+    
+    .stat-content {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+    }
+    
+    .stat-icon {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.2rem;
+        flex-shrink: 0;
+    }
+    
+    .stat-card-spent .stat-icon {
+        background: #f8d7da;
+        color: #721c24;
+    }
+    
+    .stat-card-total .stat-icon {
+        background: #d4edda;
+        color: #155724;
+    }
+    
+    .stat-card-last .stat-icon {
+        background: #d1ecf1;
+        color: #0c5460;
+    }
+    
+    .stat-info {
+        flex: 1;
+        min-width: 0;
+    }
+    
+    .stat-value {
+        font-size: 1.25rem;
+        font-weight: 600;
+        color: #212529;
+        margin-bottom: 0.25rem;
+        line-height: 1.2;
+    }
+    
+    .stat-label {
+        font-size: 0.8rem;
+        color: #6c757d;
+        line-height: 1.2;
+    }
+    
     .table th {
         font-weight: 600;
         border-top: none;
@@ -420,6 +506,28 @@
         .card-header {
             flex-direction: column;
             gap: 1rem;
+        }
+        
+        .stat-card {
+            padding: 0.75rem;
+        }
+        
+        .stat-content {
+            gap: 0.5rem;
+        }
+        
+        .stat-icon {
+            width: 32px;
+            height: 32px;
+            font-size: 1rem;
+        }
+        
+        .stat-value {
+            font-size: 1.1rem;
+        }
+        
+        .stat-label {
+            font-size: 0.75rem;
         }
         
         .table-responsive {
