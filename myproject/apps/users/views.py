@@ -60,15 +60,14 @@ class RegisterView(LoginRequiredMixin, FormView):
 @login_required
 def profile(request: HttpRequest) -> HttpResponse:
     """
-    Отображает страницу профиля пользователя, а также его прогресс
-    по начатым курсам.
+    Отображает страницу профиля пользователя.
 
     Args:
         request (HttpRequest): Объект запроса.
 
     Returns:
         HttpResponse: Ответ с отрендеренным шаблоном профиля.
-        Шаблон включает формы для редактирования профиля и список курсов с прогрессом.
+        Шаблон включает формы для редактирования профиля.
     """
     user = request.user
     try:
@@ -77,112 +76,6 @@ def profile(request: HttpRequest) -> HttpResponse:
         return render(request, 'users/profile_error.html', {
             'error_message': 'Профиль пользователя не найден. Пожалуйста, обратитесь к администратору.'
         })
-    # Получаем все доступные курсы через менеджер
-    available_courses = Course.objects.available_for_user(user)
-    # Получаем UserCourse для каждого доступного курса
-    started_courses = []
-    for course in available_courses:
-        user_course = UserCourse.objects.filter(user=user, course=course).first()
-        if user_course:
-            started_courses.append(user_course)
-        else:
-            # Создаем UserCourse если его нет (для курсов из траекторий)
-            user_course = UserCourse.objects.create(user=user, course=course, status='available')
-            started_courses.append(user_course)
-    unfinished_courses = []
-    finished_courses = []
-    quiz_results = QuizResult.objects.filter(user=request.user).order_by('-completed_at')
-    # Пагинация для истории тестов
-    paginator = Paginator(quiz_results, 4)  # 4 элементов на странице
-    page_number = request.GET.get('page', 1)
-
-    try:
-        page_obj = paginator.page(page_number)
-    except PageNotAnInteger:
-        page_obj = paginator.page(1)
-    except EmptyPage:
-        page_obj = paginator.page(paginator.num_pages)
-
-        # Проверка на AJAX-запрос
-    if request.headers.get('x-requested-with') == 'XMLHttpRequest':
-        # Логирование действия
-        audit_logger.info(
-                    'Смотрит истории своих тестов в профиле', 
-        extra={
-            'user': request.user.email if request.user.is_authenticated else 'Anonymous'
-        }
-        )
-        return render(request, 'users/includes/_quiz_history.html', {'page_obj': page_obj})
-
-    all_lessons_completed = False
-    percent = 0 
-
-    for user_course in started_courses:
-        course = user_course.course
-        
-        # Подсчет завершенных уроков
-        completed_lessons = UserProgress.objects.filter(
-            user=user,
-            course=course,
-            completed=True
-        ).count()
-
-        trajectory = UserLessonTrajectory.objects.filter(user=request.user, course=course).first()
-        total_lessons = trajectory.lessons.count() if trajectory else course.lessons.count()
-        
-        # Подсчет завершенных тестов в рамках этого курса
-        completed_quizzes = QuizResult.objects.filter(
-            user=user,
-            course=course,
-            quiz_title__in=[quiz.name for quiz in course.quizzes.all()],
-            passed=True
-        ).count()
-        total_quizzes = course.quizzes.count()
-        
-        # Общий подсчет материалов
-        completed_materials = completed_lessons + completed_quizzes
-        total_materials = total_lessons + total_quizzes
-        percent = int((completed_materials / total_materials) * 100) if total_materials > 0 else 0
-
-        course_data = {
-            'course': course,
-            'completed': completed_lessons,
-            'completed_quizzes': completed_quizzes,
-            'total': total_lessons,
-            'total_quizzes': total_quizzes,
-            'completed_materials': completed_materials,
-            'total_materials': total_materials,
-            'percent': percent,
-            'status': user_course.status
-        }
-
-        if course.final_quiz:
-            quiz_passed = QuizResult.objects.filter(
-                user=request.user,
-                course=course,
-                quiz_title=course.final_quiz.name,
-                passed=True
-            ).exists()
-            course_data['quiz_passed'] = quiz_passed
-
-        # Курс считается завершенным только если все материалы пройдены И финальный тест пройден
-        all_materials_completed = (completed_lessons >= total_lessons and completed_quizzes >= total_quizzes)
-        
-        if all_materials_completed and course.final_quiz:
-            if quiz_passed:
-                finished_courses.append(course_data)
-            else:
-                # Все материалы пройдены, но финальный тест не пройден - оставляем в незавершенных
-                unfinished_courses.append(course_data)
-        elif all_materials_completed and not course.final_quiz:
-            # Все материалы пройдены и нет финального теста - курс завершен
-            finished_courses.append(course_data)
-        else:
-            # Не все материалы пройдены - курс незавершен
-            unfinished_courses.append(course_data)
-
-        # Обновляем флаг завершения всех уроков
-        all_lessons_completed = (percent == 100) or all_lessons_completed
 
     if request.method == 'POST':
         user_form = UserUpdateForm(request.POST, instance=request.user)
@@ -195,7 +88,6 @@ def profile(request: HttpRequest) -> HttpResponse:
         user_form = UserUpdateForm(instance=request.user)
         profile_form = ProfileUpdateForm(instance=profile)
 
-
     # Логирование действия
     audit_logger.info(
         'Перешёл в свой профиль', 
@@ -207,11 +99,6 @@ def profile(request: HttpRequest) -> HttpResponse:
     return render(request, 'users/profile.html', {
         'user_form': user_form,
         'profile_form': profile_form,
-        'unfinished_courses': unfinished_courses,
-        'finished_courses': finished_courses,
-        'quiz_results': quiz_results,
-        'page_obj': page_obj,
-        'all_lessons_completed': all_lessons_completed,
         'dascoin_points': profile.dascoin_points,
         'recent_badges': profile.get_recent_badges(),
         'recent_achievements': profile.get_recent_achievements(),
@@ -253,6 +140,120 @@ def all_achievements(request: HttpRequest) -> HttpResponse:
     }
     
     return render(request, 'users/includes/_all_achievements.html', context)
+
+
+@login_required
+def course_progress(request: HttpRequest) -> HttpResponse:
+    """Отображает прогресс по курсам пользователя"""
+    user = request.user
+    
+    # Получаем все доступные курсы через менеджер
+    available_courses = Course.objects.available_for_user(user)
+    
+    # Получаем UserCourse для каждого доступного курса
+    user_courses = []
+    for course in available_courses:
+        user_course = UserCourse.objects.filter(user=user, course=course).first()
+        if user_course:
+            user_courses.append(user_course)
+        else:
+            # Создаем UserCourse если его нет (для курсов из траекторий)
+            user_course = UserCourse.objects.create(user=user, course=course, status='available')
+            user_courses.append(user_course)
+    
+    # Подготавливаем данные для каждого курса
+    courses_data = []
+    for user_course in user_courses:
+        course = user_course.course
+        
+        # Подсчет завершенных уроков
+        completed_lessons = UserProgress.objects.filter(
+            user=user,
+            course=course,
+            completed=True
+        ).count()
+
+        trajectory = UserLessonTrajectory.objects.filter(user=user, course=course).first()
+        total_lessons = trajectory.lessons.count() if trajectory else course.lessons.count()
+        
+        # Подсчет завершенных тестов в рамках этого курса
+        completed_quizzes = QuizResult.objects.filter(
+            user=user,
+            course=course,
+            quiz_title__in=[quiz.name for quiz in course.quizzes.all()],
+            passed=True
+        ).count()
+        total_quizzes = course.quizzes.count()
+        
+        # Общий подсчет материалов
+        completed_materials = completed_lessons + completed_quizzes
+        total_materials = total_lessons + total_quizzes
+        percent = int((completed_materials / total_materials) * 100) if total_materials > 0 else 0
+
+        # Определяем статус курса
+        if course.final_quiz:
+            quiz_passed = QuizResult.objects.filter(
+                user=user,
+                course=course,
+                quiz_title=course.final_quiz.name,
+                passed=True
+            ).exists()
+            
+            # Курс считается завершенным только если все материалы пройдены И финальный тест пройден
+            if completed_materials >= total_materials and quiz_passed:
+                status = 'completed'
+            elif completed_materials > 0:
+                status = 'in_progress'
+            else:
+                status = 'available'
+        else:
+            # Если нет финального теста, курс завершен когда все материалы пройдены
+            if completed_materials >= total_materials:
+                status = 'completed'
+            elif completed_materials > 0:
+                status = 'in_progress'
+            else:
+                status = 'available'
+
+        course_data = {
+            'course': course,
+            'user_course': user_course,
+            'completed_lessons': completed_lessons,
+            'completed_quizzes': completed_quizzes,
+            'total_lessons': total_lessons,
+            'total_quizzes': total_quizzes,
+            'completed_materials': completed_materials,
+            'total_materials': total_materials,
+            'percent': percent,
+            'status': status,
+            'quiz_passed': quiz_passed if course.final_quiz else None
+        }
+        
+        courses_data.append(course_data)
+    
+    # Фильтрация по статусу
+    status_filter = request.GET.get('status', 'all')
+    if status_filter != 'all':
+        courses_data = [course for course in courses_data if course['status'] == status_filter]
+    
+    # Логирование действия
+    audit_logger.info(
+        'Перешёл на страницу прогресса курсов', 
+        extra={
+            'user': request.user.email if request.user.is_authenticated else 'Anonymous'
+        }
+    )
+    
+    context = {
+        'courses_data': courses_data,
+        'status_filter': status_filter,
+        'total_courses': len(courses_data),
+        'completed_courses': len([c for c in courses_data if c['status'] == 'completed']),
+        'in_progress_courses': len([c for c in courses_data if c['status'] == 'in_progress']),
+        'available_courses': len([c for c in courses_data if c['status'] == 'available']),
+    }
+    
+    return render(request, 'users/course_progress.html', context)
 
 
 @login_required

@@ -56,13 +56,6 @@
             <button class="btn-modern" id="edit-profile-btn">
                 <i class="fa fa-edit"></i> Редактировать
             </button>
-            <button class="btn-modern" id="toggle-quizzes-btn">
-                <i class="fa fa-list" aria-hidden="true"></i> Показать тесты
-            </button>
-            <button class="btn-modern" id="toggle-courses-btn">
-                <i class="fa fa-graduation-cap"></i> Показать завершенные курсы
-            </button>
-
         </div>
 
         
@@ -216,111 +209,6 @@
                     </a>
                 </div>
             </form>
-        </div>
-    </div>
-    <div class="profile-courses-progress-header">
-        <h2>Ваш прогресс</h2>
-        <button id="toggle-courses-progress-btn" onclick="toggleCoursesProgress()">❌</button>
-    </div>
-    <div class="container mt-4 profile-courses-progress" id="profile-courses-progress">
-            
-        <!-- Блок для незавершенных курсов -->
-        <div id="unfinished-courses">
-            {% if unfinished_courses %}
-                {% for progress in unfinished_courses %}
-                <div class="card mb-3">
-                    <div class="card-body">
-                        <h5 class="card-title">{{ progress.course.title }}</h5>
-                        <div class="progress">
-                            <div class="progress-bar" 
-                                style="width: {{ progress.percent }}%" 
-                                aria-valuenow="{{ progress.percent }}" 
-                                aria-valuemin="0" 
-                                aria-valuemax="100">
-                                {{ progress.percent }}%
-                            </div>
-                        </div>
-                        <p class="mt-2">
-                            Пройдено уроков: {{ progress.completed }} из {{ progress.total }}{% if progress.total_quizzes > 0 %}, тестов: {{ progress.completed_quizzes }} из {{ progress.total_quizzes }}{% endif %}
-                        </p>
-
-                        {% if progress.status == 'started' %}
-                            {% if progress.course.final_quiz %}
-                                <div class="quiz-status">
-                                {% if progress.quiz_passed %}
-                                    <span class="badge bg-success">Тест пройден</span>
-                                {% elif progress.percent == 100 %}
-                                    <span class="badge bg-warning">Требуется тест</span>
-                                    <a href="{% url 'quizzes:quiz_start' progress.course.final_quiz.id %}" 
-                                    class="btn btn-sm btn-primary">
-                                    Пройти тест</a>
-                                {% else %}
-                                    <span class="badge bg-info">После завершения уроков курса, необходимо пройти тест</span>
-                                {% endif %}
-                                </div>
-                            {% endif %}
-                        {% endif %}
-                        <div class="btn-group">
-                            <a href="{% url 'courses:course_detail' progress.course.slug %}" 
-                            class="btn btn-primary">
-                                Перейти к курсу
-                            </a>
-                        </div>
-                    </div>
-                </div>
-                {% endfor %}
-            {% else %}
-                <div class="alert alert-info">Вы еще не начали ни одного курса</div>
-            {% endif %}
-        </div>
-
-        <!-- Блок для завершенных курсов (изначально скрыт) -->
-        <div id="finished-courses" style="display: none;">
-            {% if finished_courses %}
-                {% for progress in finished_courses %}
-                <div class="card mb-3">
-                    <div class="card-body">
-                        <h5 class="card-title">{{ progress.course.title }}</h5>
-                        <div class="progress">
-                            <div class="progress-bar" 
-                                 style="width: {{ progress.percent }}%" 
-                                 aria-valuenow="{{ progress.percent }}" 
-                                 aria-valuemin="0" 
-                                 aria-valuemax="100">
-                                {{ progress.percent }}%
-                            </div>
-                        </div>
-                        <p class="mt-2">
-                            Пройдено уроков: {{ progress.completed }} из {{ progress.total }}{% if progress.total_quizzes > 0 %}, тестов: {{ progress.completed_quizzes }} из {{ progress.total_quizzes }}{% endif %}
-                        </p>
-                        <div class="btn-group">
-                            <a href="{% url 'courses:course_detail' progress.course.slug %}" 
-                               class="btn btn-primary">
-                                Перейти к курсу
-                            </a>
-                            <span class="btn btn-success disabled">
-                                Курс завершен
-                            </span>
-                        </div>
-                    </div>
-                </div>
-                {% endfor %}
-            {% else %}
-                <div class="alert alert-info">Вы еще не завершили ни одного курса</div>
-            {% endif %}
-        </div>
- 
-
-    </div>
-
-    <div class="container mt-4 quiz-history-container" style="display: none;">
-        <h2>История тестов</h2>
-        <div id="quiz-history-content">
-            {% if page_obj %}
-                {% include 'users/includes/_quiz_history.html' %}
-            {% else %}
-                <div class="alert alert-info">Вы еще не проходили тесты</div>
-            {% endif %}
         </div>
     </div>
 </div>
