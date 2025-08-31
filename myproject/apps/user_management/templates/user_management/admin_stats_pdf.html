@@ -99,17 +99,22 @@
 
     <div class="stats-grid">
         <div class="stat-card">
-            <h3>{{ total_users }}</h3>
-            <p>Всего пользователей</p>
+            <h3>{{ total_spent_points }}</h3>
+            <p>Потрачено баллов DASCOIN</p>
         </div>
         <div class="stat-card">
             <h3>{{ total_dascoin_points }}</h3>
             <p>Общее количество DASCOIN</p>
         </div>
-
         <div class="stat-card">
-            <h3>{{ active_users }}</h3>
-            <p>Активных пользователей</p>
+            <h3>
+                {% if last_award_date %}
+                    {{ last_award_date|date:"d.m.Y" }}
+                {% else %}
+                    —
+                {% endif %}
+            </h3>
+            <p>Последнее начисление</p>
         </div>
     </div>
 

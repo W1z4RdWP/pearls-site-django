@@ -145,6 +145,26 @@
                                 {% else %}
                                     <span class="um-lesson-not-completed-badge">○</span>
                                 {% endif %}
+                                
+                                {% if material_detail.type == 'quiz' and material_detail.attempts_count > 0 %}
+                                    <div class="um-quiz-attempts-info">
+                                        <small class="um-attempts-count">
+                                            {% if material_detail.attempts_count == 1 %}
+                                                {{ material_detail.attempts_count }} попытка
+                                            {% elif material_detail.attempts_count < 5 %}
+                                                {{ material_detail.attempts_count }} попытки
+                                            {% else %}
+                                                {{ material_detail.attempts_count }} попыток
+                                            {% endif %}
+                                        </small>
+                                        {% if material_detail.best_attempt %}
+                                            <a href="{% url 'user_management:user_quiz_report' material_detail.best_attempt.id %}" 
+                                               class="btn btn-sm btn-outline-info ms-2" title="Лучший результат">
+                                                Отчёт
+                                            </a>
+                                        {% endif %}
+                                    </div>
+                                {% endif %}
                             </div>
                         </div>
                         {% endfor %}

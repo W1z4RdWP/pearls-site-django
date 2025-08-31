@@ -2,13 +2,13 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.http import HttpRequest, HttpResponse, JsonResponse
 from django.views.decorators.http import require_http_methods
 from django.db.models import Count, Exists, OuterRef
-from django.contrib import messages  # Добавлен импорт
+from django.contrib import messages
 from django.views.generic import DetailView, TemplateView
 from django.core.paginator import Paginator
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 
 from myapp.models import QuizResult, UserCourse, UserAnswer, UserProgress
-from courses.models import Course  # Добавлен импорт модели Course
+from courses.models import Course
 from .models import Quiz, Question, Answer, QuizAttempt
 from .utils import DataMixin
 from gamification.utils import award_dascoin_points, award_achievement, award_course_badge
@@ -63,6 +63,41 @@ def get_questions(request, quiz_id: int = None, is_start: bool = False) -> HttpR
         # Проверяем ограничения попыток при старте теста
         if is_start and request.user.is_authenticated:
             quiz = get_object_or_404(Quiz, id=quiz_id)
+            
+            # Проверяем доступ к курсу, если тест связан с курсом
+            course_slug = request.GET.get('course_slug')
+            if course_slug:
+                try:
+                    course = Course.objects.get(slug=course_slug)
+                    # Получаем UserCourse для проверки статуса
+                    user_course = UserCourse.objects.filter(user=request.user, course=course).first()
+                    if not user_course:
+                        # Создаем UserCourse если его нет
+                        user_course = UserCourse.objects.create(user=request.user, course=course, status='available')
+                    
+                    # Блокируем доступ к тесту, если курс не начат
+                    if user_course.status not in ['started', 'completed']:
+                        return render(request, 'courses/quiz_start_required.html', {'course': course})
+                except Course.DoesNotExist:
+                    pass
+            else:
+                # Если course_slug не передан, проверяем связь теста с курсом через модели
+                from django.db import models
+                # Ищем курсы, связанные с этим тестом
+                related_courses = Course.objects.filter(
+                    models.Q(final_quiz=quiz) | models.Q(course_quizzes=quiz)
+                ).distinct()
+                
+                if related_courses.exists():
+                    # Проверяем статус курса для пользователя
+                    for course in related_courses:
+                        user_course = UserCourse.objects.filter(user=request.user, course=course).first()
+                        if not user_course:
+                            user_course = UserCourse.objects.create(user=request.user, course=course, status='available')
+                        
+                        # Блокируем доступ к тесту, если курс не начат
+                        if user_course.status not in ['started', 'completed']:
+                            return render(request, 'courses/quiz_start_required.html', {'course': course})
             
             # Проверяем блокировку теста для этого пользователя
             from .models import QuizLock
@@ -520,6 +555,52 @@ def _reset_quiz(request) -> HttpRequest:
         if key in request.session:
             del request.session[key]
     return request
+
+def quiz_best_result(request, quiz_id: int) -> HttpResponse:
+    """
+    Отображает лучший результат теста для пользователя в рамках курса.
+    Если тест пройден выше проходного балла - показывает дату сдачи,
+    если ниже - показывает последнюю попытку.
+    """
+    if not request.user.is_authenticated:
+        return redirect('users:login')
+    
+    quiz = get_object_or_404(Quiz, id=quiz_id)
+    course_slug = request.GET.get('course_slug')
+    
+    if not course_slug:
+        return redirect('quizzes')
+    
+    course = get_object_or_404(Course, slug=course_slug)
+    
+    # Получаем лучший результат теста для этого пользователя в рамках курса
+    best_result = QuizResult.objects.filter(
+        user=request.user,
+        quiz_title=quiz.name,
+        course=course
+    ).order_by('-percent', '-completed_at').first()
+    
+    if not best_result:
+        # Если результатов нет, перенаправляем на начало теста
+        return redirect('quizzes:quiz_start', quiz_id=quiz_id)
+    
+    # Получаем последнюю попытку для отображения даты
+    last_attempt = QuizResult.objects.filter(
+        user=request.user,
+        quiz_title=quiz.name,
+        course=course
+    ).order_by('-completed_at').first()
+    
+    context = {
+        'quiz': quiz,
+        'course': course,
+        'best_result': best_result,
+        'last_attempt': last_attempt,
+        'passed': best_result.passed,
+        'pass_threshold': quiz.pass_threshold,
+    }
+    
+    return render(request, 'quizzes/quiz_best_result.html', context)
 
 def start_quiz_handler(request):
     if request.method == 'POST':

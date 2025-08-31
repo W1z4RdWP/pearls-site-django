@@ -126,9 +126,9 @@
                                     <i class="fas fa-route fa-3x text-info mb-3"></i>
                                     <h5 class="card-title">Создать траекторию</h5>
                                     <p class="card-text flex-grow-1">Настроить последовательность курсов</p>
-                                    <button type="button" class="btn btn-info btn-sm mt-auto" onclick="showCreateTrajectoryModal()">
+                                    <a href="{% url 'courses:trajectory_create' %}" class="btn btn-info btn-sm mt-auto">
                                         <i class="fas fa-plus"></i> Создать
-                                    </button>
+                                    </a>
                                 </div>
                             </div>
                         </div>
@@ -326,42 +326,7 @@
     </div>
 </div>
 
-<!-- Модальное окно создания траектории -->
-<div class="modal fade" id="createTrajectoryModal" tabindex="-1" role="dialog">
-    <div class="modal-dialog modal-lg" role="document">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Создать новую траекторию</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <form id="createTrajectoryForm" method="post" action="{% url 'courses:trajectory_create' %}">
-                {% csrf_token %}
-                <div class="modal-body">
-                    <div class="form-group">
-                        <label for="trajectory_name">Название траектории *</label>
-                        <input type="text" class="form-control" id="trajectory_name" name="name" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="trajectory_description">Описание</label>
-                        <textarea class="form-control" id="trajectory_description" name="description" rows="3"></textarea>
-                    </div>
-                    <div class="form-group">
-                        <label for="trajectory_groups">Назначить группам</label>
-                        <select class="form-control" id="trajectory_groups" name="groups" multiple>
-                            {% for group in all_groups %}
-                            <option value="{{ group.id }}">{{ group.name }}</option>
-                            {% endfor %}
-                        </select>
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
-                    <button type="submit" class="btn btn-primary">Создать траекторию</button>
-                </div>
-            </form>
-        </div>
-    </div>
-</div>
+
 
 <!-- Модальное окно создания теста -->
 <div class="modal fade" id="createQuizModal" tabindex="-1" role="dialog">

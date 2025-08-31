@@ -148,3 +148,8 @@
     width: 20px;
     margin-right: 8px;
 }
+
+
+.card .btn{
+    width: clamp(120px, 10vw, 180px);
+}
