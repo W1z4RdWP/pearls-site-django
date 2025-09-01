@@ -4,7 +4,7 @@ from rest_framework.response import Response
 from rest_framework import status
 from django.contrib.auth.models import User
 from django.contrib.auth import authenticate
-from django.db import IntegrityError
+from django.db import IntegrityError, transaction
 
 @api_view(['POST'])
 @permission_classes([AllowAny])
@@ -21,19 +21,35 @@ def telegram_register(request):
                     status=status.HTTP_400_BAD_REQUEST
                 )
         
-        # Создаем пользователя
-        user = User.objects.create_user(
-            username=data['email'],  # Используем email как username
-            email=data['email'],
-            password=data['password'],
-            first_name=data['first_name'],
-            last_name=data['last_name']
-        )
+        # Проверяем, существует ли пользователь с таким email
+        if User.objects.filter(email=data['email']).exists():
+            return Response(
+                {'error': 'Пользователь с таким email уже существует'}, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
         
-        # Сохраняем дополнительную информацию (телефон, отчество)
-        user.profile.phone = data.get('phone', '')
-        user.profile.middle_name = data.get('middle_name', '')
-        user.profile.save()
+        # Проверяем, существует ли пользователь с таким username
+        if User.objects.filter(username=data['email']).exists():
+            return Response(
+                {'error': 'Пользователь с таким email уже существует'}, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        with transaction.atomic():
+            # Создаем пользователя
+            user = User.objects.create_user(
+                username=data['email'],  # Используем email как username
+                email=data['email'],
+                password=data['password'],
+                first_name=data['first_name'],
+                last_name=data['last_name']
+            )
+            
+            # Сохраняем дополнительную информацию (телефон, отчество)
+            if hasattr(user, 'profile'):
+                user.profile.phone_number = data.get('phone', '')
+                user.profile.middle_name = data.get('middle_name', '')
+                user.profile.save()
         
         return Response({
             'success': True,
@@ -41,13 +57,13 @@ def telegram_register(request):
             'message': 'Пользователь успешно зарегистрирован'
         }, status=status.HTTP_201_CREATED)
         
-    except IntegrityError:
+    except IntegrityError as e:
         return Response(
-            {'error': 'Пользователь с таким email уже существует'}, 
+            {'error': f'Ошибка базы данных: {str(e)}'}, 
             status=status.HTTP_400_BAD_REQUEST
         )
     except Exception as e:
         return Response(
-            {'error': str(e)}, 
+            {'error': f'Неожиданная ошибка: {str(e)}'}, 
             status=status.HTTP_500_INTERNAL_SERVER_ERROR
         )
