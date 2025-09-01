@@ -49,6 +49,7 @@ def telegram_register(request):
             if hasattr(user, 'profile'):
                 user.profile.phone_number = data.get('phone', '')
                 user.profile.middle_name = data.get('middle_name', '')
+                user.profile.is_approved = True
                 user.profile.save()
         
         return Response({
