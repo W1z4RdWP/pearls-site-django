@@ -27,6 +27,7 @@ from debug_toolbar.toolbar import debug_toolbar_urls
 from myapp import views
 from myapp.views import page_not_found_view, PrivacyPolicyView
 from quizzes.models import Answer
+from apps.api.views import telegram_register
 from .sitemaps import (
     StaticViewSitemap,
     CourseSitemap,
@@ -50,6 +51,8 @@ urlpatterns = [
     path('robots.txt', TemplateView.as_view(template_name='robots.txt', content_type='text/plain')),
     path('sitemap.xml', sitemap, {'sitemaps': sitemaps}, name='django.contrib.sitemaps.views.sitemap'),
     path('admin/', admin.site.urls),
+    path('api-auth/', include('rest_framework.urls')),
+    path('api/', include('api.urls'), name='api'),
     path('', (views.IndexView.as_view()), name='home'),
     path('captcha/', include('captcha.urls')),
     path('about/', views.AboutView.as_view(), name='about'),

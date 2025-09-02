@@ -61,9 +61,11 @@ INSTALLED_APPS = [
     'debug_toolbar',
     'qsessions',
     'rangefilter',
+    'rest_framework',
     'widget_tweaks',    
 
     'myapp.apps.MyappConfig',
+    'api.apps.ApiConfig',
     'users.apps.UsersConfig',
     'courses.apps.CoursesConfig',
     'quizzes.apps.QuizzesConfig',
@@ -449,6 +451,16 @@ LOGGING = {
 }
 
 
+
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': [
+        'rest_framework.authentication.SessionAuthentication',
+        'rest_framework.authentication.BasicAuthentication',
+    ],
+    'DEFAULT_PERMISSION_CLASSES': [
+        'rest_framework.permissions.IsAuthenticated',
+    ],
+}
 
 
 # RECAPTCHA_PUBLIC_KEY = os.getenv('RECAPTCHA_PUBLIC_KEY')

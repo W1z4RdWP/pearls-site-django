@@ -285,11 +285,17 @@ class TicketReportsView(LoginRequiredMixin, StaffRequiredMixin, View):
             ])
             avg_resolution_time = total_time / resolved_tickets.count()
 
+
+        avg_rating = Ticket.objects.filter(rating__isnull=False).aggregate(
+            avg_rating=Avg('rating')
+        )['avg_rating'] or 0
+
         context = {
             'period': period,
             'tickets_by_period': tickets_by_period,
             'performer_stats': performer_stats,
             'avg_resolution_time': round(avg_resolution_time, 1),
+            'avg_rating': round(avg_rating, 1),
             'total_resolved': resolved_tickets.count(),
         }
         return render(request, 'tech_support/ticket_reports.html', context)
