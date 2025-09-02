@@ -47,3 +47,8 @@ CSRF_TRUSTED_ORIGINS = ['https://lc.smileterritory.ru']
 CSRF_COOKIE_SECURE = True
 SESSION_COOKIE_SECURE = True
 SECURE_HSTS_SECONDS = 31536000
+
+# Доверенные прокси (если балансировщик на отдельном сервере)
+USE_X_FORWARDED_HOST = True
+USE_X_FORWARDED_PORT = True
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')

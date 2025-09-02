@@ -23,7 +23,7 @@
             {% for item in trajectory_progress %}
             <li class="trajectory-item {% if item.user_course and item.user_course.status == 'completed' %}completed{% elif item.available %}available{% else %}locked{% endif %}">
                 <div class="trajectory-course-title">
-                    <span class="order">#{{ item.order }}</span>
+                    <span class="order">День {{ item.order }}</span>
                     <span>{{ item.course.title }}</span>
                 </div>
                 <div class="trajectory-course-status">
