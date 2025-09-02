@@ -146,13 +146,14 @@
                                         <small class="text-muted">Оценка</small>
                                     </div>
                                     <div class="col-4">
-                                                                            <div class="h5 text-info mb-0">
-                                        {% if performer.total > 0 %}
-                                            {% widthratio performer.resolved performer.total 100 %}%
-                                        {% else %}
-                                            0%
-                                        {% endif %}
-                                    </div>
+                                        <div class="h5 text-info mb-0">
+                                            {% if performer.total > 0 %}
+                                                {% widthratio performer.resolved performer.total 100 %}%
+                                            {% else %}
+                                                0%
+                                            {% endif %}
+                                        </div>
+                                        
                                         <small class="text-muted">Успешность</small>
                                     </div>
                                 </div>
