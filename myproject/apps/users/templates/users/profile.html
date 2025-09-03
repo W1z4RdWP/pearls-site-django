@@ -23,7 +23,7 @@
                 </div>
                 <div class="profile-details">
                     <p class="text-secondary">{{ user.email }}</p>
-                    <p class="text-secondary">{{ user.profile.bio|default:'О себе: нет информации' }}</p>
+                    <div class="text-secondary">{{ user.profile.bio|default:'О себе: нет информации'|linebreaks }}</div>
                     <div class="profile-fields">
                         <!-- <span>Имя: <b>{{ user.first_name|default:'-' }}</b></span>
                         <span>Фамилия: <b>{{ user.last_name|default:'-' }}</b></span>
