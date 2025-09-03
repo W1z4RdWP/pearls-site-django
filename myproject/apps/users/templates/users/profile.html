@@ -155,40 +155,24 @@
                     <div class="form-group">
                         <label for="id_image">Аватар</label>
                         <div class="avatar-upload-container">
-                            <!-- Обычное поле загрузки файла -->
-                            <div class="upload-method">
-                                {{ profile_form.image }}
-                                <small class="form-text text-muted">Загрузите изображение с устройства</small>
-                            </div>
-                            
-                            <!-- Разделитель -->
-                            <div class="upload-divider">
-                                <span>или</span>
-                            </div>
-                            
-                            <!-- Поле для съемки с камеры -->
-                            <div class="camera-method">
-                                <input type="file" 
-                                       id="camera-input" 
-                                       accept="image/*" 
-                                       capture="user" 
-                                       style="display: none;">
-                                <button type="button" class="btn btn-outline-primary" id="camera-btn">
+                            {{ profile_form.image }}
+                            <div class="mt-2">
+                                <button type="button" class="btn btn-outline-primary btn-sm" id="camera-btn">
                                     <i class="fa fa-camera"></i> Сделать фото
                                 </button>
-                                <small class="form-text text-muted">Откроет камеру устройства для съемки</small>
-                                
-                                <!-- Превью снятого фото -->
-                                <div id="camera-preview" style="display: none; margin-top: 15px;">
-                                    <img id="camera-preview-img" style="max-width: 200px; max-height: 200px; border-radius: 8px; border: 2px solid #dee2e6;">
-                                    <div style="margin-top: 10px;">
-                                        <button type="button" class="btn btn-success btn-sm" id="use-camera-photo">
-                                            <i class="fa fa-check"></i> Использовать это фото
-                                        </button>
-                                        <button type="button" class="btn btn-secondary btn-sm" id="retake-photo">
-                                            <i class="fa fa-camera"></i> Переснять
-                                        </button>
-                                    </div>
+                                <input type="file" id="camera-input" accept="image/*" capture="user" style="display: none;">
+                            </div>
+                            
+                            <!-- Превью снятого фото -->
+                            <div id="camera-preview" style="display: none; margin-top: 10px;">
+                                <img id="camera-preview-img" style="max-width: 150px; max-height: 150px; border-radius: 6px; border: 1px solid #dee2e6;">
+                                <div class="mt-2">
+                                    <button type="button" class="btn btn-success btn-sm" id="use-camera-photo">
+                                        <i class="fa fa-check"></i> Использовать
+                                    </button>
+                                    <button type="button" class="btn btn-secondary btn-sm" id="retake-photo">
+                                        <i class="fa fa-camera"></i> Переснять
+                                    </button>
                                 </div>
                             </div>
                         </div>
