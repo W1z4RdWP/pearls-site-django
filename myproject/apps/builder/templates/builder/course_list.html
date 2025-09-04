@@ -196,7 +196,7 @@
                                                         <li><hr class="dropdown-divider"></li>
                                                         <li><a class="dropdown-item text-danger" href="#" onclick="deleteCourse('{{ course.slug }}', '{{ course.title }}')">
                                                             <i class="fas fa-trash"></i> Удалить
-                                                        </a></li> 
+                                                        </a></li>
                                                     </ul>
                                                 </div>
                                             </div>
@@ -220,6 +220,40 @@
             </div>
         </div>
     </div>
+     <!-- Пагинация -->
+     {% if is_paginated %}
+     <div class="row mt-4">
+         <div class="col-12">
+             <nav aria-label="Навигация по страницам">
+                 <ul class="pagination justify-content-center">
+                     {% if page_obj.has_previous %}
+                         <li class="page-item">
+                             <a class="page-link" href="?page=1">&laquo; Первая</a>
+                         </li>
+                         <li class="page-item">
+                             <a class="page-link" href="?page={{ page_obj.previous_page_number }}">Предыдущая</a>
+                         </li>
+                     {% endif %}
+                     
+                     <li class="page-item active">
+                         <span class="page-link">
+                             Страница {{ page_obj.number }} из {{ page_obj.paginator.num_pages }}
+                         </span>
+                     </li>
+                     
+                     {% if page_obj.has_next %}
+                         <li class="page-item">
+                             <a class="page-link" href="?page={{ page_obj.next_page_number }}">Следующая</a>
+                         </li>
+                         <li class="page-item">
+                             <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}">Последняя &raquo;</a>
+                         </li>
+                     {% endif %}
+                 </ul>
+             </nav>
+         </div>
+     </div>
+     {% endif %}
 </div>
 
 <script>

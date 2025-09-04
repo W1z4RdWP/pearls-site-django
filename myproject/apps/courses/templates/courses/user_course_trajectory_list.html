@@ -3,31 +3,179 @@
 
 {% block specific_styles %}
 <link rel="stylesheet" href="{% static 'courses/css/trajectory_list.css' %}">
+<link rel="stylesheet" href="{% static 'users/css/course_progress.css' %}">
 {% endblock %}
 
 {% block content %}
 <div class="container mt-4">
-    <h1>Список ваших траекторий</h1>
-    {% if user_trajectories %}
-        <div class="row">
-            {% for ut in user_trajectories %}
-            <div class="col-md-6 col-lg-4 mb-4">
-                <div class="card trajectory-card">
-                    <div class="card-body">
-                        <h4 class="card-title">{{ ut.trajectory.name }}</h4>
-                        <p class="card-text text-muted">{{ ut.trajectory.description|default:'Без описания' }}</p>
-                        <ul class="list-unstyled mb-2">
-                            <li><b>Статус:</b> {% if ut.completed %}<span class="badge bg-success">Завершена</span>{% else %}<span class="badge bg-primary">В процессе</span>{% endif %}</li>
-                            <li><b>Дата назначения:</b> {{ ut.started_at|date:"d.m.Y H:i" }}</li>
-                        </ul>
-                        <a href="{% url 'courses:user_course_trajectory_detail' ut.pk %}" class="btn btn-modern w-100">Перейти к траектории</a>
+    <!-- Секция траекторий -->
+    <div class="mb-5">
+        <h1 class="mb-4">
+            <i class="fa fa-road"></i> Ваши траектории обучения
+        </h1>
+        {% if user_trajectories %}
+            <div class="row">
+                {% for ut in user_trajectories %}
+                <div class="col-md-6 col-lg-4 mb-4">
+                    <div class="card trajectory-card">
+                        <div class="card-body">
+                            <h4 class="card-title">{{ ut.trajectory.name }}</h4>
+                            <p class="card-text text-muted">{{ ut.trajectory.description|default:'Без описания' }}</p>
+                            <ul class="list-unstyled mb-4">
+                                <li><b>Статус:</b> {% if ut.completed %}<span class="badge bg-success">Завершена</span>{% else %}<span class="badge bg-primary">В процессе</span>{% endif %}</li>
+                                <li><b>Дата назначения:</b> {{ ut.started_at|date:"d.m.Y H:i" }}</li>
+                            </ul>
+                            <a href="{% url 'courses:user_course_trajectory_detail' ut.pk %}" class="btn btn-modern w-100">Перейти к траектории</a>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <div class="alert alert-info">Вам не назначено ни одной траектории. Обратитесь к администрации.</div>
+        {% endif %}
+    </div>
+
+    <!-- Секция прогресса по курсам -->
+    <div class="progress-header">
+        <h1 class="progress-title">
+            <i class="fa fa-graduation-cap"></i> Ваш прогресс по курсам
+        </h1>
+        <div class="progress-stats">
+            <div class="stat-item">
+                <span class="stat-number">{{ total_courses }}</span>
+                <span class="stat-label">Всего курсов</span>
+            </div>
+            <div class="stat-item completed">
+                <span class="stat-number">{{ completed_courses }}</span>
+                <span class="stat-label">Завершено</span>
+            </div>
+            <div class="stat-item in-progress">
+                <span class="stat-number">{{ in_progress_courses }}</span>
+                <span class="stat-label">В процессе</span>
+            </div>
+            <div class="stat-item available">
+                <span class="stat-number">{{ available_courses }}</span>
+                <span class="stat-label">Доступно</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Фильтры -->
+    <div class="filters-section">
+        <div class="filter-buttons">
+            <a href="?status=all" class="filter-btn {% if status_filter == 'all' %}active{% endif %}">
+                <i class="fa fa-list"></i> Все курсы
+            </a>
+            <a href="?status=in_progress" class="filter-btn in-progress {% if status_filter == 'in_progress' %}active{% endif %}">
+                <i class="fa fa-clock-o"></i> В процессе
+            </a>
+            <a href="?status=completed" class="filter-btn completed {% if status_filter == 'completed' %}active{% endif %}">
+                <i class="fa fa-check-circle"></i> Завершенные
+            </a>
+            <a href="?status=available" class="filter-btn available {% if status_filter == 'available' %}active{% endif %}">
+                <i class="fa fa-unlock"></i> Доступные
+            </a>
+        </div>
+    </div>
+
+    <!-- Карточки курсов -->
+    <div class="courses-grid">
+        {% if courses_data %}
+            {% for course_data in courses_data %}
+            <div class="course-card {{ course_data.status }}">
+                <div class="course-image">
+                    {% if course_data.course.image %}
+                        <img src="{{ course_data.course.image.url }}" alt="{{ course_data.course.title }}">
+                    {% else %}
+                        <div class="course-image-placeholder">
+                            <i class="fa fa-graduation-cap"></i>
+                        </div>
+                    {% endif %}
+                    <div class="course-status-badge">
+                        {% if course_data.status == 'completed' %}
+                            <i class="fa fa-check-circle"></i>
+                        {% elif course_data.status == 'in_progress' %}
+                            <i class="fa fa-clock-o"></i>
+                        {% else %}
+                            <i class="fa fa-unlock"></i>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <div class="course-content">
+                    <h3 class="course-title">{{ course_data.course.title }}</h3>
+                    
+                    {% if course_data.status != 'available' %}
+                        <div class="course-progress">
+                            <div class="progress-info">
+                                <span class="progress-text">{{ course_data.percent }}% завершено</span>
+                                <span class="progress-details">
+                                    {{ course_data.completed_materials }} из {{ course_data.total_materials }} материалов
+                                </span>
+                            </div>
+                            <div class="progress-bar">
+                                <div class="progress-fill" style="width: {{ course_data.percent }}%"></div>
+                            </div>
+                        </div>
+                        
+                        <div class="course-details">
+                            <div class="detail-item">
+                                <i class="fa fa-book"></i>
+                                <span>{{ course_data.completed_lessons }}/{{ course_data.total_lessons }} уроков</span>
+                            </div>
+                            {% if course_data.total_quizzes > 0 %}
+                                <div class="detail-item">
+                                    <i class="fa fa-question-circle"></i>
+                                    <span>{{ course_data.completed_quizzes }}/{{ course_data.total_quizzes }} тестов</span>
+                                </div>
+                            {% endif %}
+                        </div>
+                    {% endif %}
+                    
+                    <div class="course-actions">
+                        {% if course_data.status == 'completed' %}
+                            <span class="status-badge completed">
+                                <i class="fa fa-trophy"></i> Курс завершен
+                            </span>
+                        {% elif course_data.status == 'in_progress' %}
+                            {% if course_data.course.final_quiz and course_data.percent == 100 and not course_data.quiz_passed %}
+                                <a href="{% url 'quizzes:quiz_start' course_data.course.final_quiz.id %}" class="btn btn-warning btn-sm">
+                                    <i class="fa fa-question-circle"></i> Пройти финальный тест
+                                </a>
+                            {% endif %}
+                        {% endif %}
+                        
+                        <a href="{% url 'courses:course_detail' course_data.course.slug %}" class="btn btn-primary btn-sm">
+                            {% if course_data.status == 'available' %}
+                                <i class="fa fa-play"></i> Начать курс
+                            {% else %}
+                                <i class="fa fa-arrow-right"></i> Продолжить
+                            {% endif %}
+                        </a>
                     </div>
                 </div>
             </div>
             {% endfor %}
-        </div>
-    {% else %}
-        <div class="alert alert-info">Вам не назначено ни одной траектории. Обратитесь к администрации.</div>
-    {% endif %}
+        {% else %}
+            <div class="empty-state">
+                <i class="fa fa-graduation-cap fa-3x"></i>
+                <h3>Курсы не найдены</h3>
+                <p>По выбранному фильтру курсы не найдены</p>
+                <a href="?status=all" class="btn btn-primary">Показать все курсы</a>
+            </div>
+        {% endif %}
+    </div>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Анимация появления карточек
+    const cards = document.querySelectorAll('.course-card');
+    cards.forEach((card, index) => {
+        card.style.animationDelay = `${index * 0.1}s`;
+        card.classList.add('fade-in');
+    });
+});
+</script>
 {% endblock %} 

@@ -7,7 +7,7 @@ from django.contrib.auth.models import User
 from django.db import transaction, models
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.views.decorators.http import require_POST, require_http_methods
-from django.http import JsonResponse, HttpResponse
+from django.http import JsonResponse, HttpResponse, HttpRequest
 from django.template.loader import render_to_string
 from weasyprint import HTML
 from datetime import datetime
@@ -1056,7 +1056,7 @@ def complete_course(request, course_id):
 @method_decorator(login_required, name='dispatch')
 class UserCourseTrajectoryListView(ListView):
     """
-    Список всех траекторий пользователя.
+    Список всех траекторий пользователя и прогресс по курсам.
     """
     model = UserCourseTrajectory
     template_name = 'courses/user_course_trajectory_list.html'
@@ -1068,6 +1068,112 @@ class UserCourseTrajectoryListView(ListView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['user'] = self.request.user
+        
+        # Получаем прогресс по курсам
+        user = self.request.user
+        available_courses = Course.objects.available_for_user(user)
+        
+        # Получаем UserCourse для каждого доступного курса
+        user_courses = []
+        for course in available_courses:
+            user_course = UserCourse.objects.filter(user=user, course=course).first()
+            if user_course:
+                user_courses.append(user_course)
+            else:
+                # Создаем UserCourse если его нет (для курсов из траекторий)
+                user_course = UserCourse.objects.create(user=user, course=course, status='available')
+                user_courses.append(user_course)
+        
+        # Подготавливаем данные для каждого курса
+        courses_data = []
+        for user_course in user_courses:
+            course = user_course.course
+            
+            # Подсчет завершенных уроков
+            completed_lessons = UserProgress.objects.filter(
+                user=user,
+                course=course,
+                completed=True
+            ).count()
+
+            trajectory = UserLessonTrajectory.objects.filter(user=user, course=course).first()
+            total_lessons = trajectory.lessons.count() if trajectory else course.lessons.count()
+            
+            # Подсчет завершенных тестов в рамках этого курса
+            completed_quizzes = QuizResult.objects.filter(
+                user=user,
+                course=course,
+                quiz_title__in=[quiz.name for quiz in course.quizzes.all()],
+                passed=True
+            ).count()
+            total_quizzes = course.quizzes.count()
+            
+            # Общий подсчет материалов
+            completed_materials = completed_lessons + completed_quizzes
+            total_materials = total_lessons + total_quizzes
+            
+            # Если у курса нет материалов, считаем его доступным
+            if total_materials == 0:
+                percent = 0
+            else:
+                percent = int((completed_materials / total_materials) * 100)
+
+            # Определяем статус курса
+            if course.final_quiz:
+                quiz_passed = QuizResult.objects.filter(
+                    user=user,
+                    course=course,
+                    quiz_title=course.final_quiz.name,
+                    passed=True
+                ).exists()
+                
+                # Курс считается завершенным только если все материалы пройдены И финальный тест пройден
+                if total_materials > 0 and completed_materials >= total_materials and quiz_passed:
+                    status = 'completed'
+                elif completed_materials > 0 or user_course.status in ['started', 'in_progress']:
+                    status = 'in_progress'
+                else:
+                    status = 'available'
+            else:
+                # Если нет финального теста, курс завершен когда все материалы пройдены
+                if total_materials > 0 and completed_materials >= total_materials:
+                    status = 'completed'
+                elif completed_materials > 0 or user_course.status in ['started', 'in_progress']:
+                    status = 'in_progress'
+                else:
+                    status = 'available'
+
+            course_data = {
+                'course': course,
+                'user_course': user_course,
+                'completed_lessons': completed_lessons,
+                'completed_quizzes': completed_quizzes,
+                'total_lessons': total_lessons,
+                'total_quizzes': total_quizzes,
+                'completed_materials': completed_materials,
+                'total_materials': total_materials,
+                'percent': percent,
+                'status': status,
+                'quiz_passed': quiz_passed if course.final_quiz else None
+            }
+            
+            courses_data.append(course_data)
+        
+        # Фильтрация по статусу
+        status_filter = self.request.GET.get('status', 'all')
+        if status_filter != 'all':
+            courses_data = [course for course in courses_data if course['status'] == status_filter]
+        
+        # Добавляем данные о курсах в контекст
+        context.update({
+            'courses_data': courses_data,
+            'status_filter': status_filter,
+            'total_courses': len(courses_data),
+            'completed_courses': len([c for c in courses_data if c['status'] == 'completed']),
+            'in_progress_courses': len([c for c in courses_data if c['status'] == 'in_progress']),
+            'available_courses': len([c for c in courses_data if c['status'] == 'available']),
+        })
+        
         return context
 
 
