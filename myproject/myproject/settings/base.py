@@ -16,6 +16,7 @@ sys.path.insert(0, str(APPS_DIR))
 
 #SECRET_KEY = os.getenv('SECRET_DJANGO') # DJANGO_SECRET_KEY / SECRET_DJANGO
 
+
 # JWT настройки для Telegram авторизации
 JWT_SECRET_KEY = os.getenv('JWT_SECRET_KEY', 'your-jwt-secret-key-change-in-production')
 JWT_ALGORITHM = 'HS256'
