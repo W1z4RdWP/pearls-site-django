@@ -42,6 +42,7 @@ DATABASES = {
 # CACHE_MIDDLEWARE_KEY_PREFIX = 'myproject'  # name of site if multiple sites are used
 
 
+
 CSRF_TRUSTED_ORIGINS = [
     'https://lc.smileterritory.ru',
     'https://www.lc.smileterritory.ru',
