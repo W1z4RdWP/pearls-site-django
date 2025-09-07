@@ -1,0 +1,137 @@
+{% extends "layout.html" %}
+{% load static %}
+
+{% block title %}Ошибка доступа (403){% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card border-danger">
+                <div class="card-header bg-danger text-white">
+                    <h4 class="mb-0">
+                        <i class="fas fa-shield-alt me-2"></i>
+                        Ошибка доступа (403)
+                    </h4>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-warning" role="alert">
+                        <h5 class="alert-heading">
+                            <i class="fas fa-exclamation-triangle me-2"></i>
+                            Ошибка проверки CSRF
+                        </h5>
+                        <p class="mb-0">Запрос отклонён из-за проблем с проверкой безопасности.</p>
+                    </div>
+
+                    <div class="mb-4">
+                        <h6><i class="fas fa-info-circle me-2"></i>Возможные причины:</h6>
+                        <ul class="list-unstyled">
+                            <li><i class="fas fa-check text-success me-2"></i>Форма была отправлена слишком давно</li>
+                            <li><i class="fas fa-check text-success me-2"></i>Страница была обновлена после входа в систему</li>
+                            <li><i class="fas fa-check text-success me-2"></i>Проблемы с cookies в браузере</li>
+                            <li><i class="fas fa-check text-success me-2"></i>Использование кнопки "Назад" в браузере</li>
+                        </ul>
+                    </div>
+
+                    <div class="mb-4">
+                        <h6><i class="fas fa-tools me-2"></i>Что можно сделать:</h6>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="card border-light">
+                                    <div class="card-body">
+                                        <h6 class="card-title">
+                                            <i class="fas fa-refresh me-2"></i>Обновить страницу
+                                        </h6>
+                                        <p class="card-text small">Нажмите F5 или Ctrl+R для обновления страницы и попробуйте снова.</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="card border-light">
+                                    <div class="card-body">
+                                        <h6 class="card-title">
+                                            <i class="fas fa-cookie-bite me-2"></i>Очистить cookies
+                                        </h6>
+                                        <p class="card-text small">Очистите cookies сайта в настройках браузера.</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="d-grid gap-2 d-md-flex justify-content-md-center">
+                        <a href="{% url 'users:login' %}" class="btn btn-primary me-md-2">
+                            <i class="fas fa-sign-in-alt me-2"></i>
+                            Вернуться к входу
+                        </a>
+                        <a href="{% url 'home' %}" class="btn btn-outline-secondary">
+                            <i class="fas fa-home me-2"></i>
+                            На главную
+                        </a>
+                    </div>
+
+                    {% if user.is_authenticated %}
+                    <div class="mt-4">
+                        <div class="alert alert-info" role="alert">
+                            <i class="fas fa-user me-2"></i>
+                            Вы уже авторизованы как <strong>{{ user.email }}</strong>
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    <hr class="my-4">
+                    
+                    <div class="text-center">
+                        <small class="text-muted">
+                            <i class="fas fa-question-circle me-1"></i>
+                            Если проблема повторяется, обратитесь в 
+                            <a href="{% url 'tech_support:support_chat' %}" class="text-decoration-none">
+                                службу поддержки
+                            </a>
+                        </small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.card {
+    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+}
+
+.border-danger {
+    border-color: #dc3545 !important;
+}
+
+.bg-danger {
+    background-color: #dc3545 !important;
+}
+
+.alert-warning {
+    background-color: #fff3cd;
+    border-color: #ffeaa7;
+    color: #856404;
+}
+
+.alert-info {
+    background-color: #d1ecf1;
+    border-color: #bee5eb;
+    color: #0c5460;
+}
+
+.list-unstyled li {
+    margin-bottom: 0.5rem;
+}
+
+.card.border-light {
+    border: 1px solid #e9ecef !important;
+}
+
+.card.border-light:hover {
+    border-color: #dee2e6 !important;
+    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+}
+</style>
+{% endblock %}

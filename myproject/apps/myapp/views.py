@@ -46,6 +46,27 @@ def method_not_allowed_view(request, exception=None):
 def custom_error_500(request):
     return render(request, '500.html', status=500)
 
+def csrf_failure_view(request, reason=""):
+    """Кастомная страница ошибки CSRF"""
+    return render(request, '403_csrf.html', status=403)
+
+def csrf_debug_view(request):
+    """Диагностическая страница для отладки CSRF проблем"""
+    from django.conf import settings
+    
+    context = {
+        'csrf_cookie_secure': getattr(settings, 'CSRF_COOKIE_SECURE', False),
+        'csrf_cookie_httponly': getattr(settings, 'CSRF_COOKIE_HTTPONLY', True),
+        'csrf_cookie_samesite': getattr(settings, 'CSRF_COOKIE_SAMESITE', 'Lax'),
+        'csrf_use_sessions': getattr(settings, 'CSRF_USE_SESSIONS', False),
+    }
+    
+    if request.method == 'POST':
+        # Если это POST запрос, значит CSRF токен работает
+        context['test_success'] = True
+    
+    return render(request, 'csrf_debug.html', context)
+
 class ChangelogListView(ListView):
     model = ChangeLog
     paginate_by = 5

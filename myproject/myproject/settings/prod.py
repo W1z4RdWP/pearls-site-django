@@ -42,10 +42,22 @@ DATABASES = {
 # CACHE_MIDDLEWARE_KEY_PREFIX = 'myproject'  # name of site if multiple sites are used
 
 
-CSRF_TRUSTED_ORIGINS = ['https://lc.smileterritory.ru']
+CSRF_TRUSTED_ORIGINS = [
+    'https://lc.smileterritory.ru',
+    'https://www.lc.smileterritory.ru',
+    'http://lc.smileterritory.ru',  # Для тестирования
+    'http://localhost:8000',  # Для локальной разработки
+]
 
+# Настройки CSRF для стабильной работы
 CSRF_COOKIE_SECURE = True
+CSRF_COOKIE_HTTPONLY = False  # Позволяет JavaScript читать CSRF токен
+CSRF_COOKIE_SAMESITE = 'Lax'  # Более мягкая политика для кросс-доменных запросов
+CSRF_USE_SESSIONS = False  # Используем cookies вместо сессий для CSRF
+
+# Настройки сессий
 SESSION_COOKIE_SECURE = True
+SESSION_COOKIE_SAMESITE = 'Lax'
 SECURE_HSTS_SECONDS = 31536000
 
 # Доверенные прокси (если балансировщик на отдельном сервере)
