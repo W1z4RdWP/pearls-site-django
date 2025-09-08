@@ -207,9 +207,9 @@ body {
 
 .signature-img{
     position: absolute;
-    bottom: 9vh;
-    right: 14vw;
-    width: 15%;
+    bottom: 7vh;
+    right: 12vw;
+    width: 25%;
 }
 /* Дата слева снаружи блока */
 .date-info {
@@ -949,9 +949,8 @@ body {
                     <div class="course-label">успешно завершил(а) курс</div>
                     <div class="course-name">{{ certificate.course.title }}</div>
                 {% else %}
-                    <div class="achievement-text">успешно завершил(а) траекторию</div>
-                    <div class="trajectory-name">{{ certificate.trajectory.name }}</div>
-                    <div class="achievement-badge trajectory-badge">Траектория завершена</div>
+                    <div class="achievement-text course-label">успешно завершил(а) траекторию</div>
+                    <div class="trajectory-name course-name">{{ certificate.trajectory.name }}</div>
                 {% endif %}
             </div>
 

@@ -78,6 +78,10 @@
                                                    class="btn btn-success btn-sm">
                                                     <i class="fas fa-download"></i> Скачать PDF
                                                 </a>
+                                                <a href="{% url 'courses:view_certificate_pdf' cert.certificate_id %}" 
+                                                class="btn btn-success btn-sm">
+                                                    <i class="fas fa-eye"></i> Просмотр
+                                                </a>
                                             </div>
                                             <i class="fas fa-medal text-gold fa-2x"></i>
                                         </div>
