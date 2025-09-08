@@ -68,6 +68,7 @@ urlpatterns = [
     path('privacy-policy/', PrivacyPolicyView.as_view(), name='privacy_policy'),
     path('error_found/', views.page_not_found_view, {'exception': Answer.MultipleObjectsReturned}, name='error'),
     path('tech_support/', include('tech_support.urls'), name='tech_support'),
+    path('csrf-debug/', views.csrf_debug_view, name='csrf_debug'),
 ]
 
 handler404 = 'myapp.views.page_not_found_view'

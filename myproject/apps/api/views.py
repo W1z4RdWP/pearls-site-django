@@ -2,7 +2,7 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework import status
-from django.contrib.auth.models import User
+from django.contrib.auth.models import User, Group
 from django.contrib.auth import authenticate, login
 from django.db import IntegrityError, transaction
 from django.shortcuts import redirect
@@ -108,6 +108,10 @@ def telegram_register(request):
                 user.profile.middle_name = data.get('middle_name', '')
                 user.profile.is_approved = True
                 user.profile.save()
+            
+            # Добавляем пользователя в группу "Внешние пользователи"
+            external_group, created = Group.objects.get_or_create(name='Внешние пользователи')
+            user.groups.add(external_group)
         
         return Response({
             'success': True,

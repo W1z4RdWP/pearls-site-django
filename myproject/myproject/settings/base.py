@@ -94,6 +94,7 @@ MIDDLEWARE = [
     #'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
+    'myapp.middleware.CSRFDebugMiddleware',  # Отладка CSRF проблем
     'quizzes.middleware.prevent_refresh.PreventRefreshMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
@@ -276,6 +277,16 @@ SESSION_COOKIE_AGE = 7200 * 12 # Время сессии в секундах (2 
 LOGIN_REDIRECT_URL = 'home'
 LOGOUT_REDIRECT_URL = 'users:login'
 LOGIN_URL = 'users:login'
+
+# Кастомная страница ошибки CSRF
+CSRF_FAILURE_VIEW = 'myapp.views.csrf_failure_view'
+
+# Дополнительные настройки CSRF для стабильной работы
+CSRF_COOKIE_AGE = 31449600  # 1 год
+CSRF_COOKIE_DOMAIN = None  # Автоматическое определение домена
+CSRF_COOKIE_NAME = 'csrftoken'
+CSRF_HEADER_NAME = 'HTTP_X_CSRFTOKEN'
+CSRF_COOKIE_PATH = '/'
 
 CKEDITOR_5_ALLOW_ALL_FILE_TYPES = True
 CKEDITOR_5_UPLOAD_FILE_TYPES = ['jpeg', 'pdf', 'png', 'jpg']
