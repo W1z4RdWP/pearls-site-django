@@ -1,5 +1,6 @@
 {% extends 'layout.html' %}
 {% load static %}
+{% load extra_tags %}
 
 {% block specific_styles %}
     <style>
@@ -254,15 +255,15 @@
         <div class="info-card">
             <h3>Рабочие дни по месяцам</h3>
             <div class="info-row">
-                <span class="info-label">Месяц 1 (количество дней):</span>
+                <span class="info-label">{{ submission.initial_month|month_name_from_initial:0|capfirst }} (количество дней):</span>
                 <span class="info-value">{{ submission.days_month_1 }} </span>
             </div>
             <div class="info-row">
-                <span class="info-label">Месяц 2 (количество дней):</span>
+                <span class="info-label">{{ submission.initial_month|month_name_from_initial:1|capfirst }} (количество дней):</span>
                 <span class="info-value">{{ submission.days_month_2 }} </span>
             </div>
             <div class="info-row">
-                <span class="info-label">Месяц 3 (количество дней):</span>
+                <span class="info-label">{{ submission.initial_month|month_name_from_initial:2|capfirst }} (количество дней):</span>
                 <span class="info-value">{{ submission.days_month_3 }} </span>
             </div>
 
@@ -314,7 +315,7 @@
             <div class="month-tabs">
                 {% for month in submission.doctors_data.months %}
                     <div class="month-tab {% if forloop.first %}active{% endif %}" onclick="showMonth({{ forloop.counter0 }})">
-                        Месяц {{ forloop.counter }}
+                        {{ submission.initial_month|month_name_from_initial:forloop.counter0 }}
                     </div>
                 {% endfor %}
             </div>
