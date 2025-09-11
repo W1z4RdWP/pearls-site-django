@@ -1,6 +1,6 @@
 from django.contrib import admin
 from django import forms
-from .models import Course, Lesson, UserLessonTrajectory, Trajectory, TrajectoryCourse, UserCourseTrajectory, Certificate
+from .models import Course, Lesson, UserLessonTrajectory, Trajectory, TrajectoryCourse, UserCourseTrajectory, Certificate, MetricsSubmission
 
 class UserLessonTrajectoryLessonInline(admin.TabularInline):
     model = UserLessonTrajectory.lessons.through
@@ -120,4 +120,39 @@ class CertificateAdmin(admin.ModelAdmin):
     
     def has_add_permission(self, request):
         # Сертификаты создаются автоматически системой
+        return False
+
+
+@admin.register(MetricsSubmission)
+class MetricsSubmissionAdmin(admin.ModelAdmin):
+    list_display = ('id', 'user', 'clinic_name', 'initial_month', 'doctors_count', 'chairs_count', 'submitted_at')
+    list_filter = ('initial_month', 'submitted_at', 'doctors_count')
+    search_fields = ('user__username', 'user__email', 'clinic_name')
+    readonly_fields = ('submitted_at',)
+    autocomplete_fields = ['user']
+    date_hierarchy = 'submitted_at'
+    
+    fieldsets = (
+        ('Основная информация', {
+            'fields': ('user', 'clinic_name', 'submitted_at')
+        }),
+        ('Параметры клиники', {
+            'fields': ('initial_month', 'doctors_count', 'chairs_count', 'work_hours')
+        }),
+        ('Рабочие дни по месяцам', {
+            'fields': ('days_month_1', 'days_month_2', 'days_month_3', 
+                      'days_month_4', 'days_month_5', 'days_month_6'),
+            'classes': ('collapse',)
+        }),
+        ('Данные врачей и метрики', {
+            'fields': ('doctors_data',),
+            'classes': ('collapse',)
+        }),
+    )
+    
+    def get_queryset(self, request):
+        return super().get_queryset(request).select_related('user')
+    
+    def has_add_permission(self, request):
+        # Формы заполняются пользователями через сайт
         return False
