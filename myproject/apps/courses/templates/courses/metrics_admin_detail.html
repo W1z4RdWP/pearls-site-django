@@ -280,16 +280,25 @@
                     <div class="doctor-info">
                         <div class="doctor-info-row">
                             <div>
+                                <strong>Врач №:</strong><br>
+                                {{ forloop.counter }}
+                            </div>
+                            <div>
                                 <strong>Специализация:</strong><br>
-                                {{ doctor.specialization|default:"Не указана" }}
+                                {% if doctor.specialization == "hygienist" %}Гигиенист
+                                {% elif doctor.specialization == "implantologist" %}Имплантолог
+                                {% elif doctor.specialization == "orthodontist" %}Ортодонт
+                                {% elif doctor.specialization == "orthopedist" %}Ортопед
+                                {% elif doctor.specialization == "periodontist" %}Пародонтолог
+                                {% elif doctor.specialization == "therapist" %}Терапевт
+                                {% elif doctor.specialization == "surgeon" %}Хирург
+                                {% else %}Не указана{% endif %}
                             </div>
                             <div>
                                 <strong>Тип занятости:</strong><br>
-                                {{ doctor.employment|default:"Не указан" }}
-                            </div>
-                            <div>
-                                <strong>Врач #:</strong><br>
-                                {{ forloop.counter }}
+                                {% if doctor.employment == "full_time" %}Постоянное место работы
+                                {% elif doctor.employment == "part_time" %}Совместительство
+                                {% else %}Не указан{% endif %}
                             </div>
                         </div>
                     </div>
