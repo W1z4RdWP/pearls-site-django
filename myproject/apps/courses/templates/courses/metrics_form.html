@@ -1,0 +1,96 @@
+<!doctype html>
+{% load static %}
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Территория Улыбки — метрики за 6 месяцев</title>
+
+<link rel="stylesheet" href="{% static 'courses/css/metrics_form.css' %}">
+
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <h1>Передача метрик врачей</h1>
+      <p class="lead">Заполните список врачей один раз, затем внесите показатели по каждому из <b>3 месяцев</b>.</p>
+      <div class="notice">Пожалуйста, заполняйте <b>достоверно</b> — это влияет на точность диагностики и правильную постановку диагноза.</div>
+    </header>
+
+    <form id="f" class="card" novalidate>
+      {% csrf_token %}
+      <div class="row">
+        <div>
+          <label>Название клиники*</label>
+          <input id="clinicName" placeholder="Название вашей клиники" required>
+          <div class="small">Укажите полное название клиники</div>
+        </div>
+      </div>
+      <div class="row">
+        <div>
+          <label>Начальный месяц*</label>
+          <input id="startMonth" placeholder="2025-01" required>
+          <div class="small">Формат ГГГГ-ММ. Остальные 5 месяцев сформируются автоматически</div>
+        </div>
+        <div>
+          <label>Количество врачей (1–30)</label>
+          <select id="docCount"></select>
+          <div class="small">По умолчанию 1</div>
+        </div>
+      </div>
+<div class="three" style="margin-top:10px">
+        <div><label>Кресла (шт.)*</label><input id="chairs" inputmode="numeric" placeholder="например, 6" required></div>
+        <div><label>Часов работы в день (ч)*</label><input id="hoursPerDay" inputmode="decimal" placeholder="например, 10" required></div>
+        <div>
+          <label>Дней в месяце (для 3 мес.)</label>
+          <div id="daysBox" class="row" style="grid-template-columns:repeat(3,1fr);gap:8px"></div>
+          <div class="small">Заполняется автоматически — можно скорректировать вручную</div>
+        </div>
+      </div>
+
+      <div style="margin-top:12px">
+        <label>Список врачей</label>
+        <div id="doctors" class="grid">
+          <div class="grid-head small" style="margin-bottom:6px">
+            <div>#</div><div>ФИО врача*</div><div>Специализация*</div><div>Тип занятости*</div>
+          </div>
+          <div id="doctorRows"></div>
+          <div style="margin-top:6px;display:flex;gap:8px;align-items:center">
+            <button class="btn btn-ghost" type="button" id="addDoctor">+ Добавить врача</button>
+            <button class="btn btn-ghost" type="button" id="removeDoctor">− Удалить последнего</button>
+            <div class="small" id="doctorCountText">1 врач</div>
+          </div>
+        </div>
+      </div>
+
+      <div style="margin-top:12px">
+        <label>Месяцы</label>
+        <div id="tabs" class="tabs"></div>
+        <div id="monthsContainer" style="margin-top:8px"></div>
+      </div>
+
+      <!-- служебные -->
+      <input type="hidden" name="utm_source"><input type="hidden" name="utm_medium">
+      <input type="hidden" name="utm_campaign"><input type="hidden" name="utm_content">
+      <input type="hidden" name="utm_term"><input type="hidden" name="referrer"><input type="hidden" name="page">
+
+      <div class="row" style="margin-top:12px">
+        <div class="small">Пустые строки игнорируются.</div>
+        <div class="small" style="text-align:right">
+          <input id="consent" type="checkbox"><label for="consent" style="font-weight:400">Даю согласие на обработку персональных данных</label>
+        </div>
+      </div>
+
+      <div style="margin-top:12px;display:flex;gap:12px;align-items:center">
+        <button class="btn btn-primary" type="submit">Отправить</button>
+        <span class="small">* — обязательные поля</span>
+      </div>
+
+      <div id="ok" class="ok">Готово.</div>
+      <div id="err" class="err"></div>
+    </form>
+  </div>
+
+<script src="{% static 'courses/js/metrics_form.js' %}"></script>
+</body>
+</html>

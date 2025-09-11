@@ -25,4 +25,8 @@ urlpatterns = [
     path('user-certificates/', course_views.CertificateListView.as_view(), name='user_certificates'),
     path('certificate/<str:certificate_id>/download/', course_views.download_certificate_pdf, name='download_certificate_pdf'),
     path('certificate/<str:certificate_id>/view/', course_views.view_certificate_pdf, name='view_certificate_pdf'),
+    path('metrics/', course_views.metrics_form_view, name='metrics_form'),
+    path('metrics/success/', course_views.metrics_success_view, name='metrics_success'),
+    path('metrics/admin/', course_views.metrics_admin_list, name='metrics_admin_list'),
+    path('metrics/admin/<int:submission_id>/', course_views.metrics_admin_detail, name='metrics_admin_detail'),
 ]

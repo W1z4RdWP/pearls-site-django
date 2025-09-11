@@ -11,7 +11,7 @@ from django.http import JsonResponse, HttpResponse, HttpRequest
 from django.template.loader import render_to_string
 from weasyprint import HTML
 from datetime import datetime
-from .forms import CourseForm, CourseModalForm, LessonForm
+from .forms import CourseForm, CourseModalForm, LessonForm, MetricsForm
 from .models import Course, Lesson, UserLessonTrajectory, Trajectory, UserCourseTrajectory, TrajectoryCourse, Certificate
 from myapp.models import UserProgress, UserCourse, QuizResult
 from myapp.views import is_admin, is_author_or_admin
@@ -1261,4 +1261,110 @@ def download_certificate_pdf(request, certificate_id):
     )
     
     return response
+    
+
+def metrics_form_view(request):
+    """
+    Представление для формы "передача данных – Метрики эффективности стомклиники"
+    """
+    if request.method == 'POST':
+        # Обрабатываем данные из AJAX запроса
+        import json
+        try:
+            data = json.loads(request.body)
+        except json.JSONDecodeError:
+            return JsonResponse({'success': False, 'error': 'Invalid JSON'})
+        
+        if request.user.is_authenticated:
+            # Сохраняем данные в базу
+            from .models import MetricsSubmission
+            
+            # Извлекаем основные данные
+            clinic_name = data.get('clinicName', '')
+            initial_month = data.get('startMonth', '')
+            doctors_count = int(data.get('docCount', 1))
+            chairs_count = int(data.get('chairs', 0))
+            work_hours = float(data.get('hoursPerDay', 0))
+            
+            # Дни в месяце
+            days = data.get('days', [])
+            
+            # Данные врачей
+            doctors_data = {
+                'doctors': data.get('doctors', []),
+                'months': data.get('months', [])
+            }
+            
+            # Создаем запись
+            submission = MetricsSubmission.objects.create(
+                user=request.user,
+                clinic_name=clinic_name,
+                initial_month=initial_month,
+                doctors_count=doctors_count,
+                chairs_count=chairs_count,
+                work_hours=work_hours,
+                days_month_1=days[0] if len(days) > 0 else 0,
+                days_month_2=days[1] if len(days) > 1 else 0,
+                days_month_3=days[2] if len(days) > 2 else 0,
+                days_month_4=days[3] if len(days) > 3 else 0,
+                days_month_5=days[4] if len(days) > 4 else 0,
+                days_month_6=days[5] if len(days) > 5 else 0,
+                doctors_data=doctors_data
+            )
+            
+            from django.http import JsonResponse
+            return JsonResponse({'success': True})
+        else:
+            return JsonResponse({'success': False, 'error': 'User not authenticated'})
+    
+    return render(request, 'courses/metrics_form.html', {
+        'title': 'передача данных – Метрики эффективности стомклиники'
+    })
+
+
+def metrics_success_view(request):
+    """
+    Страница успешной отправки формы метрик
+    """
+    return render(request, 'courses/metrics_success.html', {
+        'title': 'Форма отправлена успешно'
+    })
+
+
+@login_required
+def metrics_admin_list(request):
+    """
+    Административная страница со списком всех заполненных форм метрик (только для superuser)
+    """
+    if not request.user.is_superuser:
+        from django.http import HttpResponseForbidden
+        return HttpResponseForbidden("У вас нет доступа к этой странице")
+    
+    from .models import MetricsSubmission
+    submissions = MetricsSubmission.objects.select_related('user').all()
+    
+    return render(request, 'courses/metrics_admin_list.html', {
+        'submissions': submissions,
+        'title': 'Администрирование форм метрик'
+    })
+
+
+@login_required
+def metrics_admin_detail(request, submission_id):
+    """
+    Детальный просмотр заполненной формы метрик (только для superuser)
+    """
+    if not request.user.is_superuser:
+        from django.http import HttpResponseForbidden
+        return HttpResponseForbidden("У вас нет доступа к этой странице")
+    
+    from .models import MetricsSubmission
+    from django.shortcuts import get_object_or_404
+    
+    submission = get_object_or_404(MetricsSubmission, id=submission_id)
+    
+    return render(request, 'courses/metrics_admin_detail.html', {
+        'submission': submission,
+        'title': f'Метрики {submission.clinic_name}'
+    })
     
