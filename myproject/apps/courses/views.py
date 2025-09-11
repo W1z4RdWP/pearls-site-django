@@ -2,7 +2,7 @@ from django.utils import timezone
 from django.shortcuts import render, redirect, get_object_or_404
 from django.urls import reverse
 from django.db.models import Max
-from django.views.generic import DetailView, ListView, TemplateView, View
+from django.views.generic import DetailView, ListView, TemplateView, View, CreateView
 from django.contrib.auth.models import User
 from django.db import transaction, models
 from django.contrib.auth.decorators import login_required, user_passes_test
@@ -25,8 +25,12 @@ from .utils import issue_certificate, get_user_certificates
 from quizzes.models import Quiz
 
 
+
+
 logger = logging.getLogger(__name__)
 audit_logger = logging.getLogger('audit')
+
+
 
 
 def auto_unlock_quiz_if_lessons_completed(user, course):
@@ -47,6 +51,8 @@ def auto_unlock_quiz_if_lessons_completed(user, course):
         return True
     
     return False
+
+
 
 
 @method_decorator(login_required, name='dispatch')
@@ -118,6 +124,9 @@ class UserCourseTrajectoryDetailView(DetailView):
             return True
         prev_uc = user_courses.get(prev_tc.course_id)
         return prev_uc and prev_uc.status == 'completed'
+
+
+
 
 class CourseDetailView(DetailView):
     model = Course
@@ -503,6 +512,8 @@ class CourseListView(ListView):
         })
         return context
 
+
+
 def lesson_detail(request, course_slug, lesson_id):
     if not request.user.is_authenticated:
         return redirect('users:login')
@@ -567,6 +578,8 @@ def lesson_detail(request, course_slug, lesson_id):
     return render(request, 'courses/lesson_detail.html', context)
 
 
+
+
 @login_required
 @user_passes_test(is_admin, login_url='/')
 def create_course(request):
@@ -602,6 +615,9 @@ def create_course(request):
         form = CourseForm()
     return render(request, 'courses/create_course.html', {'form': form})
 
+
+
+
 @login_required
 def create_lesson(request, course_slug):
     course = get_object_or_404(Course, slug=course_slug)
@@ -619,6 +635,8 @@ def create_lesson(request, course_slug):
     return render(request, 'courses/create_lesson.html', {'form': form, 'course': course})
 
 
+
+
 def get_category_full_path(category):
     path = [category.name]
     parent = category.parent
@@ -626,6 +644,8 @@ def get_category_full_path(category):
         path.append(parent.name)
         parent = parent.parent
     return '/'.join(reversed(path))
+
+
 
 @login_required
 @user_passes_test(is_admin, login_url='/')
@@ -755,6 +775,8 @@ def add_lesson(request, course_slug):
     })
 
 
+
+
 @login_required
 @user_passes_test(is_admin, login_url='/')
 def reorder_materials(request, course_slug):
@@ -800,6 +822,8 @@ def reorder_materials(request, course_slug):
     })
 
 
+
+
 @login_required
 @user_passes_test(is_admin, login_url='/')
 def delete_course(request, slug):
@@ -810,6 +834,8 @@ def delete_course(request, slug):
             return JsonResponse({'success': True})
         return redirect('home')
     return redirect('courses:course_detail', slug=slug)
+
+
 
 
 @login_required
@@ -829,6 +855,8 @@ def delete_lesson(request, lesson_id):
         return redirect('home')
 
 
+
+
 @login_required
 @user_passes_test(lambda u: is_author_or_admin(u, Course), login_url='/')
 def edit_course(request, slug):
@@ -846,6 +874,7 @@ def edit_course(request, slug):
         'form': form,
         'course': course
     })
+
 
 
 
@@ -873,6 +902,9 @@ def edit_lesson(request, lesson_id):
         'lesson': lesson
     })
 
+
+
+
 @require_http_methods(["GET", "POST"])
 def redir_to_quiz(request, course_slug):
     course = get_object_or_404(Course, slug=course_slug)
@@ -888,6 +920,9 @@ def redir_to_quiz(request, course_slug):
 
     # GET-запрос - показываем страницу с подтверждением
     return render(request, 'courses/redir_to_quiz.html', {'course': course})
+
+
+
 
 @require_POST
 def complete_lesson(request, course_slug, lesson_id):
@@ -1008,6 +1043,8 @@ def complete_lesson(request, course_slug, lesson_id):
     return redirect('courses:course_detail', slug=course.slug)
 
 
+
+
 def complete_course(request, course_id):
     course = get_object_or_404(Course, id=course_id)
     user_course = UserCourse.objects.get(user=request.user, course=course)
@@ -1053,6 +1090,8 @@ def complete_course(request, course_id):
             user_course.save()
         return redirect('courses:course_detail', slug=course.slug)
     
+
+
 
 @method_decorator(login_required, name='dispatch')
 class UserCourseTrajectoryListView(ListView):
@@ -1178,9 +1217,7 @@ class UserCourseTrajectoryListView(ListView):
         return context
 
 
-from django.views.generic import CreateView
-from django.contrib.auth.mixins import UserPassesTestMixin
-from django.http import JsonResponse
+
 
 class TrajectoryCreateView(UserPassesTestMixin, CreateView):
     """
@@ -1203,6 +1240,8 @@ class TrajectoryCreateView(UserPassesTestMixin, CreateView):
         return response
 
 
+
+
 @method_decorator(login_required, name='dispatch')
 class CertificateListView(TemplateView):
     """
@@ -1215,7 +1254,6 @@ class CertificateListView(TemplateView):
         certificates = get_user_certificates(self.request.user)
         context.update(certificates)
         return context
-
 
 
 
@@ -1268,6 +1306,8 @@ def download_certificate_pdf(request, certificate_id):
     
     return response
     
+
+
 
 class MetricsFormView(LoginRequiredMixin, UserPassesTestMixin, View):
     """
@@ -1337,6 +1377,8 @@ class MetricsFormView(LoginRequiredMixin, UserPassesTestMixin, View):
         return JsonResponse({'success': True})
 
 
+
+
 class MetricsSuccessView(LoginRequiredMixin, UserPassesTestMixin, TemplateView):
     """
     CBV для страницы успешной отправки формы метрик
@@ -1357,40 +1399,49 @@ class MetricsSuccessView(LoginRequiredMixin, UserPassesTestMixin, TemplateView):
         return context
 
 
-@login_required
-def metrics_admin_list(request):
-    """
-    Административная страница со списком всех заполненных форм метрик (только для superuser)
-    """
-    if not request.user.is_superuser:
-        from django.http import HttpResponseForbidden
-        return HttpResponseForbidden("У вас нет доступа к этой странице")
-    
-    from .models import MetricsSubmission
-    submissions = MetricsSubmission.objects.select_related('user').all()
-    
-    return render(request, 'courses/metrics_admin_list.html', {
-        'submissions': submissions,
-        'title': 'Администрирование форм метрик'
-    })
 
 
-@login_required
-def metrics_admin_detail(request, submission_id):
+class MetricsAdminListView(LoginRequiredMixin, UserPassesTestMixin, ListView):
     """
-    Детальный просмотр заполненной формы метрик (только для superuser)
+    CBV для административной страницы со списком всех заполненных форм метрик (только для superuser)
     """
-    if not request.user.is_superuser:
-        from django.http import HttpResponseForbidden
-        return HttpResponseForbidden("У вас нет доступа к этой странице")
+    template_name = 'courses/metrics_admin_list.html'
+    context_object_name = 'submissions'
     
-    from .models import MetricsSubmission
-    from django.shortcuts import get_object_or_404
+    def test_func(self):
+        """Проверка доступа: только superuser"""
+        return self.request.user.is_superuser
     
-    submission = get_object_or_404(MetricsSubmission, id=submission_id)
+    def get_queryset(self):
+        from .models import MetricsSubmission
+        return MetricsSubmission.objects.select_related('user').all()
     
-    return render(request, 'courses/metrics_admin_detail.html', {
-        'submission': submission,
-        'title': f'Метрики {submission.clinic_name}'
-    })
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['title'] = 'Администрирование форм метрик'
+        return context
+
+
+
+
+class MetricsAdminDetailView(LoginRequiredMixin, UserPassesTestMixin, DetailView):
+    """
+    CBV для детального просмотра заполненной формы метрик (только для superuser)
+    """
+    template_name = 'courses/metrics_admin_detail.html'
+    context_object_name = 'submission'
+    pk_url_kwarg = 'submission_id'
+    
+    def test_func(self):
+        """Проверка доступа: только superuser"""
+        return self.request.user.is_superuser
+    
+    def get_queryset(self):
+        from .models import MetricsSubmission
+        return MetricsSubmission.objects.all()
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['title'] = f'Метрики {self.object.clinic_name}'
+        return context
     
