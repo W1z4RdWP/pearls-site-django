@@ -38,6 +38,20 @@ for (var i=1;i<=30;i++){ var o=document.createElement('option'); o.value=i; o.te
 docCountSel.value = 1;
 var doctorsBox = document.getElementById('doctorRows');
 function renderDoctorRows(n){
+  // Сохраняем текущие данные врачей перед перерисовкой
+  var savedData = [];
+  var existingInputs = document.querySelectorAll('[data-doc^="name_"]');
+  var existingSpecs = document.querySelectorAll('[data-doc^="spec_"]');
+  var existingEmployments = document.querySelectorAll('[data-doc^="employment_"]');
+  
+  for (var i = 0; i < existingInputs.length; i++) {
+    savedData[i] = {
+      name: existingInputs[i] ? existingInputs[i].value : '',
+      spec: existingSpecs[i] ? existingSpecs[i].value : '',
+      employment: existingEmployments[i] ? existingEmployments[i].value : ''
+    };
+  }
+  
   doctorsBox.innerHTML='';
   for (var i=0;i<n;i++){
     var row=document.createElement('div'); row.className='grid-row';
@@ -60,6 +74,24 @@ function renderDoctorRows(n){
                     '</select>';
     doctorsBox.appendChild(row);
   }
+  
+  // Восстанавливаем сохраненные данные
+  var newInputs = document.querySelectorAll('[data-doc^="name_"]');
+  var newSpecs = document.querySelectorAll('[data-doc^="spec_"]');
+  var newEmployments = document.querySelectorAll('[data-doc^="employment_"]');
+  
+  for (var i = 0; i < Math.min(savedData.length, n); i++) {
+    if (newInputs[i] && savedData[i]) {
+      newInputs[i].value = savedData[i].name;
+    }
+    if (newSpecs[i] && savedData[i]) {
+      newSpecs[i].value = savedData[i].spec;
+    }
+    if (newEmployments[i] && savedData[i]) {
+      newEmployments[i].value = savedData[i].employment;
+    }
+  }
+  
   updateDoctorCount();
 }
 renderDoctorRows(Number(docCountSel.value));
@@ -107,6 +139,28 @@ function rebuildMonths(){
     })(j);
   }
 
+  // Сохраняем данные метрик перед перерисовкой
+  var savedMetricsData = {};
+  for (var m = 0; m < seq.length; m++) {
+    var existingCard = document.querySelector('[data-month-idx="' + m + '"]');
+    if (existingCard) {
+      var rows = existingCard.querySelectorAll('.months-grid-row');
+      savedMetricsData[m] = [];
+      for (var r = 0; r < rows.length; r++) {
+        var hp = rows[r].querySelector('[data-field^="hp_"]');
+        var hw = rows[r].querySelector('[data-field^="hw_"]');
+        var rev = rows[r].querySelector('[data-field^="rev_"]');
+        var com = rows[r].querySelector('[data-field^="com_"]');
+        savedMetricsData[m][r] = {
+          hp: hp ? hp.value : '',
+          hw: hw ? hw.value : '',
+          rev: rev ? rev.value : '',
+          com: com ? com.value : ''
+        };
+      }
+    }
+  }
+
   // карточки месяцев
   monthsContainer.innerHTML='';
   var docsN=doctorsBox.children.length;
@@ -131,9 +185,32 @@ function rebuildMonths(){
     card.innerHTML = html;
     monthsContainer.appendChild(card);
   }
-
-  // синхронизация ФИО/специальности
+  
+  // синхронизация ФИО/специальности (сначала устанавливаем обработчики и синхронизируем текущие значения)
   syncDoctorNamesToMonths();
+  
+  // Восстанавливаем сохраненные данные метрик (после синхронизации ФИО)
+  for (var m = 0; m < seq.length; m++) {
+    if (savedMetricsData[m]) {
+      var card = document.querySelector('[data-month-idx="' + m + '"]');
+      if (card) {
+        var rows = card.querySelectorAll('.months-grid-row');
+        for (var r = 0; r < Math.min(rows.length, savedMetricsData[m].length); r++) {
+          if (savedMetricsData[m][r]) {
+            var hp = rows[r].querySelector('[data-field^="hp_"]');
+            var hw = rows[r].querySelector('[data-field^="hw_"]');
+            var rev = rows[r].querySelector('[data-field^="rev_"]');
+            var com = rows[r].querySelector('[data-field^="com_"]');
+            
+            if (hp) hp.value = savedMetricsData[m][r].hp;
+            if (hw) hw.value = savedMetricsData[m][r].hw;
+            if (rev) rev.value = savedMetricsData[m][r].rev;
+            if (com) com.value = savedMetricsData[m][r].com;
+          }
+        }
+      }
+    }
+  }
 }
 
 function showMonth(idx){
@@ -152,6 +229,19 @@ function syncDoctorNamesToMonths(){
       var nameInput = nameInputs[idx];
       var specSelect = specSelects[idx];
       
+      // Немедленно синхронизируем текущие значения
+      var nameLinks = document.querySelectorAll('[data-link="name_'+idx+'"]');
+      for (var j=0;j<nameLinks.length;j++){
+        nameLinks[j].value = nameInput.value;
+      }
+      
+      var specText = specSelect.options[specSelect.selectedIndex].text;
+      var specLinks = document.querySelectorAll('[data-link="spec_'+idx+'"]');
+      for (var j=0;j<specLinks.length;j++){
+        specLinks[j].value = specText;
+      }
+      
+      // Устанавливаем обработчики для будущих изменений
       nameInput.oninput = function(){
         var nameLinks = document.querySelectorAll('[data-link="name_'+idx+'"]');
         for (var j=0;j<nameLinks.length;j++){
