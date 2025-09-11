@@ -17,6 +17,7 @@
   label{display:block;margin-top:10px;font-weight:600}
   input,textarea,select{width:100%;padding:12px;border:1px solid var(--border);border-radius:12px;box-sizing:border-box;background:#fff}
   input:focus,textarea:focus,select:focus{outline:none;border-color:#B6E6E3;box-shadow:0 0 0 3px rgba(23,180,173,.12)}
+  input::placeholder,textarea::placeholder{font-style:italic}
   .small{font-size:12px;color:var(--muted)}
   .row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
   .three{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}
