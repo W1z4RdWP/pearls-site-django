@@ -1218,12 +1218,17 @@ class CertificateListView(TemplateView):
 
 
 
-def view_certificate_pdf(request, certificate_id):
-    """
-    Представление для просмотра сертификата в формате PDF.
-    """
-    certificate = get_object_or_404(Certificate, certificate_id=certificate_id, user=request.user)
-    return render(request, 'courses/certificate_pdf.html', {'certificate': certificate})
+
+class ViewCertificatePdfView(TemplateView):
+    template_name = 'courses/certificate_pdf.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        certificate = get_object_or_404(Certificate, certificate_id=kwargs['certificate_id'], user=self.request.user)
+        context['certificate'] = certificate
+        return context
+
+
 
 
 @login_required
