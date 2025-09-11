@@ -2,10 +2,11 @@ from django.utils import timezone
 from django.shortcuts import render, redirect, get_object_or_404
 from django.urls import reverse
 from django.db.models import Max
-from django.views.generic import DetailView, ListView, TemplateView
+from django.views.generic import DetailView, ListView, TemplateView, View
 from django.contrib.auth.models import User
 from django.db import transaction, models
 from django.contrib.auth.decorators import login_required, user_passes_test
+from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.views.decorators.http import require_POST, require_http_methods
 from django.http import JsonResponse, HttpResponse, HttpRequest
 from django.template.loader import render_to_string
@@ -1268,72 +1269,92 @@ def download_certificate_pdf(request, certificate_id):
     return response
     
 
-def metrics_form_view(request):
+class MetricsFormView(LoginRequiredMixin, UserPassesTestMixin, View):
     """
-    Представление для формы "передача данных – Метрики эффективности стомклиники"
+    CBV для формы "передача данных – Метрики эффективности стомклиники"
+    Доступ только для пользователей группы "Внешний пользователь" или superuser/is_staff
     """
-    if request.method == 'POST':
-        # Обрабатываем данные из AJAX запроса
+    template_name = 'courses/metrics_form.html'
+    
+    def test_func(self):
+        """Проверка доступа: superuser/is_staff или группа "Внешний пользователь" """
+        user = self.request.user
+        if user.is_superuser or user.is_staff:
+            return True
+        return user.groups.filter(name='Внешний пользователь').exists()
+    
+    def get(self, request, *args, **kwargs):
+        """GET запрос - отображение формы"""
+        context = {
+            'title': 'передача данных – Метрики эффективности стомклиники'
+        }
+        return render(request, self.template_name, context)
+    
+    def post(self, request, *args, **kwargs):
+        """POST запрос - обработка AJAX данных"""
         import json
         try:
             data = json.loads(request.body)
         except json.JSONDecodeError:
             return JsonResponse({'success': False, 'error': 'Invalid JSON'})
         
-        if request.user.is_authenticated:
-            # Сохраняем данные в базу
-            from .models import MetricsSubmission
-            
-            # Извлекаем основные данные
-            clinic_name = data.get('clinicName', '')
-            initial_month = data.get('startMonth', '')
-            doctors_count = int(data.get('docCount', 1))
-            chairs_count = int(data.get('chairs', 0))
-            work_hours = float(data.get('hoursPerDay', 0))
-            
-            # Дни в месяце
-            days = data.get('days', [])
-            
-            # Данные врачей
-            doctors_data = {
-                'doctors': data.get('doctors', []),
-                'months': data.get('months', [])
-            }
-            
-            # Создаем запись
-            submission = MetricsSubmission.objects.create(
-                user=request.user,
-                clinic_name=clinic_name,
-                initial_month=initial_month,
-                doctors_count=doctors_count,
-                chairs_count=chairs_count,
-                work_hours=work_hours,
-                days_month_1=days[0] if len(days) > 0 else 0,
-                days_month_2=days[1] if len(days) > 1 else 0,
-                days_month_3=days[2] if len(days) > 2 else 0,
-                days_month_4=days[3] if len(days) > 3 else 0,
-                days_month_5=days[4] if len(days) > 4 else 0,
-                days_month_6=days[5] if len(days) > 5 else 0,
-                doctors_data=doctors_data
-            )
-            
-            from django.http import JsonResponse
-            return JsonResponse({'success': True})
-        else:
-            return JsonResponse({'success': False, 'error': 'User not authenticated'})
+        # Сохраняем данные в базу
+        from .models import MetricsSubmission
+        
+        # Извлекаем основные данные
+        clinic_name = data.get('clinicName', '')
+        initial_month = data.get('startMonth', '')
+        doctors_count = int(data.get('docCount', 1))
+        chairs_count = int(data.get('chairs', 0))
+        work_hours = float(data.get('hoursPerDay', 0))
+        
+        # Дни в месяце
+        days = data.get('days', [])
+        
+        # Данные врачей
+        doctors_data = {
+            'doctors': data.get('doctors', []),
+            'months': data.get('months', [])
+        }
+        
+        # Создаем запись
+        submission = MetricsSubmission.objects.create(
+            user=request.user,
+            clinic_name=clinic_name,
+            initial_month=initial_month,
+            doctors_count=doctors_count,
+            chairs_count=chairs_count,
+            work_hours=work_hours,
+            days_month_1=days[0] if len(days) > 0 else 0,
+            days_month_2=days[1] if len(days) > 1 else 0,
+            days_month_3=days[2] if len(days) > 2 else 0,
+            days_month_4=days[3] if len(days) > 3 else 0,
+            days_month_5=days[4] if len(days) > 4 else 0,
+            days_month_6=days[5] if len(days) > 5 else 0,
+            doctors_data=doctors_data
+        )
+        
+        return JsonResponse({'success': True})
+
+
+class MetricsSuccessView(LoginRequiredMixin, UserPassesTestMixin, TemplateView):
+    """
+    CBV для страницы успешной отправки формы метрик
+    Доступ только для пользователей группы "Внешний пользователь" или superuser/is_staff
+    """
+    template_name = 'courses/metrics_success.html'
     
-    return render(request, 'courses/metrics_form.html', {
-        'title': 'передача данных – Метрики эффективности стомклиники'
-    })
-
-
-def metrics_success_view(request):
-    """
-    Страница успешной отправки формы метрик
-    """
-    return render(request, 'courses/metrics_success.html', {
-        'title': 'Форма отправлена успешно'
-    })
+    def test_func(self):
+        """Проверка доступа: superuser/is_staff или группа "Внешний пользователь" """
+        user = self.request.user
+        if user.is_superuser or user.is_staff:
+            return True
+        return user.groups.filter(name='Внешний пользователь').exists()
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['title'] = 'Форма отправлена успешно'
+        return context
 
 
 @login_required
