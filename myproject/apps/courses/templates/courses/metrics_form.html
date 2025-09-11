@@ -4,7 +4,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Территория Улыбки — метрики за 6 месяцев</title>
+<title>Передача данных - Метрики эффективности стомклиники</title>
 
 <link rel="stylesheet" href="{% static 'courses/css/metrics_form.css' %}">
 
@@ -22,14 +22,14 @@
       <div class="row">
         <div>
           <label>Название клиники*</label>
-          <input id="clinicName" placeholder="Название вашей клиники" required>
+          <input id="clinicName" placeholder="Название вашей клиники" required minlength="2" maxlength="255">
           <div class="small">Укажите полное название клиники</div>
         </div>
       </div>
       <div class="row">
         <div>
           <label>Начальный месяц*</label>
-          <input id="startMonth" placeholder="2025-01" required>
+          <input id="startMonth" placeholder="2025-01" required pattern="\d{4}-(0[1-9]|1[0-2])" title="Формат: ГГГГ-ММ">
           <div class="small">Формат ГГГГ-ММ. Остальные 5 месяцев сформируются автоматически</div>
         </div>
         <div>
@@ -39,8 +39,8 @@
         </div>
       </div>
 <div class="three" style="margin-top:10px">
-        <div><label>Кресла (шт.)*</label><input id="chairs" inputmode="numeric" placeholder="например, 6" required></div>
-        <div><label>Часов работы в день (ч)*</label><input id="hoursPerDay" inputmode="decimal" placeholder="например, 10" required></div>
+        <div><label>Кресла (шт.)*</label><input id="chairs" inputmode="numeric" placeholder="например, 6" required min="1" max="100"></div>
+        <div><label>Часов работы в день (ч)*</label><input id="hoursPerDay" inputmode="decimal" placeholder="например, 10" required min="0.1" max="24" step="0.1"></div>
         <div>
           <label>Дней в месяце (для 3 мес.)</label>
           <div id="daysBox" class="row" style="grid-template-columns:repeat(3,1fr);gap:8px"></div>

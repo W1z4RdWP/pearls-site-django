@@ -121,9 +121,9 @@ function rebuildMonths(){
       html += '<div class="months-grid-row">'+
               '<input disabled placeholder="ФИО врача" data-link="name_'+d+'">'+
               '<input disabled placeholder="Специализация" data-link="spec_'+d+'">'+
-              '<input inputmode="decimal" placeholder="например, 132" data-field="hp_'+d+'">'+
-              '<input inputmode="decimal" placeholder="например, 96" data-field="hw_'+d+'">'+
-              '<input inputmode="decimal" placeholder="например, 850000" data-field="rev_'+d+'">'+
+              '<input inputmode="decimal" placeholder="например, 132" min="0" step="0.1" data-field="hp_'+d+'">'+
+              '<input inputmode="decimal" placeholder="например, 96" min="0" step="0.1" data-field="hw_'+d+'">'+
+              '<input inputmode="decimal" placeholder="например, 850000" min="0" step="1" data-field="rev_'+d+'">'+
               '<input placeholder="Комментарий" data-field="com_'+d+'">'+
               '</div>';
     }
@@ -181,10 +181,117 @@ rebuildMonths();
 document.getElementById('f').onsubmit = function(e){
   e.preventDefault();
   
+  // Скрываем предыдущие ошибки
+  document.getElementById('err').style.display = 'none';
+  document.getElementById('ok').style.display = 'none';
+  
+  // Массив для сбора ошибок
+  var errors = [];
+  
+  // Проверяем согласие на обработку данных
   var consent = document.getElementById('consent');
   if (!consent.checked) {
-    document.getElementById('err').textContent = 'Необходимо дать согласие на обработку персональных данных';
+    errors.push('Необходимо дать согласие на обработку персональных данных');
+  }
+  
+  // Проверяем название клиники
+  var clinicName = document.getElementById('clinicName').value.trim();
+  if (!clinicName) {
+    errors.push('Укажите название клиники');
+  }
+  
+  // Проверяем начальный месяц
+  var startMonth = startMonthInput.value.trim();
+  if (!startMonth || !/^\d{4}-(0[1-9]|1[0-2])$/.test(startMonth)) {
+    errors.push('Укажите корректный начальный месяц в формате ГГГГ-ММ');
+  }
+  
+  // Проверяем кресла
+  var chairs = document.getElementById('chairs').value.trim();
+  if (!chairs || isNaN(chairs) || Number(chairs) <= 0) {
+    errors.push('Укажите количество кресел (число больше 0)');
+  }
+  
+  // Проверяем часы работы
+  var hoursPerDay = document.getElementById('hoursPerDay').value.trim();
+  if (!hoursPerDay || isNaN(hoursPerDay) || Number(hoursPerDay) <= 0) {
+    errors.push('Укажите количество часов работы в день (число больше 0)');
+  }
+  
+  // Проверяем врачей
+  var nameInputs = document.querySelectorAll('[data-doc^="name_"]');
+  var specSelects = document.querySelectorAll('[data-doc^="spec_"]');
+  var employmentSelects = document.querySelectorAll('[data-doc^="employment_"]');
+  
+  var hasValidDoctors = false;
+  for (var i = 0; i < nameInputs.length; i++) {
+    var name = nameInputs[i].value.trim();
+    var spec = specSelects[i].value;
+    var employment = employmentSelects[i].value;
+    
+    if (name) { // Если указано имя врача
+      hasValidDoctors = true;
+      if (!spec) {
+        errors.push('Укажите специализацию для врача "' + name + '"');
+      }
+      if (!employment) {
+        errors.push('Укажите тип занятости для врача "' + name + '"');
+      }
+    }
+  }
+  
+  if (!hasValidDoctors) {
+    errors.push('Добавьте хотя бы одного врача с указанием ФИО, специализации и типа занятости');
+  }
+  
+  // Проверяем метрики по месяцам (только для врачей с указанными ФИО)
+  var seq = monthSeq3(startMonthInput.value);
+  for (var m = 0; m < seq.length; m++) {
+    var monthCard = document.querySelector('[data-month-idx="' + m + '"]');
+    if (monthCard) {
+      var rows = monthCard.querySelectorAll('.months-grid-row');
+      for (var r = 0; r < rows.length; r++) {
+        // Проверяем только если у врача указано ФИО
+        var doctorName = '';
+        if (nameInputs[r] && nameInputs[r].value.trim()) {
+          doctorName = nameInputs[r].value.trim();
+          
+          var hp = rows[r].querySelector('[data-field^="hp_"]');
+          var hw = rows[r].querySelector('[data-field^="hw_"]');
+          var rev = rows[r].querySelector('[data-field^="rev_"]');
+          
+          var monthName = monthHuman(seq[m]);
+          
+          if (!hp || !hp.value.trim() || isNaN(hp.value) || Number(hp.value) < 0) {
+            errors.push('Укажите часы по графику для врача "' + doctorName + '" в месяце "' + monthName + '"');
+          }
+          
+          if (!hw || !hw.value.trim() || isNaN(hw.value) || Number(hw.value) < 0) {
+            errors.push('Укажите часы с пациентами для врача "' + doctorName + '" в месяце "' + monthName + '"');
+          }
+          
+          if (!rev || !rev.value.trim() || isNaN(rev.value) || Number(rev.value) < 0) {
+            errors.push('Укажите выручку для врача "' + doctorName + '" в месяце "' + monthName + '"');
+          }
+          
+          // Проверяем логику: часы с пациентами не должны превышать часы по графику
+          if (hp.value.trim() && hw.value.trim() && !isNaN(hp.value) && !isNaN(hw.value)) {
+            if (Number(hw.value) > Number(hp.value)) {
+              errors.push('Часы с пациентами не могут превышать часы по графику для врача "' + doctorName + '" в месяце "' + monthName + '"');
+            }
+          }
+        }
+      }
+    }
+  }
+  
+  // Если есть ошибки - показываем их
+  if (errors.length > 0) {
+    document.getElementById('err').innerHTML = '<strong>Исправьте следующие ошибки:</strong><br>• ' + errors.join('<br>• ');
     document.getElementById('err').style.display = 'block';
+    
+    // Прокручиваем к ошибкам
+    document.getElementById('err').scrollIntoView({ behavior: 'smooth', block: 'center' });
     return;
   }
   
