@@ -109,8 +109,8 @@ def telegram_register(request):
                 user.profile.is_approved = True
                 user.profile.save()
             
-            # Добавляем пользователя в группу "Внешние пользователи"
-            external_group, created = Group.objects.get_or_create(name='Внешние пользователи')
+            # Добавляем пользователя в группу "Внешний пользователь"
+            external_group, created = Group.objects.get_or_create(name='Внешний пользователь')
             user.groups.add(external_group)
         
         return Response({

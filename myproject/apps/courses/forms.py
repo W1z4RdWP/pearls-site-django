@@ -157,3 +157,203 @@ class UserCourseTrajectoryForm(forms.ModelForm):
             'trajectory': forms.Select(attrs={'class': 'form-select'}),
             'current_course': forms.Select(attrs={'class': 'form-select'}),
         }
+
+class MetricsForm(forms.Form):
+    # Название клиники
+    clinic_name = forms.CharField(
+        label="Название клиники*",
+        max_length=255,
+        required=True,
+        widget=forms.TextInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'например, Территория Улыбки - БЦ "Север"'
+        })
+    )
+    
+    # Начальный месяц (выпадающий список)
+    MONTH_CHOICES = [
+        ('2025-01', '2025-01'), ('2025-02', '2025-02'), ('2025-03', '2025-03'),
+        ('2025-04', '2025-04'), ('2025-05', '2025-05'), ('2025-06', '2025-06'),
+        ('2025-07', '2025-07'), ('2025-08', '2025-08'), ('2025-09', '2025-09'),
+        ('2025-10', '2025-10'), ('2025-11', '2025-11'), ('2025-12', '2025-12'),
+    ]
+    
+    initial_month = forms.ChoiceField(
+        label="Начальный месяц (авто)*",
+        choices=MONTH_CHOICES,
+        required=True,
+        widget=forms.Select(attrs={'class': 'form-control'}),
+        help_text="Остальные 5 месяцев сформируются автоматически"
+    )
+    
+    # Количество врачей
+    DOCTORS_CHOICES = [(i, str(i)) for i in range(1, 21)]
+    
+    doctors_count = forms.ChoiceField(
+        label="Количество врачей*",
+        choices=DOCTORS_CHOICES,
+        required=True,
+        widget=forms.Select(attrs={'class': 'form-control'})
+    )
+    
+    # Параметры клиники - Кресла
+    chairs_count = forms.IntegerField(
+        label="Кресла (шт., справочно)*",
+        required=True,
+        widget=forms.NumberInput(attrs={
+            'class': 'form-control',
+            'placeholder': '6'
+        }),
+        help_text="Информативно на дату заполнения — не участвует в расчетах."
+    )
+    
+    # Часы работы в день
+    work_hours = forms.IntegerField(
+        label="Часы работы в день (ч)*",
+        required=True,
+        widget=forms.NumberInput(attrs={
+            'class': 'form-control',
+            'placeholder': '10'
+        })
+    )
+    
+    # Дни в месяце для каждого месяца (6 полей)
+    days_month_1 = forms.IntegerField(
+        label="март 2025 г.",
+        required=True,
+        widget=forms.NumberInput(attrs={'class': 'form-control', 'placeholder': '6 (или 0)'})
+    )
+    
+    days_month_2 = forms.IntegerField(
+        label="апрель 2025 г.",
+        required=True,
+        widget=forms.NumberInput(attrs={'class': 'form-control', 'placeholder': '6 (или 0)'})
+    )
+    
+    days_month_3 = forms.IntegerField(
+        label="май 2025 г.",
+        required=True,
+        widget=forms.NumberInput(attrs={'class': 'form-control', 'placeholder': '6 (или 0)'})
+    )
+    
+    days_month_4 = forms.IntegerField(
+        label="июнь 2025 г.",
+        required=True,
+        widget=forms.NumberInput(attrs={'class': 'form-control', 'placeholder': '6 (или 0)'})
+    )
+    
+    days_month_5 = forms.IntegerField(
+        label="июль 2025 г.",
+        required=True,
+        widget=forms.NumberInput(attrs={'class': 'form-control', 'placeholder': '6 (или 0)'})
+    )
+    
+    days_month_6 = forms.IntegerField(
+        label="август 2025 г.",
+        required=True,
+        widget=forms.NumberInput(attrs={'class': 'form-control', 'placeholder': '6 (или 0)'})
+    )
+    
+    # Согласие на обработку персональных данных
+    consent_personal_data = forms.BooleanField(
+        label="Даю согласие на обработку персональных данных",
+        required=True,
+        widget=forms.CheckboxInput(attrs={'class': 'form-check-input'})
+    )
+    
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Добавляем поля для врачей динамически
+        # Пока создаем максимум 20 врачей
+        
+        SPECIALIZATION_CHOICES = [
+            ('', '— выберите —'),
+            ('hygienist', 'Гигиенист'),
+            ('implantologist', 'Имплантолог'),
+            ('orthodontist', 'Ортодонт'),
+            ('orthopedist', 'Ортопед'),
+            ('periodontist', 'Пародонтолог'),
+            ('therapist', 'Терапевт'),
+            ('surgeon', 'Хирург'),
+        ]
+        
+        EMPLOYMENT_CHOICES = [
+            ('', '— выберите —'),
+            ('full_time', 'Постоянное место работы'),
+            ('part_time', 'Совместительство'),
+        ]
+        
+        for i in range(1, 21):  # Максимум 20 врачей
+            # ФИО врача
+            self.fields[f'doctor_{i}_name'] = forms.CharField(
+                label=f"ФИО врача*",
+                max_length=255,
+                required=False,
+                widget=forms.TextInput(attrs={
+                    'class': 'form-control',
+                    'placeholder': 'Иванов Иван Иванович'
+                })
+            )
+            
+            # Специализация
+            self.fields[f'doctor_{i}_specialization'] = forms.ChoiceField(
+                label="Специализация*",
+                choices=SPECIALIZATION_CHOICES,
+                required=False,
+                widget=forms.Select(attrs={'class': 'form-control'})
+            )
+            
+            # Трудоустройство
+            self.fields[f'doctor_{i}_employment'] = forms.ChoiceField(
+                label="Трудоустройство*",
+                choices=EMPLOYMENT_CHOICES,
+                required=False,
+                widget=forms.Select(attrs={'class': 'form-control'})
+            )
+        
+        # Поля для месяцев (врачи и их данные по месяцам)
+        for i in range(1, 21):  # Максимум 20 врачей
+            for month in range(1, 7):  # 6 месяцев
+                # Часы по графику
+                self.fields[f'doctor_{i}_month_{month}_schedule_hours'] = forms.IntegerField(
+                    label="Часы по графику*",
+                    required=False,
+                    widget=forms.NumberInput(attrs={
+                        'class': 'form-control',
+                        'placeholder': 'например, 132'
+                    })
+                )
+                
+                # Часы с пациентами
+                self.fields[f'doctor_{i}_month_{month}_patient_hours'] = forms.IntegerField(
+                    label="Часы с пациентами*",
+                    required=False,
+                    widget=forms.NumberInput(attrs={
+                        'class': 'form-control',
+                        'placeholder': 'например, 98'
+                    })
+                )
+                
+                # Выручка
+                self.fields[f'doctor_{i}_month_{month}_revenue'] = forms.CharField(
+                    label="Выручка*",
+                    required=False,
+                    widget=forms.TextInput(attrs={
+                        'class': 'form-control',
+                        'placeholder': 'например, 850 000'
+                    })
+                )
+                
+                # Комментарий
+                self.fields[f'doctor_{i}_month_{month}_comment'] = forms.CharField(
+                    label="Комментарий",
+                    required=False,
+                    widget=forms.TextInput(attrs={
+                        'class': 'form-control',
+                        'placeholder': 'Доп. сведения'
+                    })
+                )
+
+class DoctorFormSet(forms.BaseFormSet):
+    """Формсет для врачей"""
+    pass

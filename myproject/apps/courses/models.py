@@ -359,3 +359,40 @@ class Certificate(models.Model):
             return f"Сертификат {self.user.username} за траекторию {self.trajectory.name}"
 
 
+class MetricsSubmission(models.Model):
+    """
+    Модель для хранения данных форм метрик эффективности клиник
+    """
+    user = models.ForeignKey(User, on_delete=models.CASCADE, verbose_name="Пользователь")
+    clinic_name = models.CharField(max_length=255, verbose_name="Название клиники")
+    initial_month = models.CharField(max_length=7, verbose_name="Начальный месяц")  # YYYY-MM
+    doctors_count = models.PositiveIntegerField(verbose_name="Количество врачей")
+    chairs_count = models.PositiveIntegerField(verbose_name="Количество кресел")
+    work_hours = models.DecimalField(max_digits=5, decimal_places=2, verbose_name="Часы работы в день")
+    
+    # Дни в месяце для каждого из 6 месяцев
+    days_month_1 = models.PositiveIntegerField(verbose_name="Дни месяц 1")
+    days_month_2 = models.PositiveIntegerField(verbose_name="Дни месяц 2")
+    days_month_3 = models.PositiveIntegerField(verbose_name="Дни месяц 3")
+    days_month_4 = models.PositiveIntegerField(verbose_name="Дни месяц 4")
+    days_month_5 = models.PositiveIntegerField(verbose_name="Дни месяц 5")
+    days_month_6 = models.PositiveIntegerField(verbose_name="Дни месяц 6")
+    
+    # Данные врачей и их метрики сохраняются в JSON
+    doctors_data = models.JSONField(verbose_name="Данные врачей", help_text="JSON с данными врачей и их метриками")
+    
+    submitted_at = models.DateTimeField(auto_now_add=True, verbose_name="Дата отправки")
+    
+    class Meta:
+        verbose_name = 'Заполненная форма метрик'
+        verbose_name_plural = 'Заполненные формы метрик'
+        ordering = ['-submitted_at']
+        indexes = [
+            models.Index(fields=['user', 'submitted_at'], name='metrics_user_date_idx'),
+            models.Index(fields=['submitted_at'], name='metrics_date_idx'),
+        ]
+    
+    def __str__(self):
+        return f"Метрики {self.clinic_name} от {self.user.username} ({self.submitted_at.strftime('%d.%m.%Y')})"
+
+

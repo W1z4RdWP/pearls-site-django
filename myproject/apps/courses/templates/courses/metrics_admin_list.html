@@ -1,0 +1,180 @@
+{% extends 'layout.html' %}
+{% load static %}
+
+{% block specific_styles %}
+    <style>
+        .admin-wrapper {
+            max-width: 1200px;
+            margin: 20px auto;
+            padding: 0 20px;
+        }
+        
+        .admin-header {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 30px;
+            border-left: 4px solid #007bff;
+        }
+        
+        .admin-header h1 {
+            margin: 0 0 10px 0;
+            color: #333;
+        }
+        
+        .admin-header p {
+            margin: 0;
+            color: #666;
+        }
+        
+        .submissions-table {
+            background: white;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .submissions-table table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        
+        .submissions-table th {
+            background: #007bff;
+            color: white;
+            padding: 15px;
+            text-align: left;
+            font-weight: 600;
+        }
+        
+        .submissions-table td {
+            padding: 15px;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .submissions-table tr:hover {
+            background: #f8f9fa;
+        }
+        
+        .btn-view {
+            background: #28a745;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            text-decoration: none;
+            font-size: 14px;
+            display: inline-block;
+        }
+        
+        .btn-view:hover {
+            background: #218838;
+            color: white;
+            text-decoration: none;
+        }
+        
+        .no-submissions {
+            text-align: center;
+            padding: 60px 20px;
+            color: #666;
+        }
+        
+        .no-submissions i {
+            font-size: 3rem;
+            margin-bottom: 20px;
+            color: #ccc;
+        }
+        
+        .stats-row {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .stat-card {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            flex: 1;
+            text-align: center;
+        }
+        
+        .stat-number {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #007bff;
+            margin-bottom: 5px;
+        }
+        
+        .stat-label {
+            color: #666;
+            font-size: 14px;
+        }
+    </style>
+{% endblock %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block content %}
+<div class="admin-wrapper">
+    <div class="admin-header">
+        <h1>Администрирование форм метрик</h1>
+        <p>Просмотр всех заполненных форм метрик эффективности клиник</p>
+    </div>
+    
+    <div class="stats-row">
+        <div class="stat-card">
+            <div class="stat-number">{{ submissions.count }}</div>
+            <div class="stat-label">Всего форм</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-number">{{ submissions|length }}</div>
+            <div class="stat-label">На этой странице</div>
+        </div>
+    </div>
+    
+    {% if submissions %}
+        <div class="submissions-table">
+            <table>
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Пользователь</th>
+                        <th>Название клиники</th>
+                        <th>Дата заполнения</th>
+                        <th>Количество врачей</th>
+                        <th>Действия</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for submission in submissions %}
+                        <tr>
+                            <td>{{ submission.id }}</td>
+                            <td>
+                                <strong>{{ submission.user.get_full_name|default:submission.user.username }}</strong>
+                                <br>
+                                <small style="color: #666;">{{ submission.user.email }}</small>
+                            </td>
+                            <td>{{ submission.clinic_name }}</td>
+                            <td>{{ submission.submitted_at|date:"d.m.Y H:i" }}</td>
+                            <td>{{ submission.doctors_count }}</td>
+                            <td>
+                                <a href="{% url 'courses:metrics_admin_detail' submission.id %}" class="btn-view">
+                                    Посмотреть
+                                </a>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% else %}
+        <div class="no-submissions">
+            <i>📊</i>
+            <h3>Пока нет заполненных форм</h3>
+            <p>Когда пользователи начнут заполнять формы метрик, они появятся здесь</p>
+        </div>
+    {% endif %}
+</div>
+{% endblock %} 
