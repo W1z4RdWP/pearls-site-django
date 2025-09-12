@@ -264,7 +264,12 @@ function syncDoctorNamesToMonths(){
 startMonthInput.oninput = rebuildMonths;
 
 // инициализация
-startMonthInput.value = '2025-03';
+// Устанавливаем дату на 3 месяца назад от текущей
+const now = new Date();
+const threeMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 3, 1);
+const year = threeMonthsAgo.getFullYear();
+const month = String(threeMonthsAgo.getMonth() + 1).padStart(2, '0');
+startMonthInput.value = `${year}-${month}`;
 rebuildMonths();
 
 // обработка формы
