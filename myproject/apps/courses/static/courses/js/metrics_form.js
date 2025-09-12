@@ -272,9 +272,34 @@ const month = String(threeMonthsAgo.getMonth() + 1).padStart(2, '0');
 startMonthInput.value = `${year}-${month}`;
 rebuildMonths();
 
+// функция для очистки подсветки ошибок
+function clearErrorHighlighting() {
+  document.querySelectorAll('.error').forEach(function(element) {
+    element.classList.remove('error');
+  });
+}
+
+// функция для подсветки поля с ошибкой
+function highlightError(element) {
+  element.classList.add('error');
+}
+
+// функция для очистки подсветки при изменении поля
+function clearErrorOnInput(element) {
+  element.addEventListener('input', function() {
+    this.classList.remove('error');
+  });
+  element.addEventListener('change', function() {
+    this.classList.remove('error');
+  });
+}
+
 // обработка формы
 document.getElementById('f').onsubmit = function(e){
   e.preventDefault();
+  
+  // Очищаем предыдущие подсветки ошибок
+  clearErrorHighlighting();
   
   // Скрываем предыдущие ошибки
   document.getElementById('err').style.display = 'none';
@@ -287,30 +312,38 @@ document.getElementById('f').onsubmit = function(e){
   var consent = document.getElementById('consent');
   if (!consent.checked) {
     errors.push('Необходимо дать согласие на обработку персональных данных');
+    highlightError(consent);
   }
   
   // Проверяем название клиники
-  var clinicName = document.getElementById('clinicName').value.trim();
-  if (!clinicName) {
+  var clinicName = document.getElementById('clinicName');
+  var clinicNameValue = clinicName.value.trim();
+  if (!clinicNameValue) {
     errors.push('Укажите название клиники');
+    highlightError(clinicName);
   }
   
   // Проверяем начальный месяц
   var startMonth = startMonthInput.value.trim();
   if (!startMonth || !/^\d{4}-(0[1-9]|1[0-2])$/.test(startMonth)) {
     errors.push('Укажите корректный начальный месяц в формате ГГГГ-ММ');
+    highlightError(startMonthInput);
   }
   
   // Проверяем кресла
-  var chairs = document.getElementById('chairs').value.trim();
-  if (!chairs || isNaN(chairs) || Number(chairs) <= 0) {
+  var chairs = document.getElementById('chairs');
+  var chairsValue = chairs.value.trim();
+  if (!chairsValue || isNaN(chairsValue) || Number(chairsValue) <= 0) {
     errors.push('Укажите количество кресел (число больше 0)');
+    highlightError(chairs);
   }
   
   // Проверяем часы работы
-  var hoursPerDay = document.getElementById('hoursPerDay').value.trim();
-  if (!hoursPerDay || isNaN(hoursPerDay) || Number(hoursPerDay) <= 0) {
+  var hoursPerDay = document.getElementById('hoursPerDay');
+  var hoursPerDayValue = hoursPerDay.value.trim();
+  if (!hoursPerDayValue || isNaN(hoursPerDayValue) || Number(hoursPerDayValue) <= 0) {
     errors.push('Укажите количество часов работы в день (число больше 0)');
+    highlightError(hoursPerDay);
   }
   
   // Проверяем врачей
@@ -328,15 +361,27 @@ document.getElementById('f').onsubmit = function(e){
       hasValidDoctors = true;
       if (!spec) {
         errors.push('Укажите специализацию для врача "' + name + '"');
+        highlightError(specSelects[i]);
       }
       if (!employment) {
         errors.push('Укажите тип занятости для врача "' + name + '"');
+        highlightError(employmentSelects[i]);
+      }
+    } else {
+      // Если имя не указано, но есть специализация или занятость
+      if (spec || employment) {
+        errors.push('Укажите ФИО врача');
+        highlightError(nameInputs[i]);
       }
     }
   }
   
   if (!hasValidDoctors) {
     errors.push('Добавьте хотя бы одного врача с указанием ФИО, специализации и типа занятости');
+    // Подсвечиваем первое поле имени врача
+    if (nameInputs.length > 0) {
+      highlightError(nameInputs[0]);
+    }
   }
   
   // Проверяем метрики по месяцам (только для врачей с указанными ФИО)
@@ -493,3 +538,39 @@ function getCookie(name) {
   }
   return cookieValue;
 };
+
+// Инициализация очистки подсветки для всех полей формы
+document.addEventListener('DOMContentLoaded', function() {
+  // Основные поля
+  clearErrorOnInput(document.getElementById('clinicName'));
+  clearErrorOnInput(document.getElementById('chairs'));
+  clearErrorOnInput(document.getElementById('hoursPerDay'));
+  clearErrorOnInput(document.getElementById('consent'));
+  
+  // Поля врачей (будут добавлены динамически)
+  function addClearErrorListeners() {
+    document.querySelectorAll('[data-doc^="name_"], [data-doc^="spec_"], [data-doc^="employment_"]').forEach(function(element) {
+      if (!element.hasAttribute('data-error-listener')) {
+        element.setAttribute('data-error-listener', 'true');
+        clearErrorOnInput(element);
+      }
+    });
+  }
+  
+  // Добавляем слушатели для существующих полей врачей
+  addClearErrorListeners();
+  
+  // Добавляем слушатели при добавлении новых врачей
+  var observer = new MutationObserver(function(mutations) {
+    mutations.forEach(function(mutation) {
+      if (mutation.type === 'childList') {
+        addClearErrorListeners();
+      }
+    });
+  });
+  
+  observer.observe(document.getElementById('doctorRows'), {
+    childList: true,
+    subtree: true
+  });
+});
