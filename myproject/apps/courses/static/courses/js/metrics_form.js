@@ -684,7 +684,7 @@ document.getElementById('f').onsubmit = function(e){
           // Проверяем логику: часы с пациентами не должны превышать часы по графику
           if (hp.value.trim() && hw.value.trim() && !isNaN(hp.value) && !isNaN(hw.value)) {
             if (Number(hw.value) > Number(hp.value)) {
-              errors.push('Часы с пациентами не могут превышать часы по графику для врача "' + doctorName + '" в месяце "' + monthName + '"');
+              errors.push('Часы с пациентами (' + hw.value + ') не могут превышать часы по графику (' + hp.value + ') для врача "' + doctorName + '" в месяце "' + monthName + '"');
             }
           }
         }
