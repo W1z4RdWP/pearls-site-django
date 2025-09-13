@@ -5,6 +5,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Передача данных - Метрики эффективности стомклиники</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
 <link rel="stylesheet" href="{% static 'courses/css/metrics_form.css' %}">
 
@@ -25,13 +26,13 @@
       <div class="row">
         <div>
           <label>Начальный месяц*</label>
-          <input id="startMonth" placeholder="2025-01" required disabled pattern="\d{4}-(0[1-9]|1[0-2])" title="Формат: ГГГГ-ММ">
+          <input id="startMonth" style="background-color: #e9e7e7;" placeholder="Март 2025" required disabled title="Формат: Месяц ГГГГ">
           <div class="small">Сформируем ещё 2 месяца автоматически (всего 3 подряд). Поле редактировать не нужно.</div>
         </div>
         <div>
           <label>Название клиники*</label>
           <input id="clinicName" placeholder='например, Территория Улыбки - БЦ "Север"' required minlength="2" maxlength="255">
-          <div class="small">Укажите полное название клиники</div>
+          <div class="small">Это название попадет в таблицу вместе с данными.</div>
         </div>
         <div style="display: none;">
           <label>Количество врачей (1–30)</label>
@@ -42,14 +43,15 @@
       <hr>
       <h2>Параметры клиники</h2>
 <div class="row" style="margin-top:10px">
-        <div><label>Кресла (шт.)*</label><input id="chairs" inputmode="numeric" placeholder="например, 6" required min="1" max="100"></div>
-        <div><label>Часов работы в день (ч)*</label><input id="hoursPerDay" inputmode="decimal" placeholder="например, 10" required min="0.1" max="24" step="0.1"></div>
+        <div><label>Кол-во кресел сегодня (шт.)*</label><input id="chairs" inputmode="numeric" placeholder="например, 6" required min="1" max="100"><div class="small">Информативно на дату заполнения - не учавствует в расчетах</div></div>
+        
+        <div><label>Максимальное кол-во часов работы в день (ч)*</label><input id="hoursPerDay" inputmode="decimal" placeholder="например, 10" required min="0.1" max="24" step="0.1"></div>
       </div>
 
       <div style="margin-top:12px">
         <label>Кресла в месяцах (для 3 мес.)*</label>
         <div id="chairsBox" class="row" style="grid-template-columns:repeat(3,1fr);gap:8px"></div>
-        <div class="small">Информацию на дату заполнения — не на начало каждого месяца.</div>
+        <div class="small">Если в месяце не работали — поставьте 0.</div>
       </div>
 
       <div style="margin-top:12px">
@@ -62,7 +64,7 @@
         <label>Список врачей</label>
         <div id="doctors" class="grid">
           <div class="grid-head small" style="margin-bottom:6px">
-            <div>#</div><div>ФИО врача*</div><div>Специализация*</div><div>Тип занятости*</div><div>Удалить</div>
+            <div style="margin-left: 15px;">#</div><div style="margin-left: 30px;">ФИО врача*</div><div style="margin-left: 15px;">Специализация*</div><div style="margin-left: 15px;">Тип занятости*</div><div>Удалить</div>
           </div>
           <div id="doctorRows"></div>
           <div style="margin-top:6px;display:flex;gap:8px;align-items:center">
@@ -83,16 +85,19 @@
       <input type="hidden" name="utm_campaign"><input type="hidden" name="utm_content">
       <input type="hidden" name="utm_term"><input type="hidden" name="referrer"><input type="hidden" name="page">
 
-      <div class="row" style="margin-top:12px">
+      <div style="margin-top:12px">
         <div class="small">Пустые строки игнорируются.</div>
-        <div class="small" style="text-align:right">
-          <input id="consent" type="checkbox"><label for="consent" style="font-weight:400">Даю согласие на обработку персональных данных</label>
-        </div>
       </div>
 
-      <div style="margin-top:12px;display:flex;gap:12px;align-items:center">
-        <button class="btn btn-primary" type="submit">Отправить</button>
+      <div style="margin-top:12px;display:flex;justify-content:space-between;align-items:center">
         <span class="small">* — обязательные поля</span>
+        <div style="display:flex;gap:12px;align-items:center">
+          <div style="display:flex;align-items:center;gap:2px;white-space:nowrap">
+            <input id="consent" type="checkbox">
+            <label for="consent" style="font-weight:400;font-size:14px;margin:0">Даю согласие на обработку персональных данных</label>
+          </div>
+          <button class="btn btn-primary" type="submit">Отправить</button>
+        </div>
       </div>
 
       <div id="ok" class="ok">Готово.</div>

@@ -133,7 +133,7 @@ function renderDoctorRows(n){
                     '<option value="full_time">Постоянное место работы</option>'+
                     '<option value="part_time">Совместительство</option>'+
                     '</select>'+
-                    '<button type="button" class="btn-delete-doctor" data-doctor-index="'+i+'" title="Удалить врача" style="background:none;border:none;color:#dc3545;cursor:pointer;padding:8px;font-size:16px;display:flex;align-items:center;justify-content:center;">🗑️</button>';
+                    '<button type="button" class="btn-delete-doctor" data-doctor-index="'+i+'" title="Удалить врача" style="background:none;border:none;color:#dc3545;cursor:pointer;padding:8px;font-size:16px;display:flex;align-items:center;justify-content:center;"><i class="fa-solid fa-trash-can"></i></button>';
     doctorsBox.appendChild(row);
   }
   
@@ -235,7 +235,7 @@ function removeDoctorByIndex(indexToRemove) {
                     '<option value="full_time">Постоянное место работы</option>' +
                     '<option value="part_time">Совместительство</option>' +
                     '</select>' +
-                                         '<button type="button" class="btn-delete-doctor" data-doctor-index="' + i + '" title="Удалить врача" style="background:none;border:none;color:#dc3545;cursor:pointer;padding:8px;font-size:16px;display:flex;align-items:center;justify-content:center;">🗑️</button>';
+                                         '<button type="button" class="btn-delete-doctor" data-doctor-index="' + i + '" title="Удалить врача" style="background:none;border:none;color:#dc3545;cursor:pointer;padding:8px;font-size:16px;display:flex;align-items:center;justify-content:center;"><i class="fa-solid fa-trash-can"></i></button>';
     doctorsBox.appendChild(row);
   }
   
@@ -282,7 +282,7 @@ var tabs=document.getElementById('tabs');
 var monthsContainer=document.getElementById('monthsContainer');
 
 function rebuildMonths(){
-  var start=startMonthInput.value.trim();
+  var start=startMonthInput.getAttribute('data-value') || startMonthInput.value.trim();
   if(!/^\d{4}-(0[1-9]|1[0-2])$/.test(start)){ tabs.innerHTML=''; monthsContainer.innerHTML=''; chairsBox.innerHTML=''; daysBox.innerHTML=''; return; }
   var seq=monthSeq3(start);
 
@@ -511,7 +511,11 @@ const now = new Date();
 const threeMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 3, 1);
 const year = threeMonthsAgo.getFullYear();
 const month = String(threeMonthsAgo.getMonth() + 1).padStart(2, '0');
-startMonthInput.value = `${year}-${month}`;
+const monthYearFormat = `${year}-${month}`;
+
+// Устанавливаем внутреннее значение и отображаемое значение
+startMonthInput.setAttribute('data-value', monthYearFormat);
+startMonthInput.value = monthHuman(monthYearFormat);
 rebuildMonths();
 
 // функция для очистки подсветки ошибок
@@ -566,9 +570,9 @@ document.getElementById('f').onsubmit = function(e){
   }
   
   // Проверяем начальный месяц
-  var startMonth = startMonthInput.value.trim();
+  var startMonth = startMonthInput.getAttribute('data-value') || '';
   if (!startMonth || !/^\d{4}-(0[1-9]|1[0-2])$/.test(startMonth)) {
-    errors.push('Укажите корректный начальный месяц в формате ГГГГ-ММ');
+    errors.push('Укажите корректный начальный месяц');
     highlightError(startMonthInput);
   }
   
@@ -647,7 +651,7 @@ document.getElementById('f').onsubmit = function(e){
   }
   
   // Проверяем метрики по месяцам (только для врачей с указанными ФИО)
-  var seq = monthSeq3(startMonthInput.value);
+  var seq = monthSeq3(startMonthInput.getAttribute('data-value'));
   for (var m = 0; m < seq.length; m++) {
     var monthCard = document.querySelector('[data-month-idx="' + m + '"]');
     if (monthCard) {
@@ -701,7 +705,7 @@ document.getElementById('f').onsubmit = function(e){
   // собираем данные
   var data = {
     clinicName: document.getElementById('clinicName').value,
-    startMonth: startMonthInput.value,
+    startMonth: startMonthInput.getAttribute('data-value'),
     docCount: doctorsBox.children.length,
     chairs: document.getElementById('chairs').value,
     hoursPerDay: document.getElementById('hoursPerDay').value,
@@ -748,7 +752,7 @@ document.getElementById('f').onsubmit = function(e){
   }
   
   // месяцы
-  var seq = monthSeq3(startMonthInput.value);
+  var seq = monthSeq3(startMonthInput.getAttribute('data-value'));
   for (var m=0;m<seq.length;m++){
     var monthData = { month: seq[m], doctors: [] };
             var monthCard = document.querySelector('[data-month-idx="'+m+'"]');
