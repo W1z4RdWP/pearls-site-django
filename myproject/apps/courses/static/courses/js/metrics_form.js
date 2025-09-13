@@ -355,10 +355,41 @@ function syncDoctorNamesToMonths(){
       };
       
       specSelect.onchange = function(){
-        var specText = specSelect.options[specSelect.selectedIndex].text;
-        var specLinks = document.querySelectorAll('[data-link="spec_'+idx+'"]');
-        for (var j=0;j<specLinks.length;j++){
-          specLinks[j].value = specText;
+        // Проверяем, выбран ли "Свой вариант"
+        if (specSelect.value === 'custom') {
+          // Заменяем select на input
+          var customInput = document.createElement('input');
+          customInput.placeholder = 'Укажите специализацию';
+          customInput.setAttribute('data-doc', 'spec_' + idx);
+          customInput.value = '';
+          customInput.required = true;
+          
+          // Добавляем обработчик для синхронизации с месячными полями
+          customInput.oninput = function() {
+            var specLinks = document.querySelectorAll('[data-link="spec_'+idx+'"]');
+            for (var j=0;j<specLinks.length;j++){
+              specLinks[j].value = customInput.value;
+            }
+          };
+          
+          // Заменяем элемент
+          specSelect.parentNode.replaceChild(customInput, specSelect);
+          
+          // Обновляем ссылки в месячных полях
+          var specLinks = document.querySelectorAll('[data-link="spec_'+idx+'"]');
+          for (var j=0;j<specLinks.length;j++){
+            specLinks[j].value = '';
+          }
+          
+          // Добавляем обработчик очистки ошибок
+          clearErrorOnInput(customInput);
+          
+        } else {
+          var specText = specSelect.options[specSelect.selectedIndex].text;
+          var specLinks = document.querySelectorAll('[data-link="spec_'+idx+'"]');
+          for (var j=0;j<specLinks.length;j++){
+            specLinks[j].value = specText;
+          }
         }
       };
     })(i);
@@ -464,20 +495,29 @@ document.getElementById('f').onsubmit = function(e){
   
   // Проверяем врачей
   var nameInputs = document.querySelectorAll('[data-doc^="name_"]');
-  var specSelects = document.querySelectorAll('[data-doc^="spec_"]');
+  var specElements = document.querySelectorAll('[data-doc^="spec_"]');
   var employmentSelects = document.querySelectorAll('[data-doc^="employment_"]');
   
   var hasValidDoctors = false;
   for (var i = 0; i < nameInputs.length; i++) {
     var name = nameInputs[i].value.trim();
-    var spec = specSelects[i].value;
+    var specElement = specElements[i];
+    var spec = '';
+    
+    // Определяем тип элемента специализации (select или input)
+    if (specElement.tagName.toLowerCase() === 'select') {
+      spec = specElement.value;
+    } else if (specElement.tagName.toLowerCase() === 'input') {
+      spec = specElement.value.trim();
+    }
+    
     var employment = employmentSelects[i].value;
     
     if (name) { // Если указано имя врача
       hasValidDoctors = true;
       if (!spec) {
         errors.push('Укажите специализацию для врача "' + name + '"');
-        highlightError(specSelects[i]);
+        highlightError(specElements[i]);
       }
       if (!employment) {
         errors.push('Укажите тип занятости для врача "' + name + '"');
@@ -579,13 +619,23 @@ document.getElementById('f').onsubmit = function(e){
   
   // врачи
   var nameInputs = document.querySelectorAll('[data-doc^="name_"]');
-  var specSelects = document.querySelectorAll('[data-doc^="spec_"]');
+  var specElements = document.querySelectorAll('[data-doc^="spec_"]');
   var employmentSelects = document.querySelectorAll('[data-doc^="employment_"]');
   for (var i=0;i<nameInputs.length;i++){
     if (nameInputs[i].value.trim()) {
+      var specElement = specElements[i];
+      var specializationValue = '';
+      
+      // Определяем тип элемента специализации и получаем значение
+      if (specElement.tagName.toLowerCase() === 'select') {
+        specializationValue = specElement.value;
+      } else if (specElement.tagName.toLowerCase() === 'input') {
+        specializationValue = specElement.value.trim();
+      }
+      
       data.doctors.push({
         name: nameInputs[i].value,
-        specialization: specSelects[i].value,
+        specialization: specializationValue,
         employment: employmentSelects[i].value
       });
     }
