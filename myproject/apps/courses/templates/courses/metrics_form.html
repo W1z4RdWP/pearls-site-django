@@ -41,14 +41,21 @@
       </div>
       <hr>
       <h2>Параметры клиники</h2>
-<div class="three" style="margin-top:10px">
+<div class="row" style="margin-top:10px">
         <div><label>Кресла (шт.)*</label><input id="chairs" inputmode="numeric" placeholder="например, 6" required min="1" max="100"></div>
         <div><label>Часов работы в день (ч)*</label><input id="hoursPerDay" inputmode="decimal" placeholder="например, 10" required min="0.1" max="24" step="0.1"></div>
-        <div>
-          <label>Дней в месяце (для 3 мес.)</label>
-          <div id="daysBox" class="row" style="grid-template-columns:repeat(3,1fr);gap:8px"></div>
-          <div class="small">Заполняется автоматически — можно скорректировать вручную</div>
-        </div>
+      </div>
+
+      <div style="margin-top:12px">
+        <label>Кресла в месяцах (для 3 мес.)*</label>
+        <div id="chairsBox" class="row" style="grid-template-columns:repeat(3,1fr);gap:8px"></div>
+        <div class="small">Информацию на дату заполнения — не на начало каждого месяца.</div>
+      </div>
+
+      <div style="margin-top:12px">
+        <label>Дней в месяце (для 3 мес.)</label>
+        <div id="daysBox" class="row" style="grid-template-columns:repeat(3,1fr);gap:8px"></div>
+        <div class="small">Заполняется автоматически — можно скорректировать вручную</div>
       </div>
 
       <div style="margin-top:12px">

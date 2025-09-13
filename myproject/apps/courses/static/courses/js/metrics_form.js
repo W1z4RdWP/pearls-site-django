@@ -28,7 +28,7 @@ function monthSeq3(startYYYYMM){
 function monthHuman(ym){
   var ms=['Январь','Февраль','Март','Апрель','Май','Июнь','Июль','Август','Сентябрь','Октябрь','Ноябрь','Декабрь'];
   var p=ym.split('-'); var y=Number(p[0]), m=Number(p[1]);
-  return ms[m-1] + ' ' + y;
+  return ms[m-1] + ' ' + y + 'г.';
 }
 function daysInMonth(ym){ var p=ym.split('-'); var y=Number(p[0]), m=Number(p[1]); return new Date(y, m, 0).getDate(); }
 
@@ -123,6 +123,10 @@ function renderDoctorRows(n){
                     '<option value="periodontist">Пародонтолог</option>'+
                     '<option value="therapist">Терапевт</option>'+
                     '<option value="surgeon">Хирург</option>'+
+                    '<option value="therapist_surgeon">Терапевт-Хирург</option>'+
+                    '<option value="orthopedist_surgeon">Ортопед-Хирург</option>'+
+                    '<option value="universal">Универсал</option>'+
+                    '<option value="custom">Свой вариант</option>'+
                     '</select>'+
                     '<select data-doc="employment_'+i+'">'+
                     '<option value="">— выберите —</option>'+
@@ -166,21 +170,59 @@ docCountSel.onchange=function(){ renderDoctorRows(Number(docCountSel.value)); re
 
 // ===== блок месяцев =====
 var startMonthInput=document.getElementById('startMonth');
+var chairsBox=document.getElementById('chairsBox');
 var daysBox=document.getElementById('daysBox');
 var tabs=document.getElementById('tabs');
 var monthsContainer=document.getElementById('monthsContainer');
 
 function rebuildMonths(){
   var start=startMonthInput.value.trim();
-  if(!/^\d{4}-(0[1-9]|1[0-2])$/.test(start)){ tabs.innerHTML=''; monthsContainer.innerHTML=''; daysBox.innerHTML=''; return; }
+  if(!/^\d{4}-(0[1-9]|1[0-2])$/.test(start)){ tabs.innerHTML=''; monthsContainer.innerHTML=''; chairsBox.innerHTML=''; daysBox.innerHTML=''; return; }
   var seq=monthSeq3(start);
+
+  // кресла
+  chairsBox.innerHTML='';
+  for (var i=0;i<seq.length;i++){
+    var wrapper = document.createElement('div');
+    var label = document.createElement('div');
+    label.className = 'small';
+    label.style.marginBottom = '4px';
+    label.style.fontWeight = 'bold';
+    label.textContent = monthHuman(seq[i]);
+    
+    var inp=document.createElement('input'); 
+    inp.setAttribute('inputmode','numeric');
+    inp.placeholder='напр., 6 (или 0)';
+    inp.min='0';
+    inp.max='100';
+    inp.title=monthHuman(seq[i]);
+    inp.setAttribute('data-month', seq[i]);
+    inp.required = true;
+    
+    wrapper.appendChild(label);
+    wrapper.appendChild(inp);
+    chairsBox.appendChild(wrapper);
+  }
 
   // дни
   daysBox.innerHTML='';
   for (var i=0;i<seq.length;i++){
-    var inp=document.createElement('input'); inp.setAttribute('inputmode','numeric');
-    inp.value=daysInMonth(seq[i]); inp.title=monthHuman(seq[i]); inp.setAttribute('data-month', seq[i]);
-    daysBox.appendChild(inp);
+    var wrapper = document.createElement('div');
+    var label = document.createElement('div');
+    label.className = 'small';
+    label.style.marginBottom = '4px';
+    label.style.fontWeight = 'bold';
+    label.textContent = monthHuman(seq[i]);
+    
+    var inp=document.createElement('input'); 
+    inp.setAttribute('inputmode','numeric');
+    inp.value=daysInMonth(seq[i]); 
+    inp.title=monthHuman(seq[i]); 
+    inp.setAttribute('data-month', seq[i]);
+    
+    wrapper.appendChild(label);
+    wrapper.appendChild(inp);
+    daysBox.appendChild(wrapper);
   }
 
   // вкладки
@@ -393,12 +435,23 @@ document.getElementById('f').onsubmit = function(e){
     highlightError(startMonthInput);
   }
   
-  // Проверяем кресла
+  // Проверяем основное поле кресел
   var chairs = document.getElementById('chairs');
   var chairsValue = chairs.value.trim();
   if (!chairsValue || isNaN(chairsValue) || Number(chairsValue) <= 0) {
     errors.push('Укажите количество кресел (число больше 0)');
     highlightError(chairs);
+  }
+  
+  // Проверяем кресла по месяцам
+  var chairsInputs = chairsBox.querySelectorAll('input');
+  for (var c = 0; c < chairsInputs.length; c++) {
+    var chairsValue = chairsInputs[c].value.trim();
+    var monthName = chairsInputs[c].title;
+    if (!chairsValue || isNaN(chairsValue) || Number(chairsValue) < 0) {
+      errors.push('Укажите количество кресел для месяца "' + monthName + '" (число больше или равно 0)');
+      highlightError(chairsInputs[c]);
+    }
   }
   
   // Проверяем часы работы
@@ -506,10 +559,17 @@ document.getElementById('f').onsubmit = function(e){
     docCount: doctorsBox.children.length,
     chairs: document.getElementById('chairs').value,
     hoursPerDay: document.getElementById('hoursPerDay').value,
+    chairsMonthly: [],
     days: [],
     doctors: [],
     months: []
   };
+  
+  // кресла в месяцах
+  var chairsInputs = chairsBox.querySelectorAll('input');
+  for (var c=0; c<chairsInputs.length; c++) {
+    data.chairsMonthly.push(parseInt(chairsInputs[c].value) || 0);
+  }
   
   // дни в месяце
   var daysInputs = daysBox.querySelectorAll('input');
@@ -611,6 +671,22 @@ document.addEventListener('DOMContentLoaded', function() {
   clearErrorOnInput(document.getElementById('hoursPerDay'));
   clearErrorOnInput(document.getElementById('consent'));
   
+  // Поля кресел и дней (будут добавлены динамически)
+  function addClearErrorListenersForParams() {
+    chairsBox.querySelectorAll('input').forEach(function(element) {
+      if (!element.hasAttribute('data-error-listener')) {
+        element.setAttribute('data-error-listener', 'true');
+        clearErrorOnInput(element);
+      }
+    });
+    daysBox.querySelectorAll('input').forEach(function(element) {
+      if (!element.hasAttribute('data-error-listener')) {
+        element.setAttribute('data-error-listener', 'true');
+        clearErrorOnInput(element);
+      }
+    });
+  }
+  
   // Поля врачей (будут добавлены динамически)
   function addClearErrorListeners() {
     document.querySelectorAll('[data-doc^="name_"], [data-doc^="spec_"], [data-doc^="employment_"]').forEach(function(element) {
@@ -624,16 +700,31 @@ document.addEventListener('DOMContentLoaded', function() {
   // Добавляем слушатели для существующих полей врачей
   addClearErrorListeners();
   
+  // Добавляем слушатели для полей параметров при их создании
+  addClearErrorListenersForParams();
+  
   // Добавляем слушатели при добавлении новых врачей
   var observer = new MutationObserver(function(mutations) {
     mutations.forEach(function(mutation) {
       if (mutation.type === 'childList') {
         addClearErrorListeners();
+        addClearErrorListenersForParams();
       }
     });
   });
   
   observer.observe(document.getElementById('doctorRows'), {
+    childList: true,
+    subtree: true
+  });
+  
+  // Наблюдаем за изменениями в блоках параметров
+  observer.observe(chairsBox, {
+    childList: true,
+    subtree: true
+  });
+  
+  observer.observe(daysBox, {
     childList: true,
     subtree: true
   });
