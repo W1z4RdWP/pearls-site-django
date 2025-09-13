@@ -32,6 +32,63 @@ function monthHuman(ym){
 }
 function daysInMonth(ym){ var p=ym.split('-'); var y=Number(p[0]), m=Number(p[1]); return new Date(y, m, 0).getDate(); }
 
+// ===== форматирование чисел =====
+function formatNumber(value) {
+  // Удаляем все нечисловые символы кроме точки
+  var cleanValue = value.toString().replace(/[^\d.]/g, '');
+  
+  // Разделяем на целую и дробную части
+  var parts = cleanValue.split('.');
+  var integerPart = parts[0];
+  var decimalPart = parts[1];
+  
+  // Форматируем целую часть с пробелами
+  var formattedInteger = integerPart.replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
+  
+  // Возвращаем отформатированное число
+  return decimalPart !== undefined ? formattedInteger + '.' + decimalPart : formattedInteger;
+}
+
+function getNumericValue(formattedValue) {
+  // Удаляем пробелы и возвращаем числовое значение
+  return formattedValue.toString().replace(/\s/g, '');
+}
+
+function addNumberFormatting(input) {
+  if (!input) return;
+  
+  input.addEventListener('input', function() {
+    var cursorPos = this.selectionStart;
+    var oldValue = this.value;
+    var newValue = formatNumber(this.value);
+    
+    // Устанавливаем новое значение
+    this.value = newValue;
+    
+    // Корректируем позицию курсора с учетом добавленных пробелов
+    var spacesAdded = (newValue.match(/\s/g) || []).length - (oldValue.match(/\s/g) || []).length;
+    var newCursorPos = cursorPos + spacesAdded;
+    
+    // Устанавливаем курсор
+    if (newCursorPos >= 0) {
+      this.setSelectionRange(newCursorPos, newCursorPos);
+    }
+  });
+  
+  // При потере фокуса убираем лишние точки и пробелы
+  input.addEventListener('blur', function() {
+    var value = this.value.trim();
+    if (value) {
+      // Удаляем множественные точки, оставляем только первую
+      var parts = value.split('.');
+      if (parts.length > 2) {
+        value = parts[0] + '.' + parts.slice(1).join('');
+      }
+      this.value = formatNumber(value);
+    }
+  });
+}
+
 // ===== интерфейс врачей =====
 var docCountSel = document.getElementById('docCount');
 for (var i=1;i<=30;i++){ var o=document.createElement('option'); o.value=i; o.textContent=i; docCountSel.appendChild(o); }
@@ -188,6 +245,12 @@ function rebuildMonths(){
   
   // синхронизация ФИО/специальности (сначала устанавливаем обработчики и синхронизируем текущие значения)
   syncDoctorNamesToMonths();
+  
+  // Добавляем форматирование чисел для полей выручки
+  var revenueInputs = document.querySelectorAll('[data-field^="rev_"]');
+  for (var i = 0; i < revenueInputs.length; i++) {
+    addNumberFormatting(revenueInputs[i]);
+  }
   
   // Восстанавливаем сохраненные данные метрик (после синхронизации ФИО)
   for (var m = 0; m < seq.length; m++) {
@@ -410,7 +473,8 @@ document.getElementById('f').onsubmit = function(e){
             errors.push('Укажите часы с пациентами для врача "' + doctorName + '" в месяце "' + monthName + '"');
           }
           
-          if (!rev || !rev.value.trim() || isNaN(rev.value) || Number(rev.value) < 0) {
+          var revNumericValue = rev ? getNumericValue(rev.value.trim()) : '';
+          if (!rev || !rev.value.trim() || isNaN(revNumericValue) || Number(revNumericValue) < 0) {
             errors.push('Укажите выручку для врача "' + doctorName + '" в месяце "' + monthName + '"');
           }
           
@@ -484,7 +548,7 @@ document.getElementById('f').onsubmit = function(e){
           monthData.doctors.push({
             scheduleHours: hp.value,
             patientHours: hw.value,
-            revenue: rev.value,
+            revenue: getNumericValue(rev.value),
             comment: com ? com.value : ''
           });
         }
