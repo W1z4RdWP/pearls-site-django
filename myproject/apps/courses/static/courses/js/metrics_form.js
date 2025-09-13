@@ -132,7 +132,8 @@ function renderDoctorRows(n){
                     '<option value="">— выберите —</option>'+
                     '<option value="full_time">Постоянное место работы</option>'+
                     '<option value="part_time">Совместительство</option>'+
-                    '</select>';
+                    '</select>'+
+                    '<button type="button" class="btn-delete-doctor" data-doctor-index="'+i+'" title="Удалить врача" style="background:none;border:none;color:#dc3545;cursor:pointer;padding:8px;font-size:16px;display:flex;align-items:center;justify-content:center;">🗑️</button>';
     doctorsBox.appendChild(row);
   }
   
@@ -153,7 +154,113 @@ function renderDoctorRows(n){
     }
   }
   
+  // Добавляем обработчики для кнопок удаления
+  addDeleteButtonHandlers();
+  
   updateDoctorCount();
+}
+
+function addDeleteButtonHandlers() {
+  var deleteButtons = document.querySelectorAll('.btn-delete-doctor');
+  for (var i = 0; i < deleteButtons.length; i++) {
+    deleteButtons[i].onclick = function() {
+      var totalDoctors = doctorsBox.children.length;
+      if (totalDoctors <= 1) {
+        return; // Не удаляем единственного врача
+      }
+      
+      var doctorIndex = parseInt(this.getAttribute('data-doctor-index'));
+      removeDoctorByIndex(doctorIndex);
+    };
+  }
+}
+
+function removeDoctorByIndex(indexToRemove) {
+  var rows = doctorsBox.children;
+  var totalRows = rows.length;
+  
+  if (totalRows <= 1) return; // Не удаляем единственного врача
+  
+  // Сохраняем данные всех врачей кроме удаляемого
+  var savedData = [];
+  var nameInputs = document.querySelectorAll('[data-doc^="name_"]');
+  var specElements = document.querySelectorAll('[data-doc^="spec_"]');
+  var employmentSelects = document.querySelectorAll('[data-doc^="employment_"]');
+  
+  for (var i = 0; i < nameInputs.length; i++) {
+    if (i !== indexToRemove) {
+      var specValue = '';
+      var specElement = specElements[i];
+      if (specElement.tagName.toLowerCase() === 'select') {
+        specValue = specElement.value;
+      } else if (specElement.tagName.toLowerCase() === 'input') {
+        specValue = specElement.value;
+      }
+      
+      savedData.push({
+        name: nameInputs[i].value,
+        spec: specValue,
+        employment: employmentSelects[i].value
+      });
+    }
+  }
+  
+  // Перерисовываем с новым количеством врачей
+  var newCount = totalRows - 1;
+  docCountSel.value = String(newCount);
+  
+  // Очищаем и создаем новые строки
+  doctorsBox.innerHTML = '';
+  for (var i = 0; i < newCount; i++) {
+    var row = document.createElement('div');
+    row.className = 'grid-row';
+    row.innerHTML = '<div style="text-align:center;padding:12px;font-weight:bold;color:var(--muted)">' + (i + 1) + '</div>' +
+                    '<input placeholder="ФИО врача" data-doc="name_' + i + '">' +
+                    '<select data-doc="spec_' + i + '">' +
+                    '<option value="">— выберите —</option>' +
+                    '<option value="hygienist">Гигиенист</option>' +
+                    '<option value="implantologist">Имплантолог</option>' +
+                    '<option value="orthodontist">Ортодонт</option>' +
+                    '<option value="orthopedist">Ортопед</option>' +
+                    '<option value="periodontist">Пародонтолог</option>' +
+                    '<option value="therapist">Терапевт</option>' +
+                    '<option value="surgeon">Хирург</option>' +
+                    '<option value="therapist_surgeon">Терапевт-Хирург</option>' +
+                    '<option value="orthopedist_surgeon">Ортопед-Хирург</option>' +
+                    '<option value="universal">Универсал</option>' +
+                    '<option value="custom">Свой вариант</option>' +
+                    '</select>' +
+                    '<select data-doc="employment_' + i + '">' +
+                    '<option value="">— выберите —</option>' +
+                    '<option value="full_time">Постоянное место работы</option>' +
+                    '<option value="part_time">Совместительство</option>' +
+                    '</select>' +
+                                         '<button type="button" class="btn-delete-doctor" data-doctor-index="' + i + '" title="Удалить врача" style="background:none;border:none;color:#dc3545;cursor:pointer;padding:8px;font-size:16px;display:flex;align-items:center;justify-content:center;">🗑️</button>';
+    doctorsBox.appendChild(row);
+  }
+  
+  // Восстанавливаем сохраненные данные
+  var newNameInputs = document.querySelectorAll('[data-doc^="name_"]');
+  var newSpecSelects = document.querySelectorAll('[data-doc^="spec_"]');
+  var newEmploymentSelects = document.querySelectorAll('[data-doc^="employment_"]');
+  
+  for (var i = 0; i < Math.min(savedData.length, newCount); i++) {
+    if (newNameInputs[i] && savedData[i]) {
+      newNameInputs[i].value = savedData[i].name;
+    }
+    if (newSpecSelects[i] && savedData[i]) {
+      newSpecSelects[i].value = savedData[i].spec;
+    }
+    if (newEmploymentSelects[i] && savedData[i]) {
+      newEmploymentSelects[i].value = savedData[i].employment;
+    }
+  }
+  
+  // Добавляем обработчики
+  addDeleteButtonHandlers();
+  syncDoctorNamesToMonths();
+  updateDoctorCount();
+  rebuildMonths();
 }
 renderDoctorRows(Number(docCountSel.value));
 function updateDoctorCount(){
@@ -165,7 +272,6 @@ function updateDoctorCount(){
 }
 
 document.getElementById('addDoctor').onclick=function(){ var n=doctorsBox.children.length; if(n>=30) return; docCountSel.value=String(n+1); renderDoctorRows(n+1); rebuildMonths(); };
-document.getElementById('removeDoctor').onclick=function(){ var n=doctorsBox.children.length; if(n<=1) return; docCountSel.value=String(n-1); renderDoctorRows(n-1); rebuildMonths(); };
 docCountSel.onchange=function(){ renderDoctorRows(Number(docCountSel.value)); rebuildMonths(); };
 
 // ===== блок месяцев =====
