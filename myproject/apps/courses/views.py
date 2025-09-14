@@ -1507,10 +1507,10 @@ def export_metrics_to_excel(request, submission_id):
         months_data = submission.doctors_data.get('months', [])
         
         # Заполняем заголовок
-        ws['A1'] = "Правила заполнения:"
-        ws['A1'].font = header_font
-        ws['A2'] = "Ячейки только этого цвета: К ЗАПОЛНЕНИЮ"
-        ws['A2'].fill = fill_yellow
+        # ws['A1'] = "Правила заполнения:"
+        # ws['A1'].font = header_font
+        # ws['A2'] = "Ячейки только этого цвета: К ЗАПОЛНЕНИЮ"
+        # ws['A2'].fill = fill_yellow
         
         # Основные параметры клиники (строка 4)
         ws['A4'] = "Кол-во кресел, загрузка клиники"
@@ -1519,7 +1519,6 @@ def export_metrics_to_excel(request, submission_id):
         # Строка 5 - числовые данные (начинаем с C)
         # Формула: количество кресел * максимальное количество часов работы в день * 30
         ws['A5'] = f"={submission.chairs_count}*{submission.work_hours}*30"
-        ws['B5'] = "100%"
         
         # Загрузка клиники по месяцам (формулы, только первые 3 месяца)
         # Нужно будет добавить формулы после создания итоговых строк
@@ -1585,15 +1584,6 @@ def export_metrics_to_excel(request, submission_id):
                     
             current_row += 1
         
-        # Добавляем итоговую строку для часов по графику (только первые 3 месяца)
-        ws[f'A{current_row}'] = "Итого"
-        ws[f'B{current_row}'] = ""
-        ws[f'C{current_row}'] = ""
-        for month_idx in range(3):
-            start_row = schedule_hours_start_row
-            end_row = current_row - 1
-            ws[f'{chr(68+month_idx)}{current_row}'] = f'=SUM({chr(68+month_idx)}{start_row}:{chr(68+month_idx)}{end_row})'
-        current_row += 1
         
         # Пропускаем 2 строки
         current_row += 2
@@ -1628,15 +1618,6 @@ def export_metrics_to_excel(request, submission_id):
                     
             current_row += 1
         
-        # Добавляем итоговую строку для часов с пациентами
-        ws[f'A{current_row}'] = "Итого"
-        ws[f'B{current_row}'] = ""
-        ws[f'C{current_row}'] = ""
-        for month_idx in range(3):
-            start_row = patient_hours_start_row
-            end_row = current_row - 1
-            ws[f'{chr(68+month_idx)}{current_row}'] = f'=SUM({chr(68+month_idx)}{start_row}:{chr(68+month_idx)}{end_row})'
-        current_row += 1
         
         # Пропускаем 2 строки
         current_row += 2
@@ -1671,15 +1652,6 @@ def export_metrics_to_excel(request, submission_id):
                     
             current_row += 1
         
-        # Добавляем итоговую строку для выручки
-        ws[f'A{current_row}'] = "Итого"
-        ws[f'B{current_row}'] = ""
-        ws[f'C{current_row}'] = ""
-        for month_idx in range(3):
-            start_row = revenue_start_row
-            end_row = current_row - 1
-            ws[f'{chr(68+month_idx)}{current_row}'] = f'=SUM({chr(68+month_idx)}{start_row}:{chr(68+month_idx)}{end_row})'
-        current_row += 1
         
         # Пропускаем 2 строки
         current_row += 2
@@ -1711,16 +1683,12 @@ def export_metrics_to_excel(request, submission_id):
                     
             current_row += 1
         
-        # Добавляем итоговую строку для загрузки доктора пациентами
-        ws[f'A{current_row}'] = "Итого"
-        ws[f'B{current_row}'] = ""
-        ws[f'C{current_row}'] = ""
-        for month_idx in range(3):
-            # Средняя загрузка = сумма часов с пациентами / сумма часов по графику
-            patient_sum_cell = f'{chr(68+month_idx)}{patient_hours_start_row + max_doctors}'  # строка с итогом часов с пациентами
-            schedule_sum_cell = f'{chr(68+month_idx)}{schedule_hours_start_row + max_doctors}'  # строка с итогом часов по графику
-            ws[f'{chr(68+month_idx)}{current_row}'] = f'=IF({schedule_sum_cell}=0,0,{patient_sum_cell}/{schedule_sum_cell})'
-        current_row += 1
+        # Применяем процентный формат к блоку 4 (Загрузка доктора пациентами)
+        for i in range(max_doctors):
+            row_num = current_row - max_doctors + i
+            ws[f'D{row_num}'].number_format = '0%'
+            ws[f'E{row_num}'].number_format = '0%'
+            ws[f'F{row_num}'].number_format = '0%'
         
         # Пропускаем 2 строки
         current_row += 2
@@ -1752,16 +1720,12 @@ def export_metrics_to_excel(request, submission_id):
                     
             current_row += 1
         
-        # Добавляем итоговую строку для среднего часа
-        ws[f'A{current_row}'] = "Итого"
-        ws[f'B{current_row}'] = ""
-        ws[f'C{current_row}'] = ""
-        for month_idx in range(3):
-            # Средний час = сумма выручки / сумма часов с пациентами
-            revenue_sum_cell = f'{chr(68+month_idx)}{revenue_start_row + max_doctors}'  # строка с итогом выручки
-            patient_sum_cell = f'{chr(68+month_idx)}{patient_hours_start_row + max_doctors}'  # строка с итогом часов с пациентами
-            ws[f'{chr(68+month_idx)}{current_row}'] = f'=IF({patient_sum_cell}=0,0,{revenue_sum_cell}/{patient_sum_cell})'
-        current_row += 1
+        # Применяем формат с 2 знаками после запятой к блоку 5 (Средний час)
+        for i in range(max_doctors):
+            row_num = current_row - max_doctors + i
+            ws[f'D{row_num}'].number_format = '0.00'
+            ws[f'E{row_num}'].number_format = '0.00'
+            ws[f'F{row_num}'].number_format = '0.00'
         
         # Обновляем формулы загрузки клиники по месяцам (только первые 3 месяца)
         for month_idx in range(3):
@@ -1792,6 +1756,7 @@ def export_metrics_to_excel(request, submission_id):
         ws['E5'].number_format = '0%'
         ws['F5'].number_format = '0%'
         
+        
         # Добавляем формулы для ячеек D7, E7, F7 - сумма часов по графику
         for month_idx in range(3):
             # Создаем формулу с операторами плюс для каждой ячейки врача
@@ -1802,8 +1767,6 @@ def export_metrics_to_excel(request, submission_id):
             formula = f"=({' + '.join(cell_formula_parts)})"
             ws[f'{chr(68+month_idx)}7'] = formula
         
-        # Выделяем ячейки "К ЗАПОЛНЕНИЮ" желтым цветом
-        ws['A2'].fill = fill_yellow
         
         # Автоподбор ширины колонок
         for column in ws.columns:
