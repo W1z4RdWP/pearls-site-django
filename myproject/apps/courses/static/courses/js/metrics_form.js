@@ -126,7 +126,6 @@ function renderDoctorRows(n){
                     '<option value="therapist_surgeon">Терапевт-Хирург</option>'+
                     '<option value="orthopedist_surgeon">Ортопед-Хирург</option>'+
                     '<option value="universal">Универсал</option>'+
-                    '<option value="custom">Свой вариант</option>'+
                     '</select>'+
                     '<select data-doc="employment_'+i+'">'+
                     '<option value="">— выберите —</option>'+
@@ -286,6 +285,16 @@ function rebuildMonths(){
   if(!/^\d{4}-(0[1-9]|1[0-2])$/.test(start)){ tabs.innerHTML=''; monthsContainer.innerHTML=''; chairsBox.innerHTML=''; daysBox.innerHTML=''; return; }
   var seq=monthSeq3(start);
 
+  // Сохраняем текущие значения кресел перед перерисовкой
+  var savedChairsData = {};
+  var existingChairsInputs = chairsBox.querySelectorAll('input');
+  for (var c = 0; c < existingChairsInputs.length; c++) {
+    var month = existingChairsInputs[c].getAttribute('data-month');
+    if (month) {
+      savedChairsData[month] = existingChairsInputs[c].value;
+    }
+  }
+
   // кресла
   chairsBox.innerHTML='';
   for (var i=0;i<seq.length;i++){
@@ -305,9 +314,24 @@ function rebuildMonths(){
     inp.setAttribute('data-month', seq[i]);
     inp.required = true;
     
+    // Восстанавливаем сохраненное значение
+    if (savedChairsData[seq[i]]) {
+      inp.value = savedChairsData[seq[i]];
+    }
+    
     wrapper.appendChild(label);
     wrapper.appendChild(inp);
     chairsBox.appendChild(wrapper);
+  }
+
+  // Сохраняем текущие значения дней перед перерисовкой
+  var savedDaysData = {};
+  var existingDaysInputs = daysBox.querySelectorAll('input');
+  for (var d = 0; d < existingDaysInputs.length; d++) {
+    var month = existingDaysInputs[d].getAttribute('data-month');
+    if (month) {
+      savedDaysData[month] = existingDaysInputs[d].value;
+    }
   }
 
   // дни
@@ -322,7 +346,8 @@ function rebuildMonths(){
     
     var inp=document.createElement('input'); 
     inp.setAttribute('inputmode','numeric');
-    inp.value=daysInMonth(seq[i]); 
+    // Восстанавливаем сохраненное значение или используем значение по умолчанию
+    inp.value = savedDaysData[seq[i]] || daysInMonth(seq[i]); 
     inp.title=monthHuman(seq[i]); 
     inp.setAttribute('data-month', seq[i]);
     

@@ -1766,6 +1766,11 @@ def export_metrics_to_excel(request, submission_id):
                 cell_formula_parts.append(cell_address)
             formula = f"=({' + '.join(cell_formula_parts)})"
             ws[f'{chr(68+month_idx)}7'] = formula
+
+            ws['H7'] = "=(D7+E7+F7)/3"
+            ws['H7'].number_format = '0.00'
+        
+
         
         
         # Автоподбор ширины колонок
