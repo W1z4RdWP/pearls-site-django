@@ -1478,11 +1478,20 @@ def export_metrics_to_excel(request, submission_id):
         fill_yellow = PatternFill(start_color="FFFF00", end_color="FFFF00", fill_type="solid")
         fill_light_blue = PatternFill(start_color="E6F3FF", end_color="E6F3FF", fill_type="solid")
         
-        border = Border(
-            left=Side(border_style="thin"),
-            right=Side(border_style="thin"),
-            top=Side(border_style="thin"),
-            bottom=Side(border_style="thin")
+        # Убираем общие границы - будем добавлять только для отдельных таблиц
+        # border = Border(
+        #     left=Side(border_style="thin"),
+        #     right=Side(border_style="thin"),
+        #     top=Side(border_style="thin"),
+        #     bottom=Side(border_style="thin")
+        # )
+        
+        # Пунктирная граница для таблиц
+        dashed_border = Border(
+            left=Side(border_style="dashed"),
+            right=Side(border_style="dashed"),
+            top=Side(border_style="dashed"),
+            bottom=Side(border_style="dashed")
         )
         
         # Функция для получения названий месяцев на русском (только первые 3 месяца)
@@ -1739,10 +1748,10 @@ def export_metrics_to_excel(request, submission_id):
             formula = f"=({' + '.join(cell_formula_parts)})/{max_hours_cell}"
             ws[f'{chr(68+month_idx)}5'] = formula
         
-        # Применяем стили
+        # Применяем стили (без границ)
         for row in ws.iter_rows():
             for cell in row:
-                cell.border = border
+                # cell.border = border  # Убираем общие границы
                 cell.font = normal_font
                 cell.alignment = Alignment(horizontal='center', vertical='center')
         
@@ -1755,6 +1764,50 @@ def export_metrics_to_excel(request, submission_id):
         ws['D5'].number_format = '0%'
         ws['E5'].number_format = '0%'
         ws['F5'].number_format = '0%'
+        
+        # Добавляем пунктирные границы для каждой таблицы
+        
+        # 1. Таблица "Кол-во кресел, загрузка клиники" (A6:H7) - начинаем с строки 6
+        for row in range(6, 8):  # строки 6-7
+            for col in range(1, 9):  # колонки A-H
+                cell = ws.cell(row=row, column=col)
+                cell.border = dashed_border
+        
+        # 2. Таблица "Кол-во часов по графику" (A7:H12)
+        for row in range(7, 13):  # строки 7-12
+            for col in range(1, 9):  # колонки A-H
+                cell = ws.cell(row=row, column=col)
+                cell.border = dashed_border
+        
+        # 3. Таблица "Кол-во часов с пациентами" (A15:H20)
+        for row in range(15, 21):  # строки 15-20
+            for col in range(1, 9):  # колонки A-H
+                cell = ws.cell(row=row, column=col)
+                cell.border = dashed_border
+        
+        # 4. Таблица "Выручка" (A23:H28)
+        for row in range(23, 29):  # строки 23-28
+            for col in range(1, 9):  # колонки A-H
+                cell = ws.cell(row=row, column=col)
+                cell.border = dashed_border
+        
+        # 5. Таблица "Загрузка доктора пациентами" (A31:H36)
+        for row in range(31, 37):  # строки 31-36
+            for col in range(1, 9):  # колонки A-H
+                cell = ws.cell(row=row, column=col)
+                cell.border = dashed_border
+        
+        # 6. Таблица "Средний час" (A39:H44)
+        for row in range(39, 45):  # строки 39-44
+            for col in range(1, 9):  # колонки A-H
+                cell = ws.cell(row=row, column=col)
+                cell.border = dashed_border
+        
+        # Красим ячейки в 7-й строке (кроме A и G) в голубой цвет
+        for col in range(2, 9):  # колонки B, C, D, E, F, G, H
+            if col != 7:  # пропускаем G (7-я колонка)
+                cell = ws.cell(row=7, column=col)
+                cell.fill = fill_light_blue
         
         
         # Добавляем формулы для ячеек D7, E7, F7 - сумма часов по графику
