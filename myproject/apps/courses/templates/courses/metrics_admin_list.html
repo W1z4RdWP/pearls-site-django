@@ -73,6 +73,24 @@
             text-decoration: none;
         }
         
+        .btn-export {
+            background: #17a2b8;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            text-decoration: none;
+            font-size: 14px;
+            display: inline-block;
+            margin-left: 5px;
+        }
+        
+        .btn-export:hover {
+            background: #138496;
+            color: white;
+            text-decoration: none;
+        }
+        
         .no-submissions {
             text-align: center;
             padding: 60px 20px;
@@ -162,6 +180,9 @@
                             <td>
                                 <a href="{% url 'courses:metrics_admin_detail' submission.id %}" class="btn-view">
                                     Посмотреть
+                                </a>
+                                <a href="{% url 'courses:metrics_export_excel' submission.id %}" class="btn-export">
+                                    📊 Excel
                                 </a>
                             </td>
                         </tr>

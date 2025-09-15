@@ -47,6 +47,23 @@
             text-decoration: none;
         }
         
+        .btn-export {
+            background: #17a2b8;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            text-decoration: none;
+            font-size: 14px;
+            margin-left: 10px;
+        }
+        
+        .btn-export:hover {
+            background: #138496;
+            color: white;
+            text-decoration: none;
+        }
+        
         .info-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
@@ -208,7 +225,10 @@
             <h1>Детали формы метрик</h1>
             <p>{{ submission.clinic_name }} • Отправлено {{ submission.submitted_at|date:"d.m.Y в H:i" }}</p>
         </div>
-        <a href="{% url 'courses:metrics_admin_list' %}" class="btn-back">← Назад к списку</a>
+        <div>
+            <a href="{% url 'courses:metrics_admin_list' %}" class="btn-back">← Назад к списку</a>
+            <a href="{% url 'courses:metrics_export_excel' submission.id %}" class="btn-export">📊 Экспорт в Excel</a>
+        </div>
     </div>
     
     <div class="info-grid">

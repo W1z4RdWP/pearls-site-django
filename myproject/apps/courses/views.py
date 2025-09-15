@@ -8,7 +8,7 @@ from django.db import transaction, models
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.views.decorators.http import require_POST, require_http_methods
-from django.http import JsonResponse, HttpResponse, HttpRequest
+from django.http import JsonResponse, HttpResponse, HttpRequest, HttpResponseForbidden
 from django.template.loader import render_to_string
 from weasyprint import HTML
 from datetime import datetime
@@ -1444,4 +1444,487 @@ class MetricsAdminDetailView(LoginRequiredMixin, UserPassesTestMixin, DetailView
         context = super().get_context_data(**kwargs)
         context['title'] = f'Метрики {self.object.clinic_name}'
         return context
+
+
+@login_required
+def export_metrics_to_excel(request, submission_id):
+    """
+    Экспорт формы метрик в Excel формат согласно шаблону Google Sheets
+    """
+    # Проверяем права доступа
+    if not request.user.is_superuser:
+        return HttpResponseForbidden("Доступ запрещен")
+    
+    try:
+        from openpyxl import Workbook
+        from openpyxl.styles import Font, Alignment, PatternFill, Border, Side
+        from openpyxl.utils import get_column_letter
+        from django.http import HttpResponse
+        from .models import MetricsSubmission
+        from datetime import datetime
+        import calendar
+        
+        # Получаем данные формы
+        submission = MetricsSubmission.objects.get(id=submission_id)
+        
+        # Создаем workbook
+        wb = Workbook()
+        ws = wb.active
+        ws.title = "Метрики"
+        
+        # Определяем стили
+        header_font = Font(bold=True, size=11)
+        normal_font = Font(size=10)
+        fill_yellow = PatternFill(start_color="FFFF00", end_color="FFFF00", fill_type="solid")
+        fill_light_blue = PatternFill(start_color="E6F3FF", end_color="E6F3FF", fill_type="solid")
+        
+        # Убираем общие границы - будем добавлять только для отдельных таблиц
+        # border = Border(
+        #     left=Side(border_style="thin"),
+        #     right=Side(border_style="thin"),
+        #     top=Side(border_style="thin"),
+        #     bottom=Side(border_style="thin")
+        # )
+        
+        # Пунктирная граница для таблиц
+        dashed_border = Border(
+            left=Side(border_style="dashed"),
+            right=Side(border_style="dashed"),
+            top=Side(border_style="dashed"),
+            bottom=Side(border_style="dashed")
+        )
+        
+        # Функция для получения названий месяцев на русском (только первые 3 месяца)
+        def get_month_names_ru(initial_month_str):
+            year, month = map(int, initial_month_str.split('-'))
+            month_names_ru = [
+                "Январь", "Февраль", "Март", "Апрель", "Май", "Июнь",
+                "Июль", "Август", "Сентябрь", "Октябрь", "Ноябрь", "Декабрь"
+            ]
+            months = []
+            for i in range(3):  # Только первые 3 месяца
+                current_month = month + i - 1
+                current_year = year
+                if current_month >= 12:
+                    current_month -= 12
+                    current_year += 1
+                months.append(f"{month_names_ru[current_month]} {current_year}")
+            return months
+        
+        month_names = get_month_names_ru(submission.initial_month)
+        doctors_data = submission.doctors_data.get('doctors', [])
+        months_data = submission.doctors_data.get('months', [])
+        
+        # Заполняем заголовок
+        # ws['A1'] = "Правила заполнения:"
+        # ws['A1'].font = header_font
+        # ws['A2'] = "Ячейки только этого цвета: К ЗАПОЛНЕНИЮ"
+        # ws['A2'].fill = fill_yellow
+        
+        # Основные параметры клиники (строка 4)
+        ws['A4'] = "Кол-во кресел, загрузка клиники"
+        ws['A4'].font = header_font
+        
+        # Строка 5 - числовые данные (начинаем с C)
+        # Формула: количество кресел * максимальное количество часов работы в день * 30
+        ws['A5'] = f"={submission.chairs_count}*{submission.work_hours}*30"
+        
+        # Загрузка клиники по месяцам (формулы, только первые 3 месяца)
+        # Нужно будет добавить формулы после создания итоговых строк
+        ws['D5'] = "5%"
+        ws['E5'] = "0%"
+        ws['F5'] = "0%"
+        
+        # Строка 6 - заголовки месяцев (начинаем с D)
+        ws['A6'] = "Месяц"
+        for i, month_name in enumerate(month_names):
+            ws[f'{chr(68+i)}6'] = month_name  # D6, E6, F6, etc.
+        
+        # Строка 7 - заголовок таблицы часов по графику
+        ws['A7'] = "Кол-во часов по графику, Т,раб"
+        ws['B7'] = "ФИО"
+        ws['C7'] = "Специализация"
+        
+        # Рабочие дни по месяцам в строке 7 (начинаем с D, только первые 3 месяца)
+        days_list = [
+            submission.days_month_1, submission.days_month_2, submission.days_month_3
+        ]
+        for i, days in enumerate(days_list):
+            ws[f'{chr(68+i)}7'] = days
+        
+        # Карта специализаций
+        spec_map = {
+            "hygienist": "Гигиенист",
+            "implantologist": "Имплантолог", 
+            "orthodontist": "Ортодонт",
+            "orthopedist": "Ортопед",
+            "periodontist": "Пародонтолог",
+            "therapist": "Терапевт",
+            "surgeon": "Хирург",
+            "therapist_surgeon": "Терапевт-Хирург",
+            "orthopedist_surgeon": "Ортопед-Хирург",
+            "universal": "Универсал",
+            "custom": "Свой вариант"
+        }
+        
+        # Начинаем заполнение данных врачей с 8 строки
+        current_row = 8
+        schedule_hours_start_row = current_row
+        
+        # БЛОК 1: Часы по графику (строки 8-26)
+        # Используем реальное количество врачей из формы
+        max_doctors = len(doctors_data) if doctors_data else 0
+        for i in range(max_doctors):
+            ws[f'A{current_row}'] = i + 1
+            
+            if i < len(doctors_data):
+                doctor = doctors_data[i]
+                ws[f'B{current_row}'] = doctor.get('name', f'ФИО доктора {i+1}')
+                ws[f'C{current_row}'] = spec_map.get(doctor.get('specialization', ''), 'заполнить специализацию доктора')
+                
+                # Часы по графику по месяцам (начинаем с D, только первые 3 месяца)
+                for month_idx in range(3):
+                    if month_idx < len(months_data) and i < len(months_data[month_idx].get('doctors', [])):
+                        schedule_hours = months_data[month_idx]['doctors'][i].get('scheduleHours', 0)
+                        ws[f'{chr(68+month_idx)}{current_row}'] = schedule_hours or 0
+                    else:
+                        ws[f'{chr(68+month_idx)}{current_row}'] = 0
+            else:
+                ws[f'B{current_row}'] = "ФИО"
+                ws[f'C{current_row}'] = "заполнить"
+                for month_idx in range(3):
+                    ws[f'{chr(68+month_idx)}{current_row}'] = "заполнить"
+                    
+            current_row += 1
+        
+        
+        # Пропускаем 2 строки
+        current_row += 2
+        
+        # БЛОК 2: Часы с пациентами (строки 29-47)
+        ws[f'A{current_row}'] = "Кол-во часов с пациентами, Т,заг"
+        ws[f'B{current_row}'] = "ФИО"
+        ws[f'C{current_row}'] = "Специализация"
+        current_row += 1
+        patient_hours_start_row = current_row
+        
+        for i in range(max_doctors):
+            ws[f'A{current_row}'] = i + 1
+            
+            if i < len(doctors_data):
+                doctor = doctors_data[i]
+                ws[f'B{current_row}'] = doctor.get('name', f'ФИО доктора {i+1}')
+                ws[f'C{current_row}'] = spec_map.get(doctor.get('specialization', ''), 'заполнить специализацию доктора')
+                
+                # Часы с пациентами по месяцам (начинаем с D)
+                for month_idx in range(3):
+                    if month_idx < len(months_data) and i < len(months_data[month_idx].get('doctors', [])):
+                        patient_hours = months_data[month_idx]['doctors'][i].get('patientHours', 0)
+                        ws[f'{chr(68+month_idx)}{current_row}'] = patient_hours or 0
+                    else:
+                        ws[f'{chr(68+month_idx)}{current_row}'] = 0
+            else:
+                ws[f'B{current_row}'] = "ФИО"
+                ws[f'C{current_row}'] = "заполнить"
+                for month_idx in range(3):
+                    ws[f'{chr(68+month_idx)}{current_row}'] = "заполнить"
+                    
+            current_row += 1
+        
+        # Вычисляем позиции для таблиц
+        schedule_table_start = 7
+        schedule_table_end = schedule_table_start + max_doctors + 1  # +1 для заголовка
+        
+        # Вычисляем позиции для таблицы "Часы с пациентами"
+        patient_hours_table_start = schedule_table_end + 2 + 1  # +1 для заголовка
+        patient_hours_table_end = patient_hours_table_start + max_doctors
+        
+        # Добавляем суммарные значения для блока 2 (Часы с пациентами) в строку заголовка
+        patient_header_row = patient_hours_table_start - 1  # поднимаем на одну строку выше
+        for month_idx in range(3):
+            # Создаем формулу с операторами плюс для каждой ячейки врача
+            cell_formula_parts = []
+            for i in range(max_doctors):
+                cell_address = f'{chr(68+month_idx)}{patient_hours_start_row + i}'
+                cell_formula_parts.append(cell_address)
+            formula = f"=({' + '.join(cell_formula_parts)})"
+            ws[f'{chr(68+month_idx)}{patient_header_row}'] = formula
+        
+        # Пропускаем 2 строки
+        current_row += 2
+        
+        # БЛОК 3: Выручка (строки 50-68)
+        ws[f'A{current_row}'] = "Выручка, ВВ"
+        ws[f'B{current_row}'] = "ФИО"
+        ws[f'C{current_row}'] = "Специализация"
+        current_row += 1
+        revenue_start_row = current_row
+        
+        for i in range(max_doctors):
+            ws[f'A{current_row}'] = i + 1
+            
+            if i < len(doctors_data):
+                doctor = doctors_data[i]
+                ws[f'B{current_row}'] = doctor.get('name', f'ФИО доктора {i+1}')
+                ws[f'C{current_row}'] = spec_map.get(doctor.get('specialization', ''), 'заполнить специализацию доктора')
+                
+                # Выручка по месяцам (начинаем с D)
+                for month_idx in range(3):
+                    if month_idx < len(months_data) and i < len(months_data[month_idx].get('doctors', [])):
+                        revenue = months_data[month_idx]['doctors'][i].get('revenue', 0)
+                        ws[f'{chr(68+month_idx)}{current_row}'] = revenue or 0
+                    else:
+                        ws[f'{chr(68+month_idx)}{current_row}'] = 0
+            else:
+                ws[f'B{current_row}'] = "ФИО"
+                ws[f'C{current_row}'] = "заполнить"
+                for month_idx in range(3):
+                    ws[f'{chr(68+month_idx)}{current_row}'] = "заполнить"
+                    
+            current_row += 1
+        
+        # Вычисляем позиции для таблицы "Выручка"
+        revenue_table_start = patient_hours_table_end + 2 + 1  # +1 для заголовка
+        revenue_table_end = revenue_table_start + max_doctors
+        
+        # Добавляем суммарные значения для блока 3 (Выручка) в строку заголовка
+        revenue_header_row = revenue_table_start - 1  # поднимаем на одну строку выше
+        for month_idx in range(3):
+            # Создаем формулу с операторами плюс для каждой ячейки врача
+            cell_formula_parts = []
+            for i in range(max_doctors):
+                cell_address = f'{chr(68+month_idx)}{revenue_start_row + i}'
+                cell_formula_parts.append(cell_address)
+            formula = f"=({' + '.join(cell_formula_parts)})"
+            ws[f'{chr(68+month_idx)}{revenue_header_row}'] = formula
+        
+        # Пропускаем 2 строки
+        current_row += 2
+        
+        # БЛОК 4: Загрузка доктора пациентами (формулы) - строки 73-91
+        ws[f'A{current_row}'] = "Загрузка доктора пациентами"
+        ws[f'B{current_row}'] = "ФИО"
+        ws[f'C{current_row}'] = "Специализация"
+        current_row += 1
+        
+        for i in range(max_doctors):
+            ws[f'A{current_row}'] = i + 1
+            
+            if i < len(doctors_data):
+                doctor = doctors_data[i]
+                ws[f'B{current_row}'] = doctor.get('name', f'ФИО доктора {i+1}')
+                ws[f'C{current_row}'] = spec_map.get(doctor.get('specialization', ''), 'заполнить специализацию доктора')
+                
+                # Формулы для расчета загрузки (часы с пациентами / часы по графику) (начинаем с D)
+                for month_idx in range(3):
+                    patient_cell = f'{chr(68+month_idx)}{patient_hours_start_row + i}'
+                    schedule_cell = f'{chr(68+month_idx)}{schedule_hours_start_row + i}'
+                    ws[f'{chr(68+month_idx)}{current_row}'] = f'=IF({schedule_cell}=0,0,{patient_cell}/{schedule_cell})'
+            else:
+                ws[f'B{current_row}'] = "ФИО"
+                ws[f'C{current_row}'] = "заполнить"
+                for month_idx in range(3):
+                    ws[f'{chr(68+month_idx)}{current_row}'] = "#VALUE!"
+                    
+            current_row += 1
+        
+        
+        # Применяем процентный формат к блоку 4 (Загрузка доктора пациентами)
+        for i in range(max_doctors):
+            row_num = current_row - max_doctors + i
+            ws[f'D{row_num}'].number_format = '0%'
+            ws[f'E{row_num}'].number_format = '0%'
+            ws[f'F{row_num}'].number_format = '0%'
+        
+        # Пропускаем 2 строки
+        current_row += 2
+        
+        # БЛОК 5: Средний час (формулы) - строки 95-113
+        ws[f'A{current_row}'] = "Средний час"
+        ws[f'B{current_row}'] = "ФИО"
+        ws[f'C{current_row}'] = "Специализация"
+        current_row += 1
+        
+        for i in range(max_doctors):
+            ws[f'A{current_row}'] = i + 1
+            
+            if i < len(doctors_data):
+                doctor = doctors_data[i]
+                ws[f'B{current_row}'] = doctor.get('name', f'ФИО доктора {i+1}')
+                ws[f'C{current_row}'] = spec_map.get(doctor.get('specialization', ''), 'заполнить специализацию доктора')
+                
+                # Формулы для расчета среднего часа (выручка / часы с пациентами) (начинаем с D)
+                for month_idx in range(3):
+                    revenue_cell = f'{chr(68+month_idx)}{revenue_start_row + i}'
+                    patient_cell = f'{chr(68+month_idx)}{patient_hours_start_row + i}'
+                    ws[f'{chr(68+month_idx)}{current_row}'] = f'=IF({patient_cell}=0,0,{revenue_cell}/{patient_cell})'
+            else:
+                ws[f'B{current_row}'] = "ФИО"
+                ws[f'C{current_row}'] = "заполнить"
+                for month_idx in range(3):
+                    ws[f'{chr(68+month_idx)}{current_row}'] = "#VALUE!"
+                    
+            current_row += 1
+        
+        
+        # Применяем формат с 2 знаками после запятой к блоку 5 (Средний час)
+        for i in range(max_doctors):
+            row_num = current_row - max_doctors + i
+            ws[f'D{row_num}'].number_format = '0.00'
+            ws[f'E{row_num}'].number_format = '0.00'
+            ws[f'F{row_num}'].number_format = '0.00'
+        
+        # Обновляем формулы загрузки клиники по месяцам (только первые 3 месяца)
+        for month_idx in range(3):
+            # Загрузка клиники = D8+D9+...+DN/A5, где N зависит от количества врачей
+            max_hours_cell = 'A5'  # ячейка с максимальными часами
+            # Создаем формулу с операторами плюс для каждой ячейки врача
+            cell_formula_parts = []
+            for i in range(max_doctors):
+                cell_address = f'{chr(68+month_idx)}{schedule_hours_start_row + i}'
+                cell_formula_parts.append(cell_address)
+            formula = f"=({' + '.join(cell_formula_parts)})/{max_hours_cell}"
+            ws[f'{chr(68+month_idx)}5'] = formula
+        
+        # Применяем стили (без границ)
+        for row in ws.iter_rows():
+            for cell in row:
+                # cell.border = border  # Убираем общие границы
+                cell.font = normal_font
+                cell.alignment = Alignment(horizontal='center', vertical='center')
+        
+        # Устанавливаем процентный формат для ячеек загрузки клиники
+        from openpyxl.styles import NamedStyle
+        percentage_style = NamedStyle(name="percentage")
+        percentage_style.number_format = '0%'
+        
+        # Применяем процентный формат к ячейкам D5, E5, F5
+        ws['D5'].number_format = '0%'
+        ws['E5'].number_format = '0%'
+        ws['F5'].number_format = '0%'
+        
+        # Вычисляем динамические позиции для границ таблиц в зависимости от количества врачей
+        
+        # 1. Таблица "Кол-во кресел, загрузка клиники" (A6:H7) - фиксированная позиция
+        for row in range(6, 8):  # строки 6-7
+            for col in range(1, 9):  # колонки A-H
+                cell = ws.cell(row=row, column=col)
+                cell.border = dashed_border
+        
+        # 2. Таблица "Кол-во часов по графику" - поднимаем на одну строку выше
+        for row in range(schedule_table_start - 1, schedule_table_end + 1):
+            for col in range(1, 9):  # колонки A-H
+                cell = ws.cell(row=row, column=col)
+                cell.border = dashed_border
+        
+        # 3. Таблица "Кол-во часов с пациентами" - поднимаем на одну строку выше
+        for row in range(patient_hours_table_start - 1, patient_hours_table_end + 1):
+            for col in range(1, 9):  # колонки A-H
+                cell = ws.cell(row=row, column=col)
+                cell.border = dashed_border
+        
+        # 4. Таблица "Выручка" - поднимаем на одну строку выше
+        for row in range(revenue_table_start - 1, revenue_table_end + 1):
+            for col in range(1, 9):  # колонки A-H
+                cell = ws.cell(row=row, column=col)
+                cell.border = dashed_border
+        
+        # 5. Таблица "Загрузка доктора пациентами" - поднимаем на одну строку выше
+        load_table_start = revenue_table_end + 2 + 1  # +1 для заголовка
+        load_table_end = load_table_start + max_doctors
+        for row in range(load_table_start - 1, load_table_end + 1):
+            for col in range(1, 9):  # колонки A-H
+                cell = ws.cell(row=row, column=col)
+                cell.border = dashed_border
+        
+        # 6. Таблица "Средний час" - поднимаем на одну строку выше
+        avg_hour_table_start = load_table_end + 2 + 1  # +1 для заголовка
+        avg_hour_table_end = avg_hour_table_start + max_doctors
+        for row in range(avg_hour_table_start - 1, avg_hour_table_end + 1):
+            for col in range(1, 9):  # колонки A-H
+                cell = ws.cell(row=row, column=col)
+                cell.border = dashed_border
+        
+        # Красим ячейки в 7-й строке (кроме A и G) в голубой цвет
+        for col in range(2, 9):  # колонки B, C, D, E, F, G, H
+            if col != 7:  # пропускаем G (7-я колонка)
+                cell = ws.cell(row=7, column=col)
+                cell.fill = fill_light_blue
+        
+        # Красим суммарные ячейки в голубой цвет (динамические позиции)
+        # Ячейки для "Часы с пациентами" - в строке заголовка таблицы
+        patient_header_row = patient_hours_table_start - 1  # поднимаем на одну строку выше
+        for col in range(2, 9):  # колонки B, C, D, E, F, H (пропускаем A и G)
+            if col != 7:  # пропускаем G (7-я колонка)
+                ws.cell(row=patient_header_row, column=col).fill = fill_light_blue
+        
+        # Ячейки для "Выручка" - в строке заголовка таблицы
+        revenue_header_row = revenue_table_start - 1  # поднимаем на одну строку выше
+        for col in range(2, 9):  # колонки B, C, D, E, F, H (пропускаем A и G)
+            if col != 7:  # пропускаем G (7-я колонка)
+                ws.cell(row=revenue_header_row, column=col).fill = fill_light_blue
+        
+        # Ячейки для "Загрузка доктора пациентами" - в строке заголовка таблицы
+        load_header_row = load_table_start - 1  # поднимаем на одну строку выше
+        for col in range(2, 9):  # колонки B, C, D, E, F, H (пропускаем A и G)
+            if col != 7:  # пропускаем G (7-я колонка)
+                ws.cell(row=load_header_row, column=col).fill = fill_light_blue
+        
+        # Ячейки для "Средний час" - в строке заголовка таблицы
+        avg_hour_header_row = avg_hour_table_start - 1  # поднимаем на одну строку выше
+        for col in range(2, 9):  # колонки B, C, D, E, F, H (пропускаем A и G)
+            if col != 7:  # пропускаем G (7-я колонка)
+                ws.cell(row=avg_hour_header_row, column=col).fill = fill_light_blue
+        
+        
+        # Добавляем формулы для ячеек D7, E7, F7 - сумма часов по графику
+        for month_idx in range(3):
+            # Создаем формулу с операторами плюс для каждой ячейки врача
+            cell_formula_parts = []
+            for i in range(max_doctors):
+                cell_address = f'{chr(68+month_idx)}{schedule_hours_start_row + i}'
+                cell_formula_parts.append(cell_address)
+            formula = f"=({' + '.join(cell_formula_parts)})"
+            ws[f'{chr(68+month_idx)}7'] = formula
+
+            ws['H7'] = "=(D7+E7+F7)/3"
+            ws['H7'].number_format = '0.00'
+            
+            # Добавляем формулу в ячейку H5: H7/C5 в процентах
+            ws['H5'] = "=H7/A5"
+            ws['H5'].number_format = '0%'
+        
+
+        
+        
+        # Автоподбор ширины колонок
+        for column in ws.columns:
+            max_length = 0
+            column_letter = get_column_letter(column[0].column)
+            for cell in column:
+                try:
+                    if cell.value and len(str(cell.value)) > max_length:
+                        max_length = len(str(cell.value))
+                except:
+                    pass
+            adjusted_width = min(max(max_length + 2, 10), 30)
+            ws.column_dimensions[column_letter].width = adjusted_width
+        
+        # Подготавливаем ответ
+        response = HttpResponse(
+            content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        )
+        clinic_name_safe = "".join(c for c in submission.clinic_name if c.isalnum() or c in (' ', '-', '_')).strip()
+        filename = f"metrics_{clinic_name_safe}_{submission.id}.xlsx"
+        response['Content-Disposition'] = f'attachment; filename="{filename}"'
+        
+        wb.save(response)
+        return response
+        
+    except ImportError:
+        return HttpResponse("Библиотека openpyxl не установлена. Установите её командой: pip install openpyxl", status=500)
+    except MetricsSubmission.DoesNotExist:
+        return HttpResponse("Форма метрик не найдена", status=404)
+    except Exception as e:
+        return HttpResponse(f"Ошибка при создании Excel файла: {str(e)}", status=500)
     
