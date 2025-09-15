@@ -1864,6 +1864,18 @@ def export_metrics_to_excel(request, submission_id):
             if col != 7:  # пропускаем G (7-я колонка)
                 ws.cell(row=revenue_header_row, column=col).fill = fill_light_blue
         
+        # Ячейки для "Загрузка доктора пациентами" - в строке заголовка таблицы
+        load_header_row = load_table_start - 1  # поднимаем на одну строку выше
+        for col in range(2, 9):  # колонки B, C, D, E, F, H (пропускаем A и G)
+            if col != 7:  # пропускаем G (7-я колонка)
+                ws.cell(row=load_header_row, column=col).fill = fill_light_blue
+        
+        # Ячейки для "Средний час" - в строке заголовка таблицы
+        avg_hour_header_row = avg_hour_table_start - 1  # поднимаем на одну строку выше
+        for col in range(2, 9):  # колонки B, C, D, E, F, H (пропускаем A и G)
+            if col != 7:  # пропускаем G (7-я колонка)
+                ws.cell(row=avg_hour_header_row, column=col).fill = fill_light_blue
+        
         
         # Добавляем формулы для ячеек D7, E7, F7 - сумма часов по графику
         for month_idx in range(3):
