@@ -1560,7 +1560,11 @@ def export_metrics_to_excel(request, submission_id):
             "orthopedist": "Ортопед",
             "periodontist": "Пародонтолог",
             "therapist": "Терапевт",
-            "surgeon": "Хирург"
+            "surgeon": "Хирург",
+            "therapist_surgeon": "Терапевт-Хирург",
+            "orthopedist_surgeon": "Ортопед-Хирург",
+            "universal": "Универсал",
+            "custom": "Свой вариант"
         }
         
         # Начинаем заполнение данных врачей с 8 строки
@@ -1627,6 +1631,24 @@ def export_metrics_to_excel(request, submission_id):
                     
             current_row += 1
         
+        # Вычисляем позиции для таблиц
+        schedule_table_start = 7
+        schedule_table_end = schedule_table_start + max_doctors + 1  # +1 для заголовка
+        
+        # Вычисляем позиции для таблицы "Часы с пациентами"
+        patient_hours_table_start = schedule_table_end + 2 + 1  # +1 для заголовка
+        patient_hours_table_end = patient_hours_table_start + max_doctors
+        
+        # Добавляем суммарные значения для блока 2 (Часы с пациентами) в строку заголовка
+        patient_header_row = patient_hours_table_start - 1  # поднимаем на одну строку выше
+        for month_idx in range(3):
+            # Создаем формулу с операторами плюс для каждой ячейки врача
+            cell_formula_parts = []
+            for i in range(max_doctors):
+                cell_address = f'{chr(68+month_idx)}{patient_hours_start_row + i}'
+                cell_formula_parts.append(cell_address)
+            formula = f"=({' + '.join(cell_formula_parts)})"
+            ws[f'{chr(68+month_idx)}{patient_header_row}'] = formula
         
         # Пропускаем 2 строки
         current_row += 2
@@ -1661,6 +1683,20 @@ def export_metrics_to_excel(request, submission_id):
                     
             current_row += 1
         
+        # Вычисляем позиции для таблицы "Выручка"
+        revenue_table_start = patient_hours_table_end + 2 + 1  # +1 для заголовка
+        revenue_table_end = revenue_table_start + max_doctors
+        
+        # Добавляем суммарные значения для блока 3 (Выручка) в строку заголовка
+        revenue_header_row = revenue_table_start - 1  # поднимаем на одну строку выше
+        for month_idx in range(3):
+            # Создаем формулу с операторами плюс для каждой ячейки врача
+            cell_formula_parts = []
+            for i in range(max_doctors):
+                cell_address = f'{chr(68+month_idx)}{revenue_start_row + i}'
+                cell_formula_parts.append(cell_address)
+            formula = f"=({' + '.join(cell_formula_parts)})"
+            ws[f'{chr(68+month_idx)}{revenue_header_row}'] = formula
         
         # Пропускаем 2 строки
         current_row += 2
@@ -1691,6 +1727,7 @@ def export_metrics_to_excel(request, submission_id):
                     ws[f'{chr(68+month_idx)}{current_row}'] = "#VALUE!"
                     
             current_row += 1
+        
         
         # Применяем процентный формат к блоку 4 (Загрузка доктора пациентами)
         for i in range(max_doctors):
@@ -1729,6 +1766,7 @@ def export_metrics_to_excel(request, submission_id):
                     
             current_row += 1
         
+        
         # Применяем формат с 2 знаками после запятой к блоку 5 (Средний час)
         for i in range(max_doctors):
             row_num = current_row - max_doctors + i
@@ -1765,40 +1803,44 @@ def export_metrics_to_excel(request, submission_id):
         ws['E5'].number_format = '0%'
         ws['F5'].number_format = '0%'
         
-        # Добавляем пунктирные границы для каждой таблицы
+        # Вычисляем динамические позиции для границ таблиц в зависимости от количества врачей
         
-        # 1. Таблица "Кол-во кресел, загрузка клиники" (A6:H7) - начинаем с строки 6
+        # 1. Таблица "Кол-во кресел, загрузка клиники" (A6:H7) - фиксированная позиция
         for row in range(6, 8):  # строки 6-7
             for col in range(1, 9):  # колонки A-H
                 cell = ws.cell(row=row, column=col)
                 cell.border = dashed_border
         
-        # 2. Таблица "Кол-во часов по графику" (A7:H12)
-        for row in range(7, 13):  # строки 7-12
+        # 2. Таблица "Кол-во часов по графику" - поднимаем на одну строку выше
+        for row in range(schedule_table_start - 1, schedule_table_end + 1):
             for col in range(1, 9):  # колонки A-H
                 cell = ws.cell(row=row, column=col)
                 cell.border = dashed_border
         
-        # 3. Таблица "Кол-во часов с пациентами" (A15:H20)
-        for row in range(15, 21):  # строки 15-20
+        # 3. Таблица "Кол-во часов с пациентами" - поднимаем на одну строку выше
+        for row in range(patient_hours_table_start - 1, patient_hours_table_end + 1):
             for col in range(1, 9):  # колонки A-H
                 cell = ws.cell(row=row, column=col)
                 cell.border = dashed_border
         
-        # 4. Таблица "Выручка" (A23:H28)
-        for row in range(23, 29):  # строки 23-28
+        # 4. Таблица "Выручка" - поднимаем на одну строку выше
+        for row in range(revenue_table_start - 1, revenue_table_end + 1):
             for col in range(1, 9):  # колонки A-H
                 cell = ws.cell(row=row, column=col)
                 cell.border = dashed_border
         
-        # 5. Таблица "Загрузка доктора пациентами" (A31:H36)
-        for row in range(31, 37):  # строки 31-36
+        # 5. Таблица "Загрузка доктора пациентами" - поднимаем на одну строку выше
+        load_table_start = revenue_table_end + 2 + 1  # +1 для заголовка
+        load_table_end = load_table_start + max_doctors
+        for row in range(load_table_start - 1, load_table_end + 1):
             for col in range(1, 9):  # колонки A-H
                 cell = ws.cell(row=row, column=col)
                 cell.border = dashed_border
         
-        # 6. Таблица "Средний час" (A39:H44)
-        for row in range(39, 45):  # строки 39-44
+        # 6. Таблица "Средний час" - поднимаем на одну строку выше
+        avg_hour_table_start = load_table_end + 2 + 1  # +1 для заголовка
+        avg_hour_table_end = avg_hour_table_start + max_doctors
+        for row in range(avg_hour_table_start - 1, avg_hour_table_end + 1):
             for col in range(1, 9):  # колонки A-H
                 cell = ws.cell(row=row, column=col)
                 cell.border = dashed_border
@@ -1808,6 +1850,19 @@ def export_metrics_to_excel(request, submission_id):
             if col != 7:  # пропускаем G (7-я колонка)
                 cell = ws.cell(row=7, column=col)
                 cell.fill = fill_light_blue
+        
+        # Красим суммарные ячейки в голубой цвет (динамические позиции)
+        # Ячейки для "Часы с пациентами" - в строке заголовка таблицы
+        patient_header_row = patient_hours_table_start - 1  # поднимаем на одну строку выше
+        for col in range(2, 9):  # колонки B, C, D, E, F, H (пропускаем A и G)
+            if col != 7:  # пропускаем G (7-я колонка)
+                ws.cell(row=patient_header_row, column=col).fill = fill_light_blue
+        
+        # Ячейки для "Выручка" - в строке заголовка таблицы
+        revenue_header_row = revenue_table_start - 1  # поднимаем на одну строку выше
+        for col in range(2, 9):  # колонки B, C, D, E, F, H (пропускаем A и G)
+            if col != 7:  # пропускаем G (7-я колонка)
+                ws.cell(row=revenue_header_row, column=col).fill = fill_light_blue
         
         
         # Добавляем формулы для ячеек D7, E7, F7 - сумма часов по графику
