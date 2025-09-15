@@ -39,4 +39,40 @@
     .row,.three{grid-template-columns:1fr}
     .grid-head,.months-grid-head{display:none}
     .grid-row,.months-grid-row{grid-template-columns:1fr;gap:6px;border:1px solid var(--border);border-radius:12px;padding:10px;margin:6px 0}
+    
+    .video-instruction {
+      position: static;
+      margin: 20px 0;
+    }
+    
+    .video-instruction iframe {
+      width: 100%;
+      height: 200px;
+    }
+  }
+
+  .video-instruction{
+    position: sticky;
+    top: 20px;
+    z-index: 10;
+    margin-bottom: 20px;
+    background: var(--panel);
+    border-radius: var(--radius);
+    padding: 20px;
+    box-shadow: var(--shadow);
+    border: 1px solid var(--border);
+    display: flex;
+    justify-content: center;
+  }
+  
+  .video-instruction iframe {
+    width: 800px;
+    height: 450px;
+    border-radius: 8px;
+    max-width: 100%;
+  }
+  
+  /* Добавляем отступ для контента, чтобы он не перекрывался */
+  .card {
+    margin-top: 20px;
   }
