@@ -15,7 +15,7 @@
     <header>
       <h1>Передача данных - Метрики эффективности стомклиники</h1>
       <p class="lead">Заполните список врачей один раз, затем внесите показатели по каждому из <b>3 месяцев</b>.</p>
-      <div class="notice">Пожалуйста, заполняйте <b>достоверно</b> — это влияет на точность диагностики и правильную постановку диагноза.</div>
+      <div class="notice">Пожалуйста, заполняйте <b>достоверно</b> — это влияет на точность диагностики и правильную постановку диагноза. <br>Если у Вас несколько клиник/филиалов, пожалуйста, заполните отдельную форму для каждого из них.</div>
     </header>
     <!-- <div class="video-instruction">
       <iframe
@@ -52,7 +52,24 @@
 <div class="row" style="margin-top:10px">
         <div><label>Кол-во кресел сегодня (шт.)*</label><input id="chairs" inputmode="numeric" placeholder="например, 6" required min="1" max="100"><div class="small">Информативно на дату заполнения - не учавствует в расчетах</div></div>
         
-        <div><label>Максимальное кол-во часов работы в день (ч)*</label><input id="hoursPerDay" inputmode="decimal" placeholder="например, 10" required min="0.1" max="24" step="0.1"></div>
+        <div style="grid-column: 1 / -1;">
+          <label>График работы (часов в день)*</label>
+          <div class="row" style="grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 6px;">
+            <div>
+              <label style="font-size: 14px; font-weight: 400;">Будни (Пн-Пт)</label>
+              <input id="hoursWeekdays" inputmode="decimal" placeholder="например, 10" required min="0" max="24" step="0.1">
+            </div>
+            <div>
+              <label style="font-size: 14px; font-weight: 400;">Суббота</label>
+              <input id="hoursSaturday" inputmode="decimal" placeholder="например, 8" required min="0" max="24" step="0.1">
+            </div>
+            <div>
+              <label style="font-size: 14px; font-weight: 400;">Воскресенье</label>
+              <input id="hoursSunday" inputmode="decimal" placeholder="например, 0" required min="0" max="24" step="0.1">
+            </div>
+          </div>
+          <div class="small">Если не работаете в этот день, поставьте 0</div>
+        </div>
       </div>
 
       <div style="margin-top:12px">

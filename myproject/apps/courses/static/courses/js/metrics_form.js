@@ -621,11 +621,25 @@ document.getElementById('f').onsubmit = function(e){
   }
   
   // Проверяем часы работы
-  var hoursPerDay = document.getElementById('hoursPerDay');
-  var hoursPerDayValue = hoursPerDay.value.trim();
-  if (!hoursPerDayValue || isNaN(hoursPerDayValue) || Number(hoursPerDayValue) <= 0) {
-    errors.push('Укажите количество часов работы в день (число больше 0)');
-    highlightError(hoursPerDay);
+  var hoursWeekdays = document.getElementById('hoursWeekdays');
+  var hoursSaturday = document.getElementById('hoursSaturday');
+  var hoursSunday = document.getElementById('hoursSunday');
+  
+  var hoursWeekdaysValue = hoursWeekdays.value.trim();
+  var hoursSaturdayValue = hoursSaturday.value.trim();
+  var hoursSundayValue = hoursSunday.value.trim();
+  
+  if (!hoursWeekdaysValue || isNaN(hoursWeekdaysValue) || Number(hoursWeekdaysValue) < 0) {
+    errors.push('Укажите количество часов работы в будни (число больше или равно 0)');
+    highlightError(hoursWeekdays);
+  }
+  if (!hoursSaturdayValue || isNaN(hoursSaturdayValue) || Number(hoursSaturdayValue) < 0) {
+    errors.push('Укажите количество часов работы в субботу (число больше или равно 0)');
+    highlightError(hoursSaturday);
+  }
+  if (!hoursSundayValue || isNaN(hoursSundayValue) || Number(hoursSundayValue) < 0) {
+    errors.push('Укажите количество часов работы в воскресенье (число больше или равно 0)');
+    highlightError(hoursSunday);
   }
   
   // Проверяем врачей
@@ -733,7 +747,9 @@ document.getElementById('f').onsubmit = function(e){
     startMonth: startMonthInput.getAttribute('data-value'),
     docCount: doctorsBox.children.length,
     chairs: document.getElementById('chairs').value,
-    hoursPerDay: document.getElementById('hoursPerDay').value,
+    hoursWeekdays: document.getElementById('hoursWeekdays').value,
+    hoursSaturday: document.getElementById('hoursSaturday').value,
+    hoursSunday: document.getElementById('hoursSunday').value,
     chairsMonthly: [],
     days: [],
     doctors: [],
@@ -853,7 +869,9 @@ document.addEventListener('DOMContentLoaded', function() {
   // Основные поля
   clearErrorOnInput(document.getElementById('clinicName'));
   clearErrorOnInput(document.getElementById('chairs'));
-  clearErrorOnInput(document.getElementById('hoursPerDay'));
+  clearErrorOnInput(document.getElementById('hoursWeekdays'));
+  clearErrorOnInput(document.getElementById('hoursSaturday'));
+  clearErrorOnInput(document.getElementById('hoursSunday'));
   clearErrorOnInput(document.getElementById('consent'));
   
   // Поля кресел и дней (будут добавлены динамически)
