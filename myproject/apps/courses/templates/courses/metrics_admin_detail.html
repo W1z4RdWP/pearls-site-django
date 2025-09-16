@@ -262,13 +262,25 @@
                 <span class="info-label">Количество врачей:</span>
                 <span class="info-value">{{ submission.doctors_count }}</span>
             </div>
-            <div class="info-row">
+                        <div class="info-row">
                 <span class="info-label">Количество кресел:</span>
                 <span class="info-value">{{ submission.chairs_count }}</span>
             </div>
+        </div>
+        
+        <div class="info-card">
+            <h3>График работы</h3>
             <div class="info-row">
-                <span class="info-label">Часов работы в день:</span>
-                <span class="info-value">{{ submission.work_hours }}</span>
+                <span class="info-label">Будни (Пн-Пт):</span>
+                <span class="info-value">{{ submission.hours_weekdays|default:"—" }} ч</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Суббота:</span>
+                <span class="info-value">{{ submission.hours_saturday|default:"—" }} ч</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Воскресенье:</span>
+                <span class="info-value">{{ submission.hours_sunday|default:"—" }} ч</span>
             </div>
         </div>
         
@@ -313,6 +325,9 @@
                                 {% elif doctor.specialization == "periodontist" %}Пародонтолог
                                 {% elif doctor.specialization == "therapist" %}Терапевт
                                 {% elif doctor.specialization == "surgeon" %}Хирург
+                                {% elif doctor.specialization == "therapist_surgeon" %}Терапевт-Хирург
+                                {% elif doctor.specialization == "orthopedist_surgeon" %}Ортопед-Хирург
+                                {% elif doctor.specialization == "universal" %}Универсал
                                 {% else %}Не указана{% endif %}
                             </div>
                             <div>

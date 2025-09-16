@@ -207,13 +207,37 @@ class MetricsForm(forms.Form):
         help_text="Информативно на дату заполнения — не участвует в расчетах."
     )
     
-    # Часы работы в день
-    work_hours = forms.IntegerField(
-        label="Часы работы в день (ч)*",
+    # График работы
+    hours_weekdays = forms.DecimalField(
+        label="Часы работы в будни*",
         required=True,
+        max_digits=5,
+        decimal_places=2,
         widget=forms.NumberInput(attrs={
             'class': 'form-control',
             'placeholder': '10'
+        })
+    )
+    
+    hours_saturday = forms.DecimalField(
+        label="Часы работы в субботу*",
+        required=True,
+        max_digits=5,
+        decimal_places=2,
+        widget=forms.NumberInput(attrs={
+            'class': 'form-control',
+            'placeholder': '8'
+        })
+    )
+    
+    hours_sunday = forms.DecimalField(
+        label="Часы работы в воскресенье*",
+        required=True,
+        max_digits=5,
+        decimal_places=2,
+        widget=forms.NumberInput(attrs={
+            'class': 'form-control',
+            'placeholder': '0'
         })
     )
     

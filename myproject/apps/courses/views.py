@@ -1346,7 +1346,9 @@ class MetricsFormView(LoginRequiredMixin, UserPassesTestMixin, View):
         initial_month = data.get('startMonth', '')
         doctors_count = int(data.get('docCount', 1))
         chairs_count = int(data.get('chairs', 0))
-        work_hours = float(data.get('hoursPerDay', 0))
+        hours_weekdays = float(data.get('hoursWeekdays', 0))
+        hours_saturday = float(data.get('hoursSaturday', 0))
+        hours_sunday = float(data.get('hoursSunday', 0))
         
         # Дни в месяце
         days = data.get('days', [])
@@ -1364,7 +1366,9 @@ class MetricsFormView(LoginRequiredMixin, UserPassesTestMixin, View):
             initial_month=initial_month,
             doctors_count=doctors_count,
             chairs_count=chairs_count,
-            work_hours=work_hours,
+            hours_weekdays=hours_weekdays,
+            hours_saturday=hours_saturday,
+            hours_sunday=hours_sunday,
             days_month_1=days[0] if len(days) > 0 else 0,
             days_month_2=days[1] if len(days) > 1 else 0,
             days_month_3=days[2] if len(days) > 2 else 0,
@@ -1526,8 +1530,11 @@ def export_metrics_to_excel(request, submission_id):
         ws['A4'].font = header_font
         
         # Строка 5 - числовые данные (начинаем с C)
-        # Формула: количество кресел * максимальное количество часов работы в день * 30
-        ws['A5'] = f"={submission.chairs_count}*{submission.work_hours}*30"
+        # Формула: количество кресел * среднее количество часов работы в месяц
+        # Расчет: (будни * 22 + суббота * 4 + воскресенье * 4) / 30 * кресла * 30
+        # Упрощенно: будни * 22 + суббота * 4 + воскресенье * 4
+        monthly_hours = submission.hours_weekdays * 22 + submission.hours_saturday * 4 + submission.hours_sunday * 4
+        ws['A5'] = f"={submission.chairs_count}*{monthly_hours}"
         
         # Загрузка клиники по месяцам (формулы, только первые 3 месяца)
         # Нужно будет добавить формулы после создания итоговых строк

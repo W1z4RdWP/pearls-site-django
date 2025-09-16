@@ -137,7 +137,10 @@ class MetricsSubmissionAdmin(admin.ModelAdmin):
             'fields': ('user', 'clinic_name', 'submitted_at')
         }),
         ('Параметры клиники', {
-            'fields': ('initial_month', 'doctors_count', 'chairs_count', 'work_hours')
+            'fields': ('initial_month', 'doctors_count', 'chairs_count')
+        }),
+        ('График работы', {
+            'fields': ('hours_weekdays', 'hours_saturday', 'hours_sunday')
         }),
         ('Рабочие дни по месяцам', {
             'fields': ('days_month_1', 'days_month_2', 'days_month_3', 
