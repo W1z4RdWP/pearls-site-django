@@ -1601,6 +1601,10 @@ def export_metrics_to_excel(request, submission_id):
                 ws[f'C{current_row}'] = "заполнить"
                 for month_idx in range(3):
                     ws[f'{chr(68+month_idx)}{current_row}'] = "заполнить"
+            
+            # Добавляем формулу среднего значения в столбец H для каждой строки врача
+            ws[f'H{current_row}'] = f"=(D{current_row}+E{current_row}+F{current_row})/3"
+            ws[f'H{current_row}'].number_format = '0.00'
                     
             current_row += 1
         
@@ -1635,6 +1639,10 @@ def export_metrics_to_excel(request, submission_id):
                 ws[f'C{current_row}'] = "заполнить"
                 for month_idx in range(3):
                     ws[f'{chr(68+month_idx)}{current_row}'] = "заполнить"
+            
+            # Добавляем формулу среднего значения в столбец H для каждой строки врача
+            ws[f'H{current_row}'] = f"=(D{current_row}+E{current_row}+F{current_row})/3"
+            ws[f'H{current_row}'].number_format = '0.00'
                     
             current_row += 1
         
@@ -1691,6 +1699,10 @@ def export_metrics_to_excel(request, submission_id):
                 ws[f'C{current_row}'] = "заполнить"
                 for month_idx in range(3):
                     ws[f'{chr(68+month_idx)}{current_row}'] = "заполнить"
+            
+            # Добавляем формулу среднего значения в столбец H для каждой строки врача
+            ws[f'H{current_row}'] = f"=(D{current_row}+E{current_row}+F{current_row})/3"
+            ws[f'H{current_row}'].number_format = '0.00'
                     
             current_row += 1
         
@@ -1740,6 +1752,13 @@ def export_metrics_to_excel(request, submission_id):
                 ws[f'C{current_row}'] = "заполнить"
                 for month_idx in range(3):
                     ws[f'{chr(68+month_idx)}{current_row}'] = "#VALUE!"
+            
+            # Добавляем формулу в столбец H для каждой строки врача
+            # Формула: соответствующая строка из столбца H таблицы "Кол-во часов с пациентами" / соответствующая строка из столбца H таблицы "Кол-во часов по графику"
+            patient_h_row = patient_hours_start_row + i
+            schedule_h_row = schedule_hours_start_row + i
+            ws[f'H{current_row}'] = f"=IF(H{schedule_h_row}=0,0,H{patient_h_row}/H{schedule_h_row})"
+            ws[f'H{current_row}'].number_format = '0%'
                     
             current_row += 1
         
@@ -1796,6 +1815,13 @@ def export_metrics_to_excel(request, submission_id):
                 ws[f'C{current_row}'] = "заполнить"
                 for month_idx in range(3):
                     ws[f'{chr(68+month_idx)}{current_row}'] = "#VALUE!"
+            
+            # Добавляем формулу в столбец H для каждой строки врача
+            # Формула: соответствующая строка из столбца H таблицы "Выручка" / соответствующая строка из столбца H таблицы "Кол-во часов с пациентами"
+            revenue_h_row = revenue_start_row + i
+            patient_h_row = patient_hours_start_row + i
+            ws[f'H{current_row}'] = f"=IF(H{patient_h_row}=0,0,H{revenue_h_row}/H{patient_h_row})"
+            ws[f'H{current_row}'].number_format = '0.00'
                     
             current_row += 1
         
