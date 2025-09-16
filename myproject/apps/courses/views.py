@@ -1657,6 +1657,10 @@ def export_metrics_to_excel(request, submission_id):
             formula = f"=({' + '.join(cell_formula_parts)})"
             ws[f'{chr(68+month_idx)}{patient_header_row}'] = formula
         
+        # Добавляем формулу среднего значения в столбец H для таблицы "Кол-во часов с пациентами"
+        ws[f'H{patient_header_row}'] = "=AVERAGE(D{0}:F{0})".format(patient_header_row)
+        ws[f'H{patient_header_row}'].number_format = '0.00'
+        
         # Пропускаем 2 строки
         current_row += 2
         
@@ -1704,6 +1708,10 @@ def export_metrics_to_excel(request, submission_id):
                 cell_formula_parts.append(cell_address)
             formula = f"=({' + '.join(cell_formula_parts)})"
             ws[f'{chr(68+month_idx)}{revenue_header_row}'] = formula
+        
+        # Добавляем формулу среднего значения в столбец H для таблицы "Выручка, ВВ"
+        ws[f'H{revenue_header_row}'] = "=AVERAGE(D{0}:F{0})".format(revenue_header_row)
+        ws[f'H{revenue_header_row}'].number_format = '0.00'
         
         # Пропускаем 2 строки
         current_row += 2
