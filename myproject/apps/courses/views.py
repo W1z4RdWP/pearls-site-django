@@ -1601,6 +1601,10 @@ def export_metrics_to_excel(request, submission_id):
                 ws[f'C{current_row}'] = "заполнить"
                 for month_idx in range(3):
                     ws[f'{chr(68+month_idx)}{current_row}'] = "заполнить"
+            
+            # Добавляем формулу среднего значения в столбец H для каждой строки врача
+            ws[f'H{current_row}'] = f"=(D{current_row}+E{current_row}+F{current_row})/3"
+            ws[f'H{current_row}'].number_format = '0.00'
                     
             current_row += 1
         
@@ -1635,6 +1639,10 @@ def export_metrics_to_excel(request, submission_id):
                 ws[f'C{current_row}'] = "заполнить"
                 for month_idx in range(3):
                     ws[f'{chr(68+month_idx)}{current_row}'] = "заполнить"
+            
+            # Добавляем формулу среднего значения в столбец H для каждой строки врача
+            ws[f'H{current_row}'] = f"=(D{current_row}+E{current_row}+F{current_row})/3"
+            ws[f'H{current_row}'].number_format = '0.00'
                     
             current_row += 1
         
@@ -1656,6 +1664,10 @@ def export_metrics_to_excel(request, submission_id):
                 cell_formula_parts.append(cell_address)
             formula = f"=({' + '.join(cell_formula_parts)})"
             ws[f'{chr(68+month_idx)}{patient_header_row}'] = formula
+        
+        # Добавляем формулу среднего значения в столбец H для таблицы "Кол-во часов с пациентами"
+        ws[f'H{patient_header_row}'] = "=AVERAGE(D{0}:F{0})".format(patient_header_row)
+        ws[f'H{patient_header_row}'].number_format = '0.00'
         
         # Пропускаем 2 строки
         current_row += 2
@@ -1687,6 +1699,10 @@ def export_metrics_to_excel(request, submission_id):
                 ws[f'C{current_row}'] = "заполнить"
                 for month_idx in range(3):
                     ws[f'{chr(68+month_idx)}{current_row}'] = "заполнить"
+            
+            # Добавляем формулу среднего значения в столбец H для каждой строки врача
+            ws[f'H{current_row}'] = f"=(D{current_row}+E{current_row}+F{current_row})/3"
+            ws[f'H{current_row}'].number_format = '0.00'
                     
             current_row += 1
         
@@ -1704,6 +1720,10 @@ def export_metrics_to_excel(request, submission_id):
                 cell_formula_parts.append(cell_address)
             formula = f"=({' + '.join(cell_formula_parts)})"
             ws[f'{chr(68+month_idx)}{revenue_header_row}'] = formula
+        
+        # Добавляем формулу среднего значения в столбец H для таблицы "Выручка, ВВ"
+        ws[f'H{revenue_header_row}'] = "=AVERAGE(D{0}:F{0})".format(revenue_header_row)
+        ws[f'H{revenue_header_row}'].number_format = '0.00'
         
         # Пропускаем 2 строки
         current_row += 2
@@ -1732,6 +1752,13 @@ def export_metrics_to_excel(request, submission_id):
                 ws[f'C{current_row}'] = "заполнить"
                 for month_idx in range(3):
                     ws[f'{chr(68+month_idx)}{current_row}'] = "#VALUE!"
+            
+            # Добавляем формулу в столбец H для каждой строки врача
+            # Формула: соответствующая строка из столбца H таблицы "Кол-во часов с пациентами" / соответствующая строка из столбца H таблицы "Кол-во часов по графику"
+            patient_h_row = patient_hours_start_row + i
+            schedule_h_row = schedule_hours_start_row + i
+            ws[f'H{current_row}'] = f"=IF(H{schedule_h_row}=0,0,H{patient_h_row}/H{schedule_h_row})"
+            ws[f'H{current_row}'].number_format = '0%'
                     
             current_row += 1
         
@@ -1742,6 +1769,24 @@ def export_metrics_to_excel(request, submission_id):
             ws[f'D{row_num}'].number_format = '0%'
             ws[f'E{row_num}'].number_format = '0%'
             ws[f'F{row_num}'].number_format = '0%'
+        
+        # Добавляем суммарные значения для блока 4 (Загрузка доктора пациентами) в строку заголовка
+        load_header_row = current_row - max_doctors - 1  # строка заголовка таблицы
+        for month_idx in range(3):
+            # Формула: закрашенная ячейка из таблицы "Кол-во часов с пациентами" / закрашенная ячейка из таблицы "Кол-во часов по графику"
+            patient_sum_cell = f'{chr(68+month_idx)}{patient_header_row}'  # суммарная ячейка из таблицы "Кол-во часов с пациентами"
+            schedule_sum_cell = f'{chr(68+month_idx)}7'  # суммарная ячейка из таблицы "Кол-во часов по графику" (строка 7)
+            formula = f"=IF({schedule_sum_cell}=0,0,{patient_sum_cell}/{schedule_sum_cell})"
+            ws[f'{chr(68+month_idx)}{load_header_row}'] = formula
+            # Применяем процентный формат к суммарным ячейкам
+            ws[f'{chr(68+month_idx)}{load_header_row}'].number_format = '0%'
+        
+        # Добавляем формулу среднего значения в столбец H для таблицы "Загрузка доктора пациентами"
+        # Формула: среднее значение из таблицы "Кол-во часов с пациентами" / среднее значение из таблицы "Кол-во часов по графику" (H7)
+        patient_avg_cell = f'H{patient_header_row}'  # среднее из таблицы "Кол-во часов с пациентами"
+        schedule_avg_cell = 'H7'  # среднее из таблицы "Кол-во часов по графику"
+        ws[f'H{load_header_row}'] = f"=IF({schedule_avg_cell}=0,0,{patient_avg_cell}/{schedule_avg_cell})"
+        ws[f'H{load_header_row}'].number_format = '0%'
         
         # Пропускаем 2 строки
         current_row += 2
@@ -1770,6 +1815,13 @@ def export_metrics_to_excel(request, submission_id):
                 ws[f'C{current_row}'] = "заполнить"
                 for month_idx in range(3):
                     ws[f'{chr(68+month_idx)}{current_row}'] = "#VALUE!"
+            
+            # Добавляем формулу в столбец H для каждой строки врача
+            # Формула: соответствующая строка из столбца H таблицы "Выручка" / соответствующая строка из столбца H таблицы "Кол-во часов с пациентами"
+            revenue_h_row = revenue_start_row + i
+            patient_h_row = patient_hours_start_row + i
+            ws[f'H{current_row}'] = f"=IF(H{patient_h_row}=0,0,H{revenue_h_row}/H{patient_h_row})"
+            ws[f'H{current_row}'].number_format = '0.00'
                     
             current_row += 1
         
@@ -1780,6 +1832,21 @@ def export_metrics_to_excel(request, submission_id):
             ws[f'D{row_num}'].number_format = '0.00'
             ws[f'E{row_num}'].number_format = '0.00'
             ws[f'F{row_num}'].number_format = '0.00'
+        
+        # Добавляем суммарные значения для блока 5 (Средний час) в строку заголовка
+        avg_hour_header_row = current_row - max_doctors - 1  # строка заголовка таблицы
+        for month_idx in range(3):
+            # Формула: закрашенная ячейка из таблицы "Выручка" / закрашенная ячейка из таблицы "Кол-во часов с пациентами"
+            revenue_sum_cell = f'{chr(68+month_idx)}{revenue_header_row}'  # суммарная ячейка из таблицы "Выручка"
+            patient_sum_cell = f'{chr(68+month_idx)}{patient_header_row}'  # суммарная ячейка из таблицы "Кол-во часов с пациентами"
+            formula = f"=IF({patient_sum_cell}=0,0,{revenue_sum_cell}/{patient_sum_cell})"
+            ws[f'{chr(68+month_idx)}{avg_hour_header_row}'] = formula
+            # Применяем формат с 2 знаками после запятой к суммарным ячейкам
+            ws[f'{chr(68+month_idx)}{avg_hour_header_row}'].number_format = '0.00'
+        
+        # Добавляем формулу среднего значения в столбец H для таблицы "Средний час"
+        ws[f'H{avg_hour_header_row}'] = "=AVERAGE(D{0}:F{0})".format(avg_hour_header_row)
+        ws[f'H{avg_hour_header_row}'].number_format = '0.00'
         
         # Обновляем формулы загрузки клиники по месяцам (только первые 3 месяца)
         for month_idx in range(3):

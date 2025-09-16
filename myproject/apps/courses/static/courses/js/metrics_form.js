@@ -555,6 +555,32 @@ function highlightError(element) {
   element.classList.add('error');
 }
 
+// функция для поиска первой вкладки с ошибками
+function findFirstTabWithErrors(seq, nameInputs) {
+  for (var m = 0; m < seq.length; m++) {
+    var monthCard = document.querySelector('[data-month-idx="' + m + '"]');
+    if (monthCard) {
+      var rows = monthCard.querySelectorAll('.months-grid-row');
+      for (var r = 0; r < rows.length; r++) {
+        // Проверяем только если у врача указано ФИО
+        if (nameInputs[r] && nameInputs[r].value.trim()) {
+          var hp = rows[r].querySelector('[data-field^="hp_"]');
+          var hw = rows[r].querySelector('[data-field^="hw_"]');
+          var rev = rows[r].querySelector('[data-field^="rev_"]');
+          
+          // Если есть незаполненные обязательные поля в этом месяце
+          if ((!hp || !hp.value.trim() || isNaN(hp.value) || Number(hp.value) < 0) ||
+              (!hw || !hw.value.trim() || isNaN(hw.value) || Number(hw.value) < 0) ||
+              (!rev || !rev.value.trim() || isNaN(getNumericValue(rev.value.trim())) || Number(getNumericValue(rev.value.trim())) < 0)) {
+            return m; // Возвращаем индекс первой вкладки с ошибками
+          }
+        }
+      }
+    }
+  }
+  return -1; // Ошибок не найдено
+}
+
 // функция для очистки подсветки при изменении поля
 function clearErrorOnInput(element) {
   element.addEventListener('input', function() {
@@ -691,10 +717,14 @@ document.getElementById('f').onsubmit = function(e){
   
   // Проверяем метрики по месяцам (только для врачей с указанными ФИО)
   var seq = monthSeq3(startMonthInput.getAttribute('data-value'));
+  var firstErrorTabIndex = -1;
+  
   for (var m = 0; m < seq.length; m++) {
     var monthCard = document.querySelector('[data-month-idx="' + m + '"]');
     if (monthCard) {
       var rows = monthCard.querySelectorAll('.months-grid-row');
+      var hasErrorsInThisMonth = false;
+      
       for (var r = 0; r < rows.length; r++) {
         // Проверяем только если у врача указано ФИО
         var doctorName = '';
@@ -709,24 +739,37 @@ document.getElementById('f').onsubmit = function(e){
           
           if (!hp || !hp.value.trim() || isNaN(hp.value) || Number(hp.value) < 0) {
             errors.push('Укажите часы по графику для врача "' + doctorName + '" в месяце "' + monthName + '"');
+            highlightError(hp);
+            hasErrorsInThisMonth = true;
           }
           
           if (!hw || !hw.value.trim() || isNaN(hw.value) || Number(hw.value) < 0) {
             errors.push('Укажите часы с пациентами для врача "' + doctorName + '" в месяце "' + monthName + '"');
+            highlightError(hw);
+            hasErrorsInThisMonth = true;
           }
           
           var revNumericValue = rev ? getNumericValue(rev.value.trim()) : '';
           if (!rev || !rev.value.trim() || isNaN(revNumericValue) || Number(revNumericValue) < 0) {
             errors.push('Укажите выручку для врача "' + doctorName + '" в месяце "' + monthName + '"');
+            highlightError(rev);
+            hasErrorsInThisMonth = true;
           }
           
           // Проверяем логику: часы с пациентами не должны превышать часы по графику
           if (hp.value.trim() && hw.value.trim() && !isNaN(hp.value) && !isNaN(hw.value)) {
             if (Number(hw.value) > Number(hp.value)) {
               errors.push('Часы с пациентами (' + hw.value + ') не могут превышать часы по графику (' + hp.value + ') для врача "' + doctorName + '" в месяце "' + monthName + '"');
+              highlightError(hw);
+              hasErrorsInThisMonth = true;
             }
           }
         }
+      }
+      
+      // Если в этом месяце есть ошибки и мы еще не нашли первую вкладку с ошибками
+      if (hasErrorsInThisMonth && firstErrorTabIndex === -1) {
+        firstErrorTabIndex = m;
       }
     }
   }
@@ -735,6 +778,21 @@ document.getElementById('f').onsubmit = function(e){
   if (errors.length > 0) {
     document.getElementById('err').innerHTML = '<strong>Исправьте следующие ошибки:</strong><br>• ' + errors.join('<br>• ');
     document.getElementById('err').style.display = 'block';
+    
+    // Если найдена вкладка с ошибками, переключаемся на неё
+    if (firstErrorTabIndex !== -1) {
+      // Убираем активный класс со всех вкладок
+      var tabs = document.querySelectorAll('.tab');
+      for (var t = 0; t < tabs.length; t++) {
+        tabs[t].classList.remove('active');
+      }
+      
+      // Активируем вкладку с ошибками
+      if (tabs[firstErrorTabIndex]) {
+        tabs[firstErrorTabIndex].classList.add('active');
+        showMonth(firstErrorTabIndex);
+      }
+    }
     
     // Прокручиваем к ошибкам
     document.getElementById('err').scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -900,11 +958,24 @@ document.addEventListener('DOMContentLoaded', function() {
     });
   }
   
+  // Поля месячных данных (будут добавлены динамически)
+  function addClearErrorListenersForMonths() {
+    document.querySelectorAll('[data-field^="hp_"], [data-field^="hw_"], [data-field^="rev_"]').forEach(function(element) {
+      if (!element.hasAttribute('data-error-listener')) {
+        element.setAttribute('data-error-listener', 'true');
+        clearErrorOnInput(element);
+      }
+    });
+  }
+  
   // Добавляем слушатели для существующих полей врачей
   addClearErrorListeners();
   
   // Добавляем слушатели для полей параметров при их создании
   addClearErrorListenersForParams();
+  
+  // Добавляем слушатели для полей месячных данных
+  addClearErrorListenersForMonths();
   
   // Добавляем слушатели при добавлении новых врачей
   var observer = new MutationObserver(function(mutations) {
@@ -912,6 +983,7 @@ document.addEventListener('DOMContentLoaded', function() {
       if (mutation.type === 'childList') {
         addClearErrorListeners();
         addClearErrorListenersForParams();
+        addClearErrorListenersForMonths();
       }
     });
   });
@@ -928,6 +1000,12 @@ document.addEventListener('DOMContentLoaded', function() {
   });
   
   observer.observe(daysBox, {
+    childList: true,
+    subtree: true
+  });
+  
+  // Наблюдаем за изменениями в контейнере месяцев
+  observer.observe(monthsContainer, {
     childList: true,
     subtree: true
   });
