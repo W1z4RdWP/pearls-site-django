@@ -368,7 +368,10 @@ class MetricsSubmission(models.Model):
     initial_month = models.CharField(max_length=7, verbose_name="Начальный месяц")  # YYYY-MM
     doctors_count = models.PositiveIntegerField(verbose_name="Количество врачей")
     chairs_count = models.PositiveIntegerField(verbose_name="Количество кресел")
-    work_hours = models.DecimalField(max_digits=5, decimal_places=2, verbose_name="Часы работы в день")
+    # График работы
+    hours_weekdays = models.DecimalField(max_digits=5, decimal_places=2, verbose_name="Часы работы в будни", default=0)
+    hours_saturday = models.DecimalField(max_digits=5, decimal_places=2, verbose_name="Часы работы в субботу", default=0)
+    hours_sunday = models.DecimalField(max_digits=5, decimal_places=2, verbose_name="Часы работы в воскресенье", default=0)
     
     # Дни в месяце для каждого из 6 месяцев
     days_month_1 = models.PositiveIntegerField(verbose_name="Дни месяц 1")
