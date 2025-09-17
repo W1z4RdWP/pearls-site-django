@@ -37,7 +37,7 @@
   .error:focus{outline:none;border-color:#E1B3B3;box-shadow:0 0 0 3px rgba(225,179,179,.12)}
 
   .video-instruction{
-    position: sticky;
+    position: static;
     top: 20px;
     z-index: 10;
     margin-bottom: 20px;

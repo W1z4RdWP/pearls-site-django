@@ -79,16 +79,26 @@
             <div class="list-group">
                 {% for material in course.get_course_materials %}
                     {% if material.type == 'lesson' %}
-                        <a href="{% url 'courses:lesson_detail' course.slug material.id %}" 
-                           class="list-group-item list-group-item-action d-flex align-items-center">
-                            <span class="me-2">📄 <i>(Урок)</i></span>
-                            <div class="flex-grow-1">
-                                {{ material.title }}
-                            </div>
-                            {% if user_course and user_course.status in 'started,completed' and material.id in completed_lessons_ids %}
-                                <span class="badge bg-success">✓</span>
-                            {% endif %}
-                        </a>
+                        {% if is_dental_checkup_course and forloop.counter == 2 %}
+                            <a href="{% url 'courses:metrics_form' %}" 
+                               class="list-group-item list-group-item-action d-flex align-items-center">
+                                <span class="me-2">📊 <i>(Форма метрик)</i></span>
+                                <div class="flex-grow-1">
+                                    Форма метрик эффективности
+                                </div>
+                            </a>
+                        {% else %}
+                            <a href="{% url 'courses:lesson_detail' course.slug material.id %}" 
+                               class="list-group-item list-group-item-action d-flex align-items-center">
+                                <span class="me-2">📄 <i>(Урок)</i></span>
+                                <div class="flex-grow-1">
+                                    {{ material.title }}
+                                </div>
+                                {% if user_course and user_course.status in 'started,completed' and material.id in completed_lessons_ids %}
+                                    <span class="badge bg-success">✓</span>
+                                {% endif %}
+                            </a>
+                        {% endif %}
                     {% elif material.type == 'quiz' %}
                         {% if user_course and user_course.status in 'started,completed' and material.title in completed_quizzes_ids %}
                             <a href="{% url 'quizzes:quiz_best_result' quiz_id=material.id %}?course_slug={{ course.slug }}" 
@@ -174,7 +184,12 @@
                                     {% endif %}
                                 </div>
                             {% endif %}
-                            {% if next_lesson.id %}
+                            {% if is_dental_checkup_course %}
+                                <a href="{% url 'courses:metrics_form' %}" 
+                                class="btn-modern">
+                                    <i class="fa fa-arrow-right"></i> Форма метрик эффективности
+                                </a>
+                            {% elif next_lesson.id %}
                                 <a href="{% url 'courses:lesson_detail' course.slug next_lesson.id %}" 
                                 class="btn-modern">
                                     <i class="fa fa-arrow-right"></i> Продолжить обучение
