@@ -13,6 +13,9 @@ from django.conf import settings
 import jwt
 from datetime import datetime, timedelta
 import logging
+import secrets
+import string
+from django.core.cache import cache
 
 audit_logger = logging.getLogger('audit')
 
@@ -292,6 +295,227 @@ def generate_auth_token(request):
     except Exception as e:
         audit_logger.error(
             f'Ошибка при генерации JWT токена: {str(e)}', 
+            extra={
+                'ip': request.META.get('REMOTE_ADDR', 'Unknown')
+            }
+        )
+        return Response(
+            {'error': f'Неожиданная ошибка: {str(e)}'}, 
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
+
+
+
+
+def _generate_short_token_string():
+    """Генерирует короткий токен из 10 символов"""
+    return ''.join(secrets.choice(string.ascii_letters + string.digits) for _ in range(10))
+
+def create_short_token_mapping(email, password, expires_minutes=30):
+    """
+    Создает маппинг короткого токена к учетным данным.
+    
+    Args:
+        email (str): Email пользователя
+        password (str): Пароль пользователя
+        expires_minutes (int): Время жизни токена в минутах
+        
+    Returns:
+        str: Короткий токен
+    """
+    short_token = _generate_short_token_string()
+    
+    # Сохраняем в кеше на указанное время
+    cache_key = f"short_token_{short_token}"
+    cache_data = {
+        'email': email,
+        'password': password,
+        'created_at': datetime.utcnow().isoformat()
+    }
+    
+    cache.set(cache_key, cache_data, timeout=expires_minutes * 60)
+    
+    return short_token
+
+def get_short_token_data(short_token):
+    """
+    Получает данные по короткому токену.
+    
+    Args:
+        short_token (str): Короткий токен
+        
+    Returns:
+        dict: Данные токена или None если токен не найден/истек
+    """
+    cache_key = f"short_token_{short_token}"
+    return cache.get(cache_key)
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def short_token_auth(request, short_token):
+    """
+    Автоматическая авторизация через короткий токен.
+    Принимает короткий токен в URL и перенаправляет на профиль.
+    """
+    try:
+        # Получаем данные по короткому токену
+        token_data = get_short_token_data(short_token)
+        
+        if not token_data:
+            audit_logger.info(
+                'Неудачная попытка авторизации через короткий токен - токен не найден или истек', 
+                extra={
+                    'short_token': short_token,
+                    'ip': request.META.get('REMOTE_ADDR', 'Unknown')
+                }
+            )
+            messages.error(request, 'Ссылка недействительна или истекла')
+            return redirect('users:login')
+        
+        email = token_data.get('email')
+        password = token_data.get('password')
+        
+        if not email or not password:
+            messages.error(request, 'Неполные данные в токене авторизации')
+            return redirect('users:login')
+        
+        # Аутентификация пользователя
+        user = authenticate(request, username=email, password=password)
+        
+        if user is None:
+            # Логирование неудачной попытки входа
+            audit_logger.info(
+                'Неудачная попытка авторизации через короткий токен', 
+                extra={
+                    'short_token': short_token,
+                    'user': email,
+                    'ip': request.META.get('REMOTE_ADDR', 'Unknown')
+                }
+            )
+            messages.error(request, 'Неверный email или пароль')
+            return redirect('users:login')
+        
+        # Проверяем, что профиль подтвержден
+        try:
+            profile = user.profile
+            if not profile.is_approved:
+                audit_logger.info(
+                    'Попытка авторизации через короткий токен - профиль не подтверждён', 
+                    extra={
+                        'short_token': short_token,
+                        'user': user.email,
+                        'ip': request.META.get('REMOTE_ADDR', 'Unknown')
+                    }
+                )
+                messages.error(request, "Ваш аккаунт ожидает подтверждения администратором.")
+                return redirect('users:login')
+        except Exception:
+            audit_logger.info(
+                'Попытка авторизации через короткий токен - профиль не найден', 
+                extra={
+                    'short_token': short_token,
+                    'user': user.email,
+                    'ip': request.META.get('REMOTE_ADDR', 'Unknown')
+                }
+            )
+            messages.error(request, 'Профиль пользователя не найден. Пожалуйста, обратитесь к администратору.')
+            return redirect('users:login')
+        
+        # Успешная авторизация
+        login(request, user)
+        
+        # Удаляем использованный токен из кеша
+        cache_key = f"short_token_{short_token}"
+        cache.delete(cache_key)
+        
+        # Логирование успешного входа
+        audit_logger.info(
+            'Успешная авторизация через короткий токен', 
+            extra={
+                'short_token': short_token,
+                'user': user.email,
+                'ip': request.META.get('REMOTE_ADDR', 'Unknown')
+            }
+        )
+        
+        # Перенаправляем на профиль
+        return redirect('users:profile')
+        
+    except Exception as e:
+        audit_logger.error(
+            f'Ошибка при авторизации через короткий токен: {str(e)}', 
+            extra={
+                'short_token': short_token,
+                'ip': request.META.get('REMOTE_ADDR', 'Unknown')
+            }
+        )
+        messages.error(request, 'Произошла ошибка при авторизации')
+        return redirect('users:login')
+
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def generate_short_token(request):
+    """
+    Генерирует короткий токен для авторизации.
+    Принимает email и password в POST запросе и возвращает короткий токен.
+    """
+    try:
+        email = request.data.get('email')
+        password = request.data.get('password')
+        expires_minutes = request.data.get('expires_minutes', 30)
+        
+        # Проверяем обязательные поля
+        if not email or not password:
+            return Response(
+                {'error': 'Поля email и password обязательны'}, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Проверяем, что пользователь существует и пароль правильный
+        user = authenticate(request, username=email, password=password)
+        if user is None:
+            return Response(
+                {'error': 'Неверный email или пароль'}, 
+                status=status.HTTP_401_UNAUTHORIZED
+            )
+        
+        # Проверяем, что профиль подтвержден
+        try:
+            profile = user.profile
+            if not profile.is_approved:
+                return Response(
+                    {'error': 'Аккаунт ожидает подтверждения администратором'}, 
+                    status=status.HTTP_403_FORBIDDEN
+                )
+        except Exception:
+            return Response(
+                {'error': 'Профиль пользователя не найден'}, 
+                status=status.HTTP_404_NOT_FOUND
+            )
+        
+        # Генерируем короткий токен
+        short_token = create_short_token_mapping(email, password, expires_minutes)
+        
+        # Логирование генерации токена
+        audit_logger.info(
+            'Сгенерирован короткий токен для авторизации', 
+            extra={
+                'user': user.email,
+                'short_token': short_token,
+                'ip': request.META.get('REMOTE_ADDR', 'Unknown')
+            }
+        )
+        
+        return Response({
+            'success': True,
+            'short_token': short_token,
+            'expires_in_minutes': expires_minutes,
+            'auth_url': f"{request.build_absolute_uri('/')}api/s/{short_token}/"
+        }, status=status.HTTP_200_OK)
+        
+    except Exception as e:
+        audit_logger.error(
+            f'Ошибка при генерации короткого токена: {str(e)}', 
             extra={
                 'ip': request.META.get('REMOTE_ADDR', 'Unknown')
             }
