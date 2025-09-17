@@ -52,21 +52,29 @@
         </div>
         
         <!-- Галочка подтверждения -->
+        {% if not is_dental_checkup_course %}
         <div class="confirmation-checkbox" style="margin: 30px 0; padding: 20px; border: 1px solid #ddd; border-radius: 8px; background-color: #f9f9f9;">
             <label style="display: flex; align-items: center; cursor: pointer; font-size: 16px;">
                 <input type="checkbox" id="lessonConfirmation" style="margin-right: 12px; transform: scale(1.2);">
                 <span>Подтверждаю ознакомление с учебным материалом и полное понимание его содержания. Дополнительных вопросов не имеется.</span>
             </label>
         </div>
+        {% endif %}
     </div>
     
     <div class="lesson-actions">
-        <form method="POST" action="{% url 'courses:complete_lesson' course_slug=course.slug lesson_id=lesson.id %}" id="completeLessonForm" style="display: none;">
-            {% csrf_token %}
-            <button type="submit" class="btn-lesson complete">
-                <i class="fa fa-check"></i> Завершить урок
-            </button>
-        </form>
+        {% if is_dental_checkup_course %}
+            <a href="{% url 'courses:metrics_form' %}" class="btn-lesson complete">
+                <i class="fa fa-arrow-right"></i> Перейти к заполнению метрик
+            </a>
+        {% else %}
+            <form method="POST" action="{% url 'courses:complete_lesson' course_slug=course.slug lesson_id=lesson.id %}" id="completeLessonForm" style="display: none;">
+                {% csrf_token %}
+                <button type="submit" class="btn-lesson complete">
+                    <i class="fa fa-check"></i> Завершить урок
+                </button>
+            </form>
+        {% endif %}
         {% if user.is_authenticated and user.is_staff %}
             <form method="POST" action="{% url 'courses:delete_lesson' lesson.id %}">
                 {% csrf_token %}
@@ -83,6 +91,7 @@
 
     <script>
         // Показываем/скрываем кнопку "Завершить" в зависимости от состояния галочки
+        {% if not is_dental_checkup_course %}
         document.getElementById('lessonConfirmation').addEventListener('change', function() {
             const completeForm = document.getElementById('completeLessonForm');
             if (this.checked) {
@@ -91,6 +100,7 @@
                 completeForm.style.display = 'none';
             }
         });
+        {% endif %}
         
         function informUser() {
             alert("Обратитесь к администратору сайта, чтобы изменить содержимое урока.");
