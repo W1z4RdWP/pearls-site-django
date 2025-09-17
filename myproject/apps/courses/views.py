@@ -256,10 +256,15 @@ class CourseDetailView(DetailView):
                         lesson_id__in=lesson_ids
                     ).select_related('lesson').aggregate(max_order=Max('lesson__order'))['max_order'] or 0
 
-                    next_lesson = Lesson.objects.filter(
-                        id__in=lesson_ids,
-                        order__gt=max_completed_order
-                    ).order_by('order').first() or lessons.first()
+                    # Специальная логика для курса "Чек-ап стоматологической клиники"
+                    if course.title == "Чек-ап стоматологической клиники":
+                        # Для этого курса next_lesson всегда None, так как второй урок заменяется формой метрик
+                        next_lesson = None
+                    else:
+                        next_lesson = Lesson.objects.filter(
+                            id__in=lesson_ids,
+                            order__gt=max_completed_order
+                        ).order_by('order').first() or lessons.first()
                     
                 else:
                     lessons = course.lessons.all()
@@ -294,10 +299,15 @@ class CourseDetailView(DetailView):
                         completed=True
                     ).select_related('lesson').aggregate(max_order=Max('lesson__order'))['max_order'] or 0
 
-                    next_lesson = Lesson.objects.filter(
-                        courses=course,
-                        order__gt=max_completed_order
-                    ).order_by('order').first() or course.lessons.first()
+                    # Специальная логика для курса "Чек-ап стоматологической клиники"
+                    if course.title == "Чек-ап стоматологической клиники":
+                        # Для этого курса next_lesson всегда None, так как второй урок заменяется формой метрик
+                        next_lesson = None
+                    else:
+                        next_lesson = Lesson.objects.filter(
+                            courses=course,
+                            order__gt=max_completed_order
+                        ).order_by('order').first() or course.lessons.first()
                 
                 # Вычисляем прогресс с учетом уроков и тестов
                 completed_materials = completed_lessons + completed_quizzes
@@ -452,6 +462,7 @@ class CourseDetailView(DetailView):
             'user_trajectories_info': user_trajectories_info,
             'quiz_attempts_info': locals().get('quiz_attempts_info'),
             'quiz_passed': locals().get('quiz_passed', False),
+            'is_dental_checkup_course': course.title == "Чек-ап стоматологической клиники",
         })
         
         return context
@@ -563,11 +574,25 @@ def lesson_detail(request, course_slug, lesson_id):
         defaults={'course': course}
     )
 
+    # Специальная логика для курса "Чек-ап стоматологической клиники"
+    is_dental_checkup_course = course.title == "Чек-ап стоматологической клиники"
+    is_first_lesson = False
+    
+    if is_dental_checkup_course:
+        # Определяем, является ли текущий урок первым в курсе по порядку
+        course_lessons = course.lessons
+        if len(course_lessons) >= 1:
+            # Находим урок с наименьшим order (первый урок)
+            first_lesson = course_lessons.first()
+            is_first_lesson = lesson.id == first_lesson.id
+
     context = {
         'course': course,
         'lesson': lesson,
         'previous_lesson': previous_lesson,
         'next_lesson': next_lesson,
+        'is_dental_checkup_course': is_dental_checkup_course,
+        'is_first_lesson': is_first_lesson,
     }
 
     if request.GET.get('ajax') == '1':

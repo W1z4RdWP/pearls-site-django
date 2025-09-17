@@ -20,7 +20,12 @@
             <button class="btn btn-secondary" disabled>← Это первый урок</button>
         {% endif %}
 
-        {% if next_lesson %}
+        {% if is_dental_checkup_course and is_first_lesson %}
+            <a href="{% url 'courses:metrics_form' %}" 
+            class="btn btn-primary">
+                Форма метрик эффективности →
+            </a>
+        {% elif next_lesson %}
             <a href="{% url 'courses:lesson_detail' course_slug=course.slug lesson_id=next_lesson.id %}" 
             class="btn btn-primary">
                 {{ next_lesson.title }} →

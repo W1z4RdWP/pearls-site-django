@@ -30,4 +30,7 @@ python manage.py migrate
 echo "Проверяем проект Django"
 python manage.py check
 
+echo "Перезапускаем сервер"
+sudo systemctl restart django
+
 echo "Готово!"
