@@ -16,6 +16,7 @@ import logging
 import secrets
 import string
 from django.core.cache import cache
+from django.utils import timezone
 
 audit_logger = logging.getLogger('audit')
 
@@ -518,6 +519,91 @@ def generate_short_token(request):
             f'Ошибка при генерации короткого токена: {str(e)}', 
             extra={
                 'ip': request.META.get('REMOTE_ADDR', 'Unknown')
+            }
+        )
+        return Response(
+            {'error': f'Неожиданная ошибка: {str(e)}'}, 
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
+
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def telegram_metrics_check(request):
+    """
+    API endpoint для телеграм бота для проверки новых заполненных форм метрик.
+    Возвращает список новых форм с информацией о пользователе, клинике и количестве врачей.
+    """
+    try:
+        # Получаем параметры запроса
+        last_check = request.GET.get('last_check')
+        limit = int(request.GET.get('limit', 10))  # По умолчанию 10 записей
+        
+        # Импортируем модель метрик
+        from courses.models import MetricsSubmission
+        
+        # Базовый запрос
+        queryset = MetricsSubmission.objects.select_related('user').order_by('-submitted_at')
+        
+        # Если указана дата последней проверки, фильтруем по ней
+        if last_check:
+            try:
+                last_check_dt = datetime.fromisoformat(last_check.replace('Z', '+00:00'))
+                queryset = queryset.filter(submitted_at__gt=last_check_dt)
+            except ValueError:
+                return Response(
+                    {'error': 'Неверный формат даты last_check. Используйте ISO формат'}, 
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+        
+        # Ограничиваем количество записей
+        queryset = queryset[:limit]
+        
+        # Формируем ответ
+        new_submissions = []
+        for submission in queryset:
+            # Получаем ФИО пользователя
+            user_full_name = submission.user.get_full_name()
+            if not user_full_name:
+                user_full_name = f"{submission.user.first_name} {submission.user.last_name}".strip()
+            if not user_full_name:
+                user_full_name = submission.user.username
+            
+            new_submissions.append({
+                'id': submission.id,
+                'user_name': user_full_name,
+                'user_email': submission.user.email,
+                'clinic_name': submission.clinic_name,
+                'doctors_count': submission.doctors_count,
+                'submitted_at': submission.submitted_at.isoformat(),
+                'initial_month': submission.initial_month,
+                'chairs_count': submission.chairs_count
+            })
+        
+        # Логируем запрос
+        audit_logger.info(
+            'Запрос новых форм метрик через Telegram API', 
+            extra={
+                'ip': request.META.get('REMOTE_ADDR', 'Unknown'),
+                'last_check': last_check,
+                'found_count': len(new_submissions),
+                'user': 'telegram_bot'
+            }
+        )
+        
+        return Response({
+            'success': True,
+            'new_submissions': new_submissions,
+            'count': len(new_submissions),
+            'current_time': timezone.now().isoformat()
+        }, status=status.HTTP_200_OK)
+        
+    except Exception as e:
+        audit_logger.error(
+            f'Ошибка при получении новых форм метрик: {str(e)}', 
+            extra={
+                'ip': request.META.get('REMOTE_ADDR', 'Unknown'),
+                'user': 'telegram_bot'
             }
         )
         return Response(
