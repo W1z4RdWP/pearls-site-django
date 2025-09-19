@@ -14,6 +14,10 @@ class DesignedCoursesView(TemplateView):
     template_name = 'designed/courses.html'
 
 
+class DesignedCheckUpView(TemplateView):
+    template_name = 'designed/check-up.html'
+
+
 class IndexView(TemplateView):
     """Класс представление домашней страницы
 
