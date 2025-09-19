@@ -56,6 +56,7 @@ urlpatterns = [
     path('', (views.IndexView.as_view()), name='home'),
     path('homepage/', (views.HomepageView.as_view()), name='homepage'),
     path('courses_app/', (views.DesignedCoursesView.as_view()), name='courses_app'),
+    path('check-up/', (views.DesignedCheckUpView.as_view()), name='check_up'),
     path('captcha/', include('captcha.urls')),
     path('about/', views.AboutView.as_view(), name='about'),
     path('users/', include('users.urls'), name='users'),

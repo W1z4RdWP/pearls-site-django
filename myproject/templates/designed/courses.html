@@ -26,7 +26,7 @@
               <a href="#" class="social-icon social-icon--gray social-icon--small"> <span class="icon icon-vk"></span> </a> <a href="#" class="social-icon social-icon--gray social-icon--small"> <span class="icon icon-telegram"></span> </a>
               <a href="#" class="social-icon social-icon--gray social-icon--small"> <span class="icon icon-max"></span> </a>
             </div>
-            <button data-micromodal-trigger="modal-consultation" class="button button--variant-fuchsia button--size-undefined">Записаться на обучение</button>
+            <button data-micromodal-trigger="modal-consultation" class="button button--variant-fuchsia button--size-undefined" hidden>Записаться на обучение</button>
             <div class="contact-item">
               <a href="#" class="contact-item__number"> <span class="icon icon-phone contact-item__icon"></span> <span>8 (906) 303-82-04</span> </a> <a href="#" class="contact-item__mail">saratov-pearls32@yandex.ru</a>
             </div>
@@ -112,7 +112,7 @@
               <div class="courses-grid">
                 <h2 class="title title--size-medium"><span>Состав </span> направления</h2>
                 <div class="courses-grid__container">
-                  <a href="./" class="program-card program-card--rose program-card--big">
+                  <a href="{% url 'check_up' %}" class="program-card program-card--rose program-card--big">
                     <div class="program-card__container">
                       <picture class="program-card__image">
                         <source srcset="{% static 'designed/img/courses/backone.webp' %}" class="program-card__img">
@@ -154,7 +154,7 @@
                       <button class="button button--variant-rose button--size-small button--arrow">Начать <span class="icon icon-arrow button__arrow"></span></button> <img src="{% static 'designed/img/courses/one.png' %}" alt="..." class="program-card__container-img">
                     </div>
                   </a>
-                  <a href="./" class="program-card program-card--sky program-card--big">
+                  <a href="{% url 'check_up' %}" class="program-card program-card--sky program-card--big">
                     <div class="program-card__container">
                       <picture class="program-card__image">
                         <source srcset="{% static 'designed/img/courses/backtwo.webp' %}" class="program-card__img">
@@ -196,7 +196,7 @@
                       <button class="button button--variant-sky button--size-small button--arrow">Начать <span class="icon icon-arrow button__arrow"></span></button> <img src="{% static 'designed/img/courses/two.png' %}" alt="..." class="program-card__container-img">
                     </div>
                   </a>
-                  <a href="./" class="program-card program-card--indigo program-card--big">
+                  <a href="{% url 'check_up' %}" class="program-card program-card--indigo program-card--big">
                     <div class="program-card__container">
                       <picture class="program-card__image">
                         <source srcset="{% static 'designed/img/courses/backthree.webp' %}" class="program-card__img">
@@ -238,7 +238,7 @@
                       <button class="button button--variant-indigo button--size-small button--arrow">Начать <span class="icon icon-arrow button__arrow"></span></button> <img src="{% static 'designed/img/courses/three.png' %}" alt="..." class="program-card__container-img">
                     </div>
                   </a>
-                  <a href="./" class="program-card program-card--green program-card--big">
+                  <a href="{% url 'check_up' %}" class="program-card program-card--green program-card--big">
                     <div class="program-card__container">
                       <picture class="program-card__image">
                         <source srcset="{% static 'designed/img/courses/backfour.webp' %}" class="program-card__img">
@@ -307,9 +307,9 @@
                         <p>Заполните таблицу метрик, получите экспресс‑чекап и план ближайших шагов. Затем передайте материалы команде и подключайте программы развития.</p>
                       </div>
                       <div class="banner-footer__button">
-                        <button class="button button--variant-fuchsia button--size-medium button--font-medium button--arrow">Пройти «Чек‑ап клиники» <span class="icon icon-arrow button__arrow"></span></button>
-                        <button class="button button--variant-outline button--size-medium button--font-medium">Смотреть каталог</button>
-                      </div>
+                        <a href="https://lc.smileterritory.ru/courses/course/chek-ap-stomatologicheskoi-kliniki/" target="_blank"><button class="button button--variant-fuchsia button--size-medium button--font-medium button--arrow">Пройти «Чек‑ап клиники» <span class="icon icon-arrow button__arrow"></span></button></a>
+                          <a href="#"><button class="button button--variant-outline button--size-medium button--font-medium">Смотреть каталог</button></a>
+                        </div>
                     </div>
                   </div>
                 </div>
@@ -328,7 +328,7 @@
       <div class="footer__container">
         <div class="footer__top">
           <div class="footer__main">
-            <a href="./" class="footer__image"> <img src="{% static 'designed/img/logo-f.svg' %}" alt="logo" class="footer__logo"> </a>
+            <a href="{% url 'homepage' %}" class="footer__image"> <img src="{% static 'designed/img/logo-f.svg' %}" alt="logo" class="footer__logo"> </a>
             <div class="footer__place">
               <p class="footer__place-white">г. Саратов, ул. Университетская, д. №36 строение 1</p>
               <p>ПН-ПТ с 9.00 до 18.00</p>
@@ -336,7 +336,7 @@
           </div>
           <div class="footer__social">
             <div class="socials">
-              <a href="#" class="social-icon social-icon--gray social-icon--small"> <span class="icon icon-vk"></span> </a> <a href="#" class="social-icon social-icon--gray social-icon--small"> <span class="icon icon-telegram"></span> </a>
+              <a href="https://vk.com/territorysmile" class="social-icon social-icon--gray social-icon--small" target="_blank"> <span class="icon icon-vk"></span> </a> <a href="https://t.me/SystemDAS" class="social-icon social-icon--gray social-icon--small" target="_blank"> <span class="icon icon-telegram"></span> </a>
               <a href="#" class="social-icon social-icon--gray social-icon--small"> <span class="icon icon-max"></span> </a>
             </div>
             <div class="contact-item">
@@ -345,7 +345,7 @@
           </div>
         </div>
         <div class="footer__separator"></div>
-        <div class="footer__middle"><a href="#">Согласие на обработку персональных данных</a><a href="#">Политика конфиденциальности</a></div>
+        <div class="footer__middle"><a href="https://lc.smileterritory.ru/privacy-policy/" target="_blank">Согласие на обработку персональных данных</a><a href="https://lc.smileterritory.ru/privacy-policy/" target="_blank">Политика конфиденциальности</a></div>
         <div class="footer__separator"></div>
         <div class="footer__bottom">
           <p>2025 © Учебный центр Территория улыбки. Все права защищены</p>

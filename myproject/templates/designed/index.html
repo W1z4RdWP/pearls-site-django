@@ -23,10 +23,10 @@
           <a href="./" class="header__image"> <img src="{% static 'designed/img/logo.svg' %}" alt="logo" class="header__logo"> </a>
           <div class="header__right">
             <div class="socials">
-              <a href="#" class="social-icon social-icon--gray social-icon--small"> <span class="icon icon-vk"></span> </a> <a href="#" class="social-icon social-icon--gray social-icon--small"> <span class="icon icon-telegram"></span> </a>
+              <a href="https://vk.com/territorysmile" class="social-icon social-icon--gray social-icon--small" target="_blank"> <span class="icon icon-vk"></span> </a> <a href="https://t.me/SystemDAS" class="social-icon social-icon--gray social-icon--small" target="_blank"> <span class="icon icon-telegram"></span> </a>
               <a href="#" class="social-icon social-icon--gray social-icon--small"> <span class="icon icon-max"></span> </a>
             </div>
-            <button data-micromodal-trigger="modal-consultation" class="button button--variant-fuchsia button--size-undefined">Записаться на обучение</button>
+            <button data-micromodal-trigger="modal-consultation" class="button button--variant-fuchsia button--size-undefined" hidden>Записаться на обучение</button>
             <div class="contact-item">
               <a href="#" class="contact-item__number"> <span class="icon icon-phone contact-item__icon"></span> <span>8 (906) 303-82-04</span> </a> <a href="#" class="contact-item__mail">saratov-pearls32@yandex.ru</a>
             </div>
@@ -43,7 +43,7 @@
                 <a href="#" class="contact-item__number"> <span class="icon icon-phone contact-item__icon"></span> <span>8 (906) 303-82-04</span> </a> <a href="#" class="contact-item__mail">saratov-pearls32@yandex.ru</a>
               </div>
               <div class="socials">
-                <a href="#" class="social-icon social-icon--gray social-icon--small"> <span class="icon icon-vk"></span> </a> <a href="#" class="social-icon social-icon--gray social-icon--small"> <span class="icon icon-telegram"></span> </a>
+                <a href="https://vk.com/territorysmile" class="social-icon social-icon--gray social-icon--small" target="_blank"> <span class="icon icon-vk"></span> </a> <a href="https://t.me/SystemDAS" class="social-icon social-icon--gray social-icon--small" target="_blank"> <span class="icon icon-telegram"></span> </a>
                 <a href="#" class="social-icon social-icon--gray social-icon--small"> <span class="icon icon-max"></span> </a>
               </div>
               <p class="header__menu-prava">2025 © Учебный центр Территория улыбки. Все права защищены</p>
@@ -69,7 +69,7 @@
                       <h2 class="title title--size-large title--variant-white"><span>Das System</span> — обучение и настройка процессов клиники</h2>
                       <p>Онлайн‑уроки и настройка бизнес‑процессов: запись, лечение, расчёты, контроль качества. Для руководителей, врачей, ассистентов, администраторов и координаторов. Без лишней теории — только то, что работает в операционке.</p>
                     </div>
-                    <a href="{% url 'courses_app' %}"><button class="button button--variant-fuchsia button--size-medium button--font-medium button--arrow">Хочу поступить <span class="icon icon-arrow button__arrow"></span></button></a>
+                    <a href="https://lc.smileterritory.ru/courses/course/chek-ap-stomatologicheskoi-kliniki/" target="_blank"><button class="button button--variant-fuchsia button--size-medium button--font-medium button--arrow">Пройти чек-ап сразу <span class="icon icon-arrow button__arrow"></span></button></a>
                   </div>
                   <div class="description-card description-card--absolute">
                     <div class="description-card__top">
@@ -279,37 +279,37 @@
                 <div class="banner-directions">
                   <h2 class="title title--size-medium title--variant-white">Направления обучения</h2>
                   <div class="banner-directions__container">
-                    <a href="./" class="banner-directions__item">
+                    <a href="{% url 'courses_app' %}" class="banner-directions__item">
                       <div class="banner-directions__item-main">
                         <div class="banner-directions__point"></div>
                         Менеджмент клиники
                       </div>
                       <span class="icon icon-arrow-rotate banner-directions__item-arrow"></span> </a
-                    ><a href="./" class="banner-directions__item">
+                    ><a href="{% url 'courses_app' %}" class="banner-directions__item">
                       <div class="banner-directions__item-main">
                         <div class="banner-directions__point"></div>
                         Маркетинг и продажи
                       </div>
                       <span class="icon icon-arrow-rotate banner-directions__item-arrow"></span> </a
-                    ><a href="./" class="banner-directions__item">
+                    ><a href="{% url 'courses_app' %}" class="banner-directions__item">
                       <div class="banner-directions__item-main">
                         <div class="banner-directions__point"></div>
                         Кадры и наставничество
                       </div>
                       <span class="icon icon-arrow-rotate banner-directions__item-arrow"></span> </a
-                    ><a href="./" class="banner-directions__item">
+                    ><a href="{% url 'courses_app' %}" class="banner-directions__item">
                       <div class="banner-directions__item-main">
                         <div class="banner-directions__point"></div>
                         Клинические навыки и сервис
                       </div>
                       <span class="icon icon-arrow-rotate banner-directions__item-arrow"></span> </a
-                    ><a href="./" class="banner-directions__item">
+                    ><a href="{% url 'courses_app' %}" class="banner-directions__item">
                       <div class="banner-directions__item-main">
                         <div class="banner-directions__point"></div>
                         Финансы и аналитика
                       </div>
                       <span class="icon icon-arrow-rotate banner-directions__item-arrow"></span> </a
-                    ><a href="./" class="banner-directions__item">
+                    ><a href="{% url 'courses_app' %}" class="banner-directions__item">
                       <div class="banner-directions__item-main">
                         <div class="banner-directions__point"></div>
                         Цифровизация и база знаний
@@ -424,7 +424,7 @@
           </div>
         </div>
       </div>
-      <div class="section section--center">
+      <div class="section section--center" hidden>
         <div class="section__container">
           <h2 class="title title--size-medium">
             Истории собственников:
@@ -433,7 +433,7 @@
           </h2>
         </div>
       </div>
-      <div class="section section--full">
+      <div class="section section--full" hidden>
         <div class="section__container">
           <div class="swiper-history__swiper swiper">
             <div class="swiper-history__wrapper swiper-wrapper">
@@ -648,7 +648,7 @@
           </div>
         </div>
       </div>
-      <div class="section section--center section--bottom-medium">
+      <div class="section section--center section--bottom-medium" hidden>
         <div class="section__container">
           <div class="back-figure">
             <div class="back-figure__container"><div class="swiper-history__scrollbar"></div></div>
@@ -725,14 +725,14 @@
           </div>
         </div>
       </div>
-      <div class="section section--center section--bottom-medium">
+      <div class="section section--center section--bottom-medium" hidden>
         <div class="section__container">
           <div class="back-figure">
             <div class="back-figure__container">
               <div class="questions">
                 <div class="heading heading--center">
                   <span>FAQ</span>
-                  <h2 class="title title--size-large">Часто задаваемы вопросы</h2>
+                  <h2 class="title title--size-large">Часто задаваемые вопросы</h2>
                 </div>
                 <div class="accordion">
                   <div class="accordion__container">
@@ -790,7 +790,7 @@
                     <p>Заполните таблицу метрик, получите экспресс‑чекап и план ближайших шагов. Затем передайте материалы команде и подключайте программы развития.</p>
                   </div>
                   <div class="banner-footer__button">
-                    <a href="{% url 'courses_app' %}"><button class="button button--variant-fuchsia button--size-medium button--font-medium button--arrow">Пройти «Чек‑ап клиники» <span class="icon icon-arrow button__arrow"></span></button></a>
+                    <a href="https://lc.smileterritory.ru/courses/course/chek-ap-stomatologicheskoi-kliniki/" target="_blank"><button class="button button--variant-fuchsia button--size-medium button--font-medium button--arrow">Пройти «Чек‑ап клиники» <span class="icon icon-arrow button__arrow"></span></button></a>
                     <a href="{% url 'courses_app' %}"><button class="button button--variant-outline button--size-medium button--font-medium">Смотреть каталог</button></a>
                   </div>
                 </div>
@@ -813,7 +813,7 @@
           </div>
           <div class="footer__social">
             <div class="socials">
-              <a href="#" class="social-icon social-icon--gray social-icon--small"> <span class="icon icon-vk"></span> </a> <a href="#" class="social-icon social-icon--gray social-icon--small"> <span class="icon icon-telegram"></span> </a>
+              <a href="https://vk.com/territorysmile" class="social-icon social-icon--gray social-icon--small" target="_blank"> <span class="icon icon-vk"></span> </a> <a href="https://t.me/SystemDAS" class="social-icon social-icon--gray social-icon--small" target="_blank"> <span class="icon icon-telegram"></span> </a>
               <a href="#" class="social-icon social-icon--gray social-icon--small"> <span class="icon icon-max"></span> </a>
             </div>
             <div class="contact-item">
@@ -822,7 +822,7 @@
           </div>
         </div>
         <div class="footer__separator"></div>
-        <div class="footer__middle"><a href="#">Согласие на обработку персональных данных</a><a href="#">Политика конфиденциальности</a></div>
+        <div class="footer__middle"><a href="https://lc.smileterritory.ru/privacy-policy/" target="_blank">Согласие на обработку персональных данных</a><a href="https://lc.smileterritory.ru/privacy-policy/" target="_blank">Политика конфиденциальности</a></div>
         <div class="footer__separator"></div>
         <div class="footer__bottom">
           <p>2025 © Учебный центр Территория улыбки. Все права защищены</p>
