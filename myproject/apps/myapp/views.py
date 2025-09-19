@@ -5,6 +5,15 @@ from .models import Course, UserCourse, ChangeLog
 from courses.models import Course as CourseModel
 from datetime import date
 
+
+class HomepageView(TemplateView):
+    template_name = 'designed/index.html'
+
+
+class DesignedCoursesView(TemplateView):
+    template_name = 'designed/courses.html'
+
+
 class IndexView(TemplateView):
     """Класс представление домашней страницы
 
