@@ -221,7 +221,7 @@ def telegram_auth(request):
         )
         
         # Перенаправляем на профиль
-        return redirect('users:profile')
+        return redirect('homepage')
         
     except Exception as e:
         audit_logger.error(
@@ -440,7 +440,7 @@ def short_token_auth(request, short_token):
         )
         
         # Перенаправляем на профиль
-        return redirect('users:profile')
+        return redirect('homepage')
         
     except Exception as e:
         audit_logger.error(
