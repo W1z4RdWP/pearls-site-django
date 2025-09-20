@@ -111,16 +111,49 @@
         <div class="small">Пустые строки игнорируются.</div>
       </div>
 
-      <div style="margin-top:12px;display:flex;justify-content:space-between;align-items:center">
+      <div class="form-footer" style="margin-top:12px;">
         <span class="small">* — обязательные поля</span>
-        <div style="display:flex;gap:12px;align-items:center">
-          <div style="display:flex;align-items:center;gap:2px;white-space:nowrap">
+        <div class="consent-section">
+          <div style="display:flex;align-items:center;gap:2px;white-space:nowrap;">
             <input id="consent" type="checkbox">
             <label for="consent" style="font-weight:400;font-size:14px;margin:0">Даю согласие на обработку персональных данных</label>
           </div>
-          <button class="btn btn-primary" type="submit">Отправить</button>
+          <button class="btn btn-primary submit-btn" type="submit">Отправить</button>
         </div>
       </div>
+
+      <style>
+        .form-footer {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+        }
+        
+        .consent-section {
+          display: flex;
+          gap: 12px;
+          align-items: center;
+        }
+        
+        @media (max-width: 768px) {
+          .form-footer {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 12px;
+          }
+          
+          .consent-section {
+            flex-direction: column;
+            align-items: center;
+            width: 100%;
+            gap: 12px;
+          }
+          
+          .submit-btn {
+            width: auto;
+          }
+        }
+      </style>
 
       <div id="ok" class="ok">Готово.</div>
       <div id="err" class="err"></div>
