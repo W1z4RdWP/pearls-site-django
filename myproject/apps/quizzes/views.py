@@ -75,9 +75,13 @@ def get_questions(request, quiz_id: int = None, is_start: bool = False) -> HttpR
                         # Создаем UserCourse если его нет
                         user_course = UserCourse.objects.create(user=request.user, course=course, status='available')
                     
-                    # Блокируем доступ к тесту, если курс не начат
+                    # Блокируем доступ к тесту, если курс не начат - редиректим на страницу курса с подсветкой
                     if user_course.status not in ['started', 'completed']:
-                        return render(request, 'courses/quiz_start_required.html', {'course': course})
+                        from django.urls import reverse
+                        from urllib.parse import urlencode
+                        url = reverse('courses:course_detail', kwargs={'slug': course.slug})
+                        params = urlencode({'highlight_start': '1', 'quiz_blocked': quiz.id})
+                        return redirect(f'{url}?{params}')
                 except Course.DoesNotExist:
                     pass
             else:

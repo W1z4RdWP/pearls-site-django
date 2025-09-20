@@ -128,3 +128,53 @@
     margin-right: 8px;
     font-size: 1.1em;
 }
+
+/* Подсветка кнопки "Начать курс" */
+.btn-start-course.highlight {
+    animation: pulse-start 2s infinite;
+    box-shadow: 0 0 20px rgba(34, 157, 82, 0.6);
+}
+
+@keyframes pulse-start {
+    0% {
+        box-shadow: 0 2px 8px rgba(60,60,60,0.15), 0 0 20px rgba(34, 157, 82, 0.6);
+        transform: scale(1);
+    }
+    50% {
+        box-shadow: 0 4px 12px rgba(60,60,60,0.25), 0 0 30px rgba(34, 157, 82, 0.8);
+        transform: scale(1.05);
+    }
+    100% {
+        box-shadow: 0 2px 8px rgba(60,60,60,0.15), 0 0 20px rgba(34, 157, 82, 0.6);
+        transform: scale(1);
+    }
+}
+
+/* Некликабельные уроки */
+.lesson-blocked {
+    opacity: 0.6;
+    cursor: not-allowed !important;
+    pointer-events: none;
+    background-color: #f8f9fa !important;
+}
+
+.lesson-blocked:hover {
+    background-color: #f8f9fa !important;
+    transform: none !important;
+}
+
+/* Анимация для уведомлений */
+@keyframes slideInRight {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+.course-notification {
+    animation: slideInRight 0.3s ease-out;
+}

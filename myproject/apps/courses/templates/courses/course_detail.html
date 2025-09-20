@@ -64,7 +64,7 @@
                         <form method="POST" action="{% url 'courses:course_detail' slug=course.slug %}" style="margin: 0;">
                             {% csrf_token %}
                             {% if lessons or course.final_quiz %}
-                                <button type="submit" name="start_course" class="btn-start-course">
+                                <button type="submit" name="start_course" class="btn-start-course{% if highlight_start_button %} highlight{% endif %}" id="start-course-btn">
                                     <i class="fa fa-play"></i> <span class="d-none d-sm-inline">Начать курс</span>
                                 </button>
                             {% else %}
@@ -88,35 +88,55 @@
                                 </div>
                             </a>
                         {% else %}
-                            <a href="{% url 'courses:lesson_detail' course.slug material.id %}" 
-                               class="list-group-item list-group-item-action d-flex align-items-center">
-                                <span class="me-2">📄 <i>(Урок)</i></span>
-                                <div class="flex-grow-1">
-                                    {{ material.title }}
+                            {% if user_course and user_course.status in 'started,completed' %}
+                                <a href="{% url 'courses:lesson_detail' course.slug material.id %}" 
+                                   class="list-group-item list-group-item-action d-flex align-items-center">
+                                    <span class="me-2">📄 <i>(Урок)</i></span>
+                                    <div class="flex-grow-1">
+                                        {{ material.title }}
+                                    </div>
+                                    {% if material.id in completed_lessons_ids %}
+                                        <span class="badge bg-success">✓</span>
+                                    {% endif %}
+                                </a>
+                            {% else %}
+                                <div class="list-group-item d-flex align-items-center lesson-blocked">
+                                    <span class="me-2">📄 <i>(Урок)</i></span>
+                                    <div class="flex-grow-1">
+                                        {{ material.title }}
+                                    </div>
+                                    <span class="badge bg-secondary">🔒</span>
                                 </div>
-                                {% if user_course and user_course.status in 'started,completed' and material.id in completed_lessons_ids %}
-                                    <span class="badge bg-success">✓</span>
-                                {% endif %}
-                            </a>
+                            {% endif %}
                         {% endif %}
                     {% elif material.type == 'quiz' %}
-                        {% if user_course and user_course.status in 'started,completed' and material.title in completed_quizzes_ids %}
-                            <a href="{% url 'quizzes:quiz_best_result' quiz_id=material.id %}?course_slug={{ course.slug }}" 
-                               class="list-group-item list-group-item-action d-flex align-items-center">
-                                <span class="me-2">🎓 (<i>Тест</i>)</span>
-                                <div class="flex-grow-1">
-                                    {{ material.title }}
-                                </div>
-                                <span class="badge bg-success">✓</span>
-                            </a>
+                        {% if user_course and user_course.status in 'started,completed' %}
+                            {% if material.title in completed_quizzes_ids %}
+                                <a href="{% url 'quizzes:quiz_best_result' quiz_id=material.id %}?course_slug={{ course.slug }}" 
+                                   class="list-group-item list-group-item-action d-flex align-items-center">
+                                    <span class="me-2">🎓 (<i>Тест</i>)</span>
+                                    <div class="flex-grow-1">
+                                        {{ material.title }}
+                                    </div>
+                                    <span class="badge bg-success">✓</span>
+                                </a>
+                            {% else %}
+                                <a href="{% url 'quizzes:quiz_start' quiz_id=material.id %}?course_slug={{ course.slug }}" 
+                                   class="list-group-item list-group-item-action d-flex align-items-center">
+                                    <span class="me-2">🎓 (<i>Тест</i>)</span>
+                                    <div class="flex-grow-1">
+                                        {{ material.title }}
+                                    </div>
+                                </a>
+                            {% endif %}
                         {% else %}
-                            <a href="{% url 'quizzes:quiz_start' quiz_id=material.id %}?course_slug={{ course.slug }}" 
-                               class="list-group-item list-group-item-action d-flex align-items-center">
+                            <div class="list-group-item d-flex align-items-center lesson-blocked">
                                 <span class="me-2">🎓 (<i>Тест</i>)</span>
                                 <div class="flex-grow-1">
                                     {{ material.title }}
                                 </div>
-                            </a>
+                                <span class="badge bg-secondary">🔒</span>
+                            </div>
                         {% endif %}
                     {% endif %}
                 {% endfor %}
@@ -184,12 +204,7 @@
                                     {% endif %}
                                 </div>
                             {% endif %}
-                            {% if is_dental_checkup_course %}
-                                <a href="{% url 'courses:metrics_form' %}" 
-                                class="btn-modern">
-                                    <i class="fa fa-arrow-right"></i> Форма метрик эффективности
-                                </a>
-                            {% elif next_lesson.id %}
+                            {% if next_lesson.id %}
                                 <a href="{% url 'courses:lesson_detail' course.slug next_lesson.id %}" 
                                 class="btn-modern">
                                     <i class="fa fa-arrow-right"></i> Продолжить обучение
