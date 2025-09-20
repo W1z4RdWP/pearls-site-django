@@ -120,20 +120,30 @@ document.addEventListener('DOMContentLoaded', function() {
   }
   
   if (btn) {
+    const icon = btn.querySelector('i');
+    
+    function updateIcon() {
+      if (document.body.classList.contains('theme-dark')) {
+        icon.className = 'fa-solid fa-sun';
+        btn.title = 'Переключить на светлую тему';
+      } else {
+        icon.className = 'fa-solid fa-moon';
+        btn.title = 'Переключить на темную тему';
+      }
+    }
+    
     btn.addEventListener('click', function() {
       document.body.classList.toggle('theme-dark');
-      btn.textContent = document.body.classList.contains('theme-dark') ? 'Тёмная тема' : 'Светлая тема';
       localStorage.setItem('theme', document.body.classList.contains('theme-dark') ? 'dark' : 'light');
       updateLogo();
+      updateIcon();
     });
     
     // Инициализация при загрузке
     if (localStorage.getItem('theme') === 'dark') {
       document.body.classList.add('theme-dark');
-      btn.textContent = 'Тёмная тема';
-    } else {
-      btn.textContent = 'Светлая тема';
     }
+    updateIcon();
     updateLogo();
   }
 });

@@ -106,3 +106,64 @@ document.addEventListener('DOMContentLoaded', () => {
   });
   showDescription.style.display = 'block';
 });
+
+// Обработка заблокированных уроков
+document.addEventListener('DOMContentLoaded', () => {
+  const blockedLessons = document.querySelectorAll('.lesson-blocked');
+  
+  blockedLessons.forEach(lesson => {
+    lesson.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      
+      // Подсветка кнопки "Начать курс"
+      const startBtn = document.getElementById('start-course-btn');
+      if (startBtn) {
+        startBtn.classList.add('highlight');
+        startBtn.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        
+        // Убираем подсветку через 5 секунд
+        setTimeout(() => {
+          startBtn.classList.remove('highlight');
+        }, 5000);
+      }
+      
+      // Показываем уведомление
+      showNotification('Чтобы получить доступ к материалам, сначала начните курс');
+    });
+  });
+});
+
+// Функция для показа уведомлений
+function showNotification(message) {
+  // Удаляем предыдущее уведомление если есть
+  const existingNotification = document.querySelector('.course-notification');
+  if (existingNotification) {
+    existingNotification.remove();
+  }
+  
+  // Создаем новое уведомление
+  const notification = document.createElement('div');
+  notification.className = 'course-notification alert alert-warning';
+  notification.style.cssText = `
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 1050;
+    max-width: 300px;
+    animation: slideInRight 0.3s ease-out;
+  `;
+  notification.innerHTML = `
+    <i class="fa fa-exclamation-triangle"></i> ${message}
+    <button type="button" class="btn-close" onclick="this.parentElement.remove()"></button>
+  `;
+  
+  document.body.appendChild(notification);
+  
+  // Автоматически убираем через 4 секунды
+  setTimeout(() => {
+    if (notification.parentElement) {
+      notification.remove();
+    }
+  }, 4000);
+}

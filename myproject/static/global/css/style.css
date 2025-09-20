@@ -377,6 +377,24 @@ section {
     border: 0;
 }
 
+/* Адаптация iframe видео из CKEditor для мобильных устройств */
+@media (max-width: 768px) {
+    .lesson-content iframe[src*="rutube.ru"] {
+        width: 100% !important;
+        max-width: 500px !important;
+        height: auto !important;
+        aspect-ratio: 16/9;
+    }
+}
+
+@media (max-width: 480px) {
+    .lesson-content iframe[src*="rutube.ru"] {
+        width: 328px !important;
+        height: 200px !important;
+        max-width: 100% !important;
+    }
+}
+
 .scale_on_hover:hover{
     scale: 1.5;
 }

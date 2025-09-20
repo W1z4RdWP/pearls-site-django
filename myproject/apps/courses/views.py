@@ -441,6 +441,11 @@ class CourseDetailView(DetailView):
                             next_course_in_trajectory = next_tc.course
                             break
 
+        # Проверяем параметры подсветки кнопки "Начать курс"
+        highlight_start = request.GET.get('highlight_start') == '1'
+        lesson_blocked_id = request.GET.get('lesson_blocked')
+        quiz_blocked_id = request.GET.get('quiz_blocked')
+
         # Формирование контекста
         context.update({
             'course_author': course.author.username,
@@ -463,6 +468,9 @@ class CourseDetailView(DetailView):
             'quiz_attempts_info': locals().get('quiz_attempts_info'),
             'quiz_passed': locals().get('quiz_passed', False),
             'is_dental_checkup_course': course.title == "Чек-ап стоматологической клиники",
+            'highlight_start_button': highlight_start,
+            'lesson_blocked_id': lesson_blocked_id,
+            'quiz_blocked_id': quiz_blocked_id,
         })
         
         return context
@@ -545,9 +553,13 @@ def lesson_detail(request, course_slug, lesson_id):
         # Создаем UserCourse если его нет (для курсов из траекторий)
         user_course = UserCourse.objects.create(user=request.user, course=course, status='available')
 
-    # Блокируем доступ к уроку, если курс не начат
+    # Блокируем доступ к уроку, если курс не начат - редиректим на страницу курса с подсветкой
     if user_course.status not in ['started', 'completed']:
-        return render(request, 'courses/lesson_start_required.html', {'course': course, 'lesson': lesson})
+        from django.urls import reverse
+        from urllib.parse import urlencode
+        url = reverse('courses:course_detail', kwargs={'slug': course.slug})
+        params = urlencode({'highlight_start': '1', 'lesson_blocked': lesson.id})
+        return redirect(f'{url}?{params}')
 
     # Проверка траектории
     trajectory = UserLessonTrajectory.objects.filter(user=request.user, course=course).first()

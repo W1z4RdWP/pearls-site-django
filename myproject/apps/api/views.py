@@ -17,6 +17,7 @@ import secrets
 import string
 from django.core.cache import cache
 from django.utils import timezone
+from courses.models import Course
 
 audit_logger = logging.getLogger('audit')
 
@@ -160,7 +161,11 @@ def telegram_auth(request):
                 }
             )
             messages.error(request, 'Токен авторизации недействителен или истек')
-            return redirect('users:login')
+            try:
+                course = Course.objects.get(title="Чек-ап стоматологической клиники")
+                return redirect('courses:course_detail', slug=course.slug)
+            except Course.DoesNotExist:
+                return redirect('homepage')
         
         email = payload.get('email')
         password = payload.get('password')
