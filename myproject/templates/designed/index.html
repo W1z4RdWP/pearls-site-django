@@ -69,7 +69,7 @@
                       <h2 class="title title--size-large title--variant-white"><span>Das System</span> — обучение и настройка процессов клиники</h2>
                       <p>Онлайн‑уроки и настройка бизнес‑процессов: запись, лечение, расчёты, контроль качества. Для руководителей, врачей, ассистентов, администраторов и координаторов. Без лишней теории — только то, что работает в операционке.</p>
                     </div>
-                    <a href="https://lc.smileterritory.ru/courses/course/chek-ap-stomatologicheskoi-kliniki/" target="_blank"><button class="button button--variant-fuchsia button--size-medium button--font-medium button--arrow">Пройти чек-ап сразу <span class="icon icon-arrow button__arrow"></span></button></a>
+                    <a href="{% url 'courses:course_detail' check_up_course.slug %}"><button class="button button--variant-fuchsia button--size-medium button--font-medium button--arrow">Пройти чек-ап сразу <span class="icon icon-arrow button__arrow"></span></button></a>
                   </div>
                   <div class="description-card description-card--absolute">
                     <div class="description-card__top">
@@ -178,7 +178,7 @@
                 </div>
                 <div class="problem-card__container">
                   <div class="problem-card__decision">Решение</div>
-                  <div class="problem-card__text problem-card__answer">Единые инструкции и длительности. Настройка сетки расписанияи контроль по чек‑листу.</div>
+                  <div class="problem-card__text problem-card__answer">Единые инструкции и длительности. Настройка сетки расписания и контроль по чек‑листу.</div>
                 </div>
                 <img src="{% static 'designed/img/problem/two.png' %}" alt="problem" class="problem-card__img">
               </div>
@@ -790,7 +790,7 @@
                     <p>Заполните таблицу метрик, получите экспресс‑чекап и план ближайших шагов. Затем передайте материалы команде и подключайте программы развития.</p>
                   </div>
                   <div class="banner-footer__button">
-                    <a href="https://lc.smileterritory.ru/courses/course/chek-ap-stomatologicheskoi-kliniki/" target="_blank"><button class="button button--variant-fuchsia button--size-medium button--font-medium button--arrow">Пройти «Чек‑ап клиники» <span class="icon icon-arrow button__arrow"></span></button></a>
+                    <a href="{% url 'courses:course_detail' check_up_course.slug %}"><button class="button button--variant-fuchsia button--size-medium button--font-medium button--arrow">Пройти «Чек‑ап клиники» <span class="icon icon-arrow button__arrow"></span></button></a>
                     <a href="{% url 'courses_app' %}"><button class="button button--variant-outline button--size-medium button--font-medium">Смотреть каталог</button></a>
                   </div>
                 </div>
@@ -822,7 +822,7 @@
           </div>
         </div>
         <div class="footer__separator"></div>
-        <div class="footer__middle"><a href="https://lc.smileterritory.ru/privacy-policy/" target="_blank">Согласие на обработку персональных данных</a><a href="https://lc.smileterritory.ru/privacy-policy/" target="_blank">Политика конфиденциальности</a></div>
+        <div class="footer__middle"><a href="{% url 'privacy_policy' %}">Согласие на обработку персональных данных</a><a href="{% url 'privacy_policy' %}">Политика конфиденциальности</a></div>
         <div class="footer__separator"></div>
         <div class="footer__bottom">
           <p>2025 © Учебный центр Территория улыбки. Все права защищены</p>

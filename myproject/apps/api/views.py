@@ -149,7 +149,11 @@ def telegram_auth(request):
         # Проверяем наличие токена
         if not token:
             messages.error(request, 'Не указан токен авторизации')
-            return redirect('users:login')
+            try:
+                course = Course.objects.get(title="Чек-ап стоматологической клиники")
+                return redirect('courses:course_detail', slug=course.slug)
+            except Course.DoesNotExist:
+                return redirect('homepage')
         
         # Декодируем JWT токен
         payload = decode_telegram_auth_token(token)
@@ -172,7 +176,11 @@ def telegram_auth(request):
         
         if not email or not password:
             messages.error(request, 'Неполные данные в токене авторизации')
-            return redirect('users:login')
+            try:
+                course = Course.objects.get(title="Чек-ап стоматологической клиники")
+                return redirect('courses:course_detail', slug=course.slug)
+            except Course.DoesNotExist:
+                return redirect('homepage')
         
         # Аутентификация пользователя
         user = authenticate(request, username=email, password=password)
@@ -187,7 +195,11 @@ def telegram_auth(request):
                 }
             )
             messages.error(request, 'Неверный email или пароль')
-            return redirect('users:login')
+            try:
+                course = Course.objects.get(title="Чек-ап стоматологической клиники")
+                return redirect('courses:course_detail', slug=course.slug)
+            except Course.DoesNotExist:
+                return redirect('homepage')
         
         # Проверяем, что профиль подтвержден
         try:
@@ -201,7 +213,11 @@ def telegram_auth(request):
                     }
                 )
                 messages.error(request, "Ваш аккаунт ожидает подтверждения администратором.")
-                return redirect('users:login')
+                try:
+                    course = Course.objects.get(title="Чек-ап стоматологической клиники")
+                    return redirect('courses:course_detail', slug=course.slug)
+                except Course.DoesNotExist:
+                    return redirect('homepage')
         except Exception:
             audit_logger.info(
                 'Попытка авторизации через Telegram API - профиль не найден', 
@@ -211,7 +227,11 @@ def telegram_auth(request):
                 }
             )
             messages.error(request, 'Профиль пользователя не найден. Пожалуйста, обратитесь к администратору.')
-            return redirect('users:login')
+            try:
+                course = Course.objects.get(title="Чек-ап стоматологической клиники")
+                return redirect('courses:course_detail', slug=course.slug)
+            except Course.DoesNotExist:
+                return redirect('homepage')
         
         # Успешная авторизация
         login(request, user)
@@ -236,7 +256,11 @@ def telegram_auth(request):
             }
         )
         messages.error(request, 'Произошла ошибка при авторизации')
-        return redirect('users:login')
+        try:
+            course = Course.objects.get(title="Чек-ап стоматологической клиники")
+            return redirect('courses:course_detail', slug=course.slug)
+        except Course.DoesNotExist:
+            return redirect('homepage')
 
 
 @api_view(['POST'])
@@ -376,14 +400,22 @@ def short_token_auth(request, short_token):
                 }
             )
             messages.error(request, 'Ссылка недействительна или истекла')
-            return redirect('users:login')
+            try:
+                course = Course.objects.get(title="Чек-ап стоматологической клиники")
+                return redirect('courses:course_detail', slug=course.slug)
+            except Course.DoesNotExist:
+                return redirect('homepage')
         
         email = token_data.get('email')
         password = token_data.get('password')
         
         if not email or not password:
             messages.error(request, 'Неполные данные в токене авторизации')
-            return redirect('users:login')
+            try:
+                course = Course.objects.get(title="Чек-ап стоматологической клиники")
+                return redirect('courses:course_detail', slug=course.slug)
+            except Course.DoesNotExist:
+                return redirect('homepage')
         
         # Аутентификация пользователя
         user = authenticate(request, username=email, password=password)
@@ -399,7 +431,11 @@ def short_token_auth(request, short_token):
                 }
             )
             messages.error(request, 'Неверный email или пароль')
-            return redirect('users:login')
+            try:
+                course = Course.objects.get(title="Чек-ап стоматологической клиники")
+                return redirect('courses:course_detail', slug=course.slug)
+            except Course.DoesNotExist:
+                return redirect('homepage')
         
         # Проверяем, что профиль подтвержден
         try:
@@ -414,7 +450,11 @@ def short_token_auth(request, short_token):
                     }
                 )
                 messages.error(request, "Ваш аккаунт ожидает подтверждения администратором.")
-                return redirect('users:login')
+                try:
+                    course = Course.objects.get(title="Чек-ап стоматологической клиники")
+                    return redirect('courses:course_detail', slug=course.slug)
+                except Course.DoesNotExist:
+                    return redirect('homepage')
         except Exception:
             audit_logger.info(
                 'Попытка авторизации через короткий токен - профиль не найден', 
@@ -425,7 +465,11 @@ def short_token_auth(request, short_token):
                 }
             )
             messages.error(request, 'Профиль пользователя не найден. Пожалуйста, обратитесь к администратору.')
-            return redirect('users:login')
+            try:
+                course = Course.objects.get(title="Чек-ап стоматологической клиники")
+                return redirect('courses:course_detail', slug=course.slug)
+            except Course.DoesNotExist:
+                return redirect('homepage')
         
         # Успешная авторизация
         login(request, user)
@@ -456,7 +500,11 @@ def short_token_auth(request, short_token):
             }
         )
         messages.error(request, 'Произошла ошибка при авторизации')
-        return redirect('users:login')
+        try:
+            course = Course.objects.get(title="Чек-ап стоматологической клиники")
+            return redirect('courses:course_detail', slug=course.slug)
+        except Course.DoesNotExist:
+            return redirect('homepage')
 
 @api_view(['POST'])
 @permission_classes([AllowAny])

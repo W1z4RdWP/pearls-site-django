@@ -9,13 +9,31 @@ from datetime import date
 class HomepageView(TemplateView):
     template_name = 'designed/index.html'
 
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        course = CourseModel.objects.get(title="Чек-ап стоматологической клиники")
+        context['check_up_course'] = course
+        return context
+
 
 class DesignedCoursesView(TemplateView):
     template_name = 'designed/courses.html'
 
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        course = CourseModel.objects.get(title="Чек-ап стоматологической клиники")
+        context['check_up_course'] = course
+        return context
+
 
 class DesignedCheckUpView(TemplateView):
     template_name = 'designed/check-up.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        course = CourseModel.objects.get(title="Чек-ап стоматологической клиники")
+        context['check_up_course'] = course
+        return context
 
 
 class IndexView(TemplateView):
