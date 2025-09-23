@@ -38,6 +38,7 @@ def auto_unlock_quiz_if_lessons_completed(user, course):
     Автоматически разблокирует финальный тест курса, если пользователь завершил все уроки
     после того как тест был заблокирован.
     """
+
     if not course.final_quiz:
         return False
     
@@ -60,9 +61,11 @@ class UserCourseTrajectoryDetailView(DetailView):
     """
     Деталка по траектории пользователя: показывает прогресс по курсам в траектории.
     """
+
     model = UserCourseTrajectory
     template_name = 'courses/user_course_trajectory_detail.html'
     context_object_name = 'user_trajectory'
+
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -113,10 +116,12 @@ class UserCourseTrajectoryDetailView(DetailView):
         context['next_available_course'] = next_available_course
         return context
 
+
     def _is_course_available(self, user_trajectory, tc, user_courses):
         """
         Курс доступен, если он первый в траектории или предыдущий завершён.
         """
+
         if tc.order == 1:
             return True
         prev_tc = TrajectoryCourse.objects.filter(trajectory=tc.trajectory, order=tc.order-1).first()
@@ -129,10 +134,16 @@ class UserCourseTrajectoryDetailView(DetailView):
 
 
 class CourseDetailView(DetailView):
+    """
+    Деталка курса.
+
+    """
+
     model = Course
     slug_url_kwarg = 'slug'
     template_name = 'courses/course_detail.html'
     context_object_name = 'course'
+
 
     def get(self, request, *args, **kwargs):
         self.object = self.get_object()
@@ -160,6 +171,7 @@ class CourseDetailView(DetailView):
                             return render(request, 'courses/course_access_denied.html', {'course': self.object, 'reason': 'Курс недоступен. Сначала завершите предыдущий курс в траектории.'})
         return self.render_to_response(self.get_context_data())
 
+
     def post(self, request, *args, **kwargs):
         """Обработка начала курса"""
         course = self.get_object()
@@ -181,6 +193,7 @@ class CourseDetailView(DetailView):
             user_course.save()
         
         return redirect('courses:course_detail', slug=course.slug)
+
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -446,6 +459,7 @@ class CourseDetailView(DetailView):
         lesson_blocked_id = request.GET.get('lesson_blocked')
         quiz_blocked_id = request.GET.get('quiz_blocked')
 
+
         # Формирование контекста
         context.update({
             'course_author': course.author.username,
@@ -477,6 +491,7 @@ class CourseDetailView(DetailView):
 
 
 
+
 class CourseListView(ListView):
     """
     Отображает все курсы (траектории) доступные пользователю в шаблоне all_courses_list.html.
@@ -487,9 +502,11 @@ class CourseListView(ListView):
     template_name = 'courses/all_courses_list.html'
     context_object_name = 'courses'
 
+
     def get_queryset(self):
         # Пустой queryset, так как мы будем использовать get_context_data
         return UserCourse.objects.none()
+
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -607,11 +624,12 @@ def lesson_detail(request, course_slug, lesson_id):
         'is_first_lesson': is_first_lesson,
     }
 
-    if request.GET.get('ajax') == '1':
-        from django.template.loader import render_to_string
-        html = render_to_string('builder/includes/_lesson_detail_block.html', context, request=request)
-        from django.http import HttpResponse
-        return HttpResponse(html)
+    # TODO: Проверить, нужно ли этот блок. 23.09.2025 Если в течение недели не будет жалоб, то удалить.
+    # if request.GET.get('ajax') == '1':
+    #     from django.template.loader import render_to_string
+    #     html = render_to_string('builder/includes/_lesson_detail_block.html', context, request=request)
+    #     from django.http import HttpResponse
+    #     return HttpResponse(html)
     return render(request, 'courses/lesson_detail.html', context)
 
 

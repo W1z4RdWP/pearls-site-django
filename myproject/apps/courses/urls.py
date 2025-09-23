@@ -4,6 +4,8 @@ from .views import UserCourseTrajectoryDetailView, UserCourseTrajectoryListView
 
 app_name = 'courses'
 
+#TODO: Проверить порядок и подписать комментариями справа, что куда ведет
+
 urlpatterns = [
     path('', course_views.CourseDetailView.as_view(), name='course-detail'),
     path('create-course/', course_views.create_course, name='create-course'),

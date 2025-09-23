@@ -4,6 +4,9 @@ from django_ckeditor_5.fields import CKEditor5Widget
 from myapp.utils import clean_rutube_iframe
 import re
 
+
+
+
 class CourseForm(forms.ModelForm):
     class Meta:
         model = Course
@@ -18,15 +21,20 @@ class CourseForm(forms.ModelForm):
             'allowed_groups': forms.SelectMultiple(attrs={'class': 'form-select'}),
         }
 
+
     def clean_slug(self):
         slug = self.cleaned_data.get('slug')
         if slug and not re.match(r'^[-a-zA-Z0-9_]+$', slug):
             raise forms.ValidationError("ЧПУ может содержать только латинские буквы, цифры, дефисы и подчеркивания")
         return slug
     
+    
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields['image'].help_text = "Рекомендуемый размер: 1200x600 пикселей"
+
+
+
 
 class CourseModalForm(forms.ModelForm):
     """
@@ -45,15 +53,20 @@ class CourseModalForm(forms.ModelForm):
             'allowed_groups': forms.SelectMultiple(attrs={'class': 'form-control'}),
         }
 
+
     def clean_slug(self):
         slug = self.cleaned_data.get('slug')
         if slug and not re.match(r'^[-a-zA-Z0-9_]+$', slug):
             raise forms.ValidationError("ЧПУ может содержать только латинские буквы, цифры, дефисы и подчеркивания")
         return slug
     
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields['image'].help_text = "Рекомендуемый размер: 1200x600 пикселей"
+
+
+
 
 class LessonForm(forms.ModelForm):
     class Meta:
@@ -91,6 +104,7 @@ class LessonForm(forms.ModelForm):
         if hide_order:
             self.fields.pop('order', None)
 
+
     def clean_video_id(self):
         video_url = self.cleaned_data.get('video_id')
         if not video_url:
@@ -108,6 +122,8 @@ class LessonForm(forms.ModelForm):
         return match.group(1)
     
 
+
+
 class UserLessonTrajectoryForm(forms.ModelForm):
     class Meta:
         model = UserLessonTrajectory
@@ -116,10 +132,12 @@ class UserLessonTrajectoryForm(forms.ModelForm):
             'course': forms.Select(attrs={'onchange': 'this.form.submit();'})
         }
 
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         if self.instance and self.instance.pk:
             self.fields['course'].disabled = True
+
 
     def clean(self):
         cleaned_data = super().clean()
@@ -134,6 +152,9 @@ class UserLessonTrajectoryForm(forms.ModelForm):
                     )
         return cleaned_data
 
+
+
+
 class TrajectoryForm(forms.ModelForm):
     """
     Форма для создания/редактирования траектории курсов.
@@ -145,6 +166,9 @@ class TrajectoryForm(forms.ModelForm):
             'groups': forms.SelectMultiple(attrs={'class': 'form-select'}),
             'courses': forms.SelectMultiple(attrs={'class': 'form-select'}),
         }
+
+
+
 
 class UserCourseTrajectoryForm(forms.ModelForm):
     """
@@ -158,7 +182,14 @@ class UserCourseTrajectoryForm(forms.ModelForm):
             'current_course': forms.Select(attrs={'class': 'form-select'}),
         }
 
+
+
+
 class MetricsForm(forms.Form):
+    """
+    Форма метрики эффективности стомклиники. 
+    
+    """
     # Название клиники
     clinic_name = forms.CharField(
         label="Название клиники*",
@@ -285,6 +316,7 @@ class MetricsForm(forms.Form):
         widget=forms.CheckboxInput(attrs={'class': 'form-check-input'})
     )
     
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         # Добавляем поля для врачей динамически
@@ -377,6 +409,9 @@ class MetricsForm(forms.Form):
                         'placeholder': 'Доп. сведения'
                     })
                 )
+
+
+
 
 class DoctorFormSet(forms.BaseFormSet):
     """Формсет для врачей"""
