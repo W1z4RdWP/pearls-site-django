@@ -1,6 +1,6 @@
 from django.utils import timezone
 from django.shortcuts import render, redirect, get_object_or_404
-from django.urls import reverse
+from django.urls import reverse, reverse_lazy
 from django.db.models import Max
 from django.views.generic import DetailView, ListView, TemplateView, View, CreateView
 from django.contrib.auth.models import User
@@ -12,7 +12,7 @@ from django.http import JsonResponse, HttpResponse, HttpRequest, HttpResponseFor
 from django.template.loader import render_to_string
 from weasyprint import HTML
 from datetime import datetime
-from .forms import CourseForm, CourseModalForm, LessonForm, MetricsForm
+from .forms import CourseForm,  LessonForm, MetricsForm
 from .models import Course, Lesson, UserLessonTrajectory, Trajectory, UserCourseTrajectory, TrajectoryCourse, Certificate
 from myapp.models import UserProgress, UserCourse, QuizResult
 from myapp.views import is_admin, is_author_or_admin
@@ -550,144 +550,198 @@ class CourseListView(ListView):
 
 
 
-def lesson_detail(request, course_slug, lesson_id):
-    if not request.user.is_authenticated:
-        return redirect('users:login')
 
-    course = get_object_or_404(Course, slug=course_slug)
-    lesson = get_object_or_404(Lesson, id=lesson_id, courses=course)
-    previous_lesson = lesson.get_previous_lesson(course)
-    next_lesson = lesson.get_next_lesson(course)
-
-    # Проверка доступа к курсу через менеджер
-    available_courses = Course.objects.available_for_user(request.user)
-    if course not in available_courses:
-        return redirect('courses:course_detail', slug=course.slug)
+class LessonDetailView(DetailView):
+    """Деталка урока"""
+    model = Lesson
+    template_name = 'courses/lesson_detail.html'
+    context_object_name = 'lesson'
     
-    # Получаем UserCourse для проверки статуса
-    user_course = UserCourse.objects.filter(user=request.user, course=course).first()
-    if not user_course:
-        # Создаем UserCourse если его нет (для курсов из траекторий)
-        user_course = UserCourse.objects.create(user=request.user, course=course, status='available')
-
-    # Блокируем доступ к уроку, если курс не начат - редиректим на страницу курса с подсветкой
-    if user_course.status not in ['started', 'completed']:
-        from django.urls import reverse
-        from urllib.parse import urlencode
-        url = reverse('courses:course_detail', kwargs={'slug': course.slug})
-        params = urlencode({'highlight_start': '1', 'lesson_blocked': lesson.id})
-        return redirect(f'{url}?{params}')
-
-    # Проверка траектории
-    trajectory = UserLessonTrajectory.objects.filter(user=request.user, course=course).first()
-    if trajectory:
-        lessons_in_trajectory = trajectory.lessons.all()
-        if lesson not in lessons_in_trajectory:
-            return render(request, 'courses/lesson_access_denied.html', {'course': course, 'lesson': lesson})
-    if trajectory:
-        trajectory_lessons = trajectory.lessons.all().order_by('order')
-        previous_lesson = trajectory_lessons.filter(
-            order__lt=lesson.order
-        ).order_by('-order').first()
-        next_lesson = trajectory_lessons.filter(
-            order__gt=lesson.order
-        ).order_by('order').first()
-    else:
-        previous_lesson = lesson.get_previous_lesson(course)
-        next_lesson = lesson.get_next_lesson(course)
-
-    # Помечаем урок как просмотренный (но не завершенный)
-    UserProgress.objects.get_or_create(
-        user=request.user,
-        lesson=lesson,
-        defaults={'course': course}
-    )
-
-    # Специальная логика для курса "Чек-ап стоматологической клиники"
-    is_dental_checkup_course = course.title == "Чек-ап стоматологической клиники"
-    is_first_lesson = False
+    def dispatch(self, request, *args, **kwargs):
+        if not request.user.is_authenticated:
+            return redirect('users:login')
+        return super().dispatch(request, *args, **kwargs)
     
-    if is_dental_checkup_course:
-        # Определяем, является ли текущий урок первым в курсе по порядку
-        course_lessons = course.lessons
-        if len(course_lessons) >= 1:
-            # Находим урок с наименьшим order (первый урок)
-            first_lesson = course_lessons.first()
-            is_first_lesson = lesson.id == first_lesson.id
+    def get_object(self, queryset=None):
+        course_slug = self.kwargs.get('course_slug')
+        lesson_id = self.kwargs.get('lesson_id')
+        
+        course = get_object_or_404(Course, slug=course_slug)
+        lesson = get_object_or_404(Lesson, id=lesson_id, courses=course)
+        
+        # Проверка доступа к курсу через менеджер
+        available_courses = Course.objects.available_for_user(self.request.user)
+        if course not in available_courses:
+            return redirect('courses:course_detail', slug=course.slug)
+        
+        return lesson
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        lesson = self.object
+        course_slug = self.kwargs.get('course_slug')
+        course = get_object_or_404(Course, slug=course_slug)
+        
+        # Получаем UserCourse для проверки статуса
+        user_course = UserCourse.objects.filter(user=self.request.user, course=course).first()
+        if not user_course:
+            user_course = UserCourse.objects.create(user=self.request.user, course=course, status='available')
 
-    context = {
-        'course': course,
-        'lesson': lesson,
-        'previous_lesson': previous_lesson,
-        'next_lesson': next_lesson,
-        'is_dental_checkup_course': is_dental_checkup_course,
-        'is_first_lesson': is_first_lesson,
-    }
+        # Блокируем доступ к уроку, если курс не начат
+        if user_course.status not in ['started', 'completed']:
+            from django.urls import reverse
+            from urllib.parse import urlencode
+            url = reverse('courses:course_detail', kwargs={'slug': course.slug})
+            params = urlencode({'highlight_start': '1', 'lesson_blocked': lesson.id})
+            return redirect(f'{url}?{params}')
 
-    # TODO: Проверить, нужно ли этот блок. 23.09.2025 Если в течение недели не будет жалоб, то удалить.
+        # Проверка траектории
+        trajectory = UserLessonTrajectory.objects.filter(user=self.request.user, course=course).first()
+        if trajectory:
+            lessons_in_trajectory = trajectory.lessons.all()
+            if lesson not in lessons_in_trajectory:
+                return render(self.request, 'courses/lesson_access_denied.html', {'course': course, 'lesson': lesson})
+        
+        # Определяем предыдущий и следующий уроки
+        if trajectory:
+            trajectory_lessons = trajectory.lessons.all().order_by('order')
+            previous_lesson = trajectory_lessons.filter(
+                order__lt=lesson.order
+            ).order_by('-order').first()
+            next_lesson = trajectory_lessons.filter(
+                order__gt=lesson.order
+            ).order_by('order').first()
+        else:
+            previous_lesson = lesson.get_previous_lesson(course)
+            next_lesson = lesson.get_next_lesson(course)
+
+        # Помечаем урок как просмотренный
+        UserProgress.objects.get_or_create(
+            user=self.request.user,
+            lesson=lesson,
+            defaults={'course': course}
+        )
+
+        # Специальная логика для курса "Чек-ап стоматологической клиники"
+        is_dental_checkup_course = course.title == "Чек-ап стоматологической клиники"
+        is_first_lesson = False
+        
+        if is_dental_checkup_course:
+            course_lessons = course.lessons
+            if len(course_lessons) >= 1:
+                first_lesson = course_lessons.first()
+                is_first_lesson = lesson.id == first_lesson.id
+
+    # TODO: Проверить, нужно ли этот блок. 24.09.2025 Если в течение недели не будет жалоб, то удалить.
     # if request.GET.get('ajax') == '1':
     #     from django.template.loader import render_to_string
     #     html = render_to_string('builder/includes/_lesson_detail_block.html', context, request=request)
     #     from django.http import HttpResponse
     #     return HttpResponse(html)
-    return render(request, 'courses/lesson_detail.html', context)
 
-
-
-
-@login_required
-@user_passes_test(is_admin, login_url='/')
-def create_course(request):
-    if request.method == 'POST':
-        # Проверяем, является ли это AJAX запросом
-        is_ajax = (request.headers.get('X-Requested-With') == 'XMLHttpRequest' or 
-                  request.headers.get('Accept') == 'application/json')
+        context.update({
+            'course': course,
+            'previous_lesson': previous_lesson,
+            'next_lesson': next_lesson,
+            'is_dental_checkup_course': is_dental_checkup_course,
+            'is_first_lesson': is_first_lesson,
+        })
         
-        # Используем разные формы в зависимости от типа запроса
-        if is_ajax:
-            form = CourseModalForm(request.POST, request.FILES)
-        else:
-            form = CourseForm(request.POST, request.FILES)
-            
-        if form.is_valid():
-            course = form.save(commit=False)
-            course.author = request.user
-            course.save()
-            form.save_m2m()
-            # --- назначаем курс всем staff/superuser ---
-            User = get_user_model()
-            staff_users = User.objects.filter(is_active=True).filter(models.Q(is_staff=True) | models.Q(is_superuser=True)).distinct()
-            from myapp.models import UserCourse
-            for user in staff_users:
-                UserCourse.objects.get_or_create(user=user, course=course, defaults={'status': 'available'})
-            # ---
-            if is_ajax:
-                return JsonResponse({'success': True, 'id': course.id, 'title': course.title, 'slug': course.slug})
-            else:
-                return redirect('courses:course_detail', slug=course.slug)
-    else:
-        # Используем CourseForm для обычных GET запросов
-        form = CourseForm()
-    return render(request, 'courses/create_course.html', {'form': form})
+        return context
 
 
 
 
-@login_required
-def create_lesson(request, course_slug):
-    course = get_object_or_404(Course, slug=course_slug)
-    max_order = course.lessons.aggregate(models.Max('order'))['order__max'] or 0
-    if request.method == 'POST':
-        form = LessonForm(request.POST, initial={'order': max_order + 1, 'courses': [course]}, hide_order=True)
-        if form.is_valid():
-            lesson = form.save(commit=False)
-            lesson.order = max_order + 1
-            lesson.save()
-            form.save_m2m()  # Сохраняем связь many-to-many с курсами
-            return redirect('courses:course_detail', course_slug)
-    else:
-        form = LessonForm(initial={'order': max_order + 1, 'courses': [course]}, hide_order=True)
-    return render(request, 'courses/create_lesson.html', {'form': form, 'course': course})
+
+class CreateCourseView(LoginRequiredMixin, UserPassesTestMixin, CreateView):
+    """
+    Создание нового курса.
+    """
+    model = Course
+    form_class = CourseForm
+    template_name = 'courses/create_course.html'
+    success_url = reverse_lazy('courses:course_detail')
+
+    def test_func(self):
+        """
+        Доступ только для администраторов.
+        """
+        return is_admin(self.request.user)
+
+
+    def form_valid(self, form):
+        """
+        Обработка успешной валидации формы
+        """
+        course = form.save(commit=False)
+        course.author = self.request.user
+        course.save()
+        form.save_m2m()
+
+        self._assign_course_to_staff(course)
+        return redirect('courses:course_detail', slug=course.slug)
+
+    def _assign_course_to_staff(self, course):
+        """
+        Назначаем курс всем staff\superuser
+        """
+        User = get_user_model()
+        staff_users = User.objects.filter(
+            is_active=True
+        ).filter(
+            models.Q(is_staff=True) | models.Q(is_superuser=True)
+        ).distinct()
+
+        for user in staff_users:
+            UserCourse.objects.get_or_create(
+                user=user,
+                course=course,
+                defaults={'status': 'available'}
+            )
+
+
+class CreateLessonView(LoginRequiredMixin, CreateView):
+    """
+    Создание урока в курсе с автоматическим порядком
+    """
+    model = Lesson
+    form_class = LessonForm
+    template_name = 'courses/create_lesson.html'
+    
+
+    def dispatch(self, request, *args, **kwargs):
+        """Получаем курс и сохраняем на self для использования в других методах"""
+        self.course = get_object_or_404(Course, slug=kwargs['course_slug'])
+        return super().dispatch(request, *args, **kwargs)
+    
+
+    def get_form_kwargs(self):
+        """Передаем initial данные в форму"""
+        kwargs = super().get_form_kwargs()
+        max_order = self.course.lessons.aggregate(models.Max('order'))['order__max'] or 0
+        
+        kwargs['initial'] = {
+            'order': max_order + 1, 
+            'courses': [self.course]
+        }
+        kwargs['hide_order'] = True
+        return kwargs
+    
+
+    def form_valid(self, form):
+        """Обработка успешной валидации с установкой порядка"""
+        lesson = form.save(commit=False)
+        lesson.order = self.course.lessons.aggregate(models.Max('order'))['order__max'] or 0 + 1
+        lesson.save()
+        form.save_m2m()  # Сохраняем связь many-to-many с курсами
+        return redirect('courses:course_detail', course_slug=self.course.slug)
+    
+
+    def get_context_data(self, **kwargs):
+        """Добавляем курс в контекст"""
+        context = super().get_context_data(**kwargs)
+        context['course'] = self.course
+        return context
 
 
 
@@ -699,6 +753,7 @@ def get_category_full_path(category):
         path.append(parent.name)
         parent = parent.parent
     return '/'.join(reversed(path))
+
 
 
 

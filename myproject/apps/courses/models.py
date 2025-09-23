@@ -191,7 +191,7 @@ class Lesson(models.Model):
         Course,
         blank=True,
         related_name='course_lessons',
-        verbose_name="Курсы, в которых используется урок"
+        verbose_name="Выберите курсы, куда добавить урок"
     )
 
     class Meta:

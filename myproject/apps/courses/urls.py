@@ -8,11 +8,11 @@ app_name = 'courses'
 
 urlpatterns = [
     path('', course_views.CourseDetailView.as_view(), name='course-detail'),
-    path('create-course/', course_views.create_course, name='create-course'),
+    path('create-course/', course_views.CreateCourseView.as_view(), name='create-course'),
     path('course/<slug:slug>/', course_views.CourseDetailView.as_view(), name='course_detail'),
     path('courses_list/', course_views.CourseListView.as_view(), name='course_detail_all'),
-    path('course/<slug:course_slug>/lesson/<int:lesson_id>/', course_views.lesson_detail, name='lesson_detail'),
-    path('course/<slug:course_slug>/create-lesson/', course_views.create_lesson, name='create_lesson'),
+    path('course/<slug:course_slug>/lesson/<int:lesson_id>/', course_views.LessonDetailView.as_view(), name='lesson_detail'),
+    path('course/<slug:course_slug>/create-lesson/', course_views.CreateLessonView.as_view(), name='create_lesson'),
     path('course/<slug:course_slug>/add-lesson/', course_views.add_lesson, name='add_lesson'),
     path('course/<slug:course_slug>/reorder-materials/', course_views.reorder_materials, name='reorder_materials'),
     path('course/<slug:slug>/delete/', course_views.delete_course, name='delete_course'),
