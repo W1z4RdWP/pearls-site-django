@@ -796,7 +796,8 @@ main > section > .text-block-2 {
     color: #212529;
     font-size: 1rem;
     line-height: 1.5;
-    overflow: auto;
+    overflow: visible;
+    position: relative;
 }
 .lesson-content a {
     color: #0d6efd;
@@ -809,22 +810,60 @@ main > section > .text-block-2 {
 .lesson-content table {
     border-collapse: collapse;
     width: 100%;
-    /* margin: 16px 0; */
+    margin: 16px 0;
     background: #fafbfc;
     font-size: 1em;
+    position: relative;
+    z-index: 1;
+    display: table;
+    table-layout: auto;
 }
 .lesson-content th, .lesson-content td {
     border: 1px solid #bbb;
     padding: 8px 12px;
     text-align: left;
+    position: relative;
+    vertical-align: top;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
 }
 .lesson-content th {
     background: #f3f3f3;
     font-weight: 600;
     text-align: center;
 }
+.lesson-content tr {
+    position: relative;
+    z-index: 1;
+    display: table-row;
+}
 .lesson-content tr:nth-child(even) {
     background: #f7f7f7;
+}
+
+/* Дополнительные стили для предотвращения наложения таблиц */
+.lesson-content table + table {
+    margin-top: 24px;
+}
+
+.lesson-content table tbody {
+    display: table-row-group;
+}
+
+.lesson-content table thead {
+    display: table-header-group;
+}
+
+.lesson-content table tfoot {
+    display: table-footer-group;
+}
+
+.lesson-content table colgroup {
+    display: table-column-group;
+}
+
+.lesson-content table col {
+    display: table-column;
 }
 /* Подпись к таблице */
 .lesson-content figcaption {
