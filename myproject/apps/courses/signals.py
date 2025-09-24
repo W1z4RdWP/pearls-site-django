@@ -9,6 +9,8 @@ import logging
 logger = logging.getLogger(__name__)
 
 
+
+
 @receiver(m2m_changed, sender=User.groups.through)
 def assign_courses_on_group_add(sender, instance, action, pk_set, **kwargs):
     logger.info(f"Сигнал assign_courses_on_group_add: action={action}, user={instance.username}")
@@ -55,6 +57,8 @@ def assign_courses_on_group_add(sender, instance, action, pk_set, **kwargs):
                     logger.info(f"Удален курс {course.title} у пользователя {instance.username}")
 
 
+
+
 @receiver(m2m_changed, sender=Course.allowed_groups.through)
 def assign_courses_on_course_update(sender, instance, action, pk_set, **kwargs):
     logger.info(f"Сигнал assign_courses_on_course_update: action={action}, course={instance.title}")
@@ -84,6 +88,8 @@ def assign_courses_on_course_update(sender, instance, action, pk_set, **kwargs):
                     logger.info(f"Отправлено email уведомление о курсе {instance.title} пользователю {user.email}")
                 except Exception as e:
                     logger.error(f"Ошибка отправки email уведомления о курсе {instance.title}: {e}")
+
+
 
 
 @receiver(m2m_changed, sender=User.groups.through)
@@ -139,6 +145,8 @@ def assign_trajectories_on_group_add(sender, instance, action, pk_set, **kwargs)
                         logger.info(f"Удалена траектория {trajectory.name} у пользователя {instance.username}")
 
 
+
+
 @receiver(m2m_changed, sender=Trajectory.groups.through)
 def assign_trajectories_on_trajectory_update(sender, instance, action, pk_set, **kwargs):
     logger.info(f"Сигнал assign_trajectories_on_trajectory_update: action={action}, trajectory={instance.name}")
@@ -174,11 +182,14 @@ def assign_trajectories_on_trajectory_update(sender, instance, action, pk_set, *
                     logger.error(f"Ошибка отправки email уведомления о траектории {instance.name}: {e}")
 
 
+
+
 @receiver(post_save, sender=TrajectoryCourse)
 def assign_course_to_trajectory_users(sender, instance, created, **kwargs):
     """
     При добавлении курса в траекторию, назначаем его всем пользователям этой траектории
     """
+
     if created:
         logger.info(f"Сигнал assign_course_to_trajectory_users: добавлен курс {instance.course.title} в траекторию {instance.trajectory.name}")
         
@@ -197,6 +208,8 @@ def assign_course_to_trajectory_users(sender, instance, created, **kwargs):
                 # Пользователь уже получил уведомление о назначении траектории
 
 
+
+
 def assign_courses_from_trajectory(user, trajectory, send_email_notifications=False, create_notifications=False):
     """
     Назначает пользователю курсы из траектории в правильном порядке
@@ -207,6 +220,7 @@ def assign_courses_from_trajectory(user, trajectory, send_email_notifications=Fa
         send_email_notifications: Отправлять ли email уведомления для каждого курса (по умолчанию False)
         create_notifications: Создавать ли внутренние уведомления для каждого курса (по умолчанию False)
     """
+
     logger.info(f"Назначаем курсы из траектории {trajectory.name} пользователю {user.username}")
     
     trajectory_courses = TrajectoryCourse.objects.filter(trajectory=trajectory).order_by('order')

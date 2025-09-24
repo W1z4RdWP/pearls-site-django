@@ -115,7 +115,7 @@ function renderDoctorRows(n){
     row.innerHTML = '<div style="text-align:center;padding:12px;font-weight:bold;color:var(--muted)">'+(i+1)+'</div>'+
                     '<input placeholder="ФИО врача" data-doc="name_'+i+'">'+
                     '<select data-doc="spec_'+i+'">'+
-                    '<option value="">— выберите —</option>'+
+                    '<option value="">— специализация —</option>'+
                     '<option value="hygienist">Гигиенист</option>'+
                     '<option value="implantologist">Имплантолог</option>'+
                     '<option value="orthodontist">Ортодонт</option>'+
@@ -128,7 +128,7 @@ function renderDoctorRows(n){
                     '<option value="universal">Универсал</option>'+
                     '</select>'+
                     '<select data-doc="employment_'+i+'">'+
-                    '<option value="">— выберите —</option>'+
+                    '<option value="">— тип занятости —</option>'+
                     '<option value="full_time">Постоянное место работы</option>'+
                     '<option value="part_time">Совместительство</option>'+
                     '</select>'+
@@ -307,7 +307,7 @@ function rebuildMonths(){
     
     var inp=document.createElement('input'); 
     inp.setAttribute('inputmode','numeric');
-    inp.placeholder='напр., 6 (или 0)';
+    inp.placeholder='напр., 6';
     inp.min='0';
     inp.max='100';
     inp.title=monthHuman(seq[i]);
@@ -399,15 +399,15 @@ function rebuildMonths(){
     var html = '<div class="small" style="margin-bottom:6px"><b>'+monthHuman(seq[m])+'</b></div>'+
                '<div class="grid">'+
                '<div class="months-grid-head small" style="margin-bottom:6px">'+
-               '<div>ФИО врача*</div><div>Специализация</div><div>Часы по графику</div><div>Часы с пациентами</div><div>Выручка</div><div>Комментарий</div>'+
+               '<div>ФИО врача*</div><div>Специализация*</div><div>Часы по графику*</div><div>Часы с пациентами*</div><div>Выручка*</div><div>Комментарий</div>'+
                '</div><div class="monthRows">';
     for (var d=0; d<docsN; d++){
       html += '<div class="months-grid-row">'+
               '<input disabled placeholder="ФИО врача" data-link="name_'+d+'">'+
               '<input disabled placeholder="Специализация" data-link="spec_'+d+'">'+
-              '<input inputmode="decimal" placeholder="например, 132" min="0" step="0.1" data-field="hp_'+d+'">'+
-              '<input inputmode="decimal" placeholder="например, 96" min="0" step="0.1" data-field="hw_'+d+'">'+
-              '<input inputmode="decimal" placeholder="например, 850000" min="0" step="1" data-field="rev_'+d+'">'+
+              '<input inputmode="decimal" placeholder="напр., 132" min="0" step="0.1" data-field="hp_'+d+'">'+
+              '<input inputmode="decimal" placeholder="напр., 96" min="0" step="0.1" data-field="hw_'+d+'">'+
+              '<input inputmode="decimal" placeholder="напр., 850 000" min="0" step="1" data-field="rev_'+d+'">'+
               '<input placeholder="Комментарий" data-field="com_'+d+'">'+
               '</div>';
     }
@@ -655,16 +655,16 @@ document.getElementById('f').onsubmit = function(e){
   var hoursSaturdayValue = hoursSaturday.value.trim();
   var hoursSundayValue = hoursSunday.value.trim();
   
-  if (!hoursWeekdaysValue || isNaN(hoursWeekdaysValue) || Number(hoursWeekdaysValue) < 0) {
-    errors.push('Укажите количество часов работы в будни (число больше или равно 0)');
+  if (!hoursWeekdaysValue || isNaN(hoursWeekdaysValue) || Number(hoursWeekdaysValue) < 0 || Number(hoursWeekdaysValue) > 24) {
+    errors.push('Укажите количество часов работы в будни (число от 0 до 24)');
     highlightError(hoursWeekdays);
   }
-  if (!hoursSaturdayValue || isNaN(hoursSaturdayValue) || Number(hoursSaturdayValue) < 0) {
-    errors.push('Укажите количество часов работы в субботу (число больше или равно 0)');
+  if (!hoursSaturdayValue || isNaN(hoursSaturdayValue) || Number(hoursSaturdayValue) < 0 || Number(hoursSaturdayValue) > 24) {
+    errors.push('Укажите количество часов работы в субботу (число от 0 до 24)');
     highlightError(hoursSaturday);
   }
-  if (!hoursSundayValue || isNaN(hoursSundayValue) || Number(hoursSundayValue) < 0) {
-    errors.push('Укажите количество часов работы в воскресенье (число больше или равно 0)');
+  if (!hoursSundayValue || isNaN(hoursSundayValue) || Number(hoursSundayValue) < 0 || Number(hoursSundayValue) > 24) {
+    errors.push('Укажите количество часов работы в воскресенье (число от 0 до 24)');
     highlightError(hoursSunday);
   }
   
@@ -922,6 +922,18 @@ function getCookie(name) {
   return cookieValue;
 };
 
+// Функция для валидации часов работы в реальном времени
+function validateHoursInput(input, fieldName) {
+  var value = input.value.trim();
+  if (value && (isNaN(value) || Number(value) < 0 || Number(value) > 24)) {
+    input.classList.add('error');
+    return false;
+  } else {
+    input.classList.remove('error');
+    return true;
+  }
+}
+
 // Инициализация очистки подсветки для всех полей формы
 document.addEventListener('DOMContentLoaded', function() {
   // Основные поля
@@ -931,6 +943,38 @@ document.addEventListener('DOMContentLoaded', function() {
   clearErrorOnInput(document.getElementById('hoursSaturday'));
   clearErrorOnInput(document.getElementById('hoursSunday'));
   clearErrorOnInput(document.getElementById('consent'));
+  
+  // Добавляем валидацию в реальном времени для полей часов
+  var hoursWeekdays = document.getElementById('hoursWeekdays');
+  var hoursSaturday = document.getElementById('hoursSaturday');
+  var hoursSunday = document.getElementById('hoursSunday');
+  
+  if (hoursWeekdays) {
+    hoursWeekdays.addEventListener('input', function() {
+      validateHoursInput(this, 'будни');
+    });
+    hoursWeekdays.addEventListener('blur', function() {
+      validateHoursInput(this, 'будни');
+    });
+  }
+  
+  if (hoursSaturday) {
+    hoursSaturday.addEventListener('input', function() {
+      validateHoursInput(this, 'суббота');
+    });
+    hoursSaturday.addEventListener('blur', function() {
+      validateHoursInput(this, 'суббота');
+    });
+  }
+  
+  if (hoursSunday) {
+    hoursSunday.addEventListener('input', function() {
+      validateHoursInput(this, 'воскресенье');
+    });
+    hoursSunday.addEventListener('blur', function() {
+      validateHoursInput(this, 'воскресенье');
+    });
+  }
   
   // Поля кресел и дней (будут добавлены динамически)
   function addClearErrorListenersForParams() {

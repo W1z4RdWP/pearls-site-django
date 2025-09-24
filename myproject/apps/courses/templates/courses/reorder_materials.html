@@ -33,13 +33,6 @@
                         {% for material in materials %}
                         <div class="material-item" data-type="{{ material.type }}" data-id="{{ material.id }}">
                             <div class="material-content">
-                                <div class="material-icon">
-                                    {% if material.type == 'lesson' %}
-                                        📄 <i>(Урок)</i>
-                                    {% else %}
-                                        🎓 <i>(Тест)</i>
-                                    {% endif %}
-                                </div>
                                 <div class="material-info">
                                     <div class="material-title">{{ material.title }}</div>
                                     <div class="material-meta">

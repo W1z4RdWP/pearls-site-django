@@ -473,14 +473,39 @@ def get_finish(request) -> HttpResponse:
                 if not previous_quiz_result:
                     award_dascoin_points(request.user, 10, f"Прохождение теста {quiz.name}")
                 
-                # Завершаем курс и начисляем очки за курс
-                if user_course.status != 'completed':
-                    user_course.status = 'completed'
-                    user_course.save()
-                    award_dascoin_points(request.user, course.points, f"Завершение курса {course.title}")
-                    award_course_badge(request.user, course)
-                    # Выдаем сертификат за курс (если настроено)
-                    issue_certificate(request.user, course=course)
+                # Проверяем, есть ли финальный тест
+                if course.final_quiz:
+                    # Если есть финальный тест, проверяем, пройден ли он
+                    final_quiz_passed = QuizResult.objects.filter(
+                        user=request.user,
+                        course=course,
+                        quiz_title=course.final_quiz.name,
+                        passed=True
+                    ).exists()
+                    
+                    if final_quiz_passed:
+                        # Финальный тест пройден - завершаем курс
+                        if user_course.status != 'completed':
+                            user_course.status = 'completed'
+                            user_course.save()
+                            award_dascoin_points(request.user, course.points, f"Завершение курса {course.title}")
+                            award_course_badge(request.user, course)
+                            # Выдаем сертификат за курс (если настроено)
+                            issue_certificate(request.user, course=course)
+                    else:
+                        # Финальный тест не пройден - редиректим на страницу с предложением пройти его
+                        if percent_score == 100:
+                            award_achievement(request.user, 'perfect_score', 'Идеальный результат', 'Получили 100% за прохождение теста')
+                        return redirect('courses:redir_to_quiz', course_slug=course.slug)
+                else:
+                    # Финального теста нет - завершаем курс
+                    if user_course.status != 'completed':
+                        user_course.status = 'completed'
+                        user_course.save()
+                        award_dascoin_points(request.user, course.points, f"Завершение курса {course.title}")
+                        award_course_badge(request.user, course)
+                        # Выдаем сертификат за курс (если настроено)
+                        issue_certificate(request.user, course=course)
                 
                 if percent_score == 100:
                     award_achievement(request.user, 'perfect_score', 'Идеальный результат', 'Получили 100% за прохождение теста')

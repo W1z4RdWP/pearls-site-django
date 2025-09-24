@@ -1,6 +1,11 @@
 from django.contrib import admin
 from django import forms
-from .models import Course, Lesson, UserLessonTrajectory, Trajectory, TrajectoryCourse, UserCourseTrajectory, Certificate, MetricsSubmission
+from .models import Course, Lesson, UserLessonTrajectory, \
+        Trajectory, TrajectoryCourse, UserCourseTrajectory, \
+        Certificate, MetricsSubmission
+
+
+
 
 class UserLessonTrajectoryLessonInline(admin.TabularInline):
     model = UserLessonTrajectory.lessons.through
@@ -9,6 +14,7 @@ class UserLessonTrajectoryLessonInline(admin.TabularInline):
     verbose_name_plural = "Уроки в траектории пользователя"
     autocomplete_fields = ['lesson']
 
+
     def get_formset(self, request, obj=None, **kwargs):
         formset = super().get_formset(request, obj, **kwargs)
         if obj:
@@ -16,12 +22,18 @@ class UserLessonTrajectoryLessonInline(admin.TabularInline):
             formset.form.base_fields['lesson'].queryset = Lesson.objects.filter(courses=obj.course)
         return formset
 
+
+
+
 class LessonInline(admin.TabularInline):
     model = Lesson.courses.through
     extra = 1
     verbose_name = "Урок в курсе"
     verbose_name_plural = "Уроки в курсе"
     autocomplete_fields = ['lesson']
+
+
+
 
 @admin.register(Course)
 class CourseAdmin(admin.ModelAdmin):
@@ -34,6 +46,7 @@ class CourseAdmin(admin.ModelAdmin):
 
 
 
+
 @admin.register(Lesson)
 class LessonAdmin(admin.ModelAdmin):
     list_display = ['title', 'order', 'get_courses', 'category']
@@ -42,9 +55,12 @@ class LessonAdmin(admin.ModelAdmin):
     filter_horizontal = ['courses']
     exclude = ['video_id']
     
+
     def get_courses(self, obj):
         return ", ".join([course.title for course in obj.courses.all()])
     get_courses.short_description = 'Курсы'
+
+
 
 
 class TrajectoryCourseInline(admin.TabularInline):
@@ -56,6 +72,9 @@ class TrajectoryCourseInline(admin.TabularInline):
     verbose_name = "Курс в траектории"
     verbose_name_plural = "Курсы в траектории"
 
+
+
+
 @admin.register(Trajectory)
 class TrajectoryAdmin(admin.ModelAdmin):
     list_display = ('name', 'description')
@@ -64,12 +83,18 @@ class TrajectoryAdmin(admin.ModelAdmin):
     inlines = [TrajectoryCourseInline]
     autocomplete_fields = ['groups']
 
+
+
+
 @admin.register(UserCourseTrajectory)
 class UserCourseTrajectoryAdmin(admin.ModelAdmin):
     list_display = ('user', 'trajectory', 'current_course', 'completed', 'started_at')
     list_filter = ('trajectory', 'completed')
     search_fields = ('user__username', 'trajectory__name')
     autocomplete_fields = ['user', 'trajectory', 'current_course']
+
+
+
 
 @admin.register(TrajectoryCourse)
 class TrajectoryCourseAdmin(admin.ModelAdmin):
@@ -81,21 +106,6 @@ class TrajectoryCourseAdmin(admin.ModelAdmin):
 
 
 
-
-# from django.contrib import admin
-# from django import forms
-# from .models import Course, Lesson, UserLessonTrajectory
-# from .forms import UserLessonTrajectoryForm
-
-
-
-
-# class LessonInline(admin.TabularInline):
-#     model = UserLessonTrajectory.lessons.through
-#     extra = 1
-#     verbose_name = "Урок в траектории"
-#     verbose_name_plural = "Уроки в траектории"
-
 @admin.register(UserLessonTrajectory)
 class UserLessonTrajectoryAdmin(admin.ModelAdmin):
     list_display = ('user', 'course', 'get_lessons_count')
@@ -105,9 +115,12 @@ class UserLessonTrajectoryAdmin(admin.ModelAdmin):
     exclude = ('lessons',)
     autocomplete_fields = ['course']
 
+
     def get_lessons_count(self, obj):
         return obj.lessons.count()
     get_lessons_count.short_description = 'Кол-во уроков'
+
+
 
 
 @admin.register(Certificate)
@@ -118,9 +131,12 @@ class CertificateAdmin(admin.ModelAdmin):
     readonly_fields = ('certificate_id', 'issued_at')
     autocomplete_fields = ['user', 'course', 'trajectory']
     
+
     def has_add_permission(self, request):
         # Сертификаты создаются автоматически системой
         return False
+
+
 
 
 @admin.register(MetricsSubmission)
@@ -152,10 +168,12 @@ class MetricsSubmissionAdmin(admin.ModelAdmin):
             'classes': ('collapse',)
         }),
     )
+
     
     def get_queryset(self, request):
         return super().get_queryset(request).select_related('user')
     
+
     def has_add_permission(self, request):
         # Формы заполняются пользователями через сайт
         return False

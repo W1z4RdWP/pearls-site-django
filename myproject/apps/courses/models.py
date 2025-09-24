@@ -10,6 +10,8 @@ from quizzes.models import Quiz
 from builder.models import CategoryName
 
 
+
+
 class CourseManager(models.Manager):
     def available_for_user(self, user):
         """Все доступные курсы"""
@@ -22,6 +24,7 @@ class CourseManager(models.Manager):
             models.Q(trajectorycourse__trajectory__usercoursetrajectory__user=user)
         ).distinct()
     
+
     def accessible_via_trajectories(self, user):
         """Курсы, доступные только через траектории"""
         return self.filter(
@@ -31,6 +34,7 @@ class CourseManager(models.Manager):
             models.Q(allowed_groups__in=user.groups.all())
         ).distinct()
     
+
     def accessible_via_groups(self, user):
         """Курсы, доступные только через группы"""
         return self.filter(
@@ -40,9 +44,12 @@ class CourseManager(models.Manager):
             models.Q(trajectorycourse__trajectory__usercoursetrajectory__user=user)
         ).distinct()
     
+
     def directly_assigned(self, user):
         """Курсы, напрямую назначенные пользователю"""
         return self.filter(usercourse__user=user).distinct()
+
+
 
 
 class Course(models.Model):
@@ -79,6 +86,7 @@ class Course(models.Model):
     certificate = models.BooleanField(default=False, verbose_name="Выдавать сертификат", help_text="Выдавать сертификат пользователю при завершении курса")
     objects = CourseManager()
     
+
     class Meta:
         verbose_name = 'Курс'
         verbose_name_plural = 'Курсы'
@@ -90,16 +98,19 @@ class Course(models.Model):
         ]
         ordering = ['-created_at']
 
+
     @property
     def lessons(self):
         """Получение уроков курса через связь many-to-many"""
         return self.course_lessons.all().order_by('order')
     
+
     @property
     def quizzes(self):
         """Получение тестов курса через связь many-to-many"""
         return self.course_quizzes.all().order_by('order', 'name')
     
+
     def get_course_materials(self):
         """Получение всех материалов курса (уроки + тесты) в порядке добавления"""
         materials = []
@@ -153,6 +164,7 @@ class Lesson(models.Model):
         video_id - идентификатор прикрепленного видео из рутуб. Максимальное количество символов для передачи в форму 
                     задается параметром max_length.
     """
+
     title = models.CharField(max_length=200, verbose_name="Название урока")
     content = CKEditor5Field('Content', config_name='extends')
     video_id = models.CharField(
@@ -179,7 +191,7 @@ class Lesson(models.Model):
         Course,
         blank=True,
         related_name='course_lessons',
-        verbose_name="Курсы, в которых используется урок"
+        verbose_name="Выберите курсы, куда добавить урок"
     )
 
     class Meta:
@@ -189,6 +201,7 @@ class Lesson(models.Model):
         indexes = [
             models.Index(fields=['order'], name='lesson_order_idx'),
         ]
+
 
     def get_previous_lesson(self, course=None):
         """Получение предыдущего урока в контексте курса или глобально"""
@@ -204,6 +217,7 @@ class Lesson(models.Model):
                 order__lt=self.order
             ).order_by('-order').first()
 
+
     def get_next_lesson(self, course=None):
         """Получение следующего урока в контексте курса или глобально"""
         if course:
@@ -218,9 +232,12 @@ class Lesson(models.Model):
                 order__gt=self.order
             ).order_by('order').first()
 
+
     def __str__(self):
         return self.title
     
+
+
 
 class UserLessonTrajectory(models.Model):
     """
@@ -232,6 +249,7 @@ class UserLessonTrajectory(models.Model):
     course = models.ForeignKey(Course, on_delete=models.CASCADE, verbose_name="Курс")
     lessons = models.ManyToManyField(Lesson, verbose_name="Уроки в траектории")
 
+
     class Meta:
         verbose_name = 'Траектория уроков пользователя'
         verbose_name_plural = 'Траектории уроков пользователей'
@@ -240,14 +258,18 @@ class UserLessonTrajectory(models.Model):
             models.Index(fields=['user', 'course'], name='ult_user_course_idx'),
         ]
 
+
     def __str__(self):
         return f"Траектория {self.user.username} для {self.course.title}"
+
+
 
 
 class Trajectory(models.Model):
     """
     Траектория курсов. Может быть назначена нескольким группам и содержать курсы в определённом порядке.
     """
+
     name: str = models.CharField(max_length=255, verbose_name="Название траектории")
     description: str = models.TextField(blank=True, verbose_name="Описание")
     groups: models.ManyToManyField = models.ManyToManyField(
@@ -264,22 +286,28 @@ class Trajectory(models.Model):
     points = models.PositiveIntegerField(default=100, verbose_name="Количество DASCOIN за прохождение траектории")
     certificate = models.BooleanField(default=False, verbose_name="Выдавать сертификат", help_text="Выдавать сертификат пользователю при завершении траектории")
 
+
     class Meta:
         verbose_name = 'Траектория курсов'
         verbose_name_plural = 'Траектории курсов'
         ordering = ['name']
 
+
     def __str__(self) -> str:
         return self.name
+
+
 
 
 class TrajectoryCourse(models.Model):
     """
     Промежуточная модель для связи Trajectory и Course с порядком (order).
     """
+
     trajectory: Trajectory = models.ForeignKey(Trajectory, on_delete=models.CASCADE)
     course: Course = models.ForeignKey(Course, on_delete=models.CASCADE)
     order: int = models.PositiveIntegerField(verbose_name="Порядок курса в траектории")
+
 
     class Meta:
         unique_together = ('trajectory', 'course')
@@ -290,6 +318,7 @@ class TrajectoryCourse(models.Model):
             models.Index(fields=['trajectory', 'order'], name='tc_trajectory_order_idx'),
         ]
 
+
     def __str__(self) -> str:
         return f"{self.trajectory.name}: {self.course.title} (#{self.order})"
 
@@ -298,11 +327,13 @@ class UserCourseTrajectory(models.Model):
     """
     Индивидуальная траектория пользователя: к какой Trajectory он привязан, и прогресс по курсам.
     """
+
     user: User = models.ForeignKey(User, on_delete=models.CASCADE, verbose_name="Пользователь")
     trajectory: Trajectory = models.ForeignKey(Trajectory, on_delete=models.CASCADE, verbose_name="Траектория")
     current_course: Course = models.ForeignKey(Course, on_delete=models.SET_NULL, null=True, blank=True, verbose_name="Текущий курс")
     started_at: timezone.datetime = models.DateTimeField(auto_now_add=True, verbose_name="Дата назначения")
     completed: bool = models.BooleanField(default=False, verbose_name="Завершена ли траектория")
+
 
     class Meta:
         unique_together = ('user', 'trajectory')
@@ -312,14 +343,18 @@ class UserCourseTrajectory(models.Model):
             models.Index(fields=['user', 'trajectory'], name='uct_user_trajectory_idx'),
         ]
 
+
     def __str__(self) -> str:
         return f"{self.user.username} — {self.trajectory.name}"
+
+
 
 
 class Certificate(models.Model):
     """
     Модель для хранения выданных сертификатов пользователям.
     """
+    
     CERTIFICATE_TYPE_CHOICES = [
         ('course', 'За курс'),
         ('trajectory', 'За траекторию'),
@@ -332,6 +367,7 @@ class Certificate(models.Model):
     issued_at = models.DateTimeField(auto_now_add=True, verbose_name="Дата выдачи")
     certificate_id = models.CharField(max_length=50, unique=True, verbose_name="Уникальный номер сертификата")
     
+
     class Meta:
         verbose_name = 'Сертификат'
         verbose_name_plural = 'Сертификаты'
@@ -345,6 +381,7 @@ class Certificate(models.Model):
             models.Index(fields=['certificate_id'], name='cert_id_idx'),
         ]
     
+
     def save(self, *args, **kwargs):
         if not self.certificate_id:
             # Генерируем уникальный ID сертификата
@@ -352,11 +389,14 @@ class Certificate(models.Model):
             self.certificate_id = f"CERT-{uuid.uuid4().hex[:12].upper()}"
         super().save(*args, **kwargs)
     
+
     def __str__(self):
         if self.certificate_type == 'course':
             return f"Сертификат {self.user.username} за курс {self.course.title}"
         else:
             return f"Сертификат {self.user.username} за траекторию {self.trajectory.name}"
+
+
 
 
 class MetricsSubmission(models.Model):

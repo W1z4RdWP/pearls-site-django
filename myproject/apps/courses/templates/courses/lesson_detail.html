@@ -6,6 +6,77 @@
 {% block specific_styles %}
         <link rel="stylesheet" href="{% static 'courses/css/lesson_custom_buttons.css' %}"> 
         <script src="{% static 'courses/js/ckeditor_target_blank.js' %}"></script>
+        <style>
+            /* Стили для модального окна */
+            #continueLearningModal .modal-content {
+                border-radius: 12px;
+                border: none;
+                box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            }
+            
+            #continueLearningModal .modal-header {
+                background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+                border-bottom: 1px solid #dee2e6;
+                border-radius: 12px 12px 0 0;
+            }
+            
+            #continueLearningModal .modal-title {
+                color: #495057;
+                font-weight: 600;
+            }
+            
+            #continueLearningModal .modal-body {
+                padding: 2rem;
+            }
+            
+            #continueLearningModal .modal-footer {
+                border-top: 1px solid #dee2e6;
+                padding: 1.5rem 2rem;
+            }
+            
+            #continueLearningModal .btn {
+                padding: 10px 20px;
+                border-radius: 8px;
+                font-weight: 500;
+                transition: all 0.2s ease;
+            }
+            
+            #continueLearningModal .btn-primary {
+                background: #007bff;
+                border-color: #007bff;
+            }
+            
+            #continueLearningModal .btn-primary:hover {
+                background: #0056b3;
+                border-color: #0056b3;
+                transform: translateY(-1px);
+            }
+            
+            #continueLearningModal .btn-outline-secondary {
+                border-color: #6c757d;
+                color: #6c757d;
+            }
+            
+            #continueLearningModal .btn-outline-secondary:hover {
+                background: #6c757d;
+                border-color: #6c757d;
+                transform: translateY(-1px);
+            }
+            
+            #continueLearningModal .btn i {
+                margin-right: 8px;
+            }
+            
+            /* Анимация появления модального окна */
+            .modal.fade .modal-dialog {
+                transition: transform 0.3s ease-out;
+                transform: translate(0, -50px);
+            }
+            
+            .modal.show .modal-dialog {
+                transform: none;
+            }
+        </style>
 {% endblock %}
 
 {% block content %}
@@ -89,6 +160,44 @@
         {% endif %}
     </div>
 
+    <!-- Модальное окно подтверждения -->
+    <div class="modal fade" id="continueLearningModal" tabindex="-1" aria-labelledby="continueLearningModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="continueLearningModalLabel">
+                        <i class="fa fa-graduation-cap"></i> Продолжаем обучение?
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body text-center">
+                    <div class="mb-3">
+                        <i class="fa fa-question-circle" style="font-size: 3rem; color: #007bff;"></i>
+                    </div>
+                    {% if is_last_lesson %}
+                        <p class="lead">Урок завершен! Это был последний урок курса.</p>
+                        <p class="text-muted">Вы можете вернуться к курсу и проверить свой прогресс или отдохнуть.</p>
+                    {% else %}
+                        <p class="lead">Урок завершен! Хотите продолжить обучение?</p>
+                        <p class="text-muted">Вы можете перейти к следующему уроку или отдохнуть и вернуться позже.</p>
+                    {% endif %}
+                </div>
+                <div class="modal-footer justify-content-center">
+                    <button type="button" class="btn btn-outline-secondary me-2" id="restButton">
+                        <i class="fa fa-bed"></i> Отдохну 😣
+                    </button>
+                    <button type="button" class="btn btn-primary" id="continueButton">
+                        {% if is_last_lesson %}
+                            <i class="fa fa-check"></i> Вернуться к курсу
+                        {% else %}
+                            <i class="fa fa-arrow-right"></i> Да, продолжаем!
+                        {% endif %}
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script>
         // Показываем/скрываем кнопку "Завершить" в зависимости от состояния галочки
         {% if not is_dental_checkup_course %}
@@ -99,6 +208,56 @@
             } else {
                 completeForm.style.display = 'none';
             }
+        });
+        
+        // Обработка формы завершения урока
+        document.getElementById('completeLessonForm').addEventListener('submit', function(e) {
+            e.preventDefault(); // Предотвращаем стандартную отправку формы
+            
+            // Показываем модальное окно
+            const modal = new bootstrap.Modal(document.getElementById('continueLearningModal'));
+            modal.show();
+        });
+        
+        // Обработка кнопки "Да, продолжаем!" / "Вернуться к курсу"
+        document.getElementById('continueButton').addEventListener('click', function() {
+            // Скрываем модальное окно
+            const modal = bootstrap.Modal.getInstance(document.getElementById('continueLearningModal'));
+            modal.hide();
+            
+            // Отправляем форму завершения урока
+            const form = document.getElementById('completeLessonForm');
+            
+            // Проверяем, является ли это последним уроком
+            {% if is_last_lesson %}
+                // Для последнего урока не добавляем параметр continue_learning
+                // Это приведет к редиректу на страницу курса
+            {% else %}
+                // Для обычных уроков добавляем параметр для перехода к следующему уроку
+                const input = document.createElement('input');
+                input.type = 'hidden';
+                input.name = 'continue_learning';
+                input.value = 'true';
+                form.appendChild(input);
+            {% endif %}
+            
+            form.submit();
+        });
+        
+        // Обработка кнопки "Отдохну 😣"
+        document.getElementById('restButton').addEventListener('click', function() {
+            // Скрываем модальное окно
+            const modal = bootstrap.Modal.getInstance(document.getElementById('continueLearningModal'));
+            modal.hide();
+            
+            // Отправляем форму завершения урока с параметром для возврата к курсу
+            const form = document.getElementById('completeLessonForm');
+            const input = document.createElement('input');
+            input.type = 'hidden';
+            input.name = 'return_to_course';
+            input.value = 'true';
+            form.appendChild(input);
+            form.submit();
         });
         {% endif %}
         
