@@ -2,7 +2,7 @@ from django.utils import timezone
 from django.shortcuts import render, redirect, get_object_or_404
 from django.urls import reverse, reverse_lazy
 from django.db.models import Max
-from django.views.generic import DetailView, ListView, TemplateView, View, CreateView
+from django.views.generic import DetailView, ListView, TemplateView, View, CreateView, DeleteView
 from django.contrib.auth.models import User
 from django.db import transaction, models
 from django.contrib.auth.decorators import login_required, user_passes_test
@@ -12,7 +12,7 @@ from django.http import JsonResponse, HttpResponse, HttpRequest, HttpResponseFor
 from django.template.loader import render_to_string
 from weasyprint import HTML
 from datetime import datetime
-from .forms import CourseForm,  LessonForm, MetricsForm
+from .forms import CourseForm,  LessonForm
 from .models import Course, Lesson, UserLessonTrajectory, Trajectory, UserCourseTrajectory, TrajectoryCourse, Certificate
 from myapp.models import UserProgress, UserCourse, QuizResult
 from myapp.views import is_admin, is_author_or_admin
@@ -700,6 +700,8 @@ class CreateCourseView(LoginRequiredMixin, UserPassesTestMixin, CreateView):
             )
 
 
+
+
 class CreateLessonView(LoginRequiredMixin, CreateView):
     """
     Создание урока в курсе с автоматическим порядком
@@ -757,13 +759,129 @@ def get_category_full_path(category):
 
 
 
-@login_required
-@user_passes_test(is_admin, login_url='/')
-def add_lesson(request, course_slug):
-    course = get_object_or_404(Course, slug=course_slug)
+class AddLessonView(LoginRequiredMixin, UserPassesTestMixin, View):
+    """
+    Добавление уроков/тестов в курс из существующих материалов
+    """
+    template_name = 'courses/add_lesson.html'
     
-    # Получаем все категории с их подкатегориями и уроками
-    def get_categories_with_lessons():
+    def test_func(self):
+        """Проверка прав: только админы"""
+        return is_admin(self.request.user)
+    
+    def dispatch(self, request, *args, **kwargs):
+        """Получаем курс и сохраняем на self"""
+        self.course = get_object_or_404(Course, slug=kwargs['course_slug'])
+        return super().dispatch(request, *args, **kwargs)
+    
+    def get(self, request, *args, **kwargs):
+        """GET запрос - отображение формы выбора материалов"""
+        context = self.get_context_data()
+        return render(request, self.template_name, context)
+    
+    def post(self, request, *args, **kwargs):
+        """POST запрос - обработка добавления материалов"""
+        if 'add_selected' in request.POST:
+            return self._handle_add_selected()
+        elif 'create_new' in request.POST:
+            return redirect('courses:create_lesson', course_slug=self.course.slug)
+        
+        # Если ни одна кнопка не нажата, возвращаем на форму
+        return self.get(request, *args, **kwargs)
+    
+    def _handle_add_selected(self):
+        """Обработка добавления выбранных материалов"""
+        selected_items_str = self.request.POST.get('selected_items', '')
+        selected_items = [item.strip() for item in selected_items_str.split(',') if item.strip()]
+        
+        max_order = self.course.lessons.aggregate(Max('order'))['order__max'] or 0
+        current_order = max_order + 1
+        
+        for item_id in selected_items:
+            if item_id.startswith('category_'):
+                self._add_category_lessons(item_id, current_order)
+                current_order += self._count_lessons_in_category(item_id)
+            elif item_id.startswith('lesson_'):
+                current_order = self._add_single_lesson(item_id, current_order)
+            elif item_id.startswith('uncategorized_'):
+                current_order = self._add_uncategorized_lesson(item_id, current_order)
+            elif item_id.startswith('quiz_'):
+                current_order = self._add_quiz(item_id, current_order)
+        
+        return redirect('courses:course_detail', slug=self.course.slug)
+    
+    def _add_category_lessons(self, item_id, start_order):
+        """Добавление всех уроков из категории"""
+        category_id = item_id.replace('category_', '')
+        lessons = self._get_all_lessons_in_category(category_id)
+        
+        current_order = start_order
+        for lesson in lessons:
+            if self.course not in lesson.courses.all():
+                lesson.courses.add(self.course)
+                lesson.order = current_order
+                lesson.save()
+                current_order += 1
+    
+    def _add_single_lesson(self, item_id, current_order):
+        """Добавление отдельного урока"""
+        lesson_id = item_id.replace('lesson_', '')
+        lesson = get_object_or_404(Lesson, id=lesson_id)
+        
+        if self.course not in lesson.courses.all():
+            lesson.courses.add(self.course)
+            lesson.order = current_order
+            lesson.save()
+            return current_order + 1
+        return current_order
+    
+    def _add_uncategorized_lesson(self, item_id, current_order):
+        """Добавление урока без категории"""
+        lesson_id = item_id.replace('uncategorized_', '')
+        lesson = get_object_or_404(Lesson, id=lesson_id)
+        
+        if self.course not in lesson.courses.all():
+            lesson.courses.add(self.course)
+            lesson.order = current_order
+            lesson.save()
+            return current_order + 1
+        return current_order
+    
+    def _add_quiz(self, item_id, current_order):
+        """Добавление теста"""
+        quiz_id = item_id.replace('quiz_', '')
+        quiz = get_object_or_404(Quiz, id=quiz_id)
+        
+        if self.course not in quiz.courses.all():
+            quiz.courses.add(self.course)
+            quiz.order = current_order
+            quiz.save()
+            return current_order + 1
+        return current_order
+    
+    def _count_lessons_in_category(self, item_id):
+        """Подсчет уроков в категории для правильного порядка"""
+        category_id = item_id.replace('category_', '')
+        lessons = self._get_all_lessons_in_category(category_id)
+        return len([l for l in lessons if self.course not in l.courses.all()])
+    
+    def _get_all_lessons_in_category(self, category_id):
+        """Получение всех уроков категории (включая подкатегории)"""
+        category = CategoryName.objects.get(id=category_id)
+        lessons = set()
+        
+        # Добавляем уроки текущей категории
+        lessons.update(category.lessons.all())
+        lessons.update([mirror.lesson for mirror in category.mirrored_lessons.all()])
+        
+        # Рекурсивно добавляем уроки подкатегорий
+        for subcat in category.subcategories.all():
+            lessons.update(self._get_all_lessons_in_category(subcat.id))
+        
+        return list(lessons)
+    
+    def _get_categories_with_lessons(self):
+        """Получение всех категорий с их подкатегориями и уроками"""
         categories = CategoryName.objects.filter(parent=None).prefetch_related(
             'subcategories', 'lessons', 'mirrored_lessons__lesson'
         ).order_by('order', 'name')
@@ -789,100 +907,14 @@ def add_lesson(request, course_slug):
         
         return [process_category(cat) for cat in categories]
     
-    # Функция для получения всех уроков категории (включая подкатегории)
-    def get_all_lessons_in_category(category_id):
-        category = CategoryName.objects.get(id=category_id)
-        lessons = set()
-        
-        # Добавляем уроки текущей категории
-        lessons.update(category.lessons.all())
-        lessons.update([mirror.lesson for mirror in category.mirrored_lessons.all()])
-        
-        # Рекурсивно добавляем уроки подкатегорий
-        for subcat in category.subcategories.all():
-            lessons.update(get_all_lessons_in_category(subcat.id))
-        
-        return list(lessons)
-    
-    if request.method == 'POST':
-        if 'add_selected' in request.POST:
-            selected_items_str = request.POST.get('selected_items', '')
-            selected_items = [item.strip() for item in selected_items_str.split(',') if item.strip()]
-            max_order = course.lessons.aggregate(Max('order'))['order__max'] or 0
-            current_order = max_order + 1
-            
-            for item_id in selected_items:
-                if item_id.startswith('category_'):
-                    # Добавляем все уроки из категории (включая подкатегории)
-                    category_id = item_id.replace('category_', '')
-                    lessons = get_all_lessons_in_category(category_id)
-                    
-                    for lesson in lessons:
-                        # Проверяем, что урок еще не добавлен в курс
-                        if course not in lesson.courses.all():
-                            lesson.courses.add(course)
-                            # Обновляем порядок урока в контексте курса
-                            lesson.order = current_order
-                            lesson.save()
-                            current_order += 1
-                            
-                elif item_id.startswith('lesson_'):
-                    # Добавляем отдельный урок
-                    lesson_id = item_id.replace('lesson_', '')
-                    lesson = get_object_or_404(Lesson, id=lesson_id)
-                    
-                    # Проверяем, что урок еще не добавлен в курс
-                    if course not in lesson.courses.all():
-                        lesson.courses.add(course)
-                        # Обновляем порядок урока в контексте курса
-                        lesson.order = current_order
-                        lesson.save()
-                        current_order += 1
-                        
-                elif item_id.startswith('uncategorized_'):
-                    # Добавляем урок без категории
-                    lesson_id = item_id.replace('uncategorized_', '')
-                    lesson = get_object_or_404(Lesson, id=lesson_id)
-                    
-                    # Проверяем, что урок еще не добавлен в курс
-                    if course not in lesson.courses.all():
-                        lesson.courses.add(course)
-                        # Обновляем порядок урока в контексте курса
-                        lesson.order = current_order
-                        lesson.save()
-                        current_order += 1
-                        
-                elif item_id.startswith('quiz_'):
-                    # Добавляем тест
-                    quiz_id = item_id.replace('quiz_', '')
-                    quiz = get_object_or_404(Quiz, id=quiz_id)
-                    
-                    # Проверяем, что тест еще не добавлен в курс
-                    if course not in quiz.courses.all():
-                        quiz.courses.add(course)
-                        # Устанавливаем порядок теста
-                        quiz.order = current_order
-                        quiz.save()
-                        current_order += 1
-            
-            return redirect('courses:course_detail', slug=course.slug)
-        elif 'create_new' in request.POST:
-            return redirect('courses:create_lesson', course_slug=course.slug)
-    
-    categories_data = get_categories_with_lessons()
-    
-    # Получаем уроки без категории
-    uncategorized_lessons = Lesson.objects.filter(category__isnull=True).order_by('order', 'title')
-    
-    # Получаем все тесты
-    all_quizzes = Quiz.objects.all().order_by('name')
-    
-    return render(request, 'courses/add_lesson.html', {
-        'course': course,
-        'categories_data': categories_data,
-        'uncategorized_lessons': uncategorized_lessons,
-        'all_quizzes': all_quizzes,
-    })
+    def get_context_data(self):
+        """Формирование контекста для шаблона"""
+        return {
+            'course': self.course,
+            'categories_data': self._get_categories_with_lessons(),
+            'uncategorized_lessons': Lesson.objects.filter(category__isnull=True).order_by('order', 'title'),
+            'all_quizzes': Quiz.objects.all().order_by('name'),
+        }
 
 
 
@@ -934,35 +966,72 @@ def reorder_materials(request, course_slug):
 
 
 
-@login_required
-@user_passes_test(is_admin, login_url='/')
-def delete_course(request, slug):
-    course = get_object_or_404(Course, slug=slug)
-    if request.method == 'POST':
-        course.delete()
-        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-            return JsonResponse({'success': True})
-        return redirect('home')
-    return redirect('courses:course_detail', slug=slug)
+class DeleteCourseView(LoginRequiredMixin, UserPassesTestMixin, DeleteView):
+    """
+    Удаление курса с поддержкой AJAX
+    """
+    model = Course
+    slug_url_kwarg = 'slug'
+    success_url = reverse_lazy('home')
+
+
+    def test_func(self):
+        """Проверка прав: только админ"""
+        return is_admin(self.request.user)
+
+
+    def delete(self, request, *args, **kwargs):
+        """Обработка удаления с поддержкой AJAX"""
+        self.object = self.get_object()
+        self.object.delete()
+
+        if request.headers.get("X-Requested-With") == "XMLHttpRequest":
+            return JsonResponse({"success": True})
+        
+        return redirect(self.success_url)
+
+    def get(self, request, *args, **kwargs):
+        """GET запрос - редирект на страницу курса"""
+        return redirect('courses:course_detail', slug=kwargs['slug'])
 
 
 
 
-@login_required
-@user_passes_test(is_admin, login_url='/')
-def delete_lesson(request, lesson_id):
-    lesson = get_object_or_404(Lesson, id=lesson_id)
-    # Получаем первый курс для редиректа (или можно изменить логику)
-    course = lesson.courses.first()
-    if course and request.method == 'POST':
-        # Удаляем связь с курсом, а не сам урок
-        lesson.courses.remove(course)
-        return redirect('courses:course_detail', course_slug=course.slug)
-    elif course:
-        return redirect('courses:course_detail', course_slug=course.slug)
-    else:
-        # Если урок не связан ни с одним курсом, редиректим на главную
-        return redirect('home')
+
+class DeleteLessonView(LoginRequiredMixin, UserPassesTestMixin, DeleteView):
+    model = Lesson
+    success_url = reverse_lazy('home')
+
+    def test_func(self):
+        """Проверка прав: только админ"""
+        return is_admin(self.request.user)
+
+
+    def dispatch(self, request, *args, **kwargs):
+        """
+        Получаем урок и сохраняем на self
+        """
+        self.lesson = get_object_or_404(Lesson, id=kwargs['lesson_id'])
+        self.course = self.lesson.courses.first()
+        return super().dispatch(request, *args, **kwargs)
+
+    
+    def get(self, request, *args, **kwargs):
+        """Редирект на страницу курса или на главную"""
+        if self.course:
+            return redirect('courses:course_detail', slug=self.course.slug)
+        else:
+            return redirect('home')
+
+
+    def post(self, request, *args, **kwargs):
+        """Удаление свзяи урока с курсом"""
+        if self.course:
+            self.lesson.courses.remove(self.course)
+            return redirect('courses:course_detail', slug=self.course.slug)
+        else:
+            # Если урок не связан ни с одним курсом, редиректим на главную
+            return redirect('home')
 
 
 
