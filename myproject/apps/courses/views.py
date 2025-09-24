@@ -997,7 +997,6 @@ class DeleteCourseView(LoginRequiredMixin, UserPassesTestMixin, DeleteView):
 
 
 
-
 class DeleteLessonView(LoginRequiredMixin, UserPassesTestMixin, DeleteView):
     model = Lesson
     success_url = reverse_lazy('home')
