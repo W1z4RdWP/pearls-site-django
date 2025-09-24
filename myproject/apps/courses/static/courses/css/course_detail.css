@@ -333,20 +333,3 @@
     outline: 2px solid #007bff;
     outline-offset: 2px;
 }
-
-/* Темная тема поддержка */
-@media (prefers-color-scheme: dark) {
-    .course-content {
-        background: #2d3748;
-        color: #e2e8f0;
-    }
-    
-    .materials-title {
-        color: #e2e8f0;
-    }
-    
-    .material-item.blocked {
-        background: #4a5568;
-        color: #a0aec0;
-    }
-}
