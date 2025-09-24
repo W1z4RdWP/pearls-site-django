@@ -238,12 +238,19 @@
                                     {% endif %}
                                 </div>
                             {% endif %}
-                            {% if next_lesson.id %}
+                            {% if next_material %}
                                 <div class="action-buttons">
-                                    <a href="{% url 'courses:lesson_detail' course.slug next_lesson.id %}" 
-                                       class="btn-modern">
-                                        <i class="fa fa-arrow-right"></i> Продолжить обучение
-                                    </a>
+                                    {% if next_material.type == 'lesson' %}
+                                        <a href="{% url 'courses:lesson_detail' course.slug next_material.id %}" 
+                                           class="btn-modern">
+                                            <i class="fa fa-arrow-right"></i> Продолжить обучение
+                                        </a>
+                                    {% elif next_material.type == 'quiz' %}
+                                        <a href="{% url 'quizzes:quiz_start' quiz_id=next_material.id %}?course_slug={{ course.slug }}" 
+                                           class="btn-modern">
+                                            <i class="fa fa-arrow-right"></i> Продолжить обучение
+                                        </a>
+                                    {% endif %}
                                 </div>
                             {% endif %}
 

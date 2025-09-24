@@ -274,10 +274,8 @@ class CourseDetailView(DetailView):
                         # Для этого курса next_lesson всегда None, так как второй урок заменяется формой метрик
                         next_lesson = None
                     else:
-                        next_lesson = Lesson.objects.filter(
-                            id__in=lesson_ids,
-                            order__gt=max_completed_order
-                        ).order_by('order').first() or lessons.first()
+                        # Ищем следующий материал (урок или тест) в порядке курса
+                        next_lesson = self._get_next_material(user, course, trajectory, max_completed_order)
                     
                 else:
                     lessons = course.lessons.all()
@@ -317,10 +315,8 @@ class CourseDetailView(DetailView):
                         # Для этого курса next_lesson всегда None, так как второй урок заменяется формой метрик
                         next_lesson = None
                     else:
-                        next_lesson = Lesson.objects.filter(
-                            courses=course,
-                            order__gt=max_completed_order
-                        ).order_by('order').first() or course.lessons.first()
+                        # Ищем следующий материал (урок или тест) в порядке курса
+                        next_lesson = self._get_next_material(user, course, None, max_completed_order)
                 
                 # Вычисляем прогресс с учетом уроков и тестов
                 completed_materials = completed_lessons + completed_quizzes
@@ -374,13 +370,13 @@ class CourseDetailView(DetailView):
 
                 # Проверка для отображения финального теста
                 if course.final_quiz:
-                    quiz_passed = QuizResult.objects.filter(
+                    final_quiz_passed = QuizResult.objects.filter(
                         user=user,
                         course=course,
                         quiz_title=course.final_quiz.name,
                         passed=True
                     ).exists()
-                    if quiz_passed:
+                    if final_quiz_passed:
                         show_final_quiz = True
                     
                     # Получаем информацию о попытках для финального теста в рамках этого курса
@@ -473,6 +469,7 @@ class CourseDetailView(DetailView):
             'total_quizzes': total_quizzes,
             'total_materials': total_materials,
             'next_lesson': next_lesson,
+            'next_material': next_lesson,  # Для совместимости с шаблоном
             'all_completed': all_completed,
             'show_completion_animation': show_completion_animation,
             'lessons': lessons,
@@ -480,7 +477,7 @@ class CourseDetailView(DetailView):
             'next_course_in_trajectory': next_course_in_trajectory,
             'user_trajectories_info': user_trajectories_info,
             'quiz_attempts_info': locals().get('quiz_attempts_info'),
-            'quiz_passed': locals().get('quiz_passed', False),
+            'quiz_passed': locals().get('final_quiz_passed', False),
             'is_dental_checkup_course': course.title == "Чек-ап стоматологической клиники",
             'highlight_start_button': highlight_start,
             'lesson_blocked_id': lesson_blocked_id,
@@ -489,7 +486,46 @@ class CourseDetailView(DetailView):
         
         return context
 
-
+    def _get_next_material(self, user, course, trajectory, max_completed_order):
+        """
+        Находит следующий материал (урок или тест) для продолжения обучения
+        """
+        # Получаем все материалы курса в порядке
+        materials = course.get_course_materials()
+        
+        # Получаем завершенные уроки и тесты
+        completed_lessons_ids = set(
+            UserProgress.objects.filter(
+                user=user,
+                course=course,
+                completed=True
+            ).values_list('lesson_id', flat=True)
+        )
+        
+        completed_quizzes_ids = set(
+            QuizResult.objects.filter(
+                user=user,
+                course=course,
+                quiz_title__in=[quiz.name for quiz in course.quizzes],
+                passed=True
+            ).values_list('quiz_title', flat=True)
+        )
+        
+        # Если есть траектория, фильтруем материалы по траектории
+        if trajectory:
+            trajectory_lesson_ids = set(trajectory.lessons.values_list('id', flat=True))
+            materials = [m for m in materials if m['type'] == 'quiz' or m['id'] in trajectory_lesson_ids]
+        
+        # Ищем первый незавершенный материал
+        for material in materials:
+            if material['type'] == 'lesson':
+                if material['id'] not in completed_lessons_ids:
+                    return material
+            elif material['type'] == 'quiz':
+                if material['title'] not in completed_quizzes_ids:
+                    return material
+        
+        return None
 
 
 class CourseListView(ListView):
@@ -639,12 +675,16 @@ class LessonDetailView(DetailView):
     #     from django.http import HttpResponse
     #     return HttpResponse(html)
 
+        # Проверяем, является ли урок последним
+        is_last_lesson = next_lesson is None
+        
         context.update({
             'course': course,
             'previous_lesson': previous_lesson,
             'next_lesson': next_lesson,
             'is_dental_checkup_course': is_dental_checkup_course,
             'is_first_lesson': is_first_lesson,
+            'is_last_lesson': is_last_lesson,
         })
         
         return context
@@ -1218,6 +1258,28 @@ def complete_lesson(request, course_slug, lesson_id):
                 # Курс уже был завершен, просто обновляем статус
                 user_course.status = 'completed'
                 user_course.save()
+    
+    # Проверяем параметры из модального окна
+    if request.POST.get('continue_learning'):
+        # Пользователь хочет продолжить обучение - ищем следующий урок
+        # Используем ту же логику, что и в LessonDetailView
+        next_lesson = None
+        
+        if trajectory:
+            # Получаем уроки в порядке траектории (по order, как в LessonDetailView)
+            trajectory_lessons = trajectory.lessons.all().order_by('order')
+            next_lesson = trajectory_lessons.filter(
+                order__gt=lesson.order
+            ).order_by('order').first()
+        else:
+            # Используем метод get_next_lesson, как в LessonDetailView
+            next_lesson = lesson.get_next_lesson(course)
+        
+        # Если есть следующий урок - переходим к нему, иначе возвращаемся к курсу
+        if next_lesson:
+            return redirect('courses:lesson_detail', course_slug=course.slug, lesson_id=next_lesson.id)
+    
+    # По умолчанию или если нет следующего урока - возвращаемся к курсу
     return redirect('courses:course_detail', slug=course.slug)
 
 
