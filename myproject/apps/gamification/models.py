@@ -3,6 +3,8 @@ from django.contrib.auth.models import User
 from django.core.validators import MinValueValidator, MaxValueValidator
 
 
+
+
 class Badge(models.Model):
     """Модель для бейджей - виртуальных наград"""
     BADGE_TYPES = [
@@ -32,6 +34,8 @@ class Badge(models.Model):
     
     def __str__(self):
         return self.name
+
+
 
 
 class Achievement(models.Model):
@@ -67,6 +71,8 @@ class Achievement(models.Model):
         return self.name
 
 
+
+
 class UserBadge(models.Model):
     """Связь пользователей с полученными бейджами"""
     user = models.ForeignKey(User, on_delete=models.CASCADE, verbose_name="Пользователь")
@@ -83,6 +89,8 @@ class UserBadge(models.Model):
         return f"{self.user.username} - {self.badge.name}"
 
 
+
+
 class UserAchievement(models.Model):
     """Связь пользователей с полученными достижениями"""
     user = models.ForeignKey(User, on_delete=models.CASCADE, verbose_name="Пользователь")
@@ -97,6 +105,8 @@ class UserAchievement(models.Model):
     
     def __str__(self):
         return f"{self.user.username} - {self.achievement.name}"
+
+
 
 
 class DascoinTransaction(models.Model):

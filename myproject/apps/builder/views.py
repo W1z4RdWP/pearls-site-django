@@ -59,6 +59,10 @@ def get_compact_fio(user):
     return ' '.join(parts) if parts else user.username
 
 
+ 
+ 
+ 
+ 
 def get_category_tree_data(category_id):
     """Получить полное дерево категории со всеми подкатегориями, уроками и зеркалами"""
     try:
@@ -142,6 +146,8 @@ def get_category_tree_data(category_id):
     return collect_category_data(category)
 
 
+
+
 def copy_category_tree(category_data, target_parent_id=None):
     """Рекурсивно копирует дерево категории"""
     with transaction.atomic():
@@ -173,6 +179,8 @@ def copy_category_tree(category_data, target_parent_id=None):
             copy_category_tree(subcat_data, new_category.id)
         
         return new_category
+
+
 
 
 def move_category_tree(category_id, target_parent_id=None):
@@ -207,6 +215,8 @@ def move_category_tree(category_id, target_parent_id=None):
         return category
 
 
+
+
 def get_category_descendants(category_id):
     """Получить список ID всех потомков категории"""
     descendants = set()
@@ -219,6 +229,8 @@ def get_category_descendants(category_id):
     
     collect_descendants(category_id)
     return descendants
+
+
 
 
 def user_has_category_access(user, category):
@@ -236,6 +248,8 @@ def user_has_category_access(user, category):
             return True
         cat = cat.parent
     return False
+
+
 
 
 def filter_categories_and_lessons_for_user(user, categories, uncategorized_lessons):
@@ -305,8 +319,11 @@ def filter_categories_and_lessons_for_user(user, categories, uncategorized_lesso
     return filtered_categories, filtered_uncat
 
 
+
+
 @method_decorator(login_required(login_url='users:login'), name='dispatch')
 class LessonMasterDetailView(TemplateView):
+    """Мастер-страница БЗ: дерево категорий/уроков, версии, фильтрация и доступы."""
     template_name = 'builder/master_detail.html'
 
     def dispatch(self, request, *args, **kwargs):
@@ -314,6 +331,7 @@ class LessonMasterDetailView(TemplateView):
         if not request.user.is_authenticated:
             return render(request, '403.html', status=403)
         return super().dispatch(request, *args, **kwargs)
+
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -453,6 +471,8 @@ class LessonMasterDetailView(TemplateView):
         return self.render_to_response(context)
 
 
+
+
 class LessonCreateView(CreateView, AuditLoggerMixin):
     model = Lesson
     fields = ['title', 'content', 'courses', 'category']
@@ -523,6 +543,8 @@ class LessonCreateView(CreateView, AuditLoggerMixin):
         return f"{reverse('builder:lesson_master')}?new_lesson={self.object.id}"
 
 
+
+
 class LessonUpdateView(UpdateView, AuditLoggerMixin):
     model = Lesson
     fields = ['title', 'content', 'order', 'courses', 'category']
@@ -582,6 +604,8 @@ class LessonUpdateView(UpdateView, AuditLoggerMixin):
         return f"{reverse('builder:lesson_master')}?edited_lesson={self.object.id}"
 
 
+
+
 class LessonDeleteView(DeleteView, AuditLoggerMixin):
     model = Lesson
     template_name = 'builder/lesson_confirm_delete.html'
@@ -600,6 +624,8 @@ class LessonDeleteView(DeleteView, AuditLoggerMixin):
         return super().delete(request, *args, **kwargs)
 
 
+
+
 class CategoryListView(ListView):
     model = CategoryName
     template_name = 'builder/category_list.html'
@@ -609,6 +635,8 @@ class CategoryListView(ListView):
         if not request.user.is_authenticated or not (request.user.is_staff or request.user.is_superuser):
             return render(request, '403.html', status=403)
         return super().dispatch(request, *args, **kwargs)
+
+
 
 
 class CategoryCreateView(CreateView, AuditLoggerMixin):
@@ -627,6 +655,8 @@ class CategoryCreateView(CreateView, AuditLoggerMixin):
         # Логируем создание категории
         self.log_create_action(self.object, "Создана новая категория")
         return response
+
+
 
 
 class CategoryUpdateView(UpdateView, AuditLoggerMixin):
@@ -650,6 +680,8 @@ class CategoryUpdateView(UpdateView, AuditLoggerMixin):
         # Логируем изменения категории
         self.log_update_action(self.object, self.old_values, "Обновлена категория")
         return super().form_valid(form)
+
+
 
 
 class CategoryDeleteView(View):
@@ -774,6 +806,8 @@ class CategoryDeleteView(View):
         }
 
 
+
+
 class DashboardView(TemplateView):
     template_name = 'builder/dashboard.html'
     
@@ -818,6 +852,8 @@ class DocumentListView(ListView, FormView, AuditLoggerMixin):
         return context
 
 
+
+
 class IncidentListView(ListView):
     """
     Список инцидентов с фильтрацией и быстрым просмотром.
@@ -831,6 +867,8 @@ class IncidentListView(ListView):
         if not request.user.is_authenticated or not (request.user.is_staff or request.user.is_superuser):
             return render(request, '403.html', status=403)
         return super().dispatch(request, *args, **kwargs)
+
+
 
 class IncidentCreateView(CreateView, AuditLoggerMixin):
     """
@@ -852,6 +890,8 @@ class IncidentCreateView(CreateView, AuditLoggerMixin):
         return response
 
 
+
+
 @csrf_exempt
 @login_required
 def ajax_add_root_category(request):
@@ -869,6 +909,8 @@ def ajax_add_root_category(request):
     log_create(request.user, cat, request, comment="Создана корневая категория через AJAX")
     
     return JsonResponse({'id': cat.id, 'name': cat.name, 'order': cat.order})
+
+
 
 @csrf_exempt
 @login_required
@@ -902,6 +944,9 @@ def ajax_add_subcategory(request):
     
     return JsonResponse({'id': cat.id, 'name': cat.name, 'order': cat.order, 'parent': parent.id})
 
+
+
+
 @csrf_exempt
 @login_required
 def ajax_rename_category(request):
@@ -934,6 +979,9 @@ def ajax_rename_category(request):
                comment="Переименована категория через AJAX")
     
     return JsonResponse({'id': cat.id, 'name': cat.name})
+
+
+
 
 @csrf_exempt
 @login_required
@@ -1043,6 +1091,9 @@ def ajax_search_tree(request):
     
     return JsonResponse({'categories': categories, 'lessons': lessons})
 
+
+
+
 @csrf_exempt
 @login_required
 def ajax_reorder(request):
@@ -1077,6 +1128,7 @@ def ajax_reorder(request):
             except CategoryName.DoesNotExist:
                 continue
     return JsonResponse({'ok': True})
+
 
 
 
@@ -1132,6 +1184,9 @@ def ajax_copy(request):
     
     return JsonResponse({'ok': True})
 
+
+
+
 @csrf_exempt
 @login_required
 def ajax_cut(request):
@@ -1183,6 +1238,9 @@ def ajax_cut(request):
         }
     
     return JsonResponse({'ok': True})
+
+
+
 
 @csrf_exempt
 @login_required
@@ -1286,6 +1344,8 @@ def ajax_paste(request):
     return JsonResponse({'error': 'bad type'}, status=400)
 
 
+
+
 @csrf_exempt
 @login_required
 def ajax_get_clipboard(request):
@@ -1300,6 +1360,8 @@ def ajax_get_clipboard(request):
         return JsonResponse({'empty': True})
     
     return JsonResponse(clipboard)
+
+
 
 
 @csrf_exempt
@@ -1345,6 +1407,8 @@ def ajax_mirror(request):
         return JsonResponse({'error': f'unexpected error: {str(e)}'}, status=500)
 
 
+
+
 @csrf_exempt
 @login_required
 def ajax_category_tree_json(request):
@@ -1354,6 +1418,8 @@ def ajax_category_tree_json(request):
     root_cats = CategoryName.objects.filter(parent__isnull=True)
     categories = [get_category_tree_data(cat.id) for cat in root_cats]
     return JsonResponse({'categories': categories})
+
+
 
 
 @csrf_exempt
@@ -1405,6 +1471,8 @@ def ajax_delete_lesson_instance(request):
                 return JsonResponse({'error': 'category mismatch'}, status=400)
 
 
+
+
 @require_POST
 def reorder_uncat_lessons(request):
     try:
@@ -1415,6 +1483,9 @@ def reorder_uncat_lessons(request):
         return JsonResponse({'result': 'ok'})
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=400)
+
+
+
 
 @require_POST
 def reorder_lessons_in_category(request):
@@ -1429,6 +1500,9 @@ def reorder_lessons_in_category(request):
         return JsonResponse({'result': 'ok'})
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=400)
+
+
+
 
 @require_POST
 def reorder_categories(request):
@@ -1445,6 +1519,8 @@ def reorder_categories(request):
         return JsonResponse({'result': 'ok'})
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=400)
+
+
 
 
 @require_POST
@@ -1476,6 +1552,8 @@ def dictionary_reorder(request):
 #             return super().render_to_response(context, content_type='text/html', **response_kwargs)
 #         return super().render_to_response(context, **response_kwargs)
 
+
+
 class DictionarySectionDetailView(DetailView):
     model = DictionarySection
     context_object_name = 'section'
@@ -1497,6 +1575,8 @@ class DictionarySectionDetailView(DetailView):
             html = render_to_string(self.template_name, context, request=self.request)
             return JsonResponse({'html': html, 'data': terms, 'section_id': section.id})
         return super().render_to_response(context, **response_kwargs)
+
+
 
 
 class UpdateControlStandaloneView(TemplateView):
@@ -1619,6 +1699,8 @@ class UpdateControlStandaloneView(TemplateView):
         # Можно добавить обработку данных из request.POST
         context['success'] = True
         return self.render_to_response(context)
+
+
 
 
 @login_required
@@ -1746,6 +1828,9 @@ def actualize_version(request):
         logger.error(f"Returning error response: {error_msg}")
         return JsonResponse({'error': error_msg}, status=500)
 
+
+
+
 @csrf_exempt  # Для продакшена лучше использовать CSRF и авторизацию!
 def save_terms(request):
     if request.method != 'POST':
@@ -1791,6 +1876,8 @@ def save_terms(request):
         return JsonResponse({'error': str(e)}, status=400)
 
 
+
+
 class TrajectoryManagementView(TemplateView):
     """
     Централизованная панель управления траекториями для администраторов.
@@ -1823,6 +1910,8 @@ class TrajectoryManagementView(TemplateView):
         context['all_groups'] = Group.objects.all()
         
         return context
+
+
 
 
 class TrajectoryListView(ListView):
@@ -1862,6 +1951,8 @@ class TrajectoryListView(ListView):
         context['search_query'] = search_query
         
         return context
+
+
 
 
 @csrf_exempt
@@ -1922,6 +2013,8 @@ def trajectory_detail_ajax(request, trajectory_id):
     return JsonResponse(data)
 
 
+
+
 class TrajectoryEditView(UpdateView):
     """
     Представление для редактирования траектории
@@ -1961,6 +2054,8 @@ class TrajectoryEditView(UpdateView):
         return super().form_invalid(form)
 
 
+
+
 class TrajectoryCoursesView(TemplateView):
     """
     Представление для управления курсами в траектории
@@ -1997,6 +2092,8 @@ class TrajectoryCoursesView(TemplateView):
         return context
 
 
+
+
 @csrf_exempt
 @login_required
 def trajectory_course_reorder(request, trajectory_id):
@@ -2028,6 +2125,8 @@ def trajectory_course_reorder(request, trajectory_id):
         
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=400)
+
+
 
 
 @csrf_exempt
@@ -2065,6 +2164,8 @@ def trajectory_course_add(request, trajectory_id):
         
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=400)
+
+
 
 
 @csrf_exempt
@@ -2140,6 +2241,8 @@ def trajectory_course_add_multiple(request, trajectory_id):
         return JsonResponse({'success': False, 'error': str(e)}, status=400)
 
 
+
+
 @csrf_exempt
 @login_required
 def trajectory_course_remove(request, trajectory_id):
@@ -2179,6 +2282,9 @@ def trajectory_course_remove(request, trajectory_id):
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=400)
 
+
+
+
 @csrf_exempt
 @login_required
 def trajectory_delete(request, trajectory_id):
@@ -2211,6 +2317,8 @@ def trajectory_delete(request, trajectory_id):
         
     except Exception as e:
         return JsonResponse({'success': False, 'error': str(e)}, status=500)
+
+
 
 
 class CourseListView(ListView):
@@ -2247,6 +2355,8 @@ class CourseListView(ListView):
         return context
 
 
+
+
 class DocumentDeleteView(DeleteView, AuditLoggerMixin):
     model = Document
     template_name = 'builder/document_confirm_delete.html'
@@ -2263,6 +2373,9 @@ class DocumentDeleteView(DeleteView, AuditLoggerMixin):
         # Логируем удаление документа
         self.log_delete_action(self.object, "Удален документ")
         return super().delete(request, *args, **kwargs)
+
+
+
 
 @csrf_exempt
 @login_required
@@ -2336,6 +2449,8 @@ def audit_history_api(request):
         
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=500)
+
+
 
 
 @csrf_exempt
@@ -2437,6 +2552,8 @@ def audit_search_api(request):
         
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=500)
+
+
 
 
 def get_responsible_user_for_lesson(lesson_version):

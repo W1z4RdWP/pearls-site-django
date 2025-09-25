@@ -13,6 +13,7 @@ from builder.models import CategoryName
 
 
 class CourseManager(models.Manager):
+    """Менеджер курса: выборки доступности/назначения для пользователя."""
     def available_for_user(self, user):
         """Все доступные курсы"""
         if user.is_staff or user.is_superuser:
@@ -101,18 +102,18 @@ class Course(models.Model):
 
     @property
     def lessons(self):
-        """Получение уроков курса через связь many-to-many"""
+        """Возвращает уроки курса через связь many-to-many, отсортированные по `order`."""
         return self.course_lessons.all().order_by('order')
     
 
     @property
     def quizzes(self):
-        """Получение тестов курса через связь many-to-many"""
+        """Возвращает тесты курса через связь many-to-many, отсортированные по `order`, `name`."""
         return self.course_quizzes.all().order_by('order', 'name')
     
 
     def get_course_materials(self):
-        """Получение всех материалов курса (уроки + тесты) в порядке добавления"""
+        """Собирает все материалы курса (уроки + тесты) в одну упорядоченную ленту."""
         materials = []
         
         # Добавляем уроки
@@ -140,6 +141,7 @@ class Course(models.Model):
         return materials
 
     def save(self, *args, **kwargs):
+        """Автогенерирует уникальный `slug` при первом сохранении."""
         if not self.slug:  # Генерируем slug только если он пустой
             transliterated_slug = unidecode(self.title)
             self.slug = slugify(transliterated_slug, allow_unicode=True)
@@ -204,7 +206,7 @@ class Lesson(models.Model):
 
 
     def get_previous_lesson(self, course=None):
-        """Получение предыдущего урока в контексте курса или глобально"""
+        """Возвращает предыдущий урок относительно текущего `order` (в курсе или глобально)."""
         if course:
             # Если указан курс, ищем предыдущий урок в этом курсе
             return Lesson.objects.filter(
@@ -219,7 +221,7 @@ class Lesson(models.Model):
 
 
     def get_next_lesson(self, course=None):
-        """Получение следующего урока в контексте курса или глобально"""
+        """Возвращает следующий урок относительно текущего `order` (в курсе или глобально)."""
         if course:
             # Если указан курс, ищем следующий урок в этом курсе
             return Lesson.objects.filter(
@@ -383,6 +385,7 @@ class Certificate(models.Model):
     
 
     def save(self, *args, **kwargs):
+        """Генерирует `certificate_id`, если не заполнен."""
         if not self.certificate_id:
             # Генерируем уникальный ID сертификата
             import uuid

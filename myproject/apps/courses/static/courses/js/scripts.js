@@ -90,19 +90,35 @@ document.addEventListener('DOMContentLoaded', () => {
 document.addEventListener('DOMContentLoaded', () => {
   const showDescription = document.getElementById('show-description');
   const courseDescription = document.getElementById('course-description');
-  // if (!showDescription || !courseDescription) return;
+  const courseDescriptionImage = document.getElementById('course-description-image');
+  if (!showDescription || !courseDescription) return;
 
-  showDescription.addEventListener('click', () => {
-    courseDescription.style.display = 'none';
-    // showDescription.style.display = 'none';
-    if (showDescription.textContent === 'Скрыть описание') {
-      showDescription.textContent = 'Показать описание';
+  const setButtonState = (isHidden) => {
+    if (isHidden) {
+      showDescription.innerHTML = '<i class="fa fa-eye"></i> Показать описание';
     } else {
-      showDescription.textContent = 'Скрыть описание';
-      showDescription.classList.remove('btn-mini-active');
-      courseDescription.style.display = 'block';
+      showDescription.innerHTML = '<i class="fa fa-eye-slash"></i> Скрыть описание';
     }
-    // showDescription.classList.toggle('btn-mini-active');
+  };
+
+  const isCurrentlyHidden = () => {
+    return window.getComputedStyle(courseDescription).display === 'none';
+  };
+
+  // Инициализация состояния кнопки в соответствии с текущей видимостью
+  setButtonState(isCurrentlyHidden());
+
+  showDescription.addEventListener('click', (e) => {
+    e.preventDefault();
+    const hidden = isCurrentlyHidden();
+    if (hidden) {
+      courseDescription.style.display = 'block';
+      if (courseDescriptionImage) courseDescriptionImage.style.display = 'block';
+    } else {
+      courseDescription.style.display = 'none';
+      if (courseDescriptionImage) courseDescriptionImage.style.display = 'none';
+    }
+    setButtonState(!hidden);
   });
   showDescription.style.display = 'block';
 });

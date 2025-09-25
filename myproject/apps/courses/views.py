@@ -195,6 +195,7 @@ class CourseDetailView(DetailView):
         return redirect('courses:course_detail', slug=course.slug)
 
 
+
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         request = self.request
@@ -597,7 +598,8 @@ class LessonDetailView(DetailView):
         if not request.user.is_authenticated:
             return redirect('users:login')
         return super().dispatch(request, *args, **kwargs)
-    
+
+
     def get_object(self, queryset=None):
         course_slug = self.kwargs.get('course_slug')
         lesson_id = self.kwargs.get('lesson_id')
@@ -611,7 +613,8 @@ class LessonDetailView(DetailView):
             return redirect('courses:course_detail', slug=course.slug)
         
         return lesson
-    
+
+
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         lesson = self.object
@@ -752,13 +755,13 @@ class CreateLessonView(LoginRequiredMixin, CreateView):
     
 
     def dispatch(self, request, *args, **kwargs):
-        """Получаем курс и сохраняем на self для использования в других методах"""
+        """Получаем курс и сохраняем на self для использования в других методах."""
         self.course = get_object_or_404(Course, slug=kwargs['course_slug'])
         return super().dispatch(request, *args, **kwargs)
-    
+
 
     def get_form_kwargs(self):
-        """Передаем initial данные в форму"""
+        """Передает initial-данные и признак скрытия `order` в форму."""
         kwargs = super().get_form_kwargs()
         max_order = self.course.lessons.aggregate(models.Max('order'))['order__max'] or 0
         
@@ -768,19 +771,19 @@ class CreateLessonView(LoginRequiredMixin, CreateView):
         }
         kwargs['hide_order'] = True
         return kwargs
-    
+
 
     def form_valid(self, form):
-        """Обработка успешной валидации с установкой порядка"""
+        """Сохраняет урок, назначает следующий `order`, привязывает к курсу."""
         lesson = form.save(commit=False)
         lesson.order = self.course.lessons.aggregate(models.Max('order'))['order__max'] or 0 + 1
         lesson.save()
         form.save_m2m()  # Сохраняем связь many-to-many с курсами
         return redirect('courses:course_detail', course_slug=self.course.slug)
-    
+
 
     def get_context_data(self, **kwargs):
-        """Добавляем курс в контекст"""
+        """Добавляет выбранный курс в контекст шаблона."""
         context = super().get_context_data(**kwargs)
         context['course'] = self.course
         return context
@@ -789,6 +792,7 @@ class CreateLessonView(LoginRequiredMixin, CreateView):
 
 
 def get_category_full_path(category):
+    """Возвращает полный путь категории через `/`, включая родителей."""
     path = [category.name]
     parent = category.parent
     while parent:

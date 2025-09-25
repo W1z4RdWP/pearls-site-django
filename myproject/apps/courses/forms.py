@@ -8,6 +8,7 @@ import re
 
 
 class CourseForm(forms.ModelForm):
+    """Форма создания/редактирования курса."""
     class Meta:
         model = Course
         fields = ['title', 'description', 'image', 'slug', 'final_quiz', 'allowed_groups', 'certificate']
@@ -23,6 +24,7 @@ class CourseForm(forms.ModelForm):
 
 
     def clean_slug(self):
+        """Валидирует `slug` на допустимые символы."""
         slug = self.cleaned_data.get('slug')
         if slug and not re.match(r'^[-a-zA-Z0-9_]+$', slug):
             raise forms.ValidationError("ЧПУ может содержать только латинские буквы, цифры, дефисы и подчеркивания")
@@ -30,6 +32,7 @@ class CourseForm(forms.ModelForm):
     
     
     def __init__(self, *args, **kwargs):
+        """Настраивает подсказки и виджеты после инициализации формы."""
         super().__init__(*args, **kwargs)
         self.fields['image'].help_text = "Рекомендуемый размер: 1200x600 пикселей"
 
@@ -37,6 +40,7 @@ class CourseForm(forms.ModelForm):
 
 
 class LessonForm(forms.ModelForm):
+    """Форма создания/редактирования урока."""
     class Meta:
         model = Lesson
         fields = ['title', 'content', 'order', 'courses']
@@ -58,9 +62,7 @@ class LessonForm(forms.ModelForm):
 
 
     def clean_content(self):
-        """
-        Функция для фильрации код, попадающего в htmlEmbed через CKeditor5.
-        """
+        """Чистит HTML контент (в т.ч. iframe Rutube) из CKEditor5."""
         data = self.cleaned_data.get('content')
         if data:
             data = clean_rutube_iframe(data)
@@ -68,12 +70,14 @@ class LessonForm(forms.ModelForm):
 
 
     def __init__(self, *args, hide_order=False, **kwargs):
+        """Опционально скрывает поле порядка `order` при создании из контекста курса."""
         super().__init__(*args, **kwargs)
         if hide_order:
             self.fields.pop('order', None)
 
 
     def clean_video_id(self):
+        """Извлекает и валидирует ID Rutube из переданного URL."""
         video_url = self.cleaned_data.get('video_id')
         if not video_url:
             return None
@@ -93,6 +97,7 @@ class LessonForm(forms.ModelForm):
 
 
 class UserLessonTrajectoryForm(forms.ModelForm):
+    """Форма настройки индивидуальной траектории уроков пользователя."""
     class Meta:
         model = UserLessonTrajectory
         fields = '__all__'
@@ -102,12 +107,14 @@ class UserLessonTrajectoryForm(forms.ModelForm):
 
 
     def __init__(self, *args, **kwargs):
+        """Делает поле `course` нередактируемым при редактировании существующей записи."""
         super().__init__(*args, **kwargs)
         if self.instance and self.instance.pk:
             self.fields['course'].disabled = True
 
 
     def clean(self):
+        """Проверяет, что выбранные уроки действительно входят в курс."""
         cleaned_data = super().clean()
         course = cleaned_data.get('course')
         lessons = cleaned_data.get('lessons')

@@ -8,6 +8,7 @@ from .models import Course, Lesson, UserLessonTrajectory, \
 
 
 class UserLessonTrajectoryLessonInline(admin.TabularInline):
+    """Inline для редактирования уроков в `UserLessonTrajectory`."""
     model = UserLessonTrajectory.lessons.through
     extra = 1
     verbose_name = "Урок в траектории пользователя"
@@ -16,6 +17,7 @@ class UserLessonTrajectoryLessonInline(admin.TabularInline):
 
 
     def get_formset(self, request, obj=None, **kwargs):
+        """Ограничивает выпадающий список уроков курсом траектории."""
         formset = super().get_formset(request, obj, **kwargs)
         if obj:
             # Фильтруем уроки по курсу траектории
@@ -26,6 +28,7 @@ class UserLessonTrajectoryLessonInline(admin.TabularInline):
 
 
 class LessonInline(admin.TabularInline):
+    """Inline для связи `Lesson` в составе `Course`."""
     model = Lesson.courses.through
     extra = 1
     verbose_name = "Урок в курсе"
@@ -37,6 +40,7 @@ class LessonInline(admin.TabularInline):
 
 @admin.register(Course)
 class CourseAdmin(admin.ModelAdmin):
+    """Админка модели `Course` c inline уроками и фильтрами."""
     list_display = ['title', 'description', 'image', 'slug', 'final_quiz']
     search_fields = ['title']
     prepopulated_fields = {'slug': ('title',)}
@@ -49,6 +53,7 @@ class CourseAdmin(admin.ModelAdmin):
 
 @admin.register(Lesson)
 class LessonAdmin(admin.ModelAdmin):
+    """Админка `Lesson` с отображением курсов и фильтрами."""
     list_display = ['title', 'order', 'get_courses', 'category']
     list_filter = ['category', 'courses']
     search_fields = ['title', 'courses__title']
@@ -64,6 +69,7 @@ class LessonAdmin(admin.ModelAdmin):
 
 
 class TrajectoryCourseInline(admin.TabularInline):
+    """Inline для связи `Trajectory` и `Course` с полем порядка."""
     model = TrajectoryCourse
     extra = 1
     autocomplete_fields = ['course']
@@ -77,6 +83,7 @@ class TrajectoryCourseInline(admin.TabularInline):
 
 @admin.register(Trajectory)
 class TrajectoryAdmin(admin.ModelAdmin):
+    """Админка `Trajectory` с inline курсов и группами."""
     list_display = ('name', 'description')
     search_fields = ('name',)
     filter_horizontal = ('groups',)
@@ -88,6 +95,7 @@ class TrajectoryAdmin(admin.ModelAdmin):
 
 @admin.register(UserCourseTrajectory)
 class UserCourseTrajectoryAdmin(admin.ModelAdmin):
+    """Админка индивидуальных траекторий пользователя."""
     list_display = ('user', 'trajectory', 'current_course', 'completed', 'started_at')
     list_filter = ('trajectory', 'completed')
     search_fields = ('user__username', 'trajectory__name')
@@ -98,6 +106,7 @@ class UserCourseTrajectoryAdmin(admin.ModelAdmin):
 
 @admin.register(TrajectoryCourse)
 class TrajectoryCourseAdmin(admin.ModelAdmin):
+    """Админка промежуточной модели `TrajectoryCourse`."""
     list_display = ('trajectory', 'course', 'order')
     list_filter = ('trajectory',)
     search_fields = ('trajectory__name', 'course__title')
@@ -108,6 +117,7 @@ class TrajectoryCourseAdmin(admin.ModelAdmin):
 
 @admin.register(UserLessonTrajectory)
 class UserLessonTrajectoryAdmin(admin.ModelAdmin):
+    """Админка `UserLessonTrajectory` с inline уроками."""
     list_display = ('user', 'course', 'get_lessons_count')
     list_filter = ('course', 'user')
     search_fields = ('user__username', 'course__title')
@@ -125,6 +135,7 @@ class UserLessonTrajectoryAdmin(admin.ModelAdmin):
 
 @admin.register(Certificate)
 class CertificateAdmin(admin.ModelAdmin):
+    """Админка сертификатов (создаются автоматически, только просмотр)."""
     list_display = ('certificate_id', 'user', 'certificate_type', 'course', 'trajectory', 'issued_at')
     list_filter = ('certificate_type', 'issued_at')
     search_fields = ('user__username', 'certificate_id', 'course__title', 'trajectory__name')
@@ -141,6 +152,7 @@ class CertificateAdmin(admin.ModelAdmin):
 
 @admin.register(MetricsSubmission)
 class MetricsSubmissionAdmin(admin.ModelAdmin):
+    """Админка отправленных форм метрик."""
     list_display = ('id', 'user', 'clinic_name', 'initial_month', 'doctors_count', 'chairs_count', 'submitted_at')
     list_filter = ('initial_month', 'submitted_at', 'doctors_count')
     search_fields = ('user__username', 'user__email', 'clinic_name')
@@ -171,6 +183,7 @@ class MetricsSubmissionAdmin(admin.ModelAdmin):
 
     
     def get_queryset(self, request):
+        """Оптимизирует запрос за счёт select_related."""
         return super().get_queryset(request).select_related('user')
     
 

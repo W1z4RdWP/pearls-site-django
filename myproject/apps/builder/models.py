@@ -7,6 +7,7 @@ import json
 
 
 class CategoryName(models.Model):
+    """Иерархическая категория для структуры БЗ (родитель/подкатегории, порядок, доступ)."""
     name = models.CharField(max_length=200, verbose_name="Название категории")
     parent = models.ForeignKey(
         'self',
@@ -52,6 +53,10 @@ class Document(models.Model):
     def __str__(self) -> str:
         return self.title
 
+ 
+ 
+ 
+ 
 class Incident(models.Model):
     """
     Инцидент, связанный с обучением или ошибкой. Может автоматически назначать материалы и тесты.
@@ -87,6 +92,10 @@ class Incident(models.Model):
     def __str__(self) -> str:
         return f"{self.title} ({self.get_incident_type_display()})"
 
+ 
+ 
+ 
+ 
 class LessonVersion(models.Model):
     """
     Версия урока базы знаний. Хранит историю изменений для каждого Lesson.
@@ -116,6 +125,10 @@ class LessonVersion(models.Model):
         return f"{self.lesson.title} v{self.version} ({self.updated_at:%d.%m.%Y})"
 
 
+ 
+ 
+ 
+ 
 class LessonCategoryMirror(models.Model):
     """
     Зеркальная ссылка на урок (Lesson) в другой категории (CategoryName).
@@ -138,6 +151,7 @@ class LessonCategoryMirror(models.Model):
 
 
 class DictionarySection(models.Model):
+    """Раздел словаря терминов (верхний уровень группировки терминов)."""
     name = models.CharField(max_length=200, verbose_name="Название отдела")
     order = models.PositiveIntegerField(default=0, verbose_name="Порядок")
     # Можно добавить slug, описание и т.д.
@@ -151,6 +165,7 @@ class DictionarySection(models.Model):
         return self.name
 
 class DictionaryTerm(models.Model):
+    """Элемент словаря: термин, сленг, определение, опциональное фото и автор."""
     section = models.ForeignKey(DictionarySection, on_delete=models.CASCADE, blank=True, null=True, related_name='terms', verbose_name="Отдел")
     term = models.CharField(max_length=200, verbose_name="Термин")
     slang = models.CharField(max_length=200, blank=True, verbose_name="Сленг")
@@ -169,6 +184,10 @@ class DictionaryTerm(models.Model):
     def __str__(self):
         return self.term
 
+ 
+ 
+ 
+ 
 class LessonAllowedRole(models.Model):
     """
     Модель для связи уроков с разрешенными должностями для актуализации.
@@ -196,6 +215,10 @@ class LessonAllowedRole(models.Model):
         return "— не назначен —"
 
 
+ 
+ 
+ 
+ 
 class AuditLog(models.Model):
     """
     Модель для логирования всех операций в базе знаний
