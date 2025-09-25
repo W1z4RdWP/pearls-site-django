@@ -366,6 +366,7 @@ section {
     height: 0;
     overflow: hidden;
     margin: 20px 0;
+    clear: both; /* чтобы видео не перекрывалось плавающими элементами */
 }
 
 .video-wrapper iframe {
@@ -807,22 +808,28 @@ main > section > .text-block-2 {
     color: #0a58ca;
 }
 
+.lesson-content iframe {
+    display: block;
+    max-width: 100%;
+    width: 100%;
+    height: auto;
+    clear: both; /* iframe из CKEditor не перекрывает таблицы/картинки */
+}
+
 .lesson-content table {
     border-collapse: collapse;
     width: 100%;
     margin: 16px 0;
     background: #fafbfc;
     font-size: 1em;
-    position: relative;
-    z-index: 1;
-    display: table;
     table-layout: auto;
+    clear: both;           /* не наползать на плавающие элементы */
+    overflow: auto;        /* создать BFC, чтобы не перекрывать соседей */
 }
 .lesson-content th, .lesson-content td {
     border: 1px solid #bbb;
     padding: 8px 12px;
     text-align: left;
-    position: relative;
     vertical-align: top;
     word-wrap: break-word;
     overflow-wrap: break-word;
@@ -833,8 +840,6 @@ main > section > .text-block-2 {
     text-align: center;
 }
 .lesson-content tr {
-    position: relative;
-    z-index: 1;
     display: table-row;
 }
 .lesson-content tr:nth-child(even) {
@@ -881,6 +886,7 @@ main > section > .text-block-2 {
 .lesson-content p {
     margin: 0 0 12px 0;
     color: var(--color-text);
+    clear: both; /* тексты под плавающими элементами не накрывать */
 }
 .lesson-content h1, .lesson-content h2, .lesson-content h3 {
     margin: 18px 0 10px 0;
@@ -894,6 +900,7 @@ main > section > .text-block-2 {
     height: auto;
     display: block;
     /* margin: 12px 0; */
+    clear: both; /* картинки из CKEditor с float не должны перекрывать таблицы */
 }
 
 
