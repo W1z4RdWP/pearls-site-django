@@ -88,6 +88,8 @@ def deduct_dascoin_points(user: User, points: int, reason: str = "", admin_user:
         )
 
 
+
+
 def set_dascoin_points(user: User, points: int, reason: str = "", admin_user: User = None) -> None:
     """
     Устанавливает точное количество баллов DASCOIN пользователю.
@@ -128,6 +130,8 @@ def set_dascoin_points(user: User, points: int, reason: str = "", admin_user: Us
         check_and_award_badges(user)
 
 
+
+
 def check_and_award_badges(user: User) -> None:
     """
     Проверяет и выдает бейджи на основе текущих баллов пользователя.
@@ -150,6 +154,8 @@ def check_and_award_badges(user: User) -> None:
     for badge in available_badges:
         UserBadge.objects.create(user=user, badge=badge)
         print(f"Выдан бейдж: {badge.name} за {badge.points_required} баллов")
+
+
 
 
 def award_course_badge(user: User, course_title: str) -> None:
@@ -177,6 +183,8 @@ def award_course_badge(user: User, course_title: str) -> None:
     UserBadge.objects.get_or_create(user=user, badge=badge)
 
 
+
+
 def award_trajectory_badge(user: User, trajectory_title: str) -> None:
     """
     Выдает бейдж за завершение траектории.
@@ -202,6 +210,8 @@ def award_trajectory_badge(user: User, trajectory_title: str) -> None:
     UserBadge.objects.get_or_create(user=user, badge=badge)
 
 
+
+
 def award_first_lesson_badge(user: User) -> None:
     """
     Выдает бейдж "Первый шаг" за прохождение первого урока.
@@ -224,6 +234,8 @@ def award_first_lesson_badge(user: User) -> None:
         pass
 
 
+
+
 def award_half_course_badge(user: User, role: str = None) -> None:
     """
     Выдает бейдж "Половина пути" за прохождение половины курсов по направлению.
@@ -237,6 +249,8 @@ def award_half_course_badge(user: User, role: str = None) -> None:
         UserBadge.objects.get_or_create(user=user, badge=badge)
     except Badge.DoesNotExist:
         pass
+
+
 
 
 def award_trajectory_completed_badge(user: User) -> None:
@@ -253,6 +267,8 @@ def award_trajectory_completed_badge(user: User) -> None:
         pass
 
 
+
+
 def award_speaker_badge(user: User) -> None:
     """
     Выдает бейдж "Спикер" за проведение обучения.
@@ -265,6 +281,8 @@ def award_speaker_badge(user: User) -> None:
         UserBadge.objects.get_or_create(user=user, badge=badge)
     except Badge.DoesNotExist:
         pass
+
+
 
 
 def award_mentor_badge(user: User) -> None:
@@ -281,6 +299,8 @@ def award_mentor_badge(user: User) -> None:
         pass
 
 
+
+
 def award_monthly_leader_achievement(user: User) -> None:
     """
     Выдает достижение "Лидер месяца" за самый высокий прирост баллов.
@@ -293,6 +313,8 @@ def award_monthly_leader_achievement(user: User) -> None:
         UserAchievement.objects.get_or_create(user=user, achievement=achievement)
     except Achievement.DoesNotExist:
         pass
+
+
 
 
 def award_department_erudite_achievement(user: User, department: str = None) -> None:
@@ -308,6 +330,8 @@ def award_department_erudite_achievement(user: User, department: str = None) -> 
         UserAchievement.objects.get_or_create(user=user, achievement=achievement)
     except Achievement.DoesNotExist:
         pass
+
+
 
 
 def award_yearly_mentor_achievement(user: User) -> None:
@@ -326,6 +350,8 @@ def award_yearly_mentor_achievement(user: User) -> None:
         pass
 
 
+
+
 def award_initiator_achievement(user: User) -> None:
     """
     Выдает достижение "Инициатор" за авторство значимой идеи.
@@ -338,6 +364,8 @@ def award_initiator_achievement(user: User) -> None:
         UserAchievement.objects.get_or_create(user=user, achievement=achievement)
     except Achievement.DoesNotExist:
         pass
+
+
 
 
 def award_achievement(user: User, achievement_type: str, title: str, description: str = "") -> None:
@@ -364,6 +392,8 @@ def award_achievement(user: User, achievement_type: str, title: str, description
         pass
     
     UserAchievement.objects.get_or_create(user=user, achievement=achievement)
+
+
 
 
 def get_user_gamification_stats(user: User) -> dict:

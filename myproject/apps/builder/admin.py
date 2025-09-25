@@ -11,6 +11,7 @@ admin.site.register(CategoryName)
 
 @admin.register(LessonVersion)
 class LessonVersionAdmin(admin.ModelAdmin):
+    """Админка версий уроков с фильтрами и поиском."""
     list_display = ('lesson', 'version', 'updated_at', 'updated_by', 'comment')
     list_filter = ('lesson', 'updated_by')
     search_fields = ('lesson__title', 'title', 'comment')
@@ -18,6 +19,7 @@ class LessonVersionAdmin(admin.ModelAdmin):
 
 @admin.register(LessonCategoryMirror)
 class LessonCategoryMirrorAdmin(admin.ModelAdmin):
+    """Админка зеркал уроков по категориям."""
     list_display = ('lesson', 'category', 'order')
     list_filter = ('lesson', 'category')
     search_fields = ('lesson__title', 'category__name')
@@ -25,15 +27,24 @@ class LessonCategoryMirrorAdmin(admin.ModelAdmin):
 
 @admin.register(Document)
 class DocumentAdmin(admin.ModelAdmin):
+    """Админка документов базы знаний."""
     list_display = ('title', 'file', 'uploaded_at')
     list_filter = ('uploaded_at',)
     search_fields = ('title',)
 
+
+
+
 admin.site.register(DictionaryTerm)
+
 admin.site.register(DictionarySection)
+
+
+
 
 @admin.register(LessonAllowedRole)
 class LessonAllowedRoleAdmin(admin.ModelAdmin):
+    """Админка разрешённых должностей для уроков."""
     list_display = ('lesson', 'role', 'responsible_fio', 'added_at')
     list_filter = ('lesson', 'role', 'added_at')
     search_fields = ('lesson__title', 'role__name')
@@ -52,6 +63,7 @@ class LessonAllowedRoleAdmin(admin.ModelAdmin):
 
 @admin.register(AuditLog)
 class AuditLogAdmin(admin.ModelAdmin):
+    """Админка аудита изменений по объектам БЗ."""
     list_display = (
         'timestamp', 'user_display', 'action', 'model_name', 
         'object_name', 'changes_summary', 'ip_address'
