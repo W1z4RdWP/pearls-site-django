@@ -6,7 +6,7 @@ services:
      POSTGRES_USER: ${DJANGO_DB_USER}
      POSTGRES_PASSWORD: ${DJANGO_DB_PASSWD}
    ports:
-     - "5434:5432" # проброс порта 5432 из контейнера на порт 5434 снаружи
+     - "${DJANGO_DB_PORT}:${DJANGO_DB_PORT}" # проброс порта 5432 из контейнера на порт 5434 снаружи
    volumes:
      - postgres_data:/var/lib/postgresql/data
    env_file:
