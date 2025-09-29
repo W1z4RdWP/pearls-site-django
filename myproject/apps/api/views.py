@@ -22,6 +22,79 @@ from courses.models import Course
 audit_logger = logging.getLogger('audit')
 
 
+
+
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def user_register(request):
+    try:
+        data = request.data
+        
+        # Проверяем обязательные поля
+        required_fields = ['first_name', 'last_name', 'phone', 'email', 'password']
+        for field in required_fields:
+            if not data.get(field):
+                return Response(
+                    {'error': f'Поле {field} обязательно'}, 
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+        
+        # Проверяем, существует ли пользователь с таким email
+        if User.objects.filter(email=data['email']).exists():
+            return Response(
+                {'error': 'Пользователь с таким email уже существует'}, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Проверяем, существует ли пользователь с таким username
+        if User.objects.filter(username=data['email']).exists():
+            return Response(
+                {'error': 'Пользователь с таким email уже существует'}, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        with transaction.atomic():
+            # Создаем пользователя
+            user = User.objects.create_user(
+                username=data['email'],  # Используем email как username
+                email=data['email'],
+                password=data['password'],
+                first_name=data['first_name'],
+                last_name=data['last_name']
+            )
+            
+            # Сохраняем дополнительную информацию (телефон, отчество)
+            if hasattr(user, 'profile'):
+                user.profile.phone_number = data.get('phone', '')
+                user.profile.middle_name = data.get('middle_name', '')
+                user.profile.is_approved = True
+                user.profile.save()
+            
+            # TODO: Можно сделать списки пользователей по должностям и зависимсоти от того, в каком списке, добавлять в соответствующую группу.
+            # Добавляем пользователя в группу "Внешний пользователь"
+            # external_group, created = Group.objects.get_or_create(name='Внешний пользователь')
+            # user.groups.add(external_group)
+        
+        return Response({
+            'success': True,
+            'user_id': user.id,
+            'message': 'Пользователь успешно зарегистрирован'
+        }, status=status.HTTP_201_CREATED)
+        
+    except IntegrityError as e:
+        return Response(
+            {'error': f'Ошибка базы данных: {str(e)}'}, 
+            status=status.HTTP_400_BAD_REQUEST
+        )
+    except Exception as e:
+        return Response(
+            {'error': f'Неожиданная ошибка: {str(e)}'}, 
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
+
+
+
+
 def generate_telegram_auth_token(email, password):
     """
     Генерирует JWT токен для авторизации через Telegram.
@@ -134,6 +207,8 @@ def telegram_register(request):
             {'error': f'Неожиданная ошибка: {str(e)}'}, 
             status=status.HTTP_500_INTERNAL_SERVER_ERROR
         )
+
+
 
 
 @api_view(['GET'])
