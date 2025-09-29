@@ -2,7 +2,7 @@
 
 set -e  # Прервать выполнение при ошибке
 
-git pull
+git pull origin main
 
 source .venv/bin/activate # Активация виртуального окружения
 cd myproject # Переход в директорию проекта
