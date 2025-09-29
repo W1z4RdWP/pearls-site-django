@@ -1,19 +1,32 @@
 stages:
   - test
-  - build
+  - merge
 
 test:
   stage: test
   script:
-    - echo "Tests completed successfully!"
-    - exit 0
-  
-build:
-  stage: build
+    - echo "Запуск тестов..."
+    - cd /home/django-user/pearls-site-django/myproject
+    - source ../.venv/bin/activate
+    - pip install -r requirements.txt || { echo "Ошибка при установке зависимостей"; exit 1; }
+  only:
+    - dev
+
+merge:
+  stage: merge
   script:
-    - echo "Build completed successfully!"
-    - exit 0
-  
+    - echo "Выполняем merge dev в main"
+    - git config --global user.name "GitLab CI"
+    - git config --global user.email "ci@example.com"
+    - git checkout main
+    - git merge origin/dev
+    - git push origin main
+  only:
+    - dev
+  when: on_success
+  dependencies:
+    - test
+
 
 
 
