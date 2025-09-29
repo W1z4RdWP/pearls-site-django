@@ -5,6 +5,12 @@ deploy_production:
   stage: deploy
   only:
     - main
+  image: alpine:latest
+  before_script:
+    - apk add --no-cache openssh-client bash sudo
+    - mkdir -p ~/.ssh
+    - echo "$SSH_PRIVATE_KEY" | tr -d '\r' | ssh-add -
+    - ssh-keyscan -H prod_server >> ~/.ssh/known_hosts
   script:
     - >
       ssh -o StrictHostKeyChecking=no django-user@prod_server /bin/bash -c '
