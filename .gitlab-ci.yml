@@ -50,5 +50,5 @@ deploy_production:
       echo "Перезапускаем сервер"
       sudo systemctl restart django
 
-      echo "Готово"
+      echo "Готово!"
       EOF
