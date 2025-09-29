@@ -14,4 +14,4 @@ deploy_production:
     - chmod 644 ~/.ssh/known_hosts
   script:
   - ssh django-user@10.0.1.125 pwd
-  - ssh django-user@10.0.1.125 'bash -s' < ./home/django-user/pearls-site-django/scripts/update.sh
+  - ssh django-user@10.0.1.125 'cd pearls-site-django/scripts; bash -s' < ./update.sh
