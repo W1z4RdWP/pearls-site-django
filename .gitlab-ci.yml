@@ -13,5 +13,5 @@ deploy_production:
     - ssh-keyscan -H 10.0.1.125 >> ~/.ssh/known_hosts
     - chmod 644 ~/.ssh/known_hosts
   script:
-    - ssh django-user@10.0.1.125
-    - bash /home/django-user/pearls-site-django/scripts/update.sh
+    - ssh django-user@10.0.1.125 'bash -s' < ./pearls-site-django/scripts/update.sh
+
