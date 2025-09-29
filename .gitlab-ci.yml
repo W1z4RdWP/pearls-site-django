@@ -18,8 +18,9 @@ deploy_production:
       set -e  # прервать выполнение при ошибке
 
       cd /home/django-user/pearls-site-django  # поменяйте на путь где лежит git, например pearls-site-django
-
+      echo "pullin git"
       git pull
+      echo "pulled successfully"
 
       source .venv/bin/activate  # активация виртуального окружения
       cd myproject  # переход в директорию проекта
