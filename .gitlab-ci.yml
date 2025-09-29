@@ -6,12 +6,15 @@ deploy_production:
   only:
     - main
   before_script:
-    - mkdir -p ~/.ssh
+    - eval "$(ssh-agent -s)"
     - echo "$SSH_PRIVATE_KEY" | tr -d '\r' | ssh-add -
-    - ssh-keyscan -H prod_server >> ~/.ssh/known_hosts
+    - mkdir -p ~/.ssh
+    - chmod 700 ~/.ssh
+    - ssh-keyscan -H 10.0.1.125 >> ~/.ssh/known_hosts
+    - chmod 644 ~/.ssh/known_hosts
   script:
     - >
-      ssh -o StrictHostKeyChecking=no django-user@prod_server /bin/bash -c '
+      ssh -o StrictHostKeyChecking=no django-user@10.0.1.125 /bin/bash -c '
       set -e
       cd /path/to/your/project
       git pull
