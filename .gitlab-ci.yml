@@ -1,16 +1,36 @@
 stages:
-  - test
-  - build
+  - deploy
 
-test:
-  stage: test
+deploy_production:
+  stage: deploy
+  only:
+    - main
   script:
-    - echo "Tests completed successfully!"
-    - exit 0
-  
-build:
-  stage: build
-  script:
-    - echo "Build completed successfully!"
-    - exit 0
-  
+    - >
+      ssh -o StrictHostKeyChecking=no django-user@prod_server /bin/bash -c '
+      set -e
+      cd /path/to/your/project
+      git pull
+      source .venv/bin/activate
+      cd myproject
+      pip install -r requirements.txt
+      if [ -d staticfiles ]; then
+        echo "Меняем владельца staticfiles/ на django-user"
+        sudo chown django-user:django-user -R staticfiles/
+        echo "Удаляем папку staticfiles/"
+        sudo rm -rf staticfiles
+      else
+        echo "Папка staticfiles не найдена, пропускаю chown и удаление."
+      fi
+      echo "Собираем статику Django"
+      python manage.py collectstatic --noinput
+      echo "Меняем владельца staticfiles/ на www-data"
+      sudo chown www-data:www-data -R staticfiles/
+      echo "Выполняем миграции"
+      python manage.py migrate
+      echo "Проверяем проект Django"
+      python manage.py check
+      echo "Перезапускаем сервер"
+      sudo systemctl restart django
+      echo "Готово!"
+      '
