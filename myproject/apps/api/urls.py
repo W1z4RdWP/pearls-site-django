@@ -4,6 +4,9 @@ from . import views
 app_name = 'api'
 
 urlpatterns = [
+    path('user/register/', views.user_register, name='api_user_register'),
+
+    # Telegram endpoints
     path('telegram/register/', views.telegram_register, name='telegram_register'),
     path('telegram/auth/', views.telegram_auth, name='telegram_auth'),
     path('telegram/token/', views.generate_auth_token, name='generate_auth_token'),
