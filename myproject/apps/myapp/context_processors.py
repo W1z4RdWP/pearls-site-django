@@ -38,7 +38,6 @@ def nav_menu(request):
     ]
     nav_staff = [
         {'url': 'changelog', 'label': 'Список изменений', 'icon': 'fa-solid fa-list-check'},
-        {'url': 'courses:create-course', 'label': 'Создать курс', 'icon': 'fa-solid fa-plus'},
         {'url': 'quizzes:quizzes', 'label': 'Тесты', 'icon': 'fa-solid fa-clipboard-question'},
         {'url': 'builder:dashboard', 'label': 'Панель управления', 'icon': 'fa-solid fa-cog'},
     ]
