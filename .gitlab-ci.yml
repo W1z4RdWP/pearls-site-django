@@ -9,7 +9,7 @@ deploy_production:
     - >
       ssh -o StrictHostKeyChecking=no django-user@prod_server /bin/bash -c '
       set -e
-      cd /path/to/your/project
+      cd /home/django-user/pearls-site-django/
       git pull
       source .venv/bin/activate
       cd myproject

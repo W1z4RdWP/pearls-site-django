@@ -17,7 +17,7 @@ services:
    depends_on:
      - redis
    command: sh -c "python manage.py migrate &&
-         gunicorn --bind 0.0.0.0:8000 myproject.wsgi" # выполняет миграции в БД и запускает тестовый инстанс на порту 8000
+         sudo systemctl start django" # выполняет миграции в БД и запускает тестовый инстанс на порту 8000
    environment: # переменные из .env файла
      DJANGO_SETTINGS_MODULE: ${DJANGO_SETTINGS_MODULE}
      DJANGO_SECRET_KEY: ${DJANGO_SECRET_KEY}
