@@ -13,12 +13,10 @@ deploy_production:
     - ssh-keyscan -H 10.0.1.125 >> ~/.ssh/known_hosts
     - chmod 644 ~/.ssh/known_hosts
   script:
-    - |
-      ssh django-user@10.0.1.125 'bash -s' <<'EOF'
-      set -e  # прервать выполнение при ошибке
-
-      cd /home/django-user/pearls-site-django  # поменяйте на путь где лежит git, например pearls-site-django
-      echo "pullin git"
+    - >
+      ssh -o StrictHostKeyChecking=no django-user@prod_server /bin/bash -c '
+      set -e
+      cd /home/django-user/pearls-site-django/
       git pull
       echo "pulled successfully"
 

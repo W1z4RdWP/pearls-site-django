@@ -37,8 +37,8 @@ def nav_menu(request):
         {'url': 'builder:lesson_master', 'label': 'База знаний', 'icon': 'fa-solid fa-book'},
     ]
     nav_staff = [
+        {'url': 'builder:trajectory_management', 'label': 'Управление траекториями', 'icon': 'fa-solid fa-route'},
         {'url': 'changelog', 'label': 'Список изменений', 'icon': 'fa-solid fa-list-check'},
-        {'url': 'quizzes:quizzes', 'label': 'Тесты', 'icon': 'fa-solid fa-clipboard-question'},
         {'url': 'builder:dashboard', 'label': 'Панель управления', 'icon': 'fa-solid fa-cog'},
     ]
     return {'nav_public': nav_public, 'nav_staff': nav_staff}
