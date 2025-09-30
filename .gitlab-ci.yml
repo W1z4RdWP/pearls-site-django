@@ -5,32 +5,49 @@ deploy_production:
   stage: deploy
   only:
     - main
+  before_script:
+    - eval "$(ssh-agent -s)"
+    - echo "$SSH_PRIVATE_KEY" | tr -d '\r' | ssh-add -
+    - mkdir -p ~/.ssh
+    - chmod 700 ~/.ssh
+    - ssh-keyscan -H 10.0.1.125 >> ~/.ssh/known_hosts
+    - chmod 644 ~/.ssh/known_hosts
   script:
     - >
       ssh -o StrictHostKeyChecking=no django-user@10.0.1.125 /bin/bash -c '
       set -e
       cd /home/django-user/pearls-site-django/
       git pull
-      source .venv/bin/activate
-      cd myproject
+      echo "pulled successfully"
+
+      source .venv/bin/activate  # активация виртуального окружения
+      cd myproject  # переход в директорию проекта
       pip install -r requirements.txt
+
       if [ -d staticfiles ]; then
-        echo "Меняем владельца staticfiles/ на django-user"
-        sudo chown django-user:django-user -R staticfiles/
-        echo "Удаляем папку staticfiles/"
-        sudo rm -rf staticfiles
+          echo "Меняем владельца staticfiles/ на django-user"
+          sudo chown django-user:django-user -R staticfiles/
+
+          echo "Удаляем папку staticfiles/"
+          sudo rm -rf staticfiles
       else
-        echo "Папка staticfiles не найдена, пропускаю chown и удаление."
+          echo "Папка staticfiles не найдена, пропускаю chown и удаление."
       fi
+
       echo "Собираем статику Django"
       python manage.py collectstatic --noinput
+
       echo "Меняем владельца staticfiles/ на www-data"
       sudo chown www-data:www-data -R staticfiles/
+
       echo "Выполняем миграции"
       python manage.py migrate
+
       echo "Проверяем проект Django"
       python manage.py check
+
       echo "Перезапускаем сервер"
       sudo systemctl restart django
-      echo "Готово!"
-      '
+
+      echo "Готово!!!"
+      EOF
