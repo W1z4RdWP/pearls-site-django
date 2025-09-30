@@ -7,7 +7,7 @@ deploy_production:
     - main
   script:
     - >
-      ssh -o StrictHostKeyChecking=no django-user@prod_server /bin/bash -c '
+      ssh -o StrictHostKeyChecking=no django-user@10.0.1.125 /bin/bash -c '
       set -e
       cd /home/django-user/pearls-site-django/
       git pull
