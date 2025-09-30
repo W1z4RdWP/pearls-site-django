@@ -28,70 +28,58 @@ audit_logger = logging.getLogger('audit')
 @permission_classes([AllowAny])
 def user_register(request):
     try:
-        data = request.data
-        
-        # Проверяем обязательные поля
-        required_fields = ['first_name', 'last_name', 'phone', 'email', 'password']
-        for field in required_fields:
-            if not data.get(field):
-                return Response(
-                    {'error': f'Поле {field} обязательно'}, 
-                    status=status.HTTP_400_BAD_REQUEST
-                )
-        
-        # Проверяем, существует ли пользователь с таким email
-        if User.objects.filter(email=data['email']).exists():
-            return Response(
-                {'error': 'Пользователь с таким email уже существует'}, 
-                status=status.HTTP_400_BAD_REQUEST
-            )
-        
-        # Проверяем, существует ли пользователь с таким username
-        if User.objects.filter(username=data['email']).exists():
-            return Response(
-                {'error': 'Пользователь с таким email уже существует'}, 
-                status=status.HTTP_400_BAD_REQUEST
-            )
-        
-        with transaction.atomic():
-            # Создаем пользователя
-            user = User.objects.create_user(
-                username=data['email'],  # Используем email как username
-                email=data['email'],
-                password=data['password'],
-                first_name=data['first_name'],
-                last_name=data['last_name']
-            )
-            
-            # Сохраняем дополнительную информацию (телефон, отчество)
-            if hasattr(user, 'profile'):
-                user.profile.phone_number = data.get('phone', '')
-                user.profile.middle_name = data.get('middle_name', '')
-                user.profile.is_approved = True
-                user.profile.save()
-            
-            # TODO: Можно сделать списки пользователей по должностям и зависимсоти от того, в каком списке, добавлять в соответствующую группу.
-            # Добавляем пользователя в группу "Внешний пользователь"
-            # external_group, created = Group.objects.get_or_create(name='Внешний пользователь')
-            # user.groups.add(external_group)
-        
-        return Response({
-            'success': True,
-            'user_id': user.id,
-            'message': 'Пользователь успешно зарегистрирован'
-        }, status=status.HTTP_201_CREATED)
-        
-    except IntegrityError as e:
-        return Response(
-            {'error': f'Ошибка базы данных: {str(e)}'}, 
-            status=status.HTTP_400_BAD_REQUEST
-        )
-    except Exception as e:
-        return Response(
-            {'error': f'Неожиданная ошибка: {str(e)}'}, 
-            status=status.HTTP_500_INTERNAL_SERVER_ERROR
-        )
+        data = request.data.get('users', [])  # Получаем список пользователей
+        results = []
 
+        with transaction.atomic():  # Атомарность всей операции
+            for user_data in data:
+                # Проверяем обязательные поля
+                required_fields = ['first_name', 'last_name', 'phone', 'email', 'password']
+                for field in required_fields:
+                    if not user_data.get(field):
+                        raise ValueError(f'Поле {field} обязательно')
+
+                # Проверка уникальности email
+                if User.objects.filter(email=user_data['email']).exists():
+                    raise ValueError(f'Пользователь с email {user_data["email"]} уже существует')
+
+                # Создание пользователя
+                user = User.objects.create_user(
+                    username=user_data['email'],
+                    email=user_data['email'],
+                    password=user_data['password'],
+                    first_name=user_data['first_name'],
+                    last_name=user_data['last_name']
+                )
+
+                # Обновление профиля
+                if hasattr(user, 'profile'):
+                    user.profile.phone_number = user_data.get('phone', '')
+                    user.profile.middle_name = user_data.get('middle_name', '')
+                    user.profile.is_approved = True
+                    user.profile.save()
+
+                # Добавление в группу (если передано)
+                if user_data.get('group'):
+                    group_name = user_data['group']
+                    external_group, created = Group.objects.get_or_create(name=group_name)
+                    user.groups.add(external_group)
+
+                # Сохранение результата
+                results.append({
+                    'success': True,
+                    'user_id': user.id,
+                    'message': 'Пользователь успешно зарегистрирован'
+                })
+
+        return Response({'results': results}, status=status.HTTP_201_CREATED)
+
+    except IntegrityError as e:
+        return Response({'error': f'Ошибка базы данных: {str(e)}'}, status=status.HTTP_400_BAD_REQUEST)
+    except ValueError as e:
+        return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+    except Exception as e:
+        return Response({'error': f'Неожиданная ошибка: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 

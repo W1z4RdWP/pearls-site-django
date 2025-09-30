@@ -261,15 +261,15 @@ document.addEventListener('DOMContentLoaded', function() {
     categoryHeaders.forEach(header => {
         const arrow = header.querySelector('.toggle-arrow');
         if (arrow) {
-            arrow.classList.add('expanded');
+            arrow.classList.remove('expanded');
         }
         
         const categoryItem = header.closest('.category-item');
         const subcategoryList = categoryItem.querySelector('.subcategory-list');
         const lessonList = categoryItem.querySelector('.lesson-list');
         
-        if (subcategoryList) subcategoryList.style.display = 'block';
-        if (lessonList) lessonList.style.display = 'block';
+        if (subcategoryList) subcategoryList.style.display = 'none';
+        if (lessonList) lessonList.style.display = 'none';
     });
     
     // Добавляем обработчик поиска с задержкой

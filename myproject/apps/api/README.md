@@ -26,6 +26,45 @@ api/
 
 ## API Endpoints
 
+### POST /api/user/register/
+**Функция:** Массовая регистрация пользователей через API.
+
+**Параметры запроса:**
+```json
+{
+  "users": [
+    {
+      "first_name": "Иван",
+      "last_name": "Иванов",
+      "middle_name": "Иванович",
+      "phone": "+79001234567",
+      "email": "ivan@example.com",
+      "password": "StrongPass123!",
+      "group": "Модераторы" // Необязательный параметр
+    },
+    {
+      "first_name": "Анна",
+      "last_name": "Смирнова",
+      "middle_name": "Петровна",
+      "phone": "+79007654321",
+      "email": "anna@example.com",
+      "password": "SecurePass456!"
+    }
+  ]
+}
+```
+
+**Обязательные поля:**
+- `first_name` - Имя пользователя
+- `last_name` - Фамилия пользователя
+- `phone` - Номер телефона
+- `email` - Email адрес (используется как username)
+- `password` - Пароль для входа
+
+**Опциональные поля:**
+- `middle_name` - Отчество пользователя
+- `group` - Группа пользователя для связи с курсами/траекториями.
+
 ### Telegram Integration
 
 #### POST /api/telegram/register/
