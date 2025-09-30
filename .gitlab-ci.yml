@@ -5,15 +5,9 @@ deploy_production:
   stage: deploy
   only:
     - main
-  before_script:
-    - eval "$(ssh-agent -s)"
-    - echo "$SSH_PRIVATE_KEY" | tr -d '\r' | ssh-add -
-    - mkdir -p ~/.ssh
-    - chmod 700 ~/.ssh
-    - ssh-keyscan -H 10.0.1.125 >> ~/.ssh/known_hosts
-    - chmod 644 ~/.ssh/known_hosts
   script:
-    - ssh -o StrictHostKeyChecking=no django-user@prod_server <<'EOF'
+    - >
+      ssh -o StrictHostKeyChecking=no django-user@10.0.1.125 /bin/bash -c '
       set -e
       cd /home/django-user/pearls-site-django/
       git pull
@@ -39,4 +33,4 @@ deploy_production:
       echo "Перезапускаем сервер"
       sudo systemctl restart django
       echo "Готово!"
-EOF
+      '
