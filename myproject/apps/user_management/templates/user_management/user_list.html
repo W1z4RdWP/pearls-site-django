@@ -71,7 +71,7 @@
         <tbody>
             {% for user in users %}
             <tr>
-                <td>{{ forloop.counter }}</td>
+                <td>{{ forloop.counter|add:page_obj.start_index|add:"-1" }}</td>
                 <td>
                     <div class="um-user-avatar-name">
                         <img src="{{ user.profile.image.url }}" alt="avatar" class="um-user-avatar">
