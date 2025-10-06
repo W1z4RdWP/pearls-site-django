@@ -60,6 +60,7 @@
             #continueLearningModal .btn-outline-secondary:hover {
                 background: #6c757d;
                 border-color: #6c757d;
+                color: #dee2e6;
                 transform: translateY(-1px);
             }
             
@@ -183,9 +184,11 @@
                     {% endif %}
                 </div>
                 <div class="modal-footer justify-content-center">
+                    {% if not is_last_lesson %}
                     <button type="button" class="btn btn-outline-secondary me-2" id="restButton">
                         <i class="fa fa-bed"></i> Отдохну 😣
                     </button>
+                    {% endif %}
                     <button type="button" class="btn btn-primary" id="continueButton">
                         {% if is_last_lesson %}
                             <i class="fa fa-check"></i> Вернуться к курсу

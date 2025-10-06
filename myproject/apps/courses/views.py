@@ -1138,7 +1138,7 @@ def redir_to_quiz(request, course_slug):
             request.session['course_slug'] = course.slug
             return redirect('quizzes:quiz_start', quiz_id=course.final_quiz.id)
         else:
-            return redirect('users:profile')
+            return redirect('courses:course_detail', slug=course.slug)
 
     # GET-запрос - показываем страницу с подтверждением
     return render(request, 'courses/redir_to_quiz.html', {'course': course})

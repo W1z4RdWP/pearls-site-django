@@ -22,7 +22,7 @@
                     <span class="profile-registered">Дата регистрации: {{ user.date_joined|date:"d.m.Y H:i" }}</span>
                 </div>
                 <div class="profile-details">
-                    <p class="text-secondary">{{ user.email }}</p>
+                    <p class="text-secondary">{% if user.email != user.first_name %}{{ user.email }}{% endif %}</p>
                     <div class="text-secondary">{{ user.profile.bio|default:'О себе: нет информации'|linebreaks }}</div>
                     <div class="profile-fields">
                         <!-- <span>Имя: <b>{{ user.first_name|default:'-' }}</b></span>
