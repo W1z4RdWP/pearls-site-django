@@ -1347,7 +1347,66 @@ class UserCourseTrajectoryListView(ListView):
     context_object_name = 'user_trajectories'
 
     def get_queryset(self):
-        return UserCourseTrajectory.objects.filter(user=self.request.user).select_related('trajectory')
+        user = self.request.user
+        user_trajectories = UserCourseTrajectory.objects.filter(user=user).select_related('trajectory')
+        
+        # Проверяем, нужно ли скрывать специализированные траектории
+        if self._should_hide_specialized_trajectories(user):
+            # Специализированные группы для медсестер/ассистентов
+            specialized_groups = [
+                "Медицинская сестра/ассистент в хирургии",
+                "Медицинская сестра/ассистент в терапии", 
+                "Медицинская сестра/ассистент в ортопедии",
+                "Медицинская сестра/ассистент в ортодонтии"
+            ]
+            
+            # Исключаем траектории, доступные только для специализированных групп
+            user_specialized_groups = user.groups.filter(name__in=specialized_groups)
+            if user_specialized_groups.exists():
+                specialized_trajectories = Trajectory.objects.filter(
+                    groups__in=user_specialized_groups
+                )
+                
+                user_trajectories = user_trajectories.exclude(
+                    trajectory__in=specialized_trajectories
+                )
+        
+        return user_trajectories
+    
+    def _should_hide_specialized_trajectories(self, user):
+        """
+        Проверяет, нужно ли скрывать специализированные траектории для пользователя.
+        Скрывает, если пользователь состоит в группе "Медсестра/ассистент" И в специализированной группе,
+        но еще не завершил курс "Внедрение м/с и асс. День 6."
+        """
+        # Проверяем, состоит ли пользователь в группе "Медсестра/ассистент"
+        nurse_assistant_group = user.groups.filter(name="Медсестра/ассистент").first()
+        if not nurse_assistant_group:
+            return False
+        
+        # Специализированные группы для медсестер/ассистентов
+        specialized_groups = [
+            "Медицинская сестра/ассистент в хирургии",
+            "Медицинская сестра/ассистент в терапии", 
+            "Медицинская сестра/ассистент в ортопедии",
+            "Медицинская сестра/ассистент в ортодонтии"
+        ]
+        
+        # Проверяем, состоит ли пользователь в какой-либо из специализированных групп
+        user_specialized_groups = user.groups.filter(name__in=specialized_groups)
+        if not user_specialized_groups.exists():
+            return False
+        
+        # Проверяем, завершил ли пользователь курс "Внедрение м/с и асс. День 6."
+        from myapp.models import UserCourse
+        intro_course_completed = UserCourse.objects.filter(
+            user=user,
+            course__title__icontains="Внедрение м/с и асс. День 6",
+            status='completed'
+        ).exists()
+        
+        # Если курс не завершен, скрываем специализированные траектории
+        return not intro_course_completed
 
     def _is_course_available_in_trajectory(self, user, course):
         """

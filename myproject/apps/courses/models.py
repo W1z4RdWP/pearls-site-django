@@ -19,12 +19,74 @@ class CourseManager(models.Manager):
         if user.is_staff or user.is_superuser:
             return self.all()
         
-        return self.filter(
+        # Получаем все курсы, доступные пользователю
+        available_courses = self.filter(
             models.Q(usercourse__user=user) |
             models.Q(allowed_groups__in=user.groups.all()) |
             models.Q(trajectorycourse__trajectory__usercoursetrajectory__user=user)
         ).distinct()
+        
+        # Проверяем, нужно ли скрывать специализированные курсы
+        if self._should_hide_specialized_courses(user):
+            # Специализированные группы для медсестер/ассистентов
+            specialized_groups = [
+                "Медицинская сестра/ассистент в хирургии",
+                "Медицинская сестра/ассистент в терапии", 
+                "Медицинская сестра/ассистент в ортопедии",
+                "Медицинская сестра/ассистент в ортодонтии"
+            ]
+            
+            # Исключаем курсы, доступные только для специализированных групп
+            user_specialized_groups = user.groups.filter(name__in=specialized_groups)
+            if user_specialized_groups.exists():
+                # Исключаем курсы, которые доступны только через специализированные группы
+                # и не назначены пользователю напрямую
+                specialized_courses = self.filter(
+                    allowed_groups__in=user_specialized_groups
+                ).exclude(
+                    usercourse__user=user
+                )
+                
+                available_courses = available_courses.exclude(
+                    id__in=specialized_courses.values_list('id', flat=True)
+                )
+        
+        return available_courses
     
+    def _should_hide_specialized_courses(self, user):
+        """
+        Проверяет, нужно ли скрывать специализированные курсы для пользователя.
+        Скрывает, если пользователь состоит в группе "Медсестра/ассистент" И в специализированной группе,
+        но еще не завершил курс "Внедрение м/с и асс. День 6."
+        """
+        # Проверяем, состоит ли пользователь в группе "Медсестра/ассистент"
+        nurse_assistant_group = user.groups.filter(name="Медсестра/ассистент").first()
+        if not nurse_assistant_group:
+            return False
+        
+        # Специализированные группы для медсестер/ассистентов
+        specialized_groups = [
+            "Медицинская сестра/ассистент в хирургии",
+            "Медицинская сестра/ассистент в терапии", 
+            "Медицинская сестра/ассистент в ортопедии",
+            "Медицинская сестра/ассистент в ортодонтии"
+        ]
+        
+        # Проверяем, состоит ли пользователь в какой-либо из специализированных групп
+        user_specialized_groups = user.groups.filter(name__in=specialized_groups)
+        if not user_specialized_groups.exists():
+            return False
+        
+        # Проверяем, завершил ли пользователь курс "Внедрение м/с и асс. День 6."
+        from myapp.models import UserCourse
+        intro_course_completed = UserCourse.objects.filter(
+            user=user,
+            course__title__icontains="Внедрение м/с и асс. День 6",
+            status='completed'
+        ).exists()
+        
+        # Если курс не завершен, скрываем специализированные курсы
+        return not intro_course_completed
 
     def accessible_via_trajectories(self, user):
         """Курсы, доступные только через траектории"""
@@ -38,12 +100,37 @@ class CourseManager(models.Manager):
 
     def accessible_via_groups(self, user):
         """Курсы, доступные только через группы"""
-        return self.filter(
+        courses = self.filter(
             allowed_groups__in=user.groups.all()
         ).exclude(
             models.Q(usercourse__user=user) |
             models.Q(trajectorycourse__trajectory__usercoursetrajectory__user=user)
         ).distinct()
+        
+        # Проверяем, нужно ли скрывать специализированные курсы
+        if self._should_hide_specialized_courses(user):
+            # Специализированные группы для медсестер/ассистентов
+            specialized_groups = [
+                "Медицинская сестра/ассистент в хирургии",
+                "Медицинская сестра/ассистент в терапии", 
+                "Медицинская сестра/ассистент в ортопедии",
+                "Медицинская сестра/ассистент в ортодонтии"
+            ]
+            
+            # Исключаем курсы, доступные только для специализированных групп
+            user_specialized_groups = user.groups.filter(name__in=specialized_groups)
+            if user_specialized_groups.exists():
+                specialized_courses = self.filter(
+                    allowed_groups__in=user_specialized_groups
+                ).exclude(
+                    usercourse__user=user
+                )
+                
+                courses = courses.exclude(
+                    id__in=specialized_courses.values_list('id', flat=True)
+                )
+        
+        return courses
     
 
     def directly_assigned(self, user):

@@ -249,3 +249,103 @@ def assign_courses_from_trajectory(user, trajectory, send_email_notifications=Fa
                     logger.info(f"Отправлено email уведомление о курсе {tc.course.title} пользователю {user.email}")
                 except Exception as e:
                     logger.error(f"Ошибка отправки email уведомления о курсе {tc.course.title}: {e}")
+
+
+@receiver(post_save, sender=UserCourse)
+def auto_assign_specialized_courses_on_completion(sender, instance, created, **kwargs):
+    """
+    Автоматически выдает доступ к специализированным курсам/траекториям 
+    для медсестер/ассистентов после завершения курса "Внедрение м/с и асс. День 6."
+    """
+    # Проверяем, что курс завершен и это не создание новой записи
+    if instance.status == 'completed' and not created:
+        user = instance.user
+        course = instance.course
+        
+        # Проверяем, что это курс "Внедрение м/с и асс. День 6."
+        if "Внедрение м/с и асс. День 6" in course.title or "Внедрение м/с и асс. День 6." in course.title:
+            logger.info(f"Пользователь {user.username} завершил курс {course.title}")
+            
+            # Получаем группы пользователя
+            user_groups = user.groups.all()
+            
+            # Проверяем, состоит ли пользователь в группе "Медсестра/ассистент"
+            nurse_assistant_group = Group.objects.filter(name="Медсестра/ассистент").first()
+            if not nurse_assistant_group or nurse_assistant_group not in user_groups:
+                logger.info(f"Пользователь {user.username} не состоит в группе 'Медсестра/ассистент'")
+                return
+            
+            # Специализированные группы для медсестер/ассистентов
+            specialized_groups = [
+                "Медицинская сестра/ассистент в хирургии",
+                "Медицинская сестра/ассистент в терапии", 
+                "Медицинская сестра/ассистент в ортопедии",
+                "Медицинская сестра/ассистент в ортодонтии"
+            ]
+            
+            # Проверяем, состоит ли пользователь в какой-либо из специализированных групп
+            user_specialized_groups = user_groups.filter(name__in=specialized_groups)
+            
+            if user_specialized_groups.exists():
+                logger.info(f"Пользователь {user.username} состоит в специализированных группах: {[g.name for g in user_specialized_groups]}")
+                
+                # Находим курсы и траектории, доступные для этих специализированных групп
+                specialized_courses = Course.objects.filter(
+                    allowed_groups__in=user_specialized_groups
+                ).distinct()
+                
+                specialized_trajectories = Trajectory.objects.filter(
+                    groups__in=user_specialized_groups
+                ).distinct()
+                
+                # Назначаем курсы
+                for course in specialized_courses:
+                    user_course, created = UserCourse.objects.get_or_create(
+                        user=user,
+                        course=course,
+                        defaults={'status': 'available'}
+                    )
+                    if created:
+                        logger.info(f"Назначен специализированный курс {course.title} пользователю {user.username}")
+                        
+                        # Создаем внутреннее уведомление
+                        try:
+                            from notifications.models import Notification
+                            Notification.create_course_assignment_notification(user, course)
+                        except Exception as e:
+                            logger.error(f"Ошибка создания уведомления о курсе {course.title}: {e}")
+                        
+                        # Отправляем email уведомление
+                        try:
+                            send_course_assignment_email(user, course)
+                            logger.info(f"Отправлено email уведомление о курсе {course.title} пользователю {user.email}")
+                        except Exception as e:
+                            logger.error(f"Ошибка отправки email уведомления о курсе {course.title}: {e}")
+                
+                # Назначаем траектории
+                for trajectory in specialized_trajectories:
+                    user_trajectory, created = UserCourseTrajectory.objects.get_or_create(
+                        user=user,
+                        trajectory=trajectory
+                    )
+                    if created:
+                        logger.info(f"Назначена специализированная траектория {trajectory.name} пользователю {user.username}")
+                        
+                        # Назначаем курсы из траектории
+                        assign_courses_from_trajectory(user, trajectory, send_email_notifications=False, create_notifications=False)
+                        
+                        # Создаем внутреннее уведомление о траектории
+                        try:
+                            from notifications.models import Notification
+                            Notification.create_trajectory_assignment_notification(user, trajectory)
+                        except Exception as e:
+                            logger.error(f"Ошибка создания уведомления о траектории {trajectory.name}: {e}")
+                        
+                        # Отправляем email уведомление о траектории
+                        try:
+                            send_trajectory_assignment_email(user, trajectory)
+                            logger.info(f"Отправлено email уведомление о траектории {trajectory.name} пользователю {user.email}")
+                        except Exception as e:
+                            logger.error(f"Ошибка отправки email уведомления о траектории {trajectory.name}: {e}")
+            else:
+                logger.info(f"Пользователь {user.username} не состоит ни в одной специализированной группе")
