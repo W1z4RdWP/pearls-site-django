@@ -1349,6 +1349,48 @@ class UserCourseTrajectoryListView(ListView):
     def get_queryset(self):
         return UserCourseTrajectory.objects.filter(user=self.request.user).select_related('trajectory')
 
+    def _is_course_available_in_trajectory(self, user, course):
+        """
+        Проверяет, доступен ли курс в траектории для пользователя.
+        Курс доступен, если он первый в траектории или предыдущий завершён.
+        """
+        # Получаем все траектории пользователя, содержащие этот курс
+        user_trajectories = UserCourseTrajectory.objects.filter(
+            user=user,
+            trajectory__courses=course
+        )
+        
+        for ut in user_trajectories:
+            # Получаем порядок курса в траектории
+            tc = TrajectoryCourse.objects.filter(
+                trajectory=ut.trajectory,
+                course=course
+            ).first()
+            
+            if not tc:
+                continue
+                
+            # Если курс первый в траектории, он доступен
+            if tc.order == 1:
+                return True
+                
+            # Проверяем, завершен ли предыдущий курс
+            prev_tc = TrajectoryCourse.objects.filter(
+                trajectory=ut.trajectory,
+                order=tc.order - 1
+            ).first()
+            
+            if prev_tc:
+                prev_uc = UserCourse.objects.filter(
+                    user=user,
+                    course=prev_tc.course
+                ).first()
+                
+                if prev_uc and prev_uc.status == 'completed':
+                    return True
+        
+        return False
+
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['user'] = self.request.user
@@ -1357,9 +1399,26 @@ class UserCourseTrajectoryListView(ListView):
         user = self.request.user
         available_courses = Course.objects.available_for_user(user)
         
-        # Получаем UserCourse для каждого доступного курса
-        user_courses = []
+        # Фильтруем курсы: исключаем курсы из траекторий, которые еще не доступны
+        filtered_courses = []
         for course in available_courses:
+            # Проверяем, есть ли курс в траекториях пользователя
+            course_in_trajectories = TrajectoryCourse.objects.filter(
+                trajectory__usercoursetrajectory__user=user,
+                course=course
+            ).exists()
+            
+            if course_in_trajectories:
+                # Если курс в траектории, проверяем его доступность
+                if self._is_course_available_in_trajectory(user, course):
+                    filtered_courses.append(course)
+            else:
+                # Если курс не в траектории, он доступен
+                filtered_courses.append(course)
+        
+        # Получаем UserCourse для каждого отфильтрованного курса
+        user_courses = []
+        for course in filtered_courses:
             user_course = UserCourse.objects.filter(user=user, course=course).first()
             if user_course:
                 user_courses.append(user_course)
