@@ -75,12 +75,6 @@ class UserUpdateForm(forms.ModelForm):
     Attributes:
         Meta: Метаданные формы.
     """
-    
-    def clean_email(self):
-        email = self.cleaned_data.get('email')
-        if User.objects.filter(email=email).exclude(id=self.instance.id).exists():
-            raise forms.ValidationError('Пользователь с таким email уже существует. Пожалуйста, введите другой email.')
-        return email
         
     class Meta:
         """
@@ -92,7 +86,7 @@ class UserUpdateForm(forms.ModelForm):
         """
                 
         model = User
-        fields = ['email', 'first_name', 'last_name']
+        fields = ['first_name', 'last_name']
 
 
 
