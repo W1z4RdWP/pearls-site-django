@@ -57,6 +57,12 @@
     max-width: 100%;
   }
   
+  .video-instruction video {
+    max-width: 100%;
+    height: auto;
+    display: block;
+  }
+
   /* Добавляем отступ для контента, чтобы он не перекрывался */
   .card {
     margin-top: 20px;

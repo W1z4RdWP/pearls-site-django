@@ -294,7 +294,7 @@ CSRF_HEADER_NAME = 'HTTP_X_CSRFTOKEN'
 CSRF_COOKIE_PATH = '/'
 
 CKEDITOR_5_ALLOW_ALL_FILE_TYPES = True
-CKEDITOR_5_UPLOAD_FILE_TYPES = ['jpeg', 'pdf', 'png', 'jpg']
+CKEDITOR_5_UPLOAD_FILE_TYPES = ['jpeg', 'pdf', 'png', 'jpg', 'mp4']
 
 CKEDITOR_5_FILE_STORAGE = "courses.storage.CustomStorage"
 
