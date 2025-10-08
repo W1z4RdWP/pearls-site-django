@@ -52,9 +52,13 @@
     <header class='header'>
         <nav class="navbar navbar-expand-lg navbar-dark bg-dark custom-navbar">
             <div class="container-fluid">
+              {% if not request.user.groups.all.0.name == 'Внешний пользователь' %}
                 <a class="navbar-brand" href="{% url 'home' %}" id="logolink">
                     <img src="{% static 'global/imgs/logo_light_theme.png' %}" alt="Logo" id="logopng">
                 </a>
+              {% else %}
+                  <img src="{% static 'global/imgs/logo_light_theme.png' %}" alt="Logo" id="logopng">
+              {% endif %}
                 <div class="d-flex align-items-center">
                     {% if user.is_authenticated %}
                     <!-- Уведомления - вынесены за бургер меню для мобильных -->

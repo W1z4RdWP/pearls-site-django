@@ -18,9 +18,10 @@
       <div class="notice">Пожалуйста, заполняйте <b>достоверно</b> — это влияет на точность диагностики и правильную постановку диагноза. <br>Если у Вас несколько клиник/филиалов, пожалуйста, заполните отдельную форму для каждого из них.</div>
     </header>
     <div class="video-instruction">
-      <iframe width="720" height="405" src="https://rutube.ru/play/embed/3c1a71829db2bda86cc85f5102279609/?p=null" 
-      frameBorder="0" allow="clipboard-write; autoplay" 
-      webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>
+      <video width="720" height="405" controls autoplay muted loop>
+        <source src="{% static 'courses/video/metrics_video.mp4' %}" type="video/mp4">
+        Ваш браузер не поддерживает воспроизведение видео.
+      </video>
     </div>
 
     <form id="f" class="card" novalidate>
