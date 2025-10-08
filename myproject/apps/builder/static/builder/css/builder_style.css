@@ -237,8 +237,12 @@ body.theme-dark {
 
 .category-block > .lesson-list,
 .category-block > .subcategory-list {
-    margin-left: 24px;
+    margin-left: 16px;
     margin-top: 4px;
+}
+
+.category-block > .lesson-list{
+    margin-left: 0;
 }
 
 /* --- Уроки --- */
@@ -272,7 +276,7 @@ body.theme-dark {
     padding: 2px 0 2px 8px;
     border-left: 4px solid transparent;
     transition: background 0.2s, border-color 0.2s, color 0.2s;
-    font-size: 1.1em;
+    font-size: 0.95em;
     font-weight: 500;
 }
 
@@ -286,6 +290,46 @@ body.theme-dark {
     padding-right: 8px;
     line-height: 1.2;
     font-size: 1em;
+    position: relative;
+}
+
+/* Стили для tooltip */
+.lesson-link[title] {
+    position: relative;
+}
+
+.lesson-link[title]:hover::after {
+    content: attr(title);
+    position: absolute;
+    bottom: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--builder-sidebar-bg);
+    color: var(--builder-sidebar-text);
+    padding: 8px 12px;
+    border-radius: 6px;
+    font-size: 0.9em;
+    white-space: nowrap;
+    z-index: 1000;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    border: 1px solid var(--builder-sidebar-header-hover);
+    max-width: 300px;
+    word-wrap: break-word;
+    white-space: normal;
+    text-align: center;
+    margin-bottom: 5px;
+}
+
+.lesson-link[title]:hover::before {
+    content: '';
+    position: absolute;
+    bottom: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    border: 5px solid transparent;
+    border-top-color: var(--builder-sidebar-bg);
+    z-index: 1001;
+    margin-bottom: -5px;
 }
 
 /* Стили для уроков без категории */

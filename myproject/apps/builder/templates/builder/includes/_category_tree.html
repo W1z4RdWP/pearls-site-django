@@ -36,7 +36,7 @@
                                 <line class="svg-paper-line" x1="6.5" y1="13.5" x2="11.5" y2="13.5"/>
                             </svg>
                         </span>
-                        <a class="lesson-link"
+                        <a class="lesson-link" title="{{ lesson.title }}"
                         {% if lesson.is_mirror or lesson.has_mirrors %}style="font-style: italic;"{% endif %}>
                          {{ lesson.title }}
                          {% if lesson.is_mirror or lesson.has_mirrors %}
@@ -65,7 +65,7 @@
                                 <line class="svg-paper-line" x1="6.5" y1="13.5" x2="11.5" y2="13.5"/>
                             </svg>
                         </span>
-                        <a class="lesson-link"
+                        <a class="lesson-link" title="{{ lesson.title }}"
                         {% if lesson.is_mirror or lesson.has_mirrors %}style="font-style: italic;"{% endif %}>
                          {{ lesson.title }}
                          {% if lesson.is_mirror or lesson.has_mirrors %}

@@ -208,6 +208,19 @@ class CustomLoginView(LoginView):
             )
             messages.error(self.request, "Ваш аккаунт ожидает подтверждения администратором.")
             return redirect('users:login')
+
+        # Проверяем, состоит ли пользователь в группе "Внешний пользователь"
+        if user.groups.filter(name='Внешний пользователь').exists():
+            audit_logger.info(
+                'Вошёл в систему (Внешний пользователь)', 
+                extra={
+                    'user': user.email if user.is_authenticated else 'Anonymous'
+                }
+            )
+            auth_login(self.request, user)
+            # Редирект на курс чек-апа для внешних пользователей
+            return redirect('courses:course_detail', slug='chek-ap-stomatologicheskoi-kliniki')
+        
         audit_logger.info(
             'Вошёл в систему', 
             extra={
