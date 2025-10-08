@@ -671,6 +671,8 @@ class LessonDetailView(DetailView):
                 first_lesson = course_lessons.first()
                 is_first_lesson = lesson.id == first_lesson.id
 
+        # Специальная логика для урока "Метрики эффективности стоматологической клиники"
+        is_metrics_lesson = lesson.title == "Метрики эффективности стоматологической клиники"
 
         # Проверяем, является ли урок последним
         is_last_lesson = next_lesson is None
@@ -682,6 +684,7 @@ class LessonDetailView(DetailView):
             'is_dental_checkup_course': is_dental_checkup_course,
             'is_first_lesson': is_first_lesson,
             'is_last_lesson': is_last_lesson,
+            'is_metrics_lesson': is_metrics_lesson,
         })
         
         return context
