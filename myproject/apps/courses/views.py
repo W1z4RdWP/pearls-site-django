@@ -671,12 +671,6 @@ class LessonDetailView(DetailView):
                 first_lesson = course_lessons.first()
                 is_first_lesson = lesson.id == first_lesson.id
 
-    # TODO: Проверить, нужно ли этот блок. 24.09.2025 Если в течение недели не будет жалоб, то удалить.
-    # if request.GET.get('ajax') == '1':
-    #     from django.template.loader import render_to_string
-    #     html = render_to_string('builder/includes/_lesson_detail_block.html', context, request=request)
-    #     from django.http import HttpResponse
-    #     return HttpResponse(html)
 
         # Проверяем, является ли урок последним
         is_last_lesson = next_lesson is None
