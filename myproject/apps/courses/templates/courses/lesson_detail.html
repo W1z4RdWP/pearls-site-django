@@ -77,6 +77,30 @@
             .modal.show .modal-dialog {
                 transform: none;
             }
+            
+            /* Адаптивные стили для видео */
+            video {
+                width: 100%;
+                height: auto;
+                max-width: 100%;
+                border-radius: 8px;
+                box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            }
+            
+            /* Мобильные устройства */
+            @media (max-width: 768px) {
+                video {
+                    border-radius: 6px;
+                    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+                }
+            }
+            
+            /* Очень маленькие экраны */
+            @media (max-width: 480px) {
+                video {
+                    border-radius: 4px;
+                }
+            }
         </style>
 {% endblock %}
 
@@ -111,15 +135,24 @@
         <h1>{{ course.title }}</h1>
         <h2>{{ lesson.title }}</h2>
         <div class="lesson-content ck-content">
-            {{ lesson.content|safe }}
+            {% if is_metrics_lesson %}
+                <!-- Специальный контент для урока "Метрики эффективности стоматологической клиники" -->
+                <video controls autoplay muted loop>
+                    <source src="{% static 'courses/video/check-up-course.mp4' %}" type="video/mp4">
+                    Ваш браузер не поддерживает воспроизведение видео.
+                </video>
+            {% else %}
+                <!-- Обычный контент урока -->
+                {{ lesson.content|safe }}
 
-            {% if lesson.video_id %}
-            <div class="video-wrapper">
-                <iframe src="https://rutube.ru/video/embed/{{ lesson.video_id }}/" 
-                        frameborder="0" 
-                        allowfullscreen>
-                </iframe>
-            </div>
+                {% if lesson.video_id %}
+                <div class="video-wrapper">
+                    <iframe src="https://rutube.ru/video/embed/{{ lesson.video_id }}/" 
+                            frameborder="0" 
+                            allowfullscreen>
+                    </iframe>
+                </div>
+                {% endif %}
             {% endif %}
         </div>
         
