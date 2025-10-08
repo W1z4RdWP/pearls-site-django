@@ -42,7 +42,7 @@
                         <small class="text-secondary">ID: {{ topic.id }}</small>
                     </div>
                     <div class="quiz-actions">
-                        <a href="{% url 'quizzes:quiz_start' quiz_id=topic.id %}" 
+                        <a href="{% url 'quizzes:quiz_start' quiz_id=topic.id %}?from_control_panel=1" 
                            class="btn-mini success btn-sm">
                             <i class="fas fa-play"></i> Запустить
                         </a>

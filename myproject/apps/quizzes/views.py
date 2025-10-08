@@ -66,6 +66,12 @@ def get_questions(request, quiz_id: int = None, is_start: bool = False) -> HttpR
             
             # Проверяем доступ к курсу, если тест связан с курсом
             course_slug = request.GET.get('course_slug')
+            from_control_panel = request.GET.get('from_control_panel')
+            
+            # Сохраняем параметр from_control_panel в сессии для использования в get_finish
+            if from_control_panel:
+                request.session['from_control_panel'] = True
+            
             if course_slug:
                 try:
                     course = Course.objects.get(slug=course_slug)
@@ -84,8 +90,9 @@ def get_questions(request, quiz_id: int = None, is_start: bool = False) -> HttpR
                         return redirect(f'{url}?{params}')
                 except Course.DoesNotExist:
                     pass
-            else:
-                # Если course_slug не передан, проверяем связь теста с курсом через модели
+            elif not from_control_panel:
+                # Если course_slug не передан И тест не запускается из панели управления, 
+                # проверяем связь теста с курсом через модели
                 from django.db import models
                 # Ищем курсы, связанные с этим тестом
                 related_courses = Course.objects.filter(
@@ -340,6 +347,7 @@ def get_finish(request) -> HttpResponse:
     
     # Получаем курс для сохранения в результате
     course_slug = request.session.get('course_slug')
+    from_control_panel = request.session.get('from_control_panel', False)
     course = None
     if course_slug:
         course = Course.objects.filter(slug=course_slug).first()
@@ -469,8 +477,8 @@ def get_finish(request) -> HttpResponse:
             
             # Завершаем курс только если все уроки И все тесты пройдены
             if completed_lessons >= total_lessons and completed_quizzes >= total_quizzes:
-                # Начисляем очки за тест только если он не был пройден ранее
-                if not previous_quiz_result:
+                # Начисляем очки за тест только если он не был пройден ранее И тест не запускается из панели управления
+                if not previous_quiz_result and not from_control_panel:
                     award_dascoin_points(request.user, 10, f"Прохождение теста {quiz.name}")
                 
                 # Проверяем, есть ли финальный тест
@@ -488,10 +496,12 @@ def get_finish(request) -> HttpResponse:
                         if user_course.status != 'completed':
                             user_course.status = 'completed'
                             user_course.save()
-                            award_dascoin_points(request.user, course.points, f"Завершение курса {course.title}")
-                            award_course_badge(request.user, course)
-                            # Выдаем сертификат за курс (если настроено)
-                            issue_certificate(request.user, course=course)
+                            # Начисляем баллы за завершение курса только если тест не запускается из панели управления
+                            if not from_control_panel:
+                                award_dascoin_points(request.user, course.points, f"Завершение курса {course.title}")
+                                award_course_badge(request.user, course)
+                                # Выдаем сертификат за курс (если настроено)
+                                issue_certificate(request.user, course=course)
                     else:
                         # Финальный тест не пройден - редиректим на страницу с предложением пройти его
                         if percent_score == 100:
@@ -502,27 +512,38 @@ def get_finish(request) -> HttpResponse:
                     if user_course.status != 'completed':
                         user_course.status = 'completed'
                         user_course.save()
-                        award_dascoin_points(request.user, course.points, f"Завершение курса {course.title}")
-                        award_course_badge(request.user, course)
-                        # Выдаем сертификат за курс (если настроено)
-                        issue_certificate(request.user, course=course)
+                        # Начисляем баллы за завершение курса только если тест не запускается из панели управления
+                        if not from_control_panel:
+                            award_dascoin_points(request.user, course.points, f"Завершение курса {course.title}")
+                            award_course_badge(request.user, course)
+                            # Выдаем сертификат за курс (если настроено)
+                            issue_certificate(request.user, course=course)
                 
                 if percent_score == 100:
                     award_achievement(request.user, 'perfect_score', 'Идеальный результат', 'Получили 100% за прохождение теста')
+                # Если тест запускался из панели управления, возвращаемся туда
+                if from_control_panel:
+                    return redirect('quizzes:quizzes')
                 return redirect('courses:course_detail', slug=course.slug)
             else:
-                # Если не все уроки завершены, начисляем только очки за тест
-                if not previous_quiz_result:
+                # Если не все уроки завершены, начисляем только очки за тест (если не из панели управления)
+                if not previous_quiz_result and not from_control_panel:
                     award_dascoin_points(request.user, 10, f"Прохождение теста {quiz.name}")
                 if percent_score == 100:
                     award_achievement(request.user, 'perfect_score', 'Идеальный результат', 'Получили 100% за прохождение теста')
+                # Если тест запускался из панели управления, возвращаемся туда
+                if from_control_panel:
+                    return redirect('quizzes:quizzes')
                 return redirect('courses:course_detail', slug=course.slug)
         else:
-            # Если пользователь не проходит этот курс, начисляем только очки за тест
-            if not previous_quiz_result:
+            # Если пользователь не проходит этот курс, начисляем только очки за тест (если не из панели управления)
+            if not previous_quiz_result and not from_control_panel:
                 award_dascoin_points(request.user, 10, f"Прохождение теста {quiz.name}")
             if percent_score == 100:
                 award_achievement(request.user, 'perfect_score', 'Идеальный результат', 'Получили 100% за прохождение теста')
+            # Если тест запускался из панели управления, возвращаемся туда
+            if from_control_panel:
+                return redirect('quizzes:quizzes')
     elif course and not passed:
         # Проверяем, является ли этот тест финальным для курса
         if course.final_quiz == quiz:
@@ -556,10 +577,13 @@ def get_finish(request) -> HttpResponse:
         else:
             messages.error(request, "Тест не пройден. Попробуйте снова!")
         
+        # Если тест запускался из панели управления, возвращаемся туда
+        if from_control_panel:
+            return redirect('quizzes:quizzes')
         return redirect('quizzes:quiz_start', quiz_id=quiz.id)
     elif passed:
-        # Если тест не привязан к курсу, но пройден - начисляем очки только если не был пройден ранее
-        if not previous_quiz_result:
+        # Если тест не привязан к курсу, но пройден - начисляем очки только если не был пройден ранее И не из панели управления
+        if not previous_quiz_result and not from_control_panel:
             award_dascoin_points(request.user, 10, f"Прохождение теста {quiz.name}")
         if percent_score == 100:
             award_achievement(request.user, 'perfect_score', 'Идеальный результат', 'Получили 100% за прохождение теста')
@@ -572,6 +596,7 @@ def get_finish(request) -> HttpResponse:
         'is_all_question_text': is_all_question_text,
     }
     course_slug = request.session.pop('course_slug', None)
+    request.session.pop('from_control_panel', None)  # Очищаем параметр из панели управления
     if course_slug:
         context['course_slug'] = course_slug
     
