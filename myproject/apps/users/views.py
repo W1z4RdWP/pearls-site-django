@@ -218,8 +218,8 @@ class CustomLoginView(LoginView):
                 }
             )
             auth_login(self.request, user)
-            # Редирект на курс чек-апа для внешних пользователей
-            return redirect('courses:course_detail', slug='chek-ap-stomatologicheskoi-kliniki')
+            # Редирект после авторизации для внешних пользователей
+            return redirect('homepage')
         
         audit_logger.info(
             'Вошёл в систему', 
