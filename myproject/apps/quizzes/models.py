@@ -31,16 +31,18 @@ class Question(models.Model):
   SINGLE = 'single'
   MULTIPLE = 'multiple'
   TEXT = 'text'
+  MATCH = 'match'
   QUESTION_TYPES = [
       (SINGLE, 'Один правильный ответ'),
       (MULTIPLE, 'Несколько правильных ответов'),
       (TEXT, 'Открытый ответ'),
+      (MATCH, 'Соответствие'),
   ]
 
   quiz = models.ForeignKey(Quiz, on_delete=models.CASCADE)
   text = models.CharField(max_length=1000)
   question_type = models.CharField(
-      max_length=10,
+      max_length=20,
       choices=QUESTION_TYPES,
       default=SINGLE
   )

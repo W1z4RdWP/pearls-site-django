@@ -171,7 +171,7 @@ def get_questions(request, quiz_id: int = None, is_start: bool = False) -> HttpR
         request.session['current_question_id'] = question.id
         answers = Answer.objects.filter(question=question)
         is_last = not Question.objects.filter(
-            quiz_id=quiz_id, 
+            quiz_id=quiz_id,
             id__gt=question.id
         ).exists()
 
@@ -183,8 +183,27 @@ def get_questions(request, quiz_id: int = None, is_start: bool = False) -> HttpR
         total_questions = len(all_questions_ids)
         progress_percent = int((current_index / total_questions) * 100)
 
+        # Подготавливаем данные для типа MATCH
+        questions = {}
+        match_answers = {}
+        if question.question_type == Question.MATCH:
+            # Группируем ответы по парам (каждые 2 ответа - это пара вопрос-ответ)
+            answers_list = list(answers)
+            for i in range(0, len(answers_list), 2):
+                if i < len(answers_list):
+                    # Четные элементы - это вопросы
+                    question_answer = answers_list[i]
+                    question_key = str(question_answer.id)
+                    questions[question_key] = question_answer.text
 
-        
+                if i + 1 < len(answers_list):
+                    # Нечетные элементы - это ответы
+                    answer_answer = answers_list[i + 1]
+                    match_answers[str(answer_answer.id)] = answer_answer.text
+
+            # Для типа MATCH переопределяем answers только ответами
+            answers = match_answers
+
         # Получаем информацию о попытках для отображения
         attempts_info = {}
         if request.user.is_authenticated:
@@ -202,15 +221,22 @@ def get_questions(request, quiz_id: int = None, is_start: bool = False) -> HttpR
                     'attempts_left': quiz_obj.attempt_limit - failed_attempts
                 }
 
-        return render(request, 'quizzes/question.html', {
+        context = {
             'question': question,
             'answers': answers,
             'is_last': is_last,
             'current_question_number': current_index,
             'total_questions': total_questions,
             'progress_percent': progress_percent,
-            'attempts_info': attempts_info
-        })
+            'attempts_info': attempts_info,
+            'question_type': question.question_type
+        }
+
+        # Добавляем questions только для типа MATCH
+        if question.question_type == Question.MATCH:
+            context['questions'] = questions
+
+        return render(request, 'quizzes/question.html', context)
     
     return redirect(request.META['HTTP_REFERER'])
 
@@ -279,6 +305,124 @@ def get_answer(request) -> HttpResponse:
                 'user_text': user_text,
                 'is_last': is_last,
             }
+        elif question.question_type == Question.MATCH:
+            # Для типа соответствие получаем соответствия вопрос-ответ
+            user_matches = {}
+            for key, value in request.POST.items():
+                if key.startswith('match_') and value:
+                    # Формат: match_question_id -> answer_id
+                    question_id = key.replace('match_', '')
+                    answer_id = value
+                    user_matches[question_id] = answer_id
+
+            # Получаем правильные соответствия
+            correct_matches = {}
+            all_answers = Answer.objects.filter(question=question)
+
+            # Вопросы (неперетаскиваемые элементы справа)
+            questions = {}
+            # Ответы (перетаскиваемые элементы слева)
+            answers = {}
+
+            # Группируем ответы по парам (каждые 2 ответа - это пара вопрос-ответ)
+            answers_list = list(all_answers)
+            for i in range(0, len(answers_list), 2):
+                if i < len(answers_list):
+                    # Четные элементы - это вопросы
+                    question_answer = answers_list[i]
+                    question_key = str(question_answer.id)
+                    questions[question_key] = question_answer.text
+
+                if i + 1 < len(answers_list):
+                    # Нечетные элементы - это ответы
+                    answer_answer = answers_list[i + 1]
+                    answers[str(answer_answer.id)] = answer_answer.text
+
+            # Правильные соответствия - группируем ответы по парам (каждые 2 ответа - это пара вопрос-ответ)
+            question_to_answer = {}
+            answers_list = list(all_answers)
+
+            for i in range(0, len(answers_list), 2):
+                if i + 1 < len(answers_list):
+                    question_answer = answers_list[i]
+                    answer_answer = answers_list[i + 1]
+
+                    # Если оба ответа отмечены как правильные, то это правильная пара
+                    if question_answer.is_correct and answer_answer.is_correct:
+                        question_to_answer[str(question_answer.id)] = str(answer_answer.id)
+
+            # Если не нашли пары через is_correct, используем простую логику:
+            # предполагаем, что правильные соответствия - это когда ответ соответствует вопросу
+            if not question_to_answer:
+                for i in range(0, len(answers_list), 2):
+                    if i + 1 < len(answers_list):
+                        question_answer = answers_list[i]
+                        answer_answer = answers_list[i + 1]
+                        question_to_answer[str(question_answer.id)] = str(answer_answer.id)
+
+            correct_matches = question_to_answer
+
+            # Проверяем правильность ответов пользователя
+            is_correct = True
+            for question_id, expected_answer_id in correct_matches.items():
+                user_answer_id = user_matches.get(question_id)
+                if user_answer_id != expected_answer_id:
+                    is_correct = False
+                    break
+
+            quiz_answers[str(question.id)] = {
+                'user_matches': user_matches,
+                'correct_matches': correct_matches,
+                'questions': questions,
+                'answers': answers,
+                'is_correct': is_correct,
+                'question_type': 'match'
+            }
+
+            all_questions_ids = list(Question.objects.filter(quiz_id=quiz_id).order_by('id').values_list('id', flat=True))
+            current_index = all_questions_ids.index(question.id) + 1
+            total_questions = len(all_questions_ids)
+            is_last = not Question.objects.filter(quiz_id=quiz_id, id__gt=question.id).exists()
+            
+            # Получаем данные для отображения результатов
+            ans_data = quiz_answers[str(question.id)]
+            user_matches = ans_data['user_matches']
+            correct_matches = ans_data['correct_matches']
+            questions = ans_data['questions']
+            answers = ans_data['answers']
+
+            # Подготавливаем данные для шаблона - создаем список с полной информацией о каждом вопросе
+            match_results = []
+            for question_id, question_text in questions.items():
+                user_answer_id = user_matches.get(question_id, '')
+                correct_answer_id = correct_matches.get(question_id, '')
+                user_answer_text = answers.get(user_answer_id, 'Неизвестный ответ')
+                correct_answer_text = answers.get(correct_answer_id, 'Неизвестный ответ')
+                is_question_correct = (user_answer_id == correct_answer_id)
+                
+                match_results.append({
+                    'question_id': question_id,
+                    'question_text': question_text,
+                    'user_answer_id': user_answer_id,
+                    'user_answer_text': user_answer_text,
+                    'correct_answer_id': correct_answer_id,
+                    'correct_answer_text': correct_answer_text,
+                    'is_correct': is_question_correct,
+                })
+
+            context = {
+                'current_question_number': current_index,
+                'total_questions': total_questions,
+                'progress_percent': int((current_index / total_questions) * 100),
+                'is_correct': ans_data['is_correct'],
+                'question': question,
+                'user_matches': user_matches,
+                'correct_matches': correct_matches,
+                'questions': questions,
+                'answers': answers,
+                'match_results': match_results,
+                'is_last': is_last,
+            }
         else:
             submitted_answer_id = request.POST.get('answer_id')
             if submitted_answer_id:
@@ -341,7 +485,9 @@ def get_finish(request) -> HttpResponse:
         is_all_question_text = True
         percent_score = 100
     else: 
-        percent_score = int((score / (questions_count - text_questions_count)) * 100) if questions_count > 0 else 0 # Процент правильных ответов на вопросы, исключая открытые
+        # Исключаем из подсчета только текстовые вопросы (match включаем, т.к. они автоматически проверяются)
+        auto_checkable_questions = questions_count - text_questions_count
+        percent_score = int((score / auto_checkable_questions) * 100) if auto_checkable_questions > 0 else 0
 
     passed = percent_score >= quiz.pass_threshold # Проходной балл из настроек теста
     
@@ -365,7 +511,7 @@ def get_finish(request) -> HttpResponse:
         quiz_title=quiz.name,
         course=course,
         score=score,
-        total_questions=questions_count - text_questions_count, # Всего вопросов без учёта открытых
+        total_questions=questions_count - text_questions_count, # Всего вопросов без учёта открытых (match включаем)
         percent=percent_score,
         passed=passed
     )
@@ -429,6 +575,17 @@ def get_finish(request) -> HttpResponse:
                 selected_answer=None,
                 is_correct=None,
                 answer_text=ans_data.get('answer_text', '')
+            )
+        elif ans_data['question_type'] == 'match':
+            # Для типа соответствие сохраняем соответствия как текст
+            matches_text = '; '.join([f"{q_id}:{a_id}" for q_id, a_id in ans_data.get('user_matches', {}).items()])
+            UserAnswer.objects.create(
+                user=request.user,
+                quiz_result=quiz_result,
+                question=q,
+                selected_answer=None,
+                is_correct=ans_data.get('is_correct', False),
+                answer_text=matches_text
             )
         else:
             ans = Answer.objects.get(id=ans_data['selected_id'])
@@ -765,7 +922,7 @@ class QuizCreateView(UserPassesTestMixin, CreateView):
                     )
                     
                     # Создаем ответы (только для вопросов с вариантами ответов)
-                    if question_data['type'] in ['single', 'multiple']:
+                    if question_data['type'] in ['single', 'multiple', 'match']:
                         for answer_num, answer_data in question_data['answers'].items():
                             if answer_data['text'].strip():  # Проверяем, что текст ответа не пустой
                                 # Для single вопросов правильность определяется через correct_answer
@@ -869,7 +1026,7 @@ class QuizEditView(UserPassesTestMixin, UpdateView):
                             question_type=question_data['type']
                         )
                         
-                        if question_data['type'] in ['single', 'multiple']:
+                        if question_data['type'] in ['single', 'multiple', 'match']:
                             for answer_num, answer_data in question_data['answers'].items():
                                 if answer_data['text'].strip():
                                     # Для single вопросов правильность определяется через correct_answer

@@ -700,6 +700,80 @@ class UserQuizReportView(DetailView):
         grouped = {}
         for ans in answers:
             grouped.setdefault(ans.question, []).append(ans)
+        
+        # Обработка типа "match" - парсим answer_text и подготавливаем данные для отображения
+        from quizzes.models import Answer
+        
+        # Добавляем match_results непосредственно к каждому вопросу в grouped
+        for question, user_answers in grouped.items():
+            if question.question_type == 'match':
+                user_answer = user_answers[0]  # Для match всегда один UserAnswer
+                # Парсим answer_text вида "question_id:answer_id; question_id:answer_id"
+                user_matches = {}
+                if user_answer.answer_text:
+                    for pair in user_answer.answer_text.split('; '):
+                        if ':' in pair:
+                            q_id, a_id = pair.split(':')
+                            user_matches[q_id] = a_id
+                
+                # Получаем все ответы для этого вопроса (question и answer пары)
+                all_answers = Answer.objects.filter(question=question).order_by('id')
+                answers_list = list(all_answers)
+                
+                # Вопросы (неперетаскиваемые элементы справа)
+                questions_dict = {}
+                # Ответы (перетаскиваемые элементы слева)
+                answers_dict = {}
+                
+                # Правильные соответствия
+                correct_matches = {}
+                
+                # Группируем ответы по парам (каждые 2 ответа - это пара вопрос-ответ)
+                for i in range(0, len(answers_list), 2):
+                    if i < len(answers_list):
+                        # Четные элементы - это вопросы
+                        question_answer = answers_list[i]
+                        question_key = str(question_answer.id)
+                        questions_dict[question_key] = question_answer.text
+                    
+                    if i + 1 < len(answers_list):
+                        # Нечетные элементы - это ответы
+                        answer_answer = answers_list[i + 1]
+                        answers_dict[str(answer_answer.id)] = answer_answer.text
+                        
+                        # Если оба отмечены как правильные, это правильная пара
+                        if i < len(answers_list):
+                            question_answer = answers_list[i]
+                            if question_answer.is_correct and answer_answer.is_correct:
+                                correct_matches[str(question_answer.id)] = str(answer_answer.id)
+                
+                # Если не нашли пары через is_correct, используем простую логику
+                if not correct_matches:
+                    for i in range(0, len(answers_list), 2):
+                        if i + 1 < len(answers_list):
+                            question_answer = answers_list[i]
+                            answer_answer = answers_list[i + 1]
+                            correct_matches[str(question_answer.id)] = str(answer_answer.id)
+                
+                # Формируем результаты для каждого вопроса
+                match_results = []
+                for question_id, question_text in questions_dict.items():
+                    user_answer_id = user_matches.get(question_id, '')
+                    correct_answer_id = correct_matches.get(question_id, '')
+                    user_answer_text = answers_dict.get(user_answer_id, 'Неизвестный ответ')
+                    correct_answer_text = answers_dict.get(correct_answer_id, 'Неизвестный ответ')
+                    is_question_correct = (user_answer_id == correct_answer_id)
+                    
+                    match_results.append({
+                        'question_text': question_text,
+                        'user_answer_text': user_answer_text,
+                        'correct_answer_text': correct_answer_text,
+                        'is_correct': is_question_correct,
+                    })
+                
+                # Добавляем match_results непосредственно к user_answer для удобства доступа в шаблоне
+                user_answer.match_results = match_results
+        
         context['grouped_answers'] = grouped
         return context
 
@@ -893,6 +967,10 @@ def unlock_quiz_access(request, user_id, quiz_id):
     
     return redirect('user_management:user_quiz_attempts', pk=user_id)
 
+
+
+
+# TODO: Сделать CBV для homework_check_dashboard.html
 
 
 

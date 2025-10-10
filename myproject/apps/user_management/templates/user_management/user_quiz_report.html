@@ -14,51 +14,82 @@
             {% elif answers.0.is_correct %}list-group-item-success
             {% else %}list-group-item-danger
             {% endif %}
+        {% elif question.question_type == 'match' %}
+            {% if answers.0.is_correct %}list-group-item-success
+            {% else %}list-group-item-danger
+            {% endif %}
         {% else %}
             {% if answers.0.is_correct %}list-group-item-success
             {% else %}list-group-item-danger
             {% endif %}
         {% endif %}">
                 <strong>Вопрос {{ forloop.counter }}:</strong> {{ question.text }}<br>
-                <strong>Ваш ответ:</strong>
-                {% if question.question_type == 'multiple' %}
-                    {% for ans in answers %}
-                        {{ ans.selected_answer.text }}{% if not forloop.last %}, {% endif %}
-                    {% endfor %}
-                {% elif question.question_type == 'text' %}
-                    {{ answers.0.answer_text|default:'<em>Нет ответа</em>' }}
-                {% else %}
-                    {{ answers.0.selected_answer.text|default:'<em>Нет ответа</em>' }}
-                {% endif %}
-                <br>
-                {% if question.question_type != 'text' %}
-                    <strong>Правильный ответ:</strong>
-                    {% for correct_ans in question.answer_set.all %}
-                        {% if correct_ans.is_correct %}
-                            {{ correct_ans.text }}{% if not forloop.last %}, {% endif %}
-                        {% endif %}
-                    {% endfor %}
-                {% endif %}
-                <br>
-                {% if question.question_type == 'text' %}
-                    <form method="post" action="">
-                        {% csrf_token %}
-                        <div class="mt-2">
-                            <label>Оценка администратора:</label>
-                            <select name="text_eval_{{ answers.0.id }}" class="form-select" style="width:auto;display:inline-block;">
-                                <option value="" {% if answers.0.is_correct is None %}selected{% endif %}>Не оценено</option>
-                                <option value="true" {% if answers.0.is_correct %}selected{% endif %}>Правильно</option>
-                                <option value="false" {% if answers.0.is_correct is not None and not answers.0.is_correct %}selected{% endif %}>Неправильно</option>
-                            </select>
-                            <button type="submit" class="btn btn-sm btn-outline-primary">Сохранить</button>
+                
+                {% if question.question_type == 'match' %}
+                    <div class="mt-2">
+                        <strong>Тип:</strong> Соответствие<br>
+                        <div class="row mt-2">
+                            <div class="col-md-6">
+                                <h6>Ответы пользователя:</h6>
+                                {% for result in answers.0.match_results %}
+                                    <div class="p-2 mb-2 border rounded {% if result.is_correct %}bg-success bg-opacity-10 border-success{% else %}bg-danger bg-opacity-10 border-danger{% endif %}">
+                                        <strong>{{ result.question_text }}</strong><br>
+                                        <span class="text-muted">Ответ:</span> {{ result.user_answer_text }}
+                                    </div>
+                                {% endfor %}
+                            </div>
+                            <div class="col-md-6">
+                                <h6>Правильные ответы:</h6>
+                                {% for result in answers.0.match_results %}
+                                    <div class="p-2 mb-2 border border-success rounded bg-success bg-opacity-10">
+                                        <strong>{{ result.question_text }}</strong><br>
+                                        <span class="text-muted">Ответ:</span> {{ result.correct_answer_text }}
+                                    </div>
+                                {% endfor %}
+                            </div>
                         </div>
-                    </form>
-                    {% if answers.0.is_correct is None %}
-                        <span class="badge bg-info">Пользователь дал ответ</span>
+                    </div>
+                {% else %}
+                    <strong>Ваш ответ:</strong>
+                    {% if question.question_type == 'multiple' %}
+                        {% for ans in answers %}
+                            {{ ans.selected_answer.text }}{% if not forloop.last %}, {% endif %}
+                        {% endfor %}
+                    {% elif question.question_type == 'text' %}
+                        {{ answers.0.answer_text|default:'<em>Нет ответа</em>' }}
                     {% else %}
-                        <span class="badge {% if answers.0.is_correct %}bg-success{% else %}bg-danger{% endif %}">
-                            {% if answers.0.is_correct %}Верно{% else %}Неверно{% endif %}
-                        </span>
+                        {{ answers.0.selected_answer.text|default:'<em>Нет ответа</em>' }}
+                    {% endif %}
+                    <br>
+                    {% if question.question_type != 'text' %}
+                        <strong>Правильный ответ:</strong>
+                        {% for correct_ans in question.answer_set.all %}
+                            {% if correct_ans.is_correct %}
+                                {{ correct_ans.text }}{% if not forloop.last %}, {% endif %}
+                            {% endif %}
+                        {% endfor %}
+                    {% endif %}
+                    <br>
+                    {% if question.question_type == 'text' %}
+                        <form method="post" action="">
+                            {% csrf_token %}
+                            <div class="mt-2">
+                                <label>Оценка администратора:</label>
+                                <select name="text_eval_{{ answers.0.id }}" class="form-select" style="width:auto;display:inline-block;">
+                                    <option value="" {% if answers.0.is_correct is None %}selected{% endif %}>Не оценено</option>
+                                    <option value="true" {% if answers.0.is_correct %}selected{% endif %}>Правильно</option>
+                                    <option value="false" {% if answers.0.is_correct is not None and not answers.0.is_correct %}selected{% endif %}>Неправильно</option>
+                                </select>
+                                <button type="submit" class="btn btn-sm btn-outline-primary">Сохранить</button>
+                            </div>
+                        </form>
+                        {% if answers.0.is_correct is None %}
+                            <span class="badge bg-info">Пользователь дал ответ</span>
+                        {% else %}
+                            <span class="badge {% if answers.0.is_correct %}bg-success{% else %}bg-danger{% endif %}">
+                                {% if answers.0.is_correct %}Верно{% else %}Неверно{% endif %}
+                            </span>
+                        {% endif %}
                     {% endif %}
                 {% endif %}
             </div>

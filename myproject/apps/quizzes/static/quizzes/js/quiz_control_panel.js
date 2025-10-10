@@ -180,6 +180,7 @@ function addQuestion() {
                 <option value="single">Один правильный ответ</option>
                 <option value="multiple">Несколько правильных ответов</option>
                 <option value="text">Открытый ответ</option>
+                <option value="match">Соответствие</option>
             </select>
         </div>
 
@@ -221,41 +222,75 @@ function addAnswer(button) {
     const answersContainer = button.closest('.answers-container');
     const questionBlock = button.closest('.question-block');
     const questionId = questionBlock.dataset.questionId;
-    const answerCount = answersContainer.querySelectorAll('.answer-item').length + 1;
-    
-    // Определяем тип вопроса
     const questionType = questionBlock.querySelector('select[name*="[type]"]').value;
-    
-    let correctAnswerField = '';
-    if (questionType === 'single') {
-        correctAnswerField = `<input type="radio" class="form-check-input" name="questions[${questionId}][correct_answer]" value="${answerCount}">`;
+
+    if (questionType === 'match') {
+        // Для типа соответствия добавляем пару вопрос-ответ
+        const existingPairs = answersContainer.querySelectorAll('.match-pair');
+        const pairNumber = existingPairs.length + 1;
+
+        const pairHtml = `
+            <div class="match-pair mb-3 p-3 border rounded">
+                <div class="row">
+                    <div class="col-md-6">
+                        <label class="form-label">Вопрос ${pairNumber}</label>
+                        <input type="text" class="form-control" name="questions[${questionId}][answers][${pairNumber*2-1}][text]"
+                               placeholder="Текст вопроса" required>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Ответ ${pairNumber}</label>
+                        <input type="text" class="form-control" name="questions[${questionId}][answers][${pairNumber*2}][text]"
+                               placeholder="Текст ответа" required>
+                    </div>
+                </div>
+                <button type="button" class="btn btn-sm btn-outline-danger mt-2" onclick="removeMatchPair(this)">
+                    <i class="fas fa-times"></i> Удалить пару
+                </button>
+            </div>
+        `;
+
+        answersContainer.insertAdjacentHTML('beforeend', pairHtml);
     } else {
-        correctAnswerField = `<input type="checkbox" class="form-check-input" name="questions[${questionId}][answers][${answerCount}][correct]">`;
+        // Для других типов вопросов добавляем одиночный ответ
+        const answerCount = answersContainer.querySelectorAll('.answer-item').length + 1;
+
+        let correctAnswerField = '';
+        if (questionType === 'single') {
+            correctAnswerField = `<input type="radio" class="form-check-input" name="questions[${questionId}][correct_answer]" value="${answerCount}">`;
+        } else {
+            correctAnswerField = `<input type="checkbox" class="form-check-input" name="questions[${questionId}][answers][${answerCount}][correct]">`;
+        }
+
+        // Проверяем нужен ли required (только для не-текстовых вопросов)
+        const isRequired = questionType !== 'text' ? 'required' : '';
+
+        // Определяем placeholder в зависимости от типа вопроса
+        let placeholder = 'Текст ответа';
+        if (questionType === 'match') {
+            placeholder = 'left:Текст или right:Текст';
+        }
+
+        const answerHtml = `
+        <div class="answer-item">
+            <input type="text" class="form-control" name="questions[${questionId}][answers][${answerCount}][text]"
+                   placeholder="${placeholder}" ${isRequired}>
+            <div class="form-check">
+                ${correctAnswerField}
+                <label class="form-check-label">Правильный</label>
+            </div>
+            <button type="button" class="remove-btn ms-2" onclick="removeAnswer(this)">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>`;
+
+        button.insertAdjacentHTML('beforebegin', answerHtml);
     }
-    
-    // Проверяем нужен ли required (только для не-текстовых вопросов)
-    const isRequired = questionType !== 'text' ? 'required' : '';
-    
-    const answerHtml = `
-    <div class="answer-item">
-        <input type="text" class="form-control" name="questions[${questionId}][answers][${answerCount}][text]" 
-               placeholder="Текст ответа" ${isRequired}>
-        <div class="form-check">
-            ${correctAnswerField}
-            <label class="form-check-label">Правильный</label>
-        </div>
-        <button type="button" class="remove-btn ms-2" onclick="removeAnswer(this)">
-            <i class="fas fa-times"></i>
-        </button>
-    </div>`;
-    
-    button.insertAdjacentHTML('beforebegin', answerHtml);
 }
 
 function removeAnswer(button) {
     const answersContainer = button.closest('.answers-container');
     const answerItems = answersContainer.querySelectorAll('.answer-item');
-    
+
     if (answerItems.length > 1) {
         button.closest('.answer-item').remove();
     } else {
@@ -263,26 +298,87 @@ function removeAnswer(button) {
     }
 }
 
+function removeMatchPair(button) {
+    button.closest('.match-pair').remove();
+}
+
 function toggleAnswers(select) {
     const questionBlock = select.closest('.question-block');
     const answersContainer = questionBlock.querySelector('.answers-container');
     const questionId = questionBlock.dataset.questionId;
-    
+
     if (select.value === 'text') {
         answersContainer.style.display = 'none';
         // Убираем required с полей ответов для текстовых вопросов
         answersContainer.querySelectorAll('input[type="text"]').forEach(input => input.required = false);
+    } else if (select.value === 'match') {
+        answersContainer.style.display = 'block';
+        // Для типа соответствие показываем специальную инструкцию
+        const label = answersContainer.querySelector('label');
+        if (label) {
+            label.innerHTML = 'Пары вопрос-ответ';
+        }
+
+        // Очищаем контейнер и добавляем примеры
+        const existingContent = answersContainer.querySelectorAll('.answer-item, .match-pair, .alert');
+        existingContent.forEach(item => item.remove());
+
+        // Добавляем примеры для соответствия - создаем пары вопрос-ответ
+        let pairHtml = '';
+        for (let i = 1; i <= 2; i++) {
+            pairHtml += `
+                <div class="match-pair mb-3 p-3 border rounded">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <label class="form-label">Вопрос ${i}</label>
+                            <input type="text" class="form-control" name="questions[${questionId}][answers][${i*2-1}][text]"
+                                   placeholder="Текст вопроса" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Ответ ${i}</label>
+                            <input type="text" class="form-control" name="questions[${questionId}][answers][${i*2}][text]"
+                                   placeholder="Текст ответа" required>
+                        </div>
+                    </div>
+                    <button type="button" class="btn btn-sm btn-outline-danger mt-2" onclick="removeMatchPair(this)">
+                        <i class="fas fa-times"></i> Удалить пару
+                    </button>
+                </div>
+            `;
+        }
+
+        const exampleHtml = `
+            <div class="alert alert-info">
+                <strong>Инструкция:</strong> Для создания вопроса на соответствие создайте пары вопрос-ответ:<br>
+                • Введите текст вопроса в поле "Вопрос"<br>
+                • Введите правильный ответ в поле "Ответ"<br>
+                • Каждая пара автоматически считается правильной
+            </div>
+            ${pairHtml}
+        `;
+
+        answersContainer.insertAdjacentHTML('beforeend', exampleHtml);
+
+        // Добавляем кнопку добавления ответа
+        const addButton = answersContainer.querySelector('.btn-mini');
+        if (!addButton) {
+            answersContainer.insertAdjacentHTML('beforeend', `
+                <button type="button" class="btn-mini primary btn-sm mt-2" onclick="addAnswer(this)">
+                    <i class="fas fa-plus"></i> Добавить пару
+                </button>
+            `);
+        }
     } else {
         answersContainer.style.display = 'block';
         // Добавляем required для полей ответов
         answersContainer.querySelectorAll('input[type="text"]').forEach(input => input.required = true);
-        
+
         // Конвертируем поля правильности ответов при смене типа
         const answerItems = answersContainer.querySelectorAll('.answer-item');
         answerItems.forEach((item, index) => {
             const formCheck = item.querySelector('.form-check');
             const answerNumber = index + 1;
-            
+
             let newInput = '';
             if (select.value === 'single') {
                 // Меняем на радиокнопки
@@ -291,7 +387,7 @@ function toggleAnswers(select) {
                 // Меняем на чекбоксы
                 newInput = `<input type="checkbox" class="form-check-input" name="questions[${questionId}][answers][${answerNumber}][correct]">`;
             }
-            
+
             formCheck.innerHTML = newInput + '<label class="form-check-label">Правильный</label>';
         });
     }
@@ -359,35 +455,56 @@ function validateQuizForm(form) {
             questionText.focus();
             return false;
         }
-        
+
         const questionType = question.querySelector('select[name*="[type]"]').value;
         if (questionType !== 'text') {
-            const answers = question.querySelectorAll('.answer-item input[type="text"]');
-            let hasCorrectAnswer = false;
-            let hasAnswerText = false;
-            
-            for (let answer of answers) {
-                if (answer.value.trim()) {
-                    hasAnswerText = true;
-                    
-                    // Проверяем правильность ответа (чекбокс или радиокнопка)
-                    const checkbox = answer.closest('.answer-item').querySelector('input[type="checkbox"]');
-                    const radio = answer.closest('.answer-item').querySelector('input[type="radio"]');
-                    
-                    if ((checkbox && checkbox.checked) || (radio && radio.checked)) {
-                        hasCorrectAnswer = true;
+            if (questionType === 'match') {
+                // Для типа соответствия проверяем пары вопрос-ответ
+                const matchPairs = question.querySelectorAll('.match-pair');
+                if (matchPairs.length === 0) {
+                    alert('Добавьте хотя бы одну пару вопрос-ответ для вопросов типа "Соответствие"');
+                    return false;
+                }
+
+                // Проверяем, что все поля в парах заполнены
+                for (let pair of matchPairs) {
+                    const inputs = pair.querySelectorAll('input[type="text"]');
+                    for (let input of inputs) {
+                        if (!input.value.trim()) {
+                            alert('Заполните все поля в парах вопрос-ответ');
+                            input.focus();
+                            return false;
+                        }
                     }
                 }
-            }
-            
-            if (!hasAnswerText) {
-                alert('Добавьте варианты ответов для всех вопросов');
-                return false;
-            }
-            
-            if (!hasCorrectAnswer) {
-                alert('Отметьте правильные ответы для всех вопросов');
-                return false;
+            } else {
+                const answers = question.querySelectorAll('.answer-item input[type="text"]');
+                let hasCorrectAnswer = false;
+                let hasAnswerText = false;
+
+                for (let answer of answers) {
+                    if (answer.value.trim()) {
+                        hasAnswerText = true;
+
+                        // Проверяем правильность ответа (чекбокс или радиокнопка)
+                        const checkbox = answer.closest('.answer-item').querySelector('input[type="checkbox"]');
+                        const radio = answer.closest('.answer-item').querySelector('input[type="radio"]');
+
+                        if ((checkbox && checkbox.checked) || (radio && radio.checked)) {
+                            hasCorrectAnswer = true;
+                        }
+                    }
+                }
+
+                if (!hasAnswerText) {
+                    alert('Добавьте варианты ответов для всех вопросов');
+                    return false;
+                }
+
+                if (!hasCorrectAnswer) {
+                    alert('Отметьте правильные ответы для всех вопросов');
+                    return false;
+                }
             }
         }
     }

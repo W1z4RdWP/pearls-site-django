@@ -47,6 +47,49 @@
                     {% endif %}
 
                 </div>
+            {% elif question.question_type == 'match' %}
+                <div class="card mb-4 {% if is_correct %}border-success{% else %}border-danger{% endif %}">
+                    {% if is_correct %}
+                    <div class="alert alert-success">
+                        ✅ Правильные соответствия!
+                    </div>
+                    {% else %}
+                    <div class="alert alert-danger">
+                        ❌ Неверные соответствия!
+                    </div>
+                    {% endif %}
+
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <h5>Вопросы</h5>
+                                {% for result in match_results %}
+                                    <div class="question-item mb-3 p-3 border rounded {% if result.is_correct %}bg-success bg-opacity-10 border-success{% else %}bg-danger bg-opacity-10 border-danger{% endif %}">
+                                        <div class="question-text mb-2">{{ result.question_text }}</div>
+                                        <div class="user-answer">
+                                            {% if result.user_answer_id %}
+                                                <strong>Ваш ответ:</strong> {{ result.user_answer_text }}
+                                            {% else %}
+                                                <em class="text-muted">Не отвечено</em>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                {% endfor %}
+                            </div>
+                            <div class="col-md-6">
+                                <h5>Правильные ответы</h5>
+                                {% for result in match_results %}
+                                    <div class="correct-answer-item mb-3 p-3 border border-success rounded bg-success bg-opacity-10">
+                                        <div class="question-text mb-2">{{ result.question_text }}</div>
+                                        <div class="correct-answer">
+                                            <strong>Правильный ответ:</strong> {{ result.correct_answer_text }}
+                                        </div>
+                                    </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
             {% else %}
             <div class="card mb-4 {% if is_correct %}border-success{% elif question.question_type == 'text' %}border-warning{% else %}border-danger{% endif %}">
                 <div class="card-body">
