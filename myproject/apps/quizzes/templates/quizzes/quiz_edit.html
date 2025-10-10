@@ -106,7 +106,7 @@
                                     <strong>Инструкция:</strong> Для вопроса на соответствие создайте пары вопрос-ответ:<br>
                                     • Введите текст вопроса в поле "Вопрос"<br>
                                     • Введите правильный ответ в поле "Ответ"<br>
-                                    • Каждая пара автоматически считается правильной
+                                    • Рекомендуемый размер изображения: 200x200 пикселей
                                 </div>
                                 {% for pair in qdata.match_pairs %}
                                 <div class="match-pair mb-3 p-3 border rounded">
@@ -132,7 +132,7 @@
                                                        accept="image/*">
                                                 {% if pair.question_answer.image %}
                                                 <div class="mt-2">
-                                                    <img src="{{ pair.question_answer.image.url }}" class="img-thumbnail" style="max-width: 150px;">
+                                                    <img src="{{ pair.question_answer.image.url }}" class="img-thumbnail" style="width: 200px; height: 200px; object-fit: contain;">
                                                     <input type="hidden" name="questions[{{ forloop.parentloop.counter }}][answers][{{ pair.question_index }}][existing_image]" 
                                                            value="{{ pair.question_answer.image.url }}">
                                                 </div>
@@ -160,7 +160,7 @@
                                                        accept="image/*">
                                                 {% if pair.answer_answer.image %}
                                                 <div class="mt-2">
-                                                    <img src="{{ pair.answer_answer.image.url }}" class="img-thumbnail" style="max-width: 150px;">
+                                                    <img src="{{ pair.answer_answer.image.url }}" class="img-thumbnail" style="width: 200px; height: 200px; object-fit: contain;">
                                                     <input type="hidden" name="questions[{{ forloop.parentloop.counter }}][answers][{{ pair.answer_index }}][existing_image]" 
                                                            value="{{ pair.answer_answer.image.url }}">
                                                 </div>

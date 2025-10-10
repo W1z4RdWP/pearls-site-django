@@ -57,7 +57,7 @@
                                              draggable="true"
                                              style="min-height: 60px;">
                                             {% if answer_data.image %}
-                                                <img src="{{ answer_data.image }}" class="img-thumbnail mb-2" style="max-width: 150px; max-height: 150px;">
+                                                <img src="{{ answer_data.image }}" class="img-thumbnail mb-2" style="width: 200px; height: 200px; object-fit: contain;">
                                             {% endif %}
                                             {% if answer_data.text %}
                                                 <div>{{ answer_data.text }}</div>
@@ -75,7 +75,7 @@
                                              style="min-height: 80px;">
                                             <div class="question-text">
                                                 {% if question_data.image %}
-                                                    <img src="{{ question_data.image }}" class="img-thumbnail mb-2" style="max-width: 150px; max-height: 150px;">
+                                                    <img src="{{ question_data.image }}" class="img-thumbnail mb-2" style="width: 200px; height: 200px; object-fit: contain;">
                                                 {% endif %}
                                                 {% if question_data.text %}
                                                     <div>{{ question_data.text }}</div>

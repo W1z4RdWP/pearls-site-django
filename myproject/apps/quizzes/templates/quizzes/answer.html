@@ -69,7 +69,7 @@
                                             <strong>Вопрос:</strong>
                                             {% if result.question_image %}
                                                 <div class="mt-2 mb-2">
-                                                    <img src="{{ result.question_image }}" class="img-thumbnail" style="max-width: 120px; max-height: 120px;">
+                                                    <img src="{{ result.question_image }}" class="img-thumbnail" style="width: 200px; height: 200px; object-fit: contain;">
                                                 </div>
                                             {% endif %}
                                             {% if result.question_text %}
@@ -82,7 +82,7 @@
                                                 <strong>Ваш ответ:</strong>
                                                 {% if result.user_answer_image %}
                                                     <div class="mt-2">
-                                                        <img src="{{ result.user_answer_image }}" class="img-thumbnail" style="max-width: 100px; max-height: 100px;">
+                                                        <img src="{{ result.user_answer_image }}" class="img-thumbnail" style="width: 200px; height: 200px; object-fit: contain;">
                                                     </div>
                                                 {% endif %}
                                                 {% if result.user_answer_text %}
@@ -103,7 +103,7 @@
                                             <strong>Вопрос:</strong>
                                             {% if result.question_image %}
                                                 <div class="mt-2 mb-2">
-                                                    <img src="{{ result.question_image }}" class="img-thumbnail" style="max-width: 120px; max-height: 120px;">
+                                                    <img src="{{ result.question_image }}" class="img-thumbnail" style="width: 200px; height: 200px; object-fit: contain;">
                                                 </div>
                                             {% endif %}
                                             {% if result.question_text %}
@@ -115,7 +115,7 @@
                                             <strong>Правильный ответ:</strong>
                                             {% if result.correct_answer_image %}
                                                 <div class="mt-2">
-                                                    <img src="{{ result.correct_answer_image }}" class="img-thumbnail" style="max-width: 100px; max-height: 100px;">
+                                                    <img src="{{ result.correct_answer_image }}" class="img-thumbnail" style="width: 200px; height: 200px; object-fit: contain;">
                                                 </div>
                                             {% endif %}
                                             {% if result.correct_answer_text %}
