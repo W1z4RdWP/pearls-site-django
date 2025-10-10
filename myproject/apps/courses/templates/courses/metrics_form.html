@@ -1,22 +1,27 @@
 <!doctype html>
 {% load static %}
 <html lang="ru">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Передача данных - Метрики эффективности стомклиники</title>
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
-<link rel="stylesheet" href="{% static 'courses/css/metrics_form.css' %}">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Передача данных - Метрики эффективности стомклиники</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+  <link rel="stylesheet" href="{% static 'courses/css/metrics_form.css' %}">
 
 </head>
+
 <body>
   <div class="wrap">
     <header>
       <h1>Передача данных - Метрики эффективности стомклиники</h1>
       <p class="lead">Заполните список врачей один раз, затем внесите показатели по каждому из <b>3 месяцев</b>.</p>
-      <div class="notice">Пожалуйста, заполняйте <b>достоверно</b> — это влияет на точность диагностики и правильную постановку диагноза. <br>Если у Вас несколько клиник/филиалов, пожалуйста, заполните отдельную форму для каждого из них.</div>
+      <div class="notice">Пожалуйста, заполняйте <b>достоверно</b> — это влияет на точность диагностики и правильную
+        постановку диагноза. <br>Если у Вас несколько клиник/филиалов, пожалуйста, заполните отдельную форму для каждого
+        из них.</div>
     </header>
+    <!-- Local -->
     <div class="video-instruction">
       <video controls autoplay muted loop>
         <source src="{% static 'courses/video/metrics_video.mp4' %}" type="video/mp4">
@@ -32,12 +37,14 @@
       <div class="row">
         <div>
           <label>Начальный месяц*</label>
-          <input id="startMonth" style="background-color: #e9e7e7;" placeholder="Март 2025" required disabled title="Формат: Месяц ГГГГ">
+          <input id="startMonth" style="background-color: #e9e7e7;" placeholder="Март 2025" required disabled
+            title="Формат: Месяц ГГГГ">
           <div class="small">Сформируем ещё 2 месяца автоматически (всего 3 подряд). Поле редактировать не нужно.</div>
         </div>
         <div>
           <label>Название клиники*</label>
-          <input id="clinicName" placeholder='например, Территория Улыбки - БЦ "Север"' required minlength="2" maxlength="255">
+          <input id="clinicName" placeholder='например, Территория Улыбки - БЦ "Север"' required minlength="2"
+            maxlength="255">
           <div class="small">Это название попадет в таблицу вместе с данными.</div>
         </div>
         <div style="display: none;">
@@ -48,23 +55,29 @@
       </div>
       <hr>
       <h2>Параметры клиники</h2>
-<div class="row" style="margin-top:10px">
-        <div><label>Кол-во кресел сегодня (шт.)*</label><input id="chairs" inputmode="numeric" placeholder="например, 6" required min="1" max="100"><div class="small">Информативно на дату заполнения - не участвует в расчетах</div></div>
-        
+      <div class="row" style="margin-top:10px">
+        <div><label>Кол-во кресел сегодня (шт.)*</label><input id="chairs" inputmode="numeric" placeholder="например, 6"
+            required min="1" max="100">
+          <div class="small">Информативно на дату заполнения - не участвует в расчетах</div>
+        </div>
+
         <div style="grid-column: 1 / -1;">
           <label>Количество часов работы в день*</label>
           <div class="row" style="grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 6px;">
             <div>
               <label style="font-size: 14px; font-weight: 400; text-align: center;">Будни (Пн-Пт)</label>
-              <input id="hoursWeekdays" inputmode="decimal" placeholder="например, 10" required min="0" max="24" step="0.1">
+              <input id="hoursWeekdays" inputmode="decimal" placeholder="например, 10" required min="0" max="24"
+                step="0.1">
             </div>
             <div>
               <label style="font-size: 14px; font-weight: 400; text-align: center;">Суббота</label>
-              <input id="hoursSaturday" inputmode="decimal" placeholder="например, 8" required min="0" max="24" step="0.1">
+              <input id="hoursSaturday" inputmode="decimal" placeholder="например, 8" required min="0" max="24"
+                step="0.1">
             </div>
             <div>
               <label style="font-size: 14px; font-weight: 400; text-align: center;">Воскресенье</label>
-              <input id="hoursSunday" inputmode="decimal" placeholder="например, 0" required min="0" max="24" step="0.1">
+              <input id="hoursSunday" inputmode="decimal" placeholder="например, 0" required min="0" max="24"
+                step="0.1">
             </div>
           </div>
           <div class="small">Если не работаете в этот день, поставьте 0</div>
@@ -87,7 +100,11 @@
         <label>Список врачей</label>
         <div id="doctors" class="grid">
           <div class="grid-head small" style="margin-bottom:6px">
-            <div style="margin-left: 15px;">#</div><div style="margin-left: 30px;">ФИО врача*</div><div style="margin-left: 15px;">Специализация*</div><div style="margin-left: 15px;">Тип занятости*</div><div>Удалить</div>
+            <div style="margin-left: 15px;">#</div>
+            <div style="margin-left: 30px;">ФИО врача*</div>
+            <div style="margin-left: 15px;">Специализация*</div>
+            <div style="margin-left: 15px;">Тип занятости*</div>
+            <div>Удалить</div>
           </div>
           <div id="doctorRows"></div>
           <div style="margin-top:6px;display:flex;gap:8px;align-items:center">
@@ -117,7 +134,8 @@
         <div class="consent-section">
           <div style="display:flex;align-items:center;gap:2px;white-space:nowrap;">
             <input id="consent" type="checkbox">
-            <label for="consent" style="font-weight:400;font-size:14px;margin:0">Даю согласие на обработку персональных данных</label>
+            <label for="consent" style="font-weight:400;font-size:14px;margin:0">Даю согласие на обработку персональных
+              данных</label>
           </div>
           <button class="btn btn-primary submit-btn" type="submit">Отправить</button>
         </div>
@@ -129,27 +147,27 @@
           justify-content: space-between;
           align-items: center;
         }
-        
+
         .consent-section {
           display: flex;
           gap: 12px;
           align-items: center;
         }
-        
+
         @media (max-width: 768px) {
           .form-footer {
             flex-direction: column;
             align-items: flex-start;
             gap: 12px;
           }
-          
+
           .consent-section {
             flex-direction: column;
             align-items: center;
             width: 100%;
             gap: 12px;
           }
-          
+
           .submit-btn {
             width: auto;
           }
@@ -161,6 +179,7 @@
     </form>
   </div>
 
-<script src="{% static 'courses/js/metrics_form.js' %}"></script>
+  <script src="{% static 'courses/js/metrics_form.js' %}"></script>
 </body>
+
 </html>

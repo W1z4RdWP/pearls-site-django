@@ -107,6 +107,7 @@ class Profile(models.Model):
     image = models.ImageField(default='profile_pics/default.jpg', upload_to='profile_pics', verbose_name="Аватар")
     bio = models.TextField(max_length=500, blank=True, null=True, verbose_name="О себе")
     is_approved = models.BooleanField(default=False, verbose_name="Подвтерждение администратором")
+    is_mentor = models.BooleanField(default=False, verbose_name="Является наставником", help_text="Пользователь с правами наставника")
     dascoin_points = models.PositiveIntegerField(default=0, verbose_name="Баллы DASCOIN")
 
     class Meta:
@@ -125,6 +126,16 @@ class Profile(models.Model):
                 
         return f'Учётная запись {self.user.username}'
     
+
+
+
+    @property
+    def is_mentor_user(self) -> bool:
+        """
+        Проверяет, является ли пользователь наставником.
+        """
+        return self.is_mentor
+
     @property
     def is_responsible(self) -> bool:
         """
