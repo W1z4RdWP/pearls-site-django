@@ -4,8 +4,8 @@ from .models import Profile, Role, Department
 
 @admin.register(Profile)
 class ProfileAdmin(admin.ModelAdmin):
-    list_display = ['user', 'get_first_name', 'get_last_name', 'role', 'date_of_birth', 'is_approved', 'dascoin_points']
-    list_filter = ['is_approved', ("date_of_birth", DateRangeFilterBuilder()),]
+    list_display = ['user', 'get_first_name', 'get_last_name', 'role', 'date_of_birth', 'is_mentor', 'is_approved', ]
+    list_filter = ['is_mentor', 'is_approved', ("date_of_birth", DateRangeFilterBuilder()),]
     search_fields = ['user__username', 'user__first_name']
     actions = ['approve_users']
 

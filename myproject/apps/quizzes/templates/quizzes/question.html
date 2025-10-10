@@ -44,6 +44,54 @@
                         <label for="answer_text" class="form-label">Ваш ответ:</label>
                         <textarea class="form-control" name="answer_text" id="answer_text" rows="4" required></textarea>
                     </div>
+                {% elif question.question_type == 'match' %}
+                    <div class="mb-3">
+                        <p class="text-muted">Сопоставьте варианты ответов слева с вопросами справа:</p>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <h6>Варианты ответов</h6>
+                                <div class="list-group" id="answer-items">
+                                    {% for answer_id, answer_data in answers.items %}
+                                        <div class="list-group-item answer-item draggable"
+                                             data-id="{{ answer_id }}"
+                                             draggable="true"
+                                             style="min-height: 60px;">
+                                            {% if answer_data.image %}
+                                                <img src="{{ answer_data.image }}" class="img-thumbnail mb-2" style="width: 200px; height: 200px; object-fit: contain;">
+                                            {% endif %}
+                                            {% if answer_data.text %}
+                                                <div>{{ answer_data.text }}</div>
+                                            {% endif %}
+                                        </div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <h6>Вопросы</h6>
+                                <div class="list-group" id="question-items">
+                                    {% for question_id, question_data in questions.items %}
+                                        <div class="list-group-item question-item drop-zone"
+                                             data-id="{{ question_id }}"
+                                             style="min-height: 80px;">
+                                            <div class="question-text">
+                                                {% if question_data.image %}
+                                                    <img src="{{ question_data.image }}" class="img-thumbnail mb-2" style="width: 200px; height: 200px; object-fit: contain;">
+                                                {% endif %}
+                                                {% if question_data.text %}
+                                                    <div>{{ question_data.text }}</div>
+                                                {% endif %}
+                                            </div>
+                                            <div class="drop-area" data-question-id="{{ question_id }}">
+                                                <span class="placeholder">Перетащите ответ сюда</span>
+                                            </div>
+                                        </div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        </div>
+                        <!-- Скрытые поля для отправки соответствий -->
+                        <div id="hidden-matches"></div>
+                    </div>
                 {% else %}
                 
                 <div class="list-group">
@@ -75,4 +123,162 @@
         </div>
     </div>
 </div>
+
+{% if question.question_type == 'match' %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const answerItems = document.querySelectorAll('#answer-items .draggable');
+    const dropZones = document.querySelectorAll('.drop-area');
+    const hiddenMatches = document.getElementById('hidden-matches');
+    const form = document.querySelector('form');
+
+    // Делаем варианты ответов перетаскиваемыми
+    answerItems.forEach(item => {
+        item.addEventListener('dragstart', handleDragStart);
+    });
+
+    // Обработчики для зон сброса
+    dropZones.forEach(zone => {
+        zone.addEventListener('dragover', handleDragOver);
+        zone.addEventListener('drop', handleDrop);
+    });
+
+    function handleDragStart(e) {
+        e.dataTransfer.setData('text/plain', e.target.dataset.id);
+        e.dataTransfer.effectAllowed = 'move';
+    }
+
+    function handleDragOver(e) {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'move';
+    }
+
+    function handleDrop(e) {
+        e.preventDefault();
+        const answerId = e.dataTransfer.getData('text/plain');
+        const questionId = e.target.dataset.questionId;
+
+        if (answerId && questionId) {
+            // Убираем ответ из предыдущей зоны, если он там был
+            document.querySelectorAll('.drop-area').forEach(zone => {
+                const existingAnswer = zone.querySelector('.dropped-answer');
+                if (existingAnswer && existingAnswer.dataset.answerId === answerId) {
+                    zone.innerHTML = '<span class="placeholder">Перетащите ответ сюда</span>';
+                }
+            });
+
+            // Помещаем ответ в новую зону
+            const answerElement = document.querySelector(`[data-id="${answerId}"]`);
+            const answerText = answerElement.textContent.trim();
+
+            e.target.innerHTML = `
+                <div class="dropped-answer alert alert-success p-2 mb-0" data-answer-id="${answerId}">
+                    ${answerText}
+                    <button type="button" class="btn btn-sm btn-outline-danger ms-2" onclick="removeAnswer(this)">×</button>
+                </div>
+            `;
+
+            // Обновляем скрытые поля
+            updateHiddenFields();
+        }
+    }
+
+    function updateHiddenFields() {
+        hiddenMatches.innerHTML = '';
+        document.querySelectorAll('.drop-area').forEach(zone => {
+            const droppedAnswer = zone.querySelector('.dropped-answer');
+            if (droppedAnswer) {
+                const answerId = droppedAnswer.dataset.answerId;
+                const questionId = zone.dataset.questionId;
+
+                const input = document.createElement('input');
+                input.type = 'hidden';
+                input.name = `match_${questionId}`;
+                input.value = answerId;
+                hiddenMatches.appendChild(input);
+            }
+        });
+    }
+
+    // Глобальная функция для удаления ответа из зоны
+    window.removeAnswer = function(button) {
+        const zone = button.closest('.drop-area');
+        zone.innerHTML = '<span class="placeholder">Перетащите ответ сюда</span>';
+        updateHiddenFields();
+    };
+
+    // Обработка отправки формы
+    form.addEventListener('submit', function(e) {
+        const filledZones = document.querySelectorAll('.drop-area .dropped-answer').length;
+        const totalQuestions = document.querySelectorAll('.question-item').length;
+
+        if (filledZones === 0) {
+            e.preventDefault();
+            alert('Пожалуйста, ответьте хотя бы на один вопрос');
+            return false;
+        }
+    });
+});
+</script>
+
+<style>
+.draggable {
+    cursor: move;
+    transition: all 0.2s;
+}
+
+.draggable:hover {
+    background-color: #f8f9fa;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.draggable.dragging {
+    opacity: 0.5;
+    transform: rotate(5deg);
+}
+
+.drop-zone {
+    min-height: 80px;
+    border: 2px dashed #dee2e6;
+    border-radius: 0.375rem;
+    padding: 10px;
+    margin-bottom: 10px;
+    transition: all 0.2s;
+}
+
+.drop-zone:hover {
+    border-color: #007bff;
+    background-color: #f8f9fa;
+}
+
+.drop-zone.drag-over {
+    border-color: #28a745;
+    background-color: #d4edda;
+}
+
+.question-text {
+    font-weight: bold;
+    margin-bottom: 8px;
+    color: #495057;
+}
+
+.placeholder {
+    color: #6c757d;
+    font-style: italic;
+}
+
+.dropped-answer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    animation: dropAnimation 0.3s ease-in;
+}
+
+@keyframes dropAnimation {
+    0% { transform: scale(0.8); opacity: 0; }
+    100% { transform: scale(1); opacity: 1; }
+}
+</style>
+{% endif %}
 {% endblock %}
