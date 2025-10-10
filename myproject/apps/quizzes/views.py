@@ -169,7 +169,14 @@ def get_questions(request, quiz_id: int = None, is_start: bool = False) -> HttpR
         
         # Обновление сессии
         request.session['current_question_id'] = question.id
-        answers = Answer.objects.filter(question=question)
+        
+        # Для типа MATCH получаем в исходном порядке (пары не должны перемешиваться)
+        # Для остальных типов - в случайном порядке
+        if question.question_type == Question.MATCH:
+            answers = Answer.objects.filter(question=question).order_by('id')
+        else:
+            answers = Answer.objects.filter(question=question).order_by('?')
+        
         is_last = not Question.objects.filter(
             quiz_id=quiz_id,
             id__gt=question.id
@@ -189,17 +196,32 @@ def get_questions(request, quiz_id: int = None, is_start: bool = False) -> HttpR
         if question.question_type == Question.MATCH:
             # Группируем ответы по парам (каждые 2 ответа - это пара вопрос-ответ)
             answers_list = list(answers)
+            
+            # Извлекаем вопросы (четные позиции) и ответы (нечетные позиции)
+            questions_items = []
+            answers_items = []
+            
             for i in range(0, len(answers_list), 2):
                 if i < len(answers_list):
                     # Четные элементы - это вопросы
                     question_answer = answers_list[i]
-                    question_key = str(question_answer.id)
-                    questions[question_key] = question_answer.text
+                    questions_items.append(question_answer)
 
                 if i + 1 < len(answers_list):
                     # Нечетные элементы - это ответы
                     answer_answer = answers_list[i + 1]
-                    match_answers[str(answer_answer.id)] = answer_answer.text
+                    answers_items.append(answer_answer)
+            
+            # Рандомизируем только ответы (перетаскиваемые элементы)
+            import random
+            random.shuffle(answers_items)
+            
+            # Формируем словари
+            for q_ans in questions_items:
+                questions[str(q_ans.id)] = q_ans.text
+            
+            for a_ans in answers_items:
+                match_answers[str(a_ans.id)] = a_ans.text
 
             # Для типа MATCH переопределяем answers только ответами
             answers = match_answers
@@ -971,7 +993,32 @@ class QuizEditView(UserPassesTestMixin, UpdateView):
         
         # Получаем все вопросы с ответами
         questions = Question.objects.filter(quiz=quiz).prefetch_related('answer_set')
+        
+        # Для вопросов типа match подготавливаем пары
+        questions_with_pairs = []
+        for question in questions:
+            question_data = {
+                'question': question,
+                'match_pairs': []
+            }
+            
+            if question.question_type == 'match':
+                answers = list(question.answer_set.all().order_by('id'))
+                # Группируем ответы по парам
+                for i in range(0, len(answers), 2):
+                    if i + 1 < len(answers):
+                        question_data['match_pairs'].append({
+                            'pair_number': (i // 2) + 1,
+                            'question_answer': answers[i],
+                            'answer_answer': answers[i + 1],
+                            'question_index': i + 1,
+                            'answer_index': i + 2
+                        })
+            
+            questions_with_pairs.append(question_data)
+        
         context['questions'] = questions
+        context['questions_with_pairs'] = questions_with_pairs
         context['question_types'] = Question.QUESTION_TYPES
         
         return context

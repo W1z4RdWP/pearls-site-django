@@ -319,47 +319,72 @@ function toggleAnswers(select) {
             label.innerHTML = 'Пары вопрос-ответ';
         }
 
-        // Очищаем контейнер и добавляем примеры
-        const existingContent = answersContainer.querySelectorAll('.answer-item, .match-pair, .alert');
-        existingContent.forEach(item => item.remove());
+        // Проверяем, есть ли уже match-pair элементы (редактирование существующего вопроса)
+        const existingMatchPairs = answersContainer.querySelectorAll('.match-pair');
+        
+        if (existingMatchPairs.length === 0) {
+            // Только если нет существующих пар, создаем новые
+            // Очищаем контейнер и добавляем примеры
+            const existingContent = answersContainer.querySelectorAll('.answer-item, .alert');
+            existingContent.forEach(item => item.remove());
 
-        // Добавляем примеры для соответствия - создаем пары вопрос-ответ
-        let pairHtml = '';
-        for (let i = 1; i <= 2; i++) {
-            pairHtml += `
-                <div class="match-pair mb-3 p-3 border rounded">
-                    <div class="row">
-                        <div class="col-md-6">
-                            <label class="form-label">Вопрос ${i}</label>
-                            <input type="text" class="form-control" name="questions[${questionId}][answers][${i*2-1}][text]"
-                                   placeholder="Текст вопроса" required>
+            // Добавляем примеры для соответствия - создаем пары вопрос-ответ
+            let pairHtml = '';
+            for (let i = 1; i <= 2; i++) {
+                pairHtml += `
+                    <div class="match-pair mb-3 p-3 border rounded">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <label class="form-label">Вопрос ${i}</label>
+                                <input type="text" class="form-control" name="questions[${questionId}][answers][${i*2-1}][text]"
+                                       placeholder="Текст вопроса" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Ответ ${i}</label>
+                                <input type="text" class="form-control" name="questions[${questionId}][answers][${i*2}][text]"
+                                       placeholder="Текст ответа" required>
+                            </div>
                         </div>
-                        <div class="col-md-6">
-                            <label class="form-label">Ответ ${i}</label>
-                            <input type="text" class="form-control" name="questions[${questionId}][answers][${i*2}][text]"
-                                   placeholder="Текст ответа" required>
-                        </div>
+                        <button type="button" class="btn btn-sm btn-outline-danger mt-2" onclick="removeMatchPair(this)">
+                            <i class="fas fa-times"></i> Удалить пару
+                        </button>
                     </div>
-                    <button type="button" class="btn btn-sm btn-outline-danger mt-2" onclick="removeMatchPair(this)">
-                        <i class="fas fa-times"></i> Удалить пару
-                    </button>
+                `;
+            }
+
+            const exampleHtml = `
+                <div class="alert alert-info">
+                    <strong>Инструкция:</strong> Для создания вопроса на соответствие создайте пары вопрос-ответ:<br>
+                    • Введите текст вопроса в поле "Вопрос"<br>
+                    • Введите правильный ответ в поле "Ответ"<br>
+                    • Каждая пара автоматически считается правильной
                 </div>
+                ${pairHtml}
             `;
+
+            answersContainer.insertAdjacentHTML('beforeend', exampleHtml);
+        } else {
+            // Убедимся что есть инструкция
+            const existingAlert = answersContainer.querySelector('.alert-info');
+            if (!existingAlert) {
+                const alertHtml = `
+                    <div class="alert alert-info">
+                        <strong>Инструкция:</strong> Для создания вопроса на соответствие создайте пары вопрос-ответ:<br>
+                        • Введите текст вопроса в поле "Вопрос"<br>
+                        • Введите правильный ответ в поле "Ответ"<br>
+                        • Каждая пара автоматически считается правильной
+                    </div>
+                `;
+                const firstElement = answersContainer.querySelector('.match-pair, .answer-item');
+                if (firstElement) {
+                    firstElement.insertAdjacentHTML('beforebegin', alertHtml);
+                } else {
+                    answersContainer.insertAdjacentHTML('afterbegin', alertHtml);
+                }
+            }
         }
 
-        const exampleHtml = `
-            <div class="alert alert-info">
-                <strong>Инструкция:</strong> Для создания вопроса на соответствие создайте пары вопрос-ответ:<br>
-                • Введите текст вопроса в поле "Вопрос"<br>
-                • Введите правильный ответ в поле "Ответ"<br>
-                • Каждая пара автоматически считается правильной
-            </div>
-            ${pairHtml}
-        `;
-
-        answersContainer.insertAdjacentHTML('beforeend', exampleHtml);
-
-        // Добавляем кнопку добавления ответа
+        // Добавляем кнопку добавления ответа если её нет
         const addButton = answersContainer.querySelector('.btn-mini');
         if (!addButton) {
             answersContainer.insertAdjacentHTML('beforeend', `

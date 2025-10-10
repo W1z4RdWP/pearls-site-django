@@ -67,7 +67,8 @@
             </div>
             <div class="card-body">
                 <div id="questionsContainer">
-                    {% for question in questions %}
+                    {% for qdata in questions_with_pairs %}
+                    {% with question=qdata.question %}
                     <div class="question-block" data-question-id="{{ forloop.counter }}">
                         <div class="question-header">
                             <h6>Вопрос {{ forloop.counter }}</h6>
@@ -99,60 +100,98 @@
 
                         <div class="answers-container" 
                              {% if question.question_type == 'text' %}style="display: none;"{% endif %}>
-                            <label class="form-label">Варианты ответов</label>
-                            {% for answer in question.answer_set.all %}
-                            <div class="answer-item">
-                                <input type="text" class="form-control" 
-                                       name="questions[{{ forloop.parentloop.counter }}][answers][{{ forloop.counter }}][text]" 
-                                       value="{{ answer.text }}" 
-                                       placeholder="Текст ответа" 
-                                       {% if question.question_type != 'text' %}required{% endif %}>
-                                <div class="form-check">
-                                    {% if question.question_type == 'single' %}
-                                        <input type="radio" class="form-check-input" 
-                                               name="questions[{{ forloop.parentloop.counter }}][correct_answer]"
-                                               value="{{ forloop.counter }}"
-                                               {% if answer.is_correct %}checked{% endif %}>
-                                    {% else %}
-                                        <input type="checkbox" class="form-check-input" 
-                                               name="questions[{{ forloop.parentloop.counter }}][answers][{{ forloop.counter }}][correct]"
-                                               {% if answer.is_correct %}checked{% endif %}>
-                                    {% endif %}
-                                    <label class="form-check-label">Правильный</label>
+                            {% if question.question_type == 'match' %}
+                                <label class="form-label">Пары вопрос-ответ</label>
+                                <div class="alert alert-info">
+                                    <strong>Инструкция:</strong> Для вопроса на соответствие создайте пары вопрос-ответ:<br>
+                                    • Введите текст вопроса в поле "Вопрос"<br>
+                                    • Введите правильный ответ в поле "Ответ"<br>
+                                    • Каждая пара автоматически считается правильной
                                 </div>
-                                <button type="button" class="remove-btn ms-2" onclick="removeAnswer(this)">
-                                    <i class="fas fa-times"></i>
-                                </button>
-                            </div>
-                            {% empty %}
-                            <div class="answer-item">
-                                <input type="text" class="form-control" 
-                                       name="questions[{{ forloop.counter }}][answers][1][text]" 
-                                       placeholder="Текст ответа" 
-                                       {% if question.question_type != 'text' %}required{% endif %}>
-                                <div class="form-check">
-                                    {% if question.question_type == 'single' %}
-                                        <input type="radio" class="form-check-input" 
-                                               name="questions[{{ forloop.counter }}][correct_answer]"
-                                               value="1">
-                                    {% else %}
-                                        <input type="checkbox" class="form-check-input" 
-                                               name="questions[{{ forloop.counter }}][answers][1][correct]">
-                                    {% endif %}
-                                    <label class="form-check-label">Правильный</label>
+                                {% for pair in qdata.match_pairs %}
+                                <div class="match-pair mb-3 p-3 border rounded">
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <label class="form-label">Вопрос {{ pair.pair_number }}</label>
+                                            <input type="text" class="form-control" 
+                                                   name="questions[{{ forloop.parentloop.counter }}][answers][{{ pair.question_index }}][text]"
+                                                   value="{{ pair.question_answer.text }}"
+                                                   placeholder="Текст вопроса" required>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label class="form-label">Ответ {{ pair.pair_number }}</label>
+                                            <input type="text" class="form-control" 
+                                                   name="questions[{{ forloop.parentloop.counter }}][answers][{{ pair.answer_index }}][text]"
+                                                   value="{{ pair.answer_answer.text }}"
+                                                   placeholder="Текст ответа" required>
+                                        </div>
+                                    </div>
+                                    <button type="button" class="btn btn-sm btn-outline-danger mt-2" onclick="removeMatchPair(this)">
+                                        <i class="fas fa-times"></i> Удалить пару
+                                    </button>
                                 </div>
-                                <button type="button" class="remove-btn ms-2" onclick="removeAnswer(this)">
-                                    <i class="fas fa-times"></i>
+                                {% endfor %}
+                                <button type="button" class="btn-mini primary btn-sm mt-2" 
+                                        onclick="addAnswer(this)">
+                                    <i class="fas fa-plus"></i> Добавить пару
                                 </button>
-                            </div>
-                            {% endfor %}
-                            
-                            <button type="button" class="btn-mini primary btn-sm mt-2" 
-                                    onclick="addAnswer(this)">
-                                <i class="fas fa-plus"></i> Добавить ответ
-                            </button>
+                            {% else %}
+                                <label class="form-label">Варианты ответов</label>
+                                {% for answer in question.answer_set.all %}
+                                <div class="answer-item">
+                                    <input type="text" class="form-control" 
+                                           name="questions[{{ forloop.parentloop.counter }}][answers][{{ forloop.counter }}][text]" 
+                                           value="{{ answer.text }}" 
+                                           placeholder="Текст ответа" 
+                                           {% if question.question_type != 'text' %}required{% endif %}>
+                                    <div class="form-check">
+                                        {% if question.question_type == 'single' %}
+                                            <input type="radio" class="form-check-input" 
+                                                   name="questions[{{ forloop.parentloop.counter }}][correct_answer]"
+                                                   value="{{ forloop.counter }}"
+                                                   {% if answer.is_correct %}checked{% endif %}>
+                                        {% else %}
+                                            <input type="checkbox" class="form-check-input" 
+                                                   name="questions[{{ forloop.parentloop.counter }}][answers][{{ forloop.counter }}][correct]"
+                                                   {% if answer.is_correct %}checked{% endif %}>
+                                        {% endif %}
+                                        <label class="form-check-label">Правильный</label>
+                                    </div>
+                                    <button type="button" class="remove-btn ms-2" onclick="removeAnswer(this)">
+                                        <i class="fas fa-times"></i>
+                                    </button>
+                                </div>
+                                {% empty %}
+                                <div class="answer-item">
+                                    <input type="text" class="form-control" 
+                                           name="questions[{{ forloop.counter }}][answers][1][text]" 
+                                           placeholder="Текст ответа" 
+                                           {% if question.question_type != 'text' %}required{% endif %}>
+                                    <div class="form-check">
+                                        {% if question.question_type == 'single' %}
+                                            <input type="radio" class="form-check-input" 
+                                                   name="questions[{{ forloop.counter }}][correct_answer]"
+                                                   value="1">
+                                        {% else %}
+                                            <input type="checkbox" class="form-check-input" 
+                                                   name="questions[{{ forloop.counter }}][answers][1][correct]">
+                                        {% endif %}
+                                        <label class="form-check-label">Правильный</label>
+                                    </div>
+                                    <button type="button" class="remove-btn ms-2" onclick="removeAnswer(this)">
+                                        <i class="fas fa-times"></i>
+                                    </button>
+                                </div>
+                                {% endfor %}
+                                
+                                <button type="button" class="btn-mini primary btn-sm mt-2" 
+                                        onclick="addAnswer(this)">
+                                    <i class="fas fa-plus"></i> Добавить ответ
+                                </button>
+                            {% endif %}
                         </div>
                     </div>
+                    {% endwith %}
                     {% empty %}
                     <!-- Пустое состояние будет обработано JavaScript -->
                     {% endfor %}
