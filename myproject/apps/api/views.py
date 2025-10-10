@@ -308,6 +308,11 @@ def telegram_auth(request):
             }
         )
         
+        # Проверяем, состоит ли пользователь в группе "Внешний пользователь"
+        if user.groups.filter(name='Внешний пользователь').exists():
+            # Редирект на курс чек-апа для внешних пользователей
+            return redirect('homepage')
+        
         # Перенаправляем на профиль
         return redirect('homepage')
         
@@ -550,6 +555,11 @@ def short_token_auth(request, short_token):
                 'ip': request.META.get('REMOTE_ADDR', 'Unknown')
             }
         )
+        
+        # Проверяем, состоит ли пользователь в группе "Внешний пользователь"
+        if user.groups.filter(name='Внешний пользователь').exists():
+            # Редирект на курс чек-апа для внешних пользователей
+            return redirect('courses:course_detail', slug='chek-ap-stomatologicheskoi-kliniki')
         
         # Перенаправляем на профиль
         return redirect('homepage')
