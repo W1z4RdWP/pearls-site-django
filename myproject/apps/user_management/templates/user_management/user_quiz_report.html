@@ -33,8 +33,25 @@
                                 <h6>Ответы пользователя:</h6>
                                 {% for result in answers.0.match_results %}
                                     <div class="p-2 mb-2 border rounded {% if result.is_correct %}bg-success bg-opacity-10 border-success{% else %}bg-danger bg-opacity-10 border-danger{% endif %}">
-                                        <strong>{{ result.question_text }}</strong><br>
-                                        <span class="text-muted">Ответ:</span> {{ result.user_answer_text }}
+                                        <strong>Вопрос:</strong>
+                                        {% if result.question_image %}
+                                            <div class="mt-2 mb-2">
+                                                <img src="{{ result.question_image }}" class="img-thumbnail" style="max-width: 120px; max-height: 120px;">
+                                            </div>
+                                        {% endif %}
+                                        {% if result.question_text %}
+                                            <div>{{ result.question_text }}</div>
+                                        {% endif %}
+                                        <hr>
+                                        <span class="text-muted">Ваш ответ:</span>
+                                        {% if result.user_answer_image %}
+                                            <div class="mt-2">
+                                                <img src="{{ result.user_answer_image }}" class="img-thumbnail" style="max-width: 100px; max-height: 100px;">
+                                            </div>
+                                        {% endif %}
+                                        {% if result.user_answer_text %}
+                                            <div>{{ result.user_answer_text }}</div>
+                                        {% endif %}
                                     </div>
                                 {% endfor %}
                             </div>
@@ -42,8 +59,25 @@
                                 <h6>Правильные ответы:</h6>
                                 {% for result in answers.0.match_results %}
                                     <div class="p-2 mb-2 border border-success rounded bg-success bg-opacity-10">
-                                        <strong>{{ result.question_text }}</strong><br>
-                                        <span class="text-muted">Ответ:</span> {{ result.correct_answer_text }}
+                                        <strong>Вопрос:</strong>
+                                        {% if result.question_image %}
+                                            <div class="mt-2 mb-2">
+                                                <img src="{{ result.question_image }}" class="img-thumbnail" style="max-width: 120px; max-height: 120px;">
+                                            </div>
+                                        {% endif %}
+                                        {% if result.question_text %}
+                                            <div>{{ result.question_text }}</div>
+                                        {% endif %}
+                                        <hr>
+                                        <span class="text-muted">Правильный ответ:</span>
+                                        {% if result.correct_answer_image %}
+                                            <div class="mt-2">
+                                                <img src="{{ result.correct_answer_image }}" class="img-thumbnail" style="max-width: 100px; max-height: 100px;">
+                                            </div>
+                                        {% endif %}
+                                        {% if result.correct_answer_text %}
+                                            <div>{{ result.correct_answer_text }}</div>
+                                        {% endif %}
                                     </div>
                                 {% endfor %}
                             </div>

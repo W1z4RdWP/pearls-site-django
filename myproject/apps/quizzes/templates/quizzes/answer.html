@@ -65,10 +65,29 @@
                                 <h5>Вопросы</h5>
                                 {% for result in match_results %}
                                     <div class="question-item mb-3 p-3 border rounded {% if result.is_correct %}bg-success bg-opacity-10 border-success{% else %}bg-danger bg-opacity-10 border-danger{% endif %}">
-                                        <div class="question-text mb-2">{{ result.question_text }}</div>
+                                        <div class="question-text mb-2">
+                                            <strong>Вопрос:</strong>
+                                            {% if result.question_image %}
+                                                <div class="mt-2 mb-2">
+                                                    <img src="{{ result.question_image }}" class="img-thumbnail" style="max-width: 120px; max-height: 120px;">
+                                                </div>
+                                            {% endif %}
+                                            {% if result.question_text %}
+                                                <div>{{ result.question_text }}</div>
+                                            {% endif %}
+                                        </div>
+                                        <hr>
                                         <div class="user-answer">
                                             {% if result.user_answer_id %}
-                                                <strong>Ваш ответ:</strong> {{ result.user_answer_text }}
+                                                <strong>Ваш ответ:</strong>
+                                                {% if result.user_answer_image %}
+                                                    <div class="mt-2">
+                                                        <img src="{{ result.user_answer_image }}" class="img-thumbnail" style="max-width: 100px; max-height: 100px;">
+                                                    </div>
+                                                {% endif %}
+                                                {% if result.user_answer_text %}
+                                                    <div>{{ result.user_answer_text }}</div>
+                                                {% endif %}
                                             {% else %}
                                                 <em class="text-muted">Не отвечено</em>
                                             {% endif %}
@@ -80,9 +99,28 @@
                                 <h5>Правильные ответы</h5>
                                 {% for result in match_results %}
                                     <div class="correct-answer-item mb-3 p-3 border border-success rounded bg-success bg-opacity-10">
-                                        <div class="question-text mb-2">{{ result.question_text }}</div>
+                                        <div class="question-text mb-2">
+                                            <strong>Вопрос:</strong>
+                                            {% if result.question_image %}
+                                                <div class="mt-2 mb-2">
+                                                    <img src="{{ result.question_image }}" class="img-thumbnail" style="max-width: 120px; max-height: 120px;">
+                                                </div>
+                                            {% endif %}
+                                            {% if result.question_text %}
+                                                <div>{{ result.question_text }}</div>
+                                            {% endif %}
+                                        </div>
+                                        <hr>
                                         <div class="correct-answer">
-                                            <strong>Правильный ответ:</strong> {{ result.correct_answer_text }}
+                                            <strong>Правильный ответ:</strong>
+                                            {% if result.correct_answer_image %}
+                                                <div class="mt-2">
+                                                    <img src="{{ result.correct_answer_image }}" class="img-thumbnail" style="max-width: 100px; max-height: 100px;">
+                                                </div>
+                                            {% endif %}
+                                            {% if result.correct_answer_text %}
+                                                <div>{{ result.correct_answer_text }}</div>
+                                            {% endif %}
                                         </div>
                                     </div>
                                 {% endfor %}

@@ -734,12 +734,18 @@ class UserQuizReportView(DetailView):
                         # Четные элементы - это вопросы
                         question_answer = answers_list[i]
                         question_key = str(question_answer.id)
-                        questions_dict[question_key] = question_answer.text
+                        questions_dict[question_key] = {
+                            'text': question_answer.text,
+                            'image': question_answer.image.url if question_answer.image else None
+                        }
                     
                     if i + 1 < len(answers_list):
                         # Нечетные элементы - это ответы
                         answer_answer = answers_list[i + 1]
-                        answers_dict[str(answer_answer.id)] = answer_answer.text
+                        answers_dict[str(answer_answer.id)] = {
+                            'text': answer_answer.text,
+                            'image': answer_answer.image.url if answer_answer.image else None
+                        }
                         
                         # Если оба отмечены как правильные, это правильная пара
                         if i < len(answers_list):
@@ -757,17 +763,20 @@ class UserQuizReportView(DetailView):
                 
                 # Формируем результаты для каждого вопроса
                 match_results = []
-                for question_id, question_text in questions_dict.items():
+                for question_id, question_data in questions_dict.items():
                     user_answer_id = user_matches.get(question_id, '')
                     correct_answer_id = correct_matches.get(question_id, '')
-                    user_answer_text = answers_dict.get(user_answer_id, 'Неизвестный ответ')
-                    correct_answer_text = answers_dict.get(correct_answer_id, 'Неизвестный ответ')
+                    user_answer_data = answers_dict.get(user_answer_id, {'text': 'Неизвестный ответ', 'image': None})
+                    correct_answer_data = answers_dict.get(correct_answer_id, {'text': 'Неизвестный ответ', 'image': None})
                     is_question_correct = (user_answer_id == correct_answer_id)
                     
                     match_results.append({
-                        'question_text': question_text,
-                        'user_answer_text': user_answer_text,
-                        'correct_answer_text': correct_answer_text,
+                        'question_text': question_data['text'],
+                        'question_image': question_data['image'],
+                        'user_answer_text': user_answer_data['text'],
+                        'user_answer_image': user_answer_data['image'],
+                        'correct_answer_text': correct_answer_data['text'],
+                        'correct_answer_image': correct_answer_data['image'],
                         'is_correct': is_question_correct,
                     })
                 

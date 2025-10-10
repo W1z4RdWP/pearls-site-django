@@ -23,7 +23,7 @@
         </div>
     </div>
 
-    <form id="editQuizForm" method="POST">
+    <form id="editQuizForm" method="POST" enctype="multipart/form-data">
         {% csrf_token %}
         
         <div class="card mb-4">
@@ -113,17 +113,59 @@
                                     <div class="row">
                                         <div class="col-md-6">
                                             <label class="form-label">Вопрос {{ pair.pair_number }}</label>
-                                            <input type="text" class="form-control" 
+                                            <div class="form-check mb-2">
+                                                <input type="checkbox" class="form-check-input match-image-toggle" 
+                                                       data-target="question-{{ forloop.parentloop.counter }}-{{ pair.question_index }}"
+                                                       {% if pair.question_answer.image %}checked{% endif %}>
+                                                <label class="form-check-label">Использовать картинку</label>
+                                            </div>
+                                            <input type="text" class="form-control match-text-input mb-2" 
+                                                   id="question-text-{{ forloop.parentloop.counter }}-{{ pair.question_index }}"
                                                    name="questions[{{ forloop.parentloop.counter }}][answers][{{ pair.question_index }}][text]"
                                                    value="{{ pair.question_answer.text }}"
-                                                   placeholder="Текст вопроса" required>
+                                                   placeholder="Текст вопроса" 
+                                                   {% if not pair.question_answer.image %}required{% endif %}>
+                                            <div class="match-image-upload" id="question-{{ forloop.parentloop.counter }}-{{ pair.question_index }}" 
+                                                 style="{% if not pair.question_answer.image %}display: none;{% endif %}">
+                                                <input type="file" class="form-control" 
+                                                       name="questions[{{ forloop.parentloop.counter }}][answers][{{ pair.question_index }}][image]"
+                                                       accept="image/*">
+                                                {% if pair.question_answer.image %}
+                                                <div class="mt-2">
+                                                    <img src="{{ pair.question_answer.image.url }}" class="img-thumbnail" style="max-width: 150px;">
+                                                    <input type="hidden" name="questions[{{ forloop.parentloop.counter }}][answers][{{ pair.question_index }}][existing_image]" 
+                                                           value="{{ pair.question_answer.image.url }}">
+                                                </div>
+                                                {% endif %}
+                                            </div>
                                         </div>
                                         <div class="col-md-6">
                                             <label class="form-label">Ответ {{ pair.pair_number }}</label>
-                                            <input type="text" class="form-control" 
+                                            <div class="form-check mb-2">
+                                                <input type="checkbox" class="form-check-input match-image-toggle" 
+                                                       data-target="answer-{{ forloop.parentloop.counter }}-{{ pair.answer_index }}"
+                                                       {% if pair.answer_answer.image %}checked{% endif %}>
+                                                <label class="form-check-label">Использовать картинку</label>
+                                            </div>
+                                            <input type="text" class="form-control match-text-input mb-2" 
+                                                   id="answer-text-{{ forloop.parentloop.counter }}-{{ pair.answer_index }}"
                                                    name="questions[{{ forloop.parentloop.counter }}][answers][{{ pair.answer_index }}][text]"
                                                    value="{{ pair.answer_answer.text }}"
-                                                   placeholder="Текст ответа" required>
+                                                   placeholder="Текст ответа"
+                                                   {% if not pair.answer_answer.image %}required{% endif %}>
+                                            <div class="match-image-upload" id="answer-{{ forloop.parentloop.counter }}-{{ pair.answer_index }}" 
+                                                 style="{% if not pair.answer_answer.image %}display: none;{% endif %}">
+                                                <input type="file" class="form-control" 
+                                                       name="questions[{{ forloop.parentloop.counter }}][answers][{{ pair.answer_index }}][image]"
+                                                       accept="image/*">
+                                                {% if pair.answer_answer.image %}
+                                                <div class="mt-2">
+                                                    <img src="{{ pair.answer_answer.image.url }}" class="img-thumbnail" style="max-width: 150px;">
+                                                    <input type="hidden" name="questions[{{ forloop.parentloop.counter }}][answers][{{ pair.answer_index }}][existing_image]" 
+                                                           value="{{ pair.answer_answer.image.url }}">
+                                                </div>
+                                                {% endif %}
+                                            </div>
                                         </div>
                                     </div>
                                     <button type="button" class="btn btn-sm btn-outline-danger mt-2" onclick="removeMatchPair(this)">

@@ -110,6 +110,9 @@ function initializeEditPageHandlers() {
         addQuestion();
     }
     
+    // Инициализируем обработчики для переключения текст/картинка
+    initializeMatchImageToggles();
+    
     // Обработка отправки формы редактирования
     editForm.addEventListener('submit', function(e) {
         e.preventDefault();
@@ -234,13 +237,37 @@ function addAnswer(button) {
                 <div class="row">
                     <div class="col-md-6">
                         <label class="form-label">Вопрос ${pairNumber}</label>
-                        <input type="text" class="form-control" name="questions[${questionId}][answers][${pairNumber*2-1}][text]"
+                        <div class="form-check mb-2">
+                            <input type="checkbox" class="form-check-input match-image-toggle" 
+                                   data-target="question-${questionId}-${pairNumber*2-1}">
+                            <label class="form-check-label">Использовать картинку</label>
+                        </div>
+                        <input type="text" class="form-control match-text-input mb-2" 
+                               id="question-text-${questionId}-${pairNumber*2-1}"
+                               name="questions[${questionId}][answers][${pairNumber*2-1}][text]"
                                placeholder="Текст вопроса" required>
+                        <div class="match-image-upload" id="question-${questionId}-${pairNumber*2-1}" style="display: none;">
+                            <input type="file" class="form-control" 
+                                   name="questions[${questionId}][answers][${pairNumber*2-1}][image]"
+                                   accept="image/*">
+                        </div>
                     </div>
                     <div class="col-md-6">
                         <label class="form-label">Ответ ${pairNumber}</label>
-                        <input type="text" class="form-control" name="questions[${questionId}][answers][${pairNumber*2}][text]"
+                        <div class="form-check mb-2">
+                            <input type="checkbox" class="form-check-input match-image-toggle" 
+                                   data-target="answer-${questionId}-${pairNumber*2}">
+                            <label class="form-check-label">Использовать картинку</label>
+                        </div>
+                        <input type="text" class="form-control match-text-input mb-2" 
+                               id="answer-text-${questionId}-${pairNumber*2}"
+                               name="questions[${questionId}][answers][${pairNumber*2}][text]"
                                placeholder="Текст ответа" required>
+                        <div class="match-image-upload" id="answer-${questionId}-${pairNumber*2}" style="display: none;">
+                            <input type="file" class="form-control" 
+                                   name="questions[${questionId}][answers][${pairNumber*2}][image]"
+                                   accept="image/*">
+                        </div>
                     </div>
                 </div>
                 <button type="button" class="btn btn-sm btn-outline-danger mt-2" onclick="removeMatchPair(this)">
@@ -250,6 +277,9 @@ function addAnswer(button) {
         `;
 
         answersContainer.insertAdjacentHTML('beforeend', pairHtml);
+        
+        // Инициализируем обработчики для новой пары
+        initializeMatchImageToggles();
     } else {
         // Для других типов вопросов добавляем одиночный ответ
         const answerCount = answersContainer.querySelectorAll('.answer-item').length + 1;
@@ -535,4 +565,48 @@ function validateQuizForm(form) {
     }
     
     return true;
+}
+
+// === ФУНКЦИИ ДЛЯ РАБОТЫ С ИЗОБРАЖЕНИЯМИ В MATCH ТИПЕ ===
+
+function initializeMatchImageToggles() {
+    const toggles = document.querySelectorAll('.match-image-toggle');
+    
+    toggles.forEach(toggle => {
+        // Удаляем старые обработчики если есть
+        toggle.removeEventListener('change', handleMatchImageToggle);
+        // Добавляем новый обработчик
+        toggle.addEventListener('change', handleMatchImageToggle);
+    });
+}
+
+function handleMatchImageToggle(event) {
+    const checkbox = event.target;
+    const targetId = checkbox.dataset.target;
+    const imageUpload = document.getElementById(targetId);
+    const textInput = document.getElementById(targetId.replace(/^(question|answer)-/, '$1-text-'));
+    
+    if (checkbox.checked) {
+        // Показываем поле для загрузки изображения
+        imageUpload.style.display = 'block';
+        // Делаем текстовое поле необязательным
+        if (textInput) {
+            textInput.required = false;
+            textInput.placeholder = 'Текст (опционально, если используется картинка)';
+        }
+    } else {
+        // Скрываем поле для загрузки изображения
+        imageUpload.style.display = 'none';
+        // Делаем текстовое поле обязательным
+        if (textInput) {
+            textInput.required = true;
+            const isQuestion = targetId.includes('question-');
+            textInput.placeholder = isQuestion ? 'Текст вопроса' : 'Текст ответа';
+        }
+        // Очищаем поле file input
+        const fileInput = imageUpload.querySelector('input[type="file"]');
+        if (fileInput) {
+            fileInput.value = '';
+        }
+    }
 }

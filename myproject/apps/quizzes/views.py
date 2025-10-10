@@ -216,12 +216,18 @@ def get_questions(request, quiz_id: int = None, is_start: bool = False) -> HttpR
             import random
             random.shuffle(answers_items)
             
-            # Формируем словари
+            # Формируем словари с информацией о тексте и изображении
             for q_ans in questions_items:
-                questions[str(q_ans.id)] = q_ans.text
+                questions[str(q_ans.id)] = {
+                    'text': q_ans.text,
+                    'image': q_ans.image.url if q_ans.image else None
+                }
             
             for a_ans in answers_items:
-                match_answers[str(a_ans.id)] = a_ans.text
+                match_answers[str(a_ans.id)] = {
+                    'text': a_ans.text,
+                    'image': a_ans.image.url if a_ans.image else None
+                }
 
             # Для типа MATCH переопределяем answers только ответами
             answers = match_answers
@@ -353,12 +359,18 @@ def get_answer(request) -> HttpResponse:
                     # Четные элементы - это вопросы
                     question_answer = answers_list[i]
                     question_key = str(question_answer.id)
-                    questions[question_key] = question_answer.text
+                    questions[question_key] = {
+                        'text': question_answer.text,
+                        'image': question_answer.image.url if question_answer.image else None
+                    }
 
                 if i + 1 < len(answers_list):
                     # Нечетные элементы - это ответы
                     answer_answer = answers_list[i + 1]
-                    answers[str(answer_answer.id)] = answer_answer.text
+                    answers[str(answer_answer.id)] = {
+                        'text': answer_answer.text,
+                        'image': answer_answer.image.url if answer_answer.image else None
+                    }
 
             # Правильные соответствия - группируем ответы по парам (каждые 2 ответа - это пара вопрос-ответ)
             question_to_answer = {}
@@ -415,20 +427,23 @@ def get_answer(request) -> HttpResponse:
 
             # Подготавливаем данные для шаблона - создаем список с полной информацией о каждом вопросе
             match_results = []
-            for question_id, question_text in questions.items():
+            for question_id, question_data in questions.items():
                 user_answer_id = user_matches.get(question_id, '')
                 correct_answer_id = correct_matches.get(question_id, '')
-                user_answer_text = answers.get(user_answer_id, 'Неизвестный ответ')
-                correct_answer_text = answers.get(correct_answer_id, 'Неизвестный ответ')
+                user_answer_data = answers.get(user_answer_id, {'text': 'Неизвестный ответ', 'image': None})
+                correct_answer_data = answers.get(correct_answer_id, {'text': 'Неизвестный ответ', 'image': None})
                 is_question_correct = (user_answer_id == correct_answer_id)
                 
                 match_results.append({
                     'question_id': question_id,
-                    'question_text': question_text,
+                    'question_text': question_data['text'],
+                    'question_image': question_data['image'],
                     'user_answer_id': user_answer_id,
-                    'user_answer_text': user_answer_text,
+                    'user_answer_text': user_answer_data['text'],
+                    'user_answer_image': user_answer_data['image'],
                     'correct_answer_id': correct_answer_id,
-                    'correct_answer_text': correct_answer_text,
+                    'correct_answer_text': correct_answer_data['text'],
+                    'correct_answer_image': correct_answer_data['image'],
                     'is_correct': is_question_correct,
                 })
 
@@ -1055,12 +1070,26 @@ class QuizEditView(UserPassesTestMixin, UpdateView):
                                 answer_field = parts[3]
                                 
                                 if answer_num not in questions_dict[question_num]['answers']:
-                                    questions_dict[question_num]['answers'][answer_num] = {'text': '', 'correct': False}
+                                    questions_dict[question_num]['answers'][answer_num] = {'text': '', 'correct': False, 'image': None}
                                 
                                 if answer_field == 'text':
                                     questions_dict[question_num]['answers'][answer_num]['text'] = value
                                 elif answer_field == 'correct':
                                     questions_dict[question_num]['answers'][answer_num]['correct'] = True
+                        except (ValueError, IndexError):
+                            continue
+                
+                # Обрабатываем загруженные файлы
+                for key, file in self.request.FILES.items():
+                    if key.startswith('questions['):
+                        try:
+                            parts = key.replace('questions[', '').replace(']', '').split('[')
+                            if len(parts) == 4 and parts[1] == 'answers' and parts[3] == 'image':
+                                question_num = int(parts[0])
+                                answer_num = int(parts[2])
+                                
+                                if question_num in questions_dict and answer_num in questions_dict[question_num]['answers']:
+                                    questions_dict[question_num]['answers'][answer_num]['image'] = file
                         except (ValueError, IndexError):
                             continue
 
@@ -1075,7 +1104,8 @@ class QuizEditView(UserPassesTestMixin, UpdateView):
                         
                         if question_data['type'] in ['single', 'multiple', 'match']:
                             for answer_num, answer_data in question_data['answers'].items():
-                                if answer_data['text'].strip():
+                                # Для match типа текст может быть пустым если есть изображение
+                                if answer_data['text'].strip() or answer_data.get('image'):
                                     # Для single вопросов правильность определяется через correct_answer
                                     is_correct = answer_data['correct']
                                     if question_data['type'] == 'single' and question_data['correct_answer']:
@@ -1084,7 +1114,8 @@ class QuizEditView(UserPassesTestMixin, UpdateView):
                                     Answer.objects.create(
                                         question=question,
                                         text=answer_data['text'],
-                                        is_correct=is_correct
+                                        is_correct=is_correct,
+                                        image=answer_data.get('image')
                                     )
 
                 return JsonResponse({
