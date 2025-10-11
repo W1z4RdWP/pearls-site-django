@@ -739,6 +739,10 @@ def get_finish(request) -> HttpResponse:
             if from_control_panel:
                 return redirect('quizzes:quizzes')
     elif course and not passed:
+        # Если тест запускается из панели управления - не показываем сообщения об ошибках курса
+        if from_control_panel:
+            return redirect('quizzes:quizzes')
+        
         # Проверяем, является ли этот тест финальным для курса
         if course.final_quiz == quiz:
             # Считаем количество неуспешных попыток для этого теста в рамках курса
@@ -771,9 +775,6 @@ def get_finish(request) -> HttpResponse:
         else:
             messages.error(request, "Тест не пройден. Попробуйте снова!")
         
-        # Если тест запускался из панели управления, возвращаемся туда
-        if from_control_panel:
-            return redirect('quizzes:quizzes')
         return redirect('quizzes:quiz_start', quiz_id=quiz.id)
     elif passed:
         # Если тест не привязан к курсу, но пройден - начисляем очки только если не был пройден ранее И не из панели управления

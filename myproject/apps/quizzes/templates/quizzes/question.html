@@ -70,7 +70,7 @@
                                 <h6>Вопросы</h6>
                                 <div class="list-group" id="question-items">
                                     {% for question_id, question_data in questions.items %}
-                                        <div class="list-group-item question-item drop-zone"
+                                        <div class="list-group-item question-item"
                                              data-id="{{ question_id }}"
                                              style="min-height: 80px;">
                                             <div class="question-text">
@@ -82,7 +82,9 @@
                                                 {% endif %}
                                             </div>
                                             <div class="drop-area" data-question-id="{{ question_id }}">
-                                                <span class="placeholder">Перетащите ответ сюда</span>
+                                                <span class="placeholder">
+                                                    <i class="fas fa-hand-point-down"></i> <span style="color: white;">Перетащите ответ сюда</span>
+                                                </span>
                                             </div>
                                         </div>
                                     {% endfor %}
@@ -128,6 +130,7 @@
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     const answerItems = document.querySelectorAll('#answer-items .draggable');
+    const questionItems = document.querySelectorAll('.question-item');
     const dropZones = document.querySelectorAll('.drop-area');
     const hiddenMatches = document.getElementById('hidden-matches');
     const form = document.querySelector('form');
@@ -135,46 +138,70 @@ document.addEventListener('DOMContentLoaded', function() {
     // Делаем варианты ответов перетаскиваемыми
     answerItems.forEach(item => {
         item.addEventListener('dragstart', handleDragStart);
+        item.addEventListener('dragend', handleDragEnd);
     });
 
-    // Обработчики для зон сброса
-    dropZones.forEach(zone => {
-        zone.addEventListener('dragover', handleDragOver);
-        zone.addEventListener('drop', handleDrop);
+    // Обработчики для зон сброса (весь question-item)
+    questionItems.forEach(item => {
+        item.addEventListener('dragover', handleDragOver);
+        item.addEventListener('dragleave', handleDragLeave);
+        item.addEventListener('drop', handleDrop);
     });
 
     function handleDragStart(e) {
         e.dataTransfer.setData('text/plain', e.target.dataset.id);
         e.dataTransfer.effectAllowed = 'move';
+        e.target.classList.add('dragging');
+    }
+
+    function handleDragEnd(e) {
+        e.target.classList.remove('dragging');
+        // Убираем подсветку со всех зон
+        questionItems.forEach(item => item.classList.remove('drag-over'));
     }
 
     function handleDragOver(e) {
         e.preventDefault();
         e.dataTransfer.dropEffect = 'move';
+        e.currentTarget.classList.add('drag-over');
+    }
+
+    function handleDragLeave(e) {
+        // Проверяем, что мы действительно покинули элемент, а не его дочерний элемент
+        if (e.currentTarget.contains(e.relatedTarget)) {
+            return;
+        }
+        e.currentTarget.classList.remove('drag-over');
     }
 
     function handleDrop(e) {
         e.preventDefault();
+        e.stopPropagation();
+        
+        const questionItem = e.currentTarget;
+        questionItem.classList.remove('drag-over');
+        
         const answerId = e.dataTransfer.getData('text/plain');
-        const questionId = e.target.dataset.questionId;
+        const dropArea = questionItem.querySelector('.drop-area');
+        const questionId = dropArea.dataset.questionId;
 
         if (answerId && questionId) {
             // Убираем ответ из предыдущей зоны, если он там был
             document.querySelectorAll('.drop-area').forEach(zone => {
                 const existingAnswer = zone.querySelector('.dropped-answer');
                 if (existingAnswer && existingAnswer.dataset.answerId === answerId) {
-                    zone.innerHTML = '<span class="placeholder">Перетащите ответ сюда</span>';
+                    zone.innerHTML = '<span class="placeholder"><i class="fas fa-hand-point-down"></i> Перетащите ответ сюда</span>';
                 }
             });
 
             // Помещаем ответ в новую зону
             const answerElement = document.querySelector(`[data-id="${answerId}"]`);
-            const answerText = answerElement.textContent.trim();
+            const answerContent = answerElement.innerHTML;
 
-            e.target.innerHTML = `
+            dropArea.innerHTML = `
                 <div class="dropped-answer alert alert-success p-2 mb-0" data-answer-id="${answerId}">
-                    ${answerText}
-                    <button type="button" class="btn btn-sm btn-outline-danger ms-2" onclick="removeAnswer(this)">×</button>
+                    <button type="button" class="btn-remove-answer" onclick="removeAnswer(this)" title="Удалить">×</button>
+                    <div class="dropped-content">${answerContent}</div>
                 </div>
             `;
 
@@ -203,7 +230,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // Глобальная функция для удаления ответа из зоны
     window.removeAnswer = function(button) {
         const zone = button.closest('.drop-area');
-        zone.innerHTML = '<span class="placeholder">Перетащите ответ сюда</span>';
+        zone.innerHTML = '<span class="placeholder"><i class="fas fa-hand-point-down"></i> Перетащите ответ сюда</span>';
         updateHiddenFields();
     };
 
@@ -222,62 +249,184 @@ document.addEventListener('DOMContentLoaded', function() {
 </script>
 
 <style>
+/* Стили для перетаскиваемых элементов */
 .draggable {
-    cursor: move;
+    cursor: grab;
     transition: all 0.2s;
+    border: 2px solid transparent;
 }
 
 .draggable:hover {
     background-color: #f8f9fa;
-    transform: translateY(-1px);
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+    border-color: #007bff;
+}
+
+.draggable:active {
+    cursor: grabbing;
 }
 
 .draggable.dragging {
-    opacity: 0.5;
-    transform: rotate(5deg);
+    opacity: 0.4;
+    transform: rotate(3deg);
+    cursor: grabbing;
 }
 
-.drop-zone {
-    min-height: 80px;
-    border: 2px dashed #dee2e6;
-    border-radius: 0.375rem;
-    padding: 10px;
-    margin-bottom: 10px;
-    transition: all 0.2s;
+/* Стили для области вопроса - теперь вся область реагирует на drop */
+.question-item {
+    position: relative;
+    transition: all 0.3s ease;
+    border: 2px solid transparent !important;
+    cursor: default;
 }
 
-.drop-zone:hover {
-    border-color: #007bff;
-    background-color: #f8f9fa;
+.question-item.drag-over {
+    border-color: #28a745 !important;
+    background-color: #d4edda !important;
+    transform: scale(1.02);
+    box-shadow: 0 4px 12px rgba(40, 167, 69, 0.3) !important;
 }
 
-.drop-zone.drag-over {
+.question-item.drag-over .drop-area {
     border-color: #28a745;
-    background-color: #d4edda;
+    background-color: #c3e6cb;
 }
 
+/* Стили для текста вопроса */
 .question-text {
-    font-weight: bold;
-    margin-bottom: 8px;
+    font-weight: 600;
+    margin-bottom: 12px;
     color: #495057;
+    padding: 8px;
+    background-color: #f8f9fa;
+    border-radius: 0.375rem;
+    pointer-events: none; /* Чтобы не мешала drag событиям */
 }
 
-.placeholder {
-    color: #6c757d;
-    font-style: italic;
-}
-
-.dropped-answer {
+/* Стили для drop-area */
+.drop-area {
+    min-height: 60px;
+    border: 2px dashed #6c757d;
+    border-radius: 0.375rem;
+    padding: 15px;
+    margin-top: 8px;
+    transition: all 0.3s;
+    background-color: #f8f9fa;
     display: flex;
     align-items: center;
-    justify-content: space-between;
-    animation: dropAnimation 0.3s ease-in;
+    justify-content: center;
+    text-align: center;
+}
+
+.drop-area:empty {
+    min-height: 60px;
+}
+
+/* Стили для placeholder */
+.placeholder {
+    color: #495057;
+    font-style: italic;
+    font-size: 0.95rem;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.placeholder i {
+    font-size: 1.2rem;
+    color: #007bff;
+    animation: bounce 2s infinite;
+}
+
+@keyframes bounce {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-5px); }
+}
+
+/* Стили для размещенного ответа */
+.dropped-answer {
+    position: relative;
+    animation: dropAnimation 0.4s ease-out;
+    width: 100%;
+    padding-right: 35px !important; /* Место для кнопки удаления */
 }
 
 @keyframes dropAnimation {
-    0% { transform: scale(0.8); opacity: 0; }
-    100% { transform: scale(1); opacity: 1; }
+    0% { 
+        transform: scale(0.8) translateY(-10px); 
+        opacity: 0; 
+    }
+    60% { 
+        transform: scale(1.05); 
+    }
+    100% { 
+        transform: scale(1) translateY(0); 
+        opacity: 1; 
+    }
+}
+
+.dropped-content {
+    width: 100%;
+}
+
+/* Квадратная кнопка удаления в правом верхнем углу */
+.btn-remove-answer {
+    position: absolute;
+    top: 5px;
+    right: 5px;
+    width: 28px;
+    height: 28px;
+    padding: 0;
+    border: 2px solid #dc3545;
+    background-color: white;
+    color: #dc3545;
+    border-radius: 4px;
+    font-size: 1.3rem;
+    line-height: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-weight: bold;
+    z-index: 10;
+}
+
+.btn-remove-answer:hover {
+    background-color: #dc3545;
+    color: white;
+    transform: scale(1.1) rotate(90deg);
+    box-shadow: 0 2px 8px rgba(220, 53, 69, 0.4);
+}
+
+.btn-remove-answer:active {
+    transform: scale(0.95) rotate(90deg);
+}
+
+/* Адаптивность */
+@media (max-width: 768px) {
+    .question-item.drag-over {
+        transform: scale(1.01);
+    }
+    
+    .drop-area {
+        min-height: 50px;
+        padding: 10px;
+    }
+    
+    .btn-remove-answer {
+        width: 26px;
+        height: 26px;
+        font-size: 1.1rem;
+        top: 3px;
+        right: 3px;
+    }
+    
+    .dropped-answer {
+        padding-right: 32px !important;
+    }
 }
 </style>
 {% endif %}
