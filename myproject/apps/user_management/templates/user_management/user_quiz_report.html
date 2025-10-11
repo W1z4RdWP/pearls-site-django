@@ -1,4 +1,5 @@
 {% extends 'layout.html' %}
+{% load quiz_filters %}
 {% block content %}
 <div class="container mt-4">
     <h2>Отчёт по тесту: {{ quiz_result.quiz_title }}</h2>
@@ -14,9 +15,9 @@
             {% elif answers.0.is_correct %}list-group-item-success
             {% else %}list-group-item-danger
             {% endif %}
-        {% elif question.question_type == 'match' %}
+        {% elif question.question_type == 'match' or question.question_type == 'sequence' %}
             {% if answers.0.is_correct %}list-group-item-success
-            {% else %}list-group-item-danger
+            {% else %}list-group-item-warning
             {% endif %}
         {% else %}
             {% if answers.0.is_correct %}list-group-item-success
@@ -25,7 +26,50 @@
         {% endif %}">
                 <strong>Вопрос {{ forloop.counter }}:</strong> {{ question.text }}<br>
                 
-                {% if question.question_type == 'match' %}
+                {% if question.question_type == 'sequence' %}
+                    <div class="mt-2">
+                        <strong>Тип:</strong> Последовательность<br>
+                        {% if answers.0.answer_text %}
+                            <div class="row mt-2">
+                                <div class="col-md-6">
+                                    <h6>Ответ пользователя:</h6>
+                                    {% with user_seq_ids=answers.0.answer_text|split:',' %}
+                                    {% for ans_id_raw in user_seq_ids %}
+                                        {% with ans_id=ans_id_raw|trim %}
+                                        {% for answer in question.answer_set.all %}
+                                            {% if answer.id|stringformat:"s" == ans_id %}
+                                                <div class="d-flex align-items-center gap-2 p-2 mb-2 border rounded bg-light">
+                                                    <span class="badge bg-secondary" style="min-width: 30px;">{{ forloop.parentloop.counter }}</span>
+                                                    <div>{{ answer.text }}</div>
+                                                </div>
+                                            {% endif %}
+                                        {% endfor %}
+                                        {% endwith %}
+                                    {% endfor %}
+                                    {% endwith %}
+                                </div>
+                                <div class="col-md-6">
+                                    <h6>Правильная последовательность:</h6>
+                                    {% for answer in question.answer_set.all|dictsort:"id" %}
+                                    <div class="d-flex align-items-center gap-2 p-2 mb-2 border border-success rounded bg-success bg-opacity-10">
+                                        <span class="badge bg-success" style="min-width: 30px;">{{ forloop.counter }}</span>
+                                        <div>{{ answer.text }}</div>
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                            <div class="mt-2">
+                                {% if answers.0.is_correct %}
+                                    <span class="badge bg-success">✓ Полностью правильно</span>
+                                {% else %}
+                                    <span class="badge bg-warning text-dark">⚠ Частично правильно или неправильно</span>
+                                {% endif %}
+                            </div>
+                        {% else %}
+                            <em>Нет ответа</em>
+                        {% endif %}
+                    </div>
+                {% elif question.question_type == 'match' %}
                     <div class="mt-2">
                         <strong>Тип:</strong> Соответствие<br>
                         <div class="row mt-2">

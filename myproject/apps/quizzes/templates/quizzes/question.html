@@ -44,6 +44,32 @@
                         <label for="answer_text" class="form-label">Ваш ответ:</label>
                         <textarea class="form-control" name="answer_text" id="answer_text" rows="4" required></textarea>
                     </div>
+                {% elif question.question_type == 'sequence' %}
+                    <div class="mb-3">
+                        <p class="text-muted">Расположите варианты в правильном порядке (перетаскивайте элементы):</p>
+                        <div id="sequence-container" class="list-group">
+                            {% for answer_id, answer_data in answers.items %}
+                                <div class="list-group-item sequence-item draggable"
+                                     data-id="{{ answer_id }}"
+                                     draggable="true">
+                                    <span class="sequence-number">{{ answer_data.display_order }}</span>
+                                    <div class="sequence-content">
+                                        {% if answer_data.image %}
+                                            <img src="{{ answer_data.image }}" class="img-thumbnail mb-2" style="max-width: 200px; max-height: 200px; object-fit: contain;">
+                                        {% endif %}
+                                        {% if answer_data.text %}
+                                            <div>{{ answer_data.text }}</div>
+                                        {% endif %}
+                                    </div>
+                                    <div class="drag-handle">
+                                        <i class="fas fa-grip-vertical"></i>
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        </div>
+                        <!-- Скрытое поле для отправки последовательности -->
+                        <input type="hidden" name="sequence_order" id="sequence-order-input">
+                    </div>
                 {% elif question.question_type == 'match' %}
                     <div class="mb-3">
                         <p class="text-muted">Сопоставьте варианты ответов слева с вопросами справа:</p>
@@ -426,6 +452,228 @@ document.addEventListener('DOMContentLoaded', function() {
     
     .dropped-answer {
         padding-right: 32px !important;
+    }
+}
+</style>
+{% endif %}
+
+{% if question.question_type == 'sequence' %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const container = document.getElementById('sequence-container');
+    const items = container.querySelectorAll('.sequence-item');
+    const hiddenInput = document.getElementById('sequence-order-input');
+    const form = document.querySelector('form');
+    
+    let draggedItem = null;
+    
+    // Инициализация drag-and-drop
+    items.forEach(item => {
+        item.addEventListener('dragstart', handleDragStart);
+        item.addEventListener('dragend', handleDragEnd);
+        item.addEventListener('dragover', handleDragOver);
+        item.addEventListener('drop', handleDrop);
+        item.addEventListener('dragenter', handleDragEnter);
+        item.addEventListener('dragleave', handleDragLeave);
+    });
+    
+    function handleDragStart(e) {
+        draggedItem = this;
+        this.classList.add('dragging');
+        e.dataTransfer.effectAllowed = 'move';
+        e.dataTransfer.setData('text/html', this.innerHTML);
+    }
+    
+    function handleDragEnd(e) {
+        this.classList.remove('dragging');
+        items.forEach(item => {
+            item.classList.remove('drag-over');
+        });
+        updateSequenceNumbers();
+        updateHiddenInput();
+    }
+    
+    function handleDragOver(e) {
+        if (e.preventDefault) {
+            e.preventDefault();
+        }
+        e.dataTransfer.dropEffect = 'move';
+        return false;
+    }
+    
+    function handleDragEnter(e) {
+        if (this !== draggedItem) {
+            this.classList.add('drag-over');
+        }
+    }
+    
+    function handleDragLeave(e) {
+        this.classList.remove('drag-over');
+    }
+    
+    function handleDrop(e) {
+        if (e.stopPropagation) {
+            e.stopPropagation();
+        }
+        
+        if (draggedItem !== this) {
+            // Определяем, где вставить элемент
+            const allItems = Array.from(container.querySelectorAll('.sequence-item'));
+            const draggedIndex = allItems.indexOf(draggedItem);
+            const targetIndex = allItems.indexOf(this);
+            
+            if (draggedIndex < targetIndex) {
+                // Перемещаем после целевого элемента
+                this.parentNode.insertBefore(draggedItem, this.nextSibling);
+            } else {
+                // Перемещаем перед целевым элементом
+                this.parentNode.insertBefore(draggedItem, this);
+            }
+        }
+        
+        return false;
+    }
+    
+    function updateSequenceNumbers() {
+        const currentItems = container.querySelectorAll('.sequence-item');
+        currentItems.forEach((item, index) => {
+            const numberSpan = item.querySelector('.sequence-number');
+            numberSpan.textContent = index + 1;
+        });
+    }
+    
+    function updateHiddenInput() {
+        const currentItems = container.querySelectorAll('.sequence-item');
+        const sequence = Array.from(currentItems).map(item => item.dataset.id);
+        hiddenInput.value = sequence.join(',');
+    }
+    
+    // Обновляем скрытое поле при загрузке страницы
+    updateHiddenInput();
+    
+    // Валидация при отправке формы
+    form.addEventListener('submit', function(e) {
+        if (!hiddenInput.value) {
+            e.preventDefault();
+            alert('Пожалуйста, расположите элементы в правильном порядке');
+            return false;
+        }
+    });
+});
+</script>
+
+<style>
+/* Стили для типа последовательность */
+.sequence-item {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    padding: 15px;
+    margin-bottom: 10px;
+    cursor: move;
+    transition: all 0.3s ease;
+    border: 2px solid #dee2e6;
+    background-color: #fff;
+    position: relative;
+}
+
+.sequence-item:hover {
+    border-color: #007bff;
+    background-color: #f8f9fa;
+    transform: translateX(5px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+
+.sequence-item.dragging {
+    opacity: 0.5;
+    cursor: grabbing;
+    transform: rotate(2deg);
+}
+
+.sequence-item.drag-over {
+    border-color: #28a745;
+    border-style: dashed;
+    background-color: #d4edda;
+    transform: scale(1.02);
+}
+
+.sequence-number {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 40px;
+    min-height: 40px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border-radius: 50%;
+    font-weight: bold;
+    font-size: 1.2rem;
+    flex-shrink: 0;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+
+.sequence-content {
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.drag-handle {
+    color: #6c757d;
+    font-size: 1.5rem;
+    cursor: grab;
+    padding: 5px;
+    opacity: 0.6;
+    transition: opacity 0.2s;
+}
+
+.sequence-item:hover .drag-handle {
+    opacity: 1;
+}
+
+.sequence-item.dragging .drag-handle {
+    cursor: grabbing;
+}
+
+#sequence-container {
+    min-height: 100px;
+    padding: 10px;
+    background-color: #f8f9fa;
+    border-radius: 8px;
+}
+
+/* Анимация для перемещения элементов */
+@keyframes slideIn {
+    from {
+        transform: translateX(-20px);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+.sequence-item {
+    animation: slideIn 0.3s ease-out;
+}
+
+/* Адаптивность */
+@media (max-width: 768px) {
+    .sequence-item {
+        padding: 10px;
+        gap: 10px;
+    }
+    
+    .sequence-number {
+        min-width: 35px;
+        min-height: 35px;
+        font-size: 1rem;
+    }
+    
+    .drag-handle {
+        font-size: 1.2rem;
     }
 }
 </style>

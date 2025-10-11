@@ -171,8 +171,11 @@ def get_questions(request, quiz_id: int = None, is_start: bool = False) -> HttpR
         request.session['current_question_id'] = question.id
         
         # Для типа MATCH получаем в исходном порядке (пары не должны перемешиваться)
+        # Для типа SEQUENCE получаем в исходном порядке, но потом перемешаем для отображения
         # Для остальных типов - в случайном порядке
         if question.question_type == Question.MATCH:
+            answers = Answer.objects.filter(question=question).order_by('id')
+        elif question.question_type == Question.SEQUENCE:
             answers = Answer.objects.filter(question=question).order_by('id')
         else:
             answers = Answer.objects.filter(question=question).order_by('?')
@@ -190,10 +193,29 @@ def get_questions(request, quiz_id: int = None, is_start: bool = False) -> HttpR
         total_questions = len(all_questions_ids)
         progress_percent = int((current_index / total_questions) * 100)
 
-        # Подготавливаем данные для типа MATCH
+        # Подготавливаем данные для типов MATCH и SEQUENCE
         questions = {}
         match_answers = {}
-        if question.question_type == Question.MATCH:
+        sequence_answers = {}
+        
+        if question.question_type == Question.SEQUENCE:
+            # Для типа SEQUENCE получаем ответы и перемешиваем их для отображения
+            answers_list = list(answers)
+            import random
+            shuffled_answers = answers_list.copy()
+            random.shuffle(shuffled_answers)
+            
+            # Формируем словарь с перемешанными ответами
+            for idx, ans in enumerate(shuffled_answers):
+                sequence_answers[str(ans.id)] = {
+                    'text': ans.text,
+                    'image': ans.image.url if ans.image else None,
+                    'display_order': idx + 1
+                }
+            
+            # Переопределяем answers для шаблона
+            answers = sequence_answers
+        elif question.question_type == Question.MATCH:
             # Группируем ответы по парам (каждые 2 ответа - это пара вопрос-ответ)
             answers_list = list(answers)
             
@@ -263,6 +285,13 @@ def get_questions(request, quiz_id: int = None, is_start: bool = False) -> HttpR
         # Добавляем questions только для типа MATCH
         if question.question_type == Question.MATCH:
             context['questions'] = questions
+        elif question.question_type == Question.SEQUENCE:
+            # Для SEQUENCE сохраняем правильный порядок в сессии
+            correct_order = list(Answer.objects.filter(question=question).order_by('id').values_list('id', flat=True))
+            if 'sequence_correct_orders' not in request.session:
+                request.session['sequence_correct_orders'] = {}
+            request.session['sequence_correct_orders'][str(question.id)] = correct_order
+            request.session.modified = True
 
         return render(request, 'quizzes/question.html', context)
     
@@ -331,6 +360,61 @@ def get_answer(request) -> HttpResponse:
                 'is_correct': False,  # для текстовых не бывает "правильно"
                 'question': question,
                 'user_text': user_text,
+                'is_last': is_last,
+            }
+        elif question.question_type == Question.SEQUENCE:
+            # Для типа последовательность получаем порядок элементов
+            user_sequence = []
+            sequence_data = request.POST.get('sequence_order', '')
+            
+            if sequence_data:
+                user_sequence = [int(id) for id in sequence_data.split(',') if id.strip()]
+            
+            # Получаем правильную последовательность из сессии
+            correct_sequence = request.session.get('sequence_correct_orders', {}).get(str(question.id), [])
+            
+            # Проверяем правильность последовательности
+            is_correct = (user_sequence == correct_sequence)
+            
+            # Подсчитываем частичную правильность (для статистики)
+            partial_score = 0
+            if len(user_sequence) == len(correct_sequence):
+                for i in range(len(user_sequence)):
+                    if user_sequence[i] == correct_sequence[i]:
+                        partial_score += 1
+            
+            partial_percent = int((partial_score / len(correct_sequence)) * 100) if correct_sequence else 0
+            
+            # Получаем данные ответов для отображения
+            all_answers = Answer.objects.filter(question=question).order_by('id')
+            answers_dict = {ans.id: {'text': ans.text, 'image': ans.image.url if ans.image else None} for ans in all_answers}
+            
+            quiz_answers[str(question.id)] = {
+                'user_sequence': user_sequence,
+                'correct_sequence': correct_sequence,
+                'answers': answers_dict,
+                'is_correct': is_correct,
+                'partial_score': partial_score,
+                'partial_percent': partial_percent,
+                'question_type': 'sequence'
+            }
+            
+            all_questions_ids = list(Question.objects.filter(quiz_id=quiz_id).order_by('id').values_list('id', flat=True))
+            current_index = all_questions_ids.index(question.id) + 1
+            total_questions = len(all_questions_ids)
+            is_last = not Question.objects.filter(quiz_id=quiz_id, id__gt=question.id).exists()
+            
+            context = {
+                'current_question_number': current_index,
+                'total_questions': total_questions,
+                'progress_percent': int((current_index / total_questions) * 100),
+                'is_correct': is_correct,
+                'question': question,
+                'user_sequence': user_sequence,
+                'correct_sequence': correct_sequence,
+                'answers': answers_dict,
+                'partial_score': partial_score,
+                'partial_percent': partial_percent,
                 'is_last': is_last,
             }
         elif question.question_type == Question.MATCH:
@@ -623,6 +707,17 @@ def get_finish(request) -> HttpResponse:
                 selected_answer=None,
                 is_correct=ans_data.get('is_correct', False),
                 answer_text=matches_text
+            )
+        elif ans_data['question_type'] == 'sequence':
+            # Для типа последовательность сохраняем порядок элементов как текст
+            sequence_text = ','.join([str(ans_id) for ans_id in ans_data.get('user_sequence', [])])
+            UserAnswer.objects.create(
+                user=request.user,
+                quiz_result=quiz_result,
+                question=q,
+                selected_answer=None,
+                is_correct=ans_data.get('is_correct', False),
+                answer_text=sequence_text
             )
         else:
             ans = Answer.objects.get(id=ans_data['selected_id'])
@@ -960,7 +1055,7 @@ class QuizCreateView(UserPassesTestMixin, CreateView):
                     )
                     
                     # Создаем ответы (только для вопросов с вариантами ответов)
-                    if question_data['type'] in ['single', 'multiple', 'match']:
+                    if question_data['type'] in ['single', 'multiple', 'match', 'sequence']:
                         for answer_num, answer_data in question_data['answers'].items():
                             if answer_data['text'].strip():  # Проверяем, что текст ответа не пустой
                                 # Для single вопросов правильность определяется через correct_answer
@@ -1103,9 +1198,9 @@ class QuizEditView(UserPassesTestMixin, UpdateView):
                             question_type=question_data['type']
                         )
                         
-                        if question_data['type'] in ['single', 'multiple', 'match']:
+                        if question_data['type'] in ['single', 'multiple', 'match', 'sequence']:
                             for answer_num, answer_data in question_data['answers'].items():
-                                # Для match типа текст может быть пустым если есть изображение
+                                # Для match и sequence типа текст может быть пустым если есть изображение
                                 if answer_data['text'].strip() or answer_data.get('image'):
                                     # Для single вопросов правильность определяется через correct_answer
                                     is_correct = answer_data['correct']

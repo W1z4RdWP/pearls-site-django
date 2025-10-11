@@ -32,11 +32,13 @@ class Question(models.Model):
   MULTIPLE = 'multiple'
   TEXT = 'text'
   MATCH = 'match'
+  SEQUENCE = 'sequence'
   QUESTION_TYPES = [
       (SINGLE, 'Один правильный ответ'),
       (MULTIPLE, 'Несколько правильных ответов'),
       (TEXT, 'Открытый ответ'),
       (MATCH, 'Соответствие'),
+      (SEQUENCE, 'Последовательность'),
   ]
 
   quiz = models.ForeignKey(Quiz, on_delete=models.CASCADE)

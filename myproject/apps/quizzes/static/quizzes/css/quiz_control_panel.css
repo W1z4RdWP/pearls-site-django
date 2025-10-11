@@ -440,3 +440,62 @@
         transform: rotate(360deg);
     }
 }
+
+/* === СТИЛИ ДЛЯ ТИПА ВОПРОСА "ПОСЛЕДОВАТЕЛЬНОСТЬ" === */
+.sequence-answer-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px;
+    margin-bottom: 10px;
+    background-color: #f8f9fa;
+    border: 1px solid #dee2e6;
+    border-radius: 6px;
+    transition: all 0.2s ease;
+}
+
+.sequence-answer-item:hover {
+    border-color: #007bff;
+    background-color: #e7f3ff;
+    transform: translateX(3px);
+}
+
+.sequence-order-number {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 32px;
+    min-height: 32px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border-radius: 50%;
+    font-weight: bold;
+    font-size: 0.95rem;
+    flex-shrink: 0;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.15);
+}
+
+.sequence-answer-item .form-control {
+    flex-grow: 1;
+    margin: 0;
+}
+
+.sequence-answer-item .remove-btn {
+    flex-shrink: 0;
+    margin: 0;
+}
+
+/* Темная тема */
+.theme-dark .sequence-answer-item {
+    background-color: #232a3a;
+    border-color: #444;
+}
+
+.theme-dark .sequence-answer-item:hover {
+    border-color: #0d6efd;
+    background-color: #2a3447;
+}
+
+.theme-dark .sequence-order-number {
+    box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+}
