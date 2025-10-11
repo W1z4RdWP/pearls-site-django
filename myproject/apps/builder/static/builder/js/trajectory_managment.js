@@ -355,6 +355,7 @@ function addQuestion() {
                         <option value="multiple">Несколько правильных ответов</option>
                         <option value="text">Открытый ответ</option>
                         <option value="match">Соответствие</option>
+                        <option value="sequence">Последовательность</option>
                     </select>
                 </div>
                 
@@ -398,7 +399,28 @@ function addAnswer(questionId) {
     const answersContainer = document.getElementById(`answers-${questionId}`);
     const answersList = document.getElementById(`answers-list-${questionId}`);
     
-    if (questionType === 'match') {
+    if (questionType === 'sequence') {
+        // Для типа последовательность добавляем элемент с номером
+        // Считаем только элементы последовательности, а не все дочерние элементы (исключая инструкции)
+        const existingItems = answersList.querySelectorAll('.sequence-item');
+        const answerCount = existingItems.length + 1;
+        
+        const sequenceHtml = `
+            <div class="sequence-item d-flex align-items-center mb-2" data-answer-id="${answerCount}">
+                <span class="sequence-number badge bg-gradient-primary me-2">${answerCount}</span>
+                <div class="flex-grow-1 me-2">
+                    <input type="text" class="form-control form-control-sm" 
+                           name="questions[${questionId}][answers][${answerCount}][text]" 
+                           placeholder="Элемент последовательности ${answerCount}" required>
+                </div>
+                <button type="button" class="btn btn-outline-danger btn-sm" onclick="removeAnswer(${questionId}, ${answerCount})">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+        `;
+        
+        answersList.insertAdjacentHTML('beforeend', sequenceHtml);
+    } else if (questionType === 'match') {
         // Для типа соответствия добавляем пару вопрос-ответ
         const existingPairs = answersList.querySelectorAll('.match-pair');
         const pairNumber = existingPairs.length + 1;
@@ -463,11 +485,17 @@ function addAnswer(questionId) {
 
 // Функция для удаления ответа
 function removeAnswer(questionId, answerId) {
-    const answerItem = document.querySelector(`[data-question-id="${questionId}"] .answer-item[data-answer-id="${answerId}"]`);
+    const questionBlock = document.querySelector(`[data-question-id="${questionId}"]`);
+    const questionType = questionBlock.querySelector('select[name*="[type]"]').value;
+    const answerItem = document.querySelector(`[data-question-id="${questionId}"] .answer-item[data-answer-id="${answerId}"], [data-question-id="${questionId}"] .sequence-item[data-answer-id="${answerId}"]`);
     if (answerItem) {
         answerItem.remove();
         // Пересчитываем номера ответов
-        renumberAnswers(questionId);
+        if (questionType === 'sequence') {
+            renumberSequenceItems(questionId);
+        } else {
+            renumberAnswers(questionId);
+        }
     }
 }
 
@@ -491,6 +519,26 @@ function toggleAnswerType(questionId, questionType) {
         // Для открытого ответа скрываем варианты ответов
         answersContainer.style.display = 'none';
         answersList.innerHTML = '';
+    } else if (questionType === 'sequence') {
+        // Для типа последовательность
+        answersContainer.style.display = 'block';
+        
+        // Обновляем метку
+        if (labelElement) {
+            labelElement.textContent = 'Элементы последовательности';
+        }
+        
+        // Очищаем старые ответы и добавляем инструкцию
+        answersList.innerHTML = `
+            <div class="alert alert-info mb-3">
+                <strong>Инструкция:</strong> Добавьте элементы в правильном порядке. Первый добавленный элемент будет первым в правильной последовательности.
+            </div>
+        `;
+        
+        // Добавляем три элемента по умолчанию
+        addAnswer(questionId);
+        addAnswer(questionId);
+        addAnswer(questionId);
     } else if (questionType === 'match') {
         // Для типа соответствия
         answersContainer.style.display = 'block';
@@ -531,6 +579,10 @@ function toggleAnswerType(questionId, questionType) {
         // Удаляем пары соответствия если были
         const matchPairs = answersList.querySelectorAll('.match-pair');
         matchPairs.forEach(pair => pair.remove());
+        
+        // Удаляем элементы последовательности если были
+        const sequenceItems = answersList.querySelectorAll('.sequence-item');
+        sequenceItems.forEach(item => item.remove());
         
         if (answersList.querySelectorAll('.answer-item').length === 0) {
             // Добавляем первые два ответа если их нет
@@ -623,6 +675,9 @@ function renumberQuestions() {
         if (questionType === 'match') {
             // Пересчитываем пары соответствия в этом вопросе
             renumberMatchPairs(questionNumber);
+        } else if (questionType === 'sequence') {
+            // Пересчитываем элементы последовательности в этом вопросе
+            renumberSequenceItems(questionNumber);
         } else {
             // Пересчитываем ответы в этом вопросе
             renumberAnswers(questionNumber);
@@ -703,6 +758,34 @@ function renumberMatchPairs(questionId) {
     });
 }
 
+// Функция для пересчета номеров элементов последовательности
+function renumberSequenceItems(questionId) {
+    const items = document.querySelectorAll(`[data-question-id="${questionId}"] .sequence-item`);
+    items.forEach((item, index) => {
+        const itemNumber = index + 1;
+        item.setAttribute('data-answer-id', itemNumber);
+        
+        // Обновляем номер в бейдже
+        const numberBadge = item.querySelector('.sequence-number');
+        if (numberBadge) {
+            numberBadge.textContent = itemNumber;
+        }
+        
+        // Обновляем атрибут name
+        const textInput = item.querySelector('input[type="text"]');
+        if (textInput) {
+            textInput.name = textInput.name.replace(/answers\[\d+\]/, `answers[${itemNumber}]`);
+            textInput.placeholder = `Элемент последовательности ${itemNumber}`;
+        }
+        
+        // Обновляем onclick для кнопки удаления
+        const removeButton = item.querySelector('.btn-outline-danger');
+        if (removeButton) {
+            removeButton.setAttribute('onclick', `removeAnswer(${questionId}, ${itemNumber})`);
+        }
+    });
+}
+
 // Функция валидации формы теста
 function validateQuizForm() {
     const questions = document.querySelectorAll('.question-block');
@@ -724,7 +807,29 @@ function validateQuizForm() {
         const questionType = question.querySelector('select[name*="[type]"]').value;
         
         // Проверяем ответы для вопросов с вариантами
-        if (questionType === 'match') {
+        if (questionType === 'sequence') {
+            // Для типа последовательность проверяем элементы
+            const sequenceItems = question.querySelectorAll('.sequence-item');
+            if (sequenceItems.length === 0) {
+                return {
+                    isValid: false,
+                    message: `Вопрос ${questionNumber}: Добавьте хотя бы один элемент последовательности`
+                };
+            }
+            
+            // Проверяем, что все поля заполнены
+            for (let j = 0; j < sequenceItems.length; j++) {
+                const item = sequenceItems[j];
+                const textInput = item.querySelector('input[type="text"]');
+                
+                if (!textInput.value.trim()) {
+                    return {
+                        isValid: false,
+                        message: `Вопрос ${questionNumber}: Заполните все элементы последовательности`
+                    };
+                }
+            }
+        } else if (questionType === 'match') {
             // Для типа соответствия проверяем пары вопрос-ответ
             const matchPairs = question.querySelectorAll('.match-pair');
             if (matchPairs.length === 0) {
