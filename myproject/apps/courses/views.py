@@ -2383,9 +2383,58 @@ def export_metrics_to_excel(request, submission_id):
         response = HttpResponse(
             content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
         )
-        clinic_name_safe = "".join(c for c in submission.clinic_name if c.isalnum() or c in (' ', '-', '_')).strip()
-        filename = f"metrics_{clinic_name_safe}_{submission.id}.xlsx"
+        
+        # Создаем безопасное имя файла из названия клиники
+        import re
+        import urllib.parse
+        
+        # Убираем все нелатинские символы и заменяем на латинские аналоги
+        clinic_name_safe = submission.clinic_name
+        # Заменяем кириллицу на латиницу для совместимости
+        cyrillic_to_latin = {
+            'а': 'a', 'б': 'b', 'в': 'v', 'г': 'g', 'д': 'd', 'е': 'e', 'ё': 'e',
+            'ж': 'zh', 'з': 'z', 'и': 'i', 'й': 'y', 'к': 'k', 'л': 'l', 'м': 'm',
+            'н': 'n', 'о': 'o', 'п': 'p', 'р': 'r', 'с': 's', 'т': 't', 'у': 'u',
+            'ф': 'f', 'х': 'h', 'ц': 'ts', 'ч': 'ch', 'ш': 'sh', 'щ': 'sch',
+            'ъ': '', 'ы': 'y', 'ь': '', 'э': 'e', 'ю': 'yu', 'я': 'ya',
+            'А': 'A', 'Б': 'B', 'В': 'V', 'Г': 'G', 'Д': 'D', 'Е': 'E', 'Ё': 'E',
+            'Ж': 'Zh', 'З': 'Z', 'И': 'I', 'Й': 'Y', 'К': 'K', 'Л': 'L', 'М': 'M',
+            'Н': 'N', 'О': 'O', 'П': 'P', 'Р': 'R', 'С': 'S', 'Т': 'T', 'У': 'U',
+            'Ф': 'F', 'Х': 'H', 'Ц': 'Ts', 'Ч': 'Ch', 'Ш': 'Sh', 'Щ': 'Sch',
+            'Ъ': '', 'Ы': 'Y', 'Ь': '', 'Э': 'E', 'Ю': 'Yu', 'Я': 'Ya'
+        }
+        
+        for cyr, lat in cyrillic_to_latin.items():
+            clinic_name_safe = clinic_name_safe.replace(cyr, lat)
+        
+        # Убираем все символы кроме букв, цифр, пробелов и дефисов
+        clinic_name_safe = re.sub(r'[^\w\s-]', '', clinic_name_safe).strip()
+        clinic_name_safe = re.sub(r'[-\s]+', '_', clinic_name_safe)
+        
+        # Если название пустое, используем fallback
+        if not clinic_name_safe:
+            clinic_name_safe = f"clinic_{submission.id}"
+        
+        # Форматируем дату заполнения
+        date_str = submission.submitted_at.strftime('%d-%m-%Y')
+        
+        # Создаем имя файла: название_клиники_дата.xlsx
+        # Если название клиники слишком длинное или содержит проблемные символы, используем упрощенный вариант
+        if len(clinic_name_safe) > 20 or not clinic_name_safe.replace('_', '').isalnum():
+            filename = f"metrics_{submission.id}_{date_str}.xlsx"
+        else:
+            filename = f"{clinic_name_safe}_{date_str}.xlsx"
+        
+        # Отладочная информация
+        print(f"DEBUG: Original clinic name: {submission.clinic_name}")
+        print(f"DEBUG: Safe clinic name: {clinic_name_safe}")
+        print(f"DEBUG: Date string: {date_str}")
+        print(f"DEBUG: Final filename: {filename}")
+        
+        # Пробуем разные варианты заголовков
         response['Content-Disposition'] = f'attachment; filename="{filename}"'
+        response['Content-Type'] = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        response['Content-Length'] = str(len(filename))
         
         wb.save(response)
         return response
