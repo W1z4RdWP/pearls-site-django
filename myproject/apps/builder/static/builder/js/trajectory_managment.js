@@ -354,6 +354,7 @@ function addQuestion() {
                         <option value="single">Один правильный ответ</option>
                         <option value="multiple">Несколько правильных ответов</option>
                         <option value="text">Открытый ответ</option>
+                        <option value="match">Соответствие</option>
                     </select>
                 </div>
                 
@@ -392,34 +393,72 @@ function removeQuestion(questionId) {
 
 // Функция для добавления ответа
 function addAnswer(questionId) {
+    const questionBlock = document.querySelector(`[data-question-id="${questionId}"]`);
+    const questionType = questionBlock.querySelector('select[name*="[type]"]').value;
+    const answersContainer = document.getElementById(`answers-${questionId}`);
     const answersList = document.getElementById(`answers-list-${questionId}`);
-    const answerCount = answersList.children.length + 1;
     
-    const answerHtml = `
-        <div class="answer-item d-flex align-items-center mb-2" data-answer-id="${answerCount}">
-            <div class="flex-grow-1 me-2">
-                <input type="text" class="form-control form-control-sm" 
-                       name="questions[${questionId}][answers][${answerCount}][text]" 
-                       placeholder="Вариант ответа ${answerCount}" required>
-            </div>
-            <div class="me-2">
-                <div class="form-check">
-                    <input class="form-check-input" type="checkbox" 
-                           name="questions[${questionId}][answers][${answerCount}][correct]" 
-                           id="correct-${questionId}-${answerCount}"
-                           onchange="handleCheckboxChange(${questionId}, this)">
-                    <label class="form-check-label" for="correct-${questionId}-${answerCount}">
-                        Правильный
-                    </label>
+    if (questionType === 'match') {
+        // Для типа соответствия добавляем пару вопрос-ответ
+        const existingPairs = answersList.querySelectorAll('.match-pair');
+        const pairNumber = existingPairs.length + 1;
+        const baseIndex = pairNumber * 2 - 1;
+        
+        const pairHtml = `
+            <div class="match-pair card mb-3" data-pair-id="${pairNumber}">
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <label class="form-label">Вопрос ${pairNumber}</label>
+                            <input type="text" class="form-control mb-2" 
+                                   name="questions[${questionId}][answers][${baseIndex}][text]"
+                                   placeholder="Текст вопроса" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Ответ ${pairNumber}</label>
+                            <input type="text" class="form-control mb-2" 
+                                   name="questions[${questionId}][answers][${baseIndex + 1}][text]"
+                                   placeholder="Текст ответа" required>
+                        </div>
+                    </div>
+                    <button type="button" class="btn btn-sm btn-outline-danger" onclick="removeMatchPair(${questionId}, ${pairNumber})">
+                        <i class="fas fa-times"></i> Удалить пару
+                    </button>
                 </div>
             </div>
-            <button type="button" class="btn btn-outline-danger btn-sm" onclick="removeAnswer(${questionId}, ${answerCount})">
-                <i class="fas fa-times"></i>
-            </button>
-        </div>
-    `;
-    
-    answersList.insertAdjacentHTML('beforeend', answerHtml);
+        `;
+        
+        answersList.insertAdjacentHTML('beforeend', pairHtml);
+    } else {
+        // Для других типов добавляем обычный ответ
+        const answerCount = answersList.children.length + 1;
+        
+        const answerHtml = `
+            <div class="answer-item d-flex align-items-center mb-2" data-answer-id="${answerCount}">
+                <div class="flex-grow-1 me-2">
+                    <input type="text" class="form-control form-control-sm" 
+                           name="questions[${questionId}][answers][${answerCount}][text]" 
+                           placeholder="Вариант ответа ${answerCount}" required>
+                </div>
+                <div class="me-2">
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" 
+                               name="questions[${questionId}][answers][${answerCount}][correct]" 
+                               id="correct-${questionId}-${answerCount}"
+                               onchange="handleCheckboxChange(${questionId}, this)">
+                        <label class="form-check-label" for="correct-${questionId}-${answerCount}">
+                            Правильный
+                        </label>
+                    </div>
+                </div>
+                <button type="button" class="btn btn-outline-danger btn-sm" onclick="removeAnswer(${questionId}, ${answerCount})">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+        `;
+        
+        answersList.insertAdjacentHTML('beforeend', answerHtml);
+    }
 }
 
 // Функция для удаления ответа
@@ -432,19 +471,68 @@ function removeAnswer(questionId, answerId) {
     }
 }
 
+// Функция для удаления пары соответствия
+function removeMatchPair(questionId, pairId) {
+    const pairItem = document.querySelector(`[data-question-id="${questionId}"] .match-pair[data-pair-id="${pairId}"]`);
+    if (pairItem) {
+        pairItem.remove();
+        // Пересчитываем номера пар
+        renumberMatchPairs(questionId);
+    }
+}
+
 // Функция для переключения типа вопроса
 function toggleAnswerType(questionId, questionType) {
     const answersContainer = document.getElementById(`answers-${questionId}`);
     const answersList = document.getElementById(`answers-list-${questionId}`);
+    const labelElement = answersContainer.querySelector('.form-label');
     
     if (questionType === 'text') {
         // Для открытого ответа скрываем варианты ответов
         answersContainer.style.display = 'none';
         answersList.innerHTML = '';
+    } else if (questionType === 'match') {
+        // Для типа соответствия
+        answersContainer.style.display = 'block';
+        
+        // Обновляем метку
+        if (labelElement) {
+            labelElement.textContent = 'Пары вопрос-ответ';
+        }
+        
+        // Очищаем старые ответы и добавляем инструкцию
+        answersList.innerHTML = `
+            <div class="alert alert-info mb-3">
+                <strong>Инструкция:</strong> Для вопроса на соответствие создайте пары вопрос-ответ:<br>
+                • Введите текст вопроса в поле "Вопрос"<br>
+                • Введите правильный ответ в поле "Ответ"<br>
+                • Каждая пара автоматически считается правильной
+            </div>
+        `;
+        
+        // Добавляем две пары по умолчанию
+        addAnswer(questionId);
+        addAnswer(questionId);
     } else {
         // Для других типов показываем варианты ответов
         answersContainer.style.display = 'block';
-        if (answersList.children.length === 0) {
+        
+        // Обновляем метку
+        if (labelElement) {
+            labelElement.textContent = 'Варианты ответов';
+        }
+        
+        // Очищаем инструкции если были
+        const alertInfo = answersList.querySelector('.alert-info');
+        if (alertInfo) {
+            alertInfo.remove();
+        }
+        
+        // Удаляем пары соответствия если были
+        const matchPairs = answersList.querySelectorAll('.match-pair');
+        matchPairs.forEach(pair => pair.remove());
+        
+        if (answersList.querySelectorAll('.answer-item').length === 0) {
             // Добавляем первые два ответа если их нет
             addAnswer(questionId);
             addAnswer(questionId);
@@ -530,8 +618,15 @@ function renumberQuestions() {
             answersList.id = `answers-list-${questionNumber}`;
         }
         
-        // Пересчитываем ответы в этом вопросе
-        renumberAnswers(questionNumber);
+        // Проверяем тип вопроса и пересчитываем соответствующие элементы
+        const questionType = question.querySelector('select[name*="[type]"]').value;
+        if (questionType === 'match') {
+            // Пересчитываем пары соответствия в этом вопросе
+            renumberMatchPairs(questionNumber);
+        } else {
+            // Пересчитываем ответы в этом вопросе
+            renumberAnswers(questionNumber);
+        }
     });
     
     // Обновляем глобальный счетчик
@@ -571,6 +666,43 @@ function renumberAnswers(questionId) {
     });
 }
 
+// Функция для пересчета номеров пар соответствия
+function renumberMatchPairs(questionId) {
+    const pairs = document.querySelectorAll(`[data-question-id="${questionId}"] .match-pair`);
+    pairs.forEach((pair, index) => {
+        const pairNumber = index + 1;
+        const baseIndex = pairNumber * 2 - 1;
+        pair.setAttribute('data-pair-id', pairNumber);
+        
+        // Обновляем метки
+        const questionLabel = pair.querySelector('.col-md-6:first-child .form-label');
+        if (questionLabel) {
+            questionLabel.textContent = `Вопрос ${pairNumber}`;
+        }
+        
+        const answerLabel = pair.querySelector('.col-md-6:last-child .form-label');
+        if (answerLabel) {
+            answerLabel.textContent = `Ответ ${pairNumber}`;
+        }
+        
+        // Обновляем атрибуты name для полей ввода
+        const inputs = pair.querySelectorAll('input[type="text"]');
+        if (inputs.length >= 2) {
+            inputs[0].name = inputs[0].name.replace(/answers\[\d+\]/, `answers[${baseIndex}]`);
+            inputs[0].placeholder = 'Текст вопроса';
+            
+            inputs[1].name = inputs[1].name.replace(/answers\[\d+\]/, `answers[${baseIndex + 1}]`);
+            inputs[1].placeholder = 'Текст ответа';
+        }
+        
+        // Обновляем onclick для кнопки удаления
+        const removeButton = pair.querySelector('.btn-outline-danger');
+        if (removeButton) {
+            removeButton.setAttribute('onclick', `removeMatchPair(${questionId}, ${pairNumber})`);
+        }
+    });
+}
+
 // Функция валидации формы теста
 function validateQuizForm() {
     const questions = document.querySelectorAll('.question-block');
@@ -592,7 +724,31 @@ function validateQuizForm() {
         const questionType = question.querySelector('select[name*="[type]"]').value;
         
         // Проверяем ответы для вопросов с вариантами
-        if (questionType !== 'text') {
+        if (questionType === 'match') {
+            // Для типа соответствия проверяем пары вопрос-ответ
+            const matchPairs = question.querySelectorAll('.match-pair');
+            if (matchPairs.length === 0) {
+                return {
+                    isValid: false,
+                    message: `Вопрос ${questionNumber}: Добавьте хотя бы одну пару вопрос-ответ для типа "Соответствие"`
+                };
+            }
+            
+            // Проверяем, что все поля в парах заполнены
+            for (let j = 0; j < matchPairs.length; j++) {
+                const pair = matchPairs[j];
+                const inputs = pair.querySelectorAll('input[type="text"]');
+                
+                for (let k = 0; k < inputs.length; k++) {
+                    if (!inputs[k].value.trim()) {
+                        return {
+                            isValid: false,
+                            message: `Вопрос ${questionNumber}: Заполните все поля в парах вопрос-ответ`
+                        };
+                    }
+                }
+            }
+        } else if (questionType !== 'text') {
             const answers = question.querySelectorAll('.answer-item');
             let correctAnswersCount = 0;
             let hasAnswers = false;
