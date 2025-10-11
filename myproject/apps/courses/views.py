@@ -457,6 +457,11 @@ class CourseDetailView(DetailView):
         quiz_blocked_id = request.GET.get('quiz_blocked')
 
 
+        # Определяем страну пользователя
+        user_country = ''
+        if hasattr(request.user, 'profile') and request.user.profile:
+            user_country = request.user.profile.country or ''
+
         # Формирование контекста
         context.update({
             'course_author': course.author.username,
@@ -480,6 +485,7 @@ class CourseDetailView(DetailView):
             'quiz_attempts_info': locals().get('quiz_attempts_info'),
             'quiz_passed': locals().get('final_quiz_passed', False),
             'is_dental_checkup_course': course.title == "Чек-ап стоматологической клиники",
+            'user_country': user_country,
             'highlight_start_button': highlight_start,
             'lesson_blocked_id': lesson_blocked_id,
             'quiz_blocked_id': quiz_blocked_id,
@@ -641,6 +647,11 @@ class LessonDetailView(DetailView):
             if lesson not in lessons_in_trajectory:
                 return render(self.request, 'courses/lesson_access_denied.html', {'course': course, 'lesson': lesson})
         
+        # Определяем страну пользователя (нужна для фильтрации уроков метрик)
+        user_country = ''
+        if hasattr(self.request.user, 'profile') and self.request.user.profile:
+            user_country = self.request.user.profile.country or ''
+
         # Определяем предыдущий и следующий уроки
         if trajectory:
             trajectory_lessons = trajectory.lessons.all().order_by('order')
@@ -654,17 +665,32 @@ class LessonDetailView(DetailView):
             previous_lesson = lesson.get_previous_lesson(course)
             next_lesson = lesson.get_next_lesson(course)
 
+        # Специальная логика для курса "Чек-ап стоматологической клиники"
+        is_dental_checkup_course = course.title == "Чек-ап стоматологической клиники"
+        
+        # Пропускаем скрытые уроки метрик в зависимости от страны
+        if is_dental_checkup_course:
+            # Для Казахстана скрываем обычный урок метрик
+            if user_country == 'Казахстан':
+                if previous_lesson and previous_lesson.title == 'Метрики эффективности стоматологической клиники':
+                    previous_lesson = previous_lesson.get_previous_lesson(course)
+                if next_lesson and next_lesson.title == 'Метрики эффективности стоматологической клиники':
+                    next_lesson = next_lesson.get_next_lesson(course)
+            # Для других стран скрываем KZ урок метрик
+            else:
+                if previous_lesson and previous_lesson.title == 'KZ Метрики эффективности стоматологической клиники':
+                    previous_lesson = previous_lesson.get_previous_lesson(course)
+                if next_lesson and next_lesson.title == 'KZ Метрики эффективности стоматологической клиники':
+                    next_lesson = next_lesson.get_next_lesson(course)
+
         # Помечаем урок как просмотренный
         UserProgress.objects.get_or_create(
             user=self.request.user,
             lesson=lesson,
             defaults={'course': course}
         )
-
-        # Специальная логика для курса "Чек-ап стоматологической клиники"
-        is_dental_checkup_course = course.title == "Чек-ап стоматологической клиники"
-        is_first_lesson = False
         
+        is_first_lesson = False
         if is_dental_checkup_course:
             course_lessons = course.lessons
             if len(course_lessons) >= 1:
@@ -673,6 +699,9 @@ class LessonDetailView(DetailView):
 
         # Специальная логика для урока "Метрики эффективности стоматологической клиники"
         is_metrics_lesson = lesson.title == "Метрики эффективности стоматологической клиники"
+        
+        # Специальная логика для урока "KZ Метрики эффективности стоматологической клиники"
+        is_metrics_kz_lesson = lesson.title == "KZ Метрики эффективности стоматологической клиники"
 
         # Проверяем, является ли урок последним
         is_last_lesson = next_lesson is None
@@ -685,6 +714,8 @@ class LessonDetailView(DetailView):
             'is_first_lesson': is_first_lesson,
             'is_last_lesson': is_last_lesson,
             'is_metrics_lesson': is_metrics_lesson,
+            'is_metrics_kz_lesson': is_metrics_kz_lesson,
+            'user_country': user_country,
         })
         
         return context
@@ -723,7 +754,7 @@ class CreateCourseView(LoginRequiredMixin, UserPassesTestMixin, CreateView):
 
     def _assign_course_to_staff(self, course):
         """
-        Назначаем курс всем staff\superuser
+        Назначаем курс всем staff\\superuser
         """
         User = get_user_model()
         staff_users = User.objects.filter(
@@ -1684,8 +1715,13 @@ class MetricsFormView(LoginRequiredMixin, UserPassesTestMixin, View):
     
     def get(self, request, *args, **kwargs):
         """GET запрос - отображение формы"""
+        user_country = ''
+        if hasattr(request.user, 'profile') and request.user.profile:
+            user_country = request.user.profile.country or ''
+        
         context = {
-            'title': 'передача данных – Метрики эффективности стомклиники'
+            'title': 'передача данных – Метрики эффективности стомклиники',
+            'user_country': user_country
         }
         return render(request, self.template_name, context)
     

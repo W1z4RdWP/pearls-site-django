@@ -86,15 +86,81 @@
                     <div class="materials-list">
                         {% for material in course.get_course_materials %}
                             {% if material.type == 'lesson' %}
-                                {% if is_dental_checkup_course and forloop.counter == 2 %}
-                                    <a href="{% url 'courses:metrics_form' %}" 
-                                    class="material-item form d-flex align-items-center p-3">
-                                        <span class="material-icon"><i class="fa fa-file-text"></i></span>
-                                        <div class="flex-grow-1">
-                                            <div class="material-title">Форма метрик эффективности</div>
-                                            <div class="material-type">Форма</div>
-                                        </div>
-                                    </a>
+                                {% comment %} Логика скрытия уроков метрик в зависимости от страны {% endcomment %}
+                                {% if is_dental_checkup_course %}
+                                    {% if user_country == 'Казахстан' and material.title == 'Метрики эффективности стоматологической клиники' %}
+                                        {% comment %} Скрываем обычный урок метрик для пользователей из Казахстана {% endcomment %}
+                                    {% elif user_country != 'Казахстан' and material.title == 'KZ Метрики эффективности стоматологической клиники' %}
+                                        {% comment %} Скрываем KZ урок метрик для пользователей НЕ из Казахстана {% endcomment %}
+                                    {% elif material.title == 'Метрики эффективности стоматологической клиники' or material.title == 'KZ Метрики эффективности стоматологической клиники' %}
+                                        {% comment %} Показываем форму метрик вместо урока (если он не скрыт выше) {% endcomment %}
+                                        {% if user_course and user_course.status in 'started,completed' %}
+                                            <a href="{% url 'courses:lesson_detail' course.slug material.id %}" 
+                                               class="material-item lesson d-flex align-items-center p-3">
+                                                <span class="material-icon"><i class="fa fa-book"></i></span>
+                                                <div class="flex-grow-1">
+                                                    <div class="material-title">
+                                                        {% if material.title == 'KZ Метрики эффективности стоматологической клиники' and user_country == 'Казахстан' %}
+                                                            Метрики эффективности стоматологической клиники
+                                                        {% else %}
+                                                            {{ material.title }}
+                                                        {% endif %}
+                                                    </div>
+                                                    <div class="material-type">Урок</div>
+                                                </div>
+                                                {% if material.id in completed_lessons_ids %}
+                                                    <span class="badge bg-success">✓</span>
+                                                {% endif %}
+                                            </a>
+                                        {% else %}
+                                            <div class="material-item blocked d-flex align-items-center p-3">
+                                                <span class="material-icon"><i class="fa fa-book"></i></span>
+                                                <div class="flex-grow-1">
+                                                    <div class="material-title">
+                                                        {% if material.title == 'KZ Метрики эффективности стоматологической клиники' and user_country == 'Казахстан' %}
+                                                            Метрики эффективности стоматологической клиники
+                                                        {% else %}
+                                                            {{ material.title }}
+                                                        {% endif %}
+                                                    </div>
+                                                    <div class="material-type">Урок</div>
+                                                </div>
+                                                <span class="badge bg-secondary">🔒</span>
+                                            </div>
+                                        {% endif %}
+                                        <a href="{% url 'courses:metrics_form' %}" 
+                                        class="material-item form d-flex align-items-center p-3">
+                                            <span class="material-icon"><i class="fa fa-file-text"></i></span>
+                                            <div class="flex-grow-1">
+                                                <div class="material-title">Форма метрик эффективности</div>
+                                                <div class="material-type">Форма</div>
+                                            </div>
+                                        </a>
+                                    {% else %}
+                                        {% comment %} Обычные уроки курса "Чек-ап" {% endcomment %}
+                                        {% if user_course and user_course.status in 'started,completed' %}
+                                            <a href="{% url 'courses:lesson_detail' course.slug material.id %}" 
+                                               class="material-item lesson d-flex align-items-center p-3">
+                                                <span class="material-icon"><i class="fa fa-book"></i></span>
+                                                <div class="flex-grow-1">
+                                                    <div class="material-title">{{ material.title }}</div>
+                                                    <div class="material-type">Урок</div>
+                                                </div>
+                                                {% if material.id in completed_lessons_ids %}
+                                                    <span class="badge bg-success">✓</span>
+                                                {% endif %}
+                                            </a>
+                                        {% else %}
+                                            <div class="material-item blocked d-flex align-items-center p-3">
+                                                <span class="material-icon"><i class="fa fa-book"></i></span>
+                                                <div class="flex-grow-1">
+                                                    <div class="material-title">{{ material.title }}</div>
+                                                    <div class="material-type">Урок</div>
+                                                </div>
+                                                <span class="badge bg-secondary">🔒</span>
+                                            </div>
+                                        {% endif %}
+                                    {% endif %}
                                 {% else %}
                                     {% if user_course and user_course.status in 'started,completed' %}
                                         <a href="{% url 'courses:lesson_detail' course.slug material.id %}" 

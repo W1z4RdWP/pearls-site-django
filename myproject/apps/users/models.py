@@ -83,7 +83,23 @@ class Profile(models.Model):
         phone_number (CharField): Номер телефона в формате +7XXXXXXXXXX
         image (ImageField): Изображение профиля. По умолчанию используется 'profile_pics/default.jpg'.
         bio (TextField): Текстовое поле с информацией о пользователе.
+        dascoin_points (PositiveIntegerField): Баллы DASCOIN.
+        is_mentor (BooleanField): Провряет, является ли пользователь наставником.
         is_approved (BooleanField): Провряет, подтвердил ли администратор регистрацию пользователя.
+
+    Methods:
+        add_dascoin_points(points: int, reason: str = "") -> None: Добавляет баллы DASCOIN пользователю.
+        get_badges() -> QuerySet: Возвращает все бейджи пользователя.
+        get_achievements() -> QuerySet: Возвращает все достижения пользователя.
+        get_recent_badges(limit: int = 8) -> QuerySet: Возвращает последние полученные бейджи.
+        get_recent_achievements(limit: int = 8) -> QuerySet: Возвращает последние полученные достижения.
+        is_mentor_user() -> bool: Проверяет, является ли пользователь наставником.
+        is_responsible() -> bool: Проверяет, является ли пользователь ответственным за свою должность.
+        clean() -> None: Проверяет, что пользователь имеет должность, которую он занимает.
+        save() -> None: Сохраняет профиль пользователя.
+        __str__() -> str: Возвращает строковое представление профиля.
+        is_mentor_user() -> bool: Проверяет, является ли пользователь наставником.
+        is_responsible() -> bool: Проверяет, является ли пользователь ответственным за свою должность.
 
     """
 
@@ -92,6 +108,7 @@ class Profile(models.Model):
     role = models.ForeignKey(Role, null=True, blank=True, on_delete=models.SET_NULL, verbose_name="Должность")
     department = models.ForeignKey(Department, null=True, blank=True, on_delete=models.SET_NULL, verbose_name="Подразделение")
     date_of_birth = models.DateField(blank=True, null=True, verbose_name="Дата рождения")
+    country = models.CharField(max_length=200, blank=True, null=True, verbose_name="Страна")
     phone_number = models.CharField(
         max_length=18,
         verbose_name="Номер телефона",
