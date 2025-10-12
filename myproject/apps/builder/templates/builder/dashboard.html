@@ -11,26 +11,28 @@
             <a href="{% url 'user_management:user_list' %}" class="list-group-item list-group-item-action">
                 <i class="fas fa-users"></i> Пользователи
             </a>
-            <a href="{% url 'quizzes:quizzes' %}" class="list-group-item list-group-item-action">
-                <i class="fa-solid fa-clipboard-question"></i> Панель управления тестами
-            </a>
-            <!-- <a href="{% url 'builder:documents' %}" class="list-group-item list-group-item-action {% if request.resolver_match.url_name == 'documents' %}active{% endif %}">
-                <i class="fas fa-file-alt"></i> Документы
-            </a>
-            <a href="{% url 'builder:incidents' %}" class="list-group-item list-group-item-action {% if request.resolver_match.url_name == 'incidents' %}active{% endif %}">
-                <i class="fas fa-exclamation-triangle"></i> Инциденты
-            </a> -->
-            <a href="{% url 'builder:trajectory_management' %}" class="list-group-item list-group-item-action {% if request.resolver_match.url_name == 'trajectory_management' %}active{% endif %}">
-                <i class="fas fa-route"></i> Управление траекториями
-            </a>
+            {% if not user.profile.is_mentor_user %}
+                <a href="{% url 'quizzes:quizzes' %}" class="list-group-item list-group-item-action">
+                    <i class="fa-solid fa-clipboard-question"></i> Панель управления тестами
+                </a>
+                <!-- <a href="{% url 'builder:documents' %}" class="list-group-item list-group-item-action {% if request.resolver_match.url_name == 'documents' %}active{% endif %}">
+                    <i class="fas fa-file-alt"></i> Документы
+                </a>
+                <a href="{% url 'builder:incidents' %}" class="list-group-item list-group-item-action {% if request.resolver_match.url_name == 'incidents' %}active{% endif %}">
+                    <i class="fas fa-exclamation-triangle"></i> Инциденты
+                </a> -->
+                <a href="{% url 'builder:trajectory_management' %}" class="list-group-item list-group-item-action {% if request.resolver_match.url_name == 'trajectory_management' %}active{% endif %}">
+                    <i class="fas fa-route"></i> Управление траекториями
+                </a>
+            {% endif %}
             <a href="{% url 'user_management:admin_dascoin_dashboard' %}" class="list-group-item list-group-item-action {% if request.resolver_match.url_name == 'admin_dascoin_dashboard' %}active{% endif %}">
                 <i class="fas fa-chart-line"></i> Статистика DASCOIN
             </a>
-            {% if user.profile.is_mentor_user %}
+            <!-- {% if user.profile.is_mentor_user %} TODO: Сделать страницу проверки заданий
             <a href="{% url 'user_management:admin_dascoin_dashboard' %}" class="list-group-item list-group-item-action {% if request.resolver_match.url_name == 'admin_dascoin_dashboard' %}active{% endif %}">
                 <i class="fas fa-clipboard-check"></i> Проверка заданий
             </a>
-            {% endif %}
+            {% endif %} -->
             <div class="list-group-item list-group-item-action">
                 <i class="fas fa-clock"></i> Время сессии: <span id="session-timer">{{ request.session.get_expiry_age|floatformat:0 }}</span>
             </div>

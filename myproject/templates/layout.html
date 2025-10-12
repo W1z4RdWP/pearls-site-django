@@ -112,6 +112,19 @@
                       </li>
                       {% endfor %}
                     {% endif %}
+
+
+                    {% if user.profile.is_mentor_user %}
+                      {% for item in nav_mentor %}
+                        <li class="nav-item">
+                          <a class="nav-link custom-nav-link" href="{% url item.url %}" title="{{ item.label }}">
+                            <i class="{{ item.icon }}"></i>
+                          </a>
+                        </li>
+                      {% endfor %}
+                    {% endif %}
+
+
                     {% if user.is_authenticated %}
                     {% if request.user.is_staff %}
                       {% for item in nav_staff %}
@@ -178,7 +191,7 @@
                       <li class="nav-item">
                         <a class="nav-link custom-nav-link" href="{% url 'users:login' %}" title="Вход">
                           <i class="fa-solid fa-right-to-bracket"></i>
-                          <span class="d-md-none">Войти</span>
+                          <span>Войти</span>
                         </a>
                       </li>
                     {% endif %}

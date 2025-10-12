@@ -812,9 +812,20 @@ class DashboardView(TemplateView):
     template_name = 'builder/dashboard.html'
     
     def dispatch(self, request, *args, **kwargs):
-        # Только staff/superuser
-        if not request.user.is_authenticated or not (request.user.is_staff or request.user.is_superuser):
+        # Разрешаем доступ staff/superuser и наставникам
+        if not request.user.is_authenticated:
             return render(request, '403.html', status=403)
+        
+        # Проверяем права доступа
+        has_access = (
+            request.user.is_staff or 
+            request.user.is_superuser or 
+            (hasattr(request.user, 'profile') and request.user.profile.is_mentor_user)
+        )
+        
+        if not has_access:
+            return render(request, '403.html', status=403)
+            
         return super().dispatch(request, *args, **kwargs)
     
     def get_context_data(self, **kwargs):

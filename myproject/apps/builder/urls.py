@@ -9,8 +9,8 @@ app_name = 'builder'
 
 # URL конфигурация для приложения `builder`.
 urlpatterns = [
-    # Дашборд (редирект неавторизованных/не-стафф в мастер уроков)
-    path('', lambda request: HttpResponseRedirect(reverse('builder:lesson_master')) if not (request.user.is_authenticated and (request.user.is_staff or request.user.is_superuser)) else DashboardView.as_view()(request), name='dashboard'),
+    # Дашборд (редирект неавторизованных/не-стафф/не-наставников в мастер уроков)
+    path('', lambda request: HttpResponseRedirect(reverse('builder:lesson_master')) if not (request.user.is_authenticated and (request.user.is_staff or request.user.is_superuser or (hasattr(request.user, 'profile') and request.user.profile.is_mentor_user))) else DashboardView.as_view()(request), name='dashboard'),
 
     # Контент и уроки
     path('content/', views.LessonMasterDetailView.as_view(), name='lesson_master'),
