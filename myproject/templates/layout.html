@@ -319,6 +319,24 @@
             });
         }
         
+        // Функция для автоматической отметки всех уведомлений как прочитанных
+        function markAllNotificationsAsRead() {
+            $.ajax({
+                url: '{% url "notifications:mark_all_as_read" %}',
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': $('input[name=csrfmiddlewaretoken]').val()
+                },
+                success: function() {
+                    // Обновляем счетчик уведомлений
+                    updateNotificationCount();
+                },
+                error: function() {
+                    console.log('Ошибка при отметке уведомлений как прочитанных');
+                }
+            });
+        }
+        
         // Функция для обновления счетчика уведомлений
         function updateNotificationCount() {
             $.ajax({
@@ -343,47 +361,18 @@
             });
         }
         
-        // Обработчик для отметки уведомления как прочитанного
-        $(document).on('click', '.mark-read-btn', function(e) {
-            e.preventDefault();
-            const notificationId = $(this).data('notification-id');
-            const notificationItem = $(this).closest('.notification-item');
-            
-            $.ajax({
-                url: '/notifications/' + notificationId + '/mark-read/',
-                method: 'POST',
-                headers: {
-                    'X-CSRFToken': $('[name=csrfmiddlewaretoken]').val() || $('meta[name=csrf-token]').attr('content')
-                },
-                success: function() {
-                    notificationItem.removeClass('unread');
-                    updateNotificationCount();
-                    loadNotifications();
-                }
-            });
-        });
-        
-        // Обработчик для отметки всех уведомлений как прочитанных
-        $(document).on('click', '.mark-all-read-btn', function(e) {
-            e.preventDefault();
-            
-            $.ajax({
-                url: '{% url "notifications:mark_all_as_read" %}',
-                method: 'POST',
-                headers: {
-                    'X-CSRFToken': $('[name=csrfmiddlewaretoken]').val() || $('meta[name=csrf-token]').attr('content')
-                },
-                success: function() {
-                    updateNotificationCount();
-                    loadNotifications();
-                }
-            });
-        });
+        // Убрали обработчики для ручной отметки уведомлений, 
+        // так как теперь они отмечаются автоматически при открытии dropdown
         
         // Инициализация при загрузке страницы
         $(document).ready(function() {
             loadNotifications();
             updateNotificationCount();
+            
+            // Автоматическая отметка уведомлений как прочитанных при открытии dropdown
+            $('#notificationDropdown, #notificationDropdownMobile').on('show.bs.dropdown', function() {
+                markAllNotificationsAsRead();
+            });
             
             function updateNewTicketsIndicator() {
                 const indicator = $('#new-tickets-indicator');

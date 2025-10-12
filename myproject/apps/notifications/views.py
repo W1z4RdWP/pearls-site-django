@@ -104,7 +104,8 @@ def notification_count(request):
 @login_required
 def notification_dropdown(request):
     """Частичное представление для выпадающего списка уведомлений"""
-    notifications = Notification.objects.filter(user=request.user, is_read=False)[:5]
+    # Показываем последние 5 уведомлений (все, не только непрочитанные)
+    notifications = Notification.objects.filter(user=request.user).order_by('-created_at')[:5]
     total_unread = Notification.objects.filter(user=request.user, is_read=False).count()
     
     context = {
