@@ -1,14 +1,3 @@
-.theme-dark {
-    --course-desc-text: #e3e8f0;
-    --course-desc-link: #4d7cff;
-    --course-desc-link-hover: #2dabc4;
-    --course-desc-table-border: #444;
-    --course-desc-table-bg: #232a3a;
-    --course-desc-th-bg: #333;
-    --course-desc-tr-even-bg: #80828a;
-    --course-desc-figcaption-bg: #333;
-    --course-desc-figcaption-text: #bdbdbd;
-}
 :root {
     --course-desc-text: #212529;
     --course-desc-link: #0d6efd;

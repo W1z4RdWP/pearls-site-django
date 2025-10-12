@@ -41,7 +41,7 @@ def user_register(request):
 
                 # Проверка уникальности email
                 if User.objects.filter(email=user_data['email']).exists():
-                    raise ValueError(f'Пользователь с email {user_data["email"]} уже существует')
+                    raise ValueError(f'Пользователь с логином {user_data["email"]} уже существует')
 
                 # Создание пользователя
                 user = User.objects.create_user(
@@ -168,11 +168,17 @@ def telegram_register(request):
                 last_name=data['last_name']
             )
             
-            # Сохраняем дополнительную информацию (телефон, отчество)
+            # Сохраняем дополнительную информацию (телефон, отчество, страна)
             if hasattr(user, 'profile'):
                 user.profile.phone_number = data.get('phone', '')
                 user.profile.middle_name = data.get('middle_name', '')
+                user.profile.country = data.get('country', '')
                 user.profile.is_approved = True
+                
+                # Если страна - Казахстан, разрешаем произвольный формат телефона
+                if data.get('country') == 'Казахстан':
+                    user.profile.phone_arbitrary_format = True
+                
                 user.profile.save()
             
             # Добавляем пользователя в группу "Внешний пользователь"

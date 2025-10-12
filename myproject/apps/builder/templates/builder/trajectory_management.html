@@ -382,4 +382,33 @@
 
 
 
+
+<style>
+/* Стили для элементов последовательности в модальном окне создания теста */
+.sequence-item {
+    transition: all 0.2s ease;
+}
+
+.sequence-item:hover {
+    background-color: #f8f9fa;
+    border-radius: 4px;
+    padding: 4px;
+    margin: -4px;
+}
+
+.sequence-number {
+    min-width: 32px;
+    min-height: 32px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+.sequence-item .form-control-sm {
+    border-radius: 4px;
+}
+</style>
+
 {% endblock %} 

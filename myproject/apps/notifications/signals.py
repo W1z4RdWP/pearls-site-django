@@ -56,8 +56,8 @@ def create_dascoin_notification(sender, instance, created, **kwargs):
 
 
 def create_platform_update_notification_for_all(title, message):
-    """Создает уведомление об обновлении платформы для всех пользователей"""
-    users = User.objects.filter(is_active=True)
+    """Создает уведомление об обновлении платформы только для пользователей с правами staff или superuser"""
+    users = User.objects.filter(is_active=True, is_staff=True)
     for user in users:
         Notification.create_platform_update_notification(user, title, message)
 

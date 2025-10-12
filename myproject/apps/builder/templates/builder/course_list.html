@@ -105,30 +105,35 @@
         <div class="col-12">
             <div class="card shadow">
                 <div class="card-body">
-                    <div class="row">
-                        <div class="col-md-6">
-                            <div class="input-group">
-                                <input type="text" class="form-control" id="courseSearch" placeholder="Поиск по названию курса...">
-                                <button class="btn btn-outline-secondary" type="button" onclick="searchCourses()">
-                                    <i class="fas fa-search"></i>
-                                </button>
+                    <form method="get" id="searchForm">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="input-group">
+                                    <input type="text" class="form-control" name="search" id="courseSearch" 
+                                           placeholder="Поиск по названию курса..." value="{{ search_query }}">
+                                    <button class="btn btn-outline-secondary" type="submit">
+                                        <i class="fas fa-search"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <select class="form-select" name="author" id="authorFilter">
+                                    <option value="">Все авторы</option>
+                                    {% for author in authors %}
+                                        <option value="{{ author.id }}" {% if selected_author == author.id|stringformat:"s" %}selected{% endif %}>
+                                            {{ author.get_full_name|default:author.username }}
+                                        </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="col-md-3">
+                                <select class="form-select" name="status" id="statusFilter">
+                                    <option value="">Все статусы</option>
+                                    <option value="active" {% if selected_status == "active" %}selected{% endif %}>Активные</option>
+                                </select>
                             </div>
                         </div>
-                        <div class="col-md-3">
-                            <select class="form-select" id="authorFilter">
-                                <option value="">Все авторы</option>
-                                {% for author in authors %}
-                                    <option value="{{ author.id }}">{{ author.get_full_name|default:author.username }}</option>
-                                {% endfor %}
-                            </select>
-                        </div>
-                        <div class="col-md-3">
-                            <select class="form-select" id="statusFilter">
-                                <option value="">Все статусы</option>
-                                <option value="active">Активные</option>
-                            </select>
-                        </div>
-                    </div>
+                    </form>
                 </div>
             </div>
         </div>
@@ -148,10 +153,7 @@
                     {% if courses %}
                         <div class="row" id="coursesGrid">
                             {% for course in courses %}
-                            <div class="col-lg-4 col-md-6 mb-4 course-item" 
-                                 data-title="{{ course.title|lower }}" 
-                                 data-author="{{ course.author.id }}"
-                                 data-status="active">
+                            <div class="col-lg-4 col-md-6 mb-4 course-item">
                                 <div class="card h-100">
                                     <div class="card-body">
                                         <div class="d-flex align-items-center mb-3">
@@ -257,48 +259,21 @@
 </div>
 
 <script>
-// Поиск и фильтрация курсов
-function searchCourses() {
-    const searchTerm = $('#courseSearch').val().toLowerCase();
-    const authorFilter = $('#authorFilter').val();
-    const statusFilter = $('#statusFilter').val();
-    
-    $('.course-item').each(function() {
-        const $item = $(this);
-        const title = $item.data('title');
-        const author = $item.data('author');
-        const status = $item.data('status');
-        
-        let show = true;
-        
-        // Поиск по названию
-        if (searchTerm && !title.includes(searchTerm)) {
-            show = false;
-        }
-        
-        // Фильтр по автору
-        if (authorFilter && author != authorFilter) {
-            show = false;
-        }
-        
-        // Фильтр по статусу
-        if (statusFilter && status != statusFilter) {
-            show = false;
-        }
-        
-        if (show) {
-            $item.show();
-        } else {
-            $item.hide();
-        }
-    });
-}
-
 // Обработчики событий
 $(document).ready(function() {
-    $('#courseSearch').on('input', searchCourses);
-    $('#authorFilter').on('change', searchCourses);
-    $('#statusFilter').on('change', searchCourses);
+    // Автоматическая отправка формы при изменении фильтров
+    $('#authorFilter, #statusFilter').on('change', function() {
+        $('#searchForm').submit();
+    });
+    
+    // Поиск с задержкой (debounce)
+    let searchTimeout;
+    $('#courseSearch').on('input', function() {
+        clearTimeout(searchTimeout);
+        searchTimeout = setTimeout(function() {
+            $('#searchForm').submit();
+        }, 500); // Задержка 500мс
+    });
     
     // Исправление z-index для dropdown меню
     $('.course-item .dropdown-toggle').on('click', function() {

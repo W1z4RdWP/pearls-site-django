@@ -100,7 +100,29 @@
 
                         <div class="answers-container" 
                              {% if question.question_type == 'text' %}style="display: none;"{% endif %}>
-                            {% if question.question_type == 'match' %}
+                            {% if question.question_type == 'sequence' %}
+                                <label class="form-label">Элементы последовательности</label>
+                                <div class="alert alert-info">
+                                    <strong>Инструкция:</strong> Добавьте элементы в правильном порядке. Первый добавленный элемент будет первым в правильной последовательности.
+                                </div>
+                                {% for answer in question.answer_set.all %}
+                                <div class="answer-item sequence-answer-item">
+                                    <span class="sequence-order-number">{{ forloop.counter }}</span>
+                                    <input type="text" class="form-control" 
+                                           name="questions[{{ forloop.parentloop.counter }}][answers][{{ forloop.counter }}][text]" 
+                                           value="{{ answer.text }}" 
+                                           placeholder="Элемент последовательности" 
+                                           required>
+                                    <button type="button" class="remove-btn" onclick="removeAnswer(this)">
+                                        <i class="fas fa-times"></i>
+                                    </button>
+                                </div>
+                                {% endfor %}
+                                <button type="button" class="btn-mini primary btn-sm mt-2" 
+                                        onclick="addAnswer(this)">
+                                    <i class="fas fa-plus"></i> Добавить элемент
+                                </button>
+                            {% elif question.question_type == 'match' %}
                                 <label class="form-label">Пары вопрос-ответ</label>
                                 <div class="alert alert-info">
                                     <strong>Инструкция:</strong> Для вопроса на соответствие создайте пары вопрос-ответ:<br>
@@ -186,6 +208,7 @@
                                            value="{{ answer.text }}" 
                                            placeholder="Текст ответа" 
                                            {% if question.question_type != 'text' %}required{% endif %}>
+                                    {% if question.question_type != 'sequence' %}
                                     <div class="form-check">
                                         {% if question.question_type == 'single' %}
                                             <input type="radio" class="form-check-input" 
@@ -199,6 +222,7 @@
                                         {% endif %}
                                         <label class="form-check-label">Правильный</label>
                                     </div>
+                                    {% endif %}
                                     <button type="button" class="remove-btn ms-2" onclick="removeAnswer(this)">
                                         <i class="fas fa-times"></i>
                                     </button>
@@ -209,6 +233,7 @@
                                            name="questions[{{ forloop.counter }}][answers][1][text]" 
                                            placeholder="Текст ответа" 
                                            {% if question.question_type != 'text' %}required{% endif %}>
+                                    {% if question.question_type != 'sequence' %}
                                     <div class="form-check">
                                         {% if question.question_type == 'single' %}
                                             <input type="radio" class="form-check-input" 
@@ -220,6 +245,7 @@
                                         {% endif %}
                                         <label class="form-check-label">Правильный</label>
                                     </div>
+                                    {% endif %}
                                     <button type="button" class="remove-btn ms-2" onclick="removeAnswer(this)">
                                         <i class="fas fa-times"></i>
                                     </button>

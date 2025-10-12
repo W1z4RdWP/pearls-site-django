@@ -32,20 +32,6 @@
     <link rel="stylesheet" href="{% static 'notifications/css/notifications.css' %}" />
     <script src="{% static 'global/js/scripts.js' %}" defer></script>
     {% block specific_styles %} {% endblock %}
-    <script>
-    (function() {
-      try {
-        if (localStorage.getItem('theme') === 'dark') {
-          document.documentElement.classList.add('theme-dark');
-          document.body.classList.add('theme-dark');
-        } else {
-          // Убираем классы темной темы если тема светлая
-          document.documentElement.classList.remove('theme-dark');
-          document.body.classList.remove('theme-dark');
-        }
-      } catch(e){}
-    })();
-    </script>
 </head>
 <body>
     
@@ -196,11 +182,6 @@
                         </a>
                       </li>
                     {% endif %}
-                    <!-- <li class="nav-item">
-                      <button id="theme-toggle-btn" class="btn btn-outline-primary ms-2" type="button" title="Переключить тему">
-                        <i class="fa-solid fa-moon"></i>
-                      </button>
-                    </li> -->
                   </ul>
                 </div>
             </div>
@@ -291,11 +272,6 @@
             <a href="{% url 'privacy_policy' %}" class="footer-policy">Политика конфиденциальности</a> 
         </div>
     </footer>
-    <script>
-        // Логотипы для темной и светлой темы
-        const darkLogo = "{% static 'global/imgs/logo_lc.png' %}";
-        const lightLogo = "{% static 'global/imgs/logo_light_theme.png' %}";
-    </script>
     <!-- jQuery -->
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     
@@ -315,6 +291,24 @@
                     const errorHtml = '<li><div class="dropdown-item-text text-center text-danger">Ошибка загрузки</div></li>';
                     $('#notification-list').html(errorHtml);
                     $('#notification-list-mobile').html(errorHtml);
+                }
+            });
+        }
+        
+        // Функция для автоматической отметки всех уведомлений как прочитанных
+        function markAllNotificationsAsRead() {
+            $.ajax({
+                url: '{% url "notifications:mark_all_as_read" %}',
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': $('input[name=csrfmiddlewaretoken]').val()
+                },
+                success: function() {
+                    // Обновляем счетчик уведомлений
+                    updateNotificationCount();
+                },
+                error: function() {
+                    console.log('Ошибка при отметке уведомлений как прочитанных');
                 }
             });
         }
@@ -343,47 +337,18 @@
             });
         }
         
-        // Обработчик для отметки уведомления как прочитанного
-        $(document).on('click', '.mark-read-btn', function(e) {
-            e.preventDefault();
-            const notificationId = $(this).data('notification-id');
-            const notificationItem = $(this).closest('.notification-item');
-            
-            $.ajax({
-                url: '/notifications/' + notificationId + '/mark-read/',
-                method: 'POST',
-                headers: {
-                    'X-CSRFToken': $('[name=csrfmiddlewaretoken]').val() || $('meta[name=csrf-token]').attr('content')
-                },
-                success: function() {
-                    notificationItem.removeClass('unread');
-                    updateNotificationCount();
-                    loadNotifications();
-                }
-            });
-        });
-        
-        // Обработчик для отметки всех уведомлений как прочитанных
-        $(document).on('click', '.mark-all-read-btn', function(e) {
-            e.preventDefault();
-            
-            $.ajax({
-                url: '{% url "notifications:mark_all_as_read" %}',
-                method: 'POST',
-                headers: {
-                    'X-CSRFToken': $('[name=csrfmiddlewaretoken]').val() || $('meta[name=csrf-token]').attr('content')
-                },
-                success: function() {
-                    updateNotificationCount();
-                    loadNotifications();
-                }
-            });
-        });
+        // Убрали обработчики для ручной отметки уведомлений, 
+        // так как теперь они отмечаются автоматически при открытии dropdown
         
         // Инициализация при загрузке страницы
         $(document).ready(function() {
             loadNotifications();
             updateNotificationCount();
+            
+            // Автоматическая отметка уведомлений как прочитанных при открытии dropdown
+            $('#notificationDropdown, #notificationDropdownMobile').on('show.bs.dropdown', function() {
+                markAllNotificationsAsRead();
+            });
             
             function updateNewTicketsIndicator() {
                 const indicator = $('#new-tickets-indicator');

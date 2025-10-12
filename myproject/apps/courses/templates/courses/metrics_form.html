@@ -115,12 +115,22 @@
       </div>
 
       <div style="margin-top:12px">
+        <label>Валюта*</label>
+        <select id="currency" required>
+          <option value="rub">Рубли (₽)</option>
+          <option value="kzt">Тенге (₸)</option>
+        </select>
+        <div class="small">Выберите валюту для отчетности выручки</div>
+      </div>
+
+      <div style="margin-top:12px">
         <label>Месяцы</label>
         <div id="tabs" class="tabs"></div>
         <div id="monthsContainer" style="margin-top:8px"></div>
       </div>
 
       <!-- служебные -->
+      <input type="hidden" id="userCountry" value="{{ user_country|default:'' }}">
       <input type="hidden" name="utm_source"><input type="hidden" name="utm_medium">
       <input type="hidden" name="utm_campaign"><input type="hidden" name="utm_content">
       <input type="hidden" name="utm_term"><input type="hidden" name="referrer"><input type="hidden" name="page">

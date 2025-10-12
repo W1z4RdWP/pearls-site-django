@@ -79,9 +79,24 @@ class Notification(models.Model):
         if self.notification_type == 'course_assigned' and self.related_course:
             return reverse('courses:course_detail', kwargs={'slug': self.related_course.slug})
         elif self.notification_type == 'trajectory_assigned' and self.related_trajectory:
-            return reverse('courses:trajectory_detail', kwargs={'pk': self.related_trajectory.pk})
+            # Для траекторий нужно найти UserCourseTrajectory для данного пользователя
+            from courses.models import UserCourseTrajectory
+            try:
+                user_trajectory = UserCourseTrajectory.objects.get(
+                    user=self.user, 
+                    trajectory=self.related_trajectory
+                )
+                return reverse('courses:user_course_trajectory_detail', kwargs={'pk': user_trajectory.pk})
+            except UserCourseTrajectory.DoesNotExist:
+                return '#'
         elif self.notification_type == 'lesson_actualization' and self.related_lesson:
             return reverse('courses:lesson_detail', kwargs={'pk': self.related_lesson.pk})
+        elif self.notification_type == 'dascoin':
+            # Уведомления о DASCOIN ведут на историю транзакций
+            return reverse('users:transactions')
+        elif self.notification_type == 'platform_update':
+            # Уведомления об обновлениях платформы ведут на changelog
+            return reverse('changelog')
         # Новые маршруты для тикетов
         elif self.notification_type in ('ticket_status', 'ticket_comment') and self.related_ticket:
             return reverse('tech_support:ticket_detail', kwargs={'pk': self.related_ticket.pk})

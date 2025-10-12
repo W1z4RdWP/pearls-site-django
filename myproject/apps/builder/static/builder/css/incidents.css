@@ -27,34 +27,6 @@
   --incidents-table-td-color: inherit;
 }
 
-body.theme-dark {
-  --incidents-bg: #232323;
-  --incidents-card-bg: #232a3a;
-  --incidents-card-radius: 10px;
-  --incidents-card-shadow: 0 2px 8px #0007;
-  --incidents-card-padding: 32px 32px 24px 32px;
-  --incidents-card-title: #eee;
-  --incidents-title-font-weight: 700;
-  --incidents-title-letter-spacing: 0.5px;
-  --incidents-title-font-size: 1.2rem;
-  --incidents-meta: #bdbdbd;
-  --incidents-meta-font-size: 0.95em;
-  --incidents-doc-link: #4d7cff;
-  --incidents-doc-link-hover: #2dabc4;
-  --incidents-status-new: #4d7cff;
-  --incidents-status-in-progress: #ffc107;
-  --incidents-status-resolved: #28a745;
-  --incidents-status-font-weight: 600;
-  --incidents-table-header-bg: #232a3a;
-  --incidents-table-header-border: #353535;
-  --incidents-table-row-hover-bg: #232a3a;
-  --incidents-table-th-font-size: 1em;
-  --incidents-table-td-font-size: 1em;
-  --incidents-table-td-padding: 6px 8px;
-  --incidents-table-th-padding: 6px 8px;
-  --incidents-table-th-color: #eee;
-  --incidents-table-td-color: #333;
-}
 
 .incidents-bg {
   background: var(--incidents-bg);

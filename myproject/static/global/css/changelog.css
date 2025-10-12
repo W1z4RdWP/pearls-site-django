@@ -11,17 +11,6 @@
   --changelog-type-badge-bg: rgba(0,0,0,0.1);
 }
 
-body.theme-dark {
-  --changelog-timeline-bg: #444;
-  --changelog-card-bg: #232323;
-  --changelog-card-text: #eee;
-  --changelog-feature: #6fdc8c;
-  --changelog-bugfix: #ff7b7b;
-  --changelog-improvement: #6cbaff;
-  --changelog-security: #ffe066;
-  --changelog-version-date: #bdbdbd;
-  --changelog-type-badge-bg: rgba(255,255,255,0.08);
-}
 
 .timeline {
   position: relative;

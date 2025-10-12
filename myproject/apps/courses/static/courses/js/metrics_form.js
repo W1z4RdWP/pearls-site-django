@@ -391,6 +391,10 @@ function rebuildMonths(){
     }
   }
 
+  // Определяем placeholder для выручки на основе выбранной валюты
+  var currency = currencySelect ? currencySelect.value : 'rub';
+  var revenuePlaceholder = (currency === 'kzt') ? 'напр., 800 000' : 'напр., 85 000';
+
   // карточки месяцев
   monthsContainer.innerHTML='';
   var docsN=doctorsBox.children.length;
@@ -407,7 +411,7 @@ function rebuildMonths(){
               '<input disabled placeholder="Специализация" data-link="spec_'+d+'">'+
               '<input inputmode="decimal" placeholder="напр., 132" min="0" step="0.1" data-field="hp_'+d+'">'+
               '<input inputmode="decimal" placeholder="напр., 96" min="0" step="0.1" data-field="hw_'+d+'">'+
-              '<input inputmode="decimal" placeholder="напр., 850 000" min="0" step="1" data-field="rev_'+d+'">'+
+              '<input inputmode="decimal" placeholder="'+revenuePlaceholder+'" min="0" step="1" data-field="rev_'+d+'">'+
               '<input placeholder="Комментарий" data-field="com_'+d+'">'+
               '</div>';
     }
@@ -530,6 +534,41 @@ function syncDoctorNamesToMonths(){
 // обновление при изменении начального месяца
 startMonthInput.oninput = rebuildMonths;
 
+// ===== управление валютой =====
+var currencySelect = document.getElementById('currency');
+
+// Устанавливаем валюту по умолчанию на основе страны пользователя
+function initDefaultCurrency() {
+  var userCountry = document.getElementById('userCountry');
+  if (userCountry && userCountry.value === 'Казахстан') {
+    currencySelect.value = 'kzt';
+  } else {
+    currencySelect.value = 'rub';
+  }
+  updateRevenuePlaceholders();
+}
+
+// Функция обновления placeholder для полей выручки
+function updateRevenuePlaceholders() {
+  var currency = currencySelect.value;
+  var placeholder = '';
+  
+  if (currency === 'kzt') {
+    placeholder = 'напр., 800 000';
+  } else {
+    placeholder = 'напр., 85 000';
+  }
+  
+  // Обновляем все существующие поля выручки
+  var revenueInputs = document.querySelectorAll('[data-field^="rev_"]');
+  for (var i = 0; i < revenueInputs.length; i++) {
+    revenueInputs[i].placeholder = placeholder;
+  }
+}
+
+// Обработчик изменения валюты
+currencySelect.onchange = updateRevenuePlaceholders;
+
 // инициализация
 // Устанавливаем дату на 3 месяца назад от текущей
 const now = new Date();
@@ -541,6 +580,10 @@ const monthYearFormat = `${year}-${month}`;
 // Устанавливаем внутреннее значение и отображаемое значение
 startMonthInput.setAttribute('data-value', monthYearFormat);
 startMonthInput.value = monthHuman(monthYearFormat);
+
+// Инициализируем валюту по умолчанию
+initDefaultCurrency();
+
 rebuildMonths();
 
 // функция для очистки подсветки ошибок
@@ -625,6 +668,14 @@ document.getElementById('f').onsubmit = function(e){
   if (!startMonth || !/^\d{4}-(0[1-9]|1[0-2])$/.test(startMonth)) {
     errors.push('Укажите корректный начальный месяц');
     highlightError(startMonthInput);
+  }
+  
+  // Проверяем валюту
+  var currency = document.getElementById('currency');
+  var currencyValue = currency.value.trim();
+  if (!currencyValue || (currencyValue !== 'rub' && currencyValue !== 'kzt')) {
+    errors.push('Выберите валюту');
+    highlightError(currency);
   }
   
   // Проверяем основное поле кресел
@@ -803,6 +854,7 @@ document.getElementById('f').onsubmit = function(e){
   var data = {
     clinicName: document.getElementById('clinicName').value,
     startMonth: startMonthInput.getAttribute('data-value'),
+    currency: document.getElementById('currency').value,
     docCount: doctorsBox.children.length,
     chairs: document.getElementById('chairs').value,
     hoursWeekdays: document.getElementById('hoursWeekdays').value,
@@ -942,6 +994,7 @@ document.addEventListener('DOMContentLoaded', function() {
   clearErrorOnInput(document.getElementById('hoursWeekdays'));
   clearErrorOnInput(document.getElementById('hoursSaturday'));
   clearErrorOnInput(document.getElementById('hoursSunday'));
+  clearErrorOnInput(document.getElementById('currency'));
   clearErrorOnInput(document.getElementById('consent'));
   
   // Добавляем валидацию в реальном времени для полей часов

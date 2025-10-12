@@ -457,6 +457,11 @@ class CourseDetailView(DetailView):
         quiz_blocked_id = request.GET.get('quiz_blocked')
 
 
+        # Определяем страну пользователя
+        user_country = ''
+        if hasattr(request.user, 'profile') and request.user.profile:
+            user_country = request.user.profile.country or ''
+
         # Формирование контекста
         context.update({
             'course_author': course.author.username,
@@ -480,6 +485,7 @@ class CourseDetailView(DetailView):
             'quiz_attempts_info': locals().get('quiz_attempts_info'),
             'quiz_passed': locals().get('final_quiz_passed', False),
             'is_dental_checkup_course': course.title == "Чек-ап стоматологической клиники",
+            'user_country': user_country,
             'highlight_start_button': highlight_start,
             'lesson_blocked_id': lesson_blocked_id,
             'quiz_blocked_id': quiz_blocked_id,
@@ -641,6 +647,11 @@ class LessonDetailView(DetailView):
             if lesson not in lessons_in_trajectory:
                 return render(self.request, 'courses/lesson_access_denied.html', {'course': course, 'lesson': lesson})
         
+        # Определяем страну пользователя (нужна для фильтрации уроков метрик)
+        user_country = ''
+        if hasattr(self.request.user, 'profile') and self.request.user.profile:
+            user_country = self.request.user.profile.country or ''
+
         # Определяем предыдущий и следующий уроки
         if trajectory:
             trajectory_lessons = trajectory.lessons.all().order_by('order')
@@ -654,17 +665,32 @@ class LessonDetailView(DetailView):
             previous_lesson = lesson.get_previous_lesson(course)
             next_lesson = lesson.get_next_lesson(course)
 
+        # Специальная логика для курса "Чек-ап стоматологической клиники"
+        is_dental_checkup_course = course.title == "Чек-ап стоматологической клиники"
+        
+        # Пропускаем скрытые уроки метрик в зависимости от страны
+        if is_dental_checkup_course:
+            # Для Казахстана скрываем обычный урок метрик
+            if user_country == 'Казахстан':
+                if previous_lesson and previous_lesson.title == 'Метрики эффективности стоматологической клиники':
+                    previous_lesson = previous_lesson.get_previous_lesson(course)
+                if next_lesson and next_lesson.title == 'Метрики эффективности стоматологической клиники':
+                    next_lesson = next_lesson.get_next_lesson(course)
+            # Для других стран скрываем KZ урок метрик
+            else:
+                if previous_lesson and previous_lesson.title == 'KZ Метрики эффективности стоматологической клиники':
+                    previous_lesson = previous_lesson.get_previous_lesson(course)
+                if next_lesson and next_lesson.title == 'KZ Метрики эффективности стоматологической клиники':
+                    next_lesson = next_lesson.get_next_lesson(course)
+
         # Помечаем урок как просмотренный
         UserProgress.objects.get_or_create(
             user=self.request.user,
             lesson=lesson,
             defaults={'course': course}
         )
-
-        # Специальная логика для курса "Чек-ап стоматологической клиники"
-        is_dental_checkup_course = course.title == "Чек-ап стоматологической клиники"
-        is_first_lesson = False
         
+        is_first_lesson = False
         if is_dental_checkup_course:
             course_lessons = course.lessons
             if len(course_lessons) >= 1:
@@ -673,6 +699,9 @@ class LessonDetailView(DetailView):
 
         # Специальная логика для урока "Метрики эффективности стоматологической клиники"
         is_metrics_lesson = lesson.title == "Метрики эффективности стоматологической клиники"
+        
+        # Специальная логика для урока "KZ Метрики эффективности стоматологической клиники"
+        is_metrics_kz_lesson = lesson.title == "KZ Метрики эффективности стоматологической клиники"
 
         # Проверяем, является ли урок последним
         is_last_lesson = next_lesson is None
@@ -685,6 +714,8 @@ class LessonDetailView(DetailView):
             'is_first_lesson': is_first_lesson,
             'is_last_lesson': is_last_lesson,
             'is_metrics_lesson': is_metrics_lesson,
+            'is_metrics_kz_lesson': is_metrics_kz_lesson,
+            'user_country': user_country,
         })
         
         return context
@@ -723,7 +754,7 @@ class CreateCourseView(LoginRequiredMixin, UserPassesTestMixin, CreateView):
 
     def _assign_course_to_staff(self, course):
         """
-        Назначаем курс всем staff\superuser
+        Назначаем курс всем staff\\superuser
         """
         User = get_user_model()
         staff_users = User.objects.filter(
@@ -1684,8 +1715,13 @@ class MetricsFormView(LoginRequiredMixin, UserPassesTestMixin, View):
     
     def get(self, request, *args, **kwargs):
         """GET запрос - отображение формы"""
+        user_country = ''
+        if hasattr(request.user, 'profile') and request.user.profile:
+            user_country = request.user.profile.country or ''
+        
         context = {
-            'title': 'передача данных – Метрики эффективности стомклиники'
+            'title': 'передача данных – Метрики эффективности стомклиники',
+            'user_country': user_country
         }
         return render(request, self.template_name, context)
     
@@ -2347,9 +2383,58 @@ def export_metrics_to_excel(request, submission_id):
         response = HttpResponse(
             content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
         )
-        clinic_name_safe = "".join(c for c in submission.clinic_name if c.isalnum() or c in (' ', '-', '_')).strip()
-        filename = f"metrics_{clinic_name_safe}_{submission.id}.xlsx"
+        
+        # Создаем безопасное имя файла из названия клиники
+        import re
+        import urllib.parse
+        
+        # Убираем все нелатинские символы и заменяем на латинские аналоги
+        clinic_name_safe = submission.clinic_name
+        # Заменяем кириллицу на латиницу для совместимости
+        cyrillic_to_latin = {
+            'а': 'a', 'б': 'b', 'в': 'v', 'г': 'g', 'д': 'd', 'е': 'e', 'ё': 'e',
+            'ж': 'zh', 'з': 'z', 'и': 'i', 'й': 'y', 'к': 'k', 'л': 'l', 'м': 'm',
+            'н': 'n', 'о': 'o', 'п': 'p', 'р': 'r', 'с': 's', 'т': 't', 'у': 'u',
+            'ф': 'f', 'х': 'h', 'ц': 'ts', 'ч': 'ch', 'ш': 'sh', 'щ': 'sch',
+            'ъ': '', 'ы': 'y', 'ь': '', 'э': 'e', 'ю': 'yu', 'я': 'ya',
+            'А': 'A', 'Б': 'B', 'В': 'V', 'Г': 'G', 'Д': 'D', 'Е': 'E', 'Ё': 'E',
+            'Ж': 'Zh', 'З': 'Z', 'И': 'I', 'Й': 'Y', 'К': 'K', 'Л': 'L', 'М': 'M',
+            'Н': 'N', 'О': 'O', 'П': 'P', 'Р': 'R', 'С': 'S', 'Т': 'T', 'У': 'U',
+            'Ф': 'F', 'Х': 'H', 'Ц': 'Ts', 'Ч': 'Ch', 'Ш': 'Sh', 'Щ': 'Sch',
+            'Ъ': '', 'Ы': 'Y', 'Ь': '', 'Э': 'E', 'Ю': 'Yu', 'Я': 'Ya'
+        }
+        
+        for cyr, lat in cyrillic_to_latin.items():
+            clinic_name_safe = clinic_name_safe.replace(cyr, lat)
+        
+        # Убираем все символы кроме букв, цифр, пробелов и дефисов
+        clinic_name_safe = re.sub(r'[^\w\s-]', '', clinic_name_safe).strip()
+        clinic_name_safe = re.sub(r'[-\s]+', '_', clinic_name_safe)
+        
+        # Если название пустое, используем fallback
+        if not clinic_name_safe:
+            clinic_name_safe = f"clinic_{submission.id}"
+        
+        # Форматируем дату заполнения
+        date_str = submission.submitted_at.strftime('%d-%m-%Y')
+        
+        # Создаем имя файла: название_клиники_дата.xlsx
+        # Если название клиники слишком длинное или содержит проблемные символы, используем упрощенный вариант
+        if len(clinic_name_safe) > 20 or not clinic_name_safe.replace('_', '').isalnum():
+            filename = f"metrics_{submission.id}_{date_str}.xlsx"
+        else:
+            filename = f"{clinic_name_safe}_{date_str}.xlsx"
+        
+        # Отладочная информация
+        print(f"DEBUG: Original clinic name: {submission.clinic_name}")
+        print(f"DEBUG: Safe clinic name: {clinic_name_safe}")
+        print(f"DEBUG: Date string: {date_str}")
+        print(f"DEBUG: Final filename: {filename}")
+        
+        # Пробуем разные варианты заголовков
         response['Content-Disposition'] = f'attachment; filename="{filename}"'
+        response['Content-Type'] = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        response['Content-Length'] = str(len(filename))
         
         wb.save(response)
         return response

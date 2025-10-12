@@ -1,36 +1,4 @@
 /* Стили для панели управления тестами */
-
-/* === МИНИМАЛИСТИЧНЫЕ КНОПКИ === */
-.theme-dark {
-    --btn-mini-color: #e3e8f0;
-    --btn-mini-bg: #232a3a;
-    --btn-mini-bg-hover: #444;
-    --btn-mini-add-bg: #1a7c3a;
-    --btn-mini-add-color: #e0f8e9;
-    --btn-mini-add-bg-hover: #229d52;
-    --btn-mini-add-color-hover: #bff4d2;
-    --btn-mini-edit-bg: #333;
-    --btn-mini-edit-color: #ffe7a0;
-    --btn-mini-edit-bg-hover: #444;
-    --btn-mini-edit-color-hover: #fff6e0;
-    --btn-mini-delete-bg: #b92c2c;
-    --btn-mini-delete-color: #ffeaea;
-    --btn-mini-delete-bg-hover: #e14b4b;
-    --btn-mini-delete-color-hover: #ffcfcf;
-    --btn-mini-success-bg: #1a7c3a;
-    --btn-mini-success-color: #e0f8e9;
-    --btn-mini-success-bg-hover: #229d52;
-    --btn-mini-success-color-hover: #bff4d2;
-    --btn-mini-primary-bg: #0d6efd;
-    --btn-mini-primary-color: #e7f1ff;
-    --btn-mini-primary-bg-hover: #0b5ed7;
-    --btn-mini-primary-color-hover: #cce7ff;
-    --btn-mini-secondary-bg: #6c757d;
-    --btn-mini-secondary-color: #f8f9fa;
-    --btn-mini-secondary-bg-hover: #565e64;
-    --btn-mini-secondary-color-hover: #e9ecef;
-}
-
 :root {
     --btn-mini-color: #222;
     --btn-mini-bg: #9ec5fe;
@@ -440,3 +408,48 @@
         transform: rotate(360deg);
     }
 }
+
+/* === СТИЛИ ДЛЯ ТИПА ВОПРОСА "ПОСЛЕДОВАТЕЛЬНОСТЬ" === */
+.sequence-answer-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px;
+    margin-bottom: 10px;
+    background-color: #f8f9fa;
+    border: 1px solid #dee2e6;
+    border-radius: 6px;
+    transition: all 0.2s ease;
+}
+
+.sequence-answer-item:hover {
+    border-color: #007bff;
+    background-color: #e7f3ff;
+    transform: translateX(3px);
+}
+
+.sequence-order-number {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 32px;
+    min-height: 32px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border-radius: 50%;
+    font-weight: bold;
+    font-size: 0.95rem;
+    flex-shrink: 0;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.15);
+}
+
+.sequence-answer-item .form-control {
+    flex-grow: 1;
+    margin: 0;
+}
+
+.sequence-answer-item .remove-btn {
+    flex-shrink: 0;
+    margin: 0;
+}
+

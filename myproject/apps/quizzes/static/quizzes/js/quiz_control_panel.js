@@ -184,6 +184,7 @@ function addQuestion() {
                 <option value="multiple">Несколько правильных ответов</option>
                 <option value="text">Открытый ответ</option>
                 <option value="match">Соответствие</option>
+                <option value="sequence">Последовательность</option>
             </select>
         </div>
 
@@ -227,7 +228,23 @@ function addAnswer(button) {
     const questionId = questionBlock.dataset.questionId;
     const questionType = questionBlock.querySelector('select[name*="[type]"]').value;
 
-    if (questionType === 'match') {
+    if (questionType === 'sequence') {
+        // Для типа последовательность добавляем элемент с номером
+        const answerCount = answersContainer.querySelectorAll('.answer-item, .sequence-answer-item').length + 1;
+        
+        const sequenceHtml = `
+        <div class="answer-item sequence-answer-item">
+            <span class="sequence-order-number">${answerCount}</span>
+            <input type="text" class="form-control" 
+                   name="questions[${questionId}][answers][${answerCount}][text]"
+                   placeholder="Элемент ${answerCount}" required>
+            <button type="button" class="remove-btn" onclick="removeAnswer(this)">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>`;
+        
+        button.insertAdjacentHTML('beforebegin', sequenceHtml);
+    } else if (questionType === 'match') {
         // Для типа соответствия добавляем пару вопрос-ответ
         const existingPairs = answersContainer.querySelectorAll('.match-pair');
         const pairNumber = existingPairs.length + 1;
@@ -319,10 +336,23 @@ function addAnswer(button) {
 
 function removeAnswer(button) {
     const answersContainer = button.closest('.answers-container');
-    const answerItems = answersContainer.querySelectorAll('.answer-item');
+    const questionBlock = button.closest('.question-block');
+    const questionType = questionBlock.querySelector('select[name*="[type]"]').value;
+    const answerItems = answersContainer.querySelectorAll('.answer-item, .sequence-answer-item');
 
     if (answerItems.length > 1) {
-        button.closest('.answer-item').remove();
+        button.closest('.answer-item, .sequence-answer-item').remove();
+        
+        // Перенумеровываем элементы последовательности
+        if (questionType === 'sequence') {
+            const remainingItems = answersContainer.querySelectorAll('.sequence-answer-item');
+            remainingItems.forEach((item, index) => {
+                const numberSpan = item.querySelector('.sequence-order-number');
+                if (numberSpan) {
+                    numberSpan.textContent = index + 1;
+                }
+            });
+        }
     } else {
         alert('Должен остаться хотя бы один вариант ответа');
     }
@@ -341,6 +371,101 @@ function toggleAnswers(select) {
         answersContainer.style.display = 'none';
         // Убираем required с полей ответов для текстовых вопросов
         answersContainer.querySelectorAll('input[type="text"]').forEach(input => input.required = false);
+    } else if (select.value === 'sequence') {
+        answersContainer.style.display = 'block';
+        // Для типа последовательность показываем специальную инструкцию
+        const label = answersContainer.querySelector('label');
+        if (label) {
+            label.innerHTML = 'Элементы последовательности';
+        }
+
+        // Проверяем, есть ли уже элементы последовательности
+        const existingSequence = answersContainer.querySelectorAll('.sequence-answer-item, .answer-item');
+        
+        if (existingSequence.length === 0) {
+            // Очищаем контейнер
+            const existingContent = answersContainer.querySelectorAll('.match-pair, .alert');
+            existingContent.forEach(item => item.remove());
+
+            // Добавляем примеры элементов последовательности
+            let sequenceHtml = '';
+            for (let i = 1; i <= 3; i++) {
+                sequenceHtml += `
+                    <div class="answer-item sequence-answer-item">
+                        <span class="sequence-order-number">${i}</span>
+                        <input type="text" class="form-control" 
+                               name="questions[${questionId}][answers][${i}][text]"
+                               placeholder="Элемент ${i}" required>
+                        <button type="button" class="remove-btn" onclick="removeAnswer(this)">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                `;
+            }
+
+            const exampleHtml = `
+                <div class="alert alert-info">
+                    <strong>Инструкция:</strong> Добавьте элементы в правильном порядке. Первый добавленный элемент будет первым в правильной последовательности.
+                </div>
+                ${sequenceHtml}
+            `;
+
+            answersContainer.insertAdjacentHTML('beforeend', exampleHtml);
+        } else {
+            // Убедимся что есть инструкция
+            const existingAlert = answersContainer.querySelector('.alert-info');
+            if (!existingAlert) {
+                const alertHtml = `
+                    <div class="alert alert-info">
+                        <strong>Инструкция:</strong> Добавьте элементы в правильном порядке. Первый добавленный элемент будет первым в правильной последовательности.
+                    </div>
+                `;
+                const firstElement = answersContainer.querySelector('.sequence-answer-item, .answer-item');
+                if (firstElement) {
+                    firstElement.insertAdjacentHTML('beforebegin', alertHtml);
+                } else {
+                    answersContainer.insertAdjacentHTML('afterbegin', alertHtml);
+                }
+            }
+
+            // Удаляем галочки "правильный" для существующих элементов
+            existingSequence.forEach((item, index) => {
+                const formCheck = item.querySelector('.form-check');
+                if (formCheck) {
+                    formCheck.remove();
+                }
+                
+                // Добавляем класс sequence-answer-item если его нет
+                if (!item.classList.contains('sequence-answer-item')) {
+                    item.classList.add('sequence-answer-item');
+                }
+                
+                // Добавляем номер последовательности если его нет
+                if (!item.querySelector('.sequence-order-number')) {
+                    const input = item.querySelector('input[type="text"]');
+                    if (input) {
+                        const orderNumber = document.createElement('span');
+                        orderNumber.className = 'sequence-order-number';
+                        orderNumber.textContent = index + 1;
+                        input.parentElement.insertBefore(orderNumber, input);
+                    }
+                } else {
+                    // Обновляем существующий номер
+                    const orderNumber = item.querySelector('.sequence-order-number');
+                    orderNumber.textContent = index + 1;
+                }
+            });
+        }
+
+        // Добавляем кнопку добавления элемента если её нет
+        const addButton = answersContainer.querySelector('.btn-mini');
+        if (!addButton) {
+            answersContainer.insertAdjacentHTML('beforeend', `
+                <button type="button" class="btn-mini primary btn-sm mt-2" onclick="addAnswer(this)">
+                    <i class="fas fa-plus"></i> Добавить элемент
+                </button>
+            `);
+        }
     } else if (select.value === 'match') {
         answersContainer.style.display = 'block';
         // Для типа соответствие показываем специальную инструкцию
@@ -434,16 +559,48 @@ function toggleAnswers(select) {
             const formCheck = item.querySelector('.form-check');
             const answerNumber = index + 1;
 
-            let newInput = '';
-            if (select.value === 'single') {
-                // Меняем на радиокнопки
-                newInput = `<input type="radio" class="form-check-input" name="questions[${questionId}][correct_answer]" value="${answerNumber}">`;
-            } else {
-                // Меняем на чекбоксы
-                newInput = `<input type="checkbox" class="form-check-input" name="questions[${questionId}][answers][${answerNumber}][correct]">`;
+            // Удаляем номера последовательности если они есть
+            const sequenceNumber = item.querySelector('.sequence-order-number');
+            if (sequenceNumber) {
+                sequenceNumber.remove();
+            }
+            
+            // Удаляем класс sequence-answer-item если он есть
+            if (item.classList.contains('sequence-answer-item')) {
+                item.classList.remove('sequence-answer-item');
             }
 
-            formCheck.innerHTML = newInput + '<label class="form-check-label">Правильный</label>';
+            if (!formCheck) {
+                // Если нет formCheck, создаем его
+                const removeBtn = item.querySelector('.remove-btn');
+                const newFormCheck = document.createElement('div');
+                newFormCheck.className = 'form-check';
+                
+                let newInput = '';
+                if (select.value === 'single') {
+                    newInput = `<input type="radio" class="form-check-input" name="questions[${questionId}][correct_answer]" value="${answerNumber}">`;
+                } else {
+                    newInput = `<input type="checkbox" class="form-check-input" name="questions[${questionId}][answers][${answerNumber}][correct]">`;
+                }
+                
+                newFormCheck.innerHTML = newInput + '<label class="form-check-label">Правильный</label>';
+                if (removeBtn) {
+                    removeBtn.parentElement.insertBefore(newFormCheck, removeBtn);
+                } else {
+                    item.appendChild(newFormCheck);
+                }
+            } else {
+                let newInput = '';
+                if (select.value === 'single') {
+                    // Меняем на радиокнопки
+                    newInput = `<input type="radio" class="form-check-input" name="questions[${questionId}][correct_answer]" value="${answerNumber}">`;
+                } else {
+                    // Меняем на чекбоксы
+                    newInput = `<input type="checkbox" class="form-check-input" name="questions[${questionId}][answers][${answerNumber}][correct]">`;
+                }
+
+                formCheck.innerHTML = newInput + '<label class="form-check-label">Правильный</label>';
+            }
         });
     }
 }
