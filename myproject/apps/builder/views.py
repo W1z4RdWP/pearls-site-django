@@ -2336,14 +2336,46 @@ class CourseListView(ListView):
     
     def get_queryset(self):
         from courses.models import Course
-        return Course.objects.all().order_by('-created_at')
+        from django.db.models import Q
+        
+        queryset = Course.objects.all()
+        
+        # Поиск по названию
+        search_query = self.request.GET.get('search', '').strip()
+        if search_query:
+            queryset = queryset.filter(
+                Q(title__icontains=search_query) | 
+                Q(description__icontains=search_query) |
+                Q(slug__icontains=search_query)
+            )
+        
+        # Фильтр по автору
+        author_id = self.request.GET.get('author', '').strip()
+        if author_id:
+            try:
+                queryset = queryset.filter(author_id=int(author_id))
+            except (ValueError, TypeError):
+                pass
+        
+        # Фильтр по статусу (пока все курсы активные)
+        status = self.request.GET.get('status', '').strip()
+        if status == 'active':
+            # Все курсы считаются активными, фильтр не применяется
+            pass
+        
+        return queryset.order_by('-created_at')
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         from courses.models import Course
         from django.contrib.auth.models import User
         
-        # Статистика
+        # Получаем параметры фильтрации для сохранения в форме
+        context['search_query'] = self.request.GET.get('search', '')
+        context['selected_author'] = self.request.GET.get('author', '')
+        context['selected_status'] = self.request.GET.get('status', '')
+        
+        # Статистика (всегда показываем общую статистику)
         context['total_courses'] = Course.objects.count()
         context['active_courses'] = Course.objects.count()  # Все курсы считаются активными
         context['total_lessons'] = sum(course.lessons.count() for course in Course.objects.all())
