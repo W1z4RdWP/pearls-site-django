@@ -1,29 +1,4 @@
 /* Стили для панели управления тестами */
-
-/* === МИНИМАЛИСТИЧНЫЕ КНОПКИ === */
-    --btn-mini-add-color-hover: #bff4d2;
-    --btn-mini-edit-bg: #333;
-    --btn-mini-edit-color: #ffe7a0;
-    --btn-mini-edit-bg-hover: #444;
-    --btn-mini-edit-color-hover: #fff6e0;
-    --btn-mini-delete-bg: #b92c2c;
-    --btn-mini-delete-color: #ffeaea;
-    --btn-mini-delete-bg-hover: #e14b4b;
-    --btn-mini-delete-color-hover: #ffcfcf;
-    --btn-mini-success-bg: #1a7c3a;
-    --btn-mini-success-color: #e0f8e9;
-    --btn-mini-success-bg-hover: #229d52;
-    --btn-mini-success-color-hover: #bff4d2;
-    --btn-mini-primary-bg: #0d6efd;
-    --btn-mini-primary-color: #e7f1ff;
-    --btn-mini-primary-bg-hover: #0b5ed7;
-    --btn-mini-primary-color-hover: #cce7ff;
-    --btn-mini-secondary-bg: #6c757d;
-    --btn-mini-secondary-color: #f8f9fa;
-    --btn-mini-secondary-bg-hover: #565e64;
-    --btn-mini-secondary-color-hover: #e9ecef;
-}
-
 :root {
     --btn-mini-color: #222;
     --btn-mini-bg: #9ec5fe;

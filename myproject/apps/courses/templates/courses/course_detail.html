@@ -393,14 +393,6 @@
                 </div>
                 <h2 class="text-success mb-3">Курс завершен!</h2>
                 <p class="lead mb-4">Поздравляем с успешным завершением курса!</p>
-                {% if next_course_in_trajectory %}
-                    <div class="mt-4">
-                        <a href="{% url 'courses:course_detail' slug=next_course_in_trajectory.slug %}" 
-                           class="btn-modern btn-lg">
-                            <i class="fa fa-arrow-right"></i> Перейти к следующему курсу: {{ next_course_in_trajectory.title }}
-                        </a>
-                    </div>
-                {% endif %}
                 <div class="mt-4">
                     <button class="btn btn-outline-secondary" onclick="document.getElementById('course-completion-animation').style.display='none'">
                         <i class="fa fa-times"></i> Закрыть
