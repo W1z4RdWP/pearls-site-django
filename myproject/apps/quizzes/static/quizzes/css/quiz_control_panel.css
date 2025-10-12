@@ -1,13 +1,6 @@
 /* Стили для панели управления тестами */
 
 /* === МИНИМАЛИСТИЧНЫЕ КНОПКИ === */
-.theme-dark {
-    --btn-mini-color: #e3e8f0;
-    --btn-mini-bg: #232a3a;
-    --btn-mini-bg-hover: #444;
-    --btn-mini-add-bg: #1a7c3a;
-    --btn-mini-add-color: #e0f8e9;
-    --btn-mini-add-bg-hover: #229d52;
     --btn-mini-add-color-hover: #bff4d2;
     --btn-mini-edit-bg: #333;
     --btn-mini-edit-color: #ffe7a0;
@@ -485,17 +478,3 @@
     margin: 0;
 }
 
-/* Темная тема */
-.theme-dark .sequence-answer-item {
-    background-color: #232a3a;
-    border-color: #444;
-}
-
-.theme-dark .sequence-answer-item:hover {
-    border-color: #0d6efd;
-    background-color: #2a3447;
-}
-
-.theme-dark .sequence-order-number {
-    box-shadow: 0 2px 4px rgba(0,0,0,0.3);
-}

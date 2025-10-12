@@ -30,37 +30,6 @@
   --um-checkbox-color: #222;
 }
 
-body.theme-dark {
-  --um-form-bg: #232a3a;
-  --um-form-color: #eee;
-  --um-form-border-radius: 12px;
-  --um-form-shadow: 0 2px 8px #0007;
-  --um-form-padding: 32px 40px;
-  --um-form-title: #eee;
-  --um-form-title-size: 2rem;
-  --um-form-title-weight: 600;
-  --um-section-title: #bdbdbd;
-  --um-section-title-size: 1.2rem;
-  --um-section-title-weight: 500;
-  --um-label-color: #eee;
-  --um-input-bg: #232a3a;
-  --um-input-border: #353535;
-  --um-input-radius: 6px;
-  --um-input-color: #eee;
-  --um-btn-primary-bg: #4d7cff;
-  --um-btn-primary-color: #fff;
-  --um-btn-secondary-bg: #353535;
-  --um-btn-secondary-color: #eee;
-  --um-back-link: #4d7cff;
-  --um-warning-color: #ff4d4f;
-  --um-warning-bg: #2d1e1e;
-  --um-warning-border: #ff4d4f;
-  --um-warning-shadow: 0 2px 8px #0007;
-  --um-help-text: #bdbdbd;
-  --um-checkbox-bg: #232a3a;
-  --um-checkbox-border: #353535;
-  --um-checkbox-color: #eee;
-}
 
 .user-form-wrapper {
     max-width: 800px;

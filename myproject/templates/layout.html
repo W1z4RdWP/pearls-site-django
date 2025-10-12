@@ -32,20 +32,6 @@
     <link rel="stylesheet" href="{% static 'notifications/css/notifications.css' %}" />
     <script src="{% static 'global/js/scripts.js' %}" defer></script>
     {% block specific_styles %} {% endblock %}
-    <script>
-    (function() {
-      try {
-        if (localStorage.getItem('theme') === 'dark') {
-          document.documentElement.classList.add('theme-dark');
-          document.body.classList.add('theme-dark');
-        } else {
-          // Убираем классы темной темы если тема светлая
-          document.documentElement.classList.remove('theme-dark');
-          document.body.classList.remove('theme-dark');
-        }
-      } catch(e){}
-    })();
-    </script>
 </head>
 <body>
     
@@ -196,11 +182,6 @@
                         </a>
                       </li>
                     {% endif %}
-                    <!-- <li class="nav-item">
-                      <button id="theme-toggle-btn" class="btn btn-outline-primary ms-2" type="button" title="Переключить тему">
-                        <i class="fa-solid fa-moon"></i>
-                      </button>
-                    </li> -->
                   </ul>
                 </div>
             </div>
@@ -291,11 +272,6 @@
             <a href="{% url 'privacy_policy' %}" class="footer-policy">Политика конфиденциальности</a> 
         </div>
     </footer>
-    <script>
-        // Логотипы для темной и светлой темы
-        const darkLogo = "{% static 'global/imgs/logo_lc.png' %}";
-        const lightLogo = "{% static 'global/imgs/logo_light_theme.png' %}";
-    </script>
     <!-- jQuery -->
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     

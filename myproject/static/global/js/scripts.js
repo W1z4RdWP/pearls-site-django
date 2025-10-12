@@ -96,57 +96,6 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
 
-// Переключение темы
-document.addEventListener('DOMContentLoaded', function() {
-  const btn = document.getElementById('theme-toggle-btn');
-  const logo = document.getElementById('logopng');
-  const footerLogo = document.getElementById('footerlogo');
-  const footerLogoMobile = document.getElementById('footerlogomobile');
-
-  // Определяем пути к логотипам
-  const darkLogo = "/static/global/imgs/logo_lc.png";
-  const lightLogo = "/static/global/imgs/logo_light_theme.png";
-  
-  function updateLogo() {
-    if (document.body.classList.contains('theme-dark')) {
-      if (logo) logo.src = darkLogo;
-      if (footerLogo) footerLogo.src = darkLogo;
-      if (footerLogoMobile) footerLogoMobile.src = darkLogo;
-    } else {
-      if (logo) logo.src = lightLogo;
-      if (footerLogo) footerLogo.src = lightLogo;
-      if (footerLogoMobile) footerLogoMobile.src = lightLogo;
-    }
-  }
-  
-  if (btn) {
-    const icon = btn.querySelector('i');
-    
-    function updateIcon() {
-      if (document.body.classList.contains('theme-dark')) {
-        icon.className = 'fa-solid fa-sun';
-        btn.title = 'Переключить на светлую тему';
-      } else {
-        icon.className = 'fa-solid fa-moon';
-        btn.title = 'Переключить на темную тему';
-      }
-    }
-    
-    btn.addEventListener('click', function() {
-      document.body.classList.toggle('theme-dark');
-      localStorage.setItem('theme', document.body.classList.contains('theme-dark') ? 'dark' : 'light');
-      updateLogo();
-      updateIcon();
-    });
-    
-    // Инициализация при загрузке
-    if (localStorage.getItem('theme') === 'dark') {
-      document.body.classList.add('theme-dark');
-    }
-    updateIcon();
-    updateLogo();
-  }
-});
 
 // Глобальная подмена "битых" изображений на заглушку
 // Убрал, так как нет необходимости, восстановить если будет картинка
