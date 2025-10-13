@@ -227,7 +227,9 @@
     <footer class="footer-main">
         <div class="footer-container">
             <div class="footer-col footer-brand">
+                {% if not request.user.groups.all.0.name == 'Внешний пользователь' %}
                 <a href="{% url 'home' %}">
+                {% endif %}
                     <img src="{% static 'global/imgs/logo_light_theme.png' %}" alt="Logo" class='footer-logo' id="footerlogo">
                 </a>
                 <p class="footer-tagline">Территория улыбки — учись, вдохновляйся, совершенствуйся!</p>       
@@ -281,7 +283,7 @@
             <span class="site-version">Версия: {{ latest_version }}</span>
             <span class="footer-text">© 2025 Территория Улыбки &nbsp;|&nbsp; The site was created by w1z4rdWP</span>
             <!-- Дублированный логотип для мобильных устройств -->
-            <img src="{% static 'global/imgs/logo_lc.png' %}" alt="Logo" class='footer-logo-mobile' id="footerlogomobile">
+            <img src="{% static 'global/imgs/logo_light_theme.png' %}" alt="Logo" class='footer-logo-mobile' id="footerlogomobile">
             <a href="{% url 'privacy_policy' %}" class="footer-policy">Политика конфиденциальности</a> 
         </div>
     </footer>
