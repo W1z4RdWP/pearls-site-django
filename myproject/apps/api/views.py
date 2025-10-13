@@ -317,7 +317,7 @@ def telegram_auth(request):
         # Проверяем, состоит ли пользователь в группе "Внешний пользователь"
         if user.groups.filter(name='Внешний пользователь').exists():
             # Редирект на курс чек-апа для внешних пользователей
-            return redirect('courses:course_detail', slug='chek-ap-stomatologicheskoi-kliniki')
+            return redirect('homepage')
         
         # Перенаправляем на профиль
         return redirect('homepage')

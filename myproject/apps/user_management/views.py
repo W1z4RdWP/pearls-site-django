@@ -48,6 +48,21 @@ class UserListView(ListView):
 
     def get_queryset(self):
         queryset = super().get_queryset().order_by('email')
+        
+        # Если пользователь - наставник (но не superuser и не staff), показываем только его группу
+        if (hasattr(self.request.user, 'profile') and 
+            self.request.user.profile.is_mentor_user and 
+            not self.request.user.is_superuser and 
+            not self.request.user.is_staff):
+            # Получаем группы наставника
+            mentor_groups = self.request.user.groups.all()
+            if mentor_groups.exists():
+                # Показываем только пользователей из групп наставника
+                queryset = queryset.filter(groups__in=mentor_groups).distinct()
+            else:
+                # Если у наставника нет групп, показываем пустой список
+                queryset = queryset.none()
+        
         q = self.request.GET.get('q')
         if q:
             queryset = queryset.filter(
@@ -68,18 +83,29 @@ class UserListView(ListView):
                 ~Q(profile__role__responsible_user=F('id'))
             )
         
-        # Фильтрация по группе
-        group_filter = self.request.GET.get('group')
-        if group_filter:
-            queryset = queryset.filter(groups__id=group_filter)
+        # Фильтрация по группе (только для не-наставников)
+        if not (hasattr(self.request.user, 'profile') and 
+                self.request.user.profile.is_mentor_user and 
+                not self.request.user.is_superuser and 
+                not self.request.user.is_staff):
+            group_filter = self.request.GET.get('group')
+            if group_filter:
+                queryset = queryset.filter(groups__id=group_filter)
         
         return queryset
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        # Добавляем список групп для фильтра
+        # Добавляем список групп для фильтра (только для не-наставников)
         from django.contrib.auth.models import Group
-        context['groups'] = Group.objects.all().order_by('name')
+        if not (hasattr(self.request.user, 'profile') and 
+                self.request.user.profile.is_mentor_user and 
+                not self.request.user.is_superuser and 
+                not self.request.user.is_staff):
+            context['groups'] = Group.objects.all().order_by('name')
+        else:
+            # Для наставников показываем только их группы
+            context['groups'] = self.request.user.groups.all().order_by('name')
         return context
 
 
@@ -999,10 +1025,28 @@ class AdminDashboardView(LoginRequiredMixin, UserPassesTestMixin, ListView):
         """Возвращает пользователей с фильтрацией"""
         queryset = User.objects.select_related('profile', 'profile__role').prefetch_related('groups').order_by('-profile__dascoin_points', 'email')
         
-        # Фильтрация по группе
-        group_id = self.request.GET.get('group')
-        if group_id:
-            queryset = queryset.filter(groups__id=group_id)
+        # Если пользователь - наставник (но не superuser и не staff), показываем только его группу
+        if (hasattr(self.request.user, 'profile') and 
+            self.request.user.profile.is_mentor_user and 
+            not self.request.user.is_superuser and 
+            not self.request.user.is_staff):
+            # Получаем группы наставника
+            mentor_groups = self.request.user.groups.all()
+            if mentor_groups.exists():
+                # Показываем только пользователей из групп наставника
+                queryset = queryset.filter(groups__in=mentor_groups).distinct()
+            else:
+                # Если у наставника нет групп, показываем пустой список
+                queryset = queryset.none()
+        
+        # Фильтрация по группе (только для не-наставников)
+        if not (hasattr(self.request.user, 'profile') and 
+                self.request.user.profile.is_mentor_user and 
+                not self.request.user.is_superuser and 
+                not self.request.user.is_staff):
+            group_id = self.request.GET.get('group')
+            if group_id:
+                queryset = queryset.filter(groups__id=group_id)
         
         # Фильтрация по должности
         role_id = self.request.GET.get('role')
@@ -1043,10 +1087,27 @@ class AdminDashboardView(LoginRequiredMixin, UserPassesTestMixin, ListView):
         context = super().get_context_data(**kwargs)
         
         # Общая статистика
-        all_users = User.objects.select_related('profile')
-        context['total_users'] = all_users.count()
-        context['total_dascoin_points'] = all_users.aggregate(total=Sum('profile__dascoin_points'))['total'] or 0
-        context['active_users'] = all_users.filter(is_active=True).count()
+        if not (hasattr(self.request.user, 'profile') and 
+                self.request.user.profile.is_mentor_user and 
+                not self.request.user.is_superuser and 
+                not self.request.user.is_staff):
+            # Для обычных пользователей - общая статистика
+            all_users = User.objects.select_related('profile')
+            context['total_users'] = all_users.count()
+            context['total_dascoin_points'] = all_users.aggregate(total=Sum('profile__dascoin_points'))['total'] or 0
+            context['active_users'] = all_users.filter(is_active=True).count()
+        else:
+            # Для наставников - статистика только по их группам
+            mentor_groups = self.request.user.groups.all()
+            if mentor_groups.exists():
+                all_users = User.objects.filter(groups__in=mentor_groups).select_related('profile').distinct()
+                context['total_users'] = all_users.count()
+                context['total_dascoin_points'] = all_users.aggregate(total=Sum('profile__dascoin_points'))['total'] or 0
+                context['active_users'] = all_users.filter(is_active=True).count()
+            else:
+                context['total_users'] = 0
+                context['total_dascoin_points'] = 0
+                context['active_users'] = 0
         
         # Статистика по баллам DASCOIN
         from gamification.models import DascoinTransaction
@@ -1072,7 +1133,14 @@ class AdminDashboardView(LoginRequiredMixin, UserPassesTestMixin, ListView):
             context['last_award_points'] = None
         
         # Группы и должности для фильтров
-        context['groups'] = Group.objects.all().order_by('name')
+        if not (hasattr(self.request.user, 'profile') and 
+                self.request.user.profile.is_mentor_user and 
+                not self.request.user.is_superuser and 
+                not self.request.user.is_staff):
+            context['groups'] = Group.objects.all().order_by('name')
+        else:
+            # Для наставников показываем только их группы
+            context['groups'] = self.request.user.groups.all().order_by('name')
         context['roles'] = Role.objects.all().order_by('name')
         
         # Параметры фильтрации
