@@ -42,6 +42,8 @@
                 <input type="date" id="id_date_of_birth" name="date_of_birth" class="form-control" value="{{ profile_form.date_of_birth.value|date:'Y-m-d'|default:'' }}" readonly disabled/>
                 {{ profile_form.phone_number.label_tag }}{{ profile_form.phone_number|attr:'readonly:readonly,disabled:disabled' }}
                 {{ profile_form.bio.label_tag }}{{ profile_form.bio|attr:'readonly:readonly,disabled:disabled' }}
+                <br>
+                {{ profile_form.is_mentor.label_tag }}{{ profile_form.is_mentor|attr:'readonly:readonly,disabled:disabled' }}
             {% else %}
                 {{ form.first_name.label_tag }}{{ form.first_name }}
                 {{ form.last_name.label_tag }}{{ form.last_name }}
@@ -85,6 +87,8 @@
                 {{ form.is_active.label_tag }}{{ form.is_active }}
                 <br>
                 {{ profile_form.is_approved.label_tag }}{{ profile_form.is_approved }}
+                <br>
+                {{ profile_form.is_mentor.label_tag }}{{ profile_form.is_mentor }}
             {% endif %}
         </div>
         <div class="form-actions">
