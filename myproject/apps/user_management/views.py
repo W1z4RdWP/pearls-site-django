@@ -42,7 +42,7 @@ class UserListView(ListView):
     paginate_by = 20
 
     def dispatch(self, request, *args, **kwargs):
-        if not request.user.is_authenticated or not (request.user.is_staff or request.user.is_superuser):
+        if not request.user.is_authenticated or not (request.user.is_staff or request.user.is_superuser or (hasattr(request.user, 'profile') and request.user.profile.is_mentor_user)):
             raise PermissionDenied("У вас нет доступа к управлению пользователями.")
         return super().dispatch(request, *args, **kwargs)
 
@@ -439,7 +439,7 @@ class UserProgressDashboardView(DetailView):
     context_object_name = 'target_user'
 
     def dispatch(self, request, *args, **kwargs):
-        if not request.user.is_authenticated or not (request.user.is_staff or request.user.is_superuser):
+        if not request.user.is_authenticated or not (request.user.is_staff or request.user.is_superuser or (hasattr(request.user, 'profile') and request.user.profile.is_mentor_user)):
             raise PermissionDenied("У вас нет доступа к управлению пользователями.")
         return super().dispatch(request, *args, **kwargs)
 
@@ -993,7 +993,7 @@ class AdminDashboardView(LoginRequiredMixin, UserPassesTestMixin, ListView):
     
     def test_func(self):
         """Проверяет, что пользователь является staff или superuser"""
-        return self.request.user.is_staff or self.request.user.is_superuser
+        return self.request.user.is_staff or self.request.user.is_superuser or (hasattr(self.request.user, 'profile') and self.request.user.profile.is_mentor_user)
     
     def get_queryset(self):
         """Возвращает пользователей с фильтрацией"""

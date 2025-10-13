@@ -41,4 +41,7 @@ def nav_menu(request):
         {'url': 'changelog', 'label': 'Список изменений', 'icon': 'fa-solid fa-list-check'},
         {'url': 'builder:dashboard', 'label': 'Панель управления', 'icon': 'fa-solid fa-cog'},
     ]
-    return {'nav_public': nav_public, 'nav_staff': nav_staff}
+    nav_mentor = [
+        {'url': 'builder:dashboard', 'label': 'Панель управления', 'icon': 'fa-solid fa-cog'},
+    ]
+    return {'nav_public': nav_public, 'nav_staff': nav_staff, 'nav_mentor': nav_mentor}

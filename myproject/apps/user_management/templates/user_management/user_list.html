@@ -37,7 +37,9 @@
 <div class="um-user-list-wrapper">
     <div class="um-user-list-header">
         <h1 class="um-user-list-title">Пользователи</h1>
-        <a href="{% url 'user_management:user_create_step1' %}" class="um-btn">Добавить пользователя</a>
+        {% if not request.user.profile.is_mentor_user %}
+            <a href="{% url 'user_management:user_create_step1' %}" class="um-btn">Добавить пользователя</a>
+        {% endif %}
     </div>
     <form method="get" class="um-user-list-filter">
         <input type="text" name="q" placeholder="Поиск по имени или email" value="{{ request.GET.q }}">
@@ -92,7 +94,9 @@
                 </td>
                 <td>
                     <div class="um-action-btns">
-                        <a href="{% url 'user_management:user_edit' user.pk %}" class="um-action-btn" title="Редактировать"><i class="fa-solid fa-pen-to-square"></i></a>
+                        {% if not request.user.profile.is_mentor_user %}
+                            <a href="{% url 'user_management:user_edit' user.pk %}" class="um-action-btn" title="Редактировать"><i class="fa-solid fa-pen-to-square"></i></a>
+                        {% endif %}
                         <a href="{% url 'user_management:user_progress' user.pk %}" class="um-action-btn" title="Прогресс обучения"><i class="fa-solid fa-chart-line"></i></a>
                         <a href="{% url 'user_management:user_quiz_attempts' user.pk %}" class="um-action-btn" title="Тесты пользователя"><i class="fa-solid fa-clipboard-question"></i></a>
                     </div>
