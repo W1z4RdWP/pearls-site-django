@@ -20,11 +20,11 @@
             <a href="{% url 'user_management:admin_dascoin_dashboard' %}" class="list-group-item list-group-item-action {% if request.resolver_match.url_name == 'admin_dascoin_dashboard' %}active{% endif %}">
                 <i class="fas fa-chart-line"></i> Статистика DASCOIN
             </a>
-            <!-- {% if user.profile.is_mentor_user %} TODO: Сделать страницу проверки заданий
+            <!-- TODO: Сделать страницу проверки заданий
             <a href="{% url 'user_management:admin_dascoin_dashboard' %}" class="list-group-item list-group-item-action {% if request.resolver_match.url_name == 'admin_dascoin_dashboard' %}active{% endif %}">
                 <i class="fas fa-clipboard-check"></i> Проверка заданий
-            </a>
-            {% endif %} -->
+            </a>-->
+            {% endif %} 
             <div class="list-group-item list-group-item-action">
                 <i class="fas fa-clock"></i> Время сессии: <span id="session-timer">{{ request.session.get_expiry_age|floatformat:0 }}</span>
             </div>
