@@ -359,7 +359,21 @@ function removeAnswer(button) {
 }
 
 function removeMatchPair(button) {
+    const answersContainer = button.closest('.answers-container');
+    const questionBlock = button.closest('.question-block');
+    const questionId = questionBlock.dataset.questionId;
+    
+    // Проверяем, что остается хотя бы одна пара
+    const existingPairs = answersContainer.querySelectorAll('.match-pair');
+    if (existingPairs.length <= 1) {
+        alert('Должна остаться хотя бы одна пара вопрос-ответ');
+        return;
+    }
+    
     button.closest('.match-pair').remove();
+    
+    // Перенумеровываем оставшиеся пары
+    renumberMatchPairs(questionId);
 }
 
 function toggleAnswers(select) {
@@ -491,13 +505,37 @@ function toggleAnswers(select) {
                         <div class="row">
                             <div class="col-md-6">
                                 <label class="form-label">Вопрос ${i}</label>
-                                <input type="text" class="form-control" name="questions[${questionId}][answers][${i*2-1}][text]"
+                                <div class="form-check mb-2">
+                                    <input type="checkbox" class="form-check-input match-image-toggle" 
+                                           data-target="question-${questionId}-${i*2-1}">
+                                    <label class="form-check-label">Использовать картинку</label>
+                                </div>
+                                <input type="text" class="form-control match-text-input mb-2" 
+                                       id="question-text-${questionId}-${i*2-1}"
+                                       name="questions[${questionId}][answers][${i*2-1}][text]"
                                        placeholder="Текст вопроса" required>
+                                <div class="match-image-upload" id="question-${questionId}-${i*2-1}" style="display: none;">
+                                    <input type="file" class="form-control" 
+                                           name="questions[${questionId}][answers][${i*2-1}][image]"
+                                           accept="image/*">
+                                </div>
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label">Ответ ${i}</label>
-                                <input type="text" class="form-control" name="questions[${questionId}][answers][${i*2}][text]"
+                                <div class="form-check mb-2">
+                                    <input type="checkbox" class="form-check-input match-image-toggle" 
+                                           data-target="answer-${questionId}-${i*2}">
+                                    <label class="form-check-label">Использовать картинку</label>
+                                </div>
+                                <input type="text" class="form-control match-text-input mb-2" 
+                                       id="answer-text-${questionId}-${i*2}"
+                                       name="questions[${questionId}][answers][${i*2}][text]"
                                        placeholder="Текст ответа" required>
+                                <div class="match-image-upload" id="answer-${questionId}-${i*2}" style="display: none;">
+                                    <input type="file" class="form-control" 
+                                           name="questions[${questionId}][answers][${i*2}][image]"
+                                           accept="image/*">
+                                </div>
                             </div>
                         </div>
                         <button type="button" class="btn btn-sm btn-outline-danger mt-2" onclick="removeMatchPair(this)">
@@ -518,6 +556,9 @@ function toggleAnswers(select) {
             `;
 
             answersContainer.insertAdjacentHTML('beforeend', exampleHtml);
+            
+            // Инициализируем обработчики для новых пар
+            initializeMatchImageToggles();
         } else {
             // Убедимся что есть инструкция
             const existingAlert = answersContainer.querySelector('.alert-info');
@@ -625,7 +666,47 @@ function renumberQuestions() {
                 field.name = field.name.replace(/questions\[\d+\]/, `questions[${newNumber}]`);
             }
         });
+        
+        // Обновляем data-target для галочек "Использовать картинку" в парах соответствия
+        const matchImageToggles = block.querySelectorAll('.match-image-toggle');
+        matchImageToggles.forEach(toggle => {
+            const currentTarget = toggle.dataset.target;
+            if (currentTarget) {
+                // Обновляем ID в data-target, заменяя старый номер вопроса на новый
+                const newTarget = currentTarget.replace(/question-\d+-|answer-\d+-/, (match) => {
+                    return match.replace(/\d+/, newNumber);
+                });
+                toggle.dataset.target = newTarget;
+            }
+        });
+        
+        // Обновляем ID для контейнеров загрузки изображений
+        const imageUploads = block.querySelectorAll('.match-image-upload');
+        imageUploads.forEach(upload => {
+            const currentId = upload.id;
+            if (currentId) {
+                const newId = currentId.replace(/question-\d+-|answer-\d+-/, (match) => {
+                    return match.replace(/\d+/, newNumber);
+                });
+                upload.id = newId;
+            }
+        });
+        
+        // Обновляем ID для полей ввода текста
+        const textInputs = block.querySelectorAll('.match-text-input');
+        textInputs.forEach(input => {
+            const currentId = input.id;
+            if (currentId) {
+                const newId = currentId.replace(/question-text-\d+-|answer-text-\d+-/, (match) => {
+                    return match.replace(/\d+/, newNumber);
+                });
+                input.id = newId;
+            }
+        });
     });
+    
+    // Переинициализируем обработчики для галочек после перенумерации
+    initializeMatchImageToggles();
 }
 
 // === УТИЛИТЫ ===
@@ -766,4 +847,62 @@ function handleMatchImageToggle(event) {
             fileInput.value = '';
         }
     }
+}
+
+// Функция для перенумерации пар соответствия
+function renumberMatchPairs(questionId) {
+    const answersContainer = document.querySelector(`[data-question-id="${questionId}"] .answers-container`);
+    const pairs = answersContainer.querySelectorAll('.match-pair');
+    
+    pairs.forEach((pair, index) => {
+        const pairNumber = index + 1;
+        const baseIndex = pairNumber * 2 - 1;
+        
+        // Обновляем метки
+        const questionLabel = pair.querySelector('.col-md-6:first-child .form-label');
+        if (questionLabel) {
+            questionLabel.textContent = `Вопрос ${pairNumber}`;
+        }
+        
+        const answerLabel = pair.querySelector('.col-md-6:last-child .form-label');
+        if (answerLabel) {
+            answerLabel.textContent = `Ответ ${pairNumber}`;
+        }
+        
+        // Обновляем атрибуты name для полей ввода текста
+        const textInputs = pair.querySelectorAll('input[type="text"]');
+        if (textInputs.length >= 2) {
+            textInputs[0].name = textInputs[0].name.replace(/answers\[\d+\]/, `answers[${baseIndex}]`);
+            textInputs[0].id = `question-text-${questionId}-${baseIndex}`;
+            textInputs[0].placeholder = 'Текст вопроса';
+            
+            textInputs[1].name = textInputs[1].name.replace(/answers\[\d+\]/, `answers[${baseIndex + 1}]`);
+            textInputs[1].id = `answer-text-${questionId}-${baseIndex + 1}`;
+            textInputs[1].placeholder = 'Текст ответа';
+        }
+        
+        // Обновляем атрибуты для полей загрузки файлов
+        const fileInputs = pair.querySelectorAll('input[type="file"]');
+        if (fileInputs.length >= 2) {
+            fileInputs[0].name = fileInputs[0].name.replace(/answers\[\d+\]/, `answers[${baseIndex}]`);
+            fileInputs[1].name = fileInputs[1].name.replace(/answers\[\d+\]/, `answers[${baseIndex + 1}]`);
+        }
+        
+        // Обновляем data-target для галочек
+        const checkboxes = pair.querySelectorAll('.match-image-toggle');
+        if (checkboxes.length >= 2) {
+            checkboxes[0].dataset.target = `question-${questionId}-${baseIndex}`;
+            checkboxes[1].dataset.target = `answer-${questionId}-${baseIndex + 1}`;
+        }
+        
+        // Обновляем id для контейнеров загрузки изображений
+        const imageUploads = pair.querySelectorAll('.match-image-upload');
+        if (imageUploads.length >= 2) {
+            imageUploads[0].id = `question-${questionId}-${baseIndex}`;
+            imageUploads[1].id = `answer-${questionId}-${baseIndex + 1}`;
+        }
+    });
+    
+    // Переинициализируем обработчики для галочек
+    initializeMatchImageToggles();
 }

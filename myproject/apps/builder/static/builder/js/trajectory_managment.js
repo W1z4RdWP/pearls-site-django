@@ -432,15 +432,37 @@ function addAnswer(questionId) {
                     <div class="row">
                         <div class="col-md-6">
                             <label class="form-label">Вопрос ${pairNumber}</label>
-                            <input type="text" class="form-control mb-2" 
+                            <div class="form-check mb-2">
+                                <input type="checkbox" class="form-check-input match-image-toggle" 
+                                       data-target="question-${questionId}-${baseIndex}">
+                                <label class="form-check-label">Использовать картинку</label>
+                            </div>
+                            <input type="text" class="form-control match-text-input mb-2" 
+                                   id="question-text-${questionId}-${baseIndex}"
                                    name="questions[${questionId}][answers][${baseIndex}][text]"
                                    placeholder="Текст вопроса" required>
+                            <div class="match-image-upload" id="question-${questionId}-${baseIndex}" style="display: none;">
+                                <input type="file" class="form-control" 
+                                       name="questions[${questionId}][answers][${baseIndex}][image]"
+                                       accept="image/*">
+                            </div>
                         </div>
                         <div class="col-md-6">
                             <label class="form-label">Ответ ${pairNumber}</label>
-                            <input type="text" class="form-control mb-2" 
+                            <div class="form-check mb-2">
+                                <input type="checkbox" class="form-check-input match-image-toggle" 
+                                       data-target="answer-${questionId}-${baseIndex + 1}">
+                                <label class="form-check-label">Использовать картинку</label>
+                            </div>
+                            <input type="text" class="form-control match-text-input mb-2" 
+                                   id="answer-text-${questionId}-${baseIndex + 1}"
                                    name="questions[${questionId}][answers][${baseIndex + 1}][text]"
                                    placeholder="Текст ответа" required>
+                            <div class="match-image-upload" id="answer-${questionId}-${baseIndex + 1}" style="display: none;">
+                                <input type="file" class="form-control" 
+                                       name="questions[${questionId}][answers][${baseIndex + 1}][image]"
+                                       accept="image/*">
+                            </div>
                         </div>
                     </div>
                     <button type="button" class="btn btn-sm btn-outline-danger" onclick="removeMatchPair(${questionId}, ${pairNumber})">
@@ -451,6 +473,9 @@ function addAnswer(questionId) {
         `;
         
         answersList.insertAdjacentHTML('beforeend', pairHtml);
+        
+        // Инициализируем обработчики для новых пар
+        initializeMatchImageToggles();
     } else {
         // Для других типов добавляем обычный ответ
         const answerCount = answersList.children.length + 1;
@@ -740,14 +765,37 @@ function renumberMatchPairs(questionId) {
             answerLabel.textContent = `Ответ ${pairNumber}`;
         }
         
-        // Обновляем атрибуты name для полей ввода
-        const inputs = pair.querySelectorAll('input[type="text"]');
-        if (inputs.length >= 2) {
-            inputs[0].name = inputs[0].name.replace(/answers\[\d+\]/, `answers[${baseIndex}]`);
-            inputs[0].placeholder = 'Текст вопроса';
+        // Обновляем атрибуты name для полей ввода текста
+        const textInputs = pair.querySelectorAll('input[type="text"]');
+        if (textInputs.length >= 2) {
+            textInputs[0].name = textInputs[0].name.replace(/answers\[\d+\]/, `answers[${baseIndex}]`);
+            textInputs[0].id = `question-text-${questionId}-${baseIndex}`;
+            textInputs[0].placeholder = 'Текст вопроса';
             
-            inputs[1].name = inputs[1].name.replace(/answers\[\d+\]/, `answers[${baseIndex + 1}]`);
-            inputs[1].placeholder = 'Текст ответа';
+            textInputs[1].name = textInputs[1].name.replace(/answers\[\d+\]/, `answers[${baseIndex + 1}]`);
+            textInputs[1].id = `answer-text-${questionId}-${baseIndex + 1}`;
+            textInputs[1].placeholder = 'Текст ответа';
+        }
+        
+        // Обновляем атрибуты для полей загрузки файлов
+        const fileInputs = pair.querySelectorAll('input[type="file"]');
+        if (fileInputs.length >= 2) {
+            fileInputs[0].name = fileInputs[0].name.replace(/answers\[\d+\]/, `answers[${baseIndex}]`);
+            fileInputs[1].name = fileInputs[1].name.replace(/answers\[\d+\]/, `answers[${baseIndex + 1}]`);
+        }
+        
+        // Обновляем data-target для галочек
+        const checkboxes = pair.querySelectorAll('.match-image-toggle');
+        if (checkboxes.length >= 2) {
+            checkboxes[0].dataset.target = `question-${questionId}-${baseIndex}`;
+            checkboxes[1].dataset.target = `answer-${questionId}-${baseIndex + 1}`;
+        }
+        
+        // Обновляем id для контейнеров загрузки изображений
+        const imageUploads = pair.querySelectorAll('.match-image-upload');
+        if (imageUploads.length >= 2) {
+            imageUploads[0].id = `question-${questionId}-${baseIndex}`;
+            imageUploads[1].id = `answer-${questionId}-${baseIndex + 1}`;
         }
         
         // Обновляем onclick для кнопки удаления
@@ -756,6 +804,9 @@ function renumberMatchPairs(questionId) {
             removeButton.setAttribute('onclick', `removeMatchPair(${questionId}, ${pairNumber})`);
         }
     });
+    
+    // Переинициализируем обработчики для галочек
+    initializeMatchImageToggles();
 }
 
 // Функция для пересчета номеров элементов последовательности
@@ -1033,4 +1084,47 @@ function submitQuizForm() {
         submitButton.innerHTML = originalText;
         isFormSubmitting = false;
     });
+}
+
+// Функции для обработки галочек "Использовать картинку" в парах соответствия
+function initializeMatchImageToggles() {
+    const toggles = document.querySelectorAll('.match-image-toggle');
+    
+    toggles.forEach(toggle => {
+        // Удаляем старые обработчики если есть
+        toggle.removeEventListener('change', handleMatchImageToggle);
+        // Добавляем новый обработчик
+        toggle.addEventListener('change', handleMatchImageToggle);
+    });
+}
+
+function handleMatchImageToggle(event) {
+    const checkbox = event.target;
+    const targetId = checkbox.dataset.target;
+    const imageUpload = document.getElementById(targetId);
+    const textInput = document.getElementById(targetId.replace(/^(question|answer)-/, '$1-text-'));
+    
+    if (checkbox.checked) {
+        // Показываем поле для загрузки изображения
+        imageUpload.style.display = 'block';
+        // Делаем текстовое поле необязательным
+        if (textInput) {
+            textInput.required = false;
+            textInput.placeholder = 'Текст (опционально, если используется картинка)';
+        }
+    } else {
+        // Скрываем поле для загрузки изображения
+        imageUpload.style.display = 'none';
+        // Делаем текстовое поле обязательным
+        if (textInput) {
+            textInput.required = true;
+            const isQuestion = targetId.includes('question-');
+            textInput.placeholder = isQuestion ? 'Текст вопроса' : 'Текст ответа';
+        }
+        // Очищаем поле file input
+        const fileInput = imageUpload.querySelector('input[type="file"]');
+        if (fileInput) {
+            fileInput.value = '';
+        }
+    }
 }

@@ -114,7 +114,7 @@
                     {% endif %}
 
 
-                    {% if user.profile.is_mentor_user %}
+                    {% if user.profile.is_mentor_user and not user.is_superuser and not user.is_staff %}
                       {% for item in nav_mentor %}
                         <li class="nav-item">
                           <a class="nav-link custom-nav-link" href="{% url item.url %}" title="{{ item.label }}">
