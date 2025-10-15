@@ -15,7 +15,7 @@ class MentorRequiredMixin(UserPassesTestMixin):
 
         # Проверяем роль наставника в профиле
         try:
-            return user.profile.is_mentor_user()
+            return user.profile.is_mentor_user
         except:
             return False
 
@@ -33,6 +33,6 @@ def is_mentor(user):
         return True
 
     try:
-        return user.profile.is_mentor_user()
+        return user.profile.is_mentor_user
     except:
         return False

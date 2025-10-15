@@ -6,6 +6,7 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User, Group
 from django.db.models import Q, Count, Max, F, Sum
 from users.models import Profile, Role
+from users.permissions import MentorRequiredMixin
 from django import forms
 from django.urls import reverse_lazy
 from django.core.exceptions import PermissionDenied
@@ -688,6 +689,14 @@ class UserProgressDashboardView(DetailView):
         except EmptyPage:
             page_obj = paginator.page(paginator.num_pages)
         
+        # Фильтрация курсов по статусу
+        course_filter = self.request.GET.get('course_filter', 'all')
+        if course_filter == 'completed':
+            courses_progress = [cp for cp in courses_progress if cp['user_course'].status == 'completed']
+        elif course_filter == 'started':
+            courses_progress = [cp for cp in courses_progress if cp['user_course'].status == 'started']
+        # Для 'all' и других значений показываем все курсы
+        
         # Пагинация по курсам
         paginator_courses = Paginator(courses_progress, 4)
         page_number_courses = self.request.GET.get('courses_page', 1)
@@ -711,15 +720,19 @@ class UserProgressDashboardView(DetailView):
             'quiz_results': quiz_results,
             'page_obj': page_obj,
             'page_obj_courses': page_obj_courses,
+            'course_filter': course_filter,
         })
         
         return context
 
-@method_decorator(staff_member_required, name='dispatch')
-class UserQuizReportView(DetailView):
+
+class UserQuizReportView(MentorRequiredMixin, DetailView):
     model = QuizResult
     template_name = 'user_management/user_quiz_report.html'
     context_object_name = 'quiz_result'
+
+    def dispatch(self, request, *args, **kwargs):
+        return super().dispatch(request, *args, **kwargs)
 
     def get_object(self):
         return QuizResult.objects.get(id=self.kwargs['quiz_id'])
@@ -876,7 +889,7 @@ class UserQuizAttemptsView(DetailView):
     context_object_name = 'target_user'
 
     def dispatch(self, request, *args, **kwargs):
-        if not request.user.is_authenticated or not (request.user.is_staff or request.user.is_superuser):
+        if not request.user.is_authenticated or not (request.user.is_staff or request.user.is_superuser or request.user.profile.is_mentor_user):
             raise PermissionDenied("У вас нет доступа к управлению пользователями.")
         return super().dispatch(request, *args, **kwargs)
 
