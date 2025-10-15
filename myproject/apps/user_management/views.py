@@ -6,6 +6,7 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User, Group
 from django.db.models import Q, Count, Max, F, Sum
 from users.models import Profile, Role
+from users.permissions import MentorRequiredMixin
 from django import forms
 from django.urls import reverse_lazy
 from django.core.exceptions import PermissionDenied
@@ -715,11 +716,14 @@ class UserProgressDashboardView(DetailView):
         
         return context
 
-@method_decorator(staff_member_required, name='dispatch')
-class UserQuizReportView(DetailView):
+
+class UserQuizReportView(MentorRequiredMixin, DetailView):
     model = QuizResult
     template_name = 'user_management/user_quiz_report.html'
     context_object_name = 'quiz_result'
+
+    def dispatch(self, request, *args, **kwargs):
+        return super().dispatch(request, *args, **kwargs)
 
     def get_object(self):
         return QuizResult.objects.get(id=self.kwargs['quiz_id'])
@@ -876,7 +880,7 @@ class UserQuizAttemptsView(DetailView):
     context_object_name = 'target_user'
 
     def dispatch(self, request, *args, **kwargs):
-        if not request.user.is_authenticated or not (request.user.is_staff or request.user.is_superuser):
+        if not request.user.is_authenticated or not (request.user.is_staff or request.user.is_superuser or request.user.profile.is_mentor_user):
             raise PermissionDenied("У вас нет доступа к управлению пользователями.")
         return super().dispatch(request, *args, **kwargs)
 
