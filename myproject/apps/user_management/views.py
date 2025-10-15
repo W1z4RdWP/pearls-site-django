@@ -70,7 +70,12 @@ class UserListView(ListView):
                 Q(first_name__icontains=q) |
                 Q(last_name__icontains=q)
             )
+            
         filter_val = self.request.GET.get('filter')
+        # По умолчанию применяем фильтр "approved", если filter не задан
+        if filter_val is None:
+            filter_val = 'approved'
+
         if filter_val == 'approved':
             queryset = queryset.filter(profile__is_approved=True)
         elif filter_val == 'not_approved':
