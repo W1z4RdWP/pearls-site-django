@@ -689,6 +689,14 @@ class UserProgressDashboardView(DetailView):
         except EmptyPage:
             page_obj = paginator.page(paginator.num_pages)
         
+        # Фильтрация курсов по статусу
+        course_filter = self.request.GET.get('course_filter', 'all')
+        if course_filter == 'completed':
+            courses_progress = [cp for cp in courses_progress if cp['user_course'].status == 'completed']
+        elif course_filter == 'started':
+            courses_progress = [cp for cp in courses_progress if cp['user_course'].status == 'started']
+        # Для 'all' и других значений показываем все курсы
+        
         # Пагинация по курсам
         paginator_courses = Paginator(courses_progress, 4)
         page_number_courses = self.request.GET.get('courses_page', 1)
@@ -712,6 +720,7 @@ class UserProgressDashboardView(DetailView):
             'quiz_results': quiz_results,
             'page_obj': page_obj,
             'page_obj_courses': page_obj_courses,
+            'course_filter': course_filter,
         })
         
         return context

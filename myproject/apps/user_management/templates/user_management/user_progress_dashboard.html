@@ -18,6 +18,22 @@
         top: 15px;
         right: 20px;
     }
+    
+    .um-progress-stat-card {
+        cursor: pointer;
+        transition: all 0.3s ease;
+        border: 2px solid transparent;
+    }
+    
+    .um-progress-stat-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    }
+    
+    .um-progress-stat-card.active {
+        border-color: #007bff;
+        background-color: #f8f9ff;
+    }
 </style>
 {% endblock %}
 
@@ -63,21 +79,24 @@
     <!-- Общая статистика -->
     <div class="um-progress-overview">
         <div class="um-progress-stats-grid">
-            <div class="um-progress-stat-card">
+            <div class="um-progress-stat-card {% if course_filter == 'all' %}active{% endif %}" 
+                 data-filter="all" onclick="filterCourses('all')">
                 <h3>Общий прогресс</h3>
                 <div class="um-progress-stat-value">{{ overall_progress }}%</div>
                 <div class="um-progress-stat-desc">
                     {{ total_lessons_completed }} из {{ total_lessons_available }} уроков
                 </div>
             </div>
-            <div class="um-progress-stat-card">
+            <div class="um-progress-stat-card {% if course_filter == 'all' %}active{% endif %}" 
+                 data-filter="all" onclick="filterCourses('all')">
                 <h3>Всего курсов</h3>
                 <div class="um-progress-stat-value">{{ total_courses }}</div>
                 <div class="um-progress-stat-desc">
                     {{ completed_courses }} завершено, {{ started_courses }} в процессе
                 </div>
             </div>
-            <div class="um-progress-stat-card">
+            <div class="um-progress-stat-card {% if course_filter == 'completed' %}active{% endif %}" 
+                 data-filter="completed" onclick="filterCourses('completed')">
                 <h3>Завершенные курсы</h3>
                 <div class="um-progress-stat-value">{{ completed_courses }}</div>
                     <div class="um-progress-stat-desc">
@@ -88,7 +107,8 @@
                         {% endif %}
                     </div>
                 </div>
-            <div class="um-progress-stat-card">
+            <div class="um-progress-stat-card {% if course_filter == 'started' %}active{% endif %}" 
+                 data-filter="started" onclick="filterCourses('started')">
                 <h3>Курсы в процессе</h3>
                 <div class="um-progress-stat-value">{{ started_courses }}</div>
                 <div class="um-progress-stat-desc">
@@ -268,4 +288,20 @@
         {% endif %}
     </div>
 </div>
+
+<script>
+function filterCourses(filter) {
+    // Получаем текущий URL
+    const url = new URL(window.location);
+    
+    // Устанавливаем параметр фильтра
+    url.searchParams.set('course_filter', filter);
+    
+    // Сбрасываем пагинацию курсов при смене фильтра
+    url.searchParams.delete('courses_page');
+    
+    // Переходим на новый URL
+    window.location.href = url.toString();
+}
+</script>
 {% endblock %} 
