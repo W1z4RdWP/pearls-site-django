@@ -2238,6 +2238,7 @@ main > section > .text-block-2 {
         margin-top: 0.5rem;
         border: 1px solid rgba(0,0,0,.15);
         box-shadow: 0 0.5rem 1rem rgba(0,0,0,.175);
+        margin-left: -2.5rem;
     }
     
     /* Группировка колокольчика и бургер меню */

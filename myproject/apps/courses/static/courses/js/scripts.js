@@ -46,14 +46,17 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const completionMessage = animation.querySelector('.completion-message');
     
-    // Таймер для автоматического закрытия через 5 секунд
-    let timeoutId = setTimeout(() => animation.remove(), 5000);
+    // Таймер для автоматического закрытия через 5 секунд (только если нет траектории)
+    let timeoutId = null;
+    if (!animation.hasAttribute('data-has-trajectory')) {
+        timeoutId = setTimeout(() => animation.remove(), 5000);
+    }
 
-    // Закрытие при клике вне блока с сообщением
+    // Закрытие при клике вне блока с сообщением (только если нет траектории)
     document.addEventListener('click', function(e) {
-        if (!completionMessage.contains(e.target)) {
+        if (!completionMessage.contains(e.target) && !animation.hasAttribute('data-has-trajectory')) {
             animation.remove();
-            clearTimeout(timeoutId);
+            if (timeoutId) clearTimeout(timeoutId);
         }
     });
 

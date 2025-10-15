@@ -28,6 +28,7 @@ from datetime import datetime
 from django.template.loader import render_to_string
 from openpyxl import Workbook
 from openpyxl.styles import Font, PatternFill
+from urllib.parse import urlencode
 from weasyprint import HTML
 
 
@@ -70,7 +71,12 @@ class UserListView(ListView):
                 Q(first_name__icontains=q) |
                 Q(last_name__icontains=q)
             )
+            
         filter_val = self.request.GET.get('filter')
+        # По умолчанию применяем фильтр "approved", если filter не задан
+        if filter_val is None:
+            filter_val = 'approved'
+
         if filter_val == 'approved':
             queryset = queryset.filter(profile__is_approved=True)
         elif filter_val == 'not_approved':
@@ -1069,7 +1075,11 @@ class AdminDashboardView(LoginRequiredMixin, UserPassesTestMixin, ListView):
             queryset = queryset.filter(profile__dascoin_points=0)
         
         approved_only = self.request.GET.get('approved')
-        if approved_only:
+        show_all = self.request.GET.get('show_all')
+        # По умолчанию показываем только подтвержденных пользователей, если нет никаких параметров
+        has_any_params = bool(self.request.GET)
+        
+        if approved_only == '1' or (not has_any_params and not show_all):
             queryset = queryset.filter(profile__is_approved=True)
         
         # Применяем distinct() до среза
@@ -1150,18 +1160,15 @@ class AdminDashboardView(LoginRequiredMixin, UserPassesTestMixin, ListView):
         context['points_max'] = self.request.GET.get('points_max')
         
         # Флаги быстрых фильтров
-        context['any_filter'] = any([
-            self.request.GET.get('group'),
-            self.request.GET.get('role'),
-            self.request.GET.get('points_min'),
-            self.request.GET.get('points_max'),
-            self.request.GET.get('top'),
-            self.request.GET.get('zero_points'),
-            self.request.GET.get('approved')
-        ])
+        has_any_params = bool(self.request.GET)
+        show_all = self.request.GET.get('show_all')
+        
+        context['any_filter'] = has_any_params
         context['top_users'] = bool(self.request.GET.get('top'))
         context['zero_points'] = bool(self.request.GET.get('zero_points'))
-        context['approved_only'] = bool(self.request.GET.get('approved'))
+        # approved_only активен по умолчанию (нет параметров) или когда явно передан approved=1
+        context['approved_only'] = (self.request.GET.get('approved') == '1') or (not has_any_params and not show_all)
+        context['show_all'] = bool(show_all)
         
         # Параметры для пагинации
         query_params = self.request.GET.copy()
@@ -1212,7 +1219,11 @@ def export_admin_stats_excel(request):
         queryset = queryset.filter(profile__dascoin_points=0)
     
     approved_only = request.GET.get('approved')
-    if approved_only:
+    show_all = request.GET.get('show_all')
+    # По умолчанию показываем только подтвержденных пользователей, если нет никаких параметров
+    has_any_params = bool(request.GET)
+    
+    if approved_only == '1' or (not has_any_params and not show_all):
         queryset = queryset.filter(profile__is_approved=True)
     
     # Применяем distinct() до среза
@@ -1310,7 +1321,11 @@ def export_admin_stats_pdf(request):
         queryset = queryset.filter(profile__dascoin_points=0)
     
     approved_only = request.GET.get('approved')
-    if approved_only:
+    show_all = request.GET.get('show_all')
+    # По умолчанию показываем только подтвержденных пользователей, если нет никаких параметров
+    has_any_params = bool(request.GET)
+    
+    if approved_only == '1' or (not has_any_params and not show_all):
         queryset = queryset.filter(profile__is_approved=True)
     
     # Применяем distinct() до среза

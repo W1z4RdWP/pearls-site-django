@@ -226,7 +226,7 @@
                                         </td>
                                         <td class="py-1">
                                             {% if transaction.reason %}
-                                                <span class="text-break small">{{ transaction.reason|truncatechars:50 }}</span>
+                                                <span class="text-break small" title="{{ transaction.reason }}">{{ transaction.reason|truncatechars:50 }}</span>
                                             {% else %}
                                                 <span class="text-muted small">—</span>
                                             {% endif %}

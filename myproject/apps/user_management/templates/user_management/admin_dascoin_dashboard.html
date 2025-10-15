@@ -129,8 +129,8 @@
                     <!-- Быстрые фильтры -->
                     <div class="mt-3">
                         <div class="quick-filters" role="group">
-                            <a href="{% url 'user_management:admin_dascoin_dashboard' %}" 
-                               class="quick-filter-btn {% if not any_filter %}active{% endif %}">
+                            <a href="{% url 'user_management:admin_dascoin_dashboard' %}?show_all=1" 
+                               class="quick-filter-btn {% if show_all %}active{% endif %}">
                                 Все пользователи
                             </a>
                             <a href="{% url 'user_management:admin_dascoin_dashboard' %}?top=10" 

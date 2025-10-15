@@ -51,7 +51,7 @@
         <input type="text" name="q" placeholder="Поиск по имени или email" value="{{ request.GET.q }}">
         <select name="filter" class="um-user-list-combined-filter">
             <option value="" {% if request.GET.filter == "" %}selected{% endif %}>Все</option>
-            <option value="approved" {% if request.GET.filter == "approved" %}selected{% endif %}>Только подтверждённые</option>
+            <option value="approved" {% if request.GET.filter == "approved"  %}selected{% endif %}>Только подтверждённые</option>
             <option value="not_approved" {% if request.GET.filter == "not_approved" %}selected{% endif %}>Только не подтверждённые</option>
             <option value="responsible" {% if request.GET.filter == "responsible" %}selected{% endif %}>Только ответственные</option>
             <option value="not_responsible" {% if request.GET.filter == "not_responsible" %}selected{% endif %}>Только не ответственные</option>
