@@ -3,23 +3,60 @@
 
 {% block specific_styles %}
 <link rel="stylesheet" href="{% static 'user_management/css/user_progress_dashboard.css' %}">
+<style>
+    .user-info-card {
+        background: #f8f9fa;
+        border-radius: 12px;
+        padding: 20px;
+        margin-bottom: 30px;
+        border: 1px solid #dee2e6;
+        position: relative; /* Добавляем для позиционирования дочерних элементов */
+    }
+    
+    .admin-badge-position {
+        position: absolute;
+        top: 15px;
+        right: 20px;
+    }
+</style>
 {% endblock %}
 
 {% block content %}
 <div class="um-progress-dashboard-wrapper">
-    <div class="um-progress-dashboard-header">
-        <div class="um-progress-user-info">
-            <img src="{{ target_user.profile.image.url }}" alt="avatar" class="um-progress-user-avatar">
-            <div class="um-progress-user-details">
-                <h1 class="um-progress-user-name">{{ target_user.get_full_name|default:target_user.username }} </h1>
-                <p class="um-progress-user-email">{{ target_user.email }}</p>
-                <p class="um-progress-user-role">{{ target_user.profile.role }}</p>
-                <p class="um-progress-user-groups">
-                    Группы: {% for group in target_user.groups.all %}{{ group.name }}{% if not forloop.last %}, {% endif %}{% endfor %}
+    <!-- Навигация -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="h3 mb-0">
+            <i class="fas fa-chart-line me-2"></i>
+            Прогресс пользователя
+        </h1>
+        <a href="{% url 'user_management:user_list' %}" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left me-2"></i>Вернуться к списку пользователей
+        </a>
+    </div>
+
+    <!-- Информация о пользователе -->
+    <div class="user-info-card">
+        <div class="row align-items-center">
+            <div class="col-md-2">
+                <img src="{{ target_user.profile.image.url }}" alt="avatar" 
+                     class="rounded-circle" style="width: 80px; height: 80px; object-fit: cover;">
+            </div>
+            <div class="col-md-10">
+                <h4 class="mb-1">{{ target_user.get_full_name|default:target_user.username }} </h4>
+                <p class="text-muted mb-1">{{ target_user.email }}</p>
+                <p class="mb-0">
+                    <strong>Группы:</strong> 
+                    {% for group in target_user.groups.all %}
+                        <span class="badge bg-primary me-1">{{ group.name }}</span>
+                    {% empty %}
+                        <span class="text-muted">Не назначены</span>
+                    {% endfor %}
                 </p>
+                {% if target_user.is_staff or target_user.is_superuser %}
+                    <span class="badge bg-warning text-dark me-1 admin-badge-position"><i class="fas fa-user-shield me-1"></i>Администратор УЦ</span>
+                {% endif %}
             </div>
         </div>
-        <a href="{% url 'user_management:user_list' %}" class="um-btn um-btn-secondary">← Назад к списку</a>
     </div>
 
 
