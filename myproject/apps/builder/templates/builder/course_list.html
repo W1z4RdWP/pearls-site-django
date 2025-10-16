@@ -303,10 +303,20 @@ function deleteCourse(slug, title) {
             method: 'POST',
             headers: {
                 'X-Requested-With': 'XMLHttpRequest',
-                'X-CSRFToken': $('input[name=csrfmiddlewaretoken]').val()
+                'X-CSRFToken': $('input[name=csrfmiddlewaretoken]').val(),
+                'Accept': 'application/json'
             },
-            success: function(data) {
-                if (data.success) {
+            success: function(data, textStatus, xhr) {
+                // Пытаемся понять, пришёл ли JSON. Если нет — считаем 2xx успешным удалением
+                try {
+                    if (typeof data === 'string') {
+                        data = JSON.parse(data);
+                    }
+                } catch (e) {
+                    data = { success: true };
+                }
+
+                if (data && data.success !== false) {
                     showNotification('Курс успешно удален', 'success');
                     setTimeout(function() {
                         location.reload();

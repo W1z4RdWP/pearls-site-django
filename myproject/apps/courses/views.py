@@ -1053,14 +1053,18 @@ class DeleteCourseView(LoginRequiredMixin, UserPassesTestMixin, DeleteView):
 
 
     def delete(self, request, *args, **kwargs):
-        """Обработка удаления с поддержкой AJAX"""
+        """Удаляем объект и возвращаем предсказуемый JSON для любых POST-запросов.
+
+        На практике удаление вызывается из AJAX. Ранее при потере заголовка
+        X-Requested-With происходил редирект и фронт получал HTML без поля
+        success, из‑за чего показывалось сообщение об ошибке, хотя удаление
+        выполнялось. Возвращаем JSON всегда для POST, чтобы поведение было стабильным.
+        """
         self.object = self.get_object()
         self.object.delete()
 
-        if request.headers.get("X-Requested-With") == "XMLHttpRequest":
-            return JsonResponse({"success": True})
-        
-        return redirect(self.success_url)
+        # Возвращаем единый успешный ответ в формате JSON
+        return JsonResponse({"success": True})
 
     def get(self, request, *args, **kwargs):
         """GET запрос - редирект на страницу курса"""
