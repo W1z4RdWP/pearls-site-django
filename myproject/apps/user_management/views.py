@@ -1580,16 +1580,47 @@ class HomeworkCheckDashboardView(LoginRequiredMixin, UserPassesTestMixin, Templa
         from quizzes.models import Quiz
         from django.contrib.auth.models import Group
         
-        # Основная статистика
-        total_lessons = Lesson.objects.count()
-        total_quizzes = Quiz.objects.count()
-        total_materials = total_lessons + total_quizzes
+        # Проверяем, является ли пользователь суперпользователем или стафом
+        is_admin = self.request.user.is_superuser or self.request.user.is_staff
         
-        # Активные пользователи (подтвержденные)
-        active_users = User.objects.filter(profile__is_approved=True).count()
-        
-        # Количество групп
-        total_groups = Group.objects.count()
+        if is_admin:
+            # Для администраторов - общая статистика по всей платформе
+            total_lessons = Lesson.objects.count()
+            total_quizzes = Quiz.objects.count()
+            total_materials = total_lessons + total_quizzes
+            active_users = User.objects.filter(profile__is_approved=True).count()
+            total_groups = Group.objects.count()
+        else:
+            # Для наставников - статистика только по их группам
+            mentor_groups = self.request.user.groups.all()
+            
+            if mentor_groups.exists():
+                # Получаем пользователей из групп наставника
+                mentor_group_users = User.objects.filter(groups__in=mentor_groups).distinct()
+                
+                # Получаем курсы, на которые записаны пользователи из групп наставника
+                mentor_courses = Course.objects.filter(usercourse__user__groups__in=mentor_groups).distinct()
+                
+                # Уроки из курсов наставника
+                total_lessons = Lesson.objects.filter(courses__in=mentor_courses).distinct().count()
+                
+                # Тесты из курсов наставника
+                total_quizzes = Quiz.objects.filter(courses__in=mentor_courses).distinct().count()
+                
+                total_materials = total_lessons + total_quizzes
+                
+                # Активные пользователи из групп наставника
+                active_users = mentor_group_users.filter(profile__is_approved=True).count()
+                
+                # Количество групп наставника
+                total_groups = mentor_groups.count()
+            else:
+                # Если у наставника нет групп, показываем нули
+                total_lessons = 0
+                total_quizzes = 0
+                total_materials = 0
+                active_users = 0
+                total_groups = 0
         
         context.update({
             'total_materials': total_materials,
@@ -1597,6 +1628,7 @@ class HomeworkCheckDashboardView(LoginRequiredMixin, UserPassesTestMixin, Templa
             'total_quizzes': total_quizzes,
             'active_users': active_users,
             'total_groups': total_groups,
+            'is_admin': is_admin,
         })
         
         return context
