@@ -1,6 +1,8 @@
-from django.shortcuts import render
-from django.http import HttpResponse, HttpRequest
+from django.shortcuts import render, redirect
+from django.http import HttpResponse, HttpRequest, JsonResponse
 from django.views.generic import TemplateView, ListView
+from django.contrib.auth.decorators import login_required
+from django.contrib import messages
 from .models import Course, UserCourse, ChangeLog
 from courses.models import Course as CourseModel
 from datetime import date

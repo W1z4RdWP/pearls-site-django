@@ -1,6 +1,6 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.http import HttpResponse
-from django.views.generic import ListView, CreateView, UpdateView, DetailView, FormView
+from django.views.generic import ListView, CreateView, UpdateView, DetailView, FormView, TemplateView
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User, Group
@@ -26,6 +26,7 @@ from .utils import send_user_credentials_email
 from gamification.models import DascoinTransaction
 import logging
 from datetime import datetime
+from django.utils import timezone
 from django.template.loader import render_to_string
 from openpyxl import Workbook
 from openpyxl.styles import Font, PatternFill
@@ -1547,3 +1548,56 @@ def export_admin_user_transactions_pdf(request, user_id):
         }
     )
     return response
+
+
+class HomeworkCheckDashboardView(LoginRequiredMixin, UserPassesTestMixin, TemplateView):
+    """
+    Страница проверки заданий для наставников - простая статистика
+    """
+    template_name = 'user_management/homework_check_dashboard.html'
+    
+    def test_func(self):
+        """Проверяет права доступа"""
+        if not self.request.user.is_authenticated:
+            return False
+        
+        # Суперпользователи и персонал имеют доступ
+        if self.request.user.is_superuser or self.request.user.is_staff:
+            return True
+        
+        # Наставники имеют доступ
+        try:
+            return self.request.user.profile.is_mentor_user
+        except:
+            return False
+    
+    def get_context_data(self, **kwargs):
+        """Добавляет статистику в контекст"""
+        context = super().get_context_data(**kwargs)
+        
+        # Импортируем модели
+        from courses.models import Lesson
+        from quizzes.models import Quiz
+        from django.contrib.auth.models import Group
+        
+        # Основная статистика
+        total_lessons = Lesson.objects.count()
+        total_quizzes = Quiz.objects.count()
+        total_materials = total_lessons + total_quizzes
+        
+        # Активные пользователи (подтвержденные)
+        active_users = User.objects.filter(profile__is_approved=True).count()
+        
+        # Количество групп
+        total_groups = Group.objects.count()
+        
+        context.update({
+            'total_materials': total_materials,
+            'total_lessons': total_lessons,
+            'total_quizzes': total_quizzes,
+            'active_users': active_users,
+            'total_groups': total_groups,
+        })
+        
+        return context
+

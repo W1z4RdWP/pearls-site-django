@@ -1,0 +1,116 @@
+{% extends 'layout.html' %}
+{% block title %}Проверка заданий{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2><i class="fas fa-clipboard-check"></i> Проверка заданий</h2>
+                <div class="btn-group" role="group">
+                    <a href="{% url 'builder:dashboard' %}" class="btn btn-outline-secondary">
+                        <i class="fas fa-arrow-left"></i> Назад к панели
+                    </a>
+                </div>
+            </div>
+
+            <!-- Основная статистика -->
+            <div class="row mb-4">
+                <div class="col-md-4 mb-3">
+                    <div class="card text-center">
+                        <div class="card-body">
+                            <i class="fas fa-file-alt fa-3x text-primary mb-3"></i>
+                            <h3 class="card-title">{{ total_materials }}</h3>
+                            <p class="card-text text-muted">материала</p>
+                            <small class="text-muted">
+                                {{ total_lessons }} уроков + {{ total_quizzes }} тестов
+                            </small>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4 mb-3">
+                    <div class="card text-center">
+                        <div class="card-body">
+                            <i class="fas fa-user fa-3x text-success mb-3"></i>
+                            <h3 class="card-title">{{ active_users }}</h3>
+                            <p class="card-text text-muted">пользователей</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4 mb-3">
+                    <div class="card text-center">
+                        <div class="card-body">
+                            <i class="fas fa-users fa-3x text-info mb-3"></i>
+                            <h3 class="card-title">{{ total_groups }}</h3>
+                            <p class="card-text text-muted">групп</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Карточки активности -->
+            <div class="row mb-4">
+                <div class="col-md-6 mb-3">
+                    <div class="card">
+                        <div class="card-body">
+                            <div class="d-flex align-items-center">
+                                <i class="fas fa-comments fa-2x text-primary me-3"></i>
+                                <div>
+                                    <h6 class="mb-1">Новые заявки на обучение</h6>
+                                    <span class="badge bg-primary">0</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <div class="card">
+                        <div class="card-body">
+                            <h6 class="card-title">Новый материал</h6>
+                            <p class="card-text text-muted">добавленный авторами за неделю</p>
+                            <p class="text-muted">Нет активности</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Непроверенные задания -->
+            <div class="card">
+                <div class="card-header">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h5 class="mb-0">Непроверенные задания</h5>
+                            <small class="text-muted">ожидают проверки</small>
+                        </div>
+                        <div class="btn-group" role="group">
+                            <button type="button" class="btn btn-outline-secondary btn-sm">Мои 0</button>
+                            <button type="button" class="btn btn-outline-secondary btn-sm">Все 0</button>
+                            <button type="button" class="btn btn-secondary btn-sm">К проверке заданий</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>Название</th>
+                                    <th>Пользователь</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td colspan="2" class="text-center text-muted py-4">
+                                        <i class="fas fa-clipboard-list fa-2x mb-2"></i><br>
+                                        Пока нет заданий на проверку
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
