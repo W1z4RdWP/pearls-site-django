@@ -42,23 +42,49 @@
             <i class="fa fa-graduation-cap"></i> Ваш прогресс по курсам
         </h1>
         <div class="progress-stats">
-            <a href="?status=all" class="stat-item filter-btn {% if status_filter == 'all' %}active{% endif %}">
+            <a href="?status=all{% if search_query %}&search={{ search_query }}{% endif %}" class="stat-item filter-btn {% if status_filter == 'all' %}active{% endif %}">
                 <span class="stat-number">{{ total_courses_all }}</span>
                 <span class="stat-label">Всего курсов</span>
             </a>
-            <a href="?status=completed" class="stat-item completed filter-btn {% if status_filter == 'completed' %}active{% endif %}">
+            <a href="?status=completed{% if search_query %}&search={{ search_query }}{% endif %}" class="stat-item completed filter-btn {% if status_filter == 'completed' %}active{% endif %}">
                 <span class="stat-number">{{ completed_courses_all }}</span>
                 <span class="stat-label">Завершено</span>
             </a>
-            <a href="?status=in_progress" class="stat-item in-progress filter-btn {% if status_filter == 'in_progress' %}active{% endif %}">
+            <a href="?status=in_progress{% if search_query %}&search={{ search_query }}{% endif %}" class="stat-item in-progress filter-btn {% if status_filter == 'in_progress' %}active{% endif %}">
                 <span class="stat-number">{{ in_progress_courses_all }}</span>
                 <span class="stat-label">В процессе</span>
             </a>
-            <a href="?status=available" class="stat-item available filter-btn {% if status_filter == 'available' %}active{% endif %}">
+            <a href="?status=available{% if search_query %}&search={{ search_query }}{% endif %}" class="stat-item available filter-btn {% if status_filter == 'available' %}active{% endif %}">
                 <span class="stat-number">{{ available_courses_all }}</span>
                 <span class="stat-label">Доступно</span>
             </a>
         </div>
+    </div>
+
+    <!-- Поиск по курсам -->
+    <div class="search-section mb-4">
+        <form method="get" class="search-form">
+            <div class="input-group">
+                <input type="text" 
+                       name="search" 
+                       class="form-control" 
+                       placeholder="Поиск по названию курса..." 
+                       value="{{ search_query|default:'' }}"
+                       autocomplete="off">
+                <button type="submit" class="btn btn-primary">
+                    <i class="fa fa-search"></i>
+                </button>
+                {% if search_query %}
+                    <a href="?status={{ status_filter }}" class="btn btn-outline-secondary">
+                        <i class="fa fa-times"></i> Очистить
+                    </a>
+                {% endif %}
+            </div>
+            <!-- Скрытое поле для сохранения фильтра статуса -->
+            {% if status_filter != 'all' %}
+                <input type="hidden" name="status" value="{{ status_filter }}">
+            {% endif %}
+        </form>
     </div>
 
     <!-- Карточки курсов -->

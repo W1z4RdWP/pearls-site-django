@@ -1599,6 +1599,12 @@ class UserCourseTrajectoryListView(ListView):
         in_progress_courses_all = len([c for c in courses_data if c['status'] == 'in_progress'])
         available_courses_all = len([c for c in courses_data if c['status'] == 'available'])
         
+        # Поиск по названию курса
+        search_query = self.request.GET.get('search', '').strip()
+        if search_query:
+            courses_data = [course for course in courses_data 
+                          if search_query.lower() in course['course'].title.lower()]
+        
         # Фильтрация по статусу
         status_filter = self.request.GET.get('status', 'all')
         if status_filter != 'all':
@@ -1608,6 +1614,7 @@ class UserCourseTrajectoryListView(ListView):
         context.update({
             'courses_data': courses_data,
             'status_filter': status_filter,
+            'search_query': search_query,
             'total_courses': len(courses_data),
             'completed_courses': len([c for c in courses_data if c['status'] == 'completed']),
             'in_progress_courses': len([c for c in courses_data if c['status'] == 'in_progress']),
