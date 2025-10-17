@@ -114,7 +114,30 @@
                 <div class="course-content">
                     <h3 class="course-title">{{ course_data.course.title }}</h3>
                     
-                    {% if course_data.status != 'available' %}
+                    {% if course_data.status == 'available' %}
+                        <!-- Статистика для не начатых курсов -->
+                        <div class="course-details">
+                            {% if course_data.total_lessons > 0 %}
+                                <div class="detail-item">
+                                    <i class="fa fa-book"></i>
+                                    <span>{{ course_data.total_lessons }} уроков</span>
+                                </div>
+                            {% endif %}
+                            {% if course_data.total_quizzes > 0 %}
+                                <div class="detail-item">
+                                    <i class="fa fa-question-circle"></i>
+                                    <span>{{ course_data.total_quizzes }} тестов</span>
+                                </div>
+                            {% endif %}
+                            {% if course_data.total_quizzes > 0 and course_data.total_lessons > 0 %}
+                                <div class="detail-item">
+                                    <i class="fa fa-list"></i>
+                                    <span>{{ course_data.total_materials }} материалов</span>
+                                </div>
+                            {% endif %}
+                        </div>
+                    {% else %}
+                        <!-- Прогресс для курсов в процессе и завершенных -->
                         <div class="course-progress">
                             <div class="progress-info">
                                 <span class="progress-text">{{ course_data.percent }}% завершено</span>
