@@ -42,39 +42,21 @@
             <i class="fa fa-graduation-cap"></i> Ваш прогресс по курсам
         </h1>
         <div class="progress-stats">
-            <div class="stat-item">
-                <span class="stat-number">{{ total_courses }}</span>
+            <a href="?status=all" class="stat-item filter-btn {% if status_filter == 'all' %}active{% endif %}">
+                <span class="stat-number">{{ total_courses_all }}</span>
                 <span class="stat-label">Всего курсов</span>
-            </div>
-            <div class="stat-item completed">
-                <span class="stat-number">{{ completed_courses }}</span>
+            </a>
+            <a href="?status=completed" class="stat-item completed filter-btn {% if status_filter == 'completed' %}active{% endif %}">
+                <span class="stat-number">{{ completed_courses_all }}</span>
                 <span class="stat-label">Завершено</span>
-            </div>
-            <div class="stat-item in-progress">
-                <span class="stat-number">{{ in_progress_courses }}</span>
+            </a>
+            <a href="?status=in_progress" class="stat-item in-progress filter-btn {% if status_filter == 'in_progress' %}active{% endif %}">
+                <span class="stat-number">{{ in_progress_courses_all }}</span>
                 <span class="stat-label">В процессе</span>
-            </div>
-            <div class="stat-item available">
-                <span class="stat-number">{{ available_courses }}</span>
+            </a>
+            <a href="?status=available" class="stat-item available filter-btn {% if status_filter == 'available' %}active{% endif %}">
+                <span class="stat-number">{{ available_courses_all }}</span>
                 <span class="stat-label">Доступно</span>
-            </div>
-        </div>
-    </div>
-
-    <!-- Фильтры -->
-    <div class="filters-section">
-        <div class="filter-buttons">
-            <a href="?status=all" class="filter-btn {% if status_filter == 'all' %}active{% endif %}">
-                <i class="fa fa-list"></i> Все курсы
-            </a>
-            <a href="?status=in_progress" class="filter-btn in-progress {% if status_filter == 'in_progress' %}active{% endif %}">
-                <i class="fa fa-clock-o"></i> В процессе
-            </a>
-            <a href="?status=completed" class="filter-btn completed {% if status_filter == 'completed' %}active{% endif %}">
-                <i class="fa fa-check-circle"></i> Завершенные
-            </a>
-            <a href="?status=available" class="filter-btn available {% if status_filter == 'available' %}active{% endif %}">
-                <i class="fa fa-unlock"></i> Доступные
             </a>
         </div>
     </div>
