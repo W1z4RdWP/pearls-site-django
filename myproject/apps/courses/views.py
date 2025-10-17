@@ -1053,14 +1053,18 @@ class DeleteCourseView(LoginRequiredMixin, UserPassesTestMixin, DeleteView):
 
 
     def delete(self, request, *args, **kwargs):
-        """Обработка удаления с поддержкой AJAX"""
+        """Удаляем объект и возвращаем предсказуемый JSON для любых POST-запросов.
+
+        На практике удаление вызывается из AJAX. Ранее при потере заголовка
+        X-Requested-With происходил редирект и фронт получал HTML без поля
+        success, из‑за чего показывалось сообщение об ошибке, хотя удаление
+        выполнялось. Возвращаем JSON всегда для POST, чтобы поведение было стабильным.
+        """
         self.object = self.get_object()
         self.object.delete()
 
-        if request.headers.get("X-Requested-With") == "XMLHttpRequest":
-            return JsonResponse({"success": True})
-        
-        return redirect(self.success_url)
+        # Возвращаем единый успешный ответ в формате JSON
+        return JsonResponse({"success": True})
 
     def get(self, request, *args, **kwargs):
         """GET запрос - редирект на страницу курса"""
@@ -1589,6 +1593,18 @@ class UserCourseTrajectoryListView(ListView):
             
             courses_data.append(course_data)
         
+        # Сохраняем общие значения ДО фильтрации
+        total_courses_all = len(courses_data)
+        completed_courses_all = len([c for c in courses_data if c['status'] == 'completed'])
+        in_progress_courses_all = len([c for c in courses_data if c['status'] == 'in_progress'])
+        available_courses_all = len([c for c in courses_data if c['status'] == 'available'])
+        
+        # Поиск по названию курса
+        search_query = self.request.GET.get('search', '').strip()
+        if search_query:
+            courses_data = [course for course in courses_data 
+                          if search_query.lower() in course['course'].title.lower()]
+        
         # Фильтрация по статусу
         status_filter = self.request.GET.get('status', 'all')
         if status_filter != 'all':
@@ -1598,10 +1614,16 @@ class UserCourseTrajectoryListView(ListView):
         context.update({
             'courses_data': courses_data,
             'status_filter': status_filter,
+            'search_query': search_query,
             'total_courses': len(courses_data),
             'completed_courses': len([c for c in courses_data if c['status'] == 'completed']),
             'in_progress_courses': len([c for c in courses_data if c['status'] == 'in_progress']),
             'available_courses': len([c for c in courses_data if c['status'] == 'available']),
+            # Общие значения (не изменяются при фильтрации)
+            'total_courses_all': total_courses_all,
+            'completed_courses_all': completed_courses_all,
+            'in_progress_courses_all': in_progress_courses_all,
+            'available_courses_all': available_courses_all,
         })
         
         return context

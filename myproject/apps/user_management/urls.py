@@ -35,4 +35,7 @@ urlpatterns = [
     path('admin/user/<int:user_id>/transactions/export/excel/', views.export_admin_user_transactions_excel, name='export_admin_user_transactions_excel'),
     path('admin/user/<int:user_id>/transactions/export/pdf/', views.export_admin_user_transactions_pdf, name='export_admin_user_transactions_pdf'),
 
+    # Проверка заданий
+    path('homework-check-dashboard/', views.HomeworkCheckDashboardView.as_view(), name='homework_check_dashboard'),
+
 ]

@@ -127,9 +127,13 @@
                                 </select>
                             </div>
                             <div class="col-md-3">
-                                <select class="form-select" name="status" id="statusFilter">
-                                    <option value="">Все статусы</option>
-                                    <option value="active" {% if selected_status == "active" %}selected{% endif %}>Активные</option>
+                                <select class="form-select" name="group" id="groupFilter">
+                                    <option value="">Все группы</option>
+                                    {% for group in groups %}
+                                        <option value="{{ group.id }}" {% if selected_group == group.id|stringformat:"s" %}selected{% endif %}>
+                                            {{ group.name }}
+                                        </option>
+                                    {% endfor %}
                                 </select>
                             </div>
                         </div>
@@ -262,7 +266,7 @@
 // Обработчики событий
 $(document).ready(function() {
     // Автоматическая отправка формы при изменении фильтров
-    $('#authorFilter, #statusFilter').on('change', function() {
+    $('#authorFilter, #groupFilter').on('change', function() {
         $('#searchForm').submit();
     });
     
@@ -303,10 +307,20 @@ function deleteCourse(slug, title) {
             method: 'POST',
             headers: {
                 'X-Requested-With': 'XMLHttpRequest',
-                'X-CSRFToken': $('input[name=csrfmiddlewaretoken]').val()
+                'X-CSRFToken': $('input[name=csrfmiddlewaretoken]').val(),
+                'Accept': 'application/json'
             },
-            success: function(data) {
-                if (data.success) {
+            success: function(data, textStatus, xhr) {
+                // Пытаемся понять, пришёл ли JSON. Если нет — считаем 2xx успешным удалением
+                try {
+                    if (typeof data === 'string') {
+                        data = JSON.parse(data);
+                    }
+                } catch (e) {
+                    data = { success: true };
+                }
+
+                if (data && data.success !== false) {
                     showNotification('Курс успешно удален', 'success');
                     setTimeout(function() {
                         location.reload();

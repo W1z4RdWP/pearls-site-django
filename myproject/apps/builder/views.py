@@ -2368,11 +2368,16 @@ class CourseListView(ListView):
             except (ValueError, TypeError):
                 pass
         
-        # Фильтр по статусу (пока все курсы активные)
-        status = self.request.GET.get('status', '').strip()
-        if status == 'active':
-            # Все курсы считаются активными, фильтр не применяется
-            pass
+        # Фильтр по группам
+        group_id = self.request.GET.get('group', '').strip()
+        if group_id:
+            try:
+                from django.contrib.auth.models import Group
+                group = Group.objects.get(id=int(group_id))
+                # Фильтруем курсы, которые принадлежат этой группе через траектории
+                queryset = queryset.filter(trajectory__groups=group).distinct()
+            except (ValueError, TypeError, Group.DoesNotExist):
+                pass
         
         return queryset.order_by('-created_at')
     
@@ -2384,7 +2389,7 @@ class CourseListView(ListView):
         # Получаем параметры фильтрации для сохранения в форме
         context['search_query'] = self.request.GET.get('search', '')
         context['selected_author'] = self.request.GET.get('author', '')
-        context['selected_status'] = self.request.GET.get('status', '')
+        context['selected_group'] = self.request.GET.get('group', '')
         
         # Статистика (всегда показываем общую статистику)
         context['total_courses'] = Course.objects.count()
@@ -2394,6 +2399,10 @@ class CourseListView(ListView):
         
         # Список авторов для фильтра
         context['authors'] = User.objects.filter(course__isnull=False).distinct().order_by('first_name', 'last_name', 'username')
+        
+        # Список групп для фильтра
+        from django.contrib.auth.models import Group
+        context['groups'] = Group.objects.all().order_by('name')
         
         return context
 

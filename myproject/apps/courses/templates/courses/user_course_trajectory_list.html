@@ -42,41 +42,49 @@
             <i class="fa fa-graduation-cap"></i> Ваш прогресс по курсам
         </h1>
         <div class="progress-stats">
-            <div class="stat-item">
-                <span class="stat-number">{{ total_courses }}</span>
+            <a href="?status=all{% if search_query %}&search={{ search_query }}{% endif %}" class="stat-item filter-btn {% if status_filter == 'all' %}active{% endif %}">
+                <span class="stat-number">{{ total_courses_all }}</span>
                 <span class="stat-label">Всего курсов</span>
-            </div>
-            <div class="stat-item completed">
-                <span class="stat-number">{{ completed_courses }}</span>
+            </a>
+            <a href="?status=completed{% if search_query %}&search={{ search_query }}{% endif %}" class="stat-item completed filter-btn {% if status_filter == 'completed' %}active{% endif %}">
+                <span class="stat-number">{{ completed_courses_all }}</span>
                 <span class="stat-label">Завершено</span>
-            </div>
-            <div class="stat-item in-progress">
-                <span class="stat-number">{{ in_progress_courses }}</span>
+            </a>
+            <a href="?status=in_progress{% if search_query %}&search={{ search_query }}{% endif %}" class="stat-item in-progress filter-btn {% if status_filter == 'in_progress' %}active{% endif %}">
+                <span class="stat-number">{{ in_progress_courses_all }}</span>
                 <span class="stat-label">В процессе</span>
-            </div>
-            <div class="stat-item available">
-                <span class="stat-number">{{ available_courses }}</span>
+            </a>
+            <a href="?status=available{% if search_query %}&search={{ search_query }}{% endif %}" class="stat-item available filter-btn {% if status_filter == 'available' %}active{% endif %}">
+                <span class="stat-number">{{ available_courses_all }}</span>
                 <span class="stat-label">Доступно</span>
-            </div>
+            </a>
         </div>
     </div>
 
-    <!-- Фильтры -->
-    <div class="filters-section">
-        <div class="filter-buttons">
-            <a href="?status=all" class="filter-btn {% if status_filter == 'all' %}active{% endif %}">
-                <i class="fa fa-list"></i> Все курсы
-            </a>
-            <a href="?status=in_progress" class="filter-btn in-progress {% if status_filter == 'in_progress' %}active{% endif %}">
-                <i class="fa fa-clock-o"></i> В процессе
-            </a>
-            <a href="?status=completed" class="filter-btn completed {% if status_filter == 'completed' %}active{% endif %}">
-                <i class="fa fa-check-circle"></i> Завершенные
-            </a>
-            <a href="?status=available" class="filter-btn available {% if status_filter == 'available' %}active{% endif %}">
-                <i class="fa fa-unlock"></i> Доступные
-            </a>
-        </div>
+    <!-- Поиск по курсам -->
+    <div class="search-section mb-4">
+        <form method="get" class="search-form">
+            <div class="input-group">
+                <input type="text" 
+                       name="search" 
+                       class="form-control" 
+                       placeholder="Поиск по названию курса..." 
+                       value="{{ search_query|default:'' }}"
+                       autocomplete="off">
+                <button type="submit" class="btn btn-primary">
+                    <i class="fa fa-search"></i>
+                </button>
+                {% if search_query %}
+                    <a href="?status={{ status_filter }}" class="btn btn-outline-secondary">
+                        <i class="fa fa-times"></i> Очистить
+                    </a>
+                {% endif %}
+            </div>
+            <!-- Скрытое поле для сохранения фильтра статуса -->
+            {% if status_filter != 'all' %}
+                <input type="hidden" name="status" value="{{ status_filter }}">
+            {% endif %}
+        </form>
     </div>
 
     <!-- Карточки курсов -->
@@ -106,7 +114,30 @@
                 <div class="course-content">
                     <h3 class="course-title">{{ course_data.course.title }}</h3>
                     
-                    {% if course_data.status != 'available' %}
+                    {% if course_data.status == 'available' %}
+                        <!-- Статистика для не начатых курсов -->
+                        <div class="course-details">
+                            {% if course_data.total_lessons > 0 %}
+                                <div class="detail-item">
+                                    <i class="fa fa-book"></i>
+                                    <span>{{ course_data.total_lessons }} уроков</span>
+                                </div>
+                            {% endif %}
+                            {% if course_data.total_quizzes > 0 %}
+                                <div class="detail-item">
+                                    <i class="fa fa-question-circle"></i>
+                                    <span>{{ course_data.total_quizzes }} тестов</span>
+                                </div>
+                            {% endif %}
+                            {% if course_data.total_quizzes > 0 and course_data.total_lessons > 0 %}
+                                <div class="detail-item">
+                                    <i class="fa fa-list"></i>
+                                    <span>{{ course_data.total_materials }} материалов</span>
+                                </div>
+                            {% endif %}
+                        </div>
+                    {% else %}
+                        <!-- Прогресс для курсов в процессе и завершенных -->
                         <div class="course-progress">
                             <div class="progress-info">
                                 <span class="progress-text">{{ course_data.percent }}% завершено</span>
