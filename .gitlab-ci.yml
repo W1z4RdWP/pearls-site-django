@@ -6,7 +6,7 @@ deploy_production:
   only:
     - main
   tags:
-    - prod
+    - prod-server-shell
   script:
     - cd /home/django-user/pearls-site-django/
     - git pull origin main
