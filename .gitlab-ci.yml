@@ -6,7 +6,7 @@ deploy_production:
   only:
     - main
   tags:
-    - prod
+    - prod-server-shell
   script:
     - git config --global --add safe.directory /home/django-user/pearls-site-django
     - cd /home/django-user/pearls-site-django/
