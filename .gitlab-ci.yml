@@ -5,6 +5,8 @@ stages:
 
 test:
   stage: test
+  only:
+    - main
   script:
     - echo "Running tests..."
     - echo "Test 1 passed"
@@ -12,18 +14,28 @@ test:
     - echo "Test 2 passed"
     - sleep 1
     - echo "Tests completed"
+  tags:
+    - prod-server-shell
 
 build:
   stage: build
+  only:
+    - main
   script:
     - echo "Building..."
     - pip install -r requirements.txt
     - echo "Build completed"
+  tags:
+    - prod-server-shell
 
 
 deploy:
   stage: deploy
+  only:
+    - main
   script:
     - echo "Deploying..."
     - sleep 5
     - echo "Deploy completed"
+  tags:
+    - prod-server-shell
