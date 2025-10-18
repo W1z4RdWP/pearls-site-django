@@ -5,8 +5,38 @@ deploy_production:
   stage: deploy
   only:
     - main
-  script:
-    - ./scripts/update.sh
-  when: manual
   tags:
-    - prod-server-shell
+    - prod
+  script:
+    - cd /home/django-user/pearls-site-django/
+    - git pull origin main
+    
+    # Создаем виртуальное окружение если его нет
+    - if [ ! -d ".venv" ]; then
+        python3 -m venv .venv
+      fi
+    
+    - source .venv/bin/activate
+    - cd myproject
+    - pip install -r requirements.txt
+    
+    - if [ -d staticfiles ]; then
+        echo "Меняем владельца staticfiles/ на django-user"
+        sudo chown django-user:django-user -R staticfiles/
+        echo "Удаляем папку staticfiles/"
+        sudo rm -rf staticfiles
+      else
+        echo "Папка staticfiles не найдена, пропускаю chown и удаление."
+      fi
+    
+    - echo "Собираем статику Django"
+    - python manage.py collectstatic --noinput
+    - echo "Меняем владельца staticfiles/ на www-data"
+    - sudo chown www-data:www-data -R staticfiles/
+    - echo "Выполняем миграции"
+    - python manage.py migrate
+    - echo "Проверяем проект Django"
+    - python manage.py check
+    - echo "Перезапускаем сервер"
+    - sudo systemctl restart django
+    - echo "Готово!!!"
