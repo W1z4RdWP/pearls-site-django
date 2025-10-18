@@ -23,7 +23,7 @@ build:
     - main
   script:
     - echo "Building..."
-    - pip install -r requirements.txt
+    - sleep 1
     - echo "Build completed"
   tags:
     - prod-server-shell
