@@ -8,10 +8,10 @@ deploy_production:
   tags:
     - prod-server-shell
   script:
+    - git config --global --add safe.directory /home/django-user/pearls-site-django
     - cd /home/django-user/pearls-site-django/
     - git pull origin main
     
-    # Создаем виртуальное окружение если его нет
     - if [ ! -d ".venv" ]; then
         python3 -m venv .venv
       fi
