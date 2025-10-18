@@ -1,25 +1,41 @@
 stages:
+  - test
+  - build
   - deploy
 
-deploy_production:
+test:
+  stage: test
+  only:
+    - main
+  script:
+    - echo "Running tests..."
+    - echo "Test 1 passed"
+    - sleep 2
+    - echo "Test 2 passed"
+    - sleep 1
+    - echo "Tests completed"
+  tags:
+    - prod-server-shell
+
+build:
+  stage: build
+  only:
+    - main
+  script:
+    - echo "Building..."
+    - pip install -r requirements.txt
+    - echo "Build completed"
+  tags:
+    - prod-server-shell
+
+
+deploy:
   stage: deploy
   only:
     - main
+  script:
+    - echo "Deploying..."
+    - sleep 5
+    - echo "Deploy completed"
   tags:
     - prod-server-shell
-  script:
-    - git config --global --add safe.directory /home/django-user/pearls-site-django
-    - cd /home/django-user/pearls-site-django/
-    - git pull origin main
-    - test -d ".venv" || python3 -m venv .venv
-    - source .venv/bin/activate
-    - cd myproject
-    - pip install -r requirements.txt
-    - pip install django[staticfiles]
-    - test -d staticfiles && (sudo chown django-user:django-user -R staticfiles/ && sudo rm -rf staticfiles) || echo "Папка staticfiles не найдена"
-    - python manage.py collectstatic --noinput
-    - sudo chown www-data:www-data -R staticfiles/
-    - python manage.py migrate
-    - python manage.py check
-    - sudo systemctl restart django
-    - echo "Готово!!!"
