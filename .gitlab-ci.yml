@@ -16,7 +16,7 @@ deploy_production:
     - cd myproject
     - pip install -r requirements.txt
     - test -d staticfiles && (sudo chown django-user:django-user -R staticfiles/ && sudo rm -rf staticfiles) || echo "Папка staticfiles не найдена"
-    - python manage.py collectstatic --noinput
+    - python manage.py help
     - sudo chown www-data:www-data -R staticfiles/
     - python manage.py migrate
     - python manage.py check
