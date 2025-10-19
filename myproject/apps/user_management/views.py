@@ -941,6 +941,7 @@ class UserQuizAttemptsView(DetailView):
             total_attempts = results.count()  # Общее количество результатов
             passed_attempts = results.filter(passed=True).count()
             failed_attempts = results.filter(passed=False).count()
+            excluded_attempts = results.filter(passed=False, excluded_from_limit=True).count()  # Исключенные из лимита
             best_result = results.order_by('-percent').first()
             best_score = best_result.percent if best_result else None
             
@@ -969,6 +970,7 @@ class UserQuizAttemptsView(DetailView):
                 'total_attempts': total_attempts,
                 'passed_attempts': passed_attempts,
                 'failed_attempts': failed_attempts,
+                'excluded_attempts': excluded_attempts,
                 'best_score': best_score,
                 'is_blocked': is_blocked,
                 'quiz_type': quiz_type,
@@ -1005,13 +1007,14 @@ def unlock_quiz_access(request, user_id, quiz_id):
             quiz_lock.locked_at = None
             quiz_lock.save()
             
-            # Удаляем неудачные попытки, чтобы сбросить счетчик попыток
+            # Исключаем неудачные попытки из подсчета лимита, но сохраняем их для статистики
             from myapp.models import QuizResult
             QuizResult.objects.filter(
                 user=user,
                 quiz_title=quiz.name,
-                passed=False
-            ).delete()
+                passed=False,
+                excluded_from_limit=False
+            ).update(excluded_from_limit=True)
             
             # Восстанавливаем прогресс курса, если тест связан с курсом
             # Проверяем, является ли тест финальным для какого-либо курса
@@ -1040,7 +1043,7 @@ def unlock_quiz_access(request, user_id, quiz_id):
             messages.success(
                 request,
                 f'Тест "{quiz.name}" разблокирован для пользователя {user.get_full_name()}. '
-                f'Неудачные попытки удалены, прогресс курса восстановлен. Пользователь может пройти тест заново.'
+                f'Неудачные попытки исключены из лимита, прогресс курса восстановлен. Пользователь может пройти тест заново.'
             )
         else:
             messages.info(

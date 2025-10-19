@@ -259,11 +259,12 @@ def get_questions(request, quiz_id: int = None, is_start: bool = False) -> HttpR
         if request.user.is_authenticated:
             quiz_obj = Quiz.objects.get(id=quiz_id)
             if quiz_obj.attempt_limit > 0:
-                # Считаем неудачные попытки (как в course_detail.html)
+                # Считаем неудачные попытки (исключаем те, что помечены как исключенные из лимита)
                 failed_attempts = QuizResult.objects.filter(
                     user=request.user,
                     quiz_title=quiz_obj.name,
-                    passed=False
+                    passed=False,
+                    excluded_from_limit=False
                 ).count()
                 attempts_info = {
                     'failed_attempts': failed_attempts,
@@ -652,12 +653,13 @@ def get_finish(request) -> HttpResponse:
     if request.user.is_authenticated and not passed and quiz.attempt_limit > 0:
         from .models import QuizLock
         
-        # Считаем количество неуспешных попыток в рамках этого курса
+        # Считаем количество неуспешных попыток в рамках этого курса (исключаем те, что помечены как исключенные из лимита)
         failed_attempts = QuizResult.objects.filter(
             user=request.user,
             quiz_title=quiz.name,
             course=course,
-            passed=False
+            passed=False,
+            excluded_from_limit=False
         ).count()
         
         # Если достигли лимита - блокируем тест
@@ -840,12 +842,13 @@ def get_finish(request) -> HttpResponse:
         
         # Проверяем, является ли этот тест финальным для курса
         if course.final_quiz == quiz:
-            # Считаем количество неуспешных попыток для этого теста в рамках курса
+            # Считаем количество неуспешных попыток для этого теста в рамках курса (исключаем те, что помечены как исключенные из лимита)
             failed_attempts = QuizResult.objects.filter(
                 user=request.user,
                 course=course,
                 quiz_title=quiz.name,
-                passed=False
+                passed=False,
+                excluded_from_limit=False
             ).count()
             
             # Сбрасываем прогресс курса ТОЛЬКО если исчерпаны все попытки
@@ -1275,11 +1278,12 @@ class AttemptLimitExceededView(LoginRequiredMixin, DetailView):
         if course:
             user_course = UserCourse.objects.filter(user=self.request.user, course=course).first()
             if user_course:
-                # Проверяем есть ли проваленные попытки финального теста
+                # Проверяем есть ли проваленные попытки финального теста (исключаем те, что помечены как исключенные из лимита)
                 failed_attempts = QuizResult.objects.filter(
                     user=self.request.user,
                     quiz_title=quiz.name,
-                    passed=False
+                    passed=False,
+                    excluded_from_limit=False
                 ).exists()
                 course_progress_reset = failed_attempts
         

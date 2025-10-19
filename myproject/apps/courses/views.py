@@ -380,12 +380,13 @@ class CourseDetailView(DetailView):
                     if final_quiz_passed:
                         show_final_quiz = True
                     
-                    # Получаем информацию о попытках для финального теста в рамках этого курса
+                    # Получаем информацию о попытках для финального теста в рамках этого курса (исключаем те, что помечены как исключенные из лимита)
                     failed_attempts = QuizResult.objects.filter(
                         user=user,
                         course=course,
                         quiz_title=course.final_quiz.name,
-                        passed=False
+                        passed=False,
+                        excluded_from_limit=False
                     ).count()
                     
                     # Проверяем реальное состояние блокировки теста

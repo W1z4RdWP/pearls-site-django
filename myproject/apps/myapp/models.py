@@ -95,6 +95,11 @@ class QuizResult(models.Model):
     percent = models.FloatField()
     completed_at = models.DateTimeField(auto_now_add=True)
     passed = models.BooleanField(default=False)
+    excluded_from_limit = models.BooleanField(
+        default=False, 
+        verbose_name="Исключен из лимита попыток",
+        help_text="Если True, эта попытка не учитывается при проверке лимита попыток"
+    )
 
     class Meta:
         verbose_name = 'Результат теста'

@@ -233,6 +233,12 @@
                         <div class="stat-value">{{ data.failed_attempts }}</div>
                         <div class="stat-label">Неуспешных {% if quiz.attempt_limit > 0 %}(из {{ quiz.attempt_limit }}){% endif %}</div>
                     </div>
+                    {% if data.excluded_attempts > 0 %}
+                    <div class="stat-item">
+                        <div class="stat-value">{{ data.excluded_attempts }}</div>
+                        <div class="stat-label">Исключенных из лимита</div>
+                    </div>
+                    {% endif %}
                     <div class="stat-item">
                         <div class="stat-value">
                             {% if data.best_score %}{{ data.best_score }}%{% else %}—{% endif %}
