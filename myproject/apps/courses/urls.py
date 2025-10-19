@@ -11,7 +11,6 @@ urlpatterns = [
     path('', course_views.CourseDetailView.as_view(), name='course-detail'),
     path('create-course/', course_views.CreateCourseView.as_view(), name='create-course'),
     path('course/<slug:slug>/', course_views.CourseDetailView.as_view(), name='course_detail'),
-    path('courses_list/', course_views.CourseListView.as_view(), name='course_detail_all'),
 
     # Уроки
     path('course/<slug:course_slug>/lesson/<int:lesson_id>/', course_views.LessonDetailView.as_view(), name='lesson_detail'),

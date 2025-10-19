@@ -536,63 +536,6 @@ class CourseDetailView(DetailView):
         return None
 
 
-class CourseListView(ListView):
-    """
-    Отображает все курсы (траектории) доступные пользователю в шаблоне all_courses_list.html.
-    Передает в данный шаблон 2 списка с курсами:
-    1. Доступные (не пройденные) - статусы 'available' и 'started'
-    2. Пройденные (завершенные) - статус 'completed'
-    """
-    template_name = 'courses/all_courses_list.html'
-    context_object_name = 'courses'
-
-
-    def get_queryset(self):
-        # Пустой queryset, так как мы будем использовать get_context_data
-        return UserCourse.objects.none()
-
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        user = self.request.user
-        
-        if user.is_authenticated:
-            if user.is_staff or user.is_superuser:
-                # staff/superuser видят все курсы как доступные
-                all_courses = Course.objects.all()
-                available_courses = list(all_courses)
-                completed_courses_list = [uc.course for uc in UserCourse.objects.filter(user=user, status='completed')]
-                # Исключаем завершённые из доступных
-                available_courses = [c for c in available_courses if c not in completed_courses_list]
-            else:
-                # Используем менеджер для получения всех доступных курсов
-                all_available_courses = Course.objects.available_for_user(user)
-                
-                # Получаем статусы курсов пользователя
-                user_courses = UserCourse.objects.filter(user=user).select_related('course')
-                user_course_statuses = {uc.course_id: uc.status for uc in user_courses}
-                
-                # Разделяем на доступные и завершенные
-                available_courses = []
-                completed_courses_list = []
-                
-                for course in all_available_courses:
-                    status = user_course_statuses.get(course.id, 'available')
-                    if status == 'completed':
-                        completed_courses_list.append(course)
-                    else:
-                        available_courses.append(course)
-        else:
-            available_courses = []
-            completed_courses_list = []
-        
-        context.update({
-            'available_courses': available_courses,
-            'completed_courses_list': completed_courses_list,
-        })
-        return context
-
-
 
 
 class LessonDetailView(DetailView):
