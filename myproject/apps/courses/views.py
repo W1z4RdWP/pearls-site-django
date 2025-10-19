@@ -1166,6 +1166,22 @@ class DeleteLessonView(LoginRequiredMixin, UserPassesTestMixin, DeleteView):
             return redirect('home')
 
 
+@login_required
+@user_passes_test(is_admin, login_url='/')
+def remove_quiz_from_course(request, course_slug, quiz_id):
+    """Удаление теста из курса"""
+    course = get_object_or_404(Course, slug=course_slug)
+    quiz = get_object_or_404(Quiz, id=quiz_id)
+    
+    if request.method == 'POST':
+        # Удаляем связь между тестом и курсом
+        course.course_quizzes.remove(quiz)
+        return redirect('courses:course_detail', slug=course.slug)
+    
+    # GET запрос - редирект на страницу курса
+    return redirect('courses:course_detail', slug=course.slug)
+
+
 
 
 @login_required

@@ -26,6 +26,7 @@ urlpatterns = [
 
     # Тесты
     path('course/<slug:course_slug>/redir_to_quiz/', course_views.redir_to_quiz, name='redir_to_quiz'),
+    path('course/<slug:course_slug>/quiz/<int:quiz_id>/remove/', course_views.remove_quiz_from_course, name='remove_quiz_from_course'),
 
     # Траектории
     path('trajectory/<int:pk>/', UserCourseTrajectoryDetailView.as_view(), name='user_course_trajectory_detail'),
