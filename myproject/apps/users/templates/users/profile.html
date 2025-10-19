@@ -58,11 +58,11 @@
             </button>
             {% with user.groups.all as groups %}
             {% if "Внешний пользователь" in groups|join:"," %}
-                <a href="https://t.me/das_metrics_bot" target="_blank" class="btn-modern" style="margin-left: 10px;">
+                <a href="https://t.me/das_metrics_bot" target="_blank" class="btn-modern" id="support-btn" style="margin-left: 10px;">
                     <i class="fa fa-telegram" aria-hidden="true"></i> Отдел заботы
                 </a>
             {% else %}
-                <a href="https://mail.smileterritory.ru" target="_blank" class="btn-modern" style="margin-left: 10px;">
+                <a href="https://mail.smileterritory.ru" target="_blank" class="btn-modern" id="mail-btn" style="margin-left: 10px;">
                     <i class="fa fa-envelope"></i> Почта
                 </a>
             {% endif %}
