@@ -11,7 +11,7 @@ import logging
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
-from django.http import HttpRequest, HttpResponse
+from django.http import HttpRequest, HttpResponse, JsonResponse
 from django.contrib.auth import login as auth_login
 from django.contrib.auth.models import User
 from django.contrib.auth.views import LoginView
@@ -24,6 +24,8 @@ from django.utils.encoding import smart_str
 from django.contrib.auth.models import Group
 from django.db.models import Q, Avg, Count, Sum
 from django.utils.http import urlencode
+from django.views.decorators.csrf import csrf_exempt
+from django.views.decorators.http import require_http_methods
 
 
 from myapp.models import UserCourse, UserProgress, QuizResult, UserAnswer
@@ -218,6 +220,14 @@ class CustomLoginView(LoginView):
                 }
             )
             auth_login(self.request, user)
+            
+            # Проверяем, нужно ли показать модальное окно при первом входе
+            if not profile.first_login_shown:
+                profile.first_login_shown = True
+                profile.save()
+                # Добавляем флаг в сессию для показа модального окна
+                self.request.session['show_intro_modal'] = True
+            
             # Редирект после авторизации для внешних пользователей
             return redirect('homepage')
         
@@ -228,6 +238,14 @@ class CustomLoginView(LoginView):
             }
         )
         auth_login(self.request, user)
+        
+        # Проверяем, нужно ли показать модальное окно при первом входе
+        if not profile.first_login_shown:
+            profile.first_login_shown = True
+            profile.save()
+            # Добавляем флаг в сессию для показа модального окна
+            self.request.session['show_intro_modal'] = True
+        
         return redirect(self.get_success_url())
 
 
@@ -337,5 +355,14 @@ def export_transactions_pdf(request):
         }
     )
     return response
+
+
+@login_required
+@require_http_methods(["POST"])
+def clear_intro_modal_flag(request):
+    """Очищает флаг показа модального окна из сессии"""
+    if 'show_intro_modal' in request.session:
+        del request.session['show_intro_modal']
+    return JsonResponse({'status': 'success'})
 
 

@@ -109,6 +109,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const editProfileForm = document.getElementById('edit-profile-form');
     const progressBar = document.querySelector('.progress-bar-user');
     const gamificationSection = document.getElementById('gamification-section');
+    const supportBtn = document.getElementById('support-btn');
+    const mailBtn = document.getElementById('mail-btn');
 
     if (editProfileBtn && cancelEditBtn && editProfileForm) {
         editProfileBtn.addEventListener('click', function() {
@@ -118,6 +120,8 @@ document.addEventListener('DOMContentLoaded', () => {
             if (toggleQuizzesBtn) toggleQuizzesBtn.style.display = 'none';
             if (progressBar) progressBar.style.display = 'none';
             if (gamificationSection) gamificationSection.style.display = 'none';
+            if (supportBtn) supportBtn.style.display = 'none';
+            if (mailBtn) mailBtn.style.display = 'none';
         });
 
         cancelEditBtn.addEventListener('click', function(event) {
@@ -128,6 +132,8 @@ document.addEventListener('DOMContentLoaded', () => {
             if (toggleQuizzesBtn) toggleQuizzesBtn.style.display = 'block';
             if (progressBar) progressBar.style.display = 'block';
             if (gamificationSection) gamificationSection.style.display = 'block';
+            if (supportBtn) supportBtn.style.display = 'block';
+            if (mailBtn) mailBtn.style.display = 'block';
         });
     }
 

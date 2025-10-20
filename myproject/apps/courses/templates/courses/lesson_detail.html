@@ -218,11 +218,18 @@
                 </div>
                 <div class="modal-body text-center">
                     <div class="mb-3">
-                        <i class="fa fa-question-circle" style="font-size: 3rem; color: #007bff;"></i>
+                        {% if next_material and next_material.type == 'quiz' %}
+                            <i class="fa fa-clipboard-check" style="font-size: 3rem; color: #dc3545;"></i>
+                        {% else %}
+                            <i class="fa fa-question-circle" style="font-size: 3rem; color: #007bff;"></i>
+                        {% endif %}
                     </div>
                     {% if is_last_lesson %}
                         <p class="lead">Урок завершен! Это был последний урок курса.</p>
                         <p class="text-muted">Вы можете вернуться к курсу и проверить свой прогресс или отдохнуть.</p>
+                    {% elif next_material and next_material.type == 'quiz' %}
+                        <p class="lead">Урок завершен! Следующий этап - тест.</p>
+                        <p class="text-muted">После завершения урока вас ждет тест <strong>"{{ next_material.title }}"</strong>. Готовы проверить свои знания?</p>
                     {% else %}
                         <p class="lead">Урок завершен! Хотите продолжить обучение?</p>
                         <p class="text-muted">Вы можете перейти к следующему уроку или отдохнуть и вернуться позже.</p>
@@ -231,12 +238,14 @@
                 <div class="modal-footer justify-content-center">
                     {% if not is_last_lesson %}
                     <button type="button" class="btn btn-outline-secondary me-2" id="restButton">
-                        <i class="fa fa-bed"></i> Отдохну 😣
+                        <i class="fa fa-bed"></i> Отдохну
                     </button>
                     {% endif %}
                     <button type="button" class="btn btn-primary" id="continueButton">
                         {% if is_last_lesson %}
                             <i class="fa fa-check"></i> Вернуться к курсу
+                        {% elif next_material and next_material.type == 'quiz' %}
+                            <i class="fa fa-clipboard-check"></i> Перейти к тесту
                         {% else %}
                             <i class="fa fa-arrow-right"></i> Да, продолжаем!
                         {% endif %}
@@ -267,7 +276,7 @@
             modal.show();
         });
         
-        // Обработка кнопки "Да, продолжаем!" / "Вернуться к курсу"
+        // Обработка кнопки "Да, продолжаем!" / "Вернуться к курсу" / "Перейти к тесту"
         document.getElementById('continueButton').addEventListener('click', function() {
             // Скрываем модальное окно
             const modal = bootstrap.Modal.getInstance(document.getElementById('continueLearningModal'));
@@ -276,8 +285,15 @@
             // Отправляем форму завершения урока
             const form = document.getElementById('completeLessonForm');
             
-            // Проверяем, является ли это последним уроком
-            {% if is_last_lesson %}
+            // Проверяем, следующий ли материал - тест
+            {% if next_material and next_material.type == 'quiz' %}
+                // Если следующий материал - тест, добавляем параметр для перехода к тесту
+                const input = document.createElement('input');
+                input.type = 'hidden';
+                input.name = 'go_to_quiz';
+                input.value = '{{ next_material.id }}';
+                form.appendChild(input);
+            {% elif is_last_lesson %}
                 // Для последнего урока не добавляем параметр continue_learning
                 // Это приведет к редиректу на страницу курса
             {% else %}
@@ -292,7 +308,7 @@
             form.submit();
         });
         
-        // Обработка кнопки "Отдохну 😣"
+        // Обработка кнопки "Отдохну"
         document.getElementById('restButton').addEventListener('click', function() {
             // Скрываем модальное окно
             const modal = bootstrap.Modal.getInstance(document.getElementById('continueLearningModal'));

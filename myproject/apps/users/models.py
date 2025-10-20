@@ -126,6 +126,7 @@ class Profile(models.Model):
     is_approved = models.BooleanField(default=False, verbose_name="Подвтерждение администратором")
     is_mentor = models.BooleanField(default=False, verbose_name="Является наставником", help_text="Пользователь с правами наставника")
     dascoin_points = models.PositiveIntegerField(default=0, verbose_name="Баллы DASCOIN")
+    first_login_shown = models.BooleanField(default=False, verbose_name="Показано модальное окно при первом входе")
 
     class Meta:
         app_label = 'users'

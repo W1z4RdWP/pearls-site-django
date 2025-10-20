@@ -95,23 +95,35 @@
                                     {% elif material.title == 'Метрики эффективности стоматологической клиники' or material.title == 'KZ Метрики эффективности стоматологической клиники' %}
                                         {% comment %} Показываем форму метрик вместо урока (если он не скрыт выше) {% endcomment %}
                                         {% if user_course and user_course.status in 'started,completed' %}
-                                            <a href="{% url 'courses:lesson_detail' course.slug material.id %}" 
-                                               class="material-item lesson d-flex align-items-center p-3">
-                                                <span class="material-icon"><i class="fa fa-book"></i></span>
-                                                <div class="flex-grow-1">
-                                                    <div class="material-title">
-                                                        {% if material.title == 'KZ Метрики эффективности стоматологической клиники' and user_country == 'Казахстан' %}
-                                                            Метрики эффективности стоматологической клиники
-                                                        {% else %}
-                                                            {{ material.title }}
-                                                        {% endif %}
+                                            <div class="material-item lesson d-flex align-items-center p-3">
+                                                <a href="{% url 'courses:lesson_detail' course.slug material.id %}" 
+                                                   class="d-flex align-items-center flex-grow-1 text-decoration-none">
+                                                    <span class="material-icon"><i class="fa fa-book"></i></span>
+                                                    <div class="flex-grow-1">
+                                                        <div class="material-title">
+                                                            {% if material.title == 'KZ Метрики эффективности стоматологической клиники' and user_country == 'Казахстан' %}
+                                                                Метрики эффективности стоматологической клиники
+                                                            {% else %}
+                                                                {{ material.title }}
+                                                            {% endif %}
+                                                        </div>
+                                                        <div class="material-type">Урок</div>
                                                     </div>
-                                                    <div class="material-type">Урок</div>
-                                                </div>
-                                                {% if material.id in completed_lessons_ids %}
-                                                    <span class="badge bg-success">✓</span>
+                                                    {% if material.id in completed_lessons_ids %}
+                                                        <span class="badge bg-success">✓</span>
+                                                    {% endif %}
+                                                </a>
+                                                {% if user.is_authenticated and user.is_staff %}
+                                                    <form method="POST" action="{% url 'courses:delete_lesson' lesson_id=material.id %}" style="margin-left: 10px;">
+                                                        {% csrf_token %}
+                                                        <button type="submit" class="btn-delete-material" 
+                                                                title="Удалить урок из курса"
+                                                                onclick="return confirm('Вы уверены, что хотите удалить этот урок из курса?')">
+                                                            <i class="fa fa-times"></i>
+                                                        </button>
+                                                    </form>
                                                 {% endif %}
-                                            </a>
+                                            </div>
                                         {% else %}
                                             <div class="material-item blocked d-flex align-items-center p-3">
                                                 <span class="material-icon"><i class="fa fa-book"></i></span>
@@ -126,6 +138,16 @@
                                                     <div class="material-type">Урок</div>
                                                 </div>
                                                 <span class="badge bg-secondary">🔒</span>
+                                                {% if user.is_authenticated and user.is_staff %}
+                                                    <form method="POST" action="{% url 'courses:delete_lesson' lesson_id=material.id %}" style="margin-left: 10px;">
+                                                        {% csrf_token %}
+                                                        <button type="submit" class="btn-delete-material" 
+                                                                title="Удалить урок из курса"
+                                                                onclick="return confirm('Вы уверены, что хотите удалить этот урок из курса?')">
+                                                            <i class="fa fa-times"></i>
+                                                        </button>
+                                                    </form>
+                                                {% endif %}
                                             </div>
                                         {% endif %}
                                         <a href="{% url 'courses:metrics_form' %}" 
@@ -139,8 +161,54 @@
                                     {% else %}
                                         {% comment %} Обычные уроки курса "Чек-ап" {% endcomment %}
                                         {% if user_course and user_course.status in 'started,completed' %}
-                                            <a href="{% url 'courses:lesson_detail' course.slug material.id %}" 
-                                               class="material-item lesson d-flex align-items-center p-3">
+                                            <div class="material-item lesson d-flex align-items-center p-3">
+                                                <a href="{% url 'courses:lesson_detail' course.slug material.id %}" 
+                                                   class="d-flex align-items-center flex-grow-1 text-decoration-none">
+                                                    <span class="material-icon"><i class="fa fa-book"></i></span>
+                                                    <div class="flex-grow-1">
+                                                        <div class="material-title">{{ material.title }}</div>
+                                                        <div class="material-type">Урок</div>
+                                                    </div>
+                                                    {% if material.id in completed_lessons_ids %}
+                                                        <span class="badge bg-success">✓</span>
+                                                    {% endif %}
+                                                </a>
+                                                {% if user.is_authenticated and user.is_staff %}
+                                                    <form method="POST" action="{% url 'courses:delete_lesson' lesson_id=material.id %}" style="margin-left: 10px;">
+                                                        {% csrf_token %}
+                                                        <button type="submit" class="btn-delete-material" 
+                                                                title="Удалить урок из курса"
+                                                                onclick="return confirm('Вы уверены, что хотите удалить этот урок из курса?')">
+                                                            <i class="fa fa-times"></i>
+                                                        </button>
+                                                    </form>
+                                                {% endif %}
+                                            </div>
+                                        {% else %}
+                                            <div class="material-item blocked d-flex align-items-center p-3">
+                                                <span class="material-icon"><i class="fa fa-book"></i></span>
+                                                <div class="flex-grow-1">
+                                                    <div class="material-title">{{ material.title }}</div>
+                                                    <div class="material-type">Урок</div>
+                                                </div>
+                                                <span class="badge bg-secondary">🔒</span>
+                                                {% if user.is_authenticated and user.is_staff %}
+                                                    <form method="POST" action="{% url 'courses:delete_lesson' lesson_id=material.id %}" style="margin-left: 10px;">
+                                                        {% csrf_token %}
+                                                        <button type="submit" class="btn-delete-material" 
+                                                                title="Удалить урок из курса"
+                                                                onclick="return confirm('Вы уверены, что хотите удалить этот урок из курса?')">
+                                                            <i class="fa fa-times"></i>
+                                                        </button>
+                                                    </form>
+                                                {% endif %}
+                                            </div>
+                                        {% endif %}
+                                    {% endif %}
+                                {% else %}
+                                    {% if user_course and user_course.status in 'started,completed' %}
+                                        <div class="material-item lesson d-flex align-items-center p-3">
+                                            <a href="{% url 'courses:lesson_detail' course.slug material.id %}" class="d-flex align-items-center flex-grow-1 text-decoration-none">
                                                 <span class="material-icon"><i class="fa fa-book"></i></span>
                                                 <div class="flex-grow-1">
                                                     <div class="material-title">{{ material.title }}</div>
@@ -150,30 +218,17 @@
                                                     <span class="badge bg-success">✓</span>
                                                 {% endif %}
                                             </a>
-                                        {% else %}
-                                            <div class="material-item blocked d-flex align-items-center p-3">
-                                                <span class="material-icon"><i class="fa fa-book"></i></span>
-                                                <div class="flex-grow-1">
-                                                    <div class="material-title">{{ material.title }}</div>
-                                                    <div class="material-type">Урок</div>
-                                                </div>
-                                                <span class="badge bg-secondary">🔒</span>
-                                            </div>
-                                        {% endif %}
-                                    {% endif %}
-                                {% else %}
-                                    {% if user_course and user_course.status in 'started,completed' %}
-                                        <a href="{% url 'courses:lesson_detail' course.slug material.id %}" 
-                                           class="material-item lesson d-flex align-items-center p-3">
-                                            <span class="material-icon"><i class="fa fa-book"></i></span>
-                                            <div class="flex-grow-1">
-                                                <div class="material-title">{{ material.title }}</div>
-                                                <div class="material-type">Урок</div>
-                                            </div>
-                                            {% if material.id in completed_lessons_ids %}
-                                                <span class="badge bg-success">✓</span>
+                                            {% if user.is_authenticated and user.is_staff %}
+                                                <form method="POST" action="{% url 'courses:delete_lesson' lesson_id=material.id %}" style="margin-left: 10px;">
+                                                    {% csrf_token %}
+                                                    <button type="submit" class="btn-delete-material" 
+                                                            title="Удалить урок из курса"
+                                                            onclick="return confirm('Вы уверены, что хотите удалить этот урок из курса?')">
+                                                        <i class="fa fa-times"></i>
+                                                    </button>
+                                                </form>
                                             {% endif %}
-                                        </a>
+                                        </div>
                                     {% else %}
                                         <div class="material-item blocked d-flex align-items-center p-3">
                                             <span class="material-icon"><i class="fa fa-book"></i></span>
@@ -182,30 +237,64 @@
                                                 <div class="material-type">Урок</div>
                                             </div>
                                             <span class="badge bg-secondary">🔒</span>
+                                            {% if user.is_authenticated and user.is_staff %}
+                                                <form method="POST" action="{% url 'courses:delete_lesson' lesson_id=material.id %}" style="margin-left: 10px;">
+                                                    {% csrf_token %}
+                                                    <button type="submit" class="btn-delete-material" 
+                                                            title="Удалить урок из курса"
+                                                            onclick="return confirm('Вы уверены, что хотите удалить этот урок из курса?')">
+                                                        <i class="fa fa-times"></i>
+                                                    </button>
+                                                </form>
+                                            {% endif %}
                                         </div>
                                     {% endif %}
                                 {% endif %}
                             {% elif material.type == 'quiz' %}
                                 {% if user_course and user_course.status in 'started,completed' %}
                                     {% if material.title in completed_quizzes_ids %}
-                                        <a href="{% url 'quizzes:quiz_best_result' quiz_id=material.id %}?course_slug={{ course.slug }}" 
-                                           class="material-item quiz d-flex align-items-center p-3">
-                                            <span class="material-icon"><i class="fa fa-graduation-cap"></i></span>
-                                            <div class="flex-grow-1">
-                                                <div class="material-title">{{ material.title }}</div>
-                                                <div class="material-type">Тест</div>
-                                            </div>
-                                            <span class="badge bg-success">✓</span>
-                                        </a>
+                                        <div class="material-item quiz d-flex align-items-center p-3">
+                                            <a href="{% url 'quizzes:quiz_best_result' quiz_id=material.id %}?course_slug={{ course.slug }}" 
+                                               class="d-flex align-items-center flex-grow-1 text-decoration-none">
+                                                <span class="material-icon"><i class="fa fa-graduation-cap"></i></span>
+                                                <div class="flex-grow-1">
+                                                    <div class="material-title">{{ material.title }}</div>
+                                                    <div class="material-type">Тест</div>
+                                                </div>
+                                                <span class="badge bg-success">✓</span>
+                                            </a>
+                                            {% if user.is_authenticated and user.is_staff %}
+                                                <form method="POST" action="{% url 'courses:remove_quiz_from_course' course_slug=course.slug quiz_id=material.id %}" style="margin-left: 10px;">
+                                                    {% csrf_token %}
+                                                    <button type="submit" class="btn-delete-material" 
+                                                            title="Удалить тест из курса"
+                                                            onclick="return confirm('Вы уверены, что хотите удалить этот тест из курса?')">
+                                                        <i class="fa fa-times"></i>
+                                                    </button>
+                                                </form>
+                                            {% endif %}
+                                        </div>
                                     {% else %}
-                                        <a href="{% url 'quizzes:quiz_start' quiz_id=material.id %}?course_slug={{ course.slug }}" 
-                                           class="material-item quiz d-flex align-items-center p-3">
-                                            <span class="material-icon"><i class="fa fa-graduation-cap"></i></span>
-                                            <div class="flex-grow-1">
-                                                <div class="material-title">{{ material.title }}</div>
-                                                <div class="material-type">Тест</div>
-                                            </div>
-                                        </a>
+                                        <div class="material-item quiz d-flex align-items-center p-3">
+                                            <a href="{% url 'quizzes:quiz_start' quiz_id=material.id %}?course_slug={{ course.slug }}" 
+                                               class="d-flex align-items-center flex-grow-1 text-decoration-none">
+                                                <span class="material-icon"><i class="fa fa-graduation-cap"></i></span>
+                                                <div class="flex-grow-1">
+                                                    <div class="material-title">{{ material.title }}</div>
+                                                    <div class="material-type">Тест</div>
+                                                </div>
+                                            </a>
+                                            {% if user.is_authenticated and user.is_staff %}
+                                                <form method="POST" action="{% url 'courses:remove_quiz_from_course' course_slug=course.slug quiz_id=material.id %}" style="margin-left: 10px;">
+                                                    {% csrf_token %}
+                                                    <button type="submit" class="btn-delete-material" 
+                                                            title="Удалить тест из курса"
+                                                            onclick="return confirm('Вы уверены, что хотите удалить этот тест из курса?')">
+                                                        <i class="fa fa-times"></i>
+                                                    </button>
+                                                </form>
+                                            {% endif %}
+                                        </div>
                                     {% endif %}
                                 {% else %}
                                     <div class="material-item blocked d-flex align-items-center p-3">
@@ -215,6 +304,16 @@
                                             <div class="material-type">Тест</div>
                                         </div>
                                         <span class="badge bg-secondary">🔒</span>
+                                        {% if user.is_authenticated and user.is_staff %}
+                                            <form method="POST" action="{% url 'courses:remove_quiz_from_course' course_slug=course.slug quiz_id=material.id %}" style="margin-left: 10px;">
+                                                {% csrf_token %}
+                                                <button type="submit" class="btn-delete-material" 
+                                                        title="Удалить тест из курса"
+                                                        onclick="return confirm('Вы уверены, что хотите удалить этот тест из курса?')">
+                                                    <i class="fa fa-times"></i>
+                                                </button>
+                                            </form>
+                                        {% endif %}
                                     </div>
                                 {% endif %}
                             {% endif %}

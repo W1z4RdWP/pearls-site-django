@@ -11,7 +11,6 @@ urlpatterns = [
     path('', course_views.CourseDetailView.as_view(), name='course-detail'),
     path('create-course/', course_views.CreateCourseView.as_view(), name='create-course'),
     path('course/<slug:slug>/', course_views.CourseDetailView.as_view(), name='course_detail'),
-    path('courses_list/', course_views.CourseListView.as_view(), name='course_detail_all'),
 
     # Уроки
     path('course/<slug:course_slug>/lesson/<int:lesson_id>/', course_views.LessonDetailView.as_view(), name='lesson_detail'),
@@ -26,6 +25,7 @@ urlpatterns = [
 
     # Тесты
     path('course/<slug:course_slug>/redir_to_quiz/', course_views.redir_to_quiz, name='redir_to_quiz'),
+    path('course/<slug:course_slug>/quiz/<int:quiz_id>/remove/', course_views.remove_quiz_from_course, name='remove_quiz_from_course'),
 
     # Траектории
     path('trajectory/<int:pk>/', UserCourseTrajectoryDetailView.as_view(), name='user_course_trajectory_detail'),

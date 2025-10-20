@@ -90,36 +90,48 @@ def get_questions(request, quiz_id: int = None, is_start: bool = False) -> HttpR
                         return redirect(f'{url}?{params}')
                 except Course.DoesNotExist:
                     pass
-            elif not from_control_panel:
-                # Если course_slug не передан И тест не запускается из панели управления, 
-                # проверяем связь теста с курсом через модели
-                from django.db import models
-                # Ищем курсы, связанные с этим тестом
-                related_courses = Course.objects.filter(
-                    models.Q(final_quiz=quiz) | models.Q(course_quizzes=quiz)
-                ).distinct()
-                
-                if related_courses.exists():
-                    # Проверяем статус курса для пользователя
-                    for course in related_courses:
-                        user_course = UserCourse.objects.filter(user=request.user, course=course).first()
-                        if not user_course:
-                            user_course = UserCourse.objects.create(user=request.user, course=course, status='available')
+            else:
+                # Если course_slug не передан, проверяем связь теста с курсом через модели
+                # НО НЕ при запуске из панели управления
+                if not from_control_panel:
+                    from django.db import models
+                    # Ищем курсы, связанные с этим тестом
+                    related_courses = Course.objects.filter(
+                        models.Q(final_quiz=quiz) | models.Q(course_quizzes=quiz)
+                    ).distinct()
+                    
+                    if related_courses.exists():
+                        # Берем первый связанный курс для определения контекста
+                        course = related_courses.first()
+                        # Сохраняем курс в сессии для использования в других частях приложения
+                        request.session['course_slug'] = course.slug
                         
-                        # Блокируем доступ к тесту, если курс не начат
-                        if user_course.status not in ['started', 'completed']:
-                            return render(request, 'courses/quiz_start_required.html', {'course': course})
+                        # Проверяем статус курса для пользователя
+                        for course in related_courses:
+                            user_course = UserCourse.objects.filter(user=request.user, course=course).first()
+                            if not user_course:
+                                user_course = UserCourse.objects.create(user=request.user, course=course, status='available')
+                            
+                            # Блокируем доступ к тесту, если курс не начат
+                            if user_course.status not in ['started', 'completed']:
+                                return render(request, 'courses/quiz_start_required.html', {'course': course})
+                else:
+                    # При запуске из панели управления очищаем курс из сессии
+                    if 'course_slug' in request.session:
+                        del request.session['course_slug']
             
             # Проверяем блокировку теста для этого пользователя
-            from .models import QuizLock
-            quiz_lock, created = QuizLock.objects.get_or_create(
-                user=request.user,
-                quiz=quiz,
-                defaults={'is_locked': False}
-            )
-            
-            if quiz_lock.is_locked:
-                return redirect('quizzes:attempt_limit_exceeded', quiz_id=quiz.id)
+            # НО НЕ для администраторов, запускающих тест из панели управления
+            if not from_control_panel:
+                from .models import QuizLock
+                quiz_lock, created = QuizLock.objects.get_or_create(
+                    user=request.user,
+                    quiz=quiz,
+                    defaults={'is_locked': False}
+                )
+                
+                if quiz_lock.is_locked:
+                    return redirect('quizzes:attempt_limit_exceeded', quiz_id=quiz.id)
                 
             # Создаем новую попытку
             attempts_count = QuizAttempt.objects.filter(user=request.user, quiz=quiz).count()
@@ -259,11 +271,12 @@ def get_questions(request, quiz_id: int = None, is_start: bool = False) -> HttpR
         if request.user.is_authenticated:
             quiz_obj = Quiz.objects.get(id=quiz_id)
             if quiz_obj.attempt_limit > 0:
-                # Считаем неудачные попытки (как в course_detail.html)
+                # Считаем неудачные попытки (исключаем те, что помечены как исключенные из лимита)
                 failed_attempts = QuizResult.objects.filter(
                     user=request.user,
                     quiz_title=quiz_obj.name,
-                    passed=False
+                    passed=False,
+                    excluded_from_limit=False
                 ).count()
                 attempts_info = {
                     'failed_attempts': failed_attempts,
@@ -649,15 +662,18 @@ def get_finish(request) -> HttpResponse:
             current_attempt.save()
     
     # Проверяем, нужно ли заблокировать тест
-    if request.user.is_authenticated and not passed and quiz.attempt_limit > 0:
+    # НО НЕ для администраторов, запускающих тест из панели управления
+    from_control_panel = request.session.get('from_control_panel', False)
+    if request.user.is_authenticated and not passed and quiz.attempt_limit > 0 and not from_control_panel:
         from .models import QuizLock
         
-        # Считаем количество неуспешных попыток в рамках этого курса
+        # Считаем количество неуспешных попыток в рамках этого курса (исключаем те, что помечены как исключенные из лимита)
         failed_attempts = QuizResult.objects.filter(
             user=request.user,
             quiz_title=quiz.name,
             course=course,
-            passed=False
+            passed=False,
+            excluded_from_limit=False
         ).count()
         
         # Если достигли лимита - блокируем тест
@@ -840,12 +856,13 @@ def get_finish(request) -> HttpResponse:
         
         # Проверяем, является ли этот тест финальным для курса
         if course.final_quiz == quiz:
-            # Считаем количество неуспешных попыток для этого теста в рамках курса
+            # Считаем количество неуспешных попыток для этого теста в рамках курса (исключаем те, что помечены как исключенные из лимита)
             failed_attempts = QuizResult.objects.filter(
                 user=request.user,
                 course=course,
                 quiz_title=quiz.name,
-                passed=False
+                passed=False,
+                excluded_from_limit=False
             ).count()
             
             # Сбрасываем прогресс курса ТОЛЬКО если исчерпаны все попытки
@@ -1253,12 +1270,6 @@ class AttemptLimitExceededView(LoginRequiredMixin, DetailView):
         context = super().get_context_data(**kwargs)
         quiz = self.get_object()
         
-        # Получаем количество попыток пользователя
-        attempts_count = QuizAttempt.objects.filter(
-            user=self.request.user, 
-            quiz=quiz
-        ).count()
-        
         # Получаем курс из сессии, если он есть
         course_slug = self.request.session.get('course_slug')
         course = None
@@ -1270,16 +1281,29 @@ class AttemptLimitExceededView(LoginRequiredMixin, DetailView):
             # Если курс не найден в сессии, ищем через final_quiz (fallback)
             course = Course.objects.filter(final_quiz=quiz).first()
         
+        # Получаем количество неудачных попыток (как в логике блокировки)
+        failed_attempts = QuizResult.objects.filter(
+            user=self.request.user,
+            quiz_title=quiz.name,
+            course=course,
+            passed=False,
+            excluded_from_limit=False
+        ).count()
+        
+        # Используем количество неудачных попыток для отображения
+        attempts_count = failed_attempts
+        
         # Если тест финальный и у пользователя есть прогресс по курсу - проверяем сброшен ли он
         course_progress_reset = False
         if course:
             user_course = UserCourse.objects.filter(user=self.request.user, course=course).first()
             if user_course:
-                # Проверяем есть ли проваленные попытки финального теста
+                # Проверяем есть ли проваленные попытки финального теста (исключаем те, что помечены как исключенные из лимита)
                 failed_attempts = QuizResult.objects.filter(
                     user=self.request.user,
                     quiz_title=quiz.name,
-                    passed=False
+                    passed=False,
+                    excluded_from_limit=False
                 ).exists()
                 course_progress_reset = failed_attempts
         

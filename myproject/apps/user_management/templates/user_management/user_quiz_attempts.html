@@ -153,6 +153,34 @@
         border-radius: 8px;
         margin-bottom: 20px;
     }
+    
+    .search-container {
+        background: white;
+        border-radius: 12px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+        padding: 20px;
+        margin-bottom: 20px;
+        border: 1px solid #e9ecef;
+    }
+    
+    .search-input {
+        width: 100%;
+        padding: 12px 16px;
+        border: 2px solid #e9ecef;
+        border-radius: 8px;
+        font-size: 1rem;
+        transition: border-color 0.3s;
+    }
+    
+    .search-input:focus {
+        outline: none;
+        border-color: #007bff;
+        box-shadow: 0 0 0 3px rgba(0,123,255,0.1);
+    }
+    
+    .quiz-card.hidden {
+        display: none;
+    }
 </style>
 {% endblock %}
 
@@ -194,12 +222,30 @@
         </div>
     </div>
 
+    <!-- Поиск по названию теста -->
+    {% if quiz_data %}
+    <div class="search-container">
+        <div class="d-flex align-items-center">
+            <i class="fas fa-search me-3 text-muted"></i>
+            <input type="text" id="quizSearch" class="search-input" placeholder="Поиск по названию теста...">
+        </div>
+    </div>
+    {% endif %}
+
     {% if quiz_data %}
         {% for quiz, data in quiz_data.items %}
-        <div class="quiz-card">
+        <div class="quiz-card" data-quiz-name="{{ quiz.name|lower }}">
             <div class="quiz-header">
                 <div class="d-flex justify-content-between align-items-center">
-                    <h5 class="mb-0">{{ quiz.name }}</h5>
+                    <div>
+                        <h5 class="mb-0">{{ quiz.name }}</h5>
+                        <small class="text-light">
+                            <i class="fas fa-info-circle me-1"></i>{{ data.quiz_type }}
+                            {% if data.related_course %}
+                                | Курс: {{ data.related_course.title }}
+                            {% endif %}
+                        </small>
+                    </div>
                     <div class="text-end">
                         <small>ID: {{ quiz.id }}</small><br>
                         <small>
@@ -225,6 +271,12 @@
                         <div class="stat-value">{{ data.failed_attempts }}</div>
                         <div class="stat-label">Неуспешных {% if quiz.attempt_limit > 0 %}(из {{ quiz.attempt_limit }}){% endif %}</div>
                     </div>
+                    {% if data.excluded_attempts > 0 %}
+                    <div class="stat-item">
+                        <div class="stat-value">{{ data.excluded_attempts }}</div>
+                        <div class="stat-label">Исключенных из лимита</div>
+                    </div>
+                    {% endif %}
                     <div class="stat-item">
                         <div class="stat-value">
                             {% if data.best_score %}{{ data.best_score }}%{% else %}—{% endif %}
@@ -316,4 +368,27 @@
     </div>
     {% endif %}
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const searchInput = document.getElementById('quizSearch');
+    const quizCards = document.querySelectorAll('.quiz-card');
+    
+    if (searchInput) {
+        searchInput.addEventListener('input', function() {
+            const searchTerm = this.value.toLowerCase().trim();
+            
+            quizCards.forEach(function(card) {
+                const quizName = card.getAttribute('data-quiz-name');
+                
+                if (searchTerm === '' || quizName.includes(searchTerm)) {
+                    card.classList.remove('hidden');
+                } else {
+                    card.classList.add('hidden');
+                }
+            });
+        });
+    }
+});
+</script>
 {% endblock %}

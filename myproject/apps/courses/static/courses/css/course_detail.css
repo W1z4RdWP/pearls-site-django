@@ -334,3 +334,35 @@
     outline: 2px solid #007bff;
     outline-offset: 2px;
 }
+
+/* Стили для кнопок удаления материалов */
+.btn-delete-material {
+    background: #dc3545;
+    color: white;
+    border: none;
+    border-radius: 50%;
+    width: 30px;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-size: 12px;
+    opacity: 0.7;
+}
+
+.btn-delete-material:hover {
+    background: #c82333;
+    opacity: 1;
+    transform: scale(1.1);
+}
+
+.btn-delete-material:focus {
+    outline: 2px solid #dc3545;
+    outline-offset: 2px;
+}
+
+.btn-delete-material:active {
+    transform: scale(0.95);
+}

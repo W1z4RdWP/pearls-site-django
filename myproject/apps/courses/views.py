@@ -380,12 +380,13 @@ class CourseDetailView(DetailView):
                     if final_quiz_passed:
                         show_final_quiz = True
                     
-                    # Получаем информацию о попытках для финального теста в рамках этого курса
+                    # Получаем информацию о попытках для финального теста в рамках этого курса (исключаем те, что помечены как исключенные из лимита)
                     failed_attempts = QuizResult.objects.filter(
                         user=user,
                         course=course,
                         quiz_title=course.final_quiz.name,
-                        passed=False
+                        passed=False,
+                        excluded_from_limit=False
                     ).count()
                     
                     # Проверяем реальное состояние блокировки теста
@@ -535,63 +536,6 @@ class CourseDetailView(DetailView):
         return None
 
 
-class CourseListView(ListView):
-    """
-    Отображает все курсы (траектории) доступные пользователю в шаблоне all_courses_list.html.
-    Передает в данный шаблон 2 списка с курсами:
-    1. Доступные (не пройденные) - статусы 'available' и 'started'
-    2. Пройденные (завершенные) - статус 'completed'
-    """
-    template_name = 'courses/all_courses_list.html'
-    context_object_name = 'courses'
-
-
-    def get_queryset(self):
-        # Пустой queryset, так как мы будем использовать get_context_data
-        return UserCourse.objects.none()
-
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        user = self.request.user
-        
-        if user.is_authenticated:
-            if user.is_staff or user.is_superuser:
-                # staff/superuser видят все курсы как доступные
-                all_courses = Course.objects.all()
-                available_courses = list(all_courses)
-                completed_courses_list = [uc.course for uc in UserCourse.objects.filter(user=user, status='completed')]
-                # Исключаем завершённые из доступных
-                available_courses = [c for c in available_courses if c not in completed_courses_list]
-            else:
-                # Используем менеджер для получения всех доступных курсов
-                all_available_courses = Course.objects.available_for_user(user)
-                
-                # Получаем статусы курсов пользователя
-                user_courses = UserCourse.objects.filter(user=user).select_related('course')
-                user_course_statuses = {uc.course_id: uc.status for uc in user_courses}
-                
-                # Разделяем на доступные и завершенные
-                available_courses = []
-                completed_courses_list = []
-                
-                for course in all_available_courses:
-                    status = user_course_statuses.get(course.id, 'available')
-                    if status == 'completed':
-                        completed_courses_list.append(course)
-                    else:
-                        available_courses.append(course)
-        else:
-            available_courses = []
-            completed_courses_list = []
-        
-        context.update({
-            'available_courses': available_courses,
-            'completed_courses_list': completed_courses_list,
-        })
-        return context
-
-
 
 
 class LessonDetailView(DetailView):
@@ -706,10 +650,17 @@ class LessonDetailView(DetailView):
         # Проверяем, является ли урок последним
         is_last_lesson = next_lesson is None
         
+        # Определяем следующий материал (урок или тест) после текущего урока
+        next_material = None
+        if not is_last_lesson:
+            # Используем логику из _get_next_material для определения следующего элемента
+            next_material = self._get_next_material_after_lesson(lesson, course, trajectory)
+        
         context.update({
             'course': course,
             'previous_lesson': previous_lesson,
             'next_lesson': next_lesson,
+            'next_material': next_material,
             'is_dental_checkup_course': is_dental_checkup_course,
             'is_first_lesson': is_first_lesson,
             'is_last_lesson': is_last_lesson,
@@ -720,8 +671,57 @@ class LessonDetailView(DetailView):
         
         return context
 
-
-
+    def _get_next_material_after_lesson(self, lesson, course, trajectory):
+        """
+        Находит следующий материал (урок или тест) после текущего урока
+        """
+        # Получаем все материалы курса в порядке
+        materials = course.get_course_materials()
+        
+        # Получаем завершенные уроки и тесты
+        completed_lessons_ids = set(
+            UserProgress.objects.filter(
+                user=self.request.user,
+                course=course,
+                completed=True
+            ).values_list('lesson_id', flat=True)
+        )
+        
+        completed_quizzes_ids = set(
+            QuizResult.objects.filter(
+                user=self.request.user,
+                course=course,
+                quiz_title__in=[quiz.name for quiz in course.quizzes],
+                passed=True
+            ).values_list('quiz_title', flat=True)
+        )
+        
+        # Если есть траектория, фильтруем материалы по траектории
+        if trajectory:
+            trajectory_lesson_ids = set(trajectory.lessons.values_list('id', flat=True))
+            materials = [m for m in materials if m['type'] == 'quiz' or m['id'] in trajectory_lesson_ids]
+        
+        # Находим текущий урок в списке материалов
+        current_lesson_index = None
+        for i, material in enumerate(materials):
+            if material['type'] == 'lesson' and material['id'] == lesson.id:
+                current_lesson_index = i
+                break
+        
+        if current_lesson_index is None:
+            return None
+        
+        # Ищем следующий незавершенный материал после текущего урока
+        for i in range(current_lesson_index + 1, len(materials)):
+            material = materials[i]
+            if material['type'] == 'lesson':
+                if material['id'] not in completed_lessons_ids:
+                    return material
+            elif material['type'] == 'quiz':
+                if material['title'] not in completed_quizzes_ids:
+                    return material
+        
+        return None
 
 
 class CreateCourseView(LoginRequiredMixin, UserPassesTestMixin, CreateView):
@@ -1109,6 +1109,22 @@ class DeleteLessonView(LoginRequiredMixin, UserPassesTestMixin, DeleteView):
             return redirect('home')
 
 
+@login_required
+@user_passes_test(is_admin, login_url='/')
+def remove_quiz_from_course(request, course_slug, quiz_id):
+    """Удаление теста из курса"""
+    course = get_object_or_404(Course, slug=course_slug)
+    quiz = get_object_or_404(Quiz, id=quiz_id)
+    
+    if request.method == 'POST':
+        # Удаляем связь между тестом и курсом
+        course.course_quizzes.remove(quiz)
+        return redirect('courses:course_detail', slug=course.slug)
+    
+    # GET запрос - редирект на страницу курса
+    return redirect('courses:course_detail', slug=course.slug)
+
+
 
 
 @login_required
@@ -1268,18 +1284,31 @@ def complete_lesson(request, course_slug, lesson_id):
     
     if all_completed:
         if course.final_quiz:
-            # Автоматически разблокируем финальный тест, если пользователь повторно завершил все уроки
-            unlocked = auto_unlock_quiz_if_lessons_completed(user, course)
-            if unlocked:
-                # Добавляем сообщение о разблокировке
-                from django.contrib import messages
-                messages.success(
-                    request, 
-                    f'Отлично! Вы повторно завершили все уроки курса. '
-                    f'Финальный тест "{course.final_quiz.name}" разблокирован! Можете пересдать его.'
-                )
+            # Проверяем, прошел ли пользователь уже финальный тест
+            final_quiz_passed = QuizResult.objects.filter(
+                user=user,
+                course=course,
+                quiz_title=course.final_quiz.name,
+                passed=True
+            ).exists()
             
-            return redirect('courses:redir_to_quiz', course_slug=course_slug)
+            if not final_quiz_passed:
+                # Финальный тест еще не пройден - показываем страницу с предложением пройти тест
+                return redirect('courses:redir_to_quiz', course_slug=course_slug)
+            else:
+                # Финальный тест уже пройден - просто обновляем статус курса
+                was_completed_before = user_course.status == 'completed'
+                if not was_completed_before:
+                    user_course.status = 'completed'
+                    user_course.save()
+                    award_dascoin_points(user, course.points, f"Завершение курса {course.title}")
+                    award_course_badge(user, course)
+                    # Выдаем сертификат за курс (если настроено)
+                    issue_certificate(user, course=course)
+                else:
+                    # Курс уже был завершен, просто обновляем статус
+                    user_course.status = 'completed'
+                    user_course.save()
         else:
             # Проверяем, был ли курс уже завершен ранее
             was_completed_before = user_course.status == 'completed'
@@ -1296,7 +1325,15 @@ def complete_lesson(request, course_slug, lesson_id):
                 user_course.save()
     
     # Проверяем параметры из модального окна
-    if request.POST.get('continue_learning'):
+    if request.POST.get('go_to_quiz'):
+        # Пользователь хочет перейти к тесту после завершения урока
+        quiz_id = request.POST.get('go_to_quiz')
+        from django.urls import reverse
+        from urllib.parse import urlencode
+        url = reverse('quizzes:quiz_start', kwargs={'quiz_id': quiz_id})
+        params = urlencode({'course_slug': course.slug})
+        return redirect(f'{url}?{params}')
+    elif request.POST.get('continue_learning'):
         # Пользователь хочет продолжить обучение - ищем следующий урок
         # Используем ту же логику, что и в LessonDetailView
         next_lesson = None

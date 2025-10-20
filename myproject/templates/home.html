@@ -167,7 +167,7 @@
     </div>
 </section>
 {% comment %} <br><br><br> {% endcomment %}
-<a href="{% url 'courses:course_detail_all' %}"><button class= "btn" id='show_all_courses_btn'>Все курсы</button></a>
+<a href="{% url 'courses:user_course_trajectory_list' %}"><button class= "btn" id='show_all_courses_btn'>Все курсы</button></a>
 <div id="courseCarousel" class="carousel slide" data-bs-ride="carousel">
     <div class="carousel-inner">
         {% for course in courses %}

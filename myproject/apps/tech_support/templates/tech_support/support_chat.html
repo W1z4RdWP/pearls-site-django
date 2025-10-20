@@ -14,31 +14,41 @@
         color: #6c757d;
         font-size: 0.9rem;
     }
-    /* Шаги */
-    .stepper { display: flex; gap: 10px; align-items: center; margin-bottom: 1rem; }
-    .step { display: inline-flex; align-items: center; justify-content: center; width: 32px; height: 32px; border-radius: 50%; background: #e9ecef; color: #495057; font-weight: 600; }
-    .step.active { background: #0d6efd; color: #fff; }
-    .step-line { height: 2px; flex: 1; background: #e9ecef; }
-    .step-line.active { background: #0d6efd; }
-
-    /* Карточки выбора типа */
-    .type-card { cursor: pointer; border: 2px solid transparent; border-radius: 12px; padding: 16px; transition: .15s ease; height: 100%; }
-    .type-card:hover { border-color: #0d6efd; box-shadow: 0 6px 20px rgba(13,110,253,.15); }
-    .type-card.selected { border-color: #0d6efd; background: #f0f6ff; }
-
-    /* Скрытие системного селекта типа */
-    .hidden-field { display: none !important; }
-
-    /* Секции второго шага */
-    .step-section { display: none; }
-    .step-section.active { display: block; }
+    .file-input-wrapper {
+        position: relative;
+        display: inline-block;
+        width: 100%;
+    }
+    .file-input-wrapper input[type=file] {
+        position: absolute;
+        left: -9999px;
+    }
+    .file-input-label {
+        display: block;
+        padding: 12px 16px;
+        background: #f8f9fa;
+        border: 2px dashed #dee2e6;
+        border-radius: 8px;
+        text-align: center;
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+    .file-input-label:hover {
+        background: #e9ecef;
+        border-color: #0d6efd;
+    }
+    .file-input-label i {
+        font-size: 1.5rem;
+        color: #6c757d;
+        margin-bottom: 8px;
+    }
 </style>
 {% endblock %}
 
 {% block content %}
 <div class="container-fluid py-4">
     <div class="row justify-content-center">
-        <div class="col-lg-10">
+        <div class="col-lg-8">
             <div class="d-flex justify-content-between align-items-center mb-4">
                 <h1 class="h3 mb-0">
                     <i class="fas fa-life-ring me-2"></i>
@@ -59,141 +69,59 @@
             </div>
 
             <div class="support-form-card p-4">
-                <div class="stepper" id="stepper">
-                    <div class="step" data-step="1">1</div>
-                    <div class="step-line" id="line12"></div>
-                    <div class="step" data-step="2">2</div>
-                </div>
-
-                <form method="post" novalidate id="ticketForm">
+                <form method="post" enctype="multipart/form-data" novalidate>
                     {% csrf_token %}
 
                     {% if form.non_field_errors %}
                         <div class="alert alert-danger">{{ form.non_field_errors }}</div>
                     {% endif %}
 
-                    <!-- Шаг 1: выбор типа обращения -->
-                    <div id="step1" class="step-section active">
-                        <h5 class="mb-3">Шаг 1. Выберите тип обращения</h5>
-                        <div class="row g-3">
-                            <div class="col-md-6 col-lg-4">
-                                <div class="type-card h-100" data-type-value="academic">
-                                    <div class="d-flex align-items-start gap-2">
-                                        <i class="fas fa-graduation-cap text-primary fs-4"></i>
-                                        <div>
-                                            <div class="fw-semibold">Учебные вопросы</div>
-                                            <div class="text-muted small">Расписание, доступ к курсам/урокам и т.п.</div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="col-md-6 col-lg-4">
-                                <div class="type-card h-100" data-type-value="technical">
-                                    <div class="d-flex align-items-start gap-2">
-                                        <i class="fas fa-bug text-danger fs-4"></i>
-                                        <div>
-                                            <div class="fw-semibold">Технические проблемы</div>
-                                            <div class="text-muted small">Ошибки сайта, ПО, интернет</div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="col-md-6 col-lg-4">
-                                <div class="type-card h-100" data-type-value="administrative">
-                                    <div class="d-flex align-items-start gap-2">
-                                        <i class="fas fa-file-signature text-warning fs-4"></i>
-                                        <div>
-                                            <div class="fw-semibold">Административные запросы</div>
-                                            <div class="text-muted small">Документы, сертификаты, оплаты</div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="col-md-6 col-lg-4">
-                                <div class="type-card h-100" data-type-value="suggestions">
-                                    <div class="d-flex align-items-start gap-2">
-                                        <i class="fas fa-lightbulb text-success fs-4"></i>
-                                        <div>
-                                            <div class="fw-semibold">Предложения/замечания</div>
-                                            <div class="text-muted small">Идеи по улучшению</div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="col-md-6 col-lg-4">
-                                <div class="type-card h-100" data-type-value="consultation">
-                                    <div class="d-flex align-items-start gap-2">
-                                        <i class="fas fa-chalkboard-teacher text-info fs-4"></i>
-                                        <div>
-                                            <div class="fw-semibold">Запрос на консультацию</div>
-                                            <div class="text-muted small">Консультация с преподавателем</div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
+                    <div class="row g-3">
+                        <!-- Заголовок -->
+                        <div class="col-12">
+                            <label class="form-label">Заголовок</label>
+                            {{ form.title }}
+                            {% if form.title.errors %}
+                                <div class="text-danger small">{{ form.title.errors|striptags }}</div>
+                            {% else %}
+                                <div class="form-help">Например: «Не открывается урок №3»</div>
+                            {% endif %}
                         </div>
-                        <div class="mt-4 d-flex justify-content-end">
-                            <button type="button" id="toStep2" class="btn btn-primary" disabled>
-                                Далее
-                                <i class="fas fa-arrow-right ms-2"></i>
-                            </button>
+
+                        <!-- Описание -->
+                        <div class="col-12">
+                            <label class="form-label">Описание проблемы</label>
+                            {{ form.description }}
+                            {% if form.description.errors %}
+                                <div class="text-danger small">{{ form.description.errors|striptags }}</div>
+                            {% else %}
+                                <div class="form-help">Добавьте скриншоты/детали позже в самом тикете, если потребуется.</div>
+                            {% endif %}
+                        </div>
+
+                        <!-- Вложения -->
+                        <div class="col-12">
+                            <label class="form-label">Вложение (опционально)</label>
+                            <div class="file-input-wrapper">
+                                <label for="{{ form.attachments.id_for_label }}" class="file-input-label">
+                                    <i class="fas fa-cloud-upload-alt"></i>
+                                    <div>Нажмите для выбора файла или перетащите его сюда</div>
+                                    <small class="text-muted">JPG, PNG, PDF, DOC, TXT и другие (максимум 10MB)</small>
+                                </label>
+                                {{ form.attachments }}
+                            </div>
+                            {% if form.attachments.errors %}
+                                <div class="text-danger small mt-2">{{ form.attachments.errors|striptags }}</div>
+                            {% else %}
+                                <div class="form-help mt-2">{{ form.attachments.help_text }}</div>
+                            {% endif %}
                         </div>
                     </div>
 
-                    <!-- Шаг 2: основная форма (динамическая) -->
-                    <div id="step2" class="step-section">
-                        <div class="d-flex justify-content-between align-items-center mb-3">
-                            <h5 class="mb-0" id="step2Title">Шаг 2. Заполните детали</h5>
-                            <div class="d-flex gap-2">
-                                <button type="button" class="btn btn-outline-secondary" id="backToStep1">
-                                    <i class="fas fa-arrow-left me-1"></i>Назад
-                                </button>
-                            </div>
-                        </div>
-
-                        <div class="row g-3">
-                            <!-- Заголовок -->
-                            <div class="col-md-8">
-                                <label class="form-label" id="labelTitle">Заголовок</label>
-                                {{ form.title }}
-                                {% if form.title.errors %}
-                                    <div class="text-danger small">{{ form.title.errors|striptags }}</div>
-                                {% else %}
-                                    <div class="form-help" id="helpTitle">Например: «Не открывается урок №3»</div>
-                                {% endif %}
-                            </div>
-
-                            <!-- Тип обращения (скрытый системный select) -->
-                            <div class="col-md-4 hidden-field">
-                                <label class="form-label">Тип обращения</label>
-                                {{ form.ticket_type }}
-                                {% if form.ticket_type.errors %}
-                                    <div class="text-danger small">{{ form.ticket_type.errors|striptags }}</div>
-                                {% endif %}
-                            </div>
-
-
-
-                            <!-- Описание -->
-                            <div class="col-12">
-                                <label class="form-label" id="labelDescription">Описание проблемы</label>
-                                {{ form.description }}
-                                {% if form.description.errors %}
-                                    <div class="text-danger small">{{ form.description.errors|striptags }}</div>
-                                {% else %}
-                                    <div class="form-help" id="helpDescription">Добавьте скриншоты/детали позже в самом тикете, если потребуется.</div>
-                                {% endif %}
-                            </div>
-
-                            <!-- Дополнительные поля (динамические, не из модели) -->
-                            <div class="col-12" id="extraFieldsContainer"></div>
-                        </div>
-
-                        <div class="d-flex justify-content-end mt-4">
-                            <button type="submit" class="btn btn-primary" id="submitBtn">
-                                <i class="fas fa-paper-plane me-2"></i>Отправить обращение
-                            </button>
-                        </div>
+                    <div class="d-flex justify-content-end mt-4">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-paper-plane me-2"></i>Отправить обращение
+                        </button>
                     </div>
                 </form>
             </div>
@@ -202,176 +130,55 @@
 </div>
 
 <script>
-(function() {
-    const step1 = document.getElementById('step1');
-    const step2 = document.getElementById('step2');
-    const toStep2Btn = document.getElementById('toStep2');
-    const backBtn = document.getElementById('backToStep1');
-    const stepperSteps = document.querySelectorAll('.stepper .step');
-    const line12 = document.getElementById('line12');
-
-    const typeCards = document.querySelectorAll('.type-card');
-    const ticketTypeSelect = document.getElementById('id_ticket_type');
-
-    const labelTitle = document.getElementById('labelTitle');
-    const helpTitle = document.getElementById('helpTitle');
-    const labelDescription = document.getElementById('labelDescription');
-    const helpDescription = document.getElementById('helpDescription');
-    const step2Title = document.getElementById('step2Title');
-    const extraFieldsContainer = document.getElementById('extraFieldsContainer');
-    const form = document.getElementById('ticketForm');
-
-    const typeConfig = {
-        academic: {
-            stepTitle: 'Шаг 2. Учебные вопросы',
-            title: 'Заголовок',
-            titleHelp: 'Например: «Не открывается урок №3»',
-            desc: 'Описание вопроса/проблемы',
-            descHelp: 'Курс, номер урока, что именно не получается'
-        },
-        technical: {
-            stepTitle: 'Шаг 2. Техническая проблема',
-            title: 'Краткое описание неисправности',
-            titleHelp: 'Например: «Ошибка 500 при открытии профиля»',
-            desc: 'Подробное описание неисправности',
-            descHelp: 'Что делали до ошибки, что ожидали, браузер/ОС',
-            extra: `
-                <div class="mb-2">
-                    <label class="form-label">Шаги воспроизведения (опционально)</label>
-                    <textarea class="form-control" rows="3" id="extra_repro" placeholder="1) ... 2) ... 3) ..."></textarea>
-                </div>
-            `
-        },
-        administrative: {
-            stepTitle: 'Шаг 2. Административный запрос',
-            title: 'Тема запроса',
-            titleHelp: 'Например: «Нужна справка об обучении»',
-            desc: 'Описание запроса',
-            descHelp: 'Какие документы/данные нужны и к какому курсу'
-        },
-        suggestions: {
-            stepTitle: 'Шаг 2. Предложения и замечания',
-            title: 'Коротко о предложении/замечании',
-            titleHelp: 'Например: «Улучшить поиск по курсам»',
-            desc: 'Подробности',
-            descHelp: 'Что именно улучшить и зачем'
-        },
-        consultation: {
-            stepTitle: 'Шаг 2. Запрос на консультацию',
-            title: 'Тема консультации',
-            titleHelp: 'Например: «Вопрос по ДЗ модуля 2»',
-            desc: 'Комментарий для преподавателя',
-            descHelp: 'Кратко опишите вопрос',
-            extra: `
-                <div class="row g-3">
-                    <div class="col-md-6">
-                        <label class="form-label">Преподаватель (ФИО, если известно)</label>
-                        <input type="text" id="extra_teacher" class="form-control" placeholder="Иванов И.И.">
-                    </div>
-                    <div class="col-md-6">
-                        <label class="form-label">Желаемые дата и время</label>
-                        <input type="datetime-local" id="extra_datetime" class="form-control">
-                    </div>
-                    <div class="col-md-6">
-                        <label class="form-label">Формат</label>
-                        <select id="extra_format" class="form-select">
-                            <option value="Онлайн">Онлайн</option>
-                            <option value="Оффлайн">Оффлайн</option>
-                        </select>
-                    </div>
-                </div>
-            `
-        }
-    };
-
-
-
-    function setStep(n) {
-        if (n === 1) {
-            step1.classList.add('active');
-            step2.classList.remove('active');
-            stepperSteps[0].classList.add('active');
-            stepperSteps[1].classList.remove('active');
-            line12.classList.remove('active');
-        } else {
-            step1.classList.remove('active');
-            step2.classList.add('active');
-            stepperSteps[0].classList.add('active');
-            stepperSteps[1].classList.add('active');
-            line12.classList.add('active');
-        }
-    }
-
-    function applyTypeUI(typeValue) {
-        const cfg = typeConfig[typeValue] || typeConfig.academic;
-        step2Title.textContent = cfg.stepTitle;
-        labelTitle.textContent = cfg.title;
-        helpTitle.textContent = cfg.titleHelp;
-        labelDescription.textContent = cfg.desc;
-        helpDescription.textContent = cfg.descHelp;
-        extraFieldsContainer.innerHTML = cfg.extra || '';
-    }
-
-    // Выбор карточки типа
-    typeCards.forEach(card => {
-        card.addEventListener('click', () => {
-            typeCards.forEach(c => c.classList.remove('selected'));
-            card.classList.add('selected');
-            const value = card.getAttribute('data-type-value');
-            if (ticketTypeSelect) {
-                ticketTypeSelect.value = value;
+document.addEventListener('DOMContentLoaded', function() {
+    const fileInput = document.getElementById('{{ form.attachments.id_for_label }}');
+    const fileLabel = document.querySelector('.file-input-label');
+    
+    if (fileInput && fileLabel) {
+        // Обработка выбора файла
+        fileInput.addEventListener('change', function() {
+            const file = this.files[0];
+            if (file) {
+                fileLabel.innerHTML = `
+                    <i class="fas fa-check-circle text-success"></i>
+                    <div>Выбран файл: ${file.name}</div>
+                    <small class="text-muted">Размер: ${(file.size / 1024 / 1024).toFixed(2)} MB</small>
+                `;
+                fileLabel.style.borderColor = '#28a745';
+                fileLabel.style.backgroundColor = '#d4edda';
+            } else {
+                fileLabel.innerHTML = `
+                    <i class="fas fa-cloud-upload-alt"></i>
+                    <div>Нажмите для выбора файла или перетащите его сюда</div>
+                    <small class="text-muted">JPG, PNG, PDF, DOC, TXT и другие (максимум 10MB)</small>
+                `;
+                fileLabel.style.borderColor = '#dee2e6';
+                fileLabel.style.backgroundColor = '#f8f9fa';
             }
-            toStep2Btn.disabled = false;
         });
-    });
-
-    // Переходы между шагами
-    toStep2Btn.addEventListener('click', () => {
-        const value = ticketTypeSelect ? ticketTypeSelect.value : '';
-        applyTypeUI(value);
-        setStep(2);
-    });
-
-    backBtn.addEventListener('click', () => setStep(1));
-
-    // Если сервер вернул ошибки или тип уже выбран (ре-рендер формы) — сразу открыть шаг 2
-    window.addEventListener('DOMContentLoaded', () => {
-        const preset = ticketTypeSelect ? ticketTypeSelect.value : '';
-        if (preset) {
-            // отметим карточку визуально, если есть
-            const preCard = document.querySelector(`.type-card[data-type-value="${preset}"]`);
-            if (preCard) { preCard.classList.add('selected'); toStep2Btn.disabled = false; }
-            applyTypeUI(preset);
-            setStep(2);
-        } else {
-            setStep(1);
-        }
-    });
-
-    // Перед отправкой: смикшировать доп. поля в описание
-    form.addEventListener('submit', () => {
-        const type = ticketTypeSelect ? ticketTypeSelect.value : '';
-        const descEl = document.getElementById('id_description');
-        if (!descEl) return;
-        let additions = '';
-        if (type === 'consultation') {
-            const t = document.getElementById('extra_teacher')?.value?.trim();
-            const dt = document.getElementById('extra_datetime')?.value?.trim();
-            const f = document.getElementById('extra_format')?.value?.trim();
-            const parts = [];
-            if (t) parts.push(`Преподаватель: ${t}`);
-            if (dt) parts.push(`Желаемые дата/время: ${dt}`);
-            if (f) parts.push(`Формат: ${f}`);
-            if (parts.length) additions += `\n\n${parts.join('\n')}`;
-        }
-        if (type === 'technical') {
-            const repro = document.getElementById('extra_repro')?.value?.trim();
-            if (repro) additions += `\n\nШаги воспроизведения:\n${repro}`;
-        }
-        if (additions) {
-            descEl.value = `${descEl.value}${additions}`.trim();
-        }
-    });
-})();
+        
+        // Обработка drag & drop
+        fileLabel.addEventListener('dragover', function(e) {
+            e.preventDefault();
+            this.style.borderColor = '#0d6efd';
+            this.style.backgroundColor = '#e7f3ff';
+        });
+        
+        fileLabel.addEventListener('dragleave', function(e) {
+            e.preventDefault();
+            this.style.borderColor = '#dee2e6';
+            this.style.backgroundColor = '#f8f9fa';
+        });
+        
+        fileLabel.addEventListener('drop', function(e) {
+            e.preventDefault();
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                fileInput.files = files;
+                fileInput.dispatchEvent(new Event('change'));
+            }
+        });
+    }
+});
 </script>
 {% endblock %}
