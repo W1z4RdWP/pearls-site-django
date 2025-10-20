@@ -24,7 +24,7 @@
     <!-- Local -->
     <div class="video-instruction">
       <video controls autoplay muted loop>
-        <source src="{% static 'courses/video/metrics_video.mp4' %}" type="video/mp4">
+        <source src="{% if request.user.profile.country == 'Казахстан' %}{% static 'courses/video/metrics_video_kz.mp4' %}{% else %}{% static 'courses/video/metrics_video.mp4' %}{% endif %}" type="video/mp4">
         Ваш браузер не поддерживает воспроизведение видео.
       </video>
     </div>
