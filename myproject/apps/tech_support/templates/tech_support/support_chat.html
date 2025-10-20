@@ -14,6 +14,34 @@
         color: #6c757d;
         font-size: 0.9rem;
     }
+    .file-input-wrapper {
+        position: relative;
+        display: inline-block;
+        width: 100%;
+    }
+    .file-input-wrapper input[type=file] {
+        position: absolute;
+        left: -9999px;
+    }
+    .file-input-label {
+        display: block;
+        padding: 12px 16px;
+        background: #f8f9fa;
+        border: 2px dashed #dee2e6;
+        border-radius: 8px;
+        text-align: center;
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+    .file-input-label:hover {
+        background: #e9ecef;
+        border-color: #0d6efd;
+    }
+    .file-input-label i {
+        font-size: 1.5rem;
+        color: #6c757d;
+        margin-bottom: 8px;
+    }
 </style>
 {% endblock %}
 
@@ -41,7 +69,7 @@
             </div>
 
             <div class="support-form-card p-4">
-                <form method="post" novalidate>
+                <form method="post" enctype="multipart/form-data" novalidate>
                     {% csrf_token %}
 
                     {% if form.non_field_errors %}
@@ -70,6 +98,24 @@
                                 <div class="form-help">Добавьте скриншоты/детали позже в самом тикете, если потребуется.</div>
                             {% endif %}
                         </div>
+
+                        <!-- Вложения -->
+                        <div class="col-12">
+                            <label class="form-label">Вложение (опционально)</label>
+                            <div class="file-input-wrapper">
+                                <label for="{{ form.attachments.id_for_label }}" class="file-input-label">
+                                    <i class="fas fa-cloud-upload-alt"></i>
+                                    <div>Нажмите для выбора файла или перетащите его сюда</div>
+                                    <small class="text-muted">JPG, PNG, PDF, DOC, TXT и другие (максимум 10MB)</small>
+                                </label>
+                                {{ form.attachments }}
+                            </div>
+                            {% if form.attachments.errors %}
+                                <div class="text-danger small mt-2">{{ form.attachments.errors|striptags }}</div>
+                            {% else %}
+                                <div class="form-help mt-2">{{ form.attachments.help_text }}</div>
+                            {% endif %}
+                        </div>
                     </div>
 
                     <div class="d-flex justify-content-end mt-4">
@@ -82,4 +128,57 @@
         </div>
     </div>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const fileInput = document.getElementById('{{ form.attachments.id_for_label }}');
+    const fileLabel = document.querySelector('.file-input-label');
+    
+    if (fileInput && fileLabel) {
+        // Обработка выбора файла
+        fileInput.addEventListener('change', function() {
+            const file = this.files[0];
+            if (file) {
+                fileLabel.innerHTML = `
+                    <i class="fas fa-check-circle text-success"></i>
+                    <div>Выбран файл: ${file.name}</div>
+                    <small class="text-muted">Размер: ${(file.size / 1024 / 1024).toFixed(2)} MB</small>
+                `;
+                fileLabel.style.borderColor = '#28a745';
+                fileLabel.style.backgroundColor = '#d4edda';
+            } else {
+                fileLabel.innerHTML = `
+                    <i class="fas fa-cloud-upload-alt"></i>
+                    <div>Нажмите для выбора файла или перетащите его сюда</div>
+                    <small class="text-muted">JPG, PNG, PDF, DOC, TXT и другие (максимум 10MB)</small>
+                `;
+                fileLabel.style.borderColor = '#dee2e6';
+                fileLabel.style.backgroundColor = '#f8f9fa';
+            }
+        });
+        
+        // Обработка drag & drop
+        fileLabel.addEventListener('dragover', function(e) {
+            e.preventDefault();
+            this.style.borderColor = '#0d6efd';
+            this.style.backgroundColor = '#e7f3ff';
+        });
+        
+        fileLabel.addEventListener('dragleave', function(e) {
+            e.preventDefault();
+            this.style.borderColor = '#dee2e6';
+            this.style.backgroundColor = '#f8f9fa';
+        });
+        
+        fileLabel.addEventListener('drop', function(e) {
+            e.preventDefault();
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                fileInput.files = files;
+                fileInput.dispatchEvent(new Event('change'));
+            }
+        });
+    }
+});
+</script>
 {% endblock %}

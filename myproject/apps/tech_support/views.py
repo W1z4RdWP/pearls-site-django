@@ -12,7 +12,7 @@ from datetime import timedelta, datetime
 from django.utils.dateparse import parse_date
 
 from .forms import TicketCreateForm, TicketCommentForm, TicketStaffUpdateForm, TicketRatingForm
-from .models import Ticket, TicketStatus, TicketComment, TicketCategory, TicketPriority
+from .models import Ticket, TicketStatus, TicketComment, TicketCategory, TicketPriority, TicketAttachment
 
 
 class StaffRequiredMixin(UserPassesTestMixin):
@@ -68,6 +68,16 @@ class TicketCreateView(CreateView):
         ticket.ticket_type = 'technical'  # По умолчанию техническая проблема
             
         ticket.save()
+        
+        # Обрабатываем вложение
+        if 'attachments' in self.request.FILES:
+            file = self.request.FILES['attachments']
+            TicketAttachment.objects.create(
+                ticket=ticket,
+                file=file,
+                filename=file.name
+            )
+        
         messages.success(self.request, 'Тикет создан')
         return redirect('tech_support:ticket_detail', pk=ticket.pk)
 
@@ -204,6 +214,7 @@ class TicketDetailView(DetailView):
         if (user == ticket.created_by) and is_closed and not ticket.rating:
             context['rating_form'] = TicketRatingForm(instance=ticket)
         context['comments'] = TicketComment.objects.filter(ticket=ticket).order_by('created_at')
+        context['attachments'] = TicketAttachment.objects.filter(ticket=ticket).order_by('uploaded_at')
         return context
 
 
