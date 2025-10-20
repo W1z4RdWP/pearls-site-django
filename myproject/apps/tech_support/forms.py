@@ -1,6 +1,6 @@
 from django import forms
 from django.contrib.auth.models import User
-from .models import Ticket, TicketComment, TicketAttachment
+from .models import Ticket, TicketComment, TicketAttachment, TicketStatus, TicketPriority
 
 
 class TicketCreateForm(forms.ModelForm):
@@ -9,8 +9,6 @@ class TicketCreateForm(forms.ModelForm):
         fields = [
             'title',
             'description',
-            'ticket_type',
-            'is_anonymous',
         ]
         widgets = {
             'title': forms.TextInput(attrs={
@@ -22,8 +20,6 @@ class TicketCreateForm(forms.ModelForm):
                 'rows': 6,
                 'placeholder': 'Подробно опишите проблему, шаги воспроизведения, ожидаемый результат и т.п.',
             }),
-            'ticket_type': forms.Select(attrs={'class': 'form-select'}),
-            'is_anonymous': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
         }
 
     def clean_title(self):

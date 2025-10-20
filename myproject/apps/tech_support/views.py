@@ -8,7 +8,8 @@ from django.views.generic import CreateView, DetailView, ListView, View
 from django.http import JsonResponse
 from django.contrib.auth.decorators import login_required
 from django.db.models import Count, Avg, Q
-from datetime import timedelta
+from datetime import timedelta, datetime
+from django.utils.dateparse import parse_date
 
 from .forms import TicketCreateForm, TicketCommentForm, TicketStaffUpdateForm, TicketRatingForm
 from .models import Ticket, TicketStatus, TicketComment, TicketCategory, TicketPriority
@@ -43,34 +44,28 @@ class TicketCreateView(CreateView):
             return self.form_invalid(form)
         ticket.status = default_status
         
-        # Автоматическая установка категории по типу тикета
-        ticket_type = ticket.ticket_type
-        type_to_category_name = {
-            'academic': 'Учебные вопросы',
-            'technical': 'Технические проблемы', 
-            'administrative': 'Административные запросы',
-            'suggestions': 'Предложения/замечания',
-            'consultation': 'Консультации'
-        }
-        
-        category_name = type_to_category_name.get(ticket_type)
-        if category_name:
-            category = TicketCategory.objects.filter(name=category_name).first()
-            if category:
-                ticket.category = category
-            else:
-                # Если категория не найдена, используем первую доступную
-                ticket.category = TicketCategory.objects.first()
+        # Автоматическая установка категории "Не распределено"
+        unassigned_category = TicketCategory.objects.filter(name='Не распределено').first()
+        if unassigned_category:
+            ticket.category = unassigned_category
         else:
+            # Если категория "Не распределено" не найдена, используем первую доступную
             ticket.category = TicketCategory.objects.first()
             
         # Автоматическая установка высокого приоритета
-        high_priority = TicketPriority.objects.order_by('-level').first()  # Самый высокий приоритет
+        high_priority = TicketPriority.objects.filter(name='Высокий').first()
+        if not high_priority:
+            # Если приоритет "Высокий" не найден, берем самый высокий по уровню
+            high_priority = TicketPriority.objects.order_by('-level').first()
+        
         if high_priority:
             ticket.priority = high_priority
         else:
             # Если приоритеты не настроены, используем первый доступный
             ticket.priority = TicketPriority.objects.first()
+            
+        # Устанавливаем тип тикета по умолчанию
+        ticket.ticket_type = 'technical'  # По умолчанию техническая проблема
             
         ticket.save()
         messages.success(self.request, 'Тикет создан')
