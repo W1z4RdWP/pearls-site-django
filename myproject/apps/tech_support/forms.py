@@ -7,7 +7,7 @@ class TicketCreateForm(forms.ModelForm):
     attachments = forms.FileField(
         widget=forms.FileInput(attrs={
             'class': 'form-control',
-            'accept': '.jpg,.jpeg,.png,.gif,.pdf,.doДоc,.docx,.txt,.log'
+            'accept': '.jpg,.jpeg,.png,.gif,.pdf,.doLc,.docx,.txt,.log'
         }),
         required=False,
         help_text='Можно прикрепить файл (максимум 10MB). Для загрузки нескольких файлов отправьте тикет и добавьте остальные файлы в комментариях.'

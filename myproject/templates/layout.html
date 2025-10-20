@@ -391,6 +391,68 @@
             }, 30000);
         });
     </script>
+    
+    <!-- JavaScript для модального окна первого входа -->
+    <script>
+        $(document).ready(function() {
+            // Проверяем, нужно ли показать модальное окно
+            {% if request.session.show_intro_modal %}
+                // Показываем модальное окно
+                $('#introModal').modal('show');
+                
+                // Убираем флаг из сессии после показа
+                $.ajax({
+                    url: '{% url "users:clear_intro_modal_flag" %}',
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': $('input[name=csrfmiddlewaretoken]').val() || $('meta[name=csrf-token]').attr('content')
+                    }
+                });
+            {% endif %}
+            
+            // Обработчик закрытия модального окна - останавливаем видео
+            $('#introModal').on('hidden.bs.modal', function () {
+                var video = $(this).find('video')[0];
+                if (video) {
+                    video.pause();
+                    video.currentTime = 0; // Сбрасываем время воспроизведения
+                }
+            });
+            
+            // Обработчик нажатия кнопки закрытия - останавливаем видео
+            $('#introModal .btn-close, #introModal .btn-primary').on('click', function() {
+                var video = $('#introModal video')[0];
+                if (video) {
+                    video.pause();
+                    video.currentTime = 0;
+                }
+            });
+        });
+    </script>
+    {% endif %}
+
+    <!-- Модальное окно для первого входа -->
+    {% if user.is_authenticated %}
+    <div class="modal fade" id="introModal" tabindex="-1" aria-labelledby="introModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="introModalLabel">Добро пожаловать!</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body text-center">
+                    <p class="mb-3">Посмотрите это короткое видео, чтобы узнать больше о платформе:</p>
+                    <video controls class="w-100" style="max-height: 400px;">
+                        <source src="{% static 'global/video/user_intro.mp4' %}" type="video/mp4">
+                        Ваш браузер не поддерживает видео.
+                    </video>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-primary" data-bs-dismiss="modal">Понятно</button>
+                </div>
+            </div>
+        </div>
+    </div>
     {% endif %}
 </body>
 </html>
