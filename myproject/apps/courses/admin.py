@@ -54,7 +54,7 @@ class CourseAdmin(admin.ModelAdmin):
 @admin.register(Lesson)
 class LessonAdmin(admin.ModelAdmin):
     """Админка `Lesson` с отображением курсов и фильтрами."""
-    list_display = ['title', 'order', 'get_courses', 'category']
+    list_display = ['title', 'order', 'required_time', 'get_courses', 'category']
     list_filter = ['category', 'courses']
     search_fields = ['title', 'courses__title']
     filter_horizontal = ['courses']

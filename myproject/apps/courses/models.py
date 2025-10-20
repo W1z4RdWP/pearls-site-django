@@ -227,6 +227,16 @@ class Course(models.Model):
         materials.sort(key=lambda x: x['order'])
         return materials
 
+    @property
+    def total_time_minutes(self):
+        """Возвращает общее время курса в минутах (сумма времени всех уроков)."""
+        return sum(lesson.required_time for lesson in self.lessons)
+
+    @property
+    def total_time_hours(self):
+        """Возвращает общее время курса в часах (округлено до 1 знака после запятой)."""
+        return round(self.total_time_minutes / 60, 1)
+
     def save(self, *args, **kwargs):
         """Автогенерирует уникальный `slug` при первом сохранении."""
         if not self.slug:  # Генерируем slug только если он пустой
@@ -274,6 +284,7 @@ class Lesson(models.Model):
     )
     created_at = models.DateTimeField(auto_now_add=True, verbose_name="Дата создания")
     points = models.PositiveIntegerField(default=10, verbose_name="Количество DASCOIN за прохождение урока")
+    required_time = models.PositiveIntegerField(default=7, verbose_name="Необходимое время (минуты)", help_text="Время в минутах, необходимое для прохождения урока")
     
     # Связь many-to-many с курсами для гибкости
     courses = models.ManyToManyField(

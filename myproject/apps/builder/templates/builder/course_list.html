@@ -173,7 +173,7 @@
                                             <div class="course-info flex-grow-1">
                                                 <h6 class="course-title mb-1">{{ course.title }}</h6>
                                                 <small class="text-muted">
-                                                    {{ course.lessons.count }} уроков • {{ course.author.get_full_name|default:course.author.username }}
+                                                    {{ course.lessons.count }} уроков • {{ course.total_time_hours }}ч • {{ course.author.get_full_name|default:course.author.username }}
                                                 </small>
                                             </div>
                                         </div>
