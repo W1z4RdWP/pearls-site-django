@@ -687,6 +687,14 @@ def get_finish(request) -> HttpResponse:
                 quiz_lock.is_locked = True
                 quiz_lock.locked_at = timezone.now()
                 quiz_lock.save()
+            
+            # Списываем 15 баллов DASCOIN за блокировку теста
+            from gamification.utils import deduct_dascoin_points
+            deduct_dascoin_points(
+                user=request.user,
+                points=15,
+                reason=f"Блокировка теста '{quiz.name}' за неуспешное прохождение"
+            )
 
     # --- СОХРАНЯЕМ ОТВЕТЫ ПОЛЬЗОВАТЕЛЯ ---
     quiz_answers = request.session.get('quiz_answers', {})
