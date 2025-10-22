@@ -2493,7 +2493,6 @@ def export_metrics_to_excel(request, submission_id):
         # Пробуем разные варианты заголовков
         response['Content-Disposition'] = f'attachment; filename="{filename}"'
         response['Content-Type'] = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-        response['Content-Length'] = str(len(filename))
         
         wb.save(response)
         return response
