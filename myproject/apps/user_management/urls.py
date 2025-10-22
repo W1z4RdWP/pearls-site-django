@@ -37,5 +37,6 @@ urlpatterns = [
 
     # Проверка заданий
     path('homework-check-dashboard/', views.HomeworkCheckDashboardView.as_view(), name='homework_check_dashboard'),
+    path('users-with-learning/', views.UsersWithLearningView.as_view(), name='users_with_learning'),
 
 ]

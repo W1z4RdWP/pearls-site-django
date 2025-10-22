@@ -1743,3 +1743,142 @@ class HomeworkCheckDashboardView(LoginRequiredMixin, UserPassesTestMixin, Templa
         
         return context
 
+
+class UsersWithLearningView(LoginRequiredMixin, UserPassesTestMixin, ListView):
+    """
+    Страница списка пользователей с назначенным обучением
+    """
+    model = User
+    template_name = 'user_management/users_with_learning.html'
+    context_object_name = 'users'
+    paginate_by = 20
+    
+    def test_func(self):
+        """Проверяет права доступа"""
+        if not self.request.user.is_authenticated:
+            return False
+        
+        # Суперпользователи и персонал имеют доступ
+        if self.request.user.is_superuser or self.request.user.is_staff:
+            return True
+        
+        # Наставники имеют доступ
+        try:
+            return self.request.user.profile.is_mentor_user
+        except:
+            return False
+    
+    def get_queryset(self):
+        """Возвращает пользователей с назначенным обучением"""
+        from courses.models import Course
+        from myapp.models import UserCourse
+        
+        # Проверяем, является ли пользователь суперпользователем или стафом
+        is_admin = self.request.user.is_superuser or self.request.user.is_staff
+        
+        if is_admin:
+            # Для администраторов - все пользователи с назначенными курсами
+            queryset = User.objects.filter(
+                started_courses__isnull=False
+            ).distinct().select_related('profile').prefetch_related('groups')
+        else:
+            # Для наставников - только пользователи из их групп с назначенными курсами
+            mentor_groups = self.request.user.groups.all()
+            if mentor_groups.exists():
+                queryset = User.objects.filter(
+                    groups__in=mentor_groups,
+                    started_courses__isnull=False
+                ).distinct().select_related('profile').prefetch_related('groups')
+            else:
+                queryset = User.objects.none()
+        
+        # Поиск по ФИО
+        search_query = self.request.GET.get('search')
+        if search_query:
+            queryset = queryset.filter(
+                Q(first_name__icontains=search_query) |
+                Q(last_name__icontains=search_query) |
+                Q(profile__middle_name__icontains=search_query)
+            )
+        
+        # Фильтр по группе
+        group_filter = self.request.GET.get('group')
+        if group_filter:
+            queryset = queryset.filter(groups__id=group_filter)
+        
+        queryset = queryset.order_by('last_name', 'first_name')
+        
+        # Добавляем информацию о статусе курсов для каждого пользователя
+        for user in queryset:
+            user_courses = user.started_courses.all()
+            total_courses = user_courses.count()
+            completed_courses = user_courses.filter(status='completed').count()
+            
+            # Добавляем атрибуты для использования в template
+            user.total_courses = total_courses
+            user.completed_courses = completed_courses
+            user.is_fully_completed = completed_courses == total_courses if total_courses > 0 else False
+        
+        return queryset
+    
+    def get_context_data(self, **kwargs):
+        """Добавляет дополнительный контекст"""
+        context = super().get_context_data(**kwargs)
+        
+        # Импортируем модели
+        from django.contrib.auth.models import Group
+        from courses.models import Course
+        from myapp.models import UserCourse, UserProgress, QuizResult
+        
+        # Проверяем, является ли пользователь суперпользователем или стафом
+        is_admin = self.request.user.is_superuser or self.request.user.is_staff
+        
+        # Группы для фильтра
+        if is_admin:
+            context['groups'] = Group.objects.all().order_by('name')
+        else:
+            context['groups'] = self.request.user.groups.all().order_by('name')
+        
+        # Статистика обученности - используем уже обработанные данные из get_queryset
+        users_with_learning = self.get_queryset()
+        total_users = users_with_learning.count()
+        
+        if total_users > 0:
+            # Подсчитываем пользователей, завершивших все свои курсы
+            # Используем уже вычисленные атрибуты из get_queryset
+            completed_users = sum(1 for user in users_with_learning if getattr(user, 'is_fully_completed', False))
+            
+            # Процент обученности
+            learning_percentage = round((completed_users / total_users) * 100, 1) if total_users > 0 else 0
+            
+            in_progress_users = total_users - completed_users
+            context.update({
+                'total_users': total_users,
+                'completed_users': completed_users,
+                'in_progress_users': in_progress_users,
+                'learning_percentage': learning_percentage,
+                'learning_data': [
+                    {'label': 'Завершили обучение', 'value': completed_users, 'color': '#28a745'},
+                    {'label': 'В процессе обучения', 'value': in_progress_users, 'color': '#ffc107'}
+                ]
+            })
+        else:
+            context.update({
+                'total_users': 0,
+                'completed_users': 0,
+                'in_progress_users': 0,
+                'learning_percentage': 0,
+                'learning_data': []
+            })
+        
+        # Параметры фильтрации
+        context['search_query'] = self.request.GET.get('search', '')
+        context['selected_group'] = self.request.GET.get('group', '')
+        context['is_admin'] = is_admin
+        
+        # Сериализуем данные для JavaScript
+        import json
+        context['learning_data_json'] = json.dumps(context.get('learning_data', []), ensure_ascii=False)
+        
+        return context
+

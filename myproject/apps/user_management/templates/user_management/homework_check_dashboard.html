@@ -17,6 +17,10 @@
     color: #2dabc4; 
     text-decoration: none;
 }
+.hover-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+}
 </style>
 {% endblock %}
 
@@ -57,15 +61,17 @@
                     </div>
                 </div>
                 <div class="col-md-4 mb-3">
-                    <div class="card text-center">
-                        <div class="card-body">
-                            <i class="fas fa-user fa-3x text-success mb-3"></i>
-                            <h3 class="card-title">{{ active_users }}</h3>
-                            <p class="card-text text-muted">
-                                {% if is_admin %}пользователей{% else %}студентов в ваших группах{% endif %}
-                            </p>
+                    <a href="{% url 'user_management:users_with_learning' %}" class="text-decoration-none">
+                        <div class="card text-center hover-card" style="cursor: pointer; transition: all 0.3s ease;">
+                            <div class="card-body">
+                                <i class="fas fa-user fa-3x text-success mb-3"></i>
+                                <h3 class="card-title">{{ active_users }}</h3>
+                                <p class="card-text text-muted">
+                                    {% if is_admin %}пользователей{% else %}студентов в ваших группах{% endif %}
+                                </p>
+                            </div>
                         </div>
-                    </div>
+                    </a>
                 </div>
                 <div class="col-md-4 mb-3">
                     <div class="card text-center">
