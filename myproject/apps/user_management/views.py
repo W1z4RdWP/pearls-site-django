@@ -1620,6 +1620,9 @@ class HomeworkCheckDashboardView(LoginRequiredMixin, UserPassesTestMixin, Templa
         from quizzes.models import Quiz
         from django.contrib.auth.models import Group
         
+        # Для последних завершений
+        from myapp.models import UserProgress, QuizResult
+        
         # Проверяем, является ли пользователь суперпользователем или стафом
         is_admin = self.request.user.is_superuser or self.request.user.is_staff
         
@@ -1630,6 +1633,19 @@ class HomeworkCheckDashboardView(LoginRequiredMixin, UserPassesTestMixin, Templa
             total_materials = total_lessons + total_quizzes
             active_users = User.objects.filter(profile__is_approved=True).count()
             total_groups = Group.objects.count()
+            # Последние завершения по всей платформе
+            recent_lesson_progress = list(
+                UserProgress.objects.select_related('user', 'course', 'lesson')
+                .filter(completed=True)
+                .exclude(completed_at__isnull=True)
+                .order_by('-completed_at')[:20]
+            )
+            recent_quiz_results = list(
+                QuizResult.objects.select_related('user', 'course')
+                .filter(passed=True)
+                .exclude(completed_at__isnull=True)
+                .order_by('-completed_at')[:20]
+            )
         else:
             # Для наставников - статистика только по их группам
             mentor_groups = self.request.user.groups.all()
@@ -1654,6 +1670,20 @@ class HomeworkCheckDashboardView(LoginRequiredMixin, UserPassesTestMixin, Templa
                 
                 # Количество групп наставника
                 total_groups = mentor_groups.count()
+
+                # Последние завершения только пользователей из групп наставника
+                recent_lesson_progress = list(
+                    UserProgress.objects.select_related('user', 'course', 'lesson')
+                    .filter(completed=True, user__in=mentor_group_users)
+                    .exclude(completed_at__isnull=True)
+                    .order_by('-completed_at')[:20]
+                )
+                recent_quiz_results = list(
+                    QuizResult.objects.select_related('user', 'course')
+                    .filter(passed=True, user__in=mentor_group_users)
+                    .exclude(completed_at__isnull=True)
+                    .order_by('-completed_at')[:20]
+                )
             else:
                 # Если у наставника нет групп, показываем нули
                 total_lessons = 0
@@ -1661,7 +1691,46 @@ class HomeworkCheckDashboardView(LoginRequiredMixin, UserPassesTestMixin, Templa
                 total_materials = 0
                 active_users = 0
                 total_groups = 0
+                recent_lesson_progress = []
+                recent_quiz_results = []
         
+        # Объединяем и сортируем последние завершения, берем топ-10
+        def fio_short(user):
+            last_name = (user.last_name or '').strip()
+            first_initial = (user.first_name[:1] + '.') if user.first_name else ''
+            middle_initial = ''
+            try:
+                middle_name = getattr(user, 'profile', None) and getattr(user.profile, 'middle_name', '')
+                if middle_name:
+                    middle_initial = middle_name[:1] + '.'
+            except Exception:
+                middle_initial = ''
+            parts = [p for p in [last_name, first_initial + middle_initial] if p]
+            return ' '.join(parts) if parts else (user.get_username() or user.email)
+
+        combined = []
+        for lp in recent_lesson_progress:
+            combined.append({
+                'type': 'lesson',
+                'user': lp.user,
+                'fio_short': fio_short(lp.user),
+                'course_title': getattr(lp.course, 'title', getattr(lp.course, 'name', '')) if lp.course else '',
+                'material_title': getattr(lp.lesson, 'title', getattr(lp.lesson, 'name', '')) if lp.lesson else '',
+                'completed_at': lp.completed_at,
+            })
+        for qr in recent_quiz_results:
+            combined.append({
+                'type': 'quiz',
+                'user': qr.user,
+                'fio_short': fio_short(qr.user),
+                'course_title': getattr(qr.course, 'title', getattr(qr.course, 'name', '')) if qr.course else '',
+                'material_title': qr.quiz_title,
+                'completed_at': qr.completed_at,
+            })
+
+        combined.sort(key=lambda x: x['completed_at'] or timezone.make_aware(datetime.min), reverse=True)
+        recent_completions = combined[:10]
+
         context.update({
             'total_materials': total_materials,
             'total_lessons': total_lessons,
@@ -1669,6 +1738,7 @@ class HomeworkCheckDashboardView(LoginRequiredMixin, UserPassesTestMixin, Templa
             'active_users': active_users,
             'total_groups': total_groups,
             'is_admin': is_admin,
+            'recent_completions': recent_completions,
         })
         
         return context
