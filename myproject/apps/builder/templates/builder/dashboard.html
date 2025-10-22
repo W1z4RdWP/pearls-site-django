@@ -16,9 +16,9 @@
                     Пользователи
                 {% endif %}
             </a>
-            <!-- <a href="{% url 'user_management:homework_check_dashboard' %}" class="list-group-item list-group-item-action {% if request.resolver_match.url_name == 'homework_check_dashboard' %}active{% endif %}">
+            <a href="{% url 'user_management:homework_check_dashboard' %}" class="list-group-item list-group-item-action {% if request.resolver_match.url_name == 'homework_check_dashboard' %}active{% endif %}">
                 <i class="fas fa-clipboard-check"></i> Проверка заданий
-            </a> -->
+            </a>
             {% if not user.profile.is_mentor_user or user.is_superuser or user.is_staff %}
             <a href="{% url 'user_management:admin_dascoin_dashboard' %}" class="list-group-item list-group-item-action {% if request.resolver_match.url_name == 'admin_dascoin_dashboard' %}active{% endif %}">
                 <i class="fas fa-chart-line"></i> Статистика DASCOIN

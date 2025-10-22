@@ -1861,14 +1861,14 @@ class MetricsSuccessView(LoginRequiredMixin, UserPassesTestMixin, TemplateView):
 
 class MetricsAdminListView(LoginRequiredMixin, UserPassesTestMixin, ListView):
     """
-    CBV для административной страницы со списком всех заполненных форм метрик (только для superuser)
+    CBV для административной страницы со списком всех заполненных форм метрик
     """
     template_name = 'courses/metrics_admin_list.html'
     context_object_name = 'submissions'
     
     def test_func(self):
-        """Проверка доступа: только superuser"""
-        return self.request.user.is_superuser
+        """Проверка доступа: только superuser и staff"""
+        return self.request.user.is_superuser or self.request.user.is_staff
     
     def get_queryset(self):
         from .models import MetricsSubmission
@@ -1884,7 +1884,7 @@ class MetricsAdminListView(LoginRequiredMixin, UserPassesTestMixin, ListView):
 
 class MetricsAdminDetailView(LoginRequiredMixin, UserPassesTestMixin, DetailView):
     """
-    CBV для детального просмотра заполненной формы метрик (только для superuser)
+    CBV для детального просмотра заполненной формы метрик
     """
     template_name = 'courses/metrics_admin_detail.html'
     context_object_name = 'submission'
@@ -1892,7 +1892,7 @@ class MetricsAdminDetailView(LoginRequiredMixin, UserPassesTestMixin, DetailView
     
     def test_func(self):
         """Проверка доступа: только superuser"""
-        return self.request.user.is_superuser
+        return self.request.user.is_superuser or self.request.user.is_staff
     
     def get_queryset(self):
         from .models import MetricsSubmission
@@ -1910,7 +1910,7 @@ def export_metrics_to_excel(request, submission_id):
     Экспорт формы метрик в Excel формат согласно шаблону Google Sheets
     """
     # Проверяем права доступа
-    if not request.user.is_superuser:
+    if not (request.user.is_superuser or request.user.is_staff):
         return HttpResponseForbidden("Доступ запрещен")
     
     try:
@@ -2493,7 +2493,6 @@ def export_metrics_to_excel(request, submission_id):
         # Пробуем разные варианты заголовков
         response['Content-Disposition'] = f'attachment; filename="{filename}"'
         response['Content-Type'] = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-        response['Content-Length'] = str(len(filename))
         
         wb.save(response)
         return response

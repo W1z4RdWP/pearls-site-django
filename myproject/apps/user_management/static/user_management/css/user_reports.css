@@ -1,0 +1,71 @@
+.um-action-btn { 
+    border: none; 
+    background: none; 
+    padding: 0 4px; 
+    color: #5b3cc4; 
+    font-size: 1.2em; 
+    cursor: pointer; 
+    transition: color 0.15s; 
+    text-decoration: none;
+}
+.um-action-btn:hover { 
+    color: #2dabc4; 
+    text-decoration: none;
+}
+.hover-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+}
+.chart-container {
+    position: relative;
+    height: 250px;
+    width: 250px;
+    margin: 0 auto;
+}
+.clickable-row {
+    cursor: pointer;
+}
+.clickable-row:hover {
+    background-color: #f8f9fa;
+}
+
+.stat-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.4rem 0.9rem;
+    border-radius: 10px;
+    font-weight: 600;
+    font-size: 0.95rem;
+    border: none;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+    transition: all 0.3s ease;
+}
+
+.stat-badge:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.18);
+}
+
+.stat-badge.users {
+    background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+    color: white;
+}
+
+.stat-badge.courses {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+}
+
+.stat-badge i {
+    font-size: 0.85rem;
+}
+
+.hover-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+}
+
+.progress {
+    height: 20px;
+}

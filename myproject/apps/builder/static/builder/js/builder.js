@@ -12,7 +12,7 @@ function saveCategoryState(categoryId, isOpen) {
     sessionStorage.setItem(`category_${categoryId}_state`, isOpen ? 'open' : 'closed');
 }
 
-function restoreCategoryStates() {
+function restoreCategoryStates() { // TODO: Проблемная функция которая раскрывает первую подкатегорию??
     document.querySelectorAll('.category-block').forEach(categoryBlock => {
         const categoryId = categoryBlock.dataset.id;
         const savedState = sessionStorage.getItem(`category_${categoryId}_state`);

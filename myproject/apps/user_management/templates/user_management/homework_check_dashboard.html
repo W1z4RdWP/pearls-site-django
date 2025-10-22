@@ -1,6 +1,29 @@
 {% extends 'layout.html' %}
 {% block title %}Проверка заданий{% endblock %}
 
+{% block specific_styles %}
+<style>
+.um-action-btn { 
+    border: none; 
+    background: none; 
+    padding: 0 4px; 
+    color: #5b3cc4; 
+    font-size: 1.2em; 
+    cursor: pointer; 
+    transition: color 0.15s; 
+    text-decoration: none;
+}
+.um-action-btn:hover { 
+    color: #2dabc4; 
+    text-decoration: none;
+}
+.hover-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+}
+</style>
+{% endblock %}
+
 {% block content %}
 <div class="container-fluid">
     <div class="row">
@@ -38,41 +61,40 @@
                     </div>
                 </div>
                 <div class="col-md-4 mb-3">
-                    <div class="card text-center">
-                        <div class="card-body">
-                            <i class="fas fa-user fa-3x text-success mb-3"></i>
-                            <h3 class="card-title">{{ active_users }}</h3>
-                            <p class="card-text text-muted">
-                                {% if is_admin %}пользователей{% else %}студентов в ваших группах{% endif %}
-                            </p>
+                    <a href="{% url 'user_management:users_with_learning' %}" class="text-decoration-none">
+                        <div class="card text-center hover-card" style="cursor: pointer; transition: all 0.3s ease;">
+                            <div class="card-body">
+                                <i class="fas fa-user fa-3x text-success mb-3"></i>
+                                <h3 class="card-title">{{ active_users }}</h3>
+                                <p class="card-text text-muted">
+                                    {% if is_admin %}пользователей{% else %}студентов в ваших группах{% endif %}
+                                </p>
+                            </div>
                         </div>
-                    </div>
+                    </a>
                 </div>
                 <div class="col-md-4 mb-3">
-                    <div class="card text-center">
-                        <div class="card-body">
-                            <i class="fas fa-users fa-3x text-info mb-3"></i>
-                            <h3 class="card-title">{{ total_groups }}</h3>
-                            <p class="card-text text-muted">
-                                {% if is_admin %}групп{% else %}ваших групп{% endif %}
-                            </p>
+                    <a href="{% url 'user_management:groups_progress' %}" class="text-decoration-none">
+                        <div class="card text-center hover-card" style="cursor: pointer; transition: all 0.3s ease;">
+                            <div class="card-body">
+                                <i class="fas fa-users fa-3x text-info mb-3"></i>
+                                <h3 class="card-title">{{ total_groups }}</h3>
+                                <p class="card-text text-muted">
+                                    {% if is_admin %}групп{% else %}ваших групп{% endif %}
+                                </p>
+                            </div>
                         </div>
-                    </div>
+                    </a>
                 </div>
             </div>
 
-            <!-- Непроверенные задания -->
+            <!-- Последние завершения уроков/тестов -->
             <div class="card">
                 <div class="card-header">
                     <div class="d-flex justify-content-between align-items-center">
                         <div>
-                            <h5 class="mb-0">Непроверенные задания</h5>
-                            <small class="text-muted">ожидают проверки</small>
-                        </div>
-                        <div class="btn-group" role="group">
-                            <button type="button" class="btn btn-outline-secondary btn-sm">Мои 0</button>
-                            <button type="button" class="btn btn-outline-secondary btn-sm">Все 0</button>
-                            <button type="button" class="btn btn-secondary btn-sm">К проверке заданий</button>
+                            <h5 class="mb-0">Последние завершения</h5>
+                            <small class="text-muted">10 последних пользователей, завершивших урок/тест</small>
                         </div>
                     </div>
                 </div>
@@ -81,17 +103,40 @@
                         <table class="table">
                             <thead>
                                 <tr>
-                                    <th>Название</th>
-                                    <th>Пользователь</th>
+                                    <th>#</th>
+                                    <th>ФИО</th>
+                                    <th>Курс</th>
+                                    <th>Урок/Тест</th>
+                                    <th>Время завершения</th>
+                                    <th>Действия</th>
                                 </tr>
                             </thead>
                             <tbody>
-                                <tr>
-                                    <td colspan="2" class="text-center text-muted py-4">
-                                        <i class="fas fa-clipboard-list fa-2x mb-2"></i><br>
-                                        Пока нет заданий на проверку
-                                    </td>
-                                </tr>
+                                {% if recent_completions %}
+                                    {% for item in recent_completions %}
+                                        <tr>
+                                            <td class="text-muted">{{ forloop.counter }}</td>
+                                            <td>{{ item.fio_short }}</td>
+                                            <td>{{ item.course_title|default:"—" }}</td>
+                                            <td>{{ item.material_title|default:"—" }}</td>
+                                            <td>{{ item.completed_at|date:"d.m.Y H:i" }}</td>
+                                            <td>
+                                                <a href="{% url 'user_management:user_progress' item.user.id %}" 
+                                                   class="um-action-btn" 
+                                                   title="Прогресс обучения">
+                                                    <i class="fa-solid fa-chart-line"></i>
+                                                </a>
+                                            </td>
+                                        </tr>
+                                    {% endfor %}
+                                {% else %}
+                                    <tr>
+                                        <td colspan="6" class="text-center text-muted py-4">
+                                            <i class="fas fa-clipboard-list fa-2x mb-2"></i><br>
+                                            Нет данных о завершениях
+                                        </td>
+                                    </tr>
+                                {% endif %}
                             </tbody>
                         </table>
                     </div>
