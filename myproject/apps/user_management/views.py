@@ -1779,7 +1779,8 @@ class UsersWithLearningView(LoginRequiredMixin, UserPassesTestMixin, ListView):
         if is_admin:
             # Для администраторов - все пользователи с назначенными курсами
             queryset = User.objects.filter(
-                started_courses__isnull=False
+                started_courses__isnull=False,
+                profile__is_approved=True
             ).distinct().select_related('profile').prefetch_related('groups')
         else:
             # Для наставников - только пользователи из их групп с назначенными курсами
@@ -1787,7 +1788,8 @@ class UsersWithLearningView(LoginRequiredMixin, UserPassesTestMixin, ListView):
             if mentor_groups.exists():
                 queryset = User.objects.filter(
                     groups__in=mentor_groups,
-                    started_courses__isnull=False
+                    started_courses__isnull=False,
+                    profile__is_approved=True
                 ).distinct().select_related('profile').prefetch_related('groups')
             else:
                 queryset = User.objects.none()
@@ -1839,34 +1841,42 @@ class UsersWithLearningView(LoginRequiredMixin, UserPassesTestMixin, ListView):
         else:
             context['groups'] = self.request.user.groups.all().order_by('name')
         
-        # Статистика обученности - используем уже обработанные данные из get_queryset
+        # Статистика обученности - считаем по курсам, а не по пользователям
         users_with_learning = self.get_queryset()
-        total_users = users_with_learning.count()
         
-        if total_users > 0:
-            # Подсчитываем пользователей, завершивших все свои курсы
-            # Используем уже вычисленные атрибуты из get_queryset
-            completed_users = sum(1 for user in users_with_learning if getattr(user, 'is_fully_completed', False))
+        # Получаем все назначенные курсы для этих пользователей
+        from myapp.models import UserCourse
+        user_courses = UserCourse.objects.filter(user__in=users_with_learning)
+        
+        total_courses = user_courses.count()
+        
+        if total_courses > 0:
+            # Подсчитываем курсы по статусам
+            completed_courses = user_courses.filter(status='completed').count()
+            in_progress_courses = user_courses.filter(status='started').count()
+            available_courses = user_courses.filter(status='available').count()
             
-            # Процент обученности
-            learning_percentage = round((completed_users / total_users) * 100, 1) if total_users > 0 else 0
+            # Процент обученности (завершенные курсы от общего количества)
+            learning_percentage = round((completed_courses / total_courses) * 100, 1) if total_courses > 0 else 0
             
-            in_progress_users = total_users - completed_users
             context.update({
-                'total_users': total_users,
-                'completed_users': completed_users,
-                'in_progress_users': in_progress_users,
+                'total_courses': total_courses,
+                'completed_courses': completed_courses,
+                'in_progress_courses': in_progress_courses,
+                'available_courses': available_courses,
                 'learning_percentage': learning_percentage,
                 'learning_data': [
-                    {'label': 'Завершили обучение', 'value': completed_users, 'color': '#28a745'},
-                    {'label': 'В процессе обучения', 'value': in_progress_users, 'color': '#ffc107'}
+                    {'label': 'Завершено', 'value': completed_courses, 'color': '#28a745'},
+                    {'label': 'В процессе', 'value': in_progress_courses, 'color': '#ffc107'},
+                    {'label': 'Не начато', 'value': available_courses, 'color': '#6c757d'}
                 ]
             })
         else:
             context.update({
-                'total_users': 0,
-                'completed_users': 0,
-                'in_progress_users': 0,
+                'total_courses': 0,
+                'completed_courses': 0,
+                'in_progress_courses': 0,
+                'available_courses': 0,
                 'learning_percentage': 0,
                 'learning_data': []
             })

@@ -70,21 +70,27 @@
                                 <!-- Детальная статистика -->
                                 <div class="col-md-8">
                                     <div class="row">
-                                        <div class="col-6 col-md-4 mb-3">
+                                        <div class="col-6 col-md-3 mb-3">
                                             <div class="text-center">
-                                                <h4 class="text-success mb-1">{{ completed_users }}</h4>
+                                                <h4 class="text-success mb-1">{{ completed_courses }}</h4>
                                                 <p class="text-muted mb-0 small">Завершено</p>
                                             </div>
                                         </div>
-                                        <div class="col-6 col-md-4 mb-3">
+                                        <div class="col-6 col-md-3 mb-3">
                                             <div class="text-center">
-                                                <h4 class="text-warning mb-1">{{ in_progress_users }}</h4>
+                                                <h4 class="text-warning mb-1">{{ in_progress_courses }}</h4>
                                                 <p class="text-muted mb-0 small">В процессе</p>
                                             </div>
                                         </div>
-                                        <div class="col-6 col-md-4 mb-3">
+                                        <div class="col-6 col-md-3 mb-3">
                                             <div class="text-center">
-                                                <h4 class="text-info mb-1">{{ total_users }}</h4>
+                                                <h4 class="text-secondary mb-1">{{ available_courses }}</h4>
+                                                <p class="text-muted mb-0 small">Не начато</p>
+                                            </div>
+                                        </div>
+                                        <div class="col-6 col-md-3 mb-3">
+                                            <div class="text-center">
+                                                <h4 class="text-info mb-1">{{ total_courses }}</h4>
                                                 <p class="text-muted mb-0 small">Всего</p>
                                             </div>
                                         </div>
