@@ -988,7 +988,7 @@ def unlock_quiz_access(request, user_id, quiz_id):
     Разблокирует доступ к тесту для пользователя.
     Позволяет пройти тест еще 1 раз сверх ограничения попыток.
     """
-    if not request.user.is_staff or not request.user.is_superuser:
+    if not (request.user.is_staff or request.user.is_superuser):
         raise PermissionDenied("У вас нет доступа к этому действию.")
     
     try:
@@ -1058,10 +1058,6 @@ def unlock_quiz_access(request, user_id, quiz_id):
     
     return redirect('user_management:user_quiz_attempts', pk=user_id)
 
-
-
-
-# TODO: Сделать CBV для homework_check_dashboard.html
 
 
 
@@ -1237,6 +1233,8 @@ class AdminDashboardView(LoginRequiredMixin, UserPassesTestMixin, ListView):
         return context
 
 
+
+
 @login_required
 def export_admin_stats_excel(request):
     """Экспорт статистики администратора в Excel"""
@@ -1339,6 +1337,8 @@ def export_admin_stats_excel(request):
     return response
 
 
+
+
 @login_required
 def export_admin_stats_pdf(request):
     """Экспорт статистики администратора в PDF"""
@@ -1435,6 +1435,8 @@ def export_admin_stats_pdf(request):
     return response
 
 
+
+
 class AdminUserTransactionsView(LoginRequiredMixin, UserPassesTestMixin, ListView):
     """CBV для отображения истории транзакций DASCOIN конкретного пользователя администратором"""
     model = DascoinTransaction
@@ -1488,6 +1490,8 @@ class AdminUserTransactionsView(LoginRequiredMixin, UserPassesTestMixin, ListVie
         )
         
         return context
+
+
 
 
 @login_required
