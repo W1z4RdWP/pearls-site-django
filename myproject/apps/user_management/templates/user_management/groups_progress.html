@@ -1,0 +1,291 @@
+{% extends 'layout.html' %}
+{% load l10n %}
+{% block title %}Прогресс групп{% endblock %}
+
+{% block specific_styles %}
+<style>
+.um-action-btn { 
+    border: none; 
+    background: none; 
+    padding: 0 4px; 
+    color: #5b3cc4; 
+    font-size: 1.2em; 
+    cursor: pointer; 
+    transition: color 0.15s; 
+    text-decoration: none;
+}
+.um-action-btn:hover { 
+    color: #2dabc4; 
+    text-decoration: none;
+}
+.hover-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+}
+.chart-container {
+    position: relative;
+    height: 250px;
+    width: 250px;
+    margin: 0 auto;
+}
+.clickable-row {
+    cursor: pointer;
+}
+.clickable-row:hover {
+    background-color: #f8f9fa;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <h2><i class="fas fa-users"></i> Прогресс групп</h2>
+                    {% if is_admin %}
+                        <small class="text-muted">Общая статистика по всем группам</small>
+                    {% else %}
+                        <small class="text-muted">Статистика по вашим группам</small>
+                    {% endif %}
+                </div>
+                <div class="btn-group" role="group">
+                    <a href="{% url 'user_management:homework_check_dashboard' %}" class="btn btn-outline-secondary">
+                        <i class="fas fa-arrow-left"></i> Назад к панели
+                    </a>
+                </div>
+            </div>
+
+            <!-- Общая статистика -->
+            <div class="row mb-4">
+                <div class="col-12">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="mb-0">Общая статистика</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="row align-items-center">
+                                <!-- Круговая диаграмма -->
+                                <div class="col-md-4 text-center">
+                                    <div class="chart-container">
+                                        <canvas id="learningChart"></canvas>
+                                    </div>
+                                    <div class="mt-3">
+                                        <h3 class="text-primary mb-0">{{ overall_learning_percentage|floatformat:1 }}%</h3>
+                                        <p class="text-muted mb-0">Обученность</p>
+                                    </div>
+                                </div>
+                                
+                                <!-- Детальная статистика -->
+                                <div class="col-md-8">
+                                    <div class="row">
+                                        <div class="col-6 col-md-3 mb-3">
+                                            <div class="text-center">
+                                                <h4 class="text-success mb-1">{{ completed_courses }}</h4>
+                                                <p class="text-muted mb-0 small">Завершено</p>
+                                            </div>
+                                        </div>
+                                        <div class="col-6 col-md-3 mb-3">
+                                            <div class="text-center">
+                                                <h4 class="text-warning mb-1">{{ in_progress_courses }}</h4>
+                                                <p class="text-muted mb-0 small">В процессе</p>
+                                            </div>
+                                        </div>
+                                        <div class="col-6 col-md-3 mb-3">
+                                            <div class="text-center">
+                                                <h4 class="text-secondary mb-1">{{ available_courses }}</h4>
+                                                <p class="text-muted mb-0 small">Не начато</p>
+                                            </div>
+                                        </div>
+                                        <div class="col-6 col-md-3 mb-3">
+                                            <div class="text-center">
+                                                <h4 class="text-info mb-1">{{ total_courses }}</h4>
+                                                <p class="text-muted mb-0 small">Всего</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Список групп -->
+            <div class="card">
+                <div class="card-header">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h5 class="mb-0">Список групп</h5>
+                            <small class="text-muted">Группы с назначенным обучением</small>
+                        </div>
+                        <div>
+                            <span class="badge bg-primary">{{ groups|length }} групп</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body">
+                    {% if groups %}
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>#</th>
+                                        <th>Название группы</th>
+                                        <th>Пользователей</th>
+                                        <th>Курсов</th>
+                                        <th style="min-width: 300px;">Прогресс</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for group in groups %}
+                                        <tr class="clickable-row" onclick="window.location='{% url 'user_management:group_students_progress' group.id %}';">
+                                            <td class="text-muted">{{ forloop.counter }}</td>
+                                            <td>
+                                                <strong>{{ group.name }}</strong>
+                                            </td>
+                                            <td>
+                                                <span class="badge bg-info">{{ group.total_users }}</span>
+                                            </td>
+                                            <td>
+                                                <span class="badge bg-secondary">{{ group.total_courses }}</span>
+                                            </td>
+                                            <td>
+                                                <div class="progress mb-2" style="height: 25px; width: 100%;">
+                                                    <div class="progress-bar {% if group.learning_percentage >= 80 %}bg-success{% elif group.learning_percentage >= 50 %}bg-warning{% else %}bg-danger{% endif %}" 
+                                                         role="progressbar" 
+                                                         style="width: {{ group.learning_percentage|unlocalize }}%"
+                                                         aria-valuenow="{{ group.learning_percentage|unlocalize }}" 
+                                                         aria-valuemin="0" 
+                                                         aria-valuemax="100">
+                                                        <span class="fw-bold">{{ group.learning_percentage|floatformat:1 }}%</span>
+                                                    </div>
+                                                </div>
+                                                <small class="text-muted">
+                                                    <i class="fa-solid fa-check-circle text-success"></i> {{ group.completed_courses }}/{{ group.total_courses }} курсов завершено
+                                                </small>
+                                            </td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <!-- Пагинация -->
+                        {% if is_paginated %}
+                            <nav aria-label="Пагинация групп">
+                                <ul class="pagination justify-content-center">
+                                    {% if page_obj.has_previous %}
+                                        <li class="page-item">
+                                            <a class="page-link" href="?page=1">Первая</a>
+                                        </li>
+                                        <li class="page-item">
+                                            <a class="page-link" href="?page={{ page_obj.previous_page_number }}">Предыдущая</a>
+                                        </li>
+                                    {% endif %}
+                                    
+                                    <li class="page-item active">
+                                        <span class="page-link">
+                                            Страница {{ page_obj.number }} из {{ page_obj.paginator.num_pages }}
+                                        </span>
+                                    </li>
+                                    
+                                    {% if page_obj.has_next %}
+                                        <li class="page-item">
+                                            <a class="page-link" href="?page={{ page_obj.next_page_number }}">Следующая</a>
+                                        </li>
+                                        <li class="page-item">
+                                            <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}">Последняя</a>
+                                        </li>
+                                    {% endif %}
+                                </ul>
+                            </nav>
+                        {% endif %}
+                    {% else %}
+                        <div class="text-center py-5">
+                            <i class="fas fa-users fa-3x text-muted mb-3"></i>
+                            <h5 class="text-muted">Группы не найдены</h5>
+                            <p class="text-muted">Нет групп с назначенным обучением</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block specific_scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Проверяем, что Chart.js загружен
+    if (typeof Chart === 'undefined') {
+        return;
+    }
+    
+    // Данные для круговой диаграммы
+    const learningData = {{ learning_data_json|safe }};
+    
+    if (learningData && learningData.length > 0) {
+        const ctx = document.getElementById('learningChart');
+        if (!ctx) {
+            return;
+        }
+        
+        try {
+            new Chart(ctx.getContext('2d'), {
+                type: 'doughnut',
+                data: {
+                    labels: learningData.map(item => item.label),
+                    datasets: [{
+                        data: learningData.map(item => item.value),
+                        backgroundColor: learningData.map(item => item.color),
+                        borderWidth: 2,
+                        borderColor: '#fff'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                padding: 20,
+                                usePointStyle: true
+                            }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    const label = context.label || '';
+                                    const value = context.parsed;
+                                    const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                    const percentage = ((value / total) * 100).toFixed(1);
+                                    return `${label}: ${value} (${percentage}%)`;
+                                }
+                            }
+                        }
+                    },
+                    cutout: '60%'
+                }
+            });
+        } catch (error) {
+            console.error('Ошибка при создании диаграммы:', error);
+        }
+    } else {
+        // Если нет данных, показываем сообщение
+        const ctx = document.getElementById('learningChart');
+        if (ctx) {
+            const canvas = ctx.getContext('2d');
+            canvas.fillStyle = '#6c757d';
+            canvas.font = '16px Arial';
+            canvas.textAlign = 'center';
+            canvas.fillText('Нет данных', 150, 150);
+        }
+    }
+});
+</script>
+{% endblock %}

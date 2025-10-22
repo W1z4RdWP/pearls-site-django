@@ -1892,3 +1892,200 @@ class UsersWithLearningView(LoginRequiredMixin, UserPassesTestMixin, ListView):
         
         return context
 
+
+class GroupStudentsProgressView(LoginRequiredMixin, UserPassesTestMixin, ListView):
+    """
+    Страница прогресса студентов конкретной группы
+    """
+    model = User
+    template_name = 'user_management/group_students_progress.html'
+    context_object_name = 'students'
+    paginate_by = 20
+    
+    def test_func(self):
+        """Проверяет права доступа"""
+        if not self.request.user.is_authenticated:
+            return False
+        
+        # Суперпользователи и персонал имеют доступ
+        if self.request.user.is_superuser or self.request.user.is_staff:
+            return True
+        
+        # Наставники имеют доступ только к своим группам
+        try:
+            if self.request.user.profile.is_mentor_user:
+                group_id = self.kwargs.get('group_id')
+                return self.request.user.groups.filter(id=group_id).exists()
+            return False
+        except:
+            return False
+    
+    def get_queryset(self):
+        """Возвращает студентов группы с назначенным обучением"""
+        from myapp.models import UserCourse
+        
+        group_id = self.kwargs.get('group_id')
+        self.group = get_object_or_404(Group, id=group_id)
+        
+        # Получаем пользователей группы с назначенными курсами
+        queryset = User.objects.filter(
+            groups=self.group,
+            started_courses__isnull=False,
+            profile__is_approved=True
+        ).distinct().order_by('last_name', 'first_name')
+        
+        return queryset
+    
+    def get_context_data(self, **kwargs):
+        """Добавляет дополнительный контекст"""
+        context = super().get_context_data(**kwargs)
+        from myapp.models import UserCourse
+        
+        context['group'] = self.group
+        
+        # Добавляем статистику по каждому студенту
+        for student in context['students']:
+            student_courses = UserCourse.objects.filter(user=student)
+            
+            total_courses = student_courses.count()
+            completed_courses = student_courses.filter(status='completed').count()
+            in_progress_courses = student_courses.filter(status='started').count()
+            
+            student.total_courses = total_courses
+            student.completed_courses = completed_courses
+            student.in_progress_courses = in_progress_courses
+            student.learning_percentage = round((completed_courses / total_courses) * 100, 1) if total_courses > 0 else 0
+        
+        return context
+
+
+class GroupsProgressView(LoginRequiredMixin, UserPassesTestMixin, ListView):
+    """
+    Страница прогресса групп
+    """
+    model = Group
+    template_name = 'user_management/groups_progress.html'
+    context_object_name = 'groups'
+    paginate_by = 20
+    
+    def test_func(self):
+        """Проверяет права доступа"""
+        if not self.request.user.is_authenticated:
+            return False
+        
+        # Суперпользователи и персонал имеют доступ
+        if self.request.user.is_superuser or self.request.user.is_staff:
+            return True
+        
+        # Наставники имеют доступ
+        try:
+            return self.request.user.profile.is_mentor_user
+        except:
+            return False
+    
+    def get_queryset(self):
+        """Возвращает группы с назначенным обучением"""
+        from myapp.models import UserCourse
+        
+        # Проверяем, является ли пользователь суперпользователем или стафом
+        is_admin = self.request.user.is_superuser or self.request.user.is_staff
+        
+        if is_admin:
+            # Для администраторов - все группы с назначенными курсами
+            queryset = Group.objects.filter(
+                user__started_courses__isnull=False,
+                user__profile__is_approved=True
+            ).distinct().prefetch_related('user_set')
+        else:
+            # Для наставников - только их группы с назначенными курсами
+            mentor_groups = self.request.user.groups.all()
+            if mentor_groups.exists():
+                queryset = Group.objects.filter(
+                    id__in=mentor_groups,
+                    user__started_courses__isnull=False,
+                    user__profile__is_approved=True
+                ).distinct().prefetch_related('user_set')
+            else:
+                queryset = Group.objects.none()
+        
+        return queryset.order_by('name')
+    
+    def get_context_data(self, **kwargs):
+        """Добавляет дополнительный контекст"""
+        context = super().get_context_data(**kwargs)
+        
+        # Импортируем модели
+        from myapp.models import UserCourse
+        
+        # Проверяем, является ли пользователь суперпользователем или стафом
+        is_admin = self.request.user.is_superuser or self.request.user.is_staff
+        
+        # Добавляем информацию о прогрессе для каждой группы на текущей странице
+        for group in context['groups']:
+            # Получаем пользователей группы с назначенными курсами
+            group_users = group.user_set.filter(
+                started_courses__isnull=False,
+                profile__is_approved=True
+            ).distinct()
+            
+            # Получаем все курсы для пользователей этой группы
+            group_courses = UserCourse.objects.filter(user__in=group_users)
+            
+            total_courses = group_courses.count()
+            completed_courses = group_courses.filter(status='completed').count()
+            in_progress_courses = group_courses.filter(status='started').count()
+            available_courses = group_courses.filter(status='available').count()
+            
+            # Процент обученности группы
+            learning_percentage = round((completed_courses / total_courses) * 100, 1) if total_courses > 0 else 0
+            
+            # Добавляем атрибуты для использования в template
+            group.total_users = group_users.count()
+            group.total_courses = total_courses
+            group.completed_courses = completed_courses
+            group.in_progress_courses = in_progress_courses
+            group.available_courses = available_courses
+            group.learning_percentage = learning_percentage
+        
+        # Общая статистика по всем группам (не только текущей странице)
+        all_groups = self.get_queryset()
+        total_groups = all_groups.count()
+        
+        # Подсчитываем общую статистику по всем группам
+        all_users = []
+        for group in all_groups:
+            group_users = group.user_set.filter(
+                started_courses__isnull=False,
+                profile__is_approved=True
+            ).distinct()
+            all_users.extend(group_users)
+        
+        all_courses = UserCourse.objects.filter(user__in=all_users)
+        total_courses = all_courses.count()
+        completed_courses = all_courses.filter(status='completed').count()
+        in_progress_courses = all_courses.filter(status='started').count()
+        available_courses = all_courses.filter(status='available').count()
+        
+        overall_learning_percentage = round((completed_courses / total_courses) * 100, 1) if total_courses > 0 else 0
+        
+        context.update({
+            'total_groups': total_groups,
+            'total_courses': total_courses,
+            'completed_courses': completed_courses,
+            'in_progress_courses': in_progress_courses,
+            'available_courses': available_courses,
+            'overall_learning_percentage': overall_learning_percentage,
+            'is_admin': is_admin,
+            'learning_data': [
+                {'label': 'Завершено', 'value': completed_courses, 'color': '#28a745'},
+                {'label': 'В процессе', 'value': in_progress_courses, 'color': '#ffc107'},
+                {'label': 'Не начато', 'value': available_courses, 'color': '#6c757d'}
+            ]
+        })
+        
+        # Сериализуем данные для JavaScript
+        import json
+        context['learning_data_json'] = json.dumps(context.get('learning_data', []), ensure_ascii=False)
+        
+        return context
+
