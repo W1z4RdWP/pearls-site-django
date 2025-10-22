@@ -1928,6 +1928,7 @@ class GroupStudentsProgressView(LoginRequiredMixin, UserPassesTestMixin, ListVie
     def get_queryset(self):
         """Возвращает студентов группы с назначенным обучением"""
         from myapp.models import UserCourse
+        from django.db.models import Count, Case, When, FloatField, F, Q
         
         group_id = self.kwargs.get('group_id')
         self.group = get_object_or_404(Group, id=group_id)
@@ -1937,35 +1938,26 @@ class GroupStudentsProgressView(LoginRequiredMixin, UserPassesTestMixin, ListVie
             groups=self.group,
             started_courses__isnull=False,
             profile__is_approved=True
-        ).distinct().order_by('last_name', 'first_name')
+        ).annotate(
+            total_courses=Count('started_courses'),
+            completed_courses=Count('started_courses', filter=Q(started_courses__status='completed')),
+            in_progress_courses=Count('started_courses', filter=Q(started_courses__status='started')),
+            learning_percentage=Case(
+                When(total_courses=0, then=0),
+                default=F('completed_courses') * 100.0 / F('total_courses'),
+                output_field=FloatField()
+            )
+        ).distinct().order_by('-learning_percentage', 'last_name', 'first_name')
         
         return queryset
     
     def get_context_data(self, **kwargs):
         """Добавляет дополнительный контекст"""
         context = super().get_context_data(**kwargs)
-        from myapp.models import UserCourse
         
         context['group'] = self.group
         
-        # Добавляем статистику по каждому студенту
-        students_list = list(context['students'])
-        for student in students_list:
-            student_courses = UserCourse.objects.filter(user=student)
-            
-            total_courses = student_courses.count()
-            completed_courses = student_courses.filter(status='completed').count()
-            in_progress_courses = student_courses.filter(status='started').count()
-            
-            student.total_courses = total_courses
-            student.completed_courses = completed_courses
-            student.in_progress_courses = in_progress_courses
-            student.learning_percentage = round((completed_courses / total_courses) * 100, 1) if total_courses > 0 else 0
-        
-        # Сортируем студентов по проценту обученности (от большего к меньшему)
-        students_list.sort(key=lambda x: x.learning_percentage, reverse=True)
-        context['students'] = students_list
-        
+        # Данные уже рассчитаны в queryset, дополнительная обработка не нужна
         return context
 
 
