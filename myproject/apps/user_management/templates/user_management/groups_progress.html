@@ -1,40 +1,10 @@
 {% extends 'layout.html' %}
 {% load l10n %}
+{% load static %}
 {% block title %}Прогресс групп{% endblock %}
 
 {% block specific_styles %}
-<style>
-.um-action-btn { 
-    border: none; 
-    background: none; 
-    padding: 0 4px; 
-    color: #5b3cc4; 
-    font-size: 1.2em; 
-    cursor: pointer; 
-    transition: color 0.15s; 
-    text-decoration: none;
-}
-.um-action-btn:hover { 
-    color: #2dabc4; 
-    text-decoration: none;
-}
-.hover-card:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 8px 25px rgba(0,0,0,0.15);
-}
-.chart-container {
-    position: relative;
-    height: 250px;
-    width: 250px;
-    margin: 0 auto;
-}
-.clickable-row {
-    cursor: pointer;
-}
-.clickable-row:hover {
-    background-color: #f8f9fa;
-}
-</style>
+<link rel="stylesheet" href="{% static 'user_management/css/user_reports.css' %}">
 {% endblock %}
 
 {% block content %}
@@ -54,6 +24,34 @@
                     <a href="{% url 'user_management:homework_check_dashboard' %}" class="btn btn-outline-secondary">
                         <i class="fas fa-arrow-left"></i> Назад к панели
                     </a>
+                </div>
+            </div>
+
+            <!-- Фильтр групп -->
+            <div class="card mb-4">
+                <div class="card-body">
+                    <form method="get" class="row g-3 align-items-end">
+                        <div class="col-md-6">
+                            <label for="groupFilter" class="form-label">
+                                <i class="fas fa-filter"></i> Фильтр по группе
+                            </label>
+                            <select name="group" id="groupFilter" class="form-select" onchange="this.form.submit()">
+                                <option value="">Все группы ({{ all_available_groups|length }})</option>
+                                {% for group in all_available_groups %}
+                                    <option value="{{ group.id }}" {% if selected_group == group.id|stringformat:"s" %}selected{% endif %}>
+                                        {{ group.name }}
+                                    </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            {% if selected_group %}
+                                <a href="{% url 'user_management:groups_progress' %}" class="btn btn-outline-secondary w-100">
+                                    <i class="fas fa-times"></i> Сбросить фильтр
+                                </a>
+                            {% endif %}
+                        </div>
+                    </form>
                 </div>
             </div>
 
@@ -118,7 +116,7 @@
                     <div class="d-flex justify-content-between align-items-center">
                         <div>
                             <h5 class="mb-0">Список групп</h5>
-                            <small class="text-muted">Группы с назначенным обучением</small>
+                            <small class="text-muted">Все группы платформы</small>
                         </div>
                         <div>
                             <span class="badge bg-primary">{{ groups|length }} групп</span>
@@ -146,10 +144,16 @@
                                                 <strong>{{ group.name }}</strong>
                                             </td>
                                             <td>
-                                                <span class="badge bg-info">{{ group.total_users }}</span>
+                                                <span class="stat-badge users">
+                                                    <i class="fas fa-users"></i>
+                                                    {{ group.total_users }}
+                                                </span>
                                             </td>
                                             <td>
-                                                <span class="badge bg-secondary">{{ group.total_courses }}</span>
+                                                <span class="stat-badge courses">
+                                                    <i class="fas fa-book"></i>
+                                                    {{ group.total_courses }}
+                                                </span>
                                             </td>
                                             <td>
                                                 <div class="progress mb-2" style="height: 25px; width: 100%;">
@@ -171,42 +175,11 @@
                                 </tbody>
                             </table>
                         </div>
-
-                        <!-- Пагинация -->
-                        {% if is_paginated %}
-                            <nav aria-label="Пагинация групп">
-                                <ul class="pagination justify-content-center">
-                                    {% if page_obj.has_previous %}
-                                        <li class="page-item">
-                                            <a class="page-link" href="?page=1">Первая</a>
-                                        </li>
-                                        <li class="page-item">
-                                            <a class="page-link" href="?page={{ page_obj.previous_page_number }}">Предыдущая</a>
-                                        </li>
-                                    {% endif %}
-                                    
-                                    <li class="page-item active">
-                                        <span class="page-link">
-                                            Страница {{ page_obj.number }} из {{ page_obj.paginator.num_pages }}
-                                        </span>
-                                    </li>
-                                    
-                                    {% if page_obj.has_next %}
-                                        <li class="page-item">
-                                            <a class="page-link" href="?page={{ page_obj.next_page_number }}">Следующая</a>
-                                        </li>
-                                        <li class="page-item">
-                                            <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}">Последняя</a>
-                                        </li>
-                                    {% endif %}
-                                </ul>
-                            </nav>
-                        {% endif %}
                     {% else %}
                         <div class="text-center py-5">
                             <i class="fas fa-users fa-3x text-muted mb-3"></i>
                             <h5 class="text-muted">Группы не найдены</h5>
-                            <p class="text-muted">Нет групп с назначенным обучением</p>
+                            <p class="text-muted">Нет групп на платформе</p>
                         </div>
                     {% endif %}
                 </div>

@@ -1,33 +1,10 @@
 {% extends 'layout.html' %}
+{% load static %}
 {% block title %}Пользователи с обучением{% endblock %}
 
 {% block specific_styles %}
-<style>
-.um-action-btn { 
-    border: none; 
-    background: none; 
-    padding: 0 4px; 
-    color: #5b3cc4; 
-    font-size: 1.2em; 
-    cursor: pointer; 
-    transition: color 0.15s; 
-    text-decoration: none;
-}
-.um-action-btn:hover { 
-    color: #2dabc4; 
-    text-decoration: none;
-}
-.hover-card:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 8px 25px rgba(0,0,0,0.15);
-}
-.chart-container {
-    position: relative;
-    height: 250px;
-    width: 250px;
-    margin: 0 auto;
-}
-</style>
+<link rel="stylesheet" href="{% static 'user_management/css/user_reports.css' %}">
+
 {% endblock %}
 
 {% block content %}

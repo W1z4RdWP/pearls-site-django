@@ -1966,7 +1966,6 @@ class GroupsProgressView(LoginRequiredMixin, UserPassesTestMixin, ListView):
     model = Group
     template_name = 'user_management/groups_progress.html'
     context_object_name = 'groups'
-    paginate_by = 20
     
     def test_func(self):
         """Проверяет права доступа"""
@@ -1984,29 +1983,29 @@ class GroupsProgressView(LoginRequiredMixin, UserPassesTestMixin, ListView):
             return False
     
     def get_queryset(self):
-        """Возвращает группы с назначенным обучением"""
+        """Возвращает все группы"""
         from myapp.models import UserCourse
         
         # Проверяем, является ли пользователь суперпользователем или стафом
         is_admin = self.request.user.is_superuser or self.request.user.is_staff
         
         if is_admin:
-            # Для администраторов - все группы с назначенными курсами
-            queryset = Group.objects.filter(
-                user__started_courses__isnull=False,
-                user__profile__is_approved=True
-            ).distinct().prefetch_related('user_set')
+            # Для администраторов - все группы
+            queryset = Group.objects.all().prefetch_related('user_set')
         else:
-            # Для наставников - только их группы с назначенными курсами
+            # Для наставников - только их группы
             mentor_groups = self.request.user.groups.all()
             if mentor_groups.exists():
                 queryset = Group.objects.filter(
-                    id__in=mentor_groups,
-                    user__started_courses__isnull=False,
-                    user__profile__is_approved=True
-                ).distinct().prefetch_related('user_set')
+                    id__in=mentor_groups
+                ).prefetch_related('user_set')
             else:
                 queryset = Group.objects.none()
+        
+        # Фильтр по группе
+        group_filter = self.request.GET.get('group')
+        if group_filter:
+            queryset = queryset.filter(id=group_filter)
         
         return queryset.order_by('name')
     
@@ -2047,11 +2046,23 @@ class GroupsProgressView(LoginRequiredMixin, UserPassesTestMixin, ListView):
             group.available_courses = available_courses
             group.learning_percentage = learning_percentage
         
-        # Общая статистика по всем группам (не только текущей странице)
-        all_groups = self.get_queryset()
-        total_groups = all_groups.count()
+        # Получаем все доступные группы для фильтра (без применения фильтра)
+        if is_admin:
+            all_available_groups = Group.objects.all().order_by('name')
+        else:
+            mentor_groups = self.request.user.groups.all()
+            if mentor_groups.exists():
+                all_available_groups = Group.objects.filter(
+                    id__in=mentor_groups
+                ).order_by('name')
+            else:
+                all_available_groups = Group.objects.none()
         
-        # Подсчитываем общую статистику по всем группам
+        # Общая статистика по всем отображаемым группам (с учетом фильтра)
+        all_groups = context['groups']
+        total_groups = len(all_groups)
+        
+        # Подсчитываем общую статистику по всем отображаемым группам
         all_users = []
         for group in all_groups:
             group_users = group.user_set.filter(
@@ -2076,6 +2087,8 @@ class GroupsProgressView(LoginRequiredMixin, UserPassesTestMixin, ListView):
             'available_courses': available_courses,
             'overall_learning_percentage': overall_learning_percentage,
             'is_admin': is_admin,
+            'all_available_groups': all_available_groups,
+            'selected_group': self.request.GET.get('group', ''),
             'learning_data': [
                 {'label': 'Завершено', 'value': completed_courses, 'color': '#28a745'},
                 {'label': 'В процессе', 'value': in_progress_courses, 'color': '#ffc107'},

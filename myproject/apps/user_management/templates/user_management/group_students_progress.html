@@ -1,31 +1,10 @@
 {% extends 'layout.html' %}
+{% load static %}
 {% load l10n %}
 {% block title %}Прогресс студентов группы {{ group.name }}{% endblock %}
 
 {% block specific_styles %}
-<style>
-.um-action-btn { 
-    border: none; 
-    background: none; 
-    padding: 0 4px; 
-    color: #5b3cc4; 
-    font-size: 1.2em; 
-    cursor: pointer; 
-    transition: color 0.15s; 
-    text-decoration: none;
-}
-.um-action-btn:hover { 
-    color: #2dabc4; 
-    text-decoration: none;
-}
-.hover-card:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 8px 25px rgba(0,0,0,0.15);
-}
-.progress {
-    height: 20px;
-}
-</style>
+<link rel="stylesheet" href="{% static 'user_management/css/user_reports.css' %}">
 {% endblock %}
 
 {% block content %}
