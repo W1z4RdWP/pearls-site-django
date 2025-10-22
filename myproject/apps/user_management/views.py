@@ -1841,6 +1841,11 @@ class UsersWithLearningView(LoginRequiredMixin, UserPassesTestMixin, ListView):
         else:
             context['groups'] = self.request.user.groups.all().order_by('name')
         
+        # Сортируем пользователей по проценту завершенных курсов (от большего к меньшему)
+        users_list = list(context['users'])
+        users_list.sort(key=lambda u: (u.completed_courses / u.total_courses * 100 if u.total_courses > 0 else 0), reverse=True)
+        context['users'] = users_list
+        
         # Статистика обученности - считаем по курсам, а не по пользователям
         users_with_learning = self.get_queryset()
         
@@ -1944,7 +1949,8 @@ class GroupStudentsProgressView(LoginRequiredMixin, UserPassesTestMixin, ListVie
         context['group'] = self.group
         
         # Добавляем статистику по каждому студенту
-        for student in context['students']:
+        students_list = list(context['students'])
+        for student in students_list:
             student_courses = UserCourse.objects.filter(user=student)
             
             total_courses = student_courses.count()
@@ -1955,6 +1961,10 @@ class GroupStudentsProgressView(LoginRequiredMixin, UserPassesTestMixin, ListVie
             student.completed_courses = completed_courses
             student.in_progress_courses = in_progress_courses
             student.learning_percentage = round((completed_courses / total_courses) * 100, 1) if total_courses > 0 else 0
+        
+        # Сортируем студентов по проценту обученности (от большего к меньшему)
+        students_list.sort(key=lambda x: x.learning_percentage, reverse=True)
+        context['students'] = students_list
         
         return context
 
@@ -2020,7 +2030,8 @@ class GroupsProgressView(LoginRequiredMixin, UserPassesTestMixin, ListView):
         is_admin = self.request.user.is_superuser or self.request.user.is_staff
         
         # Добавляем информацию о прогрессе для каждой группы на текущей странице
-        for group in context['groups']:
+        groups_list = list(context['groups'])
+        for group in groups_list:
             # Получаем пользователей группы с назначенными курсами
             group_users = group.user_set.filter(
                 started_courses__isnull=False,
@@ -2045,6 +2056,10 @@ class GroupsProgressView(LoginRequiredMixin, UserPassesTestMixin, ListView):
             group.in_progress_courses = in_progress_courses
             group.available_courses = available_courses
             group.learning_percentage = learning_percentage
+        
+        # Сортируем группы по проценту обученности (от большего к меньшему)
+        groups_list.sort(key=lambda x: x.learning_percentage, reverse=True)
+        context['groups'] = groups_list
         
         # Получаем все доступные группы для фильтра (без применения фильтра)
         if is_admin:
