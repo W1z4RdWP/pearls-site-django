@@ -97,6 +97,7 @@ MIDDLEWARE = [
     'myapp.middleware.CSRFDebugMiddleware',  # Отладка CSRF проблем
     'quizzes.middleware.prevent_refresh.PreventRefreshMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
+    'courses.middleware.ExternalUserActivityMiddleware',  # Логирование активности внешних пользователей
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'django.middleware.locale.LocaleMiddleware',

@@ -2504,3 +2504,39 @@ def export_metrics_to_excel(request, submission_id):
     except Exception as e:
         return HttpResponse(f"Ошибка при создании Excel файла: {str(e)}", status=500)
     
+
+
+class ExternalUsersActivityControlView(ListView):
+    template_name = 'courses/external_users_activity_control.html'
+    context_object_name = 'activity_logs'
+    paginate_by = 30
+
+    def get_queryset(self):
+        from builder.models import AuditLog
+        from django.contrib.auth.models import User
+        
+        # Получаем всех внешних пользователей
+        external_users = User.objects.filter(groups__name='Внешний пользователь')
+        
+        # Получаем все логи активности внешних пользователей
+        logs = AuditLog.objects.filter(
+            user__in=external_users
+        ).select_related('user').order_by('-timestamp')
+        
+        return logs
+
+    def get_context_data(self, **kwargs):
+        from django.contrib.auth.models import User
+        
+        context = super().get_context_data(**kwargs)
+        context['title'] = 'Отслеживание активности внешних пользователей'
+        
+        # Получаем статистику
+        external_users = User.objects.filter(groups__name='Внешний пользователь')
+        context['total_users'] = external_users.count()
+        context['total_actions'] = self.get_queryset().count()
+        
+        # Получаем последние действия по пользователям
+        context['recent_activities'] = self.get_queryset()[:10]
+        
+        return context

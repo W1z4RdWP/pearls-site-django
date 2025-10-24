@@ -129,6 +129,33 @@
             color: #666;
             font-size: 14px;
         }
+        
+        .btn-tracking {
+            background: #6f42c1;
+            color: white;
+            width: 95%;
+            border: none;
+            padding: 12px 24px;
+            margin: auto;
+            margin-bottom: 18px;
+            border-radius: 6px;
+            font-size: 16px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 4px rgba(111, 66, 193, 0.2);
+        }
+        
+        .btn-tracking:hover {
+            background: #5a32a3;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 8px rgba(111, 66, 193, 0.3);
+        }
+        
+        .btn-tracking:active {
+            transform: translateY(0);
+            box-shadow: 0 2px 4px rgba(111, 66, 193, 0.2);
+        }
     </style>
 {% endblock %}
 
@@ -150,6 +177,9 @@
             <div class="stat-number">{{ submissions|length }}</div>
             <div class="stat-label">На этой странице</div>
         </div>
+    </div>
+    <div class="row">
+        <a href="{% url 'courses:activity_control' %}" class="btn-tracking">Отслеживание активности внешних пользователей</a>
     </div>
     
     {% if submissions %}

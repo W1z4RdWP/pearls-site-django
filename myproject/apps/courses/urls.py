@@ -43,4 +43,5 @@ urlpatterns = [
     path('metrics/admin/', course_views.MetricsAdminListView.as_view(), name='metrics_admin_list'),
     path('metrics/admin/<int:submission_id>/', course_views.MetricsAdminDetailView.as_view(), name='metrics_admin_detail'),
     path('metrics/admin/<int:submission_id>/export/', course_views.export_metrics_to_excel, name='metrics_export_excel'),
+    path('metrics/admin/activity_control/', course_views.ExternalUsersActivityControlView.as_view(), name='activity_control')
 ]
