@@ -245,6 +245,15 @@
             font-size: 13px;
         }
         
+        .action-logout {
+            background: #ffebee;
+            color: #c62828;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-weight: 500;
+            font-size: 13px;
+        }
+        
         .timestamp {
             font-size: 14px;
             color: #666;
@@ -355,7 +364,8 @@
             .action-checkup,
             .action-notifications,
             .action-start-course,
-            .action-submit-form {
+            .action-submit-form,
+            .action-logout {
                 padding: 3px 6px;
                 font-size: 11px;
                 border-radius: 3px;
@@ -419,7 +429,8 @@
             .action-checkup,
             .action-notifications,
             .action-start-course,
-            .action-submit-form {
+            .action-submit-form,
+            .action-logout {
                 padding: 2px 4px;
                 font-size: 10px;
             }
@@ -498,6 +509,8 @@
                                     <span class="action-start-course">Нажал кнопку "Начать курс"</span>
                                 {% elif "POST /courses/metrics/" in log.object_name %}
                                     <span class="action-submit-form">Заполнил форму</span>
+                                {% elif "POST /users/logout/" in log.object_name %}
+                                    <span class="action-logout">Вышел из учетной записи</span>
                                 {% else %}
                                     <span class="action-badge action-{{ log.action }}">
                                         {{ log.get_action_display }}
