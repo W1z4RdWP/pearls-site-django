@@ -103,7 +103,7 @@
                 </div>
                 <div class="collapse navbar-collapse" id="navbarNav">
                   <ul class="navbar-nav ms-auto custom-nav-list">
-                    {% if not request.user.groups.all.0.name == 'Внешний пользователь' %}
+                    {% if user.is_authenticated and not request.user.groups.all.0.name == 'Внешний пользователь' %}
                       {% for item in nav_public %}
                       <li class="nav-item">
                         <a class="nav-link custom-nav-link" href="{% url item.url %}">
@@ -235,7 +235,7 @@
                 <p class="footer-tagline">Территория улыбки — учись, вдохновляйся, совершенствуйся!</p>       
             </div>
             <div class="footer-col footer-links">
-                {% if not request.user.groups.all.0.name == 'Внешний пользователь' %}
+                {% if user.is_authenticated and not request.user.groups.all.0.name == 'Внешний пользователь' %}
                 <h5>Навигация</h5>
                 <ul>
                     <li><a href="{% url 'home' %}">Главная</a></li>
