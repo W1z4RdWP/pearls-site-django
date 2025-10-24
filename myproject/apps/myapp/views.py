@@ -61,6 +61,10 @@ class AboutView(TemplateView):
     """Класс представление страницы 'О нас' """
     template_name = 'about.html'
 
+class ShopView(TemplateView):
+    """Класс представление страницы магазина"""
+    template_name = 'shop.html'
+
 def is_admin(user) -> bool:
     return user.is_staff
 
