@@ -156,6 +156,9 @@ def get_questions(request, quiz_id: int = None, is_start: bool = False) -> HttpR
             request.session['score'] = 0
             request.session['current_question_id'] = None
             
+            # Сохраняем время начала теста для проверки лимита времени
+            request.session['quiz_start_time'] = timezone.now().isoformat()
+            
             # Сохраняем course_slug если он передан в GET параметрах
             course_slug = request.GET.get('course_slug')
             if course_slug:
@@ -292,7 +295,8 @@ def get_questions(request, quiz_id: int = None, is_start: bool = False) -> HttpR
             'total_questions': total_questions,
             'progress_percent': progress_percent,
             'attempts_info': attempts_info,
-            'question_type': question.question_type
+            'question_type': question.question_type,
+            'quiz': quiz_obj
         }
 
         # Добавляем questions только для типа MATCH
@@ -611,6 +615,9 @@ def get_finish(request) -> HttpResponse:
     
     quiz = get_object_or_404(Quiz, id=quiz_id)
 
+    # Проверяем лимит времени
+    time_exceeded = not _check_time_limit(request, quiz)
+    
     questions_count = Question.objects.filter(quiz=quiz).count() # Количество вопросов в тесте всего
     text_questions_count = Question.objects.filter(question_type='text').filter(quiz=quiz).count() # количество открытых вопросов в тесте
     score = request.session.get('score', 0)
@@ -623,7 +630,8 @@ def get_finish(request) -> HttpResponse:
         auto_checkable_questions = questions_count - text_questions_count
         percent_score = int((score / auto_checkable_questions) * 100) if auto_checkable_questions > 0 else 0
 
-    passed = percent_score >= quiz.pass_threshold # Проходной балл из настроек теста
+    # Если время превышено, тест автоматически провален
+    passed = percent_score >= quiz.pass_threshold and not time_exceeded # Проходной балл из настроек теста
     
     # Получаем курс для сохранения в результате
     course_slug = request.session.get('course_slug')
@@ -910,6 +918,8 @@ def get_finish(request) -> HttpResponse:
         'percent_score': percent_score,
         'quiz_title': quiz.name,
         'is_all_question_text': is_all_question_text,
+        'time_exceeded': time_exceeded,
+        'time_limit': quiz.time_limit,
     }
     course_slug = request.session.pop('course_slug', None)
     request.session.pop('from_control_panel', None)  # Очищаем параметр из панели управления
@@ -919,8 +929,30 @@ def get_finish(request) -> HttpResponse:
     _reset_quiz(request)
     return render(request, 'quizzes/finish.html', context)
 
+def _check_time_limit(request, quiz) -> bool:
+    """
+    Проверяет, не превышено ли время на прохождение теста.
+    Возвращает True если время не превышено, False если превышено.
+    """
+    if quiz.time_limit == 0:
+        return True  # Без ограничения по времени
+    
+    quiz_start_time_str = request.session.get('quiz_start_time')
+    if not quiz_start_time_str:
+        return True  # Если время начала не сохранено, считаем что время не превышено
+    
+    try:
+        from datetime import datetime
+        quiz_start_time = datetime.fromisoformat(quiz_start_time_str)
+        current_time = timezone.now()
+        elapsed_minutes = (current_time - quiz_start_time).total_seconds() / 60
+        
+        return elapsed_minutes <= quiz.time_limit
+    except (ValueError, TypeError):
+        return True  # Если ошибка при парсинге времени, считаем что время не превышено
+
 def _reset_quiz(request) -> HttpRequest:
-    keys = ['quiz_id', 'current_question_id', 'score']
+    keys = ['quiz_id', 'current_question_id', 'score', 'quiz_start_time']
     for key in keys:
         if key in request.session:
             del request.session[key]
@@ -997,7 +1029,7 @@ class QuizCreateView(UserPassesTestMixin, CreateView):
     Создание нового теста с вопросами и ответами.
     """
     model = Quiz
-    fields = ['name', 'attempt_limit', 'pass_threshold']
+    fields = ['name', 'attempt_limit', 'pass_threshold', 'time_limit']
     template_name = 'quizzes/quiz_form.html'
     success_url = '/builder/trajectory-management/'
 
@@ -1116,7 +1148,7 @@ class QuizEditView(UserPassesTestMixin, UpdateView):
     Редактирование существующего теста с вопросами и ответами.
     """
     model = Quiz
-    fields = ['name', 'attempt_limit', 'pass_threshold']
+    fields = ['name', 'attempt_limit', 'pass_threshold', 'time_limit']
     template_name = 'quizzes/quiz_edit.html'
     success_url = reverse_lazy('quizzes:quizzes')
     pk_url_kwarg = 'quiz_id'

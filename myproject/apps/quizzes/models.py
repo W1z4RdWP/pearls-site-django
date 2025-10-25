@@ -6,6 +6,7 @@ class Quiz(models.Model):
   points = models.PositiveIntegerField(default=10, verbose_name="Количество DASCOIN за прохождение теста")
   attempt_limit = models.PositiveIntegerField(default=0, verbose_name="Ограничение попыток", help_text="0 = без ограничений")
   pass_threshold = models.PositiveIntegerField(default=70, verbose_name="Проходной балл (%)")
+  time_limit = models.PositiveIntegerField(default=0, verbose_name="Время на прохождение (минуты)", help_text="0 = без ограничения по времени")
   order = models.PositiveIntegerField(default=0, verbose_name="Порядок в курсе")
   
   # Связь many-to-many с курсами для гибкости
