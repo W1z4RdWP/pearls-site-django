@@ -713,13 +713,14 @@ def get_finish(request) -> HttpResponse:
                     is_correct=ans.is_correct and ans_data['is_correct']
                 )
         elif ans_data['question_type'] == 'text':
+            answer_text = ans_data.get('answer_text', '')
             UserAnswer.objects.create(
                 user=request.user,
                 quiz_result=quiz_result,
                 question=q,
                 selected_answer=None,
                 is_correct=None,
-                answer_text=ans_data.get('answer_text', '')
+                answer_text=answer_text
             )
         elif ans_data['question_type'] == 'match':
             # Для типа соответствие сохраняем соответствия как текст

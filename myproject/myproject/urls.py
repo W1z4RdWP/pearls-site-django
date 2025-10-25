@@ -59,6 +59,7 @@ urlpatterns = [
     path('check-up/', (views.DesignedCheckUpView.as_view()), name='check_up'),
     path('captcha/', include('captcha.urls')),
     path('about/', views.AboutView.as_view(), name='about'),
+    path('shop/', views.ShopView.as_view(), name='shop'),
     path('users/', include('users.urls'), name='users'),
     path('courses/', include('courses.urls'), name='courses'),
     path('quizzes/', include('quizzes.urls'), name='quizzes'),

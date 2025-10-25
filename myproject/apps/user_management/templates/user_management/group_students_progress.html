@@ -54,7 +54,7 @@
                                                 </div>
                                             </td>
                                             <td>
-                                                <div class="progress mb-2" style="height: 25px; width: 100%;">
+                                                <div class="progress mb-2" style="height: 25px; width: 100%;" title="{{ student.learning_percentage|floatformat:1 }}% обученность">
                                                     <div class="progress-bar {% if student.learning_percentage >= 80 %}bg-success{% elif student.learning_percentage >= 50 %}bg-warning{% else %}bg-danger{% endif %}" 
                                                          role="progressbar" 
                                                          style="width: {{ student.learning_percentage|unlocalize }}%" 

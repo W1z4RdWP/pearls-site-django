@@ -35,6 +35,7 @@ def nav_menu(request):
         {'url': 'home', 'label': 'Главная', 'icon': 'fa-solid fa-house'},
         {'url': 'about', 'label': 'О нас', 'icon': 'fa-solid fa-circle-info'},
         {'url': 'builder:lesson_master', 'label': 'База знаний', 'icon': 'fa-solid fa-book'},
+        {'url': 'shop', 'label': 'Магазин', 'icon': 'fa-solid fa-store'},
     ]
     nav_staff = [
         {'url': 'builder:trajectory_management', 'label': 'Управление траекториями', 'icon': 'fa-solid fa-route'},

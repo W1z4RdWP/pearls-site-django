@@ -24,7 +24,7 @@
                 <i class="fas fa-chart-line"></i> Статистика DASCOIN
             </a>
             <a href="{% url 'quizzes:quizzes' %}" class="list-group-item list-group-item-action">
-                <i class="fa-solid fa-clipboard-question"></i> Панель управления тестами
+                <i class="fa-solid fa-clipboard-question"></i> Панель управления тестам
             </a>
             <!-- <a href="{% url 'builder:documents' %}" class="list-group-item list-group-item-action {% if request.resolver_match.url_name == 'documents' %}active{% endif %}">
                 <i class="fas fa-file-alt"></i> Документы
@@ -35,20 +35,53 @@
             <a href="{% url 'builder:trajectory_management' %}" class="list-group-item list-group-item-action {% if request.resolver_match.url_name == 'trajectory_management' %}active{% endif %}">
                 <i class="fas fa-route"></i> Управление траекториями
             </a>
+            <a href="{% url 'courses:metrics_admin_list' %}" class="list-group-item list-group-item-action">
+                <i class="fas fa-chart-bar"></i> Заполненные метрики
+            </a>
 
             {% endif %}
-            <div class="list-group-item list-group-item-action">
+            <!-- <div class="list-group-item list-group-item-action">
                 <i class="fas fa-clock"></i> Время сессии: <span id="session-timer">{{ request.session.get_expiry_age|floatformat:0 }}</span>
-            </div>
+            </div> -->
         </div>
     </div>
     <div class="col-md-9">
         <div class="card shadow-sm">
-            <div class="card-body">
-                <h2 class="mb-4">Панель управления</h2>
-                <div style="height: 200px; display: flex; align-items: center; justify-content: center; color: #888; font-size: 2rem; background: #f8f9fa; border-radius: 8px;">
-                    Информационная панель
+            <div class="card-body">                
+                {% if total_unrated_count > 0 %}
+                
+                <div class="mb-4">
+                    <h4>Неоцененные открытые ответы</h4>
+                    <div class="list-group">
+                        {% for group in unrated_text_answers %}
+                            {% for answer in group.answers %}
+                            <a href="{% url 'user_management:user_quiz_report' quiz_id=group.quiz_result.id %}" 
+                               class="list-group-item list-group-item-action">
+                                <div class="d-flex w-100 justify-content-between align-items-center">
+                                    <div class="flex-grow-1">
+                                        <div class="d-flex justify-content-between align-items-start">
+                                            <div>
+                                                <strong>{{ group.user.get_full_name|default:group.user.username }}</strong>
+                                                <span class="text-muted">•</span>
+                                                <span class="text-primary">{{ group.quiz_result.quiz_title }}</span>
+                                                <span class="text-muted">•</span>
+                                                <span class="text-secondary">{{ answer.question.text|truncatechars:60 }}</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <small class="text-muted ms-3">{{ group.quiz_result.completed_at|date:"d.m.Y H:i" }}</small>
+                                </div>
+                            </a>
+                            {% endfor %}
+                        {% endfor %}
+                    </div>
                 </div>
+                {% else %}
+                <div class="alert alert-success">
+                    <h5><i class="fas fa-check-circle"></i> Все открытые ответы оценены</h5>
+                    <p class="mb-0">Нет неоцененных открытых ответов в системе.</p>
+                </div>
+                {% endif %}
             </div>
         </div>
     </div>
