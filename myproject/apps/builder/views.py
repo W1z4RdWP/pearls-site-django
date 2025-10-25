@@ -830,7 +830,33 @@ class DashboardView(TemplateView):
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        # Можно добавить статистику по базе знаний, если потребуется
+        
+        # Получаем неоцененные TEXT ответы
+        from myapp.models import UserAnswer
+        from quizzes.models import Question
+        
+        unrated_text_answers = UserAnswer.objects.filter(
+            question__question_type='text',
+            is_correct__isnull=True,  # Не оценено
+            answer_text__isnull=False,  # Есть текстовый ответ
+            answer_text__gt=''  # Не пустой ответ
+        ).select_related('user', 'question', 'quiz_result').order_by('-quiz_result__completed_at')[:20]  # Ограничиваем до 20 для производительности
+        
+        # Группируем по пользователям и тестам для удобства
+        grouped_answers = {}
+        for answer in unrated_text_answers:
+            key = f"{answer.user.username}_{answer.quiz_result.id}"
+            if key not in grouped_answers:
+                grouped_answers[key] = {
+                    'user': answer.user,
+                    'quiz_result': answer.quiz_result,
+                    'answers': []
+                }
+            grouped_answers[key]['answers'].append(answer)
+        
+        context['unrated_text_answers'] = list(grouped_answers.values())
+        context['total_unrated_count'] = unrated_text_answers.count()
+        
         return context
 
 

@@ -36,7 +36,11 @@
                     
                     {# Для текстового ответа #}
                     {% elif question.question_type == 'text' %}
-                        {{ answer.answer_text|default:"<em>Нет ответа</em>" }}
+                        {% if answer.answer_text %}
+                            {{ answer.answer_text }}
+                        {% else %}
+                            <em>Нет ответа</em>
+                        {% endif %}
                     
                     {# Для одиночного выбора #}
                     {% else %}
