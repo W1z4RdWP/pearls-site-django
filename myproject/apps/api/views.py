@@ -19,7 +19,8 @@ from django.core.cache import cache
 from django.utils import timezone
 from courses.models import Course
 
-audit_logger = logging.getLogger('audit')
+
+audit_logger = logging.getLogger('api_audit')
 
 
 
@@ -128,6 +129,108 @@ def decode_telegram_auth_token(token):
         return None
     except jwt.InvalidTokenError:
         return None
+
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def telegram_auth_existing(request):
+    """
+    Авторизация существующего пользователя через Telegram.
+    Для staff/superuser: если пароль не подходит, меняет пароль на переданный.
+    """
+    try:
+        data = request.data
+        
+        # Проверяем обязательные поля
+        required_fields = ['email', 'password']
+        for field in required_fields:
+            if not data.get(field):
+                return Response(
+                    {'error': f'Поле {field} обязательно'}, 
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+        
+        email = data['email']
+        password = data['password']
+        
+        # Проверяем, существует ли пользователь с таким email
+        try:
+            user = User.objects.get(username=email)
+        except User.DoesNotExist:
+            return Response(
+                {'error': 'Пользователь с таким email не найден'}, 
+                status=status.HTTP_404_NOT_FOUND
+            )
+        
+        # Проверяем, что профиль подтвержден
+        try:
+            profile = user.profile
+            if not profile.is_approved:
+                return Response(
+                    {'error': 'Аккаунт ожидает подтверждения администратором'}, 
+                    status=status.HTTP_403_FORBIDDEN
+                )
+        except Exception:
+            return Response(
+                {'error': 'Профиль пользователя не найден'}, 
+                status=status.HTTP_404_NOT_FOUND
+            )
+        
+        # Проверяем пароль
+        if not user.check_password(password):
+            # Если пароль не подходит, проверяем права пользователя
+            if user.is_staff or user.is_superuser:
+                # Для staff/superuser меняем пароль
+                user.set_password(password)
+                user.save()
+                
+                # Логирование смены пароля
+                audit_logger.info(
+                    'Смена пароля для staff/superuser через Telegram API', 
+                    extra={
+                        'user': user.email,
+                        'ip': request.META.get('REMOTE_ADDR', 'Unknown')
+                    }
+                )
+            else:
+                # Для обычных пользователей возвращаем ошибку
+                return Response(
+                    {'error': 'Неверный пароль'}, 
+                    status=status.HTTP_401_UNAUTHORIZED
+                )
+        
+        # Генерируем токен для авторизации
+        token = generate_telegram_auth_token(email, password)
+        
+        # Логирование успешной авторизации
+        audit_logger.info(
+            'Успешная авторизация существующего пользователя через Telegram API', 
+            extra={
+                'user': user.email,
+                'ip': request.META.get('REMOTE_ADDR', 'Unknown')
+            }
+        )
+        
+        return Response({
+            'success': True,
+            'user_id': user.id,
+            'message': 'Пользователь успешно авторизован',
+            'token': token,
+            'expires_in_minutes': settings.JWT_EXPIRATION_MINUTES,
+            'auth_url': f"{request.build_absolute_uri('/')}api/telegram/auth/?token={token}"
+        }, status=status.HTTP_200_OK)
+        
+    except Exception as e:
+        audit_logger.error(
+            f'Ошибка при авторизации существующего пользователя через Telegram API: {str(e)}', 
+            extra={
+                'ip': request.META.get('REMOTE_ADDR', 'Unknown')
+            }
+        )
+        return Response(
+            {'error': f'Неожиданная ошибка: {str(e)}'}, 
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
+
 
 @api_view(['POST'])
 @permission_classes([AllowAny])
@@ -320,8 +423,9 @@ def telegram_auth(request):
             # Редирект на курс чек-апа для внешних пользователей
             return redirect('homepage')
         
-        # Перенаправляем на профиль
-        return redirect('homepage')
+        elif user.is_staff or user.is_superuser:
+            # Перенаправляем на администрирование метрики
+            return redirect('courses:metrics_admin_list')
         
     except Exception as e:
         audit_logger.error(
