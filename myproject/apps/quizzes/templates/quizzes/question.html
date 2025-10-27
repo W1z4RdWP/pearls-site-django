@@ -34,10 +34,10 @@
     <div class="alert alert-warning mb-4" id="time-limit-alert">
         <i class="fas fa-clock"></i> 
         <strong>Ограничение по времени: {{ quiz.time_limit }} мин.</strong> 
-        <!-- <span id="time-remaining">{{ quiz.time_limit }}</span> минут
+        Осталось: <span id="time-remaining"></span>
         <div class="progress mt-2" style="height: 8px;">
             <div class="progress-bar bg-warning" id="time-progress" style="width: 100%"></div>
-        </div> -->
+        </div>
     </div>
     {% endif %}
 
@@ -692,28 +692,62 @@ document.addEventListener('DOMContentLoaded', function() {
 
 {% if quiz.time_limit > 0 %}
 <script>
-// Таймер для ограничения времени
-let timeLimit = {{ quiz.time_limit }}; // в минутах
-let timeRemaining = timeLimit * 60; // в секундах
-let startTime = new Date().getTime();
-
-function updateTimer() {
-    const currentTime = new Date().getTime();
-    const elapsedSeconds = Math.floor((currentTime - startTime) / 1000);
-    const remainingSeconds = Math.max(0, timeRemaining - elapsedSeconds);
-    
-    const minutes = Math.floor(remainingSeconds / 60);
-    const seconds = remainingSeconds % 60;
-    
+// Новый таймер с накоплением времени
+(function() {
+    const remainingSeconds = parseInt('{{ remaining_time_seconds|default:0 }}');
     const timeDisplay = document.getElementById('time-remaining');
     const progressBar = document.getElementById('time-progress');
     const alert = document.getElementById('time-limit-alert');
+    const form = document.querySelector('form');
+    const timeLimit = parseInt('{{ quiz.time_limit }}'); // в минутах
+    const totalTimeSeconds = timeLimit * 60;
     
-    if (remainingSeconds > 0) {
+    console.log('Таймер запущен:', {
+        remainingSeconds: remainingSeconds,
+        timeLimit: timeLimit,
+        totalTimeSeconds: totalTimeSeconds
+    });
+    
+    // Проверка корректности данных
+    if (isNaN(remainingSeconds) || remainingSeconds < 0) {
+        console.error('Некорректное значение времени:', remainingSeconds);
+        return;
+    }
+    
+    if (!timeDisplay || !progressBar || !alert || !form) {
+        console.error('Не найдены необходимые элементы DOM');
+        return;
+    }
+    
+    let currentRemainingSeconds = remainingSeconds;
+    
+    function updateTimer() {
+        currentRemainingSeconds--;
+        
+        if (currentRemainingSeconds <= 0) {
+            // Время истекло
+            timeDisplay.textContent = '0:00';
+            progressBar.style.width = '0%';
+            progressBar.className = 'progress-bar bg-danger';
+            alert.className = 'alert alert-danger mb-4';
+            
+            clearInterval(timerInterval);
+            
+            // Автоматически отправляем форму
+            if (form) {
+                alert('Время вышло! Тест будет завершен автоматически.');
+                form.submit();
+            }
+            return;
+        }
+        
+        // Обновляем отображение
+        const minutes = Math.floor(currentRemainingSeconds / 60);
+        const seconds = currentRemainingSeconds % 60;
         timeDisplay.textContent = `${minutes}:${seconds.toString().padStart(2, '0')}`;
         
         // Обновляем прогресс-бар
-        const progressPercent = (remainingSeconds / (timeLimit * 60)) * 100;
+        const progressPercent = (currentRemainingSeconds / totalTimeSeconds) * 100;
         progressBar.style.width = progressPercent + '%';
         
         // Меняем цвет при приближении к концу
@@ -724,28 +758,22 @@ function updateTimer() {
             progressBar.className = 'progress-bar bg-warning';
             alert.className = 'alert alert-warning mb-4';
         }
-    } else {
-        // Время истекло
-        timeDisplay.textContent = '0:00';
-        progressBar.style.width = '0%';
-        progressBar.className = 'progress-bar bg-danger';
-        alert.className = 'alert alert-danger mb-4';
-        
-        // Автоматически отправляем форму
-        const form = document.querySelector('form');
-        if (form) {
-            form.submit();
-        }
     }
-}
-
-// Обновляем таймер каждую секунду
-const timerInterval = setInterval(updateTimer, 1000);
-
-// Очищаем интервал при уходе со страницы
-window.addEventListener('beforeunload', function() {
-    clearInterval(timerInterval);
-});
+    
+    // Первичная инициализация отображения
+    const minutes = Math.floor(currentRemainingSeconds / 60);
+    const seconds = currentRemainingSeconds % 60;
+    timeDisplay.textContent = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+    
+    // Запускаем таймер
+    const timerInterval = setInterval(updateTimer, 1000);
+    
+    // Очищаем интервал при уходе со страницы
+    window.addEventListener('beforeunload', function() {
+        clearInterval(timerInterval);
+    });
+})();
 </script>
 {% endif %}
+
 {% endblock %}
