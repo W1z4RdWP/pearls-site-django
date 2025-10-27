@@ -51,6 +51,36 @@ class StartQuizView(LoginRequiredMixin, UserPassesTestMixin, DataMixin, Template
 
 
 
+@require_http_methods(["GET"])
+def search_quizzes_ajax(request):
+    """
+    AJAX endpoint для поиска тестов по названию
+    Возвращает JSON с результатами поиска без пагинации
+    """
+    search_term = request.GET.get('q', '').strip()
+
+    if not search_term:
+        return JsonResponse({'success': False, 'error': 'Пустой поисковый запрос'})
+
+    # Поиск по названию (case-insensitive)
+    quizzes = Quiz.objects.filter(
+        name__icontains=search_term
+    ).annotate(
+        questions_count=Count('question')
+    ).order_by('-id').values(
+        'id', 'name', 'questions_count', 'attempt_limit', 'pass_threshold'
+    )
+
+    # Преобразуем QuerySet в список для JSON
+    results = list(quizzes)
+
+    return JsonResponse({
+        'success': True,
+        'results': results,
+        'count': len(results)
+    })
+    
+
 def get_questions(request, quiz_id: int = None, is_start: bool = False) -> HttpResponse:
     """
     Функция получения вопроса для тестирования. В зависимости от is_start определяется, является ли запрос стартовым.

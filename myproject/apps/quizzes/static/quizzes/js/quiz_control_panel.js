@@ -93,6 +93,8 @@ function initializeMainPageHandlers() {
             });
         });
     }
+    // === ПОИСК ПО НАЗВАНИЮ ТЕСТА ===
+    initializeQuizSearch();
 }
 
 // === ФУНКЦИИ ДЛЯ СТРАНИЦЫ РЕДАКТИРОВАНИЯ ===
@@ -905,4 +907,266 @@ function renumberMatchPairs(questionId) {
     
     // Переинициализируем обработчики для галочек
     initializeMatchImageToggles();
+}
+
+
+// === ФУНКЦИЯ ПОИСКА ТЕСТОВ С AJAX ===
+
+/**
+ * Инициализация функциональности поиска тестов по названию
+ * Использует AJAX для поиска по всей базе данных
+ */
+function initializeQuizSearch() {
+    const searchInput = document.getElementById('quizSearch');
+    if (!searchInput) return;
+    
+    const container = document.querySelector('[data-search-url]');
+    if (!container) {
+        console.error('Не найден контейнер с data-search-url');
+        return;
+    }
+    
+    const searchUrl = container.dataset.searchUrl;
+    const quizCards = document.querySelectorAll('.quiz-card');
+    const paginationNav = document.querySelector('nav[aria-label="Page navigation"]');
+    
+    // Сохраняем оригинальные карточки для восстановления
+    const originalRow = document.querySelector('.container .row:last-of-type');
+    let originalContent = null;
+    
+    /**
+     * Обработчик ввода в поле поиска с debounce
+     */
+    let searchTimeout;
+    searchInput.addEventListener('input', function() {
+        clearTimeout(searchTimeout);
+        
+        const searchTerm = this.value.trim();
+        
+        // Если поле пустое - восстанавливаем оригинальное состояние
+        if (searchTerm === '') {
+            restoreOriginalState(originalRow, originalContent, paginationNav);
+            return;
+        }
+        
+        // Debounce 300мс для снижения нагрузки на сервер
+        searchTimeout = setTimeout(() => {
+            performAjaxSearch(searchTerm, searchUrl, originalRow, paginationNav);
+        }, 300);
+    });
+    
+    // Сохраняем оригинальный контент при первом поиске
+    if (!originalContent) {
+        originalContent = originalRow.innerHTML;
+    }
+}
+
+/**
+ * Выполняет AJAX запрос для поиска тестов
+ * @param {string} searchTerm - Поисковый запрос
+ * @param {string} searchUrl - URL для AJAX запроса
+ * @param {HTMLElement} targetRow - Контейнер для результатов
+ * @param {HTMLElement} paginationNav - Элемент пагинации
+ */
+function performAjaxSearch(searchTerm, searchUrl, targetRow, paginationNav) {
+    // Показываем индикатор загрузки
+    showLoadingState(targetRow);
+    
+    // Скрываем пагинацию во время поиска
+    if (paginationNav) {
+        paginationNav.style.display = 'none';
+    }
+    
+    // Выполняем AJAX запрос
+    fetch(`${searchUrl}?q=${encodeURIComponent(searchTerm)}`, {
+        method: 'GET',
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest',
+        }
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        return response.json();
+    })
+    .then(data => {
+        if (data.success) {
+            renderSearchResults(data.results, targetRow, searchTerm);
+        } else {
+            showErrorMessage(targetRow, data.error || 'Ошибка поиска');
+        }
+    })
+    .catch(error => {
+        console.error('Ошибка AJAX запроса:', error);
+        showErrorMessage(targetRow, 'Не удалось выполнить поиск. Попробуйте позже.');
+    });
+}
+
+/**
+ * Отображает результаты поиска
+ * @param {Array} results - Массив найденных тестов
+ * @param {HTMLElement} targetRow - Контейнер для результатов
+ * @param {string} searchTerm - Поисковый запрос для подсветки
+ */
+function renderSearchResults(results, targetRow, searchTerm) {
+    if (results.length === 0) {
+        showNoResultsMessage(targetRow, searchTerm);
+        return;
+    }
+    
+    // Очищаем контейнер
+    targetRow.innerHTML = '';
+    
+    // Генерируем HTML для каждого результата
+    results.forEach(quiz => {
+        const quizCard = createQuizCardHTML(quiz, searchTerm);
+        targetRow.insertAdjacentHTML('beforeend', quizCard);
+    });
+    
+    // Переинициализируем обработчики для кнопок удаления
+    initializeMainPageHandlers();
+}
+
+/**
+ * Создает HTML для карточки теста
+ * @param {Object} quiz - Объект с данными теста
+ * @param {string} searchTerm - Поисковый запрос для подсветки
+ * @returns {string} HTML строка
+ */
+function createQuizCardHTML(quiz, searchTerm) {
+    // Подсвечиваем совпадение в названии
+    const highlightedName = highlightSearchTerm(quiz.name, searchTerm);
+    const attemptLimit = quiz.attempt_limit > 0 ? quiz.attempt_limit : '∞';
+    
+    return `
+        <div class="col-12 mb-3">
+            <div class="card quiz-card shadow-sm h-100" data-quiz-name="${quiz.name.toLowerCase()}">
+                <div class="card-body d-flex align-items-center">
+                    <div class="quiz-info">
+                        <h5 class="card-title mb-1">${highlightedName}</h5>
+                        <p class="text-muted mb-2">${quiz.questions_count} вопросов</p>
+                        <p class="text-muted mb-1">
+                            <i class="fas fa-redo-alt"></i> 
+                            Лимит попыток: ${attemptLimit}
+                        </p>
+                        <p class="text-muted mb-2">
+                            <i class="fas fa-percentage"></i> 
+                            Проходной балл: ${quiz.pass_threshold}%
+                        </p>
+                        <small class="text-secondary">ID: ${quiz.id}</small>
+                    </div>
+                    <div class="quiz-actions">
+                        <a href="/quizzes/start/${quiz.id}/?from_control_panel=1" 
+                           class="btn-mini success btn-sm">
+                            <i class="fas fa-play"></i> Запустить
+                        </a>
+                        <a href="/quizzes/edit/${quiz.id}/" 
+                           class="btn-mini edit btn-sm">
+                            <i class="fas fa-edit"></i> Редактировать
+                        </a>
+                        <button type="button" 
+                                class="btn-mini delete btn-sm btn-delete-quiz"
+                                data-quiz-id="${quiz.id}"
+                                data-quiz-name="${quiz.name}">
+                            <i class="fas fa-trash"></i> Удалить
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+/**
+ * Подсвечивает поисковый запрос в тексте
+ * @param {string} text - Исходный текст
+ * @param {string} searchTerm - Что нужно подсветить
+ * @returns {string} Текст с HTML подсветкой
+ */
+function highlightSearchTerm(text, searchTerm) {
+    if (!searchTerm) return text;
+    
+    const regex = new RegExp(`(${escapeRegExp(searchTerm)})`, 'gi');
+    return text.replace(regex, '<mark class="search-highlight">$1</mark>');
+}
+
+/**
+ * Экранирует спецсимволы для регулярного выражения
+ * @param {string} string - Строка для экранирования
+ * @returns {string} Экранированная строка
+ */
+function escapeRegExp(string) {
+    return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+/**
+ * Показывает индикатор загрузки
+ * @param {HTMLElement} container - Контейнер
+ */
+function showLoadingState(container) {
+    container.innerHTML = `
+        <div class="col-12">
+            <div class="text-center py-5">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">Загрузка...</span>
+                </div>
+                <p class="mt-3 text-muted">Поиск тестов...</p>
+            </div>
+        </div>
+    `;
+}
+
+/**
+ * Показывает сообщение об отсутствии результатов
+ * @param {HTMLElement} container - Контейнер
+ * @param {string} searchTerm - Поисковый запрос
+ */
+function showNoResultsMessage(container, searchTerm) {
+    container.innerHTML = `
+        <div class="col-12">
+            <div class="no-results-message">
+                <i class="fas fa-search"></i>
+                <h5 class="text-muted">Ничего не найдено</h5>
+                <p class="text-muted mb-0">По запросу "<strong>${searchTerm}</strong>" не найдено ни одного теста</p>
+                <p class="text-muted mt-2"><small>Попробуйте изменить поисковый запрос</small></p>
+            </div>
+        </div>
+    `;
+}
+
+/**
+ * Показывает сообщение об ошибке
+ * @param {HTMLElement} container - Контейнер
+ * @param {string} errorMessage - Текст ошибки
+ */
+function showErrorMessage(container, errorMessage) {
+    container.innerHTML = `
+        <div class="col-12">
+            <div class="alert alert-danger text-center">
+                <i class="fas fa-exclamation-triangle me-2"></i>
+                ${errorMessage}
+            </div>
+        </div>
+    `;
+}
+
+/**
+ * Восстанавливает оригинальное состояние страницы
+ * @param {HTMLElement} container - Контейнер
+ * @param {string} originalContent - Оригинальный HTML
+ * @param {HTMLElement} paginationNav - Элемент пагинации
+ */
+function restoreOriginalState(container, originalContent, paginationNav) {
+    if (originalContent) {
+        container.innerHTML = originalContent;
+        
+        // Показываем пагинацию обратно
+        if (paginationNav) {
+            paginationNav.style.display = 'block';
+        }
+        
+        // Переинициализируем обработчики
+        initializeMainPageHandlers();
+    }
 }
