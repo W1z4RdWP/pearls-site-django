@@ -19,7 +19,7 @@ document.addEventListener('DOMContentLoaded', function() {
             let matchesStatus = true;
             if (currentStatusFilter === 'blocked') {
                 matchesStatus = isBlocked;
-            } else if (currentStatusFilter === 'unblocked'){
+            } else if (currentStatusFilter === 'unlocked'){
                 matchesStatus = !isBlocked;
             }
             // Если 'all' - matchesStatus остаетстя true
