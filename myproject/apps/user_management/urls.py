@@ -35,10 +35,4 @@ urlpatterns = [
     path('admin/user/<int:user_id>/transactions/export/excel/', views.export_admin_user_transactions_excel, name='export_admin_user_transactions_excel'),
     path('admin/user/<int:user_id>/transactions/export/pdf/', views.export_admin_user_transactions_pdf, name='export_admin_user_transactions_pdf'),
 
-    # Проверка заданий
-    path('homework-check-dashboard/', views.HomeworkCheckDashboardView.as_view(), name='homework_check_dashboard'),
-    path('users-with-learning/', views.UsersWithLearningView.as_view(), name='users_with_learning'),
-    path('groups-progress/', views.GroupsProgressView.as_view(), name='groups_progress'),
-    path('groups/<int:group_id>/students-progress/', views.GroupStudentsProgressView.as_view(), name='group_students_progress'),
-
 ]

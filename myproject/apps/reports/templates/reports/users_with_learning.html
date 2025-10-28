@@ -3,7 +3,7 @@
 {% block title %}Пользователи с обучением{% endblock %}
 
 {% block specific_styles %}
-<link rel="stylesheet" href="{% static 'user_management/css/user_reports.css' %}">
+<link rel="stylesheet" href="{% static 'reports/css/user_reports.css' %}">
 
 {% endblock %}
 
@@ -21,7 +21,7 @@
                     {% endif %}
                 </div>
                 <div class="btn-group" role="group">
-                    <a href="{% url 'user_management:homework_check_dashboard' %}" class="btn btn-outline-secondary">
+                    <a href="{% url 'reports:homework_check_dashboard' %}" class="btn btn-outline-secondary">
                         <i class="fas fa-arrow-left"></i> Назад к панели
                     </a>
                 </div>
@@ -103,7 +103,7 @@
                             <button type="submit" class="btn btn-primary me-2">
                                 <i class="fas fa-search"></i> Поиск
                             </button>
-                            <a href="{% url 'user_management:users_with_learning' %}" class="btn btn-outline-secondary">
+                            <a href="{% url 'reports:users_with_learning' %}" class="btn btn-outline-secondary">
                                 <i class="fas fa-times"></i> Сбросить
                             </a>
                         </div>

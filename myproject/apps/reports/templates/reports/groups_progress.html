@@ -4,7 +4,7 @@
 {% block title %}Прогресс групп{% endblock %}
 
 {% block specific_styles %}
-<link rel="stylesheet" href="{% static 'user_management/css/user_reports.css' %}">
+<link rel="stylesheet" href="{% static 'reports/css/user_reports.css' %}">
 {% endblock %}
 
 {% block content %}
@@ -21,7 +21,7 @@
                     {% endif %}
                 </div>
                 <div class="btn-group" role="group">
-                    <a href="{% url 'user_management:homework_check_dashboard' %}" class="btn btn-outline-secondary">
+                    <a href="{% url 'reports:homework_check_dashboard' %}" class="btn btn-outline-secondary">
                         <i class="fas fa-arrow-left"></i> Назад к панели
                     </a>
                 </div>
@@ -46,7 +46,7 @@
                         </div>
                         <div class="col-md-3">
                             {% if selected_group %}
-                                <a href="{% url 'user_management:groups_progress' %}" class="btn btn-outline-secondary w-100">
+                                <a href="{% url 'reports:groups_progress' %}" class="btn btn-outline-secondary w-100">
                                     <i class="fas fa-times"></i> Сбросить фильтр
                                 </a>
                             {% endif %}
@@ -138,7 +138,7 @@
                                 </thead>
                                 <tbody>
                                     {% for group in groups %}
-                                        <tr class="clickable-row" onclick="window.location='{% url 'user_management:group_students_progress' group.id %}';">
+                                        <tr class="clickable-row" onclick="window.location='{% url "reports:group_students_progress" group.id %}';">
                                             <td class="text-muted">{{ forloop.counter }}</td>
                                             <td>
                                                 <strong>{{ group.name }}</strong>

@@ -4,7 +4,7 @@
 {% block title %}Прогресс студентов группы {{ group.name }}{% endblock %}
 
 {% block specific_styles %}
-<link rel="stylesheet" href="{% static 'user_management/css/user_reports.css' %}">
+<link rel="stylesheet" href="{% static 'reports/css/user_reports.css' %}">
 {% endblock %}
 
 {% block content %}
@@ -17,7 +17,7 @@
                     <small class="text-muted">Группа: <strong>{{ group.name }}</strong></small>
                 </div>
                 <div class="btn-group" role="group">
-                    <a href="{% url 'user_management:groups_progress' %}" class="btn btn-outline-secondary">
+                    <a href="{% url 'reports:groups_progress' %}" class="btn btn-outline-secondary">
                         <i class="fas fa-arrow-left"></i> К списку групп
                     </a>
                 </div>
@@ -69,7 +69,7 @@
                                                 </small>
                                             </td>
                                             <td>
-                                                <a href="{% url 'user_management:user_progress' student.id %}" 
+                                                <a href="{% url 'reports:user_progress' student.id %}" 
                                                    class="um-action-btn" 
                                                    title="Детальный прогресс">
                                                     <i class="fa-solid fa-chart-line"></i>
