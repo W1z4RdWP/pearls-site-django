@@ -16,7 +16,7 @@
                     Пользователи
                 {% endif %}
             </a>
-            <a href="{% url 'user_management:homework_check_dashboard' %}" class="list-group-item list-group-item-action {% if request.resolver_match.url_name == 'homework_check_dashboard' %}active{% endif %}">
+            <a href="{% url 'reports:homework_check_dashboard' %}" class="list-group-item list-group-item-action {% if request.resolver_match.url_name == 'homework_check_dashboard' %}active{% endif %}">
                 <i class="fas fa-clipboard-check"></i> Проверка заданий
             </a>
             {% if not user.profile.is_mentor_user or user.is_superuser or user.is_staff %}
@@ -52,7 +52,7 @@
                 {% if total_unrated_count > 0 %}
                 
                 <div class="mb-4">
-                    <h4>Неоцененные открытые ответы</h4>
+                    <h4>Неоцененные открытые ответы: {{ total_unrated_count }}</h4>
                     <div class="list-group">
                         {% for group in unrated_text_answers %}
                             {% for answer in group.answers %}

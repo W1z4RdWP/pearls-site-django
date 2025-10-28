@@ -213,6 +213,182 @@
         .metrics-table tr:nth-child(even) {
             background: #f9f9f9;
         }
+        
+        /* Скрываем карточки метрик на десктопе */
+        .metric-card {
+            display: none;
+        }
+        
+        /* Адаптация под мобильные */
+        @media screen and (max-width: 768px) {
+            .detail-wrapper {
+                padding: 0 10px;
+                margin: 10px auto;
+            }
+            
+            .detail-header {
+                flex-direction: column;
+                gap: 15px;
+                padding: 15px;
+            }
+            
+            .detail-header h1 {
+                font-size: 1.3rem;
+            }
+            
+            .detail-header p {
+                font-size: 13px;
+            }
+            
+            .detail-header > div:last-child {
+                display: flex;
+                flex-direction: column;
+                gap: 10px;
+                width: 100%;
+            }
+            
+            .btn-back,
+            .btn-export {
+                width: 100%;
+                text-align: center;
+                margin: 0;
+                padding: 12px 16px;
+            }
+            
+            .info-grid {
+                grid-template-columns: 1fr;
+                gap: 15px;
+                margin-bottom: 20px;
+            }
+            
+            .info-card {
+                padding: 15px;
+            }
+            
+            .info-card h3 {
+                font-size: 1.1rem;
+            }
+            
+            .info-row {
+                flex-direction: column;
+                gap: 5px;
+                padding: 10px 0;
+            }
+            
+            .info-label {
+                font-size: 12px;
+            }
+            
+            .info-value {
+                font-size: 14px;
+                font-weight: 500;
+            }
+            
+            .doctors-section {
+                padding: 15px;
+                margin-bottom: 20px;
+            }
+            
+            .doctors-section h3 {
+                font-size: 1.1rem;
+            }
+            
+            .doctor-card {
+                margin-bottom: 15px;
+            }
+            
+            .doctor-header {
+                padding: 12px;
+            }
+            
+            .doctor-header h4 {
+                font-size: 1rem;
+            }
+            
+            .doctor-info {
+                padding: 12px;
+            }
+            
+            .doctor-info-row {
+                grid-template-columns: 1fr;
+                gap: 12px;
+            }
+            
+            .doctor-info-row > div {
+                padding: 10px;
+                background: #f8f9fa;
+                border-radius: 4px;
+            }
+            
+            .months-section {
+                padding: 15px;
+            }
+            
+            .months-section h3 {
+                font-size: 1.1rem;
+            }
+            
+            .month-tabs {
+                gap: 5px;
+                margin-bottom: 15px;
+            }
+            
+            .month-tab {
+                padding: 8px 12px;
+                font-size: 13px;
+            }
+            
+            /* Скрываем таблицу метрик на мобильных */
+            .metrics-table {
+                display: none;
+            }
+            
+            /* Показываем карточки метрик */
+            .metric-card {
+                display: block;
+                background: white;
+                border: 1px solid #ddd;
+                border-radius: 8px;
+                padding: 15px;
+                margin-bottom: 15px;
+            }
+            
+            .metric-card-header {
+                background: #f8f9fa;
+                padding: 10px;
+                margin: -15px -15px 15px -15px;
+                border-radius: 8px 8px 0 0;
+                border-bottom: 2px solid #007bff;
+            }
+            
+            .metric-card-header strong {
+                color: #007bff;
+                font-size: 1rem;
+            }
+            
+            .metric-card-row {
+                display: flex;
+                justify-content: space-between;
+                padding: 8px 0;
+                border-bottom: 1px solid #eee;
+            }
+            
+            .metric-card-row:last-child {
+                border-bottom: none;
+            }
+            
+            .metric-card-label {
+                font-weight: 600;
+                color: #666;
+                font-size: 13px;
+            }
+            
+            .metric-card-value {
+                color: #333;
+                font-size: 13px;
+                text-align: right;
+            }
+        }
     </style>
 {% endblock %}
 
@@ -357,6 +533,7 @@
             
             {% for month in submission.doctors_data.months %}
                 <div class="month-content {% if forloop.first %}active{% endif %}" id="month{{ forloop.counter0 }}">
+                    <!-- Таблица для десктопа -->
                     <table class="metrics-table">
                         <thead>
                             <tr>
@@ -385,6 +562,33 @@
                             {% endfor %}
                         </tbody>
                     </table>
+                    
+                    <!-- Карточки для мобильных -->
+                    {% for doctor_data in month.doctors %}
+                        <div class="metric-card">
+                            <div class="metric-card-header">
+                                <strong>Врач {{ forloop.counter }}</strong>
+                            </div>
+                            <div class="metric-card-row">
+                                <span class="metric-card-label">Часы по графику</span>
+                                <span class="metric-card-value">{{ doctor_data.scheduleHours|default:"—" }}</span>
+                            </div>
+                            <div class="metric-card-row">
+                                <span class="metric-card-label">Часы с пациентами</span>
+                                <span class="metric-card-value">{{ doctor_data.patientHours|default:"—" }}</span>
+                            </div>
+                            <div class="metric-card-row">
+                                <span class="metric-card-label">Выручка</span>
+                                <span class="metric-card-value">{{ doctor_data.revenue|default:"—" }}</span>
+                            </div>
+                            {% if doctor_data.comment %}
+                                <div class="metric-card-row">
+                                    <span class="metric-card-label">Комментарий</span>
+                                    <span class="metric-card-value">{{ doctor_data.comment }}</span>
+                                </div>
+                            {% endif %}
+                        </div>
+                    {% endfor %}
                 </div>
             {% endfor %}
         </div>

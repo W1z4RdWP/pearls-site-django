@@ -21,6 +21,9 @@
     transform: translateY(-5px);
     box-shadow: 0 8px 25px rgba(0,0,0,0.15);
 }
+.clickable-row:hover {
+    background-color: #f8f9fa;
+}
 </style>
 {% endblock %}
 
@@ -61,7 +64,7 @@
                     </div>
                 </div>
                 <div class="col-md-4 mb-3">
-                    <a href="{% url 'user_management:users_with_learning' %}" class="text-decoration-none">
+                    <a href="{% url 'reports:users_with_learning' %}" class="text-decoration-none">
                         <div class="card text-center hover-card" style="cursor: pointer; transition: all 0.3s ease;">
                             <div class="card-body">
                                 <i class="fas fa-user fa-3x text-success mb-3"></i>
@@ -74,7 +77,7 @@
                     </a>
                 </div>
                 <div class="col-md-4 mb-3">
-                    <a href="{% url 'user_management:groups_progress' %}" class="text-decoration-none">
+                    <a href="{% url 'reports:groups_progress' %}" class="text-decoration-none">
                         <div class="card text-center hover-card" style="cursor: pointer; transition: all 0.3s ease;">
                             <div class="card-body">
                                 <i class="fas fa-users fa-3x text-info mb-3"></i>
@@ -103,35 +106,27 @@
                         <table class="table">
                             <thead>
                                 <tr>
-                                    <th>#</th>
-                                    <th>ФИО</th>
-                                    <th>Курс</th>
-                                    <th>Урок/Тест</th>
-                                    <th>Время завершения</th>
-                                    <th>Действия</th>
+                                    <th style="width: 5%;">#</th>
+                                    <th style="width: 25%;">ФИО</th>
+                                    <th style="width: 25%;">Курс</th>
+                                    <th style="width: 25%;">Урок/Тест</th>
+                                    <th style="width: 20%;">Время завершения</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {% if recent_completions %}
                                     {% for item in recent_completions %}
-                                        <tr>
+                                        <tr class="clickable-row" data-href="{% url 'user_management:user_progress' item.user.id %}" style="cursor: pointer;">
                                             <td class="text-muted">{{ forloop.counter }}</td>
                                             <td>{{ item.fio_short }}</td>
                                             <td>{{ item.course_title|default:"—" }}</td>
                                             <td>{{ item.material_title|default:"—" }}</td>
                                             <td>{{ item.completed_at|date:"d.m.Y H:i" }}</td>
-                                            <td>
-                                                <a href="{% url 'user_management:user_progress' item.user.id %}" 
-                                                   class="um-action-btn" 
-                                                   title="Прогресс обучения">
-                                                    <i class="fa-solid fa-chart-line"></i>
-                                                </a>
-                                            </td>
                                         </tr>
                                     {% endfor %}
                                 {% else %}
                                     <tr>
-                                        <td colspan="6" class="text-center text-muted py-4">
+                                        <td colspan="5" class="text-center text-muted py-4">
                                             <i class="fas fa-clipboard-list fa-2x mb-2"></i><br>
                                             Нет данных о завершениях
                                         </td>
@@ -145,4 +140,18 @@
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block specific_scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Обработчик кликов по строкам таблицы
+    const clickableRows = document.querySelectorAll('.clickable-row');
+    clickableRows.forEach(row => {
+        row.addEventListener('click', function() {
+            window.location.href = this.dataset.href;
+        });
+    });
+});
+</script>
 {% endblock %}

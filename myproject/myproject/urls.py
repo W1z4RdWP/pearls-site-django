@@ -64,6 +64,7 @@ urlpatterns = [
     path('courses/', include('courses.urls'), name='courses'),
     path('quizzes/', include('quizzes.urls'), name='quizzes'),
     path('builder/', include('builder.urls'), name='builder'),
+    path('reports/', include('reports.urls'), name='reports'),
     path('user_management/', include('user_management.urls'), name='user_management'),
     path('notifications/', include('notifications.urls')),
     path('i18n/', include('django.conf.urls.i18n')),
