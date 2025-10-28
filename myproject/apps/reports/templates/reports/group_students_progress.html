@@ -5,6 +5,11 @@
 
 {% block specific_styles %}
 <link rel="stylesheet" href="{% static 'reports/css/user_reports.css' %}">
+<style>
+.clickable-row:hover {
+    background-color: #f8f9fa;
+}
+</style>
 {% endblock %}
 
 {% block content %}
@@ -34,16 +39,15 @@
                             <table class="table table-striped table-hover table-compact">
                                 <thead>
                                     <tr>
-                                        <th style="width: 20%;">Студент</th>
-                                        <th style="width: 22%;">Email</th>
+                                        <th style="width: 22%;">Студент</th>
+                                        <th style="width: 25%;">Email</th>
                                         <th style="width: 10%;">Курсы</th>
                                         <th style="width: 43%;">Прогресс</th>
-                                        <th style="width: 5%;">Действия</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     {% for student in students %}
-                                        <tr>
+                                        <tr class="clickable-row" data-href="{% url 'user_management:user_progress' student.id %}" style="cursor: pointer;">
                                             <td>
                                                 <strong>{{ student.get_full_name|default:student.username }}</strong>
                                             </td>
@@ -67,13 +71,6 @@
                                                     / 
                                                     <i class="fa-solid fa-spinner text-warning"></i> {{ student.in_progress_courses }}
                                                 </small>
-                                            </td>
-                                            <td>
-                                                <a href="{% url 'reports:user_progress' student.id %}" 
-                                                   class="um-action-btn" 
-                                                   title="Детальный прогресс">
-                                                    <i class="fa-solid fa-chart-line"></i>
-                                                </a>
                                             </td>
                                         </tr>
                                     {% endfor %}
@@ -123,3 +120,16 @@
 </div>
 {% endblock %}
 
+{% block specific_scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Обработчик кликов по строкам таблицы
+    const clickableRows = document.querySelectorAll('.clickable-row');
+    clickableRows.forEach(row => {
+        row.addEventListener('click', function() {
+            window.location.href = this.dataset.href;
+        });
+    });
+});
+</script>
+{% endblock %}
