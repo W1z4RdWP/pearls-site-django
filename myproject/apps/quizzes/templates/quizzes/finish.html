@@ -8,6 +8,13 @@
         <h2>Тестирование завершено!</h2>
     </div>
     <div class="result-summary">
+        {% if time_exceeded %}
+            <div class="alert alert-danger" role="alert">
+                <h4><i class="fas fa-clock"></i> Время истекло!</h4>
+                <p>Вы не успели завершить тест в отведенное время ({{ time_limit }} минут). Попытка засчитана как проваленная.</p>
+            </div>
+        {% endif %}
+        
         {% if not is_all_question_text %}
             <p style="color: black;">Количество правильных ответов: <span class="highlight">{{ score }}/{{ questions_count }}</span></p>
             <p style="color: black;">Процент правильных ответов: <span class="highlight">{{ percent_score }}%</span></p>

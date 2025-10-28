@@ -38,7 +38,7 @@
                 </div>
                 
                 <div class="row">
-                    <div class="col-md-6">
+                    <div class="col-md-4">
                         <div class="mb-3">
                             <label for="attemptLimit" class="form-label">Ограничение попыток</label>
                             <input type="number" class="form-control" id="attemptLimit" name="attempt_limit" 
@@ -47,11 +47,19 @@
                             <div class="form-text">0 означает неограниченное количество попыток</div>
                         </div>
                     </div>
-                    <div class="col-md-6">
+                    <div class="col-md-4">
                         <div class="mb-3">
                             <label for="passThreshold" class="form-label">Проходной балл (%)</label>
                             <input type="number" class="form-control" id="passThreshold" name="pass_threshold" 
                                    value="{{ object.pass_threshold|default:70 }}" min="1" max="100" required>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="mb-3">
+                            <label for="timeLimit" class="form-label">Время на прохождение (минуты)</label>
+                            <input type="number" class="form-control" id="timeLimit" name="time_limit" 
+                                   value="{{ object.time_limit|default:0 }}" min="0">
+                            <div class="form-text">0 = без ограничения по времени</div>
                         </div>
                     </div>
                 </div>

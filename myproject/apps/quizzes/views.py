@@ -90,9 +90,12 @@ def get_questions(request, quiz_id: int = None, is_start: bool = False) -> HttpR
         if is_start and not quiz_id:
             return redirect('quizzes')
         
+        # Получаем объект quiz для стартового вопроса
+        if is_start:
+            quiz = get_object_or_404(Quiz, id=quiz_id)
+        
         # Проверяем ограничения попыток при старте теста
         if is_start and request.user.is_authenticated:
-            quiz = get_object_or_404(Quiz, id=quiz_id)
             
             # Проверяем доступ к курсу, если тест связан с курсом
             course_slug = request.GET.get('course_slug')
@@ -177,14 +180,24 @@ def get_questions(request, quiz_id: int = None, is_start: bool = False) -> HttpR
             current_question_id = request.session.get('current_question_id')
             if not quiz_id or not current_question_id:
                 return redirect('quizzes')
+            
+            # Получаем объект quiz для последующих вопросов
+            quiz_obj = get_object_or_404(Quiz, id=quiz_id)
 
             # Получаем следующий вопрос
             question = _get_subsequent_question(quiz_id, current_question_id)
         else:
+            # Для стартового вопроса quiz_obj уже определен выше как quiz
+            quiz_obj = quiz
+            
             # Сброс сессии при старте нового теста
             request.session['quiz_id'] = quiz_id
             request.session['score'] = 0
             request.session['current_question_id'] = None
+            
+            # Новая логика времени: накапливаем время только на страницах вопросов
+            request.session['quiz_accumulated_time'] = 0  # в секундах
+            request.session['question_start_time'] = None  # будет установлено при загрузке вопроса
             
             # Сохраняем course_slug если он передан в GET параметрах
             course_slug = request.GET.get('course_slug')
@@ -211,6 +224,12 @@ def get_questions(request, quiz_id: int = None, is_start: bool = False) -> HttpR
         
         # Обновление сессии
         request.session['current_question_id'] = question.id
+        
+        # Убеждаемся что quiz_obj определен (на случай если не попали ни в один блок выше)
+        try:
+            quiz_obj
+        except NameError:
+            quiz_obj = get_object_or_404(Quiz, id=quiz_id)
         
         # Для типа MATCH получаем в исходном порядке (пары не должны перемешиваться)
         # Для типа SEQUENCE получаем в исходном порядке, но потом перемешаем для отображения
@@ -298,22 +317,35 @@ def get_questions(request, quiz_id: int = None, is_start: bool = False) -> HttpR
 
         # Получаем информацию о попытках для отображения
         attempts_info = {}
-        if request.user.is_authenticated:
-            quiz_obj = Quiz.objects.get(id=quiz_id)
-            if quiz_obj.attempt_limit > 0:
-                # Считаем неудачные попытки (исключаем те, что помечены как исключенные из лимита)
-                failed_attempts = QuizResult.objects.filter(
-                    user=request.user,
-                    quiz_title=quiz_obj.name,
-                    passed=False,
-                    excluded_from_limit=False
-                ).count()
-                attempts_info = {
-                    'failed_attempts': failed_attempts,
-                    'attempt_limit': quiz_obj.attempt_limit,
-                    'attempts_left': quiz_obj.attempt_limit - failed_attempts
-                }
+        if request.user.is_authenticated and quiz_obj.attempt_limit > 0:
+            # Считаем неудачные попытки (исключаем те, что помечены как исключенные из лимита)
+            failed_attempts = QuizResult.objects.filter(
+                user=request.user,
+                quiz_title=quiz_obj.name,
+                passed=False,
+                excluded_from_limit=False
+            ).count()
+            attempts_info = {
+                'failed_attempts': failed_attempts,
+                'attempt_limit': quiz_obj.attempt_limit,
+                'attempts_left': quiz_obj.attempt_limit - failed_attempts
+            }
 
+        # Устанавливаем время начала работы над вопросом
+        request.session['question_start_time'] = timezone.now().isoformat()
+        request.session.modified = True
+        
+        # Вычисляем оставшееся время для таймера
+        accumulated_time = request.session.get('quiz_accumulated_time', 0)
+        time_limit_seconds = quiz_obj.time_limit * 60 if quiz_obj.time_limit > 0 else 0
+        remaining_time_seconds = int(max(0, time_limit_seconds - accumulated_time)) if time_limit_seconds > 0 else 0
+        
+        # Отладочный вывод
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.info(f"Timer debug: quiz_id={quiz_obj.id}, time_limit={quiz_obj.time_limit}, "
+                   f"accumulated={accumulated_time}, remaining={remaining_time_seconds}")
+        
         context = {
             'question': question,
             'answers': answers,
@@ -322,7 +354,10 @@ def get_questions(request, quiz_id: int = None, is_start: bool = False) -> HttpR
             'total_questions': total_questions,
             'progress_percent': progress_percent,
             'attempts_info': attempts_info,
-            'question_type': question.question_type
+            'question_type': question.question_type,
+            'quiz': quiz_obj,
+            'remaining_time_seconds': remaining_time_seconds,  # для JS таймера
+            'accumulated_time': accumulated_time,  # для отображения
         }
 
         # Добавляем questions только для типа MATCH
@@ -358,6 +393,22 @@ def get_answer(request) -> HttpResponse:
         quiz_id = request.session.get('quiz_id')
         question = get_object_or_404(Question, id=current_question_id)
         is_correct = False
+
+        # Накапливаем время, потраченное на текущий вопрос
+        question_start_time_str = request.session.get('question_start_time')
+        if question_start_time_str:
+            from datetime import datetime
+            try:
+                question_start_time = datetime.fromisoformat(question_start_time_str)
+                current_time = timezone.now()
+                time_spent = (current_time - question_start_time).total_seconds()
+                
+                accumulated_time = request.session.get('quiz_accumulated_time', 0)
+                request.session['quiz_accumulated_time'] = accumulated_time + time_spent
+                request.session['question_start_time'] = None  # Сбрасываем
+                request.session.modified = True
+            except (ValueError, TypeError):
+                pass
 
         # Получаем или инициализируем словарь ответов пользователя в сессии
         quiz_answers = request.session.get('quiz_answers', {})
@@ -641,6 +692,9 @@ def get_finish(request) -> HttpResponse:
     
     quiz = get_object_or_404(Quiz, id=quiz_id)
 
+    # Проверяем лимит времени
+    time_exceeded = not _check_time_limit(request, quiz)
+    
     questions_count = Question.objects.filter(quiz=quiz).count() # Количество вопросов в тесте всего
     text_questions_count = Question.objects.filter(question_type='text').filter(quiz=quiz).count() # количество открытых вопросов в тесте
     score = request.session.get('score', 0)
@@ -653,7 +707,8 @@ def get_finish(request) -> HttpResponse:
         auto_checkable_questions = questions_count - text_questions_count
         percent_score = int((score / auto_checkable_questions) * 100) if auto_checkable_questions > 0 else 0
 
-    passed = percent_score >= quiz.pass_threshold # Проходной балл из настроек теста
+    # Если время превышено, тест автоматически провален
+    passed = percent_score >= quiz.pass_threshold and not time_exceeded # Проходной балл из настроек теста
     
     # Получаем курс для сохранения в результате
     course_slug = request.session.get('course_slug')
@@ -940,6 +995,8 @@ def get_finish(request) -> HttpResponse:
         'percent_score': percent_score,
         'quiz_title': quiz.name,
         'is_all_question_text': is_all_question_text,
+        'time_exceeded': time_exceeded,
+        'time_limit': quiz.time_limit,
     }
     course_slug = request.session.pop('course_slug', None)
     request.session.pop('from_control_panel', None)  # Очищаем параметр из панели управления
@@ -949,8 +1006,21 @@ def get_finish(request) -> HttpResponse:
     _reset_quiz(request)
     return render(request, 'quizzes/finish.html', context)
 
+def _check_time_limit(request, quiz) -> bool:
+    """
+    Проверяет, не превышено ли накопленное время на прохождение теста.
+    Возвращает True если время не превышено, False если превышено.
+    """
+    if quiz.time_limit == 0:
+        return True  # Без ограничения по времени
+    
+    accumulated_time = request.session.get('quiz_accumulated_time', 0)  # в секундах
+    time_limit_seconds = quiz.time_limit * 60  # конвертируем минуты в секунды
+    
+    return accumulated_time <= time_limit_seconds
+
 def _reset_quiz(request) -> HttpRequest:
-    keys = ['quiz_id', 'current_question_id', 'score']
+    keys = ['quiz_id', 'current_question_id', 'score', 'quiz_accumulated_time', 'question_start_time', 'quiz_answers', 'sequence_correct_orders']
     for key in keys:
         if key in request.session:
             del request.session[key]
@@ -1027,7 +1097,7 @@ class QuizCreateView(UserPassesTestMixin, CreateView):
     Создание нового теста с вопросами и ответами.
     """
     model = Quiz
-    fields = ['name', 'attempt_limit', 'pass_threshold']
+    fields = ['name', 'attempt_limit', 'pass_threshold', 'time_limit']
     template_name = 'quizzes/quiz_form.html'
     success_url = '/builder/trajectory-management/'
 
@@ -1146,7 +1216,7 @@ class QuizEditView(UserPassesTestMixin, UpdateView):
     Редактирование существующего теста с вопросами и ответами.
     """
     model = Quiz
-    fields = ['name', 'attempt_limit', 'pass_threshold']
+    fields = ['name', 'attempt_limit', 'pass_threshold', 'time_limit']
     template_name = 'quizzes/quiz_edit.html'
     success_url = reverse_lazy('quizzes:quizzes')
     pk_url_kwarg = 'quiz_id'

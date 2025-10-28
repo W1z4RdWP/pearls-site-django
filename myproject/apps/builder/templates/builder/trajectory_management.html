@@ -349,6 +349,28 @@
                                 <label for="quiz_name" class="form-label">Название теста *</label>
                                 <input type="text" class="form-control" id="quiz_name" name="name" required>
                             </div>
+                            
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="form-group mb-3">
+                                        <label for="attempt_limit" class="form-label">Ограничение попыток</label>
+                                        <input type="number" class="form-control" id="attempt_limit" name="attempt_limit" value="0" min="0">
+                                        <small class="form-text text-muted">0 = без ограничений</small>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="form-group mb-3">
+                                        <label for="pass_threshold" class="form-label">Проходной балл (%)</label>
+                                        <input type="number" class="form-control" id="pass_threshold" name="pass_threshold" value="70" min="0" max="100">
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="form-group mb-3">
+                                <label for="time_limit" class="form-label">Время на прохождение (минуты)</label>
+                                <input type="number" class="form-control" id="time_limit" name="time_limit" value="0" min="0">
+                                <small class="form-text text-muted">0 = без ограничения по времени</small>
+                            </div>
                         </div>
                     </div>
 
