@@ -130,6 +130,11 @@
             font-size: 14px;
         }
         
+        /* Скрываем карточки на десктопе */
+        .submission-card {
+            display: none;
+        }
+        
         .btn-tracking {
             background: #6f42c1;
             color: white;
@@ -155,6 +160,139 @@
         .btn-tracking:active {
             transform: translateY(0);
             box-shadow: 0 2px 4px rgba(111, 66, 193, 0.2);
+        }
+        
+        /* Адаптация под мобильные */
+        @media screen and (max-width: 768px) {
+            .admin-wrapper {
+                padding: 0 10px;
+                margin: 10px auto;
+            }
+            
+            .admin-header {
+                padding: 15px;
+                margin-bottom: 20px;
+            }
+            
+            .admin-header h1 {
+                font-size: 1.5rem;
+            }
+            
+            .admin-header p {
+                font-size: 14px;
+            }
+            
+            .stats-row {
+                flex-direction: column;
+                gap: 10px;
+                margin-bottom: 20px;
+            }
+            
+            .stat-card {
+                padding: 15px;
+            }
+            
+            .stat-number {
+                font-size: 1.5rem;
+            }
+            
+            .btn-tracking {
+                width: 100%;
+                padding: 12px 16px;
+                font-size: 14px;
+            }
+            
+            /* Скрываем таблицу на мобильных */
+            .submissions-table table {
+                display: none;
+            }
+            
+            /* Показываем карточки */
+            .submissions-table {
+                background: transparent;
+                box-shadow: none;
+            }
+            
+            .submission-card {
+                display: block;
+                background: white;
+                border-radius: 8px;
+                padding: 15px;
+                margin-bottom: 15px;
+                box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            }
+            
+            .submission-card-header {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                margin-bottom: 15px;
+                padding-bottom: 10px;
+                border-bottom: 2px solid #007bff;
+            }
+            
+            .submission-card-id {
+                font-size: 1.2rem;
+                font-weight: bold;
+                color: #007bff;
+            }
+            
+            .submission-card-date {
+                font-size: 12px;
+                color: #666;
+            }
+            
+            .submission-card-row {
+                margin-bottom: 10px;
+            }
+            
+            .submission-card-label {
+                font-weight: 600;
+                color: #666;
+                font-size: 12px;
+                margin-bottom: 3px;
+                text-transform: uppercase;
+            }
+            
+            .submission-card-value {
+                color: #333;
+                font-size: 14px;
+            }
+            
+            .submission-card-value strong {
+                display: block;
+                margin-bottom: 2px;
+            }
+            
+            .submission-card-value small {
+                color: #666;
+                font-size: 12px;
+            }
+            
+            .submission-card-actions {
+                display: flex;
+                gap: 10px;
+                margin-top: 15px;
+                padding-top: 15px;
+                border-top: 1px solid #eee;
+            }
+            
+            .submission-card-actions .btn-view,
+            .submission-card-actions .btn-export {
+                flex: 1;
+                text-align: center;
+                margin: 0;
+                padding: 10px 12px;
+                font-size: 13px;
+            }
+            
+            .no-submissions i {
+                font-size: 2rem;
+            }
+            
+            .no-submissions h3 {
+                font-size: 1.2rem;
+            }
         }
     </style>
 {% endblock %}
@@ -184,6 +322,7 @@
     
     {% if submissions %}
         <div class="submissions-table">
+            <!-- Таблица для десктопа -->
             <table>
                 <thead>
                     <tr>
@@ -219,6 +358,43 @@
                     {% endfor %}
                 </tbody>
             </table>
+            
+            <!-- Карточки для мобильных -->
+            {% for submission in submissions %}
+                <div class="submission-card">
+                    <div class="submission-card-header">
+                        <div class="submission-card-id">ID: {{ submission.id }}</div>
+                        <div class="submission-card-date">{{ submission.submitted_at|date:"d.m.Y H:i" }}</div>
+                    </div>
+                    
+                    <div class="submission-card-row">
+                        <div class="submission-card-label">Пользователь</div>
+                        <div class="submission-card-value">
+                            <strong>{{ submission.user.get_full_name|default:submission.user.username }}</strong>
+                            <small>{{ submission.user.email }}</small>
+                        </div>
+                    </div>
+                    
+                    <div class="submission-card-row">
+                        <div class="submission-card-label">Название клиники</div>
+                        <div class="submission-card-value">{{ submission.clinic_name }}</div>
+                    </div>
+                    
+                    <div class="submission-card-row">
+                        <div class="submission-card-label">Количество врачей</div>
+                        <div class="submission-card-value">{{ submission.doctors_count }}</div>
+                    </div>
+                    
+                    <div class="submission-card-actions">
+                        <a href="{% url 'courses:metrics_admin_detail' submission.id %}" class="btn-view">
+                            Посмотреть
+                        </a>
+                        <a href="{% url 'courses:metrics_export_excel' submission.id %}" class="btn-export">
+                            📊 Excel
+                        </a>
+                    </div>
+                </div>
+            {% endfor %}
         </div>
     {% else %}
         <div class="no-submissions">
