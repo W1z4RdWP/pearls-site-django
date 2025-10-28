@@ -52,7 +52,7 @@
                 {% if total_unrated_count > 0 %}
                 
                 <div class="mb-4">
-                    <h4>Неоцененные открытые ответы</h4>
+                    <h4>Неоцененные открытые ответы: {{ total_unrated_count }}</h4>
                     <div class="list-group">
                         {% for group in unrated_text_answers %}
                             {% for answer in group.answers %}
