@@ -134,58 +134,151 @@ function highlightText(element, searchTerm) {
 // Функция поиска
 function performSearch(searchTerm) {
     const searchTermLower = searchTerm.toLowerCase();
-    const categoryItems = document.querySelectorAll('.category-item');
-    const lessonItems = document.querySelectorAll('.lesson-item');
     const searchResults = document.getElementById('searchResults');
     const resultsCount = document.getElementById('resultsCount');
     
-    // Скрываем все элементы по умолчанию и убираем подсветку
-    categoryItems.forEach(item => {
-        item.style.display = 'none';
-        const title = item.querySelector('.category-title');
-        if (title) highlightText(title, '');
-    });
-    lessonItems.forEach(item => {
-        item.style.display = 'none';
-        const title = item.querySelector('.lesson-title');
-        if (title) highlightText(title, '');
-    });
+    // Определяем активную вкладку
+    const categoriesBlock = document.getElementById('categories-block');
+    const uncatBlock = document.getElementById('uncategorized-block');
+    const testsBlock = document.getElementById('tests-block');
     
-    if (!searchTerm) {
-        // Если поиск пустой, показываем все и скрываем счетчик
+    const activeTab = categoriesBlock.style.display !== 'none' ? 'categories' :
+                      uncatBlock.style.display !== 'none' ? 'uncategorized' : 'tests';
+    
+    if (activeTab === 'tests') {
+        // Поиск по тестам
+        const testItems = testsBlock.querySelectorAll('.lesson-item');
+        
+        testItems.forEach(item => {
+            const title = item.querySelector('.lesson-title');
+            if (title) highlightText(title, '');
+        });
+        
+        if (!searchTerm) {
+            testItems.forEach(item => item.style.display = 'block');
+            searchResults.style.display = 'none';
+            return;
+        }
+        
+        let foundCount = 0;
+        testItems.forEach(item => {
+            const title = item.querySelector('.lesson-title');
+            const titleText = title.textContent.toLowerCase();
+            
+            if (titleText.includes(searchTermLower)) {
+                item.style.display = 'block';
+                highlightText(title, searchTerm);
+                foundCount++;
+            } else {
+                item.style.display = 'none';
+            }
+        });
+        
+        resultsCount.textContent = foundCount;
+        searchResults.style.display = 'block';
+        
+    } else if (activeTab === 'uncategorized') {
+        // Поиск по урокам без категории
+        const lessonItems = uncatBlock.querySelectorAll('.lesson-item');
+        
+        lessonItems.forEach(item => {
+            const title = item.querySelector('.lesson-title');
+            if (title) highlightText(title, '');
+        });
+        
+        if (!searchTerm) {
+            lessonItems.forEach(item => item.style.display = 'block');
+            searchResults.style.display = 'none';
+            return;
+        }
+        
+        let foundCount = 0;
+        lessonItems.forEach(item => {
+            const title = item.querySelector('.lesson-title');
+            const titleText = title.textContent.toLowerCase();
+            
+            if (titleText.includes(searchTermLower)) {
+                item.style.display = 'block';
+                highlightText(title, searchTerm);
+                foundCount++;
+            } else {
+                item.style.display = 'none';
+            }
+        });
+        
+        resultsCount.textContent = foundCount;
+        searchResults.style.display = 'block';
+        
+    } else {
+        // Поиск по категориям (оригинальная логика)
+        const categoryItems = categoriesBlock.querySelectorAll('.category-item');
+        const lessonItems = categoriesBlock.querySelectorAll('.lesson-item');
+        
+        // Скрываем все элементы по умолчанию и убираем подсветку
         categoryItems.forEach(item => {
-            item.style.display = 'block';
+            item.style.display = 'none';
+            const title = item.querySelector('.category-title');
+            if (title) highlightText(title, '');
         });
         lessonItems.forEach(item => {
-            item.style.display = 'block';
+            item.style.display = 'none';
+            const title = item.querySelector('.lesson-title');
+            if (title) highlightText(title, '');
         });
-        searchResults.style.display = 'none';
-        return;
-    }
-    
-    let foundCount = 0;
-    
-    // Ищем совпадения в категориях
-    categoryItems.forEach(categoryItem => {
-        const categoryTitle = categoryItem.querySelector('.category-title');
-        const categoryTitleText = categoryTitle.textContent.toLowerCase();
-        const hasMatchingCategory = categoryTitleText.includes(searchTermLower);
         
-        // Ищем совпадения в уроках этой категории
-        const lessonItemsInCategory = categoryItem.querySelectorAll('.lesson-item');
-        let hasMatchingLessons = false;
+        if (!searchTerm) {
+            // Если поиск пустой, показываем все и скрываем счетчик
+            categoryItems.forEach(item => {
+                item.style.display = 'block';
+            });
+            lessonItems.forEach(item => {
+                item.style.display = 'block';
+            });
+            searchResults.style.display = 'none';
+            return;
+        }
         
-        lessonItemsInCategory.forEach(lessonItem => {
-            const lessonTitle = lessonItem.querySelector('.lesson-title');
-            const lessonTitleText = lessonTitle.textContent.toLowerCase();
-            if (lessonTitleText.includes(searchTermLower)) {
-                lessonItem.style.display = 'block';
-                highlightText(lessonTitle, searchTerm);
-                hasMatchingLessons = true;
-                foundCount++;
-                
-                // Показываем родительскую категорию
+        let foundCount = 0;
+        
+        // Ищем совпадения в категориях
+        categoryItems.forEach(categoryItem => {
+            const categoryTitle = categoryItem.querySelector('.category-title');
+            const categoryTitleText = categoryTitle.textContent.toLowerCase();
+            const hasMatchingCategory = categoryTitleText.includes(searchTermLower);
+            
+            // Ищем совпадения в уроках этой категории
+            const lessonItemsInCategory = categoryItem.querySelectorAll('.lesson-item');
+            let hasMatchingLessons = false;
+            
+            lessonItemsInCategory.forEach(lessonItem => {
+                const lessonTitle = lessonItem.querySelector('.lesson-title');
+                const lessonTitleText = lessonTitle.textContent.toLowerCase();
+                if (lessonTitleText.includes(searchTermLower)) {
+                    lessonItem.style.display = 'block';
+                    highlightText(lessonTitle, searchTerm);
+                    hasMatchingLessons = true;
+                    foundCount++;
+                    
+                    // Показываем родительскую категорию
+                    categoryItem.style.display = 'block';
+                    
+                    // Показываем все родительские категории
+                    let parentCategory = categoryItem.parentElement.closest('.category-item');
+                    while (parentCategory) {
+                        parentCategory.style.display = 'block';
+                        parentCategory = parentCategory.parentElement.closest('.category-item');
+                    }
+                }
+            });
+            
+            // Если категория совпадает, показываем её и все её уроки
+            if (hasMatchingCategory) {
                 categoryItem.style.display = 'block';
+                highlightText(categoryTitle, searchTerm);
+                foundCount++;
+                lessonItemsInCategory.forEach(lessonItem => {
+                    lessonItem.style.display = 'block';
+                });
                 
                 // Показываем все родительские категории
                 let parentCategory = categoryItem.parentElement.closest('.category-item');
@@ -196,27 +289,10 @@ function performSearch(searchTerm) {
             }
         });
         
-        // Если категория совпадает, показываем её и все её уроки
-        if (hasMatchingCategory) {
-            categoryItem.style.display = 'block';
-            highlightText(categoryTitle, searchTerm);
-            foundCount++;
-            lessonItemsInCategory.forEach(lessonItem => {
-                lessonItem.style.display = 'block';
-            });
-            
-            // Показываем все родительские категории
-            let parentCategory = categoryItem.parentElement.closest('.category-item');
-            while (parentCategory) {
-                parentCategory.style.display = 'block';
-                parentCategory = parentCategory.parentElement.closest('.category-item');
-            }
-        }
-    });
-    
-    // Показываем счетчик результатов
-    resultsCount.textContent = foundCount;
-    searchResults.style.display = 'block';
+        // Показываем счетчик результатов
+        resultsCount.textContent = foundCount;
+        searchResults.style.display = 'block';
+    }
 }
 
 // Функция для переключения вкладок
@@ -228,6 +304,7 @@ function switchTab(tabName) {
     const uncatBlock = document.getElementById('uncategorized-block');
     const testsBlock = document.getElementById('tests-block');
     const panelTitle = document.getElementById('panel-title');
+    const searchInput = document.getElementById('searchInput');
     
     // Убираем активный класс со всех вкладок
     categoriesTab.classList.remove('active');
@@ -238,6 +315,11 @@ function switchTab(tabName) {
     categoriesBlock.style.display = 'none';
     uncatBlock.style.display = 'none';
     testsBlock.style.display = 'none';
+    
+    // Очищаем поиск при переключении вкладок
+    if (searchInput) {
+        searchInput.value = '';
+    }
     
     if (tabName === 'categories') {
         categoriesTab.classList.add('active');
@@ -252,6 +334,9 @@ function switchTab(tabName) {
         testsBlock.style.display = 'block';
         panelTitle.textContent = 'Тесты';
     }
+    
+    // Сбрасываем результаты поиска для новой вкладки
+    performSearch('');
 }
 
 // Инициализация
