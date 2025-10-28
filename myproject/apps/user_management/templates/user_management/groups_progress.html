@@ -126,14 +126,14 @@
                 <div class="card-body">
                     {% if groups %}
                         <div class="table-responsive">
-                            <table class="table table-hover">
+                            <table class="table table-hover table-compact">
                                 <thead>
                                     <tr>
-                                        <th>#</th>
-                                        <th>Название группы</th>
-                                        <th>Пользователей</th>
-                                        <th>Курсов</th>
-                                        <th style="min-width: 300px;">Прогресс</th>
+                                        <th style="width: 3%;">#</th>
+                                        <th style="width: 25%;">Название группы</th>
+                                        <th style="width: 10%;">Пользователей</th>
+                                        <th style="width: 10%;">Курсов</th>
+                                        <th style="width: 52%;">Прогресс</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -156,18 +156,18 @@
                                                 </span>
                                             </td>
                                             <td>
-                                                <div class="progress mb-2" style="height: 25px; width: 100%;" title="{{ group.learning_percentage|floatformat:1 }}% обученность">
+                                                <div class="progress mb-1" style="height: 20px; width: 100%;" title="{{ group.learning_percentage|floatformat:1 }}% обученность">
                                                     <div class="progress-bar {% if group.learning_percentage >= 80 %}bg-success{% elif group.learning_percentage >= 50 %}bg-warning{% else %}bg-danger{% endif %}" 
                                                          role="progressbar" 
                                                          style="width: {{ group.learning_percentage|unlocalize }}%"
                                                          aria-valuenow="{{ group.learning_percentage|unlocalize }}" 
                                                          aria-valuemin="0" 
                                                          aria-valuemax="100">
-                                                        <span class="fw-bold">{{ group.learning_percentage|floatformat:1 }}%</span>
+                                                        <span class="fw-bold" style="font-size: 0.75rem;">{{ group.learning_percentage|floatformat:1 }}%</span>
                                                     </div>
                                                 </div>
-                                                <small class="text-muted">
-                                                    <i class="fa-solid fa-check-circle text-success"></i> {{ group.completed_courses }}/{{ group.total_courses }} курсов завершено
+                                                <small class="text-muted" style="font-size: 0.7rem; line-height: 1;">
+                                                    <i class="fa-solid fa-check-circle text-success"></i> {{ group.completed_courses }}/{{ group.total_courses }}
                                                 </small>
                                             </td>
                                         </tr>

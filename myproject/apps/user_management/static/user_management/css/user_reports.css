@@ -69,3 +69,65 @@
 .progress {
     height: 20px;
 }
+
+/* Компактные строки таблицы */
+.table-compact td,
+.table-compact th {
+    padding: 0.25rem 0.4rem;
+    vertical-align: middle;
+    line-height: 1.1;
+    font-size: 0.9rem;
+}
+
+.table-compact th {
+    font-size: 0.85rem;
+}
+
+/* Компактные бейджи групп */
+.group-badge-compact {
+    display: inline-block;
+    padding: 0.1rem 0.35rem;
+    font-size: 0.7rem;
+    margin: 0.05rem;
+    line-height: 1.1;
+}
+
+/* Компактный статус обучения */
+.status-compact {
+    display: inline-block;
+    padding: 0;
+    font-size: 0.75rem;
+    line-height: 1.1;
+}
+
+.status-compact .badge {
+    padding: 0.15rem 0.4rem;
+    font-size: 0.7rem;
+    line-height: 1.1;
+}
+
+.status-compact .small {
+    font-size: 0.65rem;
+    margin-top: 0.15rem;
+    display: block;
+    line-height: 1;
+}
+
+/* Ограничение высоты строк */
+.table-compact tbody tr {
+    max-height: 45px;
+}
+
+.table-compact .badge {
+    white-space: nowrap;
+}
+
+.table-compact small {
+    font-size: 0.8rem;
+    line-height: 1.1;
+}
+
+.table-compact strong {
+    font-size: 0.9rem;
+    font-weight: 600;
+}

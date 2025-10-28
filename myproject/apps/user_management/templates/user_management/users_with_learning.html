@@ -127,15 +127,15 @@
                 <div class="card-body">
                     {% if users %}
                         <div class="table-responsive">
-                            <table class="table table-hover">
+                            <table class="table table-hover table-compact">
                                 <thead>
                                     <tr>
-                                        <th>#</th>
-                                        <th>ФИО</th>
-                                        <th>Email</th>
-                                        <th>Группы</th>
-                                        <th>Статус обучения</th>
-                                        <th>Действия</th>
+                                        <th style="width: 3%;">#</th>
+                                        <th style="width: 22%;">ФИО</th>
+                                        <th style="width: 22%;">Email</th>
+                                        <th style="width: 20%;">Группы</th>
+                                        <th style="width: 18%;">Статус</th>
+                                        <th style="width: 5%;">Действия</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -144,34 +144,33 @@
                                             <td class="text-muted">{{ forloop.counter }}</td>
                                             <td>
                                                 <strong>{{ user.get_full_name|default:user.email }}</strong>
-                                                {% if user.profile.middle_name %}
-                                                    <br><small class="text-muted">{{ user.profile.middle_name }}</small>
-                                                {% endif %}
                                             </td>
-                                            <td>{{ user.email }}</td>
+                                            <td><small>{{ user.email }}</small></td>
                                             <td>
                                                 {% for group in user.groups.all %}
-                                                    <span class="badge bg-secondary me-1">{{ group.name }}</span>
+                                                    <span class="badge bg-secondary group-badge-compact">{{ group.name }}</span>
                                                 {% empty %}
                                                     <span class="text-muted">—</span>
                                                 {% endfor %}
                                             </td>
                                             <td>
                                                 {% if user.total_courses > 0 %}
-                                                    {% if user.is_fully_completed %}
-                                                        <span class="badge bg-success">
-                                                            <i class="fas fa-check"></i> Завершено
-                                                        </span>
-                                                    {% elif user.completed_courses > 0 %}
-                                                        <span class="badge bg-warning">
-                                                            <i class="fas fa-clock"></i> В процессе
-                                                        </span>
-                                                    {% else %}
-                                                        <span class="badge bg-info">
-                                                            <i class="fas fa-play"></i> Не начато
-                                                        </span>
-                                                    {% endif %}
-                                                    <br><small class="text-muted">{{ user.completed_courses }}/{{ user.total_courses }} курсов</small>
+                                                    <div class="status-compact">
+                                                        {% if user.is_fully_completed %}
+                                                            <span class="badge bg-success status-compact">
+                                                                <i class="fas fa-check"></i> Завершено
+                                                            </span>
+                                                        {% elif user.completed_courses > 0 %}
+                                                            <span class="badge bg-warning status-compact">
+                                                                <i class="fas fa-clock"></i> В процессе
+                                                            </span>
+                                                        {% else %}
+                                                            <span class="badge bg-info status-compact">
+                                                                <i class="fas fa-play"></i> Не начато
+                                                            </span>
+                                                        {% endif %}
+                                                        <small class="text-muted d-block">{{ user.completed_courses }}/{{ user.total_courses }}</small>
+                                                    </div>
                                                 {% else %}
                                                     <span class="text-muted">—</span>
                                                 {% endif %}
