@@ -1,7 +1,7 @@
 from django.apps import AppConfig
 
 
-class ReportsConfig(AppConfig):
+class DelegationConfig(AppConfig):
     default_auto_field = 'django.db.models.BigAutoField'
-    name = 'reports'
-    app_label = 'reports'
+    name = 'delegation'
+    app_label = 'delegation'
