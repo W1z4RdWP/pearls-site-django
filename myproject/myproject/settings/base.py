@@ -80,7 +80,8 @@ INSTALLED_APPS = [
     'gamification.apps.GamificationConfig',
     'notifications.apps.NotificationsConfig',
     'tech_support.apps.TechSupportConfig',
-    'reports.apps.ReportsConfig'
+    'reports.apps.ReportsConfig',
+    'delegation.apps.DelegationConfig'
 ]
 
 X_FRAME_OPTIONS = "SAMEORIGIN"              # allows you to use modals insated of popups
