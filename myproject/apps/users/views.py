@@ -39,6 +39,8 @@ from .models import Profile, Role
 audit_logger = logging.getLogger('audit')
 
 
+
+
 class RegisterView(LoginRequiredMixin, FormView):
     form_class = UserRegisterForm
     template_name = 'users/register.html'
