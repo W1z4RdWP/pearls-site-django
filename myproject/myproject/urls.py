@@ -57,6 +57,7 @@ urlpatterns = [
     path('homepage/', (views.HomepageView.as_view()), name='homepage'),
     path('courses_app/', (views.DesignedCoursesView.as_view()), name='courses_app'),
     path('check-up/', (views.DesignedCheckUpView.as_view()), name='check_up'),
+    path('event/', (views.EventTemplateView.as_view()), name='event'),
     path('captcha/', include('captcha.urls')),
     path('about/', views.AboutView.as_view(), name='about'),
     path('shop/', views.ShopView.as_view(), name='shop'),

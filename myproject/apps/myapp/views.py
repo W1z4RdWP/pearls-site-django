@@ -38,6 +38,17 @@ class DesignedCheckUpView(TemplateView):
         return context
 
 
+
+class EventTemplateView(TemplateView):
+    """
+    Класс представление шаблона для мероприятий. Будет изменяться/адаптироваться под разные мероприятия.
+    """
+    template_name = 'designed/event.html'
+
+
+
+
+
 class IndexView(TemplateView):
     """Класс представление домашней страницы
 

@@ -1,0 +1,511 @@
+{% extends 'designed/base.html' %}
+{% load static %}
+{% block title %}Курс "Первый канал"{% endblock %}
+    {% block content %} 
+    <main class="main">
+      <div class="hero-channel">
+        <div class="hero-channel__container">
+          <div class="hero-channel__back">
+            <picture class="hero-channel__image">
+              <source srcset="{% static 'designed/img/hero-channel/back.webp' %}" class="hero-channel__img">
+              <img src="{% static 'designed/img/hero-channel/back.png' %}" alt="..." class="hero-channel__img" loading="lazy">
+            </picture>
+            <video autoplay="" loop="" muted="" poster="{% static 'designed/img/hero-channel/hero.png' %}" class="hero-channel__image">
+              <source src="{% static 'designed/video/channel.mp4' %}" type="video/mp4" class="hero-channel__img">
+              <source src="{% static 'designed/video/channel.webm' %}" type="video/webm" class="hero-channel__img">
+            </video>
+          </div>
+          <div class="hero-channel__content">
+            <div class="section section--center">
+              <div class="section__container">
+                <div class="hero-content">
+                  <div class="hero-content__text">
+                    <div class="hero-content__pills">
+                      <div class="pill">Офлайн <span class="pill__cicrle"></span> Эндодонтия для старта</div>
+                      <div class="pill"><img src="{% static 'designed/img/calendar.png' %}" alt="..." class="pill__img">1 ноября 2025</div>
+                      <div class="pill">
+                        <img src="{% static 'designed/img/location.png' %}" alt="..." class="pill__img">
+                        Воронеж • Клиника «Территория Улыбки»
+                      </div>
+                    </div>
+                    <h2 class="title title--size-great title--variant-white"><span> «Первый канал» </span> — простые шаги к&nbsp;сложным результатам</h2>
+                    <p>Практический мастер‑класс: уверенная инструментальная обработка каналов без&nbsp;паники и&nbsp;ошибок. Для&nbsp;начинающих врачей и&nbsp;ординаторов.</p>
+                  </div>
+                  <div class="hero-content__button">
+                    <button data-micromodal-trigger="modal-channel" class="button button--variant-fuchsia button--size-medium button--font-medium button--arrow">Записаться на 1 ноября <span class="icon icon-arrow button__arrow"></span></button>
+                    <a href="#master-class-program" class="button button--variant-outline button--size-medium button--font-medium"> Содержание мастер‑класса </a>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="section section--center section--bottom-medium section--top-medium">
+        <div class="section__container">
+          <div class="back-figure">
+            <div class="back-figure__container">
+              <div class="channel-grid">
+                <div class="channel-card">
+                  <div class="channel-card__image"><img src="{% static 'designed/img/channel/user.png' %}" alt="..." class="channel-card__img"></div>
+                  <p>До 15 человек</p>
+                </div>
+                <div class="channel-card">
+                  <div class="channel-card__image"><img src="{% static 'designed/img/channel/clock.png' %}" alt="..." class="channel-card__img"></div>
+                  <p>3 часа теории <span> + 3 часа практика </span></p>
+                </div>
+                <div class="channel-card">
+                  <div class="channel-card__image"><img src="{% static 'designed/img/channel/check.png' %}" alt="..." class="channel-card__img"></div>
+                  <p>Сертификат, кофе‑брейк, ничего брать не нужно</p>
+                </div>
+              </div>
+            </div>
+            <picture class="back-figure__image back-figure__image-one">
+              <source srcset="{% static 'designed/img/back/1.webp' %}" class="back-figure__img">
+              <img loading="lazy" src="{% static 'designed/img/back/1.png' %}" alt="back" class="back-figure__img">
+            </picture>
+          </div>
+        </div>
+      </div>
+      <div class="section section--center section--bottom-medium">
+        <div class="section__container">
+          <div class="course-details-grid">
+            <div class="course-details-card">
+              <div class="course-details-card__image"><img src="{% static 'designed/img/courses/two.png' %}" alt="..." class="course-details-card__img"></div>
+              <div class="course-details-card__content">
+                <h3 class="card-title card-title--white">Для кого</h3>
+                <ul class="card-text card-text--white card-text--large card-text__list">
+                  <li>Начинающие врачи, интерны и&nbsp;ординаторы.</li>
+                  <li>Врачи‑терапевты, кто хочет уверенно начать в эндо.</li>
+                </ul>
+              </div>
+            </div>
+            <div class="course-details-card">
+              <div class="course-details-card__image"><img src="{% static 'designed/img/channel/cert.png' %}" alt="..." class="course-details-card__img"></div>
+              <div class="course-details-card__content">
+                <h3 class="card-title card-title--white">Что получите</h3>
+                <ul class="card-text card-text--white card-text--large card-text__list">
+                  <li>Уверенный алгоритм доступа и прохождения.</li>
+                  <li>Чек‑лист последовательности файлов и промывок.</li>
+                  <li>Навык работы под микроскопом «без суеты».</li>
+                  <li>Сертификат участника.</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="section section--center section--bottom-tiny">
+        <div class="section__container">
+          <div id="master-class-program" class="master-class-program">
+            <h2 class="title title--size-medium"><span>Программа</span> мастер‑класса</h2>
+            <div class="accordion">
+              <div class="accordion__container">
+                <div class="accordion__item ac">
+                  <div class="ac-trigger">
+                    <div class="accordion__main">
+                      <div class="accordion__pill">Введение</div>
+                      <div class="accordion__icon"><span class="icon icon-arrow accordion__icon-plus"></span></div>
+                    </div>
+                    <div class="accordion__title">Зачем это важно</div>
+                  </div>
+                  <div class="ac-panel">
+                    <div class="accordion__content">
+                      <ul>
+                        <li>Crown‑Down: логика метода, контроль поэтапно.</li>
+                        <li>Ультразвук: преимущества и техника применения без рисков.</li>
+                        <li>Под микроскопом: как повысить точность и качество.</li>
+                        <li>Безопасность: как избежать поломки инструмента и перфорации.</li>
+                        <li>Последовательность применения файлов в канале — от доступа до апекса.</li>
+                      </ul>
+                      <p>Практика проходит на фантомах под микроскопом в малых группах. Наставник рядом на каждом шаге.</p>
+                    </div>
+                  </div>
+                </div>
+                <div class="accordion__item ac">
+                  <div class="ac-trigger">
+                    <div class="accordion__main">
+                      <div class="accordion__pill">Диагностика</div>
+                      <div class="accordion__icon"><span class="icon icon-arrow accordion__icon-plus"></span></div>
+                    </div>
+                    <div class="accordion__title">Перед тем как взять файл в руки</div>
+                  </div>
+                  <div class="ac-panel">
+                    <div class="accordion__content">
+                      <ul>
+                        <li>Crown‑Down: логика метода, контроль поэтапно.</li>
+                        <li>Ультразвук: преимущества и техника применения без рисков.</li>
+                        <li>Под микроскопом: как повысить точность и качество.</li>
+                        <li>Безопасность: как избежать поломки инструмента и перфорации.</li>
+                        <li>Последовательность применения файлов в канале — от доступа до апекса.</li>
+                      </ul>
+                      <p>Практика проходит на фантомах под микроскопом в малых группах. Наставник рядом на каждом шаге.</p>
+                    </div>
+                  </div>
+                </div>
+                <div class="accordion__item ac">
+                  <div class="ac-trigger">
+                    <div class="accordion__main">
+                      <div class="accordion__pill">Инструменты и материалы</div>
+                      <div class="accordion__icon"><span class="icon icon-arrow accordion__icon-plus"></span></div>
+                    </div>
+                    <div class="accordion__title">Чем работаем и почему</div>
+                  </div>
+                  <div class="ac-panel">
+                    <div class="accordion__content">
+                      <ul>
+                        <li>Crown‑Down: логика метода, контроль поэтапно.</li>
+                        <li>Ультразвук: преимущества и техника применения без рисков.</li>
+                        <li>Под микроскопом: как повысить точность и качество.</li>
+                        <li>Безопасность: как избежать поломки инструмента и перфорации.</li>
+                        <li>Последовательность применения файлов в канале — от доступа до апекса.</li>
+                      </ul>
+                      <p>Практика проходит на фантомах под микроскопом в малых группах. Наставник рядом на каждом шаге.</p>
+                    </div>
+                  </div>
+                </div>
+                <div class="accordion__item ac">
+                  <div class="ac-trigger">
+                    <div class="accordion__main">
+                      <div class="accordion__pill">Техника и безопасность</div>
+                      <div class="accordion__icon"><span class="icon icon-arrow accordion__icon-plus"></span></div>
+                    </div>
+                    <div class="accordion__title">Пошаговая обработка канала</div>
+                  </div>
+                  <div class="ac-panel">
+                    <div class="accordion__content">
+                      <ul>
+                        <li>Crown‑Down: логика метода, контроль поэтапно.</li>
+                        <li>Ультразвук: преимущества и техника применения без рисков.</li>
+                        <li>Под микроскопом: как повысить точность и качество.</li>
+                        <li>Безопасность: как избежать поломки инструмента и перфорации.</li>
+                        <li>Последовательность применения файлов в канале — от доступа до апекса.</li>
+                      </ul>
+                      <p>Практика проходит на фантомах под микроскопом в малых группах. Наставник рядом на каждом шаге.</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="section section--center section--bottom-medium">
+        <div class="section__container">
+          <div class="changes-grid">
+            <h2 class="title title--size-medium"><span> Формат</span> дня</h2>
+            <div class="changes-grid__container">
+              <div class="changes-item">
+                <div class="changes-item__data changes-item__data--secondary">Теория 3 часа:</div>
+                <div class="card-text">Короткие блоки, ответы на&nbsp;вопросы, разбор типовых ошибок</div>
+              </div>
+              <div class="changes-grid__divider"></div>
+              <div class="changes-item">
+                <div class="changes-item__data changes-item__data--secondary">Практика 3 часа:</div>
+                <div class="card-text">Рабочие места под&nbsp;микроскопом, инструменты и&nbsp;расходники подготовлены</div>
+              </div>
+              <div class="changes-grid__divider"></div>
+              <div class="changes-item">
+                <div class="changes-item__data changes-item__data--secondary">Q&amp;A:</div>
+                <div class="card-text">Разбор ваших клинических случаев</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="section section--center section--bottom-medium">
+        <div class="section__container">
+          <div class="booking-form">
+            <picture class="booking-form__image">
+              <source srcset="{% static 'designed/img/form.webp' %}" class="booking-form__img">
+              <img src="{% static 'designed/img/form.jpg' %}" alt="..." class="booking-form__img" loading="lazy">
+            </picture>
+            <form class="booking-form__main">
+              <h2 class="title title--size-medium">
+                <span> Записаться </span>
+                на 1 ноября
+              </h2>
+              <div class="booking-form__content">
+                <div class="booking-form__inputs">
+                  <input placeholder="Ваше имя " name="name" id="booking-form_name" required="" class="input input--booking"> <input placeholder="Телефон" name="phone" id="booking-form_phone" required="" class="input input--phone input--booking">
+                  <input placeholder="Опыт (лет)" name="experience" id="booking-form_experience" required="" class="input input--booking"> <input placeholder="Email" name="email" id="booking-form_email" required="" class="input input--booking">
+                  <textarea name="booking-form_message" class="booking-form__textarea" placeholder="Коротко: что хотите отработать / ваш клинический случай?"></textarea>
+                </div>
+                <div class="booking-form__buttons">
+                  <button class="button button--variant-fuchsia button--size-medium button--font-medium button--arrow">Отправить заявку <span class="icon icon-arrow button__arrow"></span></button>
+                  <div class="checkbox checkbox--booking">
+                    <input id="booking-form_check" type="checkbox" class="checkbox__element"> <label for="booking-form_check" class="checkbox__label">Я принимаю условия <a href="./">политики конфиденциальности</a> и&nbsp;даю <a href="">согласие на&nbsp;обработку персональных данных</a></label>
+                  </div>
+                </div>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+      <div class="section section--center section--bottom-medium">
+        <div class="section__container">
+          <div class="back-figure">
+            <div class="back-figure__container">
+              <div class="banner banner--fullwidth">
+                <div class="banner__container">
+                  <picture class="banner__image">
+                    <source srcset="{% static 'designed/img/banner.webp' %}" class="banner__img">
+                    <img src="{% static 'designed/img/banner.png' %}" alt="..." class="banner__img" loading="lazy">
+                  </picture>
+                  <div class="banner__content">
+                    <div class="banner-directions banner-directions--fullwidth">
+                      <h2 class="title title--size-medium title--variant-white">Другие офлайн‑курсы клиники</h2>
+                      <div class="banner-directions__container">
+                        <a href="./" class="banner-directions__item">
+                          <div class="banner-directions__item-main">
+                            <div class="banner-directions__point"></div>
+                            Эндодонтия под&nbsp;микроскопом (углубление)
+                          </div>
+                          <span class="icon icon-arrow-rotate banner-directions__item-arrow"></span> </a
+                        ><a href="./" class="banner-directions__item">
+                          <div class="banner-directions__item-main">
+                            <div class="banner-directions__point"></div>
+                            Базовая хирургия
+                          </div>
+                          <span class="icon icon-arrow-rotate banner-directions__item-arrow"></span> </a
+                        ><a href="./" class="banner-directions__item">
+                          <div class="banner-directions__item-main">
+                            <div class="banner-directions__point"></div>
+                            Ретритмент
+                          </div>
+                          <span class="icon icon-arrow-rotate banner-directions__item-arrow"></span> </a
+                        ><a href="./" class="banner-directions__item">
+                          <div class="banner-directions__item-main">
+                            <div class="banner-directions__point"></div>
+                            Ортопедия (вкладки, коронки, виниры)
+                          </div>
+                          <span class="icon icon-arrow-rotate banner-directions__item-arrow"></span> </a
+                        ><a href="./" class="banner-directions__item">
+                          <div class="banner-directions__item-main">
+                            <div class="banner-directions__point"></div>
+                            Диагностика
+                          </div>
+                          <span class="icon icon-arrow-rotate banner-directions__item-arrow"></span> </a
+                        ><a href="./" class="banner-directions__item">
+                          <div class="banner-directions__item-main">
+                            <div class="banner-directions__point"></div>
+                            Имплантация
+                          </div>
+                          <span class="icon icon-arrow-rotate banner-directions__item-arrow"></span>
+                        </a>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <picture class="back-figure__image back-figure__image-three">
+              <source srcset="{% static 'designed/img/back/3.webp' %}" class="back-figure__img">
+              <img loading="lazy" src="{% static 'designed/img/back/3.png' %}" alt="back" class="back-figure__img">
+            </picture>
+          </div>
+        </div>
+      </div>
+      <div class="section section--center">
+        <div class="section__container">
+          <div class="swiper-course__title">
+            <h2 class="title title--size-medium">Другие <span> офлайн‑курсы</span></h2>
+            <p>Все&nbsp;курсы проходят в&nbsp;клинике. Формат: небольшие группы, живая практика на&nbsp;установке/микроскопе, ответы на&nbsp;вопросы, реальные протоколы. Ниже&nbsp;— ближайшие наборы.</p>
+          </div>
+        </div>
+      </div>
+      <div class="section section--full">
+        <div class="section__container">
+          <div class="swiper-course__swiper swiper">
+            <div class="swiper-course__wrapper swiper-wrapper">
+              <div class="swiper-courses-card swiper-slide">
+                <div class="swiper-courses-card__image"><img src="{% static 'designed/img/channel/swiper/one.png' %}" alt="card" class="swiper-courses-card__img" loading="lazy"></div>
+                <div class="swiper-courses-card__content">
+                  <div class="swiper-courses-card__main">
+                    <h3 class="swiper-courses-card__title">Ортодонтия: старт кейсов</h3>
+                    <div class="swiper-courses-card__text">
+                      <p>Пошаговый протокол: планирование, разрез, лоскут, люксация, извлечение, гемостаз, шов. Работа ассистента, разбор ошибок.</p>
+                      <p class="swiper-courses-card__text-sub">Формат: <span>2 ч теория + 4 ч практика на фантомах</span></p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div class="swiper-courses-card swiper-slide">
+                <div class="swiper-courses-card__image"><img src="{% static 'designed/img/channel/swiper/two.png' %}" alt="card" class="swiper-courses-card__img" loading="lazy"></div>
+                <div class="swiper-courses-card__content">
+                  <div class="swiper-courses-card__main">
+                    <h3 class="swiper-courses-card__title">Вкладки/онлеи: техника и&nbsp;цементировка</h3>
+                    <div class="swiper-courses-card__text">
+                      <p>Пошаговый протокол: планирование, разрез, лоскут, люксация, извлечение, гемостаз, шов. Работа ассистента, разбор ошибок.</p>
+                      <p class="swiper-courses-card__text-sub">Формат: <span>2 ч теория + 4 ч практика на фантомах</span></p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div class="swiper-courses-card swiper-slide">
+                <div class="swiper-courses-card__image"><img src="{% static 'designed/img/channel/swiper/three.png' %}" alt="card" class="swiper-courses-card__img" loading="lazy"></div>
+                <div class="swiper-courses-card__content">
+                  <div class="swiper-courses-card__main">
+                    <h3 class="swiper-courses-card__title">Хирургия: первый удалённый зуб без&nbsp;осложнений</h3>
+                    <div class="swiper-courses-card__text">
+                      <p>Пошаговый протокол: планирование, разрез, лоскут, люксация, извлечение, гемостаз, шов. Работа ассистента, разбор ошибок.</p>
+                      <p class="swiper-courses-card__text-sub">Формат: <span>2 ч теория + 4 ч практика на фантомах</span></p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div class="swiper-courses-card swiper-slide">
+                <div class="swiper-courses-card__image"><img src="{% static 'designed/img/channel/swiper/four.png' %}" alt="card" class="swiper-courses-card__img" loading="lazy"></div>
+                <div class="swiper-courses-card__content">
+                  <div class="swiper-courses-card__main">
+                    <h3 class="swiper-courses-card__title">Имплантация: от плана до&nbsp;установки</h3>
+                    <div class="swiper-courses-card__text">
+                      <p>Пошаговый протокол: планирование, разрез, лоскут, люксация, извлечение, гемостаз, шов. Работа ассистента, разбор ошибок.</p>
+                      <p class="swiper-courses-card__text-sub">Формат: <span>2 ч теория + 4 ч практика на фантомах</span></p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div class="swiper-courses-card swiper-slide">
+                <div class="swiper-courses-card__image"><img src="{% static 'designed/img/channel/swiper/five.png' %}" alt="card" class="swiper-courses-card__img" loading="lazy"></div>
+                <div class="swiper-courses-card__content">
+                  <div class="swiper-courses-card__main">
+                    <h3 class="swiper-courses-card__title">Ортопедия: препарирование под&nbsp;коронки/виниры</h3>
+                    <div class="swiper-courses-card__text">
+                      <p>Пошаговый протокол: планирование, разрез, лоскут, люксация, извлечение, гемостаз, шов. Работа ассистента, разбор ошибок.</p>
+                      <p class="swiper-courses-card__text-sub">Формат: <span>2 ч теория + 4 ч практика на фантомах</span></p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div class="swiper-courses-card swiper-slide">
+                <div class="swiper-courses-card__image"><img src="{% static 'designed/img/channel/swiper/one.png' %}" alt="card" class="swiper-courses-card__img" loading="lazy"></div>
+                <div class="swiper-courses-card__content">
+                  <div class="swiper-courses-card__main">
+                    <h3 class="swiper-courses-card__title">Ортодонтия: старт кейсов</h3>
+                    <div class="swiper-courses-card__text">
+                      <p>Пошаговый протокол: планирование, разрез, лоскут, люксация, извлечение, гемостаз, шов. Работа ассистента, разбор ошибок.</p>
+                      <p class="swiper-courses-card__text-sub">Формат: <span>2 ч теория + 4 ч практика на фантомах</span></p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div class="swiper-courses-card swiper-slide">
+                <div class="swiper-courses-card__image"><img src="{% static 'designed/img/channel/swiper/two.png' %}" alt="card" class="swiper-courses-card__img" loading="lazy"></div>
+                <div class="swiper-courses-card__content">
+                  <div class="swiper-courses-card__main">
+                    <h3 class="swiper-courses-card__title">Вкладки/онлеи: техника и&nbsp;цементировка</h3>
+                    <div class="swiper-courses-card__text">
+                      <p>Пошаговый протокол: планирование, разрез, лоскут, люксация, извлечение, гемостаз, шов. Работа ассистента, разбор ошибок.</p>
+                      <p class="swiper-courses-card__text-sub">Формат: <span>2 ч теория + 4 ч практика на фантомах</span></p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div class="swiper-courses-card swiper-slide">
+                <div class="swiper-courses-card__image"><img src="{% static 'designed/img/channel/swiper/three.png' %}" alt="card" class="swiper-courses-card__img" loading="lazy"></div>
+                <div class="swiper-courses-card__content">
+                  <div class="swiper-courses-card__main">
+                    <h3 class="swiper-courses-card__title">Хирургия: первый удалённый зуб без&nbsp;осложнений</h3>
+                    <div class="swiper-courses-card__text">
+                      <p>Пошаговый протокол: планирование, разрез, лоскут, люксация, извлечение, гемостаз, шов. Работа ассистента, разбор ошибок.</p>
+                      <p class="swiper-courses-card__text-sub">Формат: <span>2 ч теория + 4 ч практика на фантомах</span></p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div class="swiper-courses-card swiper-slide">
+                <div class="swiper-courses-card__image"><img src="{% static 'designed/img/channel/swiper/four.png' %}" alt="card" class="swiper-courses-card__img" loading="lazy"></div>
+                <div class="swiper-courses-card__content">
+                  <div class="swiper-courses-card__main">
+                    <h3 class="swiper-courses-card__title">Имплантация: от плана до&nbsp;установки</h3>
+                    <div class="swiper-courses-card__text">
+                      <p>Пошаговый протокол: планирование, разрез, лоскут, люксация, извлечение, гемостаз, шов. Работа ассистента, разбор ошибок.</p>
+                      <p class="swiper-courses-card__text-sub">Формат: <span>2 ч теория + 4 ч практика на фантомах</span></p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div class="swiper-courses-card swiper-slide">
+                <div class="swiper-courses-card__image"><img src="{% static 'designed/img/channel/swiper/five.png' %}" alt="card" class="swiper-courses-card__img" loading="lazy"></div>
+                <div class="swiper-courses-card__content">
+                  <div class="swiper-courses-card__main">
+                    <h3 class="swiper-courses-card__title">Ортопедия: препарирование под&nbsp;коронки/виниры</h3>
+                    <div class="swiper-courses-card__text">
+                      <p>Пошаговый протокол: планирование, разрез, лоскут, люксация, извлечение, гемостаз, шов. Работа ассистента, разбор ошибок.</p>
+                      <p class="swiper-courses-card__text-sub">Формат: <span>2 ч теория + 4 ч практика на фантомах</span></p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="section section--center section--bottom-medium">
+        <div class="section__container">
+          <div class="back-figure">
+            <div class="back-figure__container">
+              <div class="swiper-course__scrollbar"></div>
+              <div class="card-text card-text--slate card-text--large">* Полный календарь и цены — по запросу. Места ограничены.</div>
+            </div>
+            <picture class="back-figure__image back-figure__image-four">
+              <source srcset="{% static 'designed/img/back/4.webp' %}" class="back-figure__img">
+              <img loading="lazy" src="{% static 'designed/img/back/4.png' %}" alt="back" class="back-figure__img">
+            </picture>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <div class="modal modal--medium" id="modal-consultation" aria-hidden="true">
+      <div tabindex="-1" class="modal__overlay" data-micromodal-close="true">
+        <div class="modal__container" role="dialog" aria-modal="true">
+          <button class="modal__close" data-micromodal-close=""><span class="icon icon-cross"></span></button>
+          <div class="modal__content">
+            <form id="consultation-form" class="modal__form">
+              <div class="modal__title">
+                <h2 class="title title--size-small">Записаться на обучение</h2>
+                <div class="card-text">Подайте заявку на обучение в нашем учебном центре. Мы рассмотрим её в ближайшее время и свяжемся с вами.</div>
+              </div>
+              <div class="modal__main">
+                <input placeholder="Ваше имя и фамилия" name="name" id="name" required="" class="input"> <input placeholder="Ваш e-mail" name="email" id="email" required="" class="input">
+                <select name="program" class="select js-choice">
+                  <option value="Выберите программу">Выберите программу</option>
+                  <option value="полное">полное</option>
+                  <option value="неполное">неполное</option>
+                </select>
+              </div>
+              <textarea name="message" class="modal__textarea" placeholder="Сопроводительное сообщение"></textarea>
+              <div class="checkbox">
+                <input required="" id="modal-check" type="checkbox" class="checkbox__element"> <label for="modal-check" class="checkbox__label"> Я принимаю условия <a href="#">политики конфиденциальности</a> и даю <a href="#">согласие на обработку персональных данных</a> </label>
+              </div>
+              <button class="button button--variant-fuchsia button--size-medium button--font-medium button--arrow">Подать заявку <span class="icon icon-arrow button__arrow"></span></button>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="modal modal--medium" id="modal-channel" aria-hidden="true">
+      <div tabindex="-1" class="modal__overlay" data-micromodal-close="true">
+        <div class="modal__container" role="dialog" aria-modal="true">
+          <button class="modal__close" data-micromodal-close=""><span class="icon icon-cross"></span></button>
+          <div class="modal__content">
+            <form id="channel-form" class="modal__form">
+              <h2 class="title title--size-small">Записаться на 1 ноября</h2>
+              <div class="modal__main">
+                <input placeholder="Ваше имя и фамилия" name="name" id="channel-name" required="" class="input"> <input placeholder="Ваш e-mail" name="email" id="channel-email" required="" class="input"> <input placeholder="Телефон" name="phone" id="channel-phone" required="" class="input">
+                <input placeholder="Опыт (лет)" name="experience" id="channel-experience" required="" class="input">
+              </div>
+              <textarea name="channel-message" class="modal__textarea" placeholder="Коротко: что хотите отработать / ваш клинический случай?"></textarea>
+              <div class="checkbox">
+                <input required="" id="channel-modal-check" type="checkbox" class="checkbox__element"> <label for="channel-modal-check" class="checkbox__label"> Я принимаю условия <a href="#">политики конфиденциальности</a> и даю <a href="#">согласие на обработку персональных данных</a> </label>
+              </div>
+              <button class="button button--variant-fuchsia button--size-medium button--font-medium button--arrow">Отправить заявку <span class="icon icon-arrow button__arrow"></span></button>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+    {% endblock %}
+

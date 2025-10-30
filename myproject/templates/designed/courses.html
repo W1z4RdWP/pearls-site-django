@@ -1,57 +1,7 @@
-<!doctype html>
+{% extends 'designed/base.html' %}
 {% load static %}
-<html lang="ru">
-  <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width">
-    <title>Курсы</title>
-    <link rel="icon" type="image/svg+xml" href="{% static 'designed/icons/favicon.svg' %}">
-    <link rel="stylesheet" href="{% static 'designed/css/accordion.min.css' %}">
-    <link rel="stylesheet" href="{% static 'designed/css/swiper-bundle.css' %}">
-    <link rel="stylesheet" href="{% static 'designed/css/nouislider.min.css' %}">
-    <link rel="stylesheet" href="{% static 'designed/fonts/icons/icons.css?v=0.03505695' %}">
-    <script type="module" src="{% static 'designed/js/general.js?v=0.03505695' %}"></script>
-    <link rel="stylesheet" href="{% static 'designed/css/custom-style.css?v=0.03505705' %}">
-  </head>
-  <body>
-    <header class="header">
-      <div class="header__container">
-        <div class="header__mobile">
-          <a href="{% url 'homepage' %}" class="header__image"> <img src="{% static 'designed/img/logo.svg' %}" alt="logo" class="header__logo"> </a> <button class="burger" id="mobile-menu" data-open="false"><span class="icon icon-burger burger__icon"></span> <span class="icon icon-cross burger__open"></span></button>
-        </div>
-        <div class="header__desktop">
-          <a href="{% url 'homepage' %}" class="header__image"> <img src="{% static 'designed/img/logo.svg' %}" alt="logo" class="header__logo"> </a>
-          <div class="header__right">
-            <div class="socials">
-              <a href="#" class="social-icon social-icon--gray social-icon--small"> <span class="icon icon-vk"></span> </a> <a href="#" class="social-icon social-icon--gray social-icon--small"> <span class="icon icon-telegram"></span> </a>
-              <!-- <a href="#" class="social-icon social-icon--gray social-icon--small"> <span class="icon icon-max"></span> </a> -->
-            </div>
-            <button data-micromodal-trigger="modal-consultation" class="button button--variant-fuchsia button--size-undefined" hidden>Записаться на обучение</button>
-            <div class="contact-item">
-              <a href="#" class="contact-item__number"> <span class="icon icon-phone contact-item__icon"></span> <span>8 (965) 598-75-11</span> </a> <a href="#" class="contact-item__mail">smile@smileterritory.ru</a>
-            </div>
-          </div>
-        </div>
-      </div>
-      <div class="drawer drawer--left drawer--primary" data-drawer="mobile-menu" data-open="false">
-        <div class="drawer__back" data-back=""></div>
-        <div class="drawer__container">
-          <div class="drawer__content">
-            <div class="header__menu">
-              <button data-micromodal-trigger="modal-consultation" class="button button--variant-fuchsia button--size-undefined">Записаться на обучение</button>
-              <div class="contact-item">
-                <a href="#" class="contact-item__number"> <span class="icon icon-phone contact-item__icon"></span> <span>8 (965) 598-75-11</span> </a> <a href="#" class="contact-item__mail">smile@smileterritory.ru</a>
-              </div>
-              <div class="socials">
-                <a href="#" class="social-icon social-icon--gray social-icon--small"> <span class="icon icon-vk"></span> </a> <a href="#" class="social-icon social-icon--gray social-icon--small"> <span class="icon icon-telegram"></span> </a>
-                <!-- <a href="#" class="social-icon social-icon--gray social-icon--small"> <span class="icon icon-max"></span> </a> -->
-              </div>
-              <p class="header__menu-prava">2025 © Учебный центр Территория улыбки. Все права защищены</p>
-            </div>
-          </div>
-        </div>
-      </div>
-    </header>
+{% block title %}Курсы{% endblock %}
+    {% block content %}
     <main class="main">
       <div class="hero">
         <div class="hero__container">
@@ -324,62 +274,4 @@
         </div>
       </div>
     </main>
-    <footer class="footer">
-      <div class="footer__container">
-        <div class="footer__top">
-          <div class="footer__main">
-            <a href="{% url 'homepage' %}" class="footer__image"> <img src="{% static 'designed/img/logo-f.svg' %}" alt="logo" class="footer__logo"> </a>
-            <!-- <div class="footer__place">
-              <p class="footer__place-white">г. Саратов, ул. Огородная, 144/146</p>
-              <p>Ежедневно с 8:30 до 21:00</p>
-            </div> -->
-          </div>
-          <div class="footer__social">
-            <div class="socials">
-              <a href="https://vk.com/territorysmile" class="social-icon social-icon--gray social-icon--small" > <span class="icon icon-vk"></span> </a> <a href="https://t.me/SystemDAS" class="social-icon social-icon--gray social-icon--small" > <span class="icon icon-telegram"></span> </a>
-              <!-- <a href="#" class="social-icon social-icon--gray social-icon--small"> <span class="icon icon-max"></span> </a> -->
-            </div>
-            <div class="contact-item">
-              <a href="#" class="contact-item__number"> <span class="icon icon-phone contact-item__icon"></span> <span>8 (965) 598-75-11</span> </a> <a href="#" class="contact-item__mail">smile@smileterritory.ru</a>
-            </div>
-          </div>
-        </div>
-        <div class="footer__separator"></div>
-        <div class="footer__middle"><a href="https://lc.smileterritory.ru/privacy-policy/" >Согласие на обработку персональных данных</a><a href="https://lc.smileterritory.ru/privacy-policy/" >Политика конфиденциальности</a></div>
-        <div class="footer__separator"></div>
-        <div class="footer__bottom">
-          <p>2025 © Учебный центр Территория улыбки. Все права защищены</p>
-          <a href="https://spaceapp.ru/" class="footer__company"> <span> Разработка сайта </span> <img loading="lazy" src="{% static 'designed/img/spaceapp.svg' %}" alt="..." class="footer__company-img"> </a>
-        </div>
-      </div>
-    </footer>
-    <div class="modal modal--medium" id="modal-consultation" aria-hidden="true">
-      <div tabindex="-1" class="modal__overlay" data-micromodal-close="true">
-        <div class="modal__container" role="dialog" aria-modal="true">
-          <button class="modal__close" data-micromodal-close=""><span class="icon icon-cross"></span></button>
-          <div class="modal__content">
-            <form id="consultation-form" class="modal__form">
-              <div class="modal__title">
-                <h2 class="title title--size-small">Записаться на обучение</h2>
-                <div class="card-text">Подайте заявку на обучение в нашем учебном центре. Мы рассмотрим её в ближайшее время и свяжемся с вами.</div>
-              </div>
-              <div class="modal__main">
-                <input placeholder="Ваше имя и фамилия" name="name" id="name" required="" class="input"> <input placeholder="Ваш e-mail" name="email" id="email" required="" class="input">
-                <select name="program" class="select js-choice">
-                  <option value="Выберите программу">Выберите программу</option>
-                  <option value="полное">полное</option>
-                  <option value="неполное">неполное</option>
-                </select>
-              </div>
-              <textarea name="message" class="modal__textarea" placeholder="Сопроводительное сообщение"></textarea>
-              <div class="checkbox">
-                <input required="" id="modal-check" type="checkbox" class="checkbox__element"> <label for="modal-check" class="checkbox__label"> Я принимаю условия <a href="#">политики конфиденциальности</a> и даю <a href="#">согласие на обработку персональных данных</a> </label>
-              </div>
-              <button class="button button--variant-fuchsia button--size-medium button--font-medium button--arrow">Подать заявку <span class="icon icon-arrow button__arrow"></span></button>
-            </form>
-          </div>
-        </div>
-      </div>
-    </div>
-  </body>
-</html>
+    {% endblock %}
