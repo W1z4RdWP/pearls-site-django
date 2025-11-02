@@ -713,7 +713,8 @@ def get_finish(request) -> HttpResponse:
         auto_checkable_questions = questions_count - text_questions_count
         percent_score = int((score / auto_checkable_questions) * 100) if auto_checkable_questions > 0 else 0
 
-    passed = percent_score >= quiz.pass_threshold # Проходной балл из настроек теста
+    # Для тестов с открытыми вопросами passed устанавливается в False до проверки наставником
+    passed = (percent_score >= quiz.pass_threshold) and not has_text_questions and not time_exceeded # Проходной балл из настроек теста
     
     # Получаем курс для сохранения в результате
     course_slug = request.session.get('course_slug')
@@ -730,12 +731,16 @@ def get_finish(request) -> HttpResponse:
         passed=True
     ).first()
     
+    # Для тестов с TEXT вопросами сохраняем полное количество вопросов
+    # score будет пересчитан наставником после проверки
+    total_questions_to_save = questions_count if has_text_questions else (questions_count - text_questions_count)
+    
     quiz_result = QuizResult.objects.create(
         user=request.user,
         quiz_title=quiz.name,
         course=course,
         score=score,
-        total_questions=questions_count - text_questions_count, # Всего вопросов без учёта открытых (match включаем)
+        total_questions=total_questions_to_save,
         percent=percent_score,
         passed=passed,
         status=quiz_status
@@ -845,6 +850,34 @@ def get_finish(request) -> HttpResponse:
                 is_correct=ans.is_correct
             )
     # --------------------------------------------
+
+    # Если тест имеет статус 'pending' (ожидает проверки), не обрабатываем его как пройденный/непройденный
+    # Просто показываем страницу завершения
+    if quiz_status == 'pending':
+        auto_checkable_count = questions_count - text_questions_count
+        context = {
+            'score': score,  # Баллы только за автопроверяемые вопросы
+            'auto_score': score,  # Явно указываем баллы за автопроверяемые
+            'auto_questions_count': auto_checkable_count,  # Количество автопроверяемых вопросов
+            'questions_count': questions_count,  # Всего вопросов (для будущего отображения)
+            'total_questions': questions_count,  # Всего вопросов
+            'text_questions_count': text_questions_count,  # Количество TEXT вопросов
+            'percent_score': percent_score,
+            'quiz_title': quiz.name,
+            'is_all_question_text': is_all_question_text,
+            'has_text_questions': has_text_questions,
+            'quiz_status': quiz_status,
+            'quiz_result': quiz_result,
+            'time_exceeded': time_exceeded,
+            'time_limit': quiz.time_limit if time_exceeded else None,
+        }
+        course_slug = request.session.pop('course_slug', None)
+        request.session.pop('from_control_panel', None)
+        if course_slug:
+            context['course_slug'] = course_slug
+        
+        _reset_quiz(request)
+        return render(request, 'quizzes/finish.html', context)
 
     # Обработка привязки к курсу (используем уже определенный курс из блока выше)
     if not course:
@@ -995,12 +1028,20 @@ def get_finish(request) -> HttpResponse:
         if percent_score == 100:
             award_achievement(request.user, 'perfect_score', 'Идеальный результат', 'Получили 100% за прохождение теста')
 
+    # Для completed статуса score уже включает баллы за TEXT (если они были оценены)
+    # total_questions - это полное количество вопросов
     context = {
-        'score': score,
-        'questions_count': questions_count,
-        'percent_score': percent_score,
+        'score': quiz_result.score,  # Используем score из quiz_result (может быть обновлен наставником)
+        'questions_count': quiz_result.total_questions,  # Всего вопросов
+        'total_questions': quiz_result.total_questions,
+        'percent_score': quiz_result.percent,  # Используем percent из quiz_result
         'quiz_title': quiz.name,
         'is_all_question_text': is_all_question_text,
+        'has_text_questions': has_text_questions,
+        'quiz_status': quiz_status,
+        'quiz_result': quiz_result,
+        'time_exceeded': time_exceeded,
+        'time_limit': quiz.time_limit if time_exceeded else None,
     }
     course_slug = request.session.pop('course_slug', None)
     request.session.pop('from_control_panel', None)  # Очищаем параметр из панели управления
@@ -1065,6 +1106,9 @@ def quiz_best_result(request, quiz_id: int) -> HttpResponse:
         course=course
     ).order_by('-completed_at').first()
     
+    # Проверяем, есть ли в тесте открытые вопросы
+    has_text_questions = Question.objects.filter(quiz=quiz, question_type=Question.TEXT).exists()
+    
     context = {
         'quiz': quiz,
         'course': course,
@@ -1072,6 +1116,9 @@ def quiz_best_result(request, quiz_id: int) -> HttpResponse:
         'last_attempt': last_attempt,
         'passed': best_result.passed,
         'pass_threshold': quiz.pass_threshold,
+        'has_text_questions': has_text_questions,
+        'mentor_comment': best_result.mentor_comment if best_result.mentor_comment else None,
+        'reviewed_by': best_result.reviewed_by if best_result.reviewed_by else None,
     }
     
     return render(request, 'quizzes/quiz_best_result.html', context)
@@ -1554,6 +1601,7 @@ class ReviewQuizView(LoginRequiredMixin, UserPassesTestMixin, DetailView):
             passed = percent_score >= quiz.pass_threshold
             
             # Обновляем результат теста
+            quiz_result.score = total_score  # Обновляем score с учетом баллов за TEXT вопросы
             quiz_result.percent = percent_score
             quiz_result.passed = passed
             quiz_result.status = 'completed'

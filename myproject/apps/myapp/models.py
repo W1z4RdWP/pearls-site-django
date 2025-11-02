@@ -80,7 +80,7 @@ class QuizResult(models.Model):
         - user(ForeignKey) - ссылка на пользователя, который прошел тест;
         - quiz_title(CharField) - название пройденного теста;
         - course(ForeignKey) - ссылка на курс, в рамках которого пройден тест;
-        - score(Integer) - правильных ответов дано;
+        - score(Float) - баллы за правильные ответы (может быть дробным, например 1.5);
         - total_questions(Integer) - всего было вопросов в данном тесте;
         - percent(Float) - вычисление правильных ответов на вопросы данных пользователем в процентном соотношении;
         - completed_at(DateTime) - Дата и время когда тест был завершен;
@@ -99,7 +99,7 @@ class QuizResult(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     quiz_title = models.CharField(max_length=200)
     course = models.ForeignKey(Course, on_delete=models.CASCADE, null=True, blank=True, verbose_name="Курс")
-    score = models.IntegerField()
+    score = models.FloatField()
     total_questions = models.IntegerField()
     percent = models.FloatField()
     completed_at = models.DateTimeField(auto_now_add=True)
