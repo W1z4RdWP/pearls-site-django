@@ -294,14 +294,14 @@ class CourseDetailView(DetailView):
                         ).values_list('lesson_id', flat=True)
                     )
                     
-                    # Получаем пройденные тесты в рамках этого курса
+                    # Получаем пройденные тесты в рамках этого курса (только уникальные по quiz_title)
                     completed_quizzes_ids = list(
                         QuizResult.objects.filter(
                             user=user,
                             course=course,
                             quiz_title__in=[quiz.name for quiz in course.quizzes],
                             passed=True
-                        ).values_list('quiz_title', flat=True)
+                        ).values_list('quiz_title', flat=True).distinct()
                     )
                     completed_quizzes = len(completed_quizzes_ids)
 
@@ -1570,13 +1570,13 @@ class UserCourseTrajectoryListView(ListView):
             trajectory = UserLessonTrajectory.objects.filter(user=user, course=course).first()
             total_lessons = trajectory.lessons.count() if trajectory else course.lessons.count()
             
-            # Подсчет завершенных тестов в рамках этого курса
+            # Подсчет завершенных тестов в рамках этого курса (только уникальные по quiz_title)
             completed_quizzes = QuizResult.objects.filter(
                 user=user,
                 course=course,
                 quiz_title__in=[quiz.name for quiz in course.quizzes.all()],
                 passed=True
-            ).count()
+            ).values('quiz_title').distinct().count()
             total_quizzes = course.quizzes.count()
             
             # Общий подсчет материалов

@@ -529,13 +529,13 @@ class UserProgressDashboardView(DetailView):
                     completed=True
                 ).count()
             
-            # Подсчитываем завершенные тесты в рамках этого курса
+            # Подсчитываем завершенные тесты в рамках этого курса (только уникальные по quiz_title)
             completed_quizzes = QuizResult.objects.filter(
                 user=user,
                 course=course,
                 quiz_title__in=[quiz.name for quiz in course.quizzes.all()],
                 passed=True
-            ).count()
+            ).values('quiz_title').distinct().count()
             total_quizzes = course.quizzes.count()
             
             # Вычисляем процент прогресса с учетом уроков и тестов

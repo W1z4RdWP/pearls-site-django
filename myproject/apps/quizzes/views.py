@@ -904,13 +904,13 @@ def get_finish(request) -> HttpResponse:
             ).count()
             total_lessons = course.lessons.count()
             
-            # Проверяем, что все тесты курса пройдены в рамках этого курса
+            # Проверяем, что все тесты курса пройдены в рамках этого курса (только уникальные по quiz_title)
             completed_quizzes = QuizResult.objects.filter(
                 user=request.user,
                 course=course,
                 quiz_title__in=[q.name for q in course.quizzes.all()],
                 passed=True
-            ).count()
+            ).values('quiz_title').distinct().count()
             total_quizzes = course.quizzes.count()
             
             # Завершаем курс только если все уроки И все тесты пройдены
