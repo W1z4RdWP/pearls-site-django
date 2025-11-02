@@ -149,6 +149,22 @@ class HomeworkCheckDashboardView(LoginRequiredMixin, UserPassesTestMixin, Templa
         combined.sort(key=lambda x: x['completed_at'] or timezone.make_aware(datetime.min), reverse=True)
         recent_completions = combined[:10]
 
+        # Подсчитываем количество тестов, ожидающих проверки (pending)
+        if is_admin:
+            # Для администраторов - все pending тесты
+            pending_tests_count = QuizResult.objects.filter(status='pending').count()
+        else:
+            # Для наставников - только pending тесты студентов из их групп
+            mentor_groups = self.request.user.groups.all()
+            if mentor_groups.exists():
+                mentor_group_users = User.objects.filter(groups__in=mentor_groups).distinct()
+                pending_tests_count = QuizResult.objects.filter(
+                    status='pending',
+                    user__in=mentor_group_users
+                ).count()
+            else:
+                pending_tests_count = 0
+
         context.update({
             'total_materials': total_materials,
             'total_lessons': total_lessons,
@@ -157,6 +173,7 @@ class HomeworkCheckDashboardView(LoginRequiredMixin, UserPassesTestMixin, Templa
             'total_groups': total_groups,
             'is_admin': is_admin,
             'recent_completions': recent_completions,
+            'pending_tests_count': pending_tests_count,
         })
         
         return context
