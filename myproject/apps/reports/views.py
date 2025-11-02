@@ -214,19 +214,23 @@ class UsersWithLearningView(LoginRequiredMixin, UserPassesTestMixin, ListView):
         is_admin = self.request.user.is_superuser or self.request.user.is_staff
         
         if is_admin:
-            # Для администраторов - все пользователи с назначенными курсами
+            # Для администраторов - все пользователи с назначенными курсами (исключая админов и суперюзеров)
             queryset = User.objects.filter(
                 started_courses__isnull=False,
                 profile__is_approved=True
+            ).exclude(
+                Q(is_superuser=True) | Q(is_staff=True)
             ).distinct().select_related('profile').prefetch_related('groups')
         else:
-            # Для наставников - только пользователи из их групп с назначенными курсами
+            # Для наставников - только пользователи из их групп с назначенными курсами (исключая админов и суперюзеров)
             mentor_groups = self.request.user.groups.all()
             if mentor_groups.exists():
                 queryset = User.objects.filter(
                     groups__in=mentor_groups,
                     started_courses__isnull=False,
                     profile__is_approved=True
+                ).exclude(
+                    Q(is_superuser=True) | Q(is_staff=True)
                 ).distinct().select_related('profile').prefetch_related('groups')
             else:
                 queryset = User.objects.none()
@@ -399,10 +403,12 @@ class GroupsProgressView(LoginRequiredMixin, UserPassesTestMixin, ListView):
         # Добавляем информацию о прогрессе для каждой группы на текущей странице
         groups_list = list(context['groups'])
         for group in groups_list:
-            # Получаем пользователей группы с назначенными курсами
+            # Получаем пользователей группы с назначенными курсами (исключая админов и суперюзеров)
             group_users = group.user_set.filter(
                 started_courses__isnull=False,
                 profile__is_approved=True
+            ).exclude(
+                Q(is_superuser=True) | Q(is_staff=True)
             ).distinct()
             
             # Получаем все курсы для пользователей этой группы
@@ -450,6 +456,8 @@ class GroupsProgressView(LoginRequiredMixin, UserPassesTestMixin, ListView):
             group_users = group.user_set.filter(
                 started_courses__isnull=False,
                 profile__is_approved=True
+            ).exclude(
+                Q(is_superuser=True) | Q(is_staff=True)
             ).distinct()
             all_users.extend(group_users)
         
@@ -522,11 +530,13 @@ class GroupStudentsProgressView(LoginRequiredMixin, UserPassesTestMixin, ListVie
         group_id = self.kwargs.get('group_id')
         self.group = get_object_or_404(Group, id=group_id)
         
-        # Получаем пользователей группы с назначенными курсами
+        # Получаем пользователей группы с назначенными курсами (исключая админов и суперюзеров)
         queryset = User.objects.filter(
             groups=self.group,
             started_courses__isnull=False,
             profile__is_approved=True
+        ).exclude(
+            Q(is_superuser=True) | Q(is_staff=True)
         ).annotate(
             total_courses=Count('started_courses'),
             completed_courses=Count('started_courses', filter=Q(started_courses__status='completed')),
