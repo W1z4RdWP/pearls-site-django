@@ -8,22 +8,31 @@
         <h2>Тестирование завершено!</h2>
     </div>
     <div class="result-summary">
-        {% if time_exceeded %}
-            <div class="alert alert-danger" role="alert">
-                <h4><i class="fas fa-clock"></i> Время истекло!</h4>
-                <p>Вы не успели завершить тест в отведенное время ({{ time_limit }} минут). Попытка засчитана как проваленная.</p>
+        {% if has_text_questions and quiz_status == 'pending' %}
+            <div style="background: #fff3cd; border: 2px solid #ffc107; border-radius: 8px; padding: 20px; margin-bottom: 20px;">
+                <h4 style='color: #856404; margin-top: 0;'>⏳ Тест отправлен на проверку</h4>
+                <p style='color: #856404; margin-bottom: 0;'>
+                    Ваш тест содержит открытые вопросы и ожидает оценки наставником. 
+                    Результаты будут доступны после проверки. Вы получите уведомление, когда проверка будет завершена.
+                </p>
             </div>
-        {% endif %}
-        
-        {% if not is_all_question_text %}
+            {% if not is_all_question_text %}
+                <p style="color: black;">Предварительные результаты (автопроверяемые вопросы):</p>
+                <p style="color: black;">Количество правильных ответов: <span class="highlight">{{ score }}/{{ questions_count }}</span></p>
+            {% endif %}
+        {% elif not is_all_question_text %}
             <p style="color: black;">Количество правильных ответов: <span class="highlight">{{ score }}/{{ questions_count }}</span></p>
             <p style="color: black;">Процент правильных ответов: <span class="highlight">{{ percent_score }}%</span></p>
         {% else %}
             <h4 style='color: #333;'>Результаты записаны</h4>
         {% endif %}
+        
+        {% if not has_text_questions or quiz_status != 'pending' %}
         <div class="progress-bar-finish">
             <div class="progress-bar-finish__progress" style="width: {{ percent_score }}%"></div>
         </div>
+        {% endif %}
+        
         {% if course_slug %}
         <a href="{% url 'courses:course_detail' slug=course_slug %}" class="btn-quiz finish-btn">
             ← Вернуться к курсу

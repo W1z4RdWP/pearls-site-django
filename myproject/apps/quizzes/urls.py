@@ -17,4 +17,6 @@ urlpatterns = [
     path('edit/<int:quiz_id>/', views.QuizEditView.as_view(), name='quiz_edit'),
     path('delete/<int:quiz_id>/', views.QuizDeleteView.as_view(), name='quiz_delete'),
     path('limit-exceeded/<int:quiz_id>/', views.AttemptLimitExceededView.as_view(), name='attempt_limit_exceeded'),
+    path('pending/', views.PendingQuizzesView.as_view(), name='pending_quizzes'),
+    path('review/<int:result_id>/', views.ReviewQuizView.as_view(), name='review_quiz'),
 ]
