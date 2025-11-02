@@ -80,17 +80,27 @@ class QuizResult(models.Model):
         - user(ForeignKey) - ссылка на пользователя, который прошел тест;
         - quiz_title(CharField) - название пройденного теста;
         - course(ForeignKey) - ссылка на курс, в рамках которого пройден тест;
-        - score(Integer) - правильных ответов дано;
+        - score(Float) - баллы за правильные ответы (может быть дробным, например 1.5);
         - total_questions(Integer) - всего было вопросов в данном тесте;
         - percent(Float) - вычисление правильных ответов на вопросы данных пользователем в процентном соотношении;
         - completed_at(DateTime) - Дата и время когда тест был завершен;
         - passed(Bool) - Отмечает тест за пройденный по результатам пользователя или нет, если не соотв. условиям.
+        - status(CharField) - Статус теста: 'completed' или 'pending' (ожидает проверки наставником);
+        - reviewed_by(ForeignKey) - Наставник/администратор, который проверил открытые ответы;
+        - reviewed_at(DateTime) - Дата и время проверки наставником;
+        - mentor_comment(TextField) - Комментарий наставника к результату теста.
 
     """
+    STATUS_CHOICES = [
+        ('completed', 'Завершен'),
+        ('pending', 'Ожидает проверки'),
+        ('reviewed', 'Проверен'),
+    ]
+    
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     quiz_title = models.CharField(max_length=200)
     course = models.ForeignKey(Course, on_delete=models.CASCADE, null=True, blank=True, verbose_name="Курс")
-    score = models.IntegerField()
+    score = models.FloatField()
     total_questions = models.IntegerField()
     percent = models.FloatField()
     completed_at = models.DateTimeField(auto_now_add=True)
@@ -99,6 +109,30 @@ class QuizResult(models.Model):
         default=False, 
         verbose_name="Исключен из лимита попыток",
         help_text="Если True, эта попытка не учитывается при проверке лимита попыток"
+    )
+    status = models.CharField(
+        max_length=20,
+        choices=STATUS_CHOICES,
+        default='completed',
+        verbose_name="Статус"
+    )
+    reviewed_by = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='reviewed_quizzes',
+        verbose_name="Проверил наставник"
+    )
+    reviewed_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        verbose_name="Дата проверки"
+    )
+    mentor_comment = models.TextField(
+        blank=True,
+        null=True,
+        verbose_name="Комментарий наставника"
     )
 
     class Meta:
@@ -122,7 +156,8 @@ class UserAnswer(models.Model):
         - question(ForeignKey) - ссылка на вопрос к которому относится ответ;
         - selected_answer(ForeignKey) - ссылка на ответ, который дал пользователь при прохождении теста;
         - is_correct(Bool) - правильно ли ответил пользователь;
-        - answer_text(CharField) - текст ответа.
+        - answer_text(CharField) - текст ответа;
+        - score_points(FloatField) - баллы за ответ (0, 0.5, 1) для многоуровневой оценки.
     
     """
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='user_answers')
@@ -131,6 +166,13 @@ class UserAnswer(models.Model):
     selected_answer = models.ForeignKey('quizzes.Answer', on_delete=models.SET_NULL, null=True, blank=True)
     is_correct = models.BooleanField(null=True, blank=True, help_text="Для открытых ответов: None = не оценено")
     answer_text = models.CharField(max_length=500, blank=True, null=True)
+    score_points = models.FloatField(
+        null=True,
+        blank=True,
+        default=None,
+        verbose_name="Баллы",
+        help_text="Для открытых вопросов: 0 (неверно), 0.5 (частично верно), 1 (верно)"
+    )
 
     class Meta:
         indexes = [

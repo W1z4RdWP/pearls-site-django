@@ -49,7 +49,7 @@
 
             <!-- Основная статистика -->
             <div class="row mb-4">
-                <div class="col-md-4 mb-3">
+                <div class="col-md-3 mb-3">
                     <div class="card text-center">
                         <div class="card-body">
                             <i class="fas fa-file-alt fa-3x text-primary mb-3"></i>
@@ -63,7 +63,7 @@
                         </div>
                     </div>
                 </div>
-                <div class="col-md-4 mb-3">
+                <div class="col-md-3 mb-3">
                     <a href="{% url 'reports:users_with_learning' %}" class="text-decoration-none">
                         <div class="card text-center hover-card" style="cursor: pointer; transition: all 0.3s ease;">
                             <div class="card-body">
@@ -76,7 +76,7 @@
                         </div>
                     </a>
                 </div>
-                <div class="col-md-4 mb-3">
+                <div class="col-md-3 mb-3">
                     <a href="{% url 'reports:groups_progress' %}" class="text-decoration-none">
                         <div class="card text-center hover-card" style="cursor: pointer; transition: all 0.3s ease;">
                             <div class="card-body">
@@ -84,6 +84,19 @@
                                 <h3 class="card-title">{{ total_groups }}</h3>
                                 <p class="card-text text-muted">
                                     {% if is_admin %}групп{% else %}ваших групп{% endif %}
+                                </p>
+                            </div>
+                        </div>
+                    </a>
+                </div>
+                <div class="col-md-3 mb-3">
+                    <a href="{% url 'quizzes:pending_quizzes' %}" class="text-decoration-none">
+                        <div class="card text-center hover-card" style="cursor: pointer; transition: all 0.3s ease;">
+                            <div class="card-body">
+                                <i class="fas fa-clipboard-check fa-3x text-warning mb-3"></i>
+                                <h3 class="card-title">{{ pending_tests_count }}</h3>
+                                <p class="card-text text-muted">
+                                    тестов на проверку
                                 </p>
                             </div>
                         </div>

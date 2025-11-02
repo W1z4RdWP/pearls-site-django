@@ -3,17 +3,34 @@
 {% block content %}
 <div class="container mt-4">
     <h2>Отчёт по тесту: {{ quiz_result.quiz_title }}</h2>
-    <p>Правильных ответов: {{ quiz_result.score }} из {{ quiz_result.total_questions }} ({{ quiz_result.percent|floatformat:0 }}%)</p>
+    <p>Правильных ответов: {{ quiz_result.score|floatformat:1 }} из {{ quiz_result.total_questions }} ({{ quiz_result.percent|floatformat:0 }}%)</p>
     <p>Дата прохождения: {{ quiz_result.completed_at|date:"d.m.Y H:i" }}</p>
+    
+    {% if quiz_result.status == 'pending' %}
+    <div class="alert alert-warning">
+        <i class="fas fa-clock"></i> <strong>Статус:</strong> Ожидает проверки наставником (есть открытые вопросы)
+    </div>
+    {% elif quiz_result.reviewed_by %}
+    <div class="alert alert-info">
+        <i class="fas fa-user-check"></i> <strong>Проверено наставником:</strong> {{ quiz_result.reviewed_by.get_full_name|default:quiz_result.reviewed_by.username }} 
+        ({{ quiz_result.reviewed_at|date:"d.m.Y H:i" }})
+        {% if quiz_result.mentor_comment %}
+        <hr style="margin: 10px 0;">
+        <strong>Комментарий:</strong> <span style="white-space: pre-line;">{{ quiz_result.mentor_comment }}</span>
+        {% endif %}
+    </div>
+    {% endif %}
+    
     <hr>
     <h4>Детализация по вопросам:</h4>
     <div class="list-group">
         {% for question, answers in grouped_answers.items %}
         <div class="list-group-item mb-2
         {% if question.question_type == 'text' %}
-            {% if answers.0.is_correct is None %}list-group-item-warning
-            {% elif answers.0.is_correct %}list-group-item-success
-            {% else %}list-group-item-danger
+            {% if answers.0.score_points is None %}list-group-item-warning
+            {% elif answers.0.score_points == 0 %}list-group-item-danger
+            {% elif answers.0.score_points == 0.5 %}list-group-item-warning
+            {% elif answers.0.score_points == 1 %}list-group-item-success
             {% endif %}
         {% elif question.question_type == 'match' or question.question_type == 'sequence' %}
             {% if answers.0.is_correct %}list-group-item-success
@@ -152,21 +169,24 @@
                         <form method="post" action="">
                             {% csrf_token %}
                             <div class="mt-2">
-                                <label>Оценка администратора:</label>
+                                <label>Оценка наставника:</label>
                                 <select name="text_eval_{{ answers.0.id }}" class="form-select" style="width:auto;display:inline-block;">
-                                    <option value="" {% if answers.0.is_correct is None %}selected{% endif %}>Не оценено</option>
-                                    <option value="true" {% if answers.0.is_correct %}selected{% endif %}>Правильно</option>
-                                    <option value="false" {% if answers.0.is_correct is not None and not answers.0.is_correct %}selected{% endif %}>Неправильно</option>
+                                    <option value="" {% if answers.0.score_points is None %}selected{% endif %}>Не оценено</option>
+                                    <option value="0" {% if answers.0.score_points == 0 %}selected{% endif %}>❌ Неверно (0 баллов)</option>
+                                    <option value="0.5" {% if answers.0.score_points == 0.5 %}selected{% endif %}>⚠️ Частично верно (0.5 балла)</option>
+                                    <option value="1" {% if answers.0.score_points == 1 %}selected{% endif %}>✅ Верно (1 балл)</option>
                                 </select>
                                 <button type="submit" class="btn btn-sm btn-outline-primary">Сохранить</button>
                             </div>
                         </form>
-                        {% if answers.0.is_correct is None %}
-                            <span class="badge bg-info">Пользователь дал ответ</span>
-                        {% else %}
-                            <span class="badge {% if answers.0.is_correct %}bg-success{% else %}bg-danger{% endif %}">
-                                {% if answers.0.is_correct %}Верно{% else %}Неверно{% endif %}
-                            </span>
+                        {% if answers.0.score_points is None %}
+                            <span class="badge bg-warning text-dark">⏳ Ожидает проверки</span>
+                        {% elif answers.0.score_points == 0 %}
+                            <span class="badge bg-danger">❌ Неверно (0 баллов)</span>
+                        {% elif answers.0.score_points == 0.5 %}
+                            <span class="badge bg-warning text-dark">⚠️ Частично верно (0.5 балла)</span>
+                        {% elif answers.0.score_points == 1 %}
+                            <span class="badge bg-success">✅ Верно (1 балл)</span>
                         {% endif %}
                     {% endif %}
                 {% endif %}

@@ -35,7 +35,7 @@
 
     <!-- Статистика -->
     <div class="row mb-4">
-        <div class="col-xl-3 col-md-6 mb-4">
+        <div class="col-xl-4 col-md-6 mb-4">
             <div class="card border-left-primary shadow h-100 py-2">
                 <div class="card-body">
                     <div class="row no-gutters align-items-center">
@@ -51,23 +51,7 @@
             </div>
         </div>
 
-        <div class="col-xl-3 col-md-6 mb-4">
-            <div class="card border-left-success shadow h-100 py-2">
-                <div class="card-body">
-                    <div class="row no-gutters align-items-center">
-                        <div class="col mr-2">
-                            <div class="text-xs font-weight-bold text-success text-uppercase mb-1">Активные курсы</div>
-                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ active_courses }}</div>
-                        </div>
-                        <div class="col-auto">
-                            <i class="fas fa-check-circle fa-2x text-gray-300"></i>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="col-xl-3 col-md-6 mb-4">
+        <div class="col-xl-4 col-md-6 mb-4">
             <div class="card border-left-info shadow h-100 py-2">
                 <div class="card-body">
                     <div class="row no-gutters align-items-center">
@@ -83,7 +67,7 @@
             </div>
         </div>
 
-        <div class="col-xl-3 col-md-6 mb-4">
+        <div class="col-xl-4 col-md-6 mb-4">
             <div class="card border-left-warning shadow h-100 py-2">
                 <div class="card-body">
                     <div class="row no-gutters align-items-center">
@@ -153,58 +137,51 @@
                         <i class="fas fa-plus"></i> Создать курс
                     </a>
                 </div>
-                <div class="card-body">
+                <div class="card-body p-0">
                     {% if courses %}
-                        <div class="row" id="coursesGrid">
+                        <div class="list-group list-group-flush" id="coursesList">
                             {% for course in courses %}
-                            <div class="col-lg-4 col-md-6 mb-4 course-item">
-                                <div class="card h-100">
-                                    <div class="card-body">
-                                        <div class="d-flex align-items-center mb-3">
-                                            <div class="course-image me-3">
-                                                {% if course.image %}
-                                                    <img src="{{ course.image.url }}" alt="{{ course.title }}" class="course-thumbnail-small">
-                                                {% else %}
-                                                    <div class="course-placeholder-small">
-                                                        <i class="fas fa-graduation-cap"></i>
-                                                    </div>
-                                                {% endif %}
-                                            </div>
-                                            <div class="course-info flex-grow-1">
-                                                <h6 class="course-title mb-1">{{ course.title }}</h6>
-                                                <small class="text-muted">
-                                                    {{ course.lessons.count }} уроков • {{ course.total_time_hours }}ч • {{ course.author.get_full_name|default:course.author.username }}
-                                                </small>
-                                            </div>
+                            <div class="list-group-item course-item py-2">
+                                <div class="course-row-grid">
+                                    <div class="course-info">
+                                        <h6 class="mb-0 course-title">{{ course.title }}</h6>
+                                        {% if course.slug %}
+                                            <small class="text-muted">{{ course.slug }}</small>
+                                        {% endif %}
+                                    </div>
+                                    <div class="course-right-section">
+                                        <div class="course-meta">
+                                            <small class="text-muted">
+                                                <i class="fas fa-book"></i> {{ course.lessons.count }} уроков
+                                                <span class="mx-1">•</span>
+                                                <i class="fas fa-clock"></i> {{ course.total_time_hours }}ч
+                                            </small>
                                         </div>
-                                        
-                                        <div class="d-flex justify-content-between align-items-center">
-                                            <div class="course-meta">
-                                                {% if course.slug %}
-                                                    <small class="text-muted d-block">{{ course.slug }}</small>
-                                                {% endif %}
-                                            </div>
-                                            <div class="course-actions">
-                                                <div class="dropdown">
-                                                    <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
-                                                        <i class="fas fa-ellipsis-v"></i>
-                                                    </button>
-                                                    <ul class="dropdown-menu dropdown-menu-end">
-                                                        <li><a class="dropdown-item" href="{% url 'courses:course_detail' course.slug %}">
-                                                            <i class="fas fa-eye"></i> Просмотр
-                                                        </a></li>
-                                                        <li><a class="dropdown-item" href="{% url 'courses:edit_course' course.slug %}">
-                                                            <i class="fas fa-edit"></i> Редактировать
-                                                        </a></li>
-                                                        <li><a class="dropdown-item" href="{% url 'courses:add_lesson' course.slug %}">
-                                                            <i class="fas fa-plus"></i> Добавить урок
-                                                        </a></li>
-                                                        <li><hr class="dropdown-divider"></li>
-                                                        <li><a class="dropdown-item text-danger" href="#" onclick="deleteCourse('{{ course.slug }}', '{{ course.title }}')">
-                                                            <i class="fas fa-trash"></i> Удалить
-                                                        </a></li>
-                                                    </ul>
-                                                </div>
+                                        <div class="course-author">
+                                            <small class="text-muted">
+                                                <i class="fas fa-user"></i> {{ course.author.get_full_name|default:course.author.username }}
+                                            </small>
+                                        </div>
+                                        <div class="course-actions">
+                                            <div class="dropdown">
+                                                <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                                                    <i class="fas fa-ellipsis-v"></i>
+                                                </button>
+                                                <ul class="dropdown-menu dropdown-menu-end">
+                                                    <li><a class="dropdown-item" href="{% url 'courses:course_detail' course.slug %}">
+                                                        <i class="fas fa-eye"></i> Просмотр
+                                                    </a></li>
+                                                    <li><a class="dropdown-item" href="{% url 'courses:edit_course' course.slug %}">
+                                                        <i class="fas fa-edit"></i> Редактировать
+                                                    </a></li>
+                                                    <li><a class="dropdown-item" href="{% url 'courses:add_lesson' course.slug %}">
+                                                        <i class="fas fa-plus"></i> Добавить урок
+                                                    </a></li>
+                                                    <li><hr class="dropdown-divider"></li>
+                                                    <li><a class="dropdown-item text-danger" href="#" onclick="deleteCourse('{{ course.slug }}', '{{ course.title }}')">
+                                                        <i class="fas fa-trash"></i> Удалить
+                                                    </a></li>
+                                                </ul>
                                             </div>
                                         </div>
                                     </div>
@@ -213,13 +190,15 @@
                             {% endfor %}
                         </div>
                     {% else %}
-                        <div class="text-center py-5">
-                            <i class="fas fa-graduation-cap fa-3x text-muted mb-3"></i>
-                            <h5>Курсы не найдены</h5>
-                            <p class="text-muted">На платформе пока нет созданных курсов</p>
-                            <a href="{% url 'courses:create-course' %}" class="btn btn-primary">
-                                <i class="fas fa-plus"></i> Создать первый курс
-                            </a>
+                        <div class="card-body">
+                            <div class="text-center py-5">
+                                <i class="fas fa-graduation-cap fa-3x text-muted mb-3"></i>
+                                <h5>Курсы не найдены</h5>
+                                <p class="text-muted">На платформе пока нет созданных курсов</p>
+                                <a href="{% url 'courses:create-course' %}" class="btn btn-primary">
+                                    <i class="fas fa-plus"></i> Создать первый курс
+                                </a>
+                            </div>
                         </div>
                     {% endif %}
                 </div>
@@ -279,22 +258,43 @@ $(document).ready(function() {
         }, 500); // Задержка 500мс
     });
     
-    // Исправление z-index для dropdown меню
+    // Настройка dropdown меню для предотвращения перекрытия header
     $('.course-item .dropdown-toggle').on('click', function() {
-        const $card = $(this).closest('.card');
-        const $dropdown = $(this).closest('.dropdown');
+        const $item = $(this).closest('.course-item');
+        const $dropdown = $(this).closest('.dropdown').find('.dropdown-menu');
         
-        // Увеличиваем z-index для карточки с открытым dropdown
-        $card.css('z-index', '1050');
+        // Устанавливаем низкий z-index для элемента списка
+        $item.css('z-index', '10');
         
-        // Сбрасываем z-index для других карточек
-        $('.course-item .card').not($card).css('z-index', '1');
+        // Принудительно открываем dropdown вниз
+        setTimeout(function() {
+            $dropdown.css({
+                'top': '100%',
+                'bottom': 'auto',
+                'transform': 'none',
+                'z-index': '999'
+            });
+        }, 10);
+        
+        // Сбрасываем z-index для других элементов
+        $('.course-item').not($item).css('z-index', '1');
+    });
+    
+    // Слушаем события Bootstrap dropdown
+    $('.course-item .dropdown').on('shown.bs.dropdown', function() {
+        const $dropdown = $(this).find('.dropdown-menu');
+        $dropdown.css({
+            'top': '100%',
+            'bottom': 'auto',
+            'transform': 'none',
+            'z-index': '999'
+        });
     });
     
     // Сброс z-index при закрытии dropdown
     $(document).on('click', function(e) {
         if (!$(e.target).closest('.dropdown').length) {
-            $('.course-item .card').css('z-index', '1');
+            $('.course-item').css('z-index', '1');
         }
     });
 });
@@ -336,4 +336,153 @@ function deleteCourse(slug, title) {
     }
 }
 </script>
+
+<style>
+/* Компактный список курсов */
+.course-item {
+    transition: background-color 0.2s ease;
+}
+
+.course-item:hover {
+    background-color: #f8f9fa;
+}
+
+.course-title {
+    font-weight: 600;
+    font-size: 0.95rem;
+    color: #333;
+}
+
+.course-row-grid {
+    display: flex;
+    align-items: center;
+    gap: 2rem;
+    width: 100%;
+}
+
+.course-item .course-info {
+    min-width: 0;
+    overflow: hidden;
+    flex: 1 1 auto;
+}
+
+.course-info .course-title {
+    margin-bottom: 0.25rem;
+}
+
+.course-right-section {
+    display: flex;
+    align-items: center;
+    gap: 2rem;
+    flex-shrink: 0;
+    margin-left: auto;
+}
+
+.course-meta {
+    white-space: nowrap;
+    text-align: right;
+    min-width: 150px;
+}
+
+.course-author {
+    white-space: nowrap;
+    text-align: right;
+    min-width: 200px;
+}
+
+.course-actions {
+    flex-shrink: 0;
+    white-space: nowrap;
+}
+
+.course-item .dropdown-toggle {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.875rem;
+}
+
+.course-item {
+    position: relative;
+    z-index: 1;
+}
+
+/* Предотвращение перекрытия header */
+.course-item .dropdown {
+    position: static;
+}
+
+.course-item .dropdown-menu {
+    z-index: 999 !important;
+    position: absolute !important;
+    right: 0 !important;
+    top: 100% !important;
+    bottom: auto !important;
+    left: auto !important;
+    margin-top: 0.125rem !important;
+    transform: none !important;
+}
+
+/* Убеждаемся, что dropdown всегда открывается вниз и не перекрывает header */
+.course-item .dropdown-menu[data-bs-popper],
+.course-item .dropdown-menu.show {
+    top: 100% !important;
+    bottom: auto !important;
+    transform: none !important;
+    z-index: 999 !important;
+}
+
+/* Адаптивность для мобильных устройств */
+@media (max-width: 992px) {
+    .course-row-grid {
+        flex-wrap: wrap;
+        gap: 1rem;
+    }
+    
+    .course-right-section {
+        width: 100%;
+        margin-left: 0;
+        justify-content: flex-end;
+        flex-wrap: wrap;
+        gap: 1rem;
+    }
+    
+    .course-meta,
+    .course-author {
+        min-width: 130px;
+    }
+}
+
+@media (max-width: 768px) {
+    .course-row-grid {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.75rem;
+    }
+    
+    .course-right-section {
+        width: 100%;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.5rem;
+    }
+    
+    .course-meta,
+    .course-author {
+        text-align: left !important;
+        min-width: auto;
+        width: 100%;
+    }
+    
+    .course-actions {
+        width: 100%;
+    }
+    
+    .course-item .dropdown {
+        width: 100%;
+    }
+    
+    .course-item .dropdown-toggle {
+        width: 100%;
+    }
+}
+</style>
 {% endblock %} 

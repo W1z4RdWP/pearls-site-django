@@ -699,16 +699,22 @@ def get_finish(request) -> HttpResponse:
     text_questions_count = Question.objects.filter(question_type='text').filter(quiz=quiz).count() # количество открытых вопросов в тесте
     score = request.session.get('score', 0)
     is_all_question_text = False
+    has_text_questions = text_questions_count > 0
+    
+    # Если в тесте есть открытые вопросы, тест получает статус 'pending' (ожидает проверки)
+    quiz_status = 'pending' if has_text_questions else 'completed'
+    
     if questions_count == text_questions_count:
         is_all_question_text = True
-        percent_score = 100
+        # Для тестов только с открытыми вопросами процент устанавливается в 0 до проверки
+        percent_score = 0
     else: 
         # Исключаем из подсчета только текстовые вопросы (match включаем, т.к. они автоматически проверяются)
         auto_checkable_questions = questions_count - text_questions_count
         percent_score = int((score / auto_checkable_questions) * 100) if auto_checkable_questions > 0 else 0
 
-    # Если время превышено, тест автоматически провален
-    passed = percent_score >= quiz.pass_threshold and not time_exceeded # Проходной балл из настроек теста
+    # Для тестов с открытыми вопросами passed устанавливается в False до проверки наставником
+    passed = (percent_score >= quiz.pass_threshold) and not has_text_questions and not time_exceeded # Проходной балл из настроек теста
     
     # Получаем курс для сохранения в результате
     course_slug = request.session.get('course_slug')
@@ -725,14 +731,19 @@ def get_finish(request) -> HttpResponse:
         passed=True
     ).first()
     
+    # Для тестов с TEXT вопросами сохраняем полное количество вопросов
+    # score будет пересчитан наставником после проверки
+    total_questions_to_save = questions_count if has_text_questions else (questions_count - text_questions_count)
+    
     quiz_result = QuizResult.objects.create(
         user=request.user,
         quiz_title=quiz.name,
         course=course,
         score=score,
-        total_questions=questions_count - text_questions_count, # Всего вопросов без учёта открытых (match включаем)
+        total_questions=total_questions_to_save,
         percent=percent_score,
-        passed=passed
+        passed=passed,
+        status=quiz_status
     )
     
     # Отмечаем текущую попытку как завершенную
@@ -840,6 +851,34 @@ def get_finish(request) -> HttpResponse:
             )
     # --------------------------------------------
 
+    # Если тест имеет статус 'pending' (ожидает проверки), не обрабатываем его как пройденный/непройденный
+    # Просто показываем страницу завершения
+    if quiz_status == 'pending':
+        auto_checkable_count = questions_count - text_questions_count
+        context = {
+            'score': score,  # Баллы только за автопроверяемые вопросы
+            'auto_score': score,  # Явно указываем баллы за автопроверяемые
+            'auto_questions_count': auto_checkable_count,  # Количество автопроверяемых вопросов
+            'questions_count': questions_count,  # Всего вопросов (для будущего отображения)
+            'total_questions': questions_count,  # Всего вопросов
+            'text_questions_count': text_questions_count,  # Количество TEXT вопросов
+            'percent_score': percent_score,
+            'quiz_title': quiz.name,
+            'is_all_question_text': is_all_question_text,
+            'has_text_questions': has_text_questions,
+            'quiz_status': quiz_status,
+            'quiz_result': quiz_result,
+            'time_exceeded': time_exceeded,
+            'time_limit': quiz.time_limit if time_exceeded else None,
+        }
+        course_slug = request.session.pop('course_slug', None)
+        request.session.pop('from_control_panel', None)
+        if course_slug:
+            context['course_slug'] = course_slug
+        
+        _reset_quiz(request)
+        return render(request, 'quizzes/finish.html', context)
+
     # Обработка привязки к курсу (используем уже определенный курс из блока выше)
     if not course:
         # Fallback: старая логика если course_slug не указан или курс не найден
@@ -865,13 +904,13 @@ def get_finish(request) -> HttpResponse:
             ).count()
             total_lessons = course.lessons.count()
             
-            # Проверяем, что все тесты курса пройдены в рамках этого курса
+            # Проверяем, что все тесты курса пройдены в рамках этого курса (только уникальные по quiz_title)
             completed_quizzes = QuizResult.objects.filter(
                 user=request.user,
                 course=course,
                 quiz_title__in=[q.name for q in course.quizzes.all()],
                 passed=True
-            ).count()
+            ).values('quiz_title').distinct().count()
             total_quizzes = course.quizzes.count()
             
             # Завершаем курс только если все уроки И все тесты пройдены
@@ -989,14 +1028,20 @@ def get_finish(request) -> HttpResponse:
         if percent_score == 100:
             award_achievement(request.user, 'perfect_score', 'Идеальный результат', 'Получили 100% за прохождение теста')
 
+    # Для completed статуса score уже включает баллы за TEXT (если они были оценены)
+    # total_questions - это полное количество вопросов
     context = {
-        'score': score,
-        'questions_count': questions_count,
-        'percent_score': percent_score,
+        'score': quiz_result.score,  # Используем score из quiz_result (может быть обновлен наставником)
+        'questions_count': quiz_result.total_questions,  # Всего вопросов
+        'total_questions': quiz_result.total_questions,
+        'percent_score': quiz_result.percent,  # Используем percent из quiz_result
         'quiz_title': quiz.name,
         'is_all_question_text': is_all_question_text,
+        'has_text_questions': has_text_questions,
+        'quiz_status': quiz_status,
+        'quiz_result': quiz_result,
         'time_exceeded': time_exceeded,
-        'time_limit': quiz.time_limit,
+        'time_limit': quiz.time_limit if time_exceeded else None,
     }
     course_slug = request.session.pop('course_slug', None)
     request.session.pop('from_control_panel', None)  # Очищаем параметр из панели управления
@@ -1061,6 +1106,9 @@ def quiz_best_result(request, quiz_id: int) -> HttpResponse:
         course=course
     ).order_by('-completed_at').first()
     
+    # Проверяем, есть ли в тесте открытые вопросы
+    has_text_questions = Question.objects.filter(quiz=quiz, question_type=Question.TEXT).exists()
+    
     context = {
         'quiz': quiz,
         'course': course,
@@ -1068,6 +1116,9 @@ def quiz_best_result(request, quiz_id: int) -> HttpResponse:
         'last_attempt': last_attempt,
         'passed': best_result.passed,
         'pass_threshold': quiz.pass_threshold,
+        'has_text_questions': has_text_questions,
+        'mentor_comment': best_result.mentor_comment if best_result.mentor_comment else None,
+        'reviewed_by': best_result.reviewed_by if best_result.reviewed_by else None,
     }
     
     return render(request, 'quizzes/quiz_best_result.html', context)
@@ -1420,3 +1471,249 @@ class AttemptLimitExceededView(LoginRequiredMixin, DetailView):
         context['course'] = course
         context['course_progress_reset'] = course_progress_reset
         return context
+
+
+class PendingQuizzesView(LoginRequiredMixin, UserPassesTestMixin, TemplateView):
+    """
+    Страница со списком тестов, ожидающих проверки наставником.
+    Доступ только для администраторов и наставников.
+    """
+    template_name = 'quizzes/pending_quizzes.html'
+    login_url = 'users:login'
+    
+    def test_func(self):
+        """Проверка прав доступа"""
+        return self.request.user.is_authenticated and self.request.user.is_staff
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        
+        # Получаем фильтр из GET-параметров (по умолчанию 'pending')
+        status_filter = self.request.GET.get('status', 'pending')
+        
+        # Фильтруем результаты тестов по статусу
+        if status_filter == 'all':
+            # Показываем и pending, и reviewed
+            pending_results = QuizResult.objects.filter(
+                status__in=['pending', 'reviewed']
+            ).select_related('user', 'course').order_by('-completed_at')
+        elif status_filter == 'reviewed':
+            # Только проверенные
+            pending_results = QuizResult.objects.filter(
+                status='reviewed'
+            ).select_related('user', 'course').order_by('-completed_at')
+        else:
+            # По умолчанию только ожидающие проверки
+            pending_results = QuizResult.objects.filter(
+                status='pending'
+            ).select_related('user', 'course').order_by('-completed_at')
+        
+        paginator = Paginator(pending_results, 20)
+        page_number = self.request.GET.get('page', 1)
+        page_obj = paginator.get_page(page_number)
+        
+        context['pending_results'] = page_obj
+        context['page_obj'] = page_obj
+        context['status_filter'] = status_filter
+        
+        return context
+
+
+class ReviewQuizView(LoginRequiredMixin, UserPassesTestMixin, DetailView):
+    """
+    Страница для оценки открытых ответов теста наставником.
+    Доступ только для администраторов и наставников.
+    """
+    model = QuizResult
+    template_name = 'quizzes/review_quiz.html'
+    context_object_name = 'quiz_result'
+    pk_url_kwarg = 'result_id'
+    login_url = 'users:login'
+    
+    def test_func(self):
+        """Проверка прав доступа"""
+        return self.request.user.is_authenticated and self.request.user.is_staff
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        quiz_result = self.get_object()
+        
+        # Получаем тест
+        from quizzes.models import Quiz
+        quiz = Quiz.objects.filter(name=quiz_result.quiz_title).first()
+        
+        # Получаем все ответы пользователя на открытые вопросы
+        text_answers = UserAnswer.objects.filter(
+            quiz_result=quiz_result,
+            question__question_type=Question.TEXT
+        ).select_related('question', 'user').order_by('question__id')
+        
+        # Получаем все ответы пользователя (для отображения полной информации)
+        all_answers = UserAnswer.objects.filter(
+            quiz_result=quiz_result
+        ).select_related('question', 'selected_answer').order_by('question__id')
+        
+        context['quiz'] = quiz
+        context['text_answers'] = text_answers
+        context['all_answers'] = all_answers
+        
+        return context
+    
+    def post(self, request, *args, **kwargs):
+        """Обработка оценки открытых ответов"""
+        quiz_result = self.get_object()
+        
+        # Получаем оценки для каждого открытого вопроса
+        text_answers = UserAnswer.objects.filter(
+            quiz_result=quiz_result,
+            question__question_type=Question.TEXT
+        )
+        
+        total_text_score = 0.0
+        for answer in text_answers:
+            score_key = f'score_{answer.id}'
+            score_value = request.POST.get(score_key, '0')
+            
+            # Преобразуем оценку в float
+            try:
+                score = float(score_value)
+                # Ограничиваем значение от 0 до 1
+                score = max(0, min(1, score))
+            except ValueError:
+                score = 0.0
+            
+            answer.score_points = score
+            answer.is_correct = score > 0  # Считаем правильным, если балл > 0
+            answer.save()
+            
+            total_text_score += score
+        
+        # Получаем комментарий наставника
+        mentor_comment = request.POST.get('mentor_comment', '')
+        
+        # Пересчитываем общий результат теста с учетом оценок открытых вопросов
+        from quizzes.models import Quiz
+        quiz = Quiz.objects.filter(name=quiz_result.quiz_title).first()
+        
+        if quiz:
+            # Считаем общее количество вопросов
+            total_questions = Question.objects.filter(quiz=quiz).count()
+            text_questions_count = Question.objects.filter(quiz=quiz, question_type=Question.TEXT).count()
+            auto_checkable_count = total_questions - text_questions_count
+            
+            # Получаем баллы за автопроверяемые вопросы
+            auto_score = quiz_result.score
+            
+            # Общий балл = баллы за автопроверяемые + баллы за открытые
+            total_score = auto_score + total_text_score
+            
+            # Пересчитываем процент
+            if total_questions > 0:
+                percent_score = int((total_score / total_questions) * 100)
+            else:
+                percent_score = 0
+            
+            # Определяем, прошел ли пользователь тест
+            passed = percent_score >= quiz.pass_threshold
+            
+            # Обновляем результат теста
+            quiz_result.score = total_score  # Обновляем score с учетом баллов за TEXT вопросы
+            quiz_result.percent = percent_score
+            quiz_result.passed = passed
+            quiz_result.status = 'reviewed'
+            quiz_result.reviewed_by = request.user
+            quiz_result.reviewed_at = timezone.now()
+            quiz_result.mentor_comment = mentor_comment
+            quiz_result.save()
+            
+            # Начисляем баллы и выдаем сертификаты, если тест пройден
+            if passed:
+                course = quiz_result.course
+                from_control_panel = False  # Это проверка наставником, не из панели управления
+                
+                # Проверяем, был ли тест уже пройден ранее в рамках этого курса
+                previous_quiz_result = QuizResult.objects.filter(
+                    user=quiz_result.user,
+                    quiz_title=quiz.name,
+                    course=course,
+                    passed=True,
+                    completed_at__lt=quiz_result.completed_at
+                ).first()
+                
+                if course:
+                    # Получаем UserCourse ТОЛЬКО если пользователь действительно проходит этот курс
+                    user_course = UserCourse.objects.filter(user=quiz_result.user, course=course, status='started').first()
+                    
+                    if user_course:
+                        # Проверяем, что все уроки курса завершены
+                        completed_lessons = UserProgress.objects.filter(
+                            user=quiz_result.user,
+                            course=course,
+                            completed=True
+                        ).count()
+                        total_lessons = course.lessons.count()
+                        
+                        # Проверяем, что все тесты курса пройдены в рамках этого курса
+                        completed_quizzes = QuizResult.objects.filter(
+                            user=quiz_result.user,
+                            course=course,
+                            quiz_title__in=[q.name for q in course.quizzes.all()],
+                            passed=True
+                        ).count()
+                        total_quizzes = course.quizzes.count()
+                        
+                        # Завершаем курс только если все уроки И все тесты пройдены
+                        if completed_lessons >= total_lessons and completed_quizzes >= total_quizzes:
+                            # Начисляем очки за тест только если он не был пройден ранее
+                            if not previous_quiz_result:
+                                award_dascoin_points(quiz_result.user, 10, f"Прохождение теста {quiz.name}")
+                            
+                            # Проверяем, есть ли финальный тест
+                            if course.final_quiz:
+                                # Если есть финальный тест, проверяем, пройден ли он
+                                final_quiz_passed = QuizResult.objects.filter(
+                                    user=quiz_result.user,
+                                    course=course,
+                                    quiz_title=course.final_quiz.name,
+                                    passed=True
+                                ).exists()
+                                
+                                if final_quiz_passed:
+                                    # Финальный тест пройден - завершаем курс
+                                    if user_course.status != 'completed':
+                                        user_course.status = 'completed'
+                                        user_course.save()
+                                        award_dascoin_points(quiz_result.user, course.points, f"Завершение курса {course.title}")
+                                        award_course_badge(quiz_result.user, course)
+                                        issue_certificate(quiz_result.user, course=course)
+                            else:
+                                # Финального теста нет - завершаем курс
+                                if user_course.status != 'completed':
+                                    user_course.status = 'completed'
+                                    user_course.save()
+                                    award_dascoin_points(quiz_result.user, course.points, f"Завершение курса {course.title}")
+                                    award_course_badge(quiz_result.user, course)
+                                    issue_certificate(quiz_result.user, course=course)
+                            
+                            if percent_score == 100:
+                                award_achievement(quiz_result.user, 'perfect_score', 'Идеальный результат', 'Получили 100% за прохождение теста')
+                        else:
+                            # Если не все уроки завершены, начисляем только очки за тест
+                            if not previous_quiz_result:
+                                award_dascoin_points(quiz_result.user, 10, f"Прохождение теста {quiz.name}")
+                            if percent_score == 100:
+                                award_achievement(quiz_result.user, 'perfect_score', 'Идеальный результат', 'Получили 100% за прохождение теста')
+                    else:
+                        # Если пользователь не проходит этот курс, начисляем только очки за тест
+                        if not previous_quiz_result:
+                            award_dascoin_points(quiz_result.user, 10, f"Прохождение теста {quiz.name}")
+                        if percent_score == 100:
+                            award_achievement(quiz_result.user, 'perfect_score', 'Идеальный результат', 'Получили 100% за прохождение теста')
+                elif not previous_quiz_result:
+                    # Если тест не привязан к курсу, но пройден - начисляем очки только если не был пройден ранее
+                    award_dascoin_points(quiz_result.user, 10, f"Прохождение теста {quiz.name}")
+                    if percent_score == 100:
+                        award_achievement(quiz_result.user, 'perfect_score', 'Идеальный результат', 'Получили 100% за прохождение теста')
+        
+        messages.success(request, f'Оценка теста "{quiz_result.quiz_title}" для пользователя {quiz_result.user.username} сохранена.')
+        return redirect('quizzes:pending_quizzes')

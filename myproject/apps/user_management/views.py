@@ -529,13 +529,13 @@ class UserProgressDashboardView(DetailView):
                     completed=True
                 ).count()
             
-            # Подсчитываем завершенные тесты в рамках этого курса
+            # Подсчитываем завершенные тесты в рамках этого курса (только уникальные по quiz_title)
             completed_quizzes = QuizResult.objects.filter(
                 user=user,
                 course=course,
                 quiz_title__in=[quiz.name for quiz in course.quizzes.all()],
                 passed=True
-            ).count()
+            ).values('quiz_title').distinct().count()
             total_quizzes = course.quizzes.count()
             
             # Вычисляем процент прогресса с учетом уроков и тестов
@@ -834,7 +834,12 @@ class UserQuizReportView(MentorRequiredMixin, DetailView):
 
 
     def post(self, request, *args, **kwargs):
+        from django.utils import timezone
+        from quizzes.models import Question
+        
         quiz_result = self.get_object()
+        
+        # Обрабатываем оценки открытых вопросов
         for key, val in request.POST.items():
             if not key.startswith('text_eval_'):
                 continue
@@ -842,15 +847,79 @@ class UserQuizReportView(MentorRequiredMixin, DetailView):
                 ua_id = int(key.replace('text_eval_', ''))
             except ValueError:
                 continue
-            if val == '':
-                new_val = None
-            elif val == 'true':
-                new_val = True
-            elif val == 'false':
-                new_val = False
-            else:
+            
+            # Получаем UserAnswer
+            user_answer = quiz_result.answers.filter(id=ua_id, question__question_type='text').first()
+            if not user_answer:
                 continue
-            quiz_result.answers.filter(id=ua_id, question__question_type='text').update(is_correct=new_val)
+            
+            # Преобразуем значение в score_points
+            if val == '':
+                score_points = None
+                is_correct = None
+            else:
+                try:
+                    score_points = float(val)
+                    # Ограничиваем значение от 0 до 1
+                    score_points = max(0, min(1, score_points))
+                    is_correct = score_points > 0
+                except ValueError:
+                    continue
+            
+            # Обновляем UserAnswer
+            user_answer.score_points = score_points
+            user_answer.is_correct = is_correct
+            user_answer.save()
+        
+        # Пересчитываем общий результат теста
+        from quizzes.models import Quiz
+        quiz = Quiz.objects.filter(name=quiz_result.quiz_title).first()
+        
+        if quiz:
+            # Получаем все TEXT вопросы с оценками
+            text_answers = quiz_result.answers.filter(question__question_type='text')
+            total_text_score = sum(
+                ans.score_points for ans in text_answers if ans.score_points is not None
+            )
+            
+            # Считаем количество вопросов
+            total_questions = Question.objects.filter(quiz=quiz).count()
+            text_questions_count = Question.objects.filter(quiz=quiz, question_type='text').count()
+            auto_checkable_count = total_questions - text_questions_count
+            
+            # Получаем баллы за автопроверяемые вопросы (из старого score)
+            # Если все TEXT вопросы оценены, пересчитываем score
+            all_text_evaluated = all(
+                ans.score_points is not None for ans in text_answers
+            )
+            
+            if all_text_evaluated and text_answers.exists():
+                # Считаем баллы за автопроверяемые вопросы
+                auto_score = quiz_result.answers.exclude(
+                    question__question_type='text'
+                ).filter(is_correct=True).count()
+                
+                # Общий балл = баллы за автопроверяемые + баллы за открытые
+                total_score = auto_score + total_text_score
+                
+                # Пересчитываем процент
+                if total_questions > 0:
+                    percent_score = int((total_score / total_questions) * 100)
+                else:
+                    percent_score = 0
+                
+                # Определяем, прошел ли пользователь тест
+                passed = percent_score >= quiz.pass_threshold
+                
+                # Обновляем результат теста
+                quiz_result.score = total_score
+                quiz_result.percent = percent_score
+                quiz_result.passed = passed
+                quiz_result.status = 'completed'
+                quiz_result.reviewed_by = request.user
+                quiz_result.reviewed_at = timezone.now()
+                quiz_result.save()
+        
         return redirect(request.path)
 
 

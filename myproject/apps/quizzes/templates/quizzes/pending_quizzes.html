@@ -1,0 +1,217 @@
+{% extends "layout.html" %}
+{% load static %}
+
+{% block specific_styles %}
+<link rel="stylesheet" href="{% static 'quizzes/css/quiz_styles.css' %}">
+<style>
+    .pending-container {
+        max-width: 1200px;
+        margin: 40px auto;
+        padding: 20px;
+    }
+    
+    .pending-header {
+        text-align: center;
+        margin-bottom: 30px;
+    }
+    
+    .pending-header h2 {
+        color: #2c3e50;
+        font-size: 2em;
+        margin-bottom: 10px;
+    }
+    
+    .pending-table {
+        width: 100%;
+        background: white;
+        border-radius: 8px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        overflow: hidden;
+    }
+    
+    .pending-table table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+    
+    .pending-table th {
+        background: #3498db;
+        color: white;
+        padding: 15px;
+        text-align: left;
+        font-weight: 600;
+    }
+    
+    .pending-table td {
+        padding: 15px;
+        border-bottom: 1px solid #ecf0f1;
+    }
+    
+    .pending-table tbody tr {
+        cursor: pointer;
+        transition: background 0.2s;
+    }
+    
+    .pending-table tbody tr:hover {
+        background: #e8f4f8;
+    }
+    
+    .status-badge {
+        display: inline-block;
+        padding: 5px 10px;
+        border-radius: 4px;
+        font-size: 0.9em;
+        font-weight: 600;
+    }
+    
+    .status-pending {
+        background: #fff3cd;
+        color: #856404;
+    }
+    
+    .status-reviewed {
+        background: #d4edda;
+        color: #155724;
+    }
+    
+    .filter-buttons {
+        display: flex;
+        gap: 10px;
+        margin-bottom: 20px;
+        justify-content: center;
+    }
+    
+    .filter-btn {
+        padding: 10px 20px;
+        background: #ecf0f1;
+        color: #2c3e50;
+        text-decoration: none;
+        border-radius: 6px;
+        font-weight: 600;
+        transition: all 0.3s;
+        border: 2px solid transparent;
+    }
+    
+    .filter-btn:hover {
+        background: #d5d8dc;
+    }
+    
+    .filter-btn.active {
+        background: #3498db;
+        color: white;
+        border-color: #3498db;
+    }
+    
+    .no-results {
+        text-align: center;
+        padding: 40px;
+        color: #7f8c8d;
+    }
+    
+    .pagination {
+        display: flex;
+        justify-content: center;
+        gap: 10px;
+        margin-top: 20px;
+    }
+    
+    .pagination a {
+        padding: 8px 12px;
+        background: #3498db;
+        color: white;
+        text-decoration: none;
+        border-radius: 4px;
+    }
+    
+    .pagination a:hover {
+        background: #2980b9;
+    }
+    
+    .pagination .current {
+        padding: 8px 12px;
+        background: #95a5a6;
+        color: white;
+        border-radius: 4px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="pending-container">
+    <div class="pending-header">
+        <h2>Тесты на проверку</h2>
+        <p>Список тестов с открытыми вопросами, ожидающих оценки наставником</p>
+    </div>
+    
+    <div class="filter-buttons">
+        <a href="?status=pending" class="filter-btn {% if status_filter == 'pending' %}active{% endif %}">
+            ⏳ Ожидают проверки
+        </a>
+        <a href="?status=reviewed" class="filter-btn {% if status_filter == 'reviewed' %}active{% endif %}">
+            ✅ Проверенные
+        </a>
+        <a href="?status=all" class="filter-btn {% if status_filter == 'all' %}active{% endif %}">
+            📋 Все
+        </a>
+    </div>
+    
+    {% if pending_results %}
+    <div class="pending-table">
+        <table>
+            <thead>
+                <tr>
+                    <th style="width: 50px;">№</th>
+                    <th>Студент</th>
+                    <th>Тест</th>
+                    <th>Курс</th>
+                    <th>Дата прохождения</th>
+                    <th>Статус</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for result in pending_results %}
+                <tr onclick="window.location.href='{% url 'quizzes:review_quiz' result.id %}'">
+                    <td style="text-align: center; color: #7f8c8d;">{{ forloop.counter|add:page_obj.start_index|add:"-1" }}</td>
+                    <td>{{ result.user.get_full_name|default:result.user.username }}</td>
+                    <td>{{ result.quiz_title }}</td>
+                    <td>{{ result.course.title|default:"-" }}</td>
+                    <td>{{ result.completed_at|date:"d.m.Y H:i" }}</td>
+                    <td>
+                        {% if result.status == 'pending' %}
+                            <span class="status-badge status-pending">⏳ Ожидает проверки</span>
+                        {% elif result.status == 'reviewed' %}
+                            <span class="status-badge status-reviewed">✅ Проверен</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    
+    {% if page_obj.has_other_pages %}
+    <div class="pagination">
+        {% if page_obj.has_previous %}
+        <a href="?status={{ status_filter }}&page=1">« Первая</a>
+        <a href="?status={{ status_filter }}&page={{ page_obj.previous_page_number }}">Назад</a>
+        {% endif %}
+        
+        <span class="current">
+            Страница {{ page_obj.number }} из {{ page_obj.paginator.num_pages }}
+        </span>
+        
+        {% if page_obj.has_next %}
+        <a href="?status={{ status_filter }}&page={{ page_obj.next_page_number }}">Вперед</a>
+        <a href="?status={{ status_filter }}&page={{ page_obj.paginator.num_pages }}">Последняя »</a>
+        {% endif %}
+    </div>
+    {% endif %}
+    
+    {% else %}
+    <div class="no-results">
+        <p>Нет тестов, ожидающих проверки</p>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
