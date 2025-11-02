@@ -1,0 +1,389 @@
+{% extends "layout.html" %}
+{% load static %}
+
+{% block specific_styles %}
+<link rel="stylesheet" href="{% static 'quizzes/css/quiz_styles.css' %}">
+<style>
+    .review-container {
+        max-width: 1000px;
+        margin: 40px auto;
+        padding: 20px;
+    }
+    
+    .review-header {
+        background: white;
+        padding: 25px;
+        border-radius: 8px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        margin-bottom: 30px;
+    }
+    
+    .review-header h2 {
+        color: #2c3e50;
+        margin-bottom: 15px;
+    }
+    
+    .review-info {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 15px;
+        margin-top: 20px;
+    }
+    
+    .review-info-item {
+        display: flex;
+        flex-direction: column;
+    }
+    
+    .review-info-label {
+        font-weight: 600;
+        color: #7f8c8d;
+        font-size: 0.9em;
+        margin-bottom: 5px;
+    }
+    
+    .review-info-value {
+        color: #2c3e50;
+        font-size: 1.1em;
+    }
+    
+    .question-card {
+        background: white;
+        padding: 25px;
+        border-radius: 8px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        margin-bottom: 25px;
+    }
+    
+    .question-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: start;
+        margin-bottom: 15px;
+        padding-bottom: 15px;
+        border-bottom: 2px solid #ecf0f1;
+    }
+    
+    .question-number {
+        background: #3498db;
+        color: white;
+        padding: 5px 10px;
+        border-radius: 4px;
+        font-weight: 600;
+        font-size: 0.9em;
+    }
+    
+    .question-text {
+        color: #2c3e50;
+        font-size: 1.1em;
+        font-weight: 600;
+        margin-bottom: 15px;
+    }
+    
+    .student-answer {
+        background: #f8f9fa;
+        padding: 15px;
+        border-radius: 6px;
+        border-left: 4px solid #3498db;
+        margin-bottom: 20px;
+    }
+    
+    .student-answer-label {
+        font-weight: 600;
+        color: #7f8c8d;
+        font-size: 0.9em;
+        margin-bottom: 10px;
+    }
+    
+    .student-answer-text {
+        color: #2c3e50;
+        line-height: 1.6;
+    }
+    
+    .score-selector {
+        margin-top: 20px;
+    }
+    
+    .score-selector-label {
+        font-weight: 600;
+        color: #2c3e50;
+        margin-bottom: 10px;
+        display: block;
+    }
+    
+    .score-buttons {
+        display: flex;
+        gap: 10px;
+    }
+    
+    .score-btn {
+        flex: 1;
+        padding: 12px;
+        border: 2px solid #ddd;
+        background: white;
+        border-radius: 6px;
+        cursor: pointer;
+        transition: all 0.3s;
+        font-weight: 600;
+    }
+    
+    .score-btn:hover {
+        border-color: #3498db;
+    }
+    
+    .score-btn.selected {
+        background: #3498db;
+        color: white;
+        border-color: #3498db;
+    }
+    
+    .score-btn-0 {
+        border-color: #e74c3c;
+    }
+    
+    .score-btn-0.selected {
+        background: #e74c3c;
+        border-color: #e74c3c;
+    }
+    
+    .score-btn-05 {
+        border-color: #f39c12;
+    }
+    
+    .score-btn-05.selected {
+        background: #f39c12;
+        border-color: #f39c12;
+    }
+    
+    .score-btn-1 {
+        border-color: #27ae60;
+    }
+    
+    .score-btn-1.selected {
+        background: #27ae60;
+        border-color: #27ae60;
+    }
+    
+    .mentor-comment-section {
+        background: white;
+        padding: 25px;
+        border-radius: 8px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        margin-bottom: 25px;
+    }
+    
+    .mentor-comment-section label {
+        display: block;
+        font-weight: 600;
+        color: #2c3e50;
+        margin-bottom: 10px;
+        font-size: 1.1em;
+    }
+    
+    .mentor-comment-section textarea {
+        width: 100%;
+        min-height: 120px;
+        padding: 12px;
+        border: 2px solid #ddd;
+        border-radius: 6px;
+        font-family: inherit;
+        font-size: 1em;
+        resize: vertical;
+    }
+    
+    .mentor-comment-section textarea:focus {
+        outline: none;
+        border-color: #3498db;
+    }
+    
+    .submit-section {
+        text-align: center;
+        margin-top: 30px;
+    }
+    
+    .btn-submit {
+        padding: 15px 40px;
+        background: #27ae60;
+        color: white;
+        border: none;
+        border-radius: 6px;
+        font-size: 1.1em;
+        font-weight: 600;
+        cursor: pointer;
+        transition: background 0.3s;
+    }
+    
+    .btn-submit:hover {
+        background: #229954;
+    }
+    
+    .btn-cancel {
+        padding: 15px 40px;
+        background: #95a5a6;
+        color: white;
+        text-decoration: none;
+        border-radius: 6px;
+        font-size: 1.1em;
+        font-weight: 600;
+        margin-left: 10px;
+        display: inline-block;
+    }
+    
+    .btn-cancel:hover {
+        background: #7f8c8d;
+    }
+    
+    .all-answers-section {
+        background: white;
+        padding: 25px;
+        border-radius: 8px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        margin-bottom: 25px;
+    }
+    
+    .all-answers-section h3 {
+        color: #2c3e50;
+        margin-bottom: 20px;
+    }
+    
+    .answer-item {
+        padding: 15px;
+        border-bottom: 1px solid #ecf0f1;
+    }
+    
+    .answer-item:last-child {
+        border-bottom: none;
+    }
+    
+    .answer-correct {
+        color: #27ae60;
+        font-weight: 600;
+    }
+    
+    .answer-incorrect {
+        color: #e74c3c;
+        font-weight: 600;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="review-container">
+    <div class="review-header">
+        <h2>Оценка теста: {{ quiz_result.quiz_title }}</h2>
+        <div class="review-info">
+            <div class="review-info-item">
+                <span class="review-info-label">Студент</span>
+                <span class="review-info-value">{{ quiz_result.user.get_full_name|default:quiz_result.user.username }}</span>
+            </div>
+            <div class="review-info-item">
+                <span class="review-info-label">Курс</span>
+                <span class="review-info-value">{{ quiz_result.course.title|default:"-" }}</span>
+            </div>
+            <div class="review-info-item">
+                <span class="review-info-label">Дата прохождения</span>
+                <span class="review-info-value">{{ quiz_result.completed_at|date:"d.m.Y H:i" }}</span>
+            </div>
+            <div class="review-info-item">
+                <span class="review-info-label">Автопроверяемые вопросы</span>
+                <span class="review-info-value">{{ quiz_result.score }}/{{ quiz_result.total_questions }} правильно</span>
+            </div>
+        </div>
+    </div>
+    
+    <form method="post">
+        {% csrf_token %}
+        
+        <h3 style="color: #2c3e50; margin-bottom: 20px;">Открытые вопросы для оценки</h3>
+        
+        {% for answer in text_answers %}
+        <div class="question-card">
+            <div class="question-header">
+                <span class="question-number">Вопрос {{ forloop.counter }}</span>
+            </div>
+            <div class="question-text">{{ answer.question.text }}</div>
+            
+            <div class="student-answer">
+                <div class="student-answer-label">Ответ студента:</div>
+                <div class="student-answer-text">{{ answer.answer_text|default:"Ответ не предоставлен" }}</div>
+            </div>
+            
+            <div class="score-selector">
+                <label class="score-selector-label">Оценка наставника:</label>
+                <div class="score-buttons">
+                    <button type="button" class="score-btn score-btn-0" data-answer-id="{{ answer.id }}" data-score="0" onclick="selectScore(this)">
+                        ❌ Неверно<br>(0 баллов)
+                    </button>
+                    <button type="button" class="score-btn score-btn-05" data-answer-id="{{ answer.id }}" data-score="0.5" onclick="selectScore(this)">
+                        ⚠️ Частично верно<br>(0.5 балла)
+                    </button>
+                    <button type="button" class="score-btn score-btn-1" data-answer-id="{{ answer.id }}" data-score="1" onclick="selectScore(this)">
+                        ✅ Верно<br>(1 балл)
+                    </button>
+                </div>
+                <input type="hidden" name="score_{{ answer.id }}" id="score_{{ answer.id }}" value="0">
+            </div>
+        </div>
+        {% endfor %}
+        
+        <div class="mentor-comment-section">
+            <label for="mentor_comment">Комментарий наставника (необязательно):</label>
+            <textarea name="mentor_comment" id="mentor_comment" placeholder="Оставьте комментарий для студента..."></textarea>
+        </div>
+        
+        <div class="submit-section">
+            <button type="submit" class="btn-submit">Сохранить оценку</button>
+            <a href="{% url 'quizzes:pending_quizzes' %}" class="btn-cancel">Отмена</a>
+        </div>
+    </form>
+    
+    {% if all_answers %}
+    <div class="all-answers-section">
+        <h3>Все ответы студента (для справки)</h3>
+        {% for answer in all_answers %}
+        <div class="answer-item">
+            <strong>{{ answer.question.text }}</strong>
+            {% if answer.question.question_type == 'text' %}
+                <p>Ответ: {{ answer.answer_text }}</p>
+            {% elif answer.selected_answer %}
+                <p>
+                    Ответ: {{ answer.selected_answer.text }}
+                    {% if answer.is_correct %}
+                        <span class="answer-correct">✓ Верно</span>
+                    {% else %}
+                        <span class="answer-incorrect">✗ Неверно</span>
+                    {% endif %}
+                </p>
+            {% endif %}
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+</div>
+
+<script>
+function selectScore(button) {
+    const answerId = button.dataset.answerId;
+    const score = button.dataset.score;
+    
+    // Убираем выделение со всех кнопок для этого вопроса
+    const allButtons = document.querySelectorAll(`button[data-answer-id="${answerId}"]`);
+    allButtons.forEach(btn => btn.classList.remove('selected'));
+    
+    // Выделяем выбранную кнопку
+    button.classList.add('selected');
+    
+    // Устанавливаем значение в скрытое поле
+    document.getElementById(`score_${answerId}`).value = score;
+}
+
+// Предварительно выбираем "Неверно" для всех вопросов
+document.addEventListener('DOMContentLoaded', function() {
+    const allScoreButtons = document.querySelectorAll('.score-btn-0');
+    allScoreButtons.forEach(button => {
+        selectScore(button);
+    });
+});
+</script>
+{% endblock %}
+

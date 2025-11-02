@@ -20,10 +20,22 @@ class ChangeLogAdmin(admin.ModelAdmin):
 
 @admin.register(QuizResult)
 class QuizResultAdmin(admin.ModelAdmin):
-    list_display = ('user', 'quiz_title', 'score', 'total_questions', 'percent', 'passed', 'completed_at')
-    list_filter = ('passed', 'completed_at', 'course')
+    list_display = ('user', 'quiz_title', 'score', 'total_questions', 'percent', 'passed', 'status', 'completed_at', 'review_link')
+    list_filter = ('passed', 'status', 'completed_at', 'course')
     search_fields = ('user__username', 'quiz_title')
-    readonly_fields = ('completed_at',)
+    readonly_fields = ('completed_at', 'reviewed_at')
+    
+    def review_link(self, obj):
+        """Ссылка на страницу оценки для тестов со статусом pending"""
+        if obj.status == 'pending':
+            from django.urls import reverse
+            from django.utils.html import format_html
+            url = reverse('quizzes:review_quiz', args=[obj.id])
+            return format_html('<a href="{}" style="color: #417690; font-weight: bold;">Оценить</a>', url)
+        elif obj.status == 'completed' and obj.reviewed_by:
+            return f'Проверено ({obj.reviewed_by.username})'
+        return '-'
+    review_link.short_description = 'Оценка наставника'
 
 @admin.register(UserAnswer)
 class UserAnswerAdmin(admin.ModelAdmin):
