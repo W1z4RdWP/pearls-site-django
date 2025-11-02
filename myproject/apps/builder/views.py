@@ -835,12 +835,19 @@ class DashboardView(TemplateView):
         from myapp.models import UserAnswer
         from quizzes.models import Question
         
-        unrated_text_answers = UserAnswer.objects.filter(
+        # Сначала подсчитываем общее количество неоцененных ответов
+        unrated_answers_queryset = UserAnswer.objects.filter(
             question__question_type='text',
             is_correct__isnull=True,  # Не оценено
             answer_text__isnull=False,  # Есть текстовый ответ
             answer_text__gt=''  # Не пустой ответ
-        ).select_related('user', 'question', 'quiz_result').order_by('-quiz_result__completed_at')[:20]  # Ограничиваем до 20 для производительности
+        )
+        
+        # Общее количество неоцененных ответов
+        context['total_unrated_count'] = unrated_answers_queryset.count()
+        
+        # Для отображения ограничиваем до 20 записей для производительности
+        unrated_text_answers = unrated_answers_queryset.select_related('user', 'question', 'quiz_result').order_by('-quiz_result__completed_at')[:20]
         
         # Группируем по пользователям и тестам для удобства
         grouped_answers = {}
@@ -855,7 +862,6 @@ class DashboardView(TemplateView):
             grouped_answers[key]['answers'].append(answer)
         
         context['unrated_text_answers'] = list(grouped_answers.values())
-        context['total_unrated_count'] = unrated_text_answers.count()
         
         return context
 
