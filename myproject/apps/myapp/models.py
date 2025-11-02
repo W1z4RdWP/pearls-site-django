@@ -94,6 +94,7 @@ class QuizResult(models.Model):
     STATUS_CHOICES = [
         ('completed', 'Завершен'),
         ('pending', 'Ожидает проверки'),
+        ('reviewed', 'Проверен'),
     ]
     
     user = models.ForeignKey(User, on_delete=models.CASCADE)

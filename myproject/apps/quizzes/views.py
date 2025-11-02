@@ -1488,10 +1488,25 @@ class PendingQuizzesView(LoginRequiredMixin, UserPassesTestMixin, TemplateView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         
-        # Получаем все результаты тестов со статусом 'pending'
-        pending_results = QuizResult.objects.filter(
-            status='pending'
-        ).select_related('user', 'course').order_by('-completed_at')
+        # Получаем фильтр из GET-параметров (по умолчанию 'pending')
+        status_filter = self.request.GET.get('status', 'pending')
+        
+        # Фильтруем результаты тестов по статусу
+        if status_filter == 'all':
+            # Показываем и pending, и reviewed
+            pending_results = QuizResult.objects.filter(
+                status__in=['pending', 'reviewed']
+            ).select_related('user', 'course').order_by('-completed_at')
+        elif status_filter == 'reviewed':
+            # Только проверенные
+            pending_results = QuizResult.objects.filter(
+                status='reviewed'
+            ).select_related('user', 'course').order_by('-completed_at')
+        else:
+            # По умолчанию только ожидающие проверки
+            pending_results = QuizResult.objects.filter(
+                status='pending'
+            ).select_related('user', 'course').order_by('-completed_at')
         
         paginator = Paginator(pending_results, 20)
         page_number = self.request.GET.get('page', 1)
@@ -1499,6 +1514,7 @@ class PendingQuizzesView(LoginRequiredMixin, UserPassesTestMixin, TemplateView):
         
         context['pending_results'] = page_obj
         context['page_obj'] = page_obj
+        context['status_filter'] = status_filter
         
         return context
 
@@ -1604,7 +1620,7 @@ class ReviewQuizView(LoginRequiredMixin, UserPassesTestMixin, DetailView):
             quiz_result.score = total_score  # Обновляем score с учетом баллов за TEXT вопросы
             quiz_result.percent = percent_score
             quiz_result.passed = passed
-            quiz_result.status = 'completed'
+            quiz_result.status = 'reviewed'
             quiz_result.reviewed_by = request.user
             quiz_result.reviewed_at = timezone.now()
             quiz_result.mentor_comment = mentor_comment

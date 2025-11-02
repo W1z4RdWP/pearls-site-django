@@ -47,8 +47,13 @@
         border-bottom: 1px solid #ecf0f1;
     }
     
-    .pending-table tr:hover {
-        background: #f8f9fa;
+    .pending-table tbody tr {
+        cursor: pointer;
+        transition: background 0.2s;
+    }
+    
+    .pending-table tbody tr:hover {
+        background: #e8f4f8;
     }
     
     .status-badge {
@@ -64,19 +69,37 @@
         color: #856404;
     }
     
-    .btn-review {
-        display: inline-block;
-        padding: 8px 16px;
-        background: #27ae60;
-        color: white;
-        text-decoration: none;
-        border-radius: 4px;
-        font-weight: 600;
-        transition: background 0.3s;
+    .status-reviewed {
+        background: #d4edda;
+        color: #155724;
     }
     
-    .btn-review:hover {
-        background: #229954;
+    .filter-buttons {
+        display: flex;
+        gap: 10px;
+        margin-bottom: 20px;
+        justify-content: center;
+    }
+    
+    .filter-btn {
+        padding: 10px 20px;
+        background: #ecf0f1;
+        color: #2c3e50;
+        text-decoration: none;
+        border-radius: 6px;
+        font-weight: 600;
+        transition: all 0.3s;
+        border: 2px solid transparent;
+    }
+    
+    .filter-btn:hover {
+        background: #d5d8dc;
+    }
+    
+    .filter-btn.active {
+        background: #3498db;
+        color: white;
+        border-color: #3498db;
     }
     
     .no-results {
@@ -120,33 +143,45 @@
         <p>Список тестов с открытыми вопросами, ожидающих оценки наставником</p>
     </div>
     
+    <div class="filter-buttons">
+        <a href="?status=pending" class="filter-btn {% if status_filter == 'pending' %}active{% endif %}">
+            ⏳ Ожидают проверки
+        </a>
+        <a href="?status=reviewed" class="filter-btn {% if status_filter == 'reviewed' %}active{% endif %}">
+            ✅ Проверенные
+        </a>
+        <a href="?status=all" class="filter-btn {% if status_filter == 'all' %}active{% endif %}">
+            📋 Все
+        </a>
+    </div>
+    
     {% if pending_results %}
     <div class="pending-table">
         <table>
             <thead>
                 <tr>
+                    <th style="width: 50px;">№</th>
                     <th>Студент</th>
                     <th>Тест</th>
                     <th>Курс</th>
                     <th>Дата прохождения</th>
                     <th>Статус</th>
-                    <th>Действия</th>
                 </tr>
             </thead>
             <tbody>
                 {% for result in pending_results %}
-                <tr>
+                <tr onclick="window.location.href='{% url 'quizzes:review_quiz' result.id %}'">
+                    <td style="text-align: center; color: #7f8c8d;">{{ forloop.counter|add:page_obj.start_index|add:"-1" }}</td>
                     <td>{{ result.user.get_full_name|default:result.user.username }}</td>
                     <td>{{ result.quiz_title }}</td>
                     <td>{{ result.course.title|default:"-" }}</td>
                     <td>{{ result.completed_at|date:"d.m.Y H:i" }}</td>
                     <td>
-                        <span class="status-badge status-pending">Ожидает проверки</span>
-                    </td>
-                    <td>
-                        <a href="{% url 'quizzes:review_quiz' result.id %}" class="btn-review">
-                            Оценить
-                        </a>
+                        {% if result.status == 'pending' %}
+                            <span class="status-badge status-pending">⏳ Ожидает проверки</span>
+                        {% elif result.status == 'reviewed' %}
+                            <span class="status-badge status-reviewed">✅ Проверен</span>
+                        {% endif %}
                     </td>
                 </tr>
                 {% endfor %}
@@ -157,8 +192,8 @@
     {% if page_obj.has_other_pages %}
     <div class="pagination">
         {% if page_obj.has_previous %}
-        <a href="?page=1">« Первая</a>
-        <a href="?page={{ page_obj.previous_page_number }}">Назад</a>
+        <a href="?status={{ status_filter }}&page=1">« Первая</a>
+        <a href="?status={{ status_filter }}&page={{ page_obj.previous_page_number }}">Назад</a>
         {% endif %}
         
         <span class="current">
@@ -166,8 +201,8 @@
         </span>
         
         {% if page_obj.has_next %}
-        <a href="?page={{ page_obj.next_page_number }}">Вперед</a>
-        <a href="?page={{ page_obj.paginator.num_pages }}">Последняя »</a>
+        <a href="?status={{ status_filter }}&page={{ page_obj.next_page_number }}">Вперед</a>
+        <a href="?status={{ status_filter }}&page={{ page_obj.paginator.num_pages }}">Последняя »</a>
         {% endif %}
     </div>
     {% endif %}

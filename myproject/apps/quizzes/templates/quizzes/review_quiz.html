@@ -49,86 +49,89 @@
     
     .question-card {
         background: white;
-        padding: 25px;
-        border-radius: 8px;
-        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-        margin-bottom: 25px;
+        padding: 20px;
+        border-radius: 6px;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        margin-bottom: 15px;
+        border-left: 4px solid #3498db;
     }
     
     .question-header {
         display: flex;
-        justify-content: space-between;
-        align-items: start;
-        margin-bottom: 15px;
-        padding-bottom: 15px;
-        border-bottom: 2px solid #ecf0f1;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 10px;
     }
     
     .question-number {
         background: #3498db;
         color: white;
-        padding: 5px 10px;
-        border-radius: 4px;
+        padding: 3px 8px;
+        border-radius: 3px;
         font-weight: 600;
-        font-size: 0.9em;
+        font-size: 0.85em;
+        white-space: nowrap;
     }
     
     .question-text {
         color: #2c3e50;
-        font-size: 1.1em;
+        font-size: 1em;
         font-weight: 600;
-        margin-bottom: 15px;
+        flex: 1;
     }
     
     .student-answer {
         background: #f8f9fa;
-        padding: 15px;
-        border-radius: 6px;
-        border-left: 4px solid #3498db;
-        margin-bottom: 20px;
+        padding: 12px;
+        border-radius: 4px;
+        margin-bottom: 12px;
     }
     
     .student-answer-label {
         font-weight: 600;
         color: #7f8c8d;
-        font-size: 0.9em;
-        margin-bottom: 10px;
+        font-size: 0.85em;
+        margin-bottom: 6px;
     }
     
     .student-answer-text {
         color: #2c3e50;
-        line-height: 1.6;
+        line-height: 1.5;
+        font-size: 0.95em;
     }
     
     .score-selector {
-        margin-top: 20px;
+        margin-top: 12px;
     }
     
     .score-selector-label {
         font-weight: 600;
         color: #2c3e50;
-        margin-bottom: 10px;
+        margin-bottom: 8px;
         display: block;
+        font-size: 0.9em;
     }
     
     .score-buttons {
         display: flex;
-        gap: 10px;
+        gap: 8px;
     }
     
     .score-btn {
         flex: 1;
-        padding: 12px;
+        padding: 8px 10px;
         border: 2px solid #ddd;
         background: white;
-        border-radius: 6px;
+        border-radius: 4px;
         cursor: pointer;
-        transition: all 0.3s;
+        transition: all 0.2s;
         font-weight: 600;
+        font-size: 0.85em;
     }
     
     .score-btn:hover {
         border-color: #3498db;
+        transform: translateY(-1px);
     }
     
     .score-btn.selected {
@@ -166,28 +169,28 @@
     
     .mentor-comment-section {
         background: white;
-        padding: 25px;
-        border-radius: 8px;
-        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-        margin-bottom: 25px;
+        padding: 20px;
+        border-radius: 6px;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        margin-bottom: 20px;
     }
     
     .mentor-comment-section label {
         display: block;
         font-weight: 600;
         color: #2c3e50;
-        margin-bottom: 10px;
-        font-size: 1.1em;
+        margin-bottom: 8px;
+        font-size: 0.95em;
     }
     
     .mentor-comment-section textarea {
         width: 100%;
-        min-height: 120px;
-        padding: 12px;
+        min-height: 100px;
+        padding: 10px;
         border: 2px solid #ddd;
-        border-radius: 6px;
+        border-radius: 4px;
         font-family: inherit;
-        font-size: 1em;
+        font-size: 0.95em;
         resize: vertical;
     }
     
@@ -288,20 +291,42 @@
                 <span class="review-info-label">Автопроверяемые вопросы</span>
                 <span class="review-info-value">{{ quiz_result.score }}/{{ quiz_result.total_questions }} правильно</span>
             </div>
+            <div class="review-info-item">
+                <span class="review-info-label">Статус</span>
+                <span class="review-info-value">
+                    {% if quiz_result.status == 'pending' %}
+                        <span style="color: #f39c12;">⏳ Ожидает проверки</span>
+                    {% elif quiz_result.status == 'reviewed' %}
+                        <span style="color: #27ae60;">✅ Проверен</span>
+                    {% endif %}
+                </span>
+            </div>
+            {% if quiz_result.reviewed_by %}
+            <div class="review-info-item">
+                <span class="review-info-label">Проверил</span>
+                <span class="review-info-value">{{ quiz_result.reviewed_by.get_full_name|default:quiz_result.reviewed_by.username }}</span>
+            </div>
+            {% endif %}
         </div>
+        {% if quiz_result.mentor_comment %}
+        <div style="margin-top: 15px; padding: 12px; background: #e7f3ff; border-radius: 6px; border-left: 4px solid #2196F3;">
+            <strong style="color: #1976D2;">Комментарий наставника:</strong>
+            <p style="margin: 5px 0 0 0; color: #333; white-space: pre-line;">{{ quiz_result.mentor_comment }}</p>
+        </div>
+        {% endif %}
     </div>
     
     <form method="post">
         {% csrf_token %}
         
-        <h3 style="color: #2c3e50; margin-bottom: 20px;">Открытые вопросы для оценки</h3>
+        <h3 style="color: #2c3e50; margin-bottom: 15px; font-size: 1.2em;">Открытые вопросы для оценки</h3>
         
         {% for answer in text_answers %}
         <div class="question-card">
             <div class="question-header">
                 <span class="question-number">Вопрос {{ forloop.counter }}</span>
+                <span class="question-text">{{ answer.question.text }}</span>
             </div>
-            <div class="question-text">{{ answer.question.text }}</div>
             
             <div class="student-answer">
                 <div class="student-answer-label">Ответ студента:</div>
@@ -309,26 +334,26 @@
             </div>
             
             <div class="score-selector">
-                <label class="score-selector-label">Оценка наставника:</label>
+                <label class="score-selector-label">Оценка:</label>
                 <div class="score-buttons">
-                    <button type="button" class="score-btn score-btn-0" data-answer-id="{{ answer.id }}" data-score="0" onclick="selectScore(this)">
-                        ❌ Неверно<br>(0 баллов)
+                    <button type="button" class="score-btn score-btn-0 {% if answer.score_points == 0 %}selected{% endif %}" data-answer-id="{{ answer.id }}" data-score="0" onclick="selectScore(this)">
+                        ❌ Неверно (0)
                     </button>
-                    <button type="button" class="score-btn score-btn-05" data-answer-id="{{ answer.id }}" data-score="0.5" onclick="selectScore(this)">
-                        ⚠️ Частично верно<br>(0.5 балла)
+                    <button type="button" class="score-btn score-btn-05 {% if answer.score_points == 0.5 %}selected{% endif %}" data-answer-id="{{ answer.id }}" data-score="0.5" onclick="selectScore(this)">
+                        ⚠️ Частично (0.5)
                     </button>
-                    <button type="button" class="score-btn score-btn-1" data-answer-id="{{ answer.id }}" data-score="1" onclick="selectScore(this)">
-                        ✅ Верно<br>(1 балл)
+                    <button type="button" class="score-btn score-btn-1 {% if answer.score_points == 1 %}selected{% endif %}" data-answer-id="{{ answer.id }}" data-score="1" onclick="selectScore(this)">
+                        ✅ Верно (1)
                     </button>
                 </div>
-                <input type="hidden" name="score_{{ answer.id }}" id="score_{{ answer.id }}" value="0">
+                <input type="hidden" name="score_{{ answer.id }}" id="score_{{ answer.id }}" value="{% if answer.score_points is not None %}{{ answer.score_points }}{% else %}0{% endif %}">
             </div>
         </div>
         {% endfor %}
         
         <div class="mentor-comment-section">
             <label for="mentor_comment">Комментарий наставника (необязательно):</label>
-            <textarea name="mentor_comment" id="mentor_comment" placeholder="Оставьте комментарий для студента..."></textarea>
+            <textarea name="mentor_comment" id="mentor_comment" placeholder="Оставьте комментарий для студента...">{% if quiz_result.mentor_comment %}{{ quiz_result.mentor_comment }}{% endif %}</textarea>
         </div>
         
         <div class="submit-section">
@@ -377,11 +402,18 @@ function selectScore(button) {
     document.getElementById(`score_${answerId}`).value = score;
 }
 
-// Предварительно выбираем "Неверно" для всех вопросов
+// Предварительно выбираем "Неверно" для всех вопросов без оценки
 document.addEventListener('DOMContentLoaded', function() {
-    const allScoreButtons = document.querySelectorAll('.score-btn-0');
-    allScoreButtons.forEach(button => {
-        selectScore(button);
+    // Проверяем каждый вопрос, если нет выбранной кнопки, выбираем "Неверно"
+    const allAnswers = document.querySelectorAll('.question-card');
+    allAnswers.forEach(card => {
+        const hasSelected = card.querySelector('.score-btn.selected');
+        if (!hasSelected) {
+            const defaultButton = card.querySelector('.score-btn-0');
+            if (defaultButton) {
+                selectScore(defaultButton);
+            }
+        }
     });
 });
 </script>
