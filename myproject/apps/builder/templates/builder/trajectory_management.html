@@ -107,50 +107,44 @@
                 <div class="card-body">
                     <div class="row">
                         <div class="col-lg-3 col-md-6 mb-3">
-                            <div class="card border-0 bg-light h-100">
-                                <div class="card-body text-center d-flex flex-column">
-                                    <i class="fas fa-plus-circle fa-3x text-success mb-3"></i>
-                                    <h5 class="card-title">Создать урок</h5>
-                                    <p class="card-text flex-grow-1">Добавить новый урок в базу знаний</p>
-                                    <a href="{% url 'builder:lesson_master' %}" class="btn btn-success btn-sm mt-auto">
-                                        <i class="fas fa-plus"></i> Создать
-                                    </a>
+                            <a href="{% url 'builder:lesson_master' %}" class="quick-action-link">
+                                <div class="card border-0 bg-light h-100 quick-action-card">
+                                    <div class="card-body text-center d-flex flex-column">
+                                        <i class="fas fa-plus-circle fa-3x text-success mb-3"></i>
+                                        <h5 class="card-title">Создать урок</h5>
+                                        <p class="card-text flex-grow-1">Добавить новый урок в базу знаний</p>
+                                    </div>
                                 </div>
-                            </div>
+                            </a>
                         </div>
                         <div class="col-lg-3 col-md-6 mb-3">
-                            <div class="card border-0 bg-light h-100">
-                                <div class="card-body text-center d-flex flex-column">
-                                    <i class="fas fa-graduation-cap fa-3x text-primary mb-3"></i>
-                                    <h5 class="card-title">Создать курс</h5>
-                                    <p class="card-text flex-grow-1">Создать новый курс обучения</p>
-                                    <a href="{% url 'courses:create-course' %}" class="btn btn-primary btn-sm mt-auto">
-                                        <i class="fas fa-plus"></i> Создать
-                                    </a>
+                            <a href="{% url 'courses:create-course' %}" class="quick-action-link">
+                                <div class="card border-0 bg-light h-100 quick-action-card">
+                                    <div class="card-body text-center d-flex flex-column">
+                                        <i class="fas fa-graduation-cap fa-3x text-primary mb-3"></i>
+                                        <h5 class="card-title">Создать курс</h5>
+                                        <p class="card-text flex-grow-1">Создать новый курс обучения</p>
+                                    </div>
                                 </div>
-                            </div>
+                            </a>
                         </div>
                         <div class="col-lg-3 col-md-6 mb-3">
-                            <div class="card border-0 bg-light h-100">
-                                <div class="card-body text-center d-flex flex-column">
-                                    <i class="fas fa-route fa-3x text-info mb-3"></i>
-                                    <h5 class="card-title">Создать траекторию</h5>
-                                    <p class="card-text flex-grow-1">Настроить последовательность курсов</p>
-                                    <a href="{% url 'courses:trajectory_create' %}" class="btn btn-info btn-sm mt-auto">
-                                        <i class="fas fa-plus"></i> Создать
-                                    </a>
+                            <a href="{% url 'courses:trajectory_create' %}" class="quick-action-link">
+                                <div class="card border-0 bg-light h-100 quick-action-card">
+                                    <div class="card-body text-center d-flex flex-column">
+                                        <i class="fas fa-route fa-3x text-info mb-3"></i>
+                                        <h5 class="card-title">Создать траекторию</h5>
+                                        <p class="card-text flex-grow-1">Настроить последовательность курсов</p>
+                                    </div>
                                 </div>
-                            </div>
+                            </a>
                         </div>
                         <div class="col-lg-3 col-md-6 mb-3">
-                            <div class="card border-0 bg-light h-100">
+                            <div class="card border-0 bg-light h-100 quick-action-card quick-action-clickable" onclick="showCreateQuizModal()">
                                 <div class="card-body text-center d-flex flex-column">
                                     <i class="fas fa-question-circle fa-3x text-warning mb-3"></i>
                                     <h5 class="card-title">Создать тест</h5>
                                     <p class="card-text flex-grow-1">Создать новый тест или квиз</p>
-                                    <button type="button" class="btn btn-warning btn-sm mt-auto" onclick="showCreateQuizModal()">
-                                        <i class="fas fa-plus"></i> Создать
-                                    </button>
                                 </div>
                             </div>
                         </div>
@@ -488,6 +482,32 @@
 .clickable-card:hover {
     transform: translateY(-3px);
     box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15) !important;
+}
+
+/* Стили для кликабельных блоков быстрых действий */
+.quick-action-link {
+    text-decoration: none;
+    color: inherit;
+    display: block;
+}
+
+.quick-action-link:hover {
+    text-decoration: none;
+    color: inherit;
+}
+
+.quick-action-card {
+    transition: all 0.3s ease;
+    cursor: pointer;
+}
+
+.quick-action-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15) !important;
+}
+
+.quick-action-clickable {
+    cursor: pointer;
 }
 </style>
 
