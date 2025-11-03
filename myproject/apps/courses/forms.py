@@ -11,7 +11,7 @@ class CourseForm(forms.ModelForm):
     """Форма создания/редактирования курса."""
     class Meta:
         model = Course
-        fields = ['title', 'description', 'image', 'slug', 'final_quiz', 'allowed_groups', 'certificate']
+        fields = ['title', 'description', 'image', 'slug', 'final_quiz', 'allowed_groups', 'certificate', 'is_incident']
         labels = {'slug': 'ЧПУ (оставьте пустым для автогенерации)'}
         required = {'slug': False}  # Поле slug не обязательно
         widgets = {
@@ -33,8 +33,14 @@ class CourseForm(forms.ModelForm):
     
     def __init__(self, *args, **kwargs):
         """Настраивает подсказки и виджеты после инициализации формы."""
+        initial = kwargs.get('initial', {})
+        is_incident_readonly = initial.pop('is_incident_readonly', False)
         super().__init__(*args, **kwargs)
         self.fields['image'].help_text = "Рекомендуемый размер: 1200x600 пикселей"
+        
+        # Блокируем поле is_incident, если оно передано как readonly
+        if is_incident_readonly:
+            self.fields['is_incident'].disabled = True
 
 
 

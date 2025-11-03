@@ -81,6 +81,25 @@
             {% if form.certificate.errors %}
                 <div class="field-errors">{{ form.certificate.errors }}</div>
             {% endif %}
+            
+            <hr>
+            <div class="form-check">
+                {% if form.is_incident.field.disabled %}
+                    <input type="checkbox" id="id_is_incident" name="is_incident" checked disabled>
+                    <input type="hidden" name="is_incident" value="1">
+                {% else %}
+                    {{ form.is_incident }}
+                {% endif %}
+                <label for="id_is_incident" class="form-check-label">
+                    {{ form.is_incident.label }}
+                </label>
+            </div>
+            {% if form.is_incident.help_text %}
+                <small class="form-help-text">{{ form.is_incident.help_text }}</small>
+            {% endif %}
+            {% if form.is_incident.errors %}
+                <div class="field-errors">{{ form.is_incident.errors }}</div>
+            {% endif %}
         </div>
 
         <div class="form-actions">

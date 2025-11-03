@@ -70,6 +70,7 @@ urlpatterns = [
 
     # Курсы и документы
     path('courses/', views.CourseListView.as_view(), name='course_list'),
+    path('incident-courses/', views.IncidentCourseListView.as_view(), name='incident_course_list'),
     path('documents/<int:pk>/delete/', views.DocumentDeleteView.as_view(), name='document_delete'),
 
     # Audit API endpoints

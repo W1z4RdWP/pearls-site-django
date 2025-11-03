@@ -172,6 +172,7 @@ class Course(models.Model):
     )
     points = models.PositiveIntegerField(default=30, verbose_name="Количество DASCOIN за прохождение курса")
     certificate = models.BooleanField(default=False, verbose_name="Выдавать сертификат", help_text="Выдавать сертификат пользователю при завершении курса")
+    is_incident = models.BooleanField(default=False, verbose_name="Инцидент", help_text="Курс-инцидент не попадает в общую статистику")
     objects = CourseManager()
     
 

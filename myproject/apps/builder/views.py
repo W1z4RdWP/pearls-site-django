@@ -1821,15 +1821,16 @@ class TrajectoryManagementView(TemplateView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         
-        # Статистика для дашборда
-        context['total_courses'] = Course.objects.count()
+        # Статистика для дашборда (исключаем курсы-инциденты)
+        context['total_courses'] = Course.objects.filter(is_incident=False).count()
+        context['total_incident_courses'] = Course.objects.filter(is_incident=True).count()
         context['total_lessons'] = Lesson.objects.count()
         context['total_trajectories'] = Trajectory.objects.count()
         context['total_quizzes'] = Quiz.objects.count()
         context['total_users'] = User.objects.count()
         
-        # Последние созданные элементы
-        context['recent_courses'] = Course.objects.order_by('-created_at')[:5]
+        # Последние созданные элементы (исключаем курсы-инциденты из общего списка)
+        context['recent_courses'] = Course.objects.filter(is_incident=False).order_by('-created_at')[:5]
         context['recent_lessons'] = Lesson.objects.order_by('-id')[:5]
         context['recent_trajectories'] = Trajectory.objects.order_by('-id')[:5]
         context['recent_quizzes'] = Quiz.objects.order_by('-id')[:5]
@@ -2251,7 +2252,7 @@ def trajectory_delete(request, trajectory_id):
 
 class CourseListView(ListView):
     """
-    Представление для просмотра всех курсов на платформе
+    Представление для просмотра всех курсов на платформе сотрудниками УЦ.
     """
     template_name = 'builder/course_list.html'
     context_object_name = 'courses'
@@ -2266,7 +2267,7 @@ class CourseListView(ListView):
         from courses.models import Course
         from django.db.models import Q
         
-        queryset = Course.objects.all()
+        queryset = Course.objects.exclude(is_incident=True)
         
         # Поиск по названию
         search_query = self.request.GET.get('search', '').strip()
@@ -2309,9 +2310,83 @@ class CourseListView(ListView):
         context['selected_group'] = self.request.GET.get('group', '')
         
         # Статистика (всегда показываем общую статистику)
-        context['total_courses'] = Course.objects.count()
-        context['active_courses'] = Course.objects.count()  # Все курсы считаются активными
-        context['total_lessons'] = sum(course.lessons.count() for course in Course.objects.all())
+        context['total_courses'] = Course.objects.exclude(is_incident=True).count()
+        context['active_courses'] = Course.objects.exclude(is_incident=True).count()  # Все курсы считаются активными
+        context['total_lessons'] = sum(course.lessons.count() for course in Course.objects.exclude(is_incident=True))
+        context['total_authors'] = User.objects.filter(course__isnull=False).distinct().count()
+        
+        # Список авторов для фильтра
+        context['authors'] = User.objects.filter(course__isnull=False).distinct().order_by('first_name', 'last_name', 'username')
+        
+        # Список групп для фильтра
+        from django.contrib.auth.models import Group
+        context['groups'] = Group.objects.all().order_by('name')
+        
+        return context
+
+
+
+
+class IncidentCourseListView(ListView):
+    """
+    Представление для просмотра всех курсов-инцидентов на платформе сотрудниками УЦ.
+    """
+    template_name = 'builder/incident_course_list.html'
+    context_object_name = 'courses'
+    paginate_by = 12
+
+    def dispatch(self, request, *args, **kwargs):
+        if not request.user.is_authenticated or not (request.user.is_staff or request.user.is_superuser):
+            return render(request, '403.html', status=403)
+        return super().dispatch(request, *args, **kwargs)
+
+    def get_queryset(self):
+        queryset = Course.objects.filter(is_incident=True)
+
+                # Поиск по названию
+        search_query = self.request.GET.get('search', '').strip()
+        if search_query:
+            queryset = queryset.filter(
+                Q(title__icontains=search_query) | 
+                Q(description__icontains=search_query) |
+                Q(slug__icontains=search_query)
+            )
+        
+        # Фильтр по автору
+        author_id = self.request.GET.get('author', '').strip()
+        if author_id:
+            try:
+                queryset = queryset.filter(author_id=int(author_id))
+            except (ValueError, TypeError):
+                pass
+        
+        # Фильтр по группам
+        group_id = self.request.GET.get('group', '').strip()
+        if group_id:
+            try:
+                from django.contrib.auth.models import Group
+                group = Group.objects.get(id=int(group_id))
+                # Фильтруем курсы, которые принадлежат этой группе через траектории
+                queryset = queryset.filter(trajectory__groups=group).distinct()
+            except (ValueError, TypeError, Group.DoesNotExist):
+                pass
+        
+        return queryset.order_by('-created_at')
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        from courses.models import Course
+        from django.contrib.auth.models import User
+        
+        # Получаем параметры фильтрации для сохранения в форме
+        context['search_query'] = self.request.GET.get('search', '')
+        context['selected_author'] = self.request.GET.get('author', '')
+        context['selected_group'] = self.request.GET.get('group', '')
+        
+        # Статистика (всегда показываем общую статистику)
+        context['total_courses'] = Course.objects.filter(is_incident=True).count()
+        context['active_courses'] = Course.objects.filter(is_incident=True).count()  # Все курсы считаются активными
+        context['total_lessons'] = sum(course.lessons.count() for course in Course.objects.filter(is_incident=True))
         context['total_authors'] = User.objects.filter(course__isnull=False).distinct().count()
         
         # Список авторов для фильтра

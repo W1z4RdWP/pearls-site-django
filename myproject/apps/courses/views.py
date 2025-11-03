@@ -739,6 +739,16 @@ class CreateCourseView(LoginRequiredMixin, UserPassesTestMixin, CreateView):
         """
         return is_admin(self.request.user)
 
+    def get_form_kwargs(self):
+        """Передает is_incident в форму, если параметр передан в GET."""
+        kwargs = super().get_form_kwargs()
+        is_incident_param = self.request.GET.get('is_incident')
+        if is_incident_param == '1':
+            if 'initial' not in kwargs:
+                kwargs['initial'] = {}
+            kwargs['initial']['is_incident'] = True
+            kwargs['initial']['is_incident_readonly'] = True
+        return kwargs
 
     def form_valid(self, form):
         """
@@ -746,6 +756,11 @@ class CreateCourseView(LoginRequiredMixin, UserPassesTestMixin, CreateView):
         """
         course = form.save(commit=False)
         course.author = self.request.user
+        
+        # Убеждаемся, что is_incident установлен, если форма была заблокирована
+        if form.fields.get('is_incident') and form.fields['is_incident'].disabled:
+            course.is_incident = True
+        
         course.save()
         form.save_m2m()
 
@@ -1666,6 +1681,55 @@ class UserCourseTrajectoryListView(ListView):
         return context
 
 
+class IncidentCoursesListView(LoginRequiredMixin, UserPassesTestMixin, ListView):
+    """
+    Список всех курсов-инцидентов для администраторов.
+    """
+    model = Course
+    template_name = 'courses/incident_courses_list.html'
+    context_object_name = 'courses'
+    paginate_by = 20
+
+    def test_func(self):
+        """Доступ только для администраторов."""
+        return is_admin(self.request.user)
+
+    def get_queryset(self):
+        """Возвращает только курсы-инциденты."""
+        return Course.objects.filter(is_incident=True).order_by('-created_at')
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        courses = self.get_queryset()
+        
+        # Поиск по названию курса
+        search_query = self.request.GET.get('search', '').strip()
+        if search_query:
+            courses = courses.filter(title__icontains=search_query)
+        
+        # Фильтрация по статусу (не используется для инцидентов, но для совместимости)
+        status_filter = self.request.GET.get('status', 'all')
+        
+        # Подготавливаем данные для каждого курса
+        courses_data = []
+        for course in courses:
+            courses_data.append({
+                'course': course,
+                'author': course.author.get_full_name() or course.author.username,
+                'created_at': course.created_at,
+                'lessons_count': course.lessons.count(),
+                'quizzes_count': course.quizzes.count(),
+                'total_materials': course.lessons.count() + course.quizzes.count(),
+            })
+        
+        context.update({
+            'courses_data': courses_data,
+            'status_filter': status_filter,
+            'search_query': search_query,
+            'total_courses': len(courses_data),
+        })
+        
+        return context
 
 
 class TrajectoryCreateView(UserPassesTestMixin, CreateView):
