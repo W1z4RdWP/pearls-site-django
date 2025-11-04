@@ -326,3 +326,16 @@
   border-radius: 6px;
   padding: 8px 12px;
 }
+
+/* Компактные поля для дат */
+.date-input-compact {
+  max-width: 180px;
+  padding: 8px 10px;
+  font-size: 0.95em;
+}
+
+/* Уменьшаем отступы между полями формы */
+.row.g-2 {
+  --bs-gutter-x: 0.5rem;
+  --bs-gutter-y: 0.5rem;
+}
