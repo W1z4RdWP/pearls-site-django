@@ -77,4 +77,7 @@ urlpatterns = [
     # Audit API endpoints
     path('api/audit/history/', views.audit_history_api, name='audit_history_api'),
     path('api/audit/search/', views.audit_search_api, name='audit_search_api'),
+    
+    # User search API
+    path('api/users/search/', views.api_search_users, name='api_search_users'),
 ]

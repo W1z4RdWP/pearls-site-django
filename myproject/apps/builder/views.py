@@ -2683,3 +2683,37 @@ def get_responsible_user_for_lesson(lesson_version):
     except Exception:
         pass
     return lesson_version.updated_by
+
+
+@login_required
+def api_search_users(request):
+    """
+    API endpoint для поиска пользователей по имени/фамилии.
+    Возвращает JSON с данными пользователей.
+    """
+    if not (request.user.is_staff or request.user.is_superuser):
+        return JsonResponse({'error': 'Доступ запрещен'}, status=403)
+    
+    search_query = request.GET.get('q', '').strip()
+    
+    users = User.objects.filter(is_active=True)
+    
+    if search_query:
+        users = users.filter(
+            Q(first_name__icontains=search_query) | 
+            Q(last_name__icontains=search_query) |
+            Q(username__icontains=search_query)
+        )
+    
+    users = users.order_by('last_name', 'first_name')[:50]  # Ограничиваем до 50 результатов
+    
+    users_data = []
+    for user in users:
+        full_name = user.get_full_name() or user.username
+        users_data.append({
+            'id': user.id,
+            'full_name': full_name,
+            'username': user.username,
+        })
+    
+    return JsonResponse({'users': users_data})
