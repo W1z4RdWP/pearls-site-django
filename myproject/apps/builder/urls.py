@@ -80,4 +80,8 @@ urlpatterns = [
     
     # User search API
     path('api/users/search/', views.api_search_users, name='api_search_users'),
+    
+    # Groups API
+    path('api/groups/', views.api_get_groups, name='api_get_groups'),
+    path('api/groups/<int:group_id>/users/', views.api_get_group_users, name='api_get_group_users'),
 ]

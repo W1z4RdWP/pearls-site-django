@@ -42,12 +42,14 @@
         </div>
 
         <div class="form-group">
-            <label>{{ form.responsible_users.label }}</label>
-            <div class="checkbox-group">
-                {% for checkbox in form.responsible_users %}
-                    {{ checkbox }}
-                {% endfor %}
+            <label for="responsible-display">{{ form.responsible_users.label }}</label>
+            <div class="responsible-select-field" id="responsibleSelectField">
+                <span id="responsibleDisplayText" class="responsible-display-text">
+                    <span id="responsibleCount" class="responsible-count">0</span> пользователей выбрано
+                </span>
+                <span class="responsible-select-icon">&#9660;</span>
             </div>
+            {{ form.responsible_users }}
             {% if form.responsible_users.errors %}
                 <div class="text-danger mt-1">{{ form.responsible_users.errors }}</div>
             {% endif %}
@@ -104,14 +106,56 @@
     </div>
 </div>
 
+<!-- Модальное окно для выбора ответственных -->
+<div id="responsibleModal" class="responsible-modal">
+    <div class="responsible-modal-content">
+        <div class="responsible-modal-header">
+            <h3>Выберите ответственных</h3>
+            <span class="responsible-modal-close" id="responsibleModalClose">&times;</span>
+        </div>
+        <div class="responsible-modal-body">
+            <div class="responsible-columns">
+                <!-- Левая колонка - Группы -->
+                <div class="responsible-left-column">
+                    <h4>Группы</h4>
+                    <div id="groupList" class="group-list">
+                        <div class="group-list-loading">Загрузка групп...</div>
+                    </div>
+                </div>
+                
+                <!-- Разделитель -->
+                <div class="responsible-divider"></div>
+                
+                <!-- Правая колонка - Выбранные пользователи -->
+                <div class="responsible-right-column">
+                    <h4>Выбранные пользователи</h4>
+                    <div class="responsible-search-box">
+                        <input type="text" id="responsibleSearchInput" class="form-control" placeholder="Поиск пользователя для добавления...">
+                        <div id="searchResultsDropdown" class="search-results-dropdown" style="display: none;"></div>
+                    </div>
+                    <div id="selectedUsersList" class="selected-users-list">
+                        <div class="selected-users-empty">Пользователи не выбраны</div>
+                    </div>
+                </div>
+            </div>
+            <div class="responsible-modal-footer">
+                <button type="button" class="btn btn-primary" id="confirmResponsibleBtn">Применить</button>
+                <button type="button" class="btn btn-secondary" id="cancelResponsibleBtn">Отмена</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 {% endblock %}
 
 {% block specific_scripts %}
 <script>
-    // API endpoint для поиска пользователей
+    // API endpoints
     const searchUsersUrl = "{% url 'builder:api_search_users' %}";
+    const getGroupsUrl = "{% url 'builder:api_get_groups' %}";
+    const getGroupUsersUrl = "{% url 'builder:api_get_group_users' 0 %}".replace('/0/', '/{id}/');
     
-    // Элементы DOM
+    // Элементы DOM для выбора пользователя (кто зафиксировал)
     const modal = document.getElementById('userModal');
     const userSelectField = document.getElementById('userSelectField');
     const userModalClose = document.getElementById('userModalClose');
@@ -119,6 +163,26 @@
     const userList = document.getElementById('userList');
     const userDisplayName = document.getElementById('userDisplayName');
     const userInput = document.getElementById('{{ form.user.id_for_label }}');
+    
+    // Элементы DOM для выбора ответственных
+    const responsibleModal = document.getElementById('responsibleModal');
+    const responsibleSelectField = document.getElementById('responsibleSelectField');
+    const responsibleModalClose = document.getElementById('responsibleModalClose');
+    const responsibleSearchInput = document.getElementById('responsibleSearchInput');
+    const searchResultsDropdown = document.getElementById('searchResultsDropdown');
+    const groupList = document.getElementById('groupList');
+    const selectedUsersList = document.getElementById('selectedUsersList');
+    const confirmResponsibleBtn = document.getElementById('confirmResponsibleBtn');
+    const cancelResponsibleBtn = document.getElementById('cancelResponsibleBtn');
+    const responsibleCount = document.getElementById('responsibleCount');
+    
+    // Хранилище выбранных ответственных пользователей
+    let selectedResponsibleUsers = new Map(); // userId -> {id, full_name, username}
+    
+    // Кэш последних результатов поиска
+    let lastSearchResults = [];
+    
+    // ========== ФУНКЦИИ ДЛЯ ВЫБОРА ПОЛЬЗОВАТЕЛЯ (КТО ЗАФИКСИРОВАЛ) ==========
     
     // Открытие модального окна
     userSelectField.addEventListener('click', function() {
@@ -135,6 +199,10 @@
     window.addEventListener('click', function(event) {
         if (event.target == modal) {
             modal.style.display = 'none';
+        }
+        if (event.target == responsibleModal) {
+            responsibleModal.style.display = 'none';
+            hideSearchResults();
         }
     });
     
@@ -207,5 +275,302 @@
     if (!userInput.value) {
         userDisplayName.classList.add('user-display-placeholder');
     }
+    
+    // ========== ФУНКЦИИ ДЛЯ ВЫБОРА ОТВЕТСТВЕННЫХ ==========
+    
+    // Открытие модального окна выбора ответственных
+    responsibleSelectField.addEventListener('click', function() {
+        responsibleModal.style.display = 'block';
+        loadGroups();
+        loadInitialResponsibleUsers();
+    });
+    
+    // Закрытие модального окна
+    responsibleModalClose.addEventListener('click', function() {
+        responsibleModal.style.display = 'none';
+        hideSearchResults();
+    });
+    
+    cancelResponsibleBtn.addEventListener('click', function() {
+        responsibleModal.style.display = 'none';
+        hideSearchResults();
+    });
+    
+    // Применение выбора
+    confirmResponsibleBtn.addEventListener('click', function() {
+        applyResponsibleSelection();
+        responsibleModal.style.display = 'none';
+        hideSearchResults();
+    });
+    
+    // Загрузка списка групп
+    function loadGroups() {
+        groupList.innerHTML = '<div class="group-list-loading">Загрузка групп...</div>';
+        
+        fetch(getGroupsUrl)
+            .then(response => response.json())
+            .then(data => {
+                displayGroups(data.groups);
+            })
+            .catch(error => {
+                console.error('Ошибка загрузки групп:', error);
+                groupList.innerHTML = '<div class="group-list-error">Ошибка загрузки групп</div>';
+            });
+    }
+    
+    // Отображение списка групп
+    function displayGroups(groups) {
+        if (groups.length === 0) {
+            groupList.innerHTML = '<div class="group-list-empty">Группы не найдены</div>';
+            return;
+        }
+        
+        let html = '';
+        groups.forEach(function(group) {
+            html += `
+                <div class="group-item" data-group-id="${group.id}">
+                    <div class="group-item-name">${group.name}</div>
+                    <div class="group-item-count">${group.user_count} пользователей</div>
+                </div>
+            `;
+        });
+        
+        groupList.innerHTML = html;
+        
+        // Добавляем обработчики клика на каждую группу
+        const groupItems = groupList.querySelectorAll('.group-item');
+        groupItems.forEach(function(item) {
+            item.addEventListener('click', function() {
+                const groupId = this.getAttribute('data-group-id');
+                addGroupUsers(groupId);
+            });
+        });
+    }
+    
+    // Добавление всех пользователей группы
+    function addGroupUsers(groupId) {
+        const url = getGroupUsersUrl.replace('{id}', groupId);
+        
+        fetch(url)
+            .then(response => response.json())
+            .then(data => {
+                data.users.forEach(function(user) {
+                    if (!selectedResponsibleUsers.has(user.id)) {
+                        selectedResponsibleUsers.set(user.id, user);
+                    }
+                });
+                displaySelectedUsers();
+            })
+            .catch(error => {
+                console.error('Ошибка загрузки пользователей группы:', error);
+            });
+    }
+    
+    // Поиск пользователей для добавления в ответственные
+    let responsibleSearchTimeout;
+    responsibleSearchInput.addEventListener('input', function() {
+        clearTimeout(responsibleSearchTimeout);
+        const query = this.value.trim();
+        
+        if (query.length === 0) {
+            hideSearchResults();
+            return;
+        }
+        
+        responsibleSearchTimeout = setTimeout(function() {
+            searchUsers(query);
+        }, 300);
+    });
+    
+    // Обработка клавиши Escape для закрытия выпадающего списка
+    responsibleSearchInput.addEventListener('keydown', function(event) {
+        if (event.key === 'Escape') {
+            hideSearchResults();
+            this.blur();
+        }
+    });
+    
+    // Закрытие выпадающего списка при клике вне его
+    document.addEventListener('click', function(event) {
+        if (!responsibleSearchInput.contains(event.target) && !searchResultsDropdown.contains(event.target)) {
+            hideSearchResults();
+        }
+    });
+    
+    // Поиск пользователей и отображение результатов
+    function searchUsers(query) {
+        searchResultsDropdown.innerHTML = '<div class="search-results-loading">Поиск...</div>';
+        searchResultsDropdown.style.display = 'block';
+        
+        const url = searchUsersUrl + '?q=' + encodeURIComponent(query);
+        
+        fetch(url)
+            .then(response => response.json())
+            .then(data => {
+                lastSearchResults = data.users; // Сохраняем результаты
+                displaySearchResults(data.users);
+            })
+            .catch(error => {
+                console.error('Ошибка поиска пользователей:', error);
+                searchResultsDropdown.innerHTML = '<div class="search-results-empty">Ошибка поиска</div>';
+            });
+    }
+    
+    // Отображение результатов поиска
+    function displaySearchResults(users) {
+        if (users.length === 0) {
+            searchResultsDropdown.innerHTML = '<div class="search-results-empty">Пользователи не найдены</div>';
+            return;
+        }
+        
+        let html = '';
+        users.forEach(function(user) {
+            // Пропускаем уже выбранных пользователей
+            if (selectedResponsibleUsers.has(user.id)) {
+                return;
+            }
+            
+            html += `
+                <div class="search-result-item" data-user-id="${user.id}">
+                    <div class="search-result-name">${user.full_name}</div>
+                    <div class="search-result-username">@${user.username}</div>
+                </div>
+            `;
+        });
+        
+        if (html === '') {
+            searchResultsDropdown.innerHTML = '<div class="search-results-empty">Все найденные пользователи уже выбраны</div>';
+            return;
+        }
+        
+        searchResultsDropdown.innerHTML = html;
+        
+        // Добавляем обработчики клика на результаты
+        const resultItems = searchResultsDropdown.querySelectorAll('.search-result-item');
+        resultItems.forEach(function(item) {
+            item.addEventListener('click', function() {
+                const userId = parseInt(this.getAttribute('data-user-id'));
+                addUserFromSearch(userId);
+            });
+        });
+    }
+    
+    // Добавление пользователя из результатов поиска
+    function addUserFromSearch(userId) {
+        // Находим пользователя в сохраненных результатах поиска
+        const user = lastSearchResults.find(u => u.id === userId);
+        
+        if (user && !selectedResponsibleUsers.has(userId)) {
+            selectedResponsibleUsers.set(userId, user);
+            displaySelectedUsers();
+            responsibleSearchInput.value = '';
+            hideSearchResults();
+        }
+    }
+    
+    // Скрытие выпадающего списка результатов
+    function hideSearchResults() {
+        searchResultsDropdown.style.display = 'none';
+        searchResultsDropdown.innerHTML = '';
+    }
+    
+    // Отображение выбранных пользователей
+    function displaySelectedUsers() {
+        if (selectedResponsibleUsers.size === 0) {
+            selectedUsersList.innerHTML = '<div class="selected-users-empty">Пользователи не выбраны</div>';
+            return;
+        }
+        
+        let html = '';
+        selectedResponsibleUsers.forEach(function(user, userId) {
+            html += `
+                <div class="selected-user-item" data-user-id="${userId}">
+                    <div class="selected-user-info">
+                        <div class="selected-user-name">${user.full_name}</div>
+                        <div class="selected-user-username">@${user.username}</div>
+                    </div>
+                    <span class="selected-user-remove" data-user-id="${userId}">&times;</span>
+                </div>
+            `;
+        });
+        
+        selectedUsersList.innerHTML = html;
+        
+        // Добавляем обработчики для удаления пользователей
+        const removeButtons = selectedUsersList.querySelectorAll('.selected-user-remove');
+        removeButtons.forEach(function(btn) {
+            btn.addEventListener('click', function(e) {
+                e.stopPropagation();
+                const userId = parseInt(this.getAttribute('data-user-id'));
+                selectedResponsibleUsers.delete(userId);
+                displaySelectedUsers();
+            });
+        });
+    }
+    
+    // Загрузка изначально выбранных пользователей (при редактировании)
+    function loadInitialResponsibleUsers() {
+        const hiddenInputs = document.querySelectorAll('input[name="responsible_users"]');
+        
+        if (hiddenInputs.length === 0) {
+            return;
+        }
+        
+        // Собираем ID выбранных пользователей
+        const userIds = [];
+        hiddenInputs.forEach(function(input) {
+            if (input.value) {
+                userIds.push(parseInt(input.value));
+            }
+        });
+        
+        if (userIds.length === 0) {
+            return;
+        }
+        
+        // Загружаем информацию о пользователях
+        fetch(searchUsersUrl + '?q=')
+            .then(response => response.json())
+            .then(data => {
+                userIds.forEach(function(userId) {
+                    const user = data.users.find(u => u.id === userId);
+                    if (user) {
+                        selectedResponsibleUsers.set(userId, user);
+                    }
+                });
+                displaySelectedUsers();
+            })
+            .catch(error => {
+                console.error('Ошибка загрузки пользователей:', error);
+            });
+    }
+    
+    // Применение выбора ответственных
+    function applyResponsibleSelection() {
+        // Удаляем все существующие скрытые поля
+        const oldInputs = document.querySelectorAll('input[name="responsible_users"]');
+        oldInputs.forEach(function(input) {
+            input.remove();
+        });
+        
+        // Находим форму и добавляем новые скрытые поля для выбранных пользователей
+        const form = document.querySelector('form');
+        selectedResponsibleUsers.forEach(function(user, userId) {
+            const hiddenInput = document.createElement('input');
+            hiddenInput.type = 'hidden';
+            hiddenInput.name = 'responsible_users';
+            hiddenInput.value = userId;
+            form.appendChild(hiddenInput);
+        });
+        
+        // Обновляем счетчик
+        responsibleCount.textContent = selectedResponsibleUsers.size;
+    }
+    
+    // Инициализация счетчика при загрузке страницы
+    document.addEventListener('DOMContentLoaded', function() {
+        const hiddenInputs = document.querySelectorAll('input[name="responsible_users"]');
+        responsibleCount.textContent = hiddenInputs.length;
+    });
 </script>
 {% endblock %} 

@@ -290,3 +290,361 @@
         max-height: 300px;
     }
 }
+
+/* Стили для поля выбора ответственных */
+.responsible-select-field {
+    width: 100%;
+    border-radius: 6px;
+    border: 1px solid #e3e8f0;
+    padding: 10px 12px;
+    font-size: 1em;
+    background: #fff;
+    color: #232a3a;
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    transition: border 0.2s, background 0.2s;
+    min-height: 38px;
+    box-sizing: border-box;
+}
+
+.responsible-select-field:hover {
+    border-color: #4d7cff;
+    background: #f7f8fa;
+}
+
+.responsible-display-text {
+    flex: 1;
+}
+
+.responsible-count {
+    font-weight: 600;
+    color: #4d7cff;
+}
+
+.responsible-select-icon {
+    color: #999;
+    margin-left: 8px;
+    font-size: 0.8em;
+}
+
+/* Стили для модального окна выбора ответственных */
+.responsible-modal {
+    display: none;
+    position: fixed;
+    z-index: 10000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    overflow: auto;
+    background-color: rgba(0, 0, 0, 0.5);
+    animation: fadeIn 0.2s;
+}
+
+.responsible-modal-content {
+    background-color: #fff;
+    margin: 3% auto;
+    padding: 0;
+    border-radius: 10px;
+    width: 90%;
+    max-width: 1000px;
+    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.15);
+    animation: slideDown 0.3s;
+}
+
+.responsible-modal-header {
+    padding: 20px 24px;
+    border-bottom: 1px solid #e3e8f0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.responsible-modal-header h3 {
+    margin: 0;
+    font-size: 1.3em;
+    font-weight: 600;
+    color: #232a3a;
+}
+
+.responsible-modal-close {
+    color: #999;
+    font-size: 28px;
+    font-weight: 300;
+    cursor: pointer;
+    line-height: 1;
+    transition: color 0.2s;
+}
+
+.responsible-modal-close:hover,
+.responsible-modal-close:focus {
+    color: #232a3a;
+}
+
+.responsible-modal-body {
+    padding: 24px;
+}
+
+/* Двухколоночная структура */
+.responsible-columns {
+    display: flex;
+    gap: 20px;
+    min-height: 500px;
+    max-height: 600px;
+}
+
+.responsible-left-column,
+.responsible-right-column {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+.responsible-left-column h4,
+.responsible-right-column h4 {
+    margin: 0 0 16px 0;
+    font-size: 1.1em;
+    font-weight: 600;
+    color: #232a3a;
+}
+
+.responsible-divider {
+    width: 1px;
+    background: #e3e8f0;
+    margin: 0 10px;
+}
+
+/* Список групп */
+.group-list {
+    flex: 1;
+    overflow-y: auto;
+    border: 1px solid #e3e8f0;
+    border-radius: 6px;
+    background: #f7f8fa;
+}
+
+.group-item {
+    padding: 14px 16px;
+    cursor: pointer;
+    border-bottom: 1px solid #e3e8f0;
+    background: #fff;
+    transition: background 0.2s;
+}
+
+.group-item:last-child {
+    border-bottom: none;
+}
+
+.group-item:hover {
+    background: #f0f4ff;
+}
+
+.group-item-name {
+    font-weight: 600;
+    color: #232a3a;
+    margin-bottom: 4px;
+}
+
+.group-item-count {
+    font-size: 0.9em;
+    color: #666;
+}
+
+.group-list-loading,
+.group-list-empty,
+.group-list-error {
+    padding: 40px 20px;
+    text-align: center;
+    color: #999;
+    font-size: 0.95em;
+}
+
+.group-list-error {
+    color: #e74c3c;
+}
+
+/* Поиск пользователей в правой колонке */
+.responsible-search-box {
+    margin-bottom: 16px;
+    position: relative;
+}
+
+.responsible-search-box input.form-control {
+    width: 100%;
+    padding: 12px 16px;
+    font-size: 1em;
+    border: 1px solid #e3e8f0;
+    border-radius: 6px;
+    transition: border 0.2s;
+}
+
+.responsible-search-box input.form-control:focus {
+    border-color: #4d7cff;
+    outline: none;
+}
+
+/* Выпадающий список результатов поиска */
+.search-results-dropdown {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    margin-top: 4px;
+    background: #fff;
+    border: 1px solid #e3e8f0;
+    border-radius: 6px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    max-height: 300px;
+    overflow-y: auto;
+    z-index: 1000;
+}
+
+.search-result-item {
+    padding: 12px 16px;
+    cursor: pointer;
+    border-bottom: 1px solid #e3e8f0;
+    transition: background 0.2s;
+}
+
+.search-result-item:last-child {
+    border-bottom: none;
+}
+
+.search-result-item:hover {
+    background: #f0f4ff;
+}
+
+.search-result-name {
+    font-weight: 600;
+    color: #232a3a;
+    margin-bottom: 4px;
+}
+
+.search-result-username {
+    font-size: 0.9em;
+    color: #666;
+}
+
+.search-results-loading,
+.search-results-empty {
+    padding: 20px;
+    text-align: center;
+    color: #999;
+    font-size: 0.95em;
+}
+
+/* Список выбранных пользователей */
+.selected-users-list {
+    flex: 1;
+    overflow-y: auto;
+    border: 1px solid #e3e8f0;
+    border-radius: 6px;
+    background: #f7f8fa;
+    padding: 8px;
+}
+
+.selected-user-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 14px;
+    background: #fff;
+    border: 1px solid #e3e8f0;
+    border-radius: 6px;
+    margin-bottom: 8px;
+    transition: background 0.2s, border 0.2s;
+}
+
+.selected-user-item:last-child {
+    margin-bottom: 0;
+}
+
+.selected-user-item:hover {
+    background: #f0f4ff;
+    border-color: #4d7cff;
+}
+
+.selected-user-info {
+    flex: 1;
+}
+
+.selected-user-name {
+    font-weight: 600;
+    color: #232a3a;
+    margin-bottom: 4px;
+}
+
+.selected-user-username {
+    font-size: 0.9em;
+    color: #666;
+}
+
+.selected-user-remove {
+    color: #e74c3c;
+    font-size: 24px;
+    font-weight: 300;
+    cursor: pointer;
+    line-height: 1;
+    padding: 0 8px;
+    transition: color 0.2s, transform 0.2s;
+}
+
+.selected-user-remove:hover {
+    color: #c0392b;
+    transform: scale(1.2);
+}
+
+.selected-users-empty {
+    padding: 40px 20px;
+    text-align: center;
+    color: #999;
+    font-size: 0.95em;
+}
+
+/* Футер модального окна */
+.responsible-modal-footer {
+    margin-top: 24px;
+    padding-top: 16px;
+    border-top: 1px solid #e3e8f0;
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+}
+
+.responsible-modal-footer .btn {
+    min-width: 120px;
+    font-size: 1em;
+    padding: 10px 20px;
+}
+
+/* Адаптивность для модального окна ответственных */
+@media (max-width: 768px) {
+    .responsible-modal-content {
+        width: 95%;
+        margin: 5% auto;
+    }
+    
+    .responsible-columns {
+        flex-direction: column;
+        min-height: auto;
+        max-height: none;
+    }
+    
+    .responsible-divider {
+        width: 100%;
+        height: 1px;
+        margin: 10px 0;
+    }
+    
+    .responsible-left-column,
+    .responsible-right-column {
+        max-height: 300px;
+    }
+    
+    .group-list,
+    .selected-users-list {
+        max-height: 250px;
+    }
+}

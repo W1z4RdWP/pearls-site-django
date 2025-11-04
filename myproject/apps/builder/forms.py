@@ -19,7 +19,7 @@ class IncidentForm(forms.ModelForm):
     responsible_users = forms.ModelMultipleChoiceField(
         queryset=None,
         required=False,
-        widget=forms.CheckboxSelectMultiple,
+        widget=forms.MultipleHiddenInput(),
         label='Ответственные за инцидент'
     )
     

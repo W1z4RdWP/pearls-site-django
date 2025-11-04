@@ -2717,3 +2717,53 @@ def api_search_users(request):
         })
     
     return JsonResponse({'users': users_data})
+
+
+@login_required
+def api_get_groups(request):
+    """
+    API endpoint для получения списка всех групп.
+    Возвращает JSON с данными групп.
+    """
+    if not (request.user.is_staff or request.user.is_superuser):
+        return JsonResponse({'error': 'Доступ запрещен'}, status=403)
+    
+    groups = Group.objects.all().order_by('name')
+    
+    groups_data = []
+    for group in groups:
+        groups_data.append({
+            'id': group.id,
+            'name': group.name,
+            'user_count': group.user_set.filter(is_active=True).count(),
+        })
+    
+    return JsonResponse({'groups': groups_data})
+
+
+@login_required
+def api_get_group_users(request, group_id):
+    """
+    API endpoint для получения пользователей конкретной группы.
+    Возвращает JSON с данными пользователей группы.
+    """
+    if not (request.user.is_staff or request.user.is_superuser):
+        return JsonResponse({'error': 'Доступ запрещен'}, status=403)
+    
+    try:
+        group = Group.objects.get(id=group_id)
+    except Group.DoesNotExist:
+        return JsonResponse({'error': 'Группа не найдена'}, status=404)
+    
+    users = group.user_set.filter(is_active=True).order_by('last_name', 'first_name')
+    
+    users_data = []
+    for user in users:
+        full_name = user.get_full_name() or user.username
+        users_data.append({
+            'id': user.id,
+            'full_name': full_name,
+            'username': user.username,
+        })
+    
+    return JsonResponse({'users': users_data})
