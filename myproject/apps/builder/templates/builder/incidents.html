@@ -126,7 +126,7 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // Если выбран завершен или отклонен
         if (hasCompletedStatus) {
-            // Устанавливаем период -30 дней от текущей даты
+            // Автоматически устанавливаем период -30 дней от сегодняшней даты
             const today = new Date();
             const dateTo = new Date(today);
             dateTo.setDate(dateTo.getDate());
@@ -152,6 +152,23 @@ document.addEventListener('DOMContentLoaded', function() {
             statusCheckboxes.forEach(checkbox => {
                 checkbox.disabled = false;
             });
+            
+            // Проверяем, есть ли хотя бы один выбранный статус
+            const hasAnyChecked = Array.from(statusCheckboxes).some(cb => cb.checked);
+            
+            // Если ни один статус не выбран, автоматически выбираем дефолтные
+            if (!hasAnyChecked) {
+                statusCheckboxes.forEach(checkbox => {
+                    if (blockedStatuses.includes(checkbox.value)) {
+                        checkbox.checked = true;
+                    }
+                });
+                
+                // Также восстанавливаем дефолтные даты (с начала 2025 года до сегодня)
+                const today = new Date();
+                dateToInput.value = today.toISOString().split('T')[0];
+                dateFromInput.value = '2025-01-01';
+            }
         }
     }
     
@@ -161,25 +178,6 @@ document.addEventListener('DOMContentLoaded', function() {
     });
     
     // Инициализация при загрузке
-    // Проверяем, есть ли уже выбранные статусы завершен/отклонен
-    const initialCheckedStatuses = Array.from(statusCheckboxes)
-        .filter(cb => cb.checked)
-        .map(cb => cb.value);
-    const hasInitialCompletedStatus = initialCheckedStatuses.some(s => completedStatuses.includes(s));
-    
-    // Если при загрузке уже выбраны завершен/отклонен, но даты не установлены, устанавливаем их
-    if (hasInitialCompletedStatus && !dateFromInput.value) {
-        const today = new Date();
-        const dateTo = new Date(today);
-        dateTo.setDate(dateTo.getDate());
-        
-        const dateFrom = new Date(today);
-        dateFrom.setDate(dateFrom.getDate() - 30);
-        
-        dateFromInput.value = dateFrom.toISOString().split('T')[0];
-        dateToInput.value = dateTo.toISOString().split('T')[0];
-    }
-    
     updateFilters();
 });
 </script>

@@ -798,28 +798,37 @@ class IncidentListView(ListView):
         return super().dispatch(request, *args, **kwargs)
 
     def get_queryset(self):
+        from django.utils import timezone
+        import datetime
+        
         queryset = super().get_queryset()
         
         # Фильтр по дате создания
         date_from = self.request.GET.get('date_from')
         date_to = self.request.GET.get('date_to')
+        
+        # Если нет параметров в GET запросе (первичная загрузка), устанавливаем дефолтные значения
+        if not self.request.GET:
+            # Устанавливаем период с начала 2025 года до сегодняшней даты
+            date_from = '2025-01-01'
+            date_to = timezone.now().date().strftime('%Y-%m-%d')
+        
         if date_from:
-            # Добавляем время начала дня
-            from django.utils import timezone
-            import datetime
             date_from_parsed = datetime.datetime.strptime(date_from, '%Y-%m-%d').date()
             date_from_datetime = timezone.make_aware(datetime.datetime.combine(date_from_parsed, datetime.time.min))
             queryset = queryset.filter(created_at__gte=date_from_datetime)
         if date_to:
-            # Добавляем время конца дня
-            from django.utils import timezone
-            import datetime
             date_to_parsed = datetime.datetime.strptime(date_to, '%Y-%m-%d').date()
             date_to_datetime = timezone.make_aware(datetime.datetime.combine(date_to_parsed, datetime.time.max))
             queryset = queryset.filter(created_at__lte=date_to_datetime)
         
         # Фильтр по статусу
         statuses = self.request.GET.getlist('status')
+        
+        # Если нет параметров в GET запросе (первичная загрузка), устанавливаем дефолтные статусы
+        if not self.request.GET:
+            statuses = ['new', 'accepted', 'assigned']
+        
         if statuses:
             queryset = queryset.filter(status__in=statuses)
         
@@ -831,14 +840,25 @@ class IncidentListView(ListView):
         return queryset
 
     def get_context_data(self, **kwargs):
+        from django.utils import timezone
+        
         context = super().get_context_data(**kwargs)
         context['status_choices'] = Incident.STATUS_CHOICES
         context['incident_type_choices'] = Incident.INCIDENT_TYPE_CHOICES
-        # Передаем текущие значения фильтров в контекст
-        context['selected_statuses'] = self.request.GET.getlist('status', [])
-        context['selected_incident_type'] = self.request.GET.get('incident_type', '')
-        context['date_from'] = self.request.GET.get('date_from', '')
-        context['date_to'] = self.request.GET.get('date_to', '')
+        
+        # Если нет параметров в GET запросе (первичная загрузка), устанавливаем дефолтные значения
+        if not self.request.GET:
+            context['selected_statuses'] = ['new', 'accepted', 'assigned']
+            context['selected_incident_type'] = ''
+            context['date_from'] = '2025-01-01'
+            context['date_to'] = timezone.now().date().strftime('%Y-%m-%d')
+        else:
+            # Передаем текущие значения фильтров в контекст
+            context['selected_statuses'] = self.request.GET.getlist('status', [])
+            context['selected_incident_type'] = self.request.GET.get('incident_type', '')
+            context['date_from'] = self.request.GET.get('date_from', '')
+            context['date_to'] = self.request.GET.get('date_to', '')
+        
         return context
 
 
