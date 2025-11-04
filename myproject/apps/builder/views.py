@@ -790,11 +790,56 @@ class IncidentListView(ListView):
     template_name = 'builder/incidents.html'
     context_object_name = 'incidents'
     ordering = ['-created_at']
+
     def dispatch(self, request, *args, **kwargs):
         # Только staff/superuser
         if not request.user.is_authenticated or not (request.user.is_staff or request.user.is_superuser):
             return render(request, '403.html', status=403)
         return super().dispatch(request, *args, **kwargs)
+
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        
+        # Фильтр по дате создания
+        date_from = self.request.GET.get('date_from')
+        date_to = self.request.GET.get('date_to')
+        if date_from:
+            # Добавляем время начала дня
+            from django.utils import timezone
+            import datetime
+            date_from_parsed = datetime.datetime.strptime(date_from, '%Y-%m-%d').date()
+            date_from_datetime = timezone.make_aware(datetime.datetime.combine(date_from_parsed, datetime.time.min))
+            queryset = queryset.filter(created_at__gte=date_from_datetime)
+        if date_to:
+            # Добавляем время конца дня
+            from django.utils import timezone
+            import datetime
+            date_to_parsed = datetime.datetime.strptime(date_to, '%Y-%m-%d').date()
+            date_to_datetime = timezone.make_aware(datetime.datetime.combine(date_to_parsed, datetime.time.max))
+            queryset = queryset.filter(created_at__lte=date_to_datetime)
+        
+        # Фильтр по статусу
+        statuses = self.request.GET.getlist('status')
+        if statuses:
+            queryset = queryset.filter(status__in=statuses)
+        
+        # Фильтр по типу
+        incident_type = self.request.GET.get('incident_type')
+        if incident_type:
+            queryset = queryset.filter(incident_type=incident_type)
+        
+        return queryset
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['status_choices'] = Incident.STATUS_CHOICES
+        context['incident_type_choices'] = Incident.INCIDENT_TYPE_CHOICES
+        # Передаем текущие значения фильтров в контекст
+        context['selected_statuses'] = self.request.GET.getlist('status', [])
+        context['selected_incident_type'] = self.request.GET.get('incident_type', '')
+        context['date_from'] = self.request.GET.get('date_from', '')
+        context['date_to'] = self.request.GET.get('date_to', '')
+        return context
 
 
 
@@ -802,19 +847,42 @@ class IncidentCreateView(CreateView, AuditLoggerMixin):
     """
     Создание инцидента (ручное или автоматическое).
     """
+    model = Incident
+    form_class = IncidentForm
+    template_name = 'builder/incident_form.html'
+    success_url = reverse_lazy('builder:incidents')
+
     def dispatch(self, request, *args, **kwargs):
         if not request.user.is_authenticated or not (request.user.is_staff or request.user.is_superuser):
             return render(request, '403.html', status=403)
         return super().dispatch(request, *args, **kwargs)
-    model = Incident
-    form_class = IncidentForm
-    template_name = 'builder/incident_form.html'
-    success_url = '/builder/incidents/'
+
     
     def form_valid(self, form):
         response = super().form_valid(form)
         # Логируем создание инцидента
         self.log_create_action(self.object, "Создан новый инцидент")
+        return response
+
+
+class IncidentUpdateView(UpdateView, AuditLoggerMixin):
+    """
+    Редактирование инцидента.
+    """
+    model = Incident
+    form_class = IncidentForm
+    template_name = 'builder/incident_form.html'
+    success_url = reverse_lazy('builder:incidents')
+
+    def dispatch(self, request, *args, **kwargs):
+        if not request.user.is_authenticated or not (request.user.is_staff or request.user.is_superuser):
+            return render(request, '403.html', status=403)
+        return super().dispatch(request, *args, **kwargs)
+    
+    def form_valid(self, form):
+        response = super().form_valid(form)
+        # Логируем обновление инцидента
+        self.log_update_action(self.object, "Инцидент обновлён")
         return response
 
 

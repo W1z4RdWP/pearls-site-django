@@ -62,26 +62,31 @@ class Incident(models.Model):
     Инцидент, связанный с обучением или ошибкой. Может автоматически назначать материалы и тесты.
     """
     INCIDENT_TYPE_CHOICES = [
-        ('test_fail', 'Провал теста'),
-        ('incident', 'Инцидент'),
-        ('regulation_change', 'Изменение регламента'),
+        ('informational', 'Информационный'),
+        ('educational', 'Обучающий'),
     ]
     STATUS_CHOICES = [
         ('new', 'Новый'),
-        ('in_progress', 'В работе'),
-        ('resolved', 'Решён'),
+        ('accepted', 'Принят'),
+        ('assigned', 'Назначен'),
+        ('resolved', 'Завершён'),
+        ('declined', 'Отклонён')
     ]
-    title = models.CharField(max_length=255, verbose_name='Название инцидента')
-    user = models.ForeignKey(get_user_model(), on_delete=models.CASCADE, verbose_name='Сотрудник')
+    title = models.CharField(max_length=255, verbose_name='Название инцидента (описание)')
+    description = models.TextField(max_length=1000, blank=True, null=True, verbose_name='Комментарий/описание')
     incident_type = models.CharField(max_length=32, choices=INCIDENT_TYPE_CHOICES, verbose_name='Тип инцидента')
-    description = models.TextField(verbose_name='Описание', blank=True)
-    related_documents = models.ManyToManyField('Document', blank=True, verbose_name='Документы из БЗ')
-    role = models.CharField(max_length=128, verbose_name='Роль', blank=True)
-    error_type = models.CharField(max_length=128, verbose_name='Тип ошибки', blank=True)
-    topic = models.CharField(max_length=128, verbose_name='Тема', blank=True)
+    user = models.ForeignKey(get_user_model(), on_delete=models.CASCADE, related_name='created_incidents', verbose_name='Кто зафиксировал')
+    responsible_users = models.ManyToManyField(get_user_model(), related_name='responsible_incidents', blank=True, verbose_name='Ответственные за инцидент')
     status = models.CharField(max_length=32, choices=STATUS_CHOICES, default='new', verbose_name='Статус')
-    created_at = models.DateTimeField(auto_now_add=True, verbose_name='Создан')
-    updated_at = models.DateTimeField(auto_now=True, verbose_name='Обновлён')
+    
+    # Временные метки
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name="Дата создания")
+    updated_at = models.DateTimeField(auto_now=True, verbose_name="Дата обновления")
+    resolved_at = models.DateTimeField(null=True, blank=True, verbose_name="Дата решения")
+    deadline = models.DateTimeField(null=True, blank=True, verbose_name="Дедлайн")
+    
+
+    
 
     class Meta:
         indexes = [

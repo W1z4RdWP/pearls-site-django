@@ -2,48 +2,371 @@
 {% load static %}
 {% block title %}Инциденты{% endblock %}
 {% block specific_styles %}
-<!-- <link rel="stylesheet" href="{% static 'builder/css/builder_style.css' %}"> -->
 <link rel="stylesheet" href="{% static 'builder/css/incidents.css' %}">
+<style>
+    .incidents-card {
+        background: #fff;
+        border-radius: 10px;
+        box-shadow: 0 2px 16px #e3e8f0;
+        padding: 32px;
+        max-width: 1600px;
+        margin: 0 auto;
+    }
+    .incidents-card h2 {
+        color: #232a3a;
+        font-weight: 700;
+        margin-bottom: 0;
+    }
+    .incidents-table-responsive {
+        overflow-x: auto;
+        margin-top: 20px;
+        width: 100%;
+    }
+    .table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 0.9em;
+        table-layout: fixed;
+        min-width: 1100px;
+    }
+    .table thead th {
+        background-color: #f7f8fa;
+        color: #232a3a;
+        font-weight: 600;
+        padding: 10px 6px;
+        border-bottom: 2px solid #e3e8f0;
+        text-align: left;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    .table tbody td {
+        padding: 10px 6px;
+        border-bottom: 1px solid #e3e8f0;
+        vertical-align: top;
+        color: #232a3a;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        background-color: transparent !important;
+    }
+    .table tbody td.responsible-cell {
+        white-space: normal;
+        word-break: break-word;
+    }
+    .table tbody td:not(.comment-cell):not(.responsible-cell) {
+        white-space: nowrap;
+    }
+    .table tbody tr {
+        cursor: pointer;
+        transition: background-color 0.2s;
+    }
+    /* Цвета строк по статусам - переопределяем Bootstrap стили */
+    .incidents-card .table tbody tr.status-row-new {
+        background-color: #fff9e6 !important; /* Жёлтый */
+    }
+    .incidents-card .table tbody tr.status-row-new td {
+        background-color: transparent !important;
+    }
+    .incidents-card .table tbody tr.status-row-accepted {
+        background-color: #e6f7e6 !important; /* Зелёный */
+    }
+    .incidents-card .table tbody tr.status-row-accepted td {
+        background-color: transparent !important;
+    }
+    .incidents-card .table tbody tr.status-row-assigned {
+        background-color: #e6f0ff !important; /* Синий */
+    }
+    .incidents-card .table tbody tr.status-row-assigned td {
+        background-color: transparent !important;
+    }
+    .incidents-card .table tbody tr.status-row-resolved {
+        background-color: #ffe6f0 !important; /* Светло-розовый */
+    }
+    .incidents-card .table tbody tr.status-row-resolved td {
+        background-color: transparent !important;
+    }
+    .incidents-card .table tbody tr.status-row-declined {
+        background-color: #ffe6e6 !important; /* Красный */
+    }
+    .incidents-card .table tbody tr.status-row-declined td {
+        background-color: transparent !important;
+    }
+    .incidents-card .table tbody tr.status-row-new:hover {
+        background-color: #fff3cc !important;
+    }
+    .incidents-card .table tbody tr.status-row-accepted:hover {
+        background-color: #d4f0d4 !important;
+    }
+    .incidents-card .table tbody tr.status-row-assigned:hover {
+        background-color: #cce0ff !important;
+    }
+    .incidents-card .table tbody tr.status-row-resolved:hover {
+        background-color: #ffd9e6 !important;
+    }
+    .incidents-card .table tbody tr.status-row-declined:hover {
+        background-color: #ffcccc !important;
+    }
+    .status-new {
+        color: #0066cc;
+        font-weight: 600;
+    }
+    .status-accepted {
+        color: #00a8e8;
+        font-weight: 600;
+    }
+    .status-assigned {
+        color: #007bff;
+        font-weight: 600;
+    }
+    .status-resolved {
+        color: #28a745;
+        font-weight: 600;
+    }
+    .status-declined {
+        color: #dc3545;
+        font-weight: 600;
+    }
+    .responsible-list {
+        margin: 0;
+        padding: 0;
+        list-style: none;
+    }
+    .comment-cell {
+        font-style: italic;
+        color: #6c757d;
+        max-width: 200px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+    /* Скрываем последний столбец (Комментарий) при узком экране */
+    @media (max-width: 1400px) {
+        .table th:last-child,
+        .table td:last-child {
+            display: none;
+        }
+        .table {
+            min-width: 900px;
+        }
+    }
+    @media (max-width: 1200px) {
+        .table {
+            min-width: 800px;
+        }
+        .table thead th,
+        .table tbody td {
+            padding: 8px 4px;
+            font-size: 0.85em;
+        }
+    }
+    @media (min-width: 1401px) {
+        .table {
+            min-width: 1200px;
+        }
+    }
+    .status-filters {
+        padding: 12px;
+        background: #f7f8fa;
+        border-radius: 6px;
+        border: 1px solid #e3e8f0;
+    }
+    .status-filters .form-check {
+        margin-bottom: 0;
+    }
+    .status-filters .form-check-input:disabled + .form-check-label {
+        opacity: 0.5;
+        cursor: not-allowed;
+    }
+    .form-label {
+        font-weight: 600;
+        color: #232a3a;
+        margin-bottom: 6px;
+    }
+    .form-control {
+        border: 1px solid #e3e8f0;
+        border-radius: 6px;
+        padding: 8px 12px;
+    }
+</style>
 {% endblock %}
 {% block content %}
-<div class="incidents-bg">
-    <div class="incidents-card mb-4">
+<div class="incidents-card mb-4">
         <div class="d-flex justify-content-between align-items-center mb-3">
             <h2 class="mb-0">Инциденты</h2>
             <a href="{% url 'builder:incident_add' %}" class="btn btn-primary">+ Новый инцидент</a>
         </div>
+        
+        <!-- Фильтры -->
+        <form method="get" id="incidents-filter-form" class="mb-4">
+            <div class="row mb-3">
+                <!-- Фильтр по дате -->
+                <div class="col-md-4">
+                    <label for="date_from" class="form-label">Период (от)</label>
+                    <input type="date" class="form-control" id="date_from" name="date_from" value="{{ date_from }}">
+                </div>
+                <div class="col-md-4">
+                    <label for="date_to" class="form-label">Период (до)</label>
+                    <input type="date" class="form-control" id="date_to" name="date_to" value="{{ date_to }}">
+                </div>
+                <!-- Фильтр по типу -->
+                <div class="col-md-4">
+                    <label for="incident_type" class="form-label">Тип инцидента</label>
+                    <select class="form-control" id="incident_type" name="incident_type">
+                        <option value="">Все</option>
+                        {% for value, label in incident_type_choices %}
+                            <option value="{{ value }}" {% if selected_incident_type == value %}selected{% endif %}>{{ label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+            
+            <!-- Фильтр по статусу -->
+            <div class="mb-3">
+                <label class="form-label">Статус</label>
+                <div class="status-filters d-flex flex-wrap gap-3">
+                    {% for value, label in status_choices %}
+                        <div class="form-check">
+                            <input class="form-check-input status-checkbox" 
+                                   type="checkbox" 
+                                   name="status" 
+                                   value="{{ value }}" 
+                                   id="status_{{ value }}"
+                                   {% if value in selected_statuses %}checked{% endif %}>
+                            <label class="form-check-label" for="status_{{ value }}">
+                                {{ label }}
+                            </label>
+                        </div>
+                    {% endfor %}
+                </div>
+            </div>
+            
+            <div class="d-flex gap-2">
+                <button type="submit" class="btn btn-primary">Применить фильтры</button>
+                <a href="{% url 'builder:incidents' %}" class="btn btn-secondary">Сбросить</a>
+            </div>
+        </form>
+        
         <div class="incidents-table-responsive">
-            <table class="table table-hover">
+            <table class="table">
                 <thead>
                     <tr>
-                        <th>Дата</th>
-                        <th>Сотрудник</th>
-                        <th>Тип</th>
-                        <th>Тема/Ошибка</th>
-                        <th>Документы</th>
-                        <th>Статус</th>
+                        <th style="width: 8%;">Дата</th>
+                        <th style="width: 18%;">Описание</th>
+                        <th style="width: 12%;">Тип инцидента</th>
+                        <th style="width: 12%;">Кто зафиксировал</th>
+                        <th style="width: 15%;">Ответственный за инцидент</th>
+                        <th style="width: 8%;">Дедлайн</th>
+                        <th style="width: 7%;">Кол-во обуч, всего</th>
+                        <th style="width: 7%;">Кол-во обуч, прошедших их обуч</th>
+                        <th style="width: 8%;">Статус</th>
+                        <th style="width: 5%;" class="comment-column">Комментарий (опционально)</th>
                     </tr>
                 </thead>
                 <tbody>
                     {% for inc in incidents %}
-                    <tr>
-                        <td>{{ inc.created_at|date:"d.m.Y H:i" }}</td>
-                        <td>{{ inc.user.get_full_name|default:inc.user.username }}</td>
+                    <tr class="status-row-{{ inc.status }}" onclick="window.location.href='{% url 'builder:incident_edit' inc.pk %}'">
+                        <td>{{ inc.created_at|date:"d.m.Y" }}</td>
+                        <td>{{ inc.title }}</td>
                         <td>{{ inc.get_incident_type_display }}</td>
-                        <td>{{ inc.topic }}<br><span class="incident-meta">{{ inc.error_type }}</span></td>
-                        <td class="incident-docs">
-                            {% for doc in inc.related_documents.all %}
-                                <a href="{{ doc.file.url }}" target="_blank">{{ doc.title }}</a>
-                            {% empty %}-{% endfor %}
+                        <td>{{ inc.user.get_full_name|default:inc.user.username }}</td>
+                        <td class="responsible-cell">
+                            {% if inc.responsible_users.exists %}
+                                {% for resp in inc.responsible_users.all %}
+                                    {{ resp.get_full_name|default:resp.username }}{% if not forloop.last %}, {% endif %}
+                                {% endfor %}
+                            {% else %}
+                                —
+                            {% endif %}
                         </td>
+                        <td>{{ inc.deadline|date:"d.m.Y"|default:"—" }}</td>
+                        <td style="text-align: center;">—</td>
+                        <td style="text-align: center;">—</td>
                         <td class="status-{{ inc.status }}">{{ inc.get_status_display }}</td>
+                        <td class="comment-cell comment-column">{{ inc.description|default:"—" }}</td>
                     </tr>
                     {% empty %}
-                    <tr><td colspan="6" class="text-center">Нет инцидентов</td></tr>
+                    <tr><td colspan="10" class="text-center">Нет инцидентов</td></tr>
                     {% endfor %}
                 </tbody>
             </table>
         </div>
-    </div>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const statusCheckboxes = document.querySelectorAll('.status-checkbox');
+    const dateFromInput = document.getElementById('date_from');
+    const dateToInput = document.getElementById('date_to');
+    
+    // Статусы, которые нужно блокировать при выборе завершен/отклонен
+    const blockedStatuses = ['new', 'accepted', 'assigned'];
+    const completedStatuses = ['resolved', 'declined'];
+    
+    function updateFilters() {
+        const checkedStatuses = Array.from(statusCheckboxes)
+            .filter(cb => cb.checked)
+            .map(cb => cb.value);
+        
+        const hasCompletedStatus = checkedStatuses.some(s => completedStatuses.includes(s));
+        
+        // Если выбран завершен или отклонен
+        if (hasCompletedStatus) {
+            // Устанавливаем период -30 дней от текущей даты
+            const today = new Date();
+            const dateTo = new Date(today);
+            dateTo.setDate(dateTo.getDate());
+            
+            const dateFrom = new Date(today);
+            dateFrom.setDate(dateFrom.getDate() - 30);
+            
+            dateFromInput.value = dateFrom.toISOString().split('T')[0];
+            dateToInput.value = dateTo.toISOString().split('T')[0];
+            
+            // Блокируем чекбоксы для новых, принятых, назначенных
+            statusCheckboxes.forEach(checkbox => {
+                if (blockedStatuses.includes(checkbox.value)) {
+                    checkbox.disabled = true;
+                    // Снимаем выбор с заблокированных статусов
+                    if (checkbox.checked) {
+                        checkbox.checked = false;
+                    }
+                }
+            });
+        } else {
+            // Разблокируем все чекбоксы
+            statusCheckboxes.forEach(checkbox => {
+                checkbox.disabled = false;
+            });
+        }
+    }
+    
+    // Обработчик изменения статусов
+    statusCheckboxes.forEach(checkbox => {
+        checkbox.addEventListener('change', updateFilters);
+    });
+    
+    // Инициализация при загрузке
+    // Проверяем, есть ли уже выбранные статусы завершен/отклонен
+    const initialCheckedStatuses = Array.from(statusCheckboxes)
+        .filter(cb => cb.checked)
+        .map(cb => cb.value);
+    const hasInitialCompletedStatus = initialCheckedStatuses.some(s => completedStatuses.includes(s));
+    
+    // Если при загрузке уже выбраны завершен/отклонен, но даты не установлены, устанавливаем их
+    if (hasInitialCompletedStatus && !dateFromInput.value) {
+        const today = new Date();
+        const dateTo = new Date(today);
+        dateTo.setDate(dateTo.getDate());
+        
+        const dateFrom = new Date(today);
+        dateFrom.setDate(dateFrom.getDate() - 30);
+        
+        dateFromInput.value = dateFrom.toISOString().split('T')[0];
+        dateToInput.value = dateTo.toISOString().split('T')[0];
+    }
+    
+    updateFilters();
+});
+</script>
 {% endblock %} 
