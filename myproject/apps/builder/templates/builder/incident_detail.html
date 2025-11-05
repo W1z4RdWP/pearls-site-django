@@ -1,85 +1,61 @@
 {% extends 'layout.html' %}
 {% load static %}
-{% block title %}Детали инцидента{% endblock %}
+{% block title %}Детали инцидентов{% endblock %}
 {% block specific_styles %}
     <link rel="stylesheet" href="{% static 'builder/css/incidents.css' %}">
 {% endblock %}
 {% block content %}
 <div class="incidents-card mb-4">
-    {% if incident %}
-        <div class="d-flex justify-content-between align-items-center mb-3">
-            <h2 class="mb-0">Детали инцидента: {{ incident.title }}</h2>
-            <a href="{% url 'builder:incidents' %}" class="btn btn-secondary">← Назад к списку</a>
-        </div>
-        
-        <div class="incident-info mb-4">
-            <div class="row">
-                <div class="col-md-6">
-                    <p><strong>Тип инцидента:</strong> {{ incident.get_incident_type_display }}</p>
-                    <p><strong>Зафиксировал:</strong> {{ incident.user.get_full_name|default:incident.user.username }}</p>
-                    <p><strong>Дата создания:</strong> {{ incident.created_at|date:"d.m.Y H:i" }}</p>
-                </div>
-                <div class="col-md-6">
-                    <p><strong>Статус:</strong> <span class="status-{{ incident.status }}">{{ incident.get_status_display }}</span></p>
-                    <p><strong>Дедлайн:</strong> {{ incident.deadline|date:"d.m.Y"|default:"—" }}</p>
-                    {% if incident.description %}
-                        <p><strong>Комментарий:</strong> {{ incident.description }}</p>
-                    {% endif %}
-                </div>
-            </div>
-        </div>
-
-        <h3 class="mb-3">Назначенные пользователи</h3>
-        
-        <div class="incidents-table-responsive">
-            <table class="table">
-                <thead>
-                    <tr>
-                        <th style="width: 5%;">№</th>
-                        <th style="width: 10%;">Дата назначения</th>
-                        <th style="width: 20%;">Название инцидента</th>
-                        <th style="width: 15%;">Назначено</th>
-                        <th style="width: 10%;">Виновник</th>
-                        <th style="width: 10%;">Дедлайн</th>
-                        <th style="width: 10%;">Ответственный</th>
-                        <th style="width: 10%;">Прогресс</th>
-                        <th style="width: 10%;">Статус</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% if assigned_users %}
-                        {% for user in assigned_users %}
-                        <tr>
-                            <td>{{ forloop.counter }}</td>
-                            <td>{{ incident.created_at|date:"d.m.Y" }}</td>
-                            <td>{{ incident.title }}</td>
-                            <td>{{ user.get_full_name|default:user.username }}</td>
-                            <td>
-                                {% if user in violators %}
-                                    <span class="badge bg-danger">Да</span>
-                                {% else %}
-                                    <span class="badge bg-secondary">Нет</span>
-                                {% endif %}
-                            </td>
-                            <td>{{ incident.deadline|date:"d.m.Y"|default:"—" }}</td>
-                            <td>—</td>
-                            <td style="text-align: center;">0%</td>
-                            <td style="text-align: center;">—</td>
-                        </tr>
-                        {% endfor %}
-                    {% else %}
-                        <tr>
-                            <td colspan="9" class="text-center">Нет назначенных пользователей</td>
-                        </tr>
-                    {% endif %}
-                </tbody>
-            </table>
-        </div>
-    {% else %}
-        <div class="alert alert-warning">
-            Инцидент не найден.
-        </div>
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h2 class="mb-0">Детали инцидентов</h2>
         <a href="{% url 'builder:incidents' %}" class="btn btn-secondary">← Назад к списку</a>
-    {% endif %}
+    </div>
+    
+    <h3 class="mb-3">Назначенные пользователи</h3>
+    
+    <div class="incidents-table-responsive">
+        <table class="table">
+            <thead>
+                <tr>
+                    <th style="width: 5%;">№</th>
+                    <th style="width: 10%;">Дата назначения</th>
+                    <th style="width: 20%;">Название инцидента</th>
+                    <th style="width: 15%;">Назначено</th>
+                    <th style="width: 10%;">Нарушитель</th>
+                    <th style="width: 10%;">Дедлайн</th>
+                    <th style="width: 10%;">Ответственный</th>
+                    <th style="width: 10%;">Прогресс</th>
+                    <th style="width: 10%;">Статус</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% if incident_user_list %}
+                    {% for item in incident_user_list %}
+                    <tr>
+                        <td>{{ forloop.counter }}</td>
+                        <td>{{ item.incident.created_at|date:"d.m.Y" }}</td>
+                        <td>{{ item.incident.title }}</td>
+                        <td>{{ item.user.get_full_name|default:item.user.username }}</td>
+                        <td>
+                            {% if item.is_violator %}
+                                <span class="badge bg-danger">Да</span>
+                            {% else %}
+                                <span class="badge bg-secondary">Нет</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ item.incident.deadline|date:"d.m.Y"|default:"—" }}</td>
+                        <td>—</td>
+                        <td style="text-align: center;">0%</td>
+                        <td style="text-align: center;">{{ item.incident.get_status_display }}</td>
+                    </tr>
+                    {% endfor %}
+                {% else %}
+                    <tr>
+                        <td colspan="9" class="text-center">Нет назначенных пользователей</td>
+                    </tr>
+                {% endif %}
+            </tbody>
+        </table>
+    </div>
 </div>
 {% endblock %}

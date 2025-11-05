@@ -907,26 +907,43 @@ class IncidentUpdateView(UpdateView, AuditLoggerMixin):
 
 
 
-class IncidentDetailListView(DetailView):
+class IncidentDetailListView(ListView):
     """
-    Список по прогрессу пользователей по выбранному инциденту
+    Список по прогрессу пользователей по всем инцидентам
     """
     model = Incident
     template_name = 'builder/incident_detail.html'
-    context_object_name = 'incident'
-    pk_url_kwarg = 'pk'
+    context_object_name = 'incidents'
+    ordering = ['-created_at']
 
     def dispatch(self, request, *args, **kwargs):
         if not request.user.is_authenticated or not (request.user.is_staff or request.user.is_superuser):
             return render(request, '403.html', status=403)
         return super().dispatch(request, *args, **kwargs)
 
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        # Оптимизация: предзагрузка ManyToMany полей
+        queryset = queryset.prefetch_related('assigned_to', 'violators').select_related('user')
+        return queryset
+
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        incident = self.get_object()
-
-        context['assigned_users'] = incident.assigned_to.all()
-        context['violators'] = incident.violators.all()
+        
+        # Создаем список всех назначенных пользователей со всех инцидентов
+        incident_user_list = []
+        for incident in context['incidents']:
+            assigned_users = incident.assigned_to.all()
+            violators = incident.violators.all()
+            
+            for user in assigned_users:
+                incident_user_list.append({
+                    'incident': incident,
+                    'user': user,
+                    'is_violator': user in violators,
+                })
+        
+        context['incident_user_list'] = incident_user_list
         return context
 
 
