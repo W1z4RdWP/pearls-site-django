@@ -82,10 +82,10 @@
                         <td>{{ inc.title }}</td>
                         <td>{{ inc.get_incident_type_display }}</td>
                         <td>{{ inc.user.get_full_name|default:inc.user.username }}</td>
-                        <!-- <td class="responsible-cell">
-                            {% if inc.responsible_users.exists %}
-                                {% for resp in inc.responsible_users.all %}
-                                    {{ resp.get_full_name|default:resp.username }}{% if not forloop.last %}, {% endif %}
+                        <!-- <td class="violator-cell">
+                            {% if inc.violators.exists %}
+                                {% for violator in inc.violators.all %}
+                                    {{ violator.get_full_name|default:violator.username }}{% if not forloop.last %}, {% endif %}
                                 {% endfor %}
                             {% else %}
                                 —

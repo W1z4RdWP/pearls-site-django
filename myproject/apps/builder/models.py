@@ -80,7 +80,7 @@ class Incident(models.Model):
     incident_type = models.CharField(max_length=32, choices=INCIDENT_TYPE_CHOICES, verbose_name='Тип инцидента')
     user = models.ForeignKey(get_user_model(), on_delete=models.CASCADE, related_name='created_incidents', verbose_name='Кто зафиксировал')
     assigned_to = models.ManyToManyField(get_user_model(), related_name='assigned_incidents', blank=True, verbose_name='Кому назначен')
-    responsible_users = models.ManyToManyField(get_user_model(), related_name='responsible_incidents', blank=True, verbose_name='Ответственные за инцидент')
+    violators = models.ManyToManyField(get_user_model(), related_name='violator_incidents', blank=True, verbose_name='Нарушитель')
     status = models.CharField(max_length=32, choices=STATUS_CHOICES, default='new', verbose_name='Статус')
     
     # Временные метки

@@ -179,8 +179,8 @@
     // Хранилище выбранных назначенных пользователей
     let selectedAssignedUsers = new Map(); // userId -> {id, full_name, username}
     
-    // Хранилище ответственных пользователей (отмеченные галочкой)
-    let responsibleUsers = new Set(); // Set of userId
+    // Хранилище нарушителей (отмеченные галочкой)
+    let responsibleUsers = new Set(); // Set of userId (название переменной оставлено для совместимости)
     
     // Кэш последних результатов поиска
     let lastSearchResults = [];
@@ -493,9 +493,9 @@
                         <div class="selected-user-name">${user.full_name}</div>
                     </div>
                     <div class="selected-user-actions">
-                        <label class="selected-user-checkbox" title="Ответственный">
+                        <label class="selected-user-checkbox" title="Нарушитель">
                             <input type="checkbox" data-user-id="${userId}" ${isResponsible ? 'checked' : ''}>
-                            <span class="checkbox-label">Ответственный</span>
+                            <span class="checkbox-label">Нарушитель</span>
                         </label>
                         <span class="selected-user-remove" data-user-id="${userId}" title="Удалить">&times;</span>
                     </div>
@@ -525,7 +525,7 @@
                 e.stopPropagation();
                 const userId = parseInt(this.getAttribute('data-user-id'));
                 selectedAssignedUsers.delete(userId);
-                responsibleUsers.delete(userId); // Также удаляем из ответственных
+                responsibleUsers.delete(userId); // Также удаляем из нарушителей
                 displaySelectedUsers();
             });
         });
@@ -534,7 +534,7 @@
     // Загрузка изначально выбранных пользователей (при редактировании)
     function loadInitialAssignedUsers() {
         const assignedInputs = document.querySelectorAll('input[name="assigned_to"]');
-        const responsibleInputs = document.querySelectorAll('input[name="responsible_users"]');
+        const violatorInputs = document.querySelectorAll('input[name="violators"]');
         
         // Собираем ID назначенных пользователей
         const assignedUserIds = [];
@@ -544,11 +544,11 @@
             }
         });
         
-        // Собираем ID ответственных пользователей
-        const responsibleUserIds = [];
-        responsibleInputs.forEach(function(input) {
+        // Собираем ID нарушителей
+        const violatorUserIds = [];
+        violatorInputs.forEach(function(input) {
             if (input.value) {
-                responsibleUserIds.push(parseInt(input.value));
+                violatorUserIds.push(parseInt(input.value));
             }
         });
         
@@ -567,8 +567,8 @@
                     }
                 });
                 
-                // Добавляем ответственных в Set
-                responsibleUserIds.forEach(function(userId) {
+                // Добавляем нарушителей в Set
+                violatorUserIds.forEach(function(userId) {
                     responsibleUsers.add(userId);
                 });
                 
@@ -587,9 +587,9 @@
             input.remove();
         });
         
-        // Удаляем все существующие скрытые поля для responsible_users
-        const oldResponsibleInputs = document.querySelectorAll('input[name="responsible_users"]');
-        oldResponsibleInputs.forEach(function(input) {
+        // Удаляем все существующие скрытые поля для violators
+        const oldViolatorInputs = document.querySelectorAll('input[name="violators"]');
+        oldViolatorInputs.forEach(function(input) {
             input.remove();
         });
         
@@ -605,11 +605,11 @@
             form.appendChild(hiddenInput);
         });
         
-        // Добавляем скрытые поля для ответственных пользователей
+        // Добавляем скрытые поля для нарушителей
         responsibleUsers.forEach(function(userId) {
             const hiddenInput = document.createElement('input');
             hiddenInput.type = 'hidden';
-            hiddenInput.name = 'responsible_users';
+            hiddenInput.name = 'violators';
             hiddenInput.value = userId;
             form.appendChild(hiddenInput);
         });

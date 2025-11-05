@@ -23,16 +23,16 @@ class IncidentForm(forms.ModelForm):
         label='Кому назначен'
     )
     
-    responsible_users = forms.ModelMultipleChoiceField(
+    violators = forms.ModelMultipleChoiceField(
         queryset=None,
         required=False,
         widget=forms.MultipleHiddenInput(),
-        label='Ответственные за инцидент'
+        label='Нарушитель'
     )
     
     class Meta:
         model = Incident
-        fields = ['title', 'incident_type', 'user', 'assigned_to', 'responsible_users', 'deadline', 'status', 'description']
+        fields = ['title', 'incident_type', 'user', 'assigned_to', 'violators', 'deadline', 'status', 'description']
         widgets = {
             'title': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Введение в Dent'}),
             'incident_type': forms.Select(attrs={'class': 'form-control'}),
@@ -44,11 +44,11 @@ class IncidentForm(forms.ModelForm):
     
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        # Получаем всех пользователей для выбора назначенных и ответственных
+        # Получаем всех пользователей для выбора назначенных и нарушителей
         from django.contrib.auth import get_user_model
         User = get_user_model()
         self.fields['assigned_to'].queryset = User.objects.filter(is_active=True).order_by('last_name', 'first_name')
-        self.fields['responsible_users'].queryset = User.objects.filter(is_active=True).order_by('last_name', 'first_name')
+        self.fields['violators'].queryset = User.objects.filter(is_active=True).order_by('last_name', 'first_name')
         self.fields['user'].queryset = User.objects.filter(is_active=True).order_by('last_name', 'first_name')
 
 
