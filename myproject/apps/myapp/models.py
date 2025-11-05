@@ -165,7 +165,7 @@ class UserAnswer(models.Model):
     question = models.ForeignKey('quizzes.Question', on_delete=models.CASCADE)
     selected_answer = models.ForeignKey('quizzes.Answer', on_delete=models.SET_NULL, null=True, blank=True)
     is_correct = models.BooleanField(null=True, blank=True, help_text="Для открытых ответов: None = не оценено")
-    answer_text = models.CharField(max_length=500, blank=True, null=True)
+    answer_text = models.CharField(max_length=2000, blank=True, null=True)
     score_points = models.FloatField(
         null=True,
         blank=True,
