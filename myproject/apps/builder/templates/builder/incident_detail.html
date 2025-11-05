@@ -48,7 +48,7 @@
         <!-- Кнопки под строкой поиска -->
         <div class="row mb-2">
             <div class="col-md-3 col-lg-3">
-                <button type="submit" class="btn btn-primary">Применить</button>
+                <button type="submit" class="btn btn-primary">Применить фильтры</button>
                 <a href="{% url 'builder:incident_detail' %}" class="btn btn-secondary">Сбросить</a>
             </div>
         </div>
@@ -89,7 +89,7 @@
                         <td>{{ item.incident.deadline|date:"d.m.Y"|default:"—" }}</td>
                         <td>—</td>
                         <td style="text-align: center;">0%</td>
-                        <td style="text-align: center;">{{ item.incident.get_status_display }}</td>
+                        <td class="status-{{ item.incident.status }}" style="text-align: center;">{{ item.incident.get_status_display }}</td>
                     </tr>
                     {% endfor %}
                 {% else %}
