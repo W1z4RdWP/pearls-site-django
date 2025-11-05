@@ -428,28 +428,43 @@ function loadInitialAssignedUsers() {
 
 // Применение выбора назначенных
 function applyAssignedSelection() {
+    updateHiddenFields();
+    // Обновляем счетчик
+    assignedCount.textContent = selectedAssignedUsers.size;
+}
+
+// Функция для обновления скрытых полей в форме
+function updateHiddenFields() {
+    const form = document.querySelector('form');
+    if (!form) {
+        console.error('Форма не найдена');
+        return;
+    }
+    
+    // Контейнер для assigned_to (если есть)
+    const assignedToContainer = document.getElementById('assignedToContainer');
+    const container = assignedToContainer || form;
+    
     // Удаляем все существующие скрытые поля для assigned_to
-    const oldAssignedInputs = document.querySelectorAll('input[name="assigned_to"]');
+    const oldAssignedInputs = form.querySelectorAll('input[name="assigned_to"]');
     oldAssignedInputs.forEach(function(input) {
         input.remove();
     });
     
     // Удаляем все существующие скрытые поля для initiator_users
-    const oldInitiatorInputs = document.querySelectorAll('input[name="initiator_users"]');
+    const oldInitiatorInputs = form.querySelectorAll('input[name="initiator_users"]');
     oldInitiatorInputs.forEach(function(input) {
         input.remove();
     });
     
-    // Находим форму и добавляем новые скрытые поля
-    const form = document.querySelector('form');
-    
     // Добавляем скрытые поля для назначенных пользователей
+    // В Map.forEach первый параметр - значение, второй - ключ
     selectedAssignedUsers.forEach(function(user, userId) {
         const hiddenInput = document.createElement('input');
         hiddenInput.type = 'hidden';
         hiddenInput.name = 'assigned_to';
-        hiddenInput.value = userId;
-        form.appendChild(hiddenInput);
+        hiddenInput.value = String(userId); // Убеждаемся, что значение - строка
+        container.appendChild(hiddenInput);
     });
     
     // Добавляем скрытые поля для инициаторов инцидента
@@ -457,16 +472,30 @@ function applyAssignedSelection() {
         const hiddenInput = document.createElement('input');
         hiddenInput.type = 'hidden';
         hiddenInput.name = 'initiator_users';
-        hiddenInput.value = userId;
-        form.appendChild(hiddenInput);
+        hiddenInput.value = String(userId); // Убеждаемся, что значение - строка
+        container.appendChild(hiddenInput);
     });
     
-    // Обновляем счетчик
-    assignedCount.textContent = selectedAssignedUsers.size;
+    // Отладочная информация
+    console.log('Обновлены скрытые поля:', {
+        assigned_to: Array.from(selectedAssignedUsers.keys()),
+        initiator_users: Array.from(responsibleUsers),
+        total_assigned_inputs: form.querySelectorAll('input[name="assigned_to"]').length,
+        total_initiator_inputs: form.querySelectorAll('input[name="initiator_users"]').length
+    });
 }
 
-// Инициализация счетчика при загрузке страницы
+// Обработчик отправки формы - гарантируем, что скрытые поля обновлены
 document.addEventListener('DOMContentLoaded', function() {
+    const form = document.querySelector('form');
+    if (form) {
+        form.addEventListener('submit', function(e) {
+            // Обновляем скрытые поля перед отправкой формы
+            updateHiddenFields();
+        });
+    }
+    
+    // Инициализация счетчика при загрузке страницы
     const hiddenInputs = document.querySelectorAll('input[name="assigned_to"]');
     assignedCount.textContent = hiddenInputs.length;
 });
