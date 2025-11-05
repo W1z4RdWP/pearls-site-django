@@ -11,6 +11,49 @@
         <a href="{% url 'builder:incidents' %}" class="btn btn-secondary">← Назад к списку</a>
     </div>
     
+    <!-- Фильтры -->
+    <form method="get" id="incident-detail-filter-form" class="mb-4">
+        <div class="row mb-2 g-2 align-items-center">
+            <!-- Поиск по названию -->
+            <div class="col-md-3 col-lg-3">
+                <input type="text" class="form-control" id="search" name="search" placeholder="Поиск по названию инцидента..." value="{{ search }}">
+            </div>
+            <!-- Фильтр по дате -->
+            <div class="col-md-3 col-lg-2">
+                <input type="date" class="form-control date-input-compact" id="date_from" name="date_from" value="{{ date_from }}">
+            </div>
+            <div class="col-md-3 col-lg-2">
+                <input type="date" class="form-control date-input-compact" id="date_to" name="date_to" value="{{ date_to }}">
+            </div>
+            <!-- Фильтр по пользователю -->
+            <div class="col-md-3 col-lg-2">
+                <select class="form-control" id="assigned_user" name="assigned_user">
+                    <option value="">Все пользователи</option>
+                    {% for user in users %}
+                        <option value="{{ user.id }}" {% if selected_user_id == user.id %}selected{% endif %}>
+                            {{ user.get_full_name|default:user.username }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <!-- Фильтр по нарушителям -->
+            <div class="col-md-3 col-lg-2">
+                <select class="form-control" id="violator_filter" name="violator_filter">
+                    <option value="all" {% if violator_filter == 'all' %}selected{% endif %}>Все</option>
+                    <option value="yes" {% if violator_filter == 'yes' %}selected{% endif %}>Только нарушители</option>
+                    <option value="no" {% if violator_filter == 'no' %}selected{% endif %}>Только не нарушители</option>
+                </select>
+            </div>
+        </div>
+        <!-- Кнопки под строкой поиска -->
+        <div class="row mb-2">
+            <div class="col-md-3 col-lg-3">
+                <button type="submit" class="btn btn-primary">Применить</button>
+                <a href="{% url 'builder:incident_detail' %}" class="btn btn-secondary">Сбросить</a>
+            </div>
+        </div>
+    </form>
+    
     <h3 class="mb-3">Назначенные пользователи</h3>
     
     <div class="incidents-table-responsive">

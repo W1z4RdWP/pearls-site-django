@@ -922,25 +922,97 @@ class IncidentDetailListView(ListView):
         return super().dispatch(request, *args, **kwargs)
 
     def get_queryset(self):
+        from django.utils import timezone
+        import datetime
+        
         queryset = super().get_queryset()
         # Оптимизация: предзагрузка ManyToMany полей
         queryset = queryset.prefetch_related('assigned_to', 'violators').select_related('user')
+        
+        # Фильтр по названию инцидента (поиск)
+        search = self.request.GET.get('search', '').strip()
+        if search:
+            queryset = queryset.filter(title__icontains=search)
+        
+        # Фильтр по дате создания
+        date_from = self.request.GET.get('date_from')
+        date_to = self.request.GET.get('date_to')
+        
+        # Если нет параметров в GET запросе (первичная загрузка), устанавливаем дефолтные значения
+        if not self.request.GET:
+            # Устанавливаем период с начала 2025 года до сегодняшней даты
+            date_from = '2025-01-01'
+            date_to = timezone.now().date().strftime('%Y-%m-%d')
+        
+        if date_from:
+            date_from_parsed = datetime.datetime.strptime(date_from, '%Y-%m-%d').date()
+            date_from_datetime = timezone.make_aware(datetime.datetime.combine(date_from_parsed, datetime.time.min))
+            queryset = queryset.filter(created_at__gte=date_from_datetime)
+        if date_to:
+            date_to_parsed = datetime.datetime.strptime(date_to, '%Y-%m-%d').date()
+            date_to_datetime = timezone.make_aware(datetime.datetime.combine(date_to_parsed, datetime.time.max))
+            queryset = queryset.filter(created_at__lte=date_to_datetime)
+        
         return queryset
 
     def get_context_data(self, **kwargs):
+        from django.utils import timezone
+        from django.contrib.auth import get_user_model
+        
         context = super().get_context_data(**kwargs)
+        
+        # Получаем список всех активных пользователей для фильтра
+        User = get_user_model()
+        context['users'] = User.objects.filter(is_active=True).order_by('last_name', 'first_name')
+        
+        # Параметры фильтров
+        search = self.request.GET.get('search', '').strip()
+        selected_user_id = self.request.GET.get('assigned_user', '')
+        violator_filter = self.request.GET.get('violator_filter', 'all')  # 'all', 'yes', 'no'
+        
+        # Если нет параметров в GET запросе (первичная загрузка), устанавливаем дефолтные значения
+        if not self.request.GET:
+            context['date_from'] = '2025-01-01'
+            context['date_to'] = timezone.now().date().strftime('%Y-%m-%d')
+            context['search'] = ''
+            context['selected_user_id'] = None
+            context['violator_filter'] = 'all'
+        else:
+            context['date_from'] = self.request.GET.get('date_from', '')
+            context['date_to'] = self.request.GET.get('date_to', '')
+            context['search'] = search
+            try:
+                context['selected_user_id'] = int(selected_user_id) if selected_user_id else None
+            except (ValueError, TypeError):
+                context['selected_user_id'] = None
+            context['violator_filter'] = violator_filter
         
         # Создаем список всех назначенных пользователей со всех инцидентов
         incident_user_list = []
+        selected_user_id = context['selected_user_id']
+        violator_filter = context['violator_filter']
+        
         for incident in context['incidents']:
             assigned_users = incident.assigned_to.all()
             violators = incident.violators.all()
             
             for user in assigned_users:
+                # Фильтр по назначенному пользователю
+                if selected_user_id and user.id != selected_user_id:
+                    continue
+                
+                is_violator = user in violators
+                
+                # Фильтр по нарушителям
+                if violator_filter == 'yes' and not is_violator:
+                    continue
+                if violator_filter == 'no' and is_violator:
+                    continue
+                
                 incident_user_list.append({
                     'incident': incident,
                     'user': user,
-                    'is_violator': user in violators,
+                    'is_violator': is_violator,
                 })
         
         context['incident_user_list'] = incident_user_list
