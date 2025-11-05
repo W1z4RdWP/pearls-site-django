@@ -67,7 +67,7 @@
                         <th style="width: 18%;" title="Описание">Описание</th>
                         <th style="width: 12%;" title="Тип инцидента">Тип инцидента</th>
                         <th style="width: 12%;" title="Кто зафиксировал">Кто зафиксировал</th>
-                        <th style="width: 15%;" title="Ответственный за инцидент">Ответственный за инцидент</th>
+                        <!-- <th style="width: 15%;" title="Ответственный за инцидент">Ответственный за инцидент</th> -->
                         <th style="width: 8%;" title="Дедлайн">Дедлайн</th>
                         <th style="width: 7%;" title="Кол-во обуч, всего">Кол-во обуч, всего</th>
                         <th style="width: 7%;" title="Кол-во обуч, прошедших их обуч">Кол-во обуч, прошедших их обуч</th>
@@ -82,15 +82,15 @@
                         <td>{{ inc.title }}</td>
                         <td>{{ inc.get_incident_type_display }}</td>
                         <td>{{ inc.user.get_full_name|default:inc.user.username }}</td>
-                        <td class="responsible-cell">
-                            {% if inc.initiator_users.exists %}
-                                {% for resp in inc.initiator_users.all %}
+                        <!--                         <td class="responsible-cell">
+                            {% if inc.violators.exists %}
+                                {% for resp in inc.violators.all %}
                                     {{ resp.get_full_name|default:resp.username }}{% if not forloop.last %}, {% endif %}
                                 {% endfor %}
                             {% else %}
                                 —
                             {% endif %}
-                        </td>
+                        </td> -->
                         <td>{{ inc.deadline|date:"d.m.Y"|default:"—" }}</td>
                         <td style="text-align: center;">—</td>
                         <td style="text-align: center;">—</td>

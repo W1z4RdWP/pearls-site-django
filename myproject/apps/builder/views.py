@@ -926,7 +926,7 @@ class IncidentDetailListView(DetailView):
         incident = self.get_object()
 
         context['assigned_users'] = incident.assigned_to.all()
-        context['initiator_users'] = incident.initiator_users.all()
+        context['violators'] = incident.violators.all()
         return context
 
 

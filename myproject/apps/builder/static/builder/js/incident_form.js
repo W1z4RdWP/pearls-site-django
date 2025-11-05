@@ -26,8 +26,8 @@ const assignedCount = document.getElementById('assignedCount');
 // Хранилище выбранных назначенных пользователей
 let selectedAssignedUsers = new Map(); // userId -> {id, full_name, username}
 
-// Хранилище ответственных пользователей (отмеченные галочкой)
-let responsibleUsers = new Set(); // Set of userId
+// Хранилище нарушителей (отмеченные галочкой)
+let violatorsSet = new Set(); // Set of userId
 
 // Кэш последних результатов поиска
 let lastSearchResults = [];
@@ -333,16 +333,16 @@ function displaySelectedUsers() {
     
     let html = '';
     selectedAssignedUsers.forEach(function(user, userId) {
-        const isResponsible = responsibleUsers.has(userId);
+        const isViolator = violatorsSet.has(userId);
         html += `
             <div class="selected-user-item" data-user-id="${userId}">
                 <div class="selected-user-info">
                     <div class="selected-user-name">${user.full_name}</div>
                 </div>
                 <div class="selected-user-actions">
-                    <label class="selected-user-checkbox" title="Ответственный">
-                        <input type="checkbox" data-user-id="${userId}" ${isResponsible ? 'checked' : ''}>
-                        <span class="checkbox-label">Ответственный</span>
+                    <label class="selected-user-checkbox" title="Нарушитель">
+                        <input type="checkbox" data-user-id="${userId}" ${isViolator ? 'checked' : ''}>
+                        <span class="checkbox-label">Нарушитель</span>
                     </label>
                     <span class="selected-user-remove" data-user-id="${userId}" title="Удалить">&times;</span>
                 </div>
@@ -358,9 +358,9 @@ function displaySelectedUsers() {
         checkbox.addEventListener('change', function() {
             const userId = parseInt(this.getAttribute('data-user-id'));
             if (this.checked) {
-                responsibleUsers.add(userId);
+                violatorsSet.add(userId);
             } else {
-                responsibleUsers.delete(userId);
+                violatorsSet.delete(userId);
             }
         });
     });
@@ -372,7 +372,7 @@ function displaySelectedUsers() {
             e.stopPropagation();
             const userId = parseInt(this.getAttribute('data-user-id'));
             selectedAssignedUsers.delete(userId);
-            responsibleUsers.delete(userId); // Также удаляем из инициаторов
+            violatorsSet.delete(userId); // Также удаляем из нарушителей
             displaySelectedUsers();
         });
     });
@@ -381,7 +381,7 @@ function displaySelectedUsers() {
 // Загрузка изначально выбранных пользователей (при редактировании)
 function loadInitialAssignedUsers() {
     const assignedInputs = document.querySelectorAll('input[name="assigned_to"]');
-    const initiatorInputs = document.querySelectorAll('input[name="initiator_users"]');
+    const violatorInputs = document.querySelectorAll('input[name="violators"]');
     
     // Собираем ID назначенных пользователей
     const assignedUserIds = [];
@@ -391,11 +391,11 @@ function loadInitialAssignedUsers() {
         }
     });
     
-    // Собираем ID инициаторов инцидента
-    const initiatorUserIds = [];
-    initiatorInputs.forEach(function(input) {
+    // Собираем ID нарушителей
+    const violatorUserIds = [];
+    violatorInputs.forEach(function(input) {
         if (input.value) {
-            initiatorUserIds.push(parseInt(input.value));
+            violatorUserIds.push(parseInt(input.value));
         }
     });
     
@@ -414,9 +414,9 @@ function loadInitialAssignedUsers() {
                 }
             });
             
-            // Добавляем инициаторов в Set
-            initiatorUserIds.forEach(function(userId) {
-                responsibleUsers.add(userId);
+            // Добавляем нарушителей в Set
+            violatorUserIds.forEach(function(userId) {
+                violatorsSet.add(userId);
             });
             
             displaySelectedUsers();
@@ -451,9 +451,9 @@ function updateHiddenFields() {
         input.remove();
     });
     
-    // Удаляем все существующие скрытые поля для initiator_users
-    const oldInitiatorInputs = form.querySelectorAll('input[name="initiator_users"]');
-    oldInitiatorInputs.forEach(function(input) {
+    // Удаляем все существующие скрытые поля для violators
+    const oldViolatorInputs = form.querySelectorAll('input[name="violators"]');
+    oldViolatorInputs.forEach(function(input) {
         input.remove();
     });
     
@@ -467,11 +467,11 @@ function updateHiddenFields() {
         container.appendChild(hiddenInput);
     });
     
-    // Добавляем скрытые поля для инициаторов инцидента
-    responsibleUsers.forEach(function(userId) {
+    // Добавляем скрытые поля для нарушителей
+    violatorsSet.forEach(function(userId) {
         const hiddenInput = document.createElement('input');
         hiddenInput.type = 'hidden';
-        hiddenInput.name = 'initiator_users';
+        hiddenInput.name = 'violators';
         hiddenInput.value = String(userId); // Убеждаемся, что значение - строка
         container.appendChild(hiddenInput);
     });
@@ -479,9 +479,9 @@ function updateHiddenFields() {
     // Отладочная информация
     console.log('Обновлены скрытые поля:', {
         assigned_to: Array.from(selectedAssignedUsers.keys()),
-        initiator_users: Array.from(responsibleUsers),
+        violators: Array.from(violatorsSet),
         total_assigned_inputs: form.querySelectorAll('input[name="assigned_to"]').length,
-        total_initiator_inputs: form.querySelectorAll('input[name="initiator_users"]').length
+        total_violator_inputs: form.querySelectorAll('input[name="violators"]').length
     });
 }
 

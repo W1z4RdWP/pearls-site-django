@@ -55,7 +55,7 @@
                             <td>{{ incident.title }}</td>
                             <td>{{ user.get_full_name|default:user.username }}</td>
                             <td>
-                                {% if user in initiator_users %}
+                                {% if user in violators %}
                                     <span class="badge bg-danger">Да</span>
                                 {% else %}
                                     <span class="badge bg-secondary">Нет</span>
