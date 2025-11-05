@@ -1,0 +1,152 @@
+{% extends 'layout.html' %}
+{% load static %}
+
+{% block specific_styles %}
+<link rel="stylesheet" href="{% static 'courses/css/trajectory_list.css' %}">
+<link rel="stylesheet" href="{% static 'users/css/course_progress.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <!-- Заголовок -->
+    <div class="mb-4">
+        <div class="d-flex justify-content-between align-items-center">
+            <h1 class="mb-0">
+                <i class="fa fa-exclamation-triangle text-danger"></i> Курсы-инциденты
+            </h1>
+            <a href="{% url 'courses:create-course' %}?is_incident=1" class="btn btn-danger">
+                <i class="fa fa-plus"></i> Создать курс-инцидент
+            </a>
+        </div>
+        <p class="text-muted mt-2">Управление курсами-инцидентами, которые не попадают в общую статистику</p>
+    </div>
+
+    <!-- Статистика -->
+    <div class="progress-header mb-4">
+        <div class="progress-stats">
+            <div class="stat-item">
+                <span class="stat-number">{{ total_courses }}</span>
+                <span class="stat-label">Всего курсов-инцидентов</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Поиск по курсам -->
+    <div class="search-section mb-4">
+        <form method="get" class="search-form">
+            <div class="input-group">
+                <input type="text" 
+                       name="search" 
+                       class="form-control" 
+                       placeholder="Поиск по названию курса..." 
+                       value="{{ search_query|default:'' }}"
+                       autocomplete="off">
+                <button type="submit" class="btn btn-primary">
+                    <i class="fa fa-search"></i>
+                </button>
+                {% if search_query %}
+                    <a href="?" class="btn btn-outline-secondary">
+                        <i class="fa fa-times"></i> Очистить
+                    </a>
+                {% endif %}
+            </div>
+        </form>
+    </div>
+
+    <!-- Карточки курсов -->
+    <div class="courses-grid">
+        {% if courses_data %}
+            {% for course_data in courses_data %}
+            <div class="course-card">
+                <div class="course-image">
+                    {% if course_data.course.image %}
+                        <img src="{{ course_data.course.image.url }}" alt="{{ course_data.course.title }}">
+                    {% else %}
+                        <div class="course-image-placeholder">
+                            <i class="fa fa-exclamation-triangle"></i>
+                        </div>
+                    {% endif %}
+                    {% if course_data.course.total_time_minutes > 0 %}
+                        <div class="course-time-badge">
+                            <div class="time-number">{{ course_data.course.total_time_minutes }}</div>
+                            <div class="time-label">мин</div>
+                        </div>
+                    {% endif %}
+                    <div class="course-status-badge">
+                        <i class="fa fa-exclamation-triangle text-danger"></i>
+                    </div>
+                </div>
+                
+                <div class="course-content">
+                    <h3 class="course-title">{{ course_data.course.title }}</h3>
+                    
+                    <!-- Статистика курса -->
+                    <div class="course-details">
+                        <div class="detail-item">
+                            <i class="fa fa-user"></i>
+                            <span>Автор: {{ course_data.author }}</span>
+                        </div>
+                        <div class="detail-item">
+                            <i class="fa fa-calendar"></i>
+                            <span>Создан: {{ course_data.created_at|date:"d.m.Y" }}</span>
+                        </div>
+                        {% if course_data.lessons_count > 0 %}
+                            <div class="detail-item">
+                                <i class="fa fa-book"></i>
+                                <span>{{ course_data.lessons_count }} уроков</span>
+                            </div>
+                        {% endif %}
+                        {% if course_data.quizzes_count > 0 %}
+                            <div class="detail-item">
+                                <i class="fa fa-question-circle"></i>
+                                <span>{{ course_data.quizzes_count }} тестов</span>
+                            </div>
+                        {% endif %}
+                        {% if course_data.total_materials > 0 %}
+                            <div class="detail-item">
+                                <i class="fa fa-list"></i>
+                                <span>Всего материалов: {{ course_data.total_materials }}</span>
+                            </div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="course-actions">
+                        <a href="{% url 'courses:course_detail' course_data.course.slug %}" class="btn btn-primary btn-sm">
+                            <i class="fa fa-eye"></i> Просмотреть
+                        </a>
+                        <a href="{% url 'courses:edit_course' course_data.course.slug %}" class="btn btn-secondary btn-sm">
+                            <i class="fa fa-edit"></i> Редактировать
+                        </a>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        {% else %}
+            <div class="empty-state">
+                <i class="fa fa-exclamation-triangle fa-3x text-danger"></i>
+                <h3>Курсы-инциденты не найдены</h3>
+                <p>{% if search_query %}По запросу "{{ search_query }}" курсы-инциденты не найдены{% else %}Курсы-инциденты отсутствуют{% endif %}</p>
+                {% if search_query %}
+                    <a href="?" class="btn btn-primary">Показать все курсы-инциденты</a>
+                {% else %}
+                    <a href="{% url 'courses:create-course' %}?is_incident=1" class="btn btn-danger">
+                        <i class="fa fa-plus"></i> Создать первый курс-инцидент
+                    </a>
+                {% endif %}
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Анимация появления карточек
+    const cards = document.querySelectorAll('.course-card');
+    cards.forEach((card, index) => {
+        card.style.animationDelay = `${index * 0.1}s`;
+        card.classList.add('fade-in');
+    });
+});
+</script>
+{% endblock %}
+

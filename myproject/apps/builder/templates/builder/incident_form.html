@@ -1,47 +1,160 @@
 {% extends 'layout.html' %}
 {% load static %}
-{% block title %}Новый инцидент{% endblock %}
+{% block title %}{% if object %}Редактирование инцидента{% else %}Новый инцидент{% endif %}{% endblock %}
 {% block specific_styles %}
-<link rel="stylesheet" href="{% static 'builder/css/builder_style.css' %}">
-<style>
-    .incident-form-bg { background: #383838; min-height: 100vh; padding: 40px 0; }
-    .incident-form-card { background: #fff; border-radius: 10px; box-shadow: 0 2px 8px #0002; padding: 32px 32px 24px 32px; max-width: 700px; margin: 0 auto; }
-    .incident-form-card h2 { color: #232323; font-weight: 700; margin-bottom: 32px; letter-spacing: 0.5px; }
-    .incident-form-card form label { font-weight: 600; color: #232323; margin-bottom: 6px; }
-    .incident-form-card form input, .incident-form-card form select, .incident-form-card form textarea {
-        width: 100%;
-        border-radius: 6px;
-        border: 1px solid #d1d5db;
-        padding: 10px 12px;
-        margin-bottom: 18px;
-        font-size: 1.05em;
-        background: #f8f9fa;
-        transition: border 0.2s;
-    }
-    .incident-form-card form input:focus, .incident-form-card form select:focus, .incident-form-card form textarea:focus {
-        border: 1.5px solid #4d7cff;
-        outline: none;
-        background: #fff;
-    }
-    .incident-form-card .btn {
-        min-width: 120px;
-        font-size: 1.05em;
-        margin-right: 10px;
-        margin-top: 8px;
-    }
-    @media (max-width: 768px) { .incident-form-card { padding: 18px 8px; max-width: 100%; } }
-</style>
+    <link rel="stylesheet" href="{% static 'builder/css/builder_style.css' %}">
+    <link rel="stylesheet" href="{% static 'builder/css/incident_form.css' %}">
 {% endblock %}
 {% block content %}
-<div class="incident-form-bg">
-    <div class="incident-form-card">
-        <h2 class="mb-4">Новый инцидент</h2>
-        <form method="post">
-            {% csrf_token %}
-            {{ form.as_p }}
+<div class="incident-form-card">
+    <h2 class="mb-4">{% if object %}Редактирование инцидента{% else %}Новый инцидент{% endif %}</h2>
+    <form method="post">
+        {% csrf_token %}
+        
+        <div class="form-group">
+            <label for="{{ form.title.id_for_label }}">{{ form.title.label }}</label>
+            {{ form.title }}
+            {% if form.title.errors %}
+                <div class="text-danger mt-1">{{ form.title.errors }}</div>
+            {% endif %}
+        </div>
+
+        <div class="form-group">
+            <label for="{{ form.incident_type.id_for_label }}">{{ form.incident_type.label }}</label>
+            {{ form.incident_type }}
+            {% if form.incident_type.errors %}
+                <div class="text-danger mt-1">{{ form.incident_type.errors }}</div>
+            {% endif %}
+        </div>
+
+        <div class="form-group">
+            <label for="user-display">{{ form.user.label }}</label>
+            <div class="user-select-field" id="userSelectField">
+                <span id="userDisplayName" class="user-display-name">
+                    {% if form.user.value %}{{ form.instance.user.get_full_name }}{% else %}Выберите пользователя...{% endif %}
+                </span>
+                <span class="user-select-icon">&#9660;</span>
+            </div>
+            {{ form.user }}
+            {% if form.user.errors %}
+                <div class="text-danger mt-1">{{ form.user.errors }}</div>
+            {% endif %}
+        </div>
+
+        <div class="form-group">
+            <label for="assigned-display">Кому назначен</label>
+            <div class="assigned-select-field" id="assignedSelectField">
+                <span id="assignedDisplayText" class="assigned-display-text">
+                    <span id="assignedCount" class="assigned-count">0</span> пользователей выбрано
+                </span>
+                <span class="assigned-select-icon">&#9660;</span>
+            </div>
+            <div id="assignedToContainer">{{ form.assigned_to }}</div>
+            {% if form.assigned_to.errors %}
+                <div class="text-danger mt-1">{{ form.assigned_to.errors }}</div>
+            {% endif %}
+        </div>
+
+        <div class="form-group">
+            <label for="{{ form.deadline.id_for_label }}">{{ form.deadline.label }}</label>
+            {{ form.deadline }}
+            {% if form.deadline.errors %}
+                <div class="text-danger mt-1">{{ form.deadline.errors }}</div>
+            {% endif %}
+        </div>
+
+        <div class="form-group">
+            <label for="{{ form.status.id_for_label }}">{{ form.status.label }}</label>
+            {{ form.status }}
+            {% if form.status.errors %}
+                <div class="text-danger mt-1">{{ form.status.errors }}</div>
+            {% endif %}
+        </div>
+
+        <div class="form-group">
+            <label for="{{ form.description.id_for_label }}">{{ form.description.label }}</label>
+            {{ form.description }}
+            {% if form.description.errors %}
+                <div class="text-danger mt-1">{{ form.description.errors }}</div>
+            {% endif %}
+        </div>
+
+        <div class="form-actions mt-4">
             <button type="submit" class="btn btn-primary">Сохранить</button>
             <a href="{% url 'builder:incidents' %}" class="btn btn-secondary">Отмена</a>
-        </form>
+        </div>
+    </form>
+</div>
+
+<!-- Модальное окно для выбора пользователя -->
+<div id="userModal" class="user-modal">
+    <div class="user-modal-content">
+        <div class="user-modal-header">
+            <h3>Выберите сотрудника</h3>
+            <span class="user-modal-close" id="userModalClose">&times;</span>
+        </div>
+        <div class="user-modal-body">
+            <div class="user-search-box">
+                <input type="text" id="userSearchInput" class="form-control" placeholder="Поиск по имени или фамилии...">
+            </div>
+            <div class="user-list-container">
+                <div id="userList" class="user-list">
+                    <div class="user-list-loading">Загрузка...</div>
+                </div>
+            </div>
+        </div>
     </div>
 </div>
+
+<!-- Модальное окно для выбора назначенных -->
+<div id="assignedModal" class="responsible-modal">
+    <div class="responsible-modal-content">
+        <div class="responsible-modal-header">
+            <h3>Выберите назначенных</h3>
+            <span class="responsible-modal-close" id="assignedModalClose">&times;</span>
+        </div>
+        <div class="responsible-modal-body">
+            <div class="responsible-columns">
+                <!-- Левая колонка - Группы -->
+                <div class="responsible-left-column">
+                    <h4>Группы</h4>
+                    <div id="groupList" class="group-list">
+                        <div class="group-list-loading">Загрузка групп...</div>
+                    </div>
+                </div>
+                
+                <!-- Разделитель -->
+                <div class="responsible-divider"></div>
+                
+                <!-- Правая колонка - Выбранные пользователи -->
+                <div class="responsible-right-column">
+                    <h4>Выбранные пользователи</h4>
+                    <div class="responsible-search-box">
+                        <input type="text" id="assignedSearchInput" class="form-control" placeholder="Поиск пользователя для добавления...">
+                        <div id="searchResultsDropdown" class="search-results-dropdown" style="display: none;"></div>
+                    </div>
+                    <div id="selectedUsersList" class="selected-users-list">
+                        <div class="selected-users-empty">Пользователи не выбраны</div>
+                    </div>
+                </div>
+            </div>
+            <div class="responsible-modal-footer">
+                <button type="button" class="btn btn-primary" id="confirmAssignedBtn">Применить</button>
+                <button type="button" class="btn btn-secondary" id="cancelAssignedBtn">Отмена</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block specific_scripts %}
+<script>
+    // API endpoints для incident_form.js
+    const searchUsersUrl = "{% url 'builder:api_search_users' %}";
+    const getGroupsUrl = "{% url 'builder:api_get_groups' %}";
+    const getGroupUsersUrlTemplate = "{% url 'builder:api_get_group_users' 0 %}";
+    const userInputId = "{{ form.user.id_for_label }}";
+</script>
+<script src="{% static 'builder/js/incident_form.js' %}"></script>
 {% endblock %} 

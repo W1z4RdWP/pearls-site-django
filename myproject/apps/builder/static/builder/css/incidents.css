@@ -140,3 +140,233 @@
     min-width: 60px;
   }
 }
+
+
+.incidents-card {
+  background: #fff;
+  border-radius: 10px;
+  box-shadow: 0 2px 16px #e3e8f0;
+  padding: 32px;
+  max-width: 1600px;
+  margin: 0 auto;
+}
+.incidents-card h2 {
+  color: #232a3a;
+  font-weight: 700;
+  margin-bottom: 0;
+}
+.incidents-table-responsive {
+  overflow-x: auto;
+  margin-top: 20px;
+  width: 100%;
+}
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9em;
+  table-layout: fixed;
+  min-width: 1100px;
+}
+.table thead th {
+  background-color: #f7f8fa;
+  color: #232a3a;
+  font-weight: 600;
+  padding: 10px 6px;
+  border-bottom: 2px solid #e3e8f0;
+  text-align: left;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.table tbody td {
+  padding: 10px 6px;
+  border-bottom: 1px solid #e3e8f0;
+  vertical-align: top;
+  color: #232a3a;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+/* Прозрачный фон для всех ячеек, кроме ячеек со статусом */
+.table tbody td:not([class*="status-"]) {
+  background-color: transparent !important;
+}
+.table tbody td.responsible-cell {
+  white-space: normal;
+  word-break: break-word;
+}
+.table tbody td:not(.comment-cell):not(.responsible-cell) {
+  white-space: nowrap;
+}
+.table tbody tr {
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+/* Цвета строк по статусам - ОТКЛЮЧЕНО */
+/* .incidents-card .table tbody tr.status-row-new {
+  background-color: #fff9e6 !important;
+}
+.incidents-card .table tbody tr.status-row-new td {
+  background-color: transparent !important;
+}
+.incidents-card .table tbody tr.status-row-accepted {
+  background-color: #e6f7e6 !important;
+}
+.incidents-card .table tbody tr.status-row-accepted td {
+  background-color: transparent !important;
+}
+.incidents-card .table tbody tr.status-row-assigned {
+  background-color: #e6f0ff !important;
+}
+.incidents-card .table tbody tr.status-row-assigned td {
+  background-color: transparent !important;
+}
+.incidents-card .table tbody tr.status-row-resolved {
+  background-color: #ffe6f0 !important;
+}
+.incidents-card .table tbody tr.status-row-resolved td {
+  background-color: transparent !important;
+}
+.incidents-card .table tbody tr.status-row-declined {
+  background-color: #ffe6e6 !important;
+}
+.incidents-card .table tbody tr.status-row-declined td {
+  background-color: transparent !important;
+}
+.incidents-card .table tbody tr.status-row-new:hover {
+  background-color: #fff3cc !important;
+}
+.incidents-card .table tbody tr.status-row-accepted:hover {
+  background-color: #d4f0d4 !important;
+}
+.incidents-card .table tbody tr.status-row-assigned:hover {
+  background-color: #cce0ff !important;
+}
+.incidents-card .table tbody tr.status-row-resolved:hover {
+  background-color: #ffd9e6 !important;
+}
+.incidents-card .table tbody tr.status-row-declined:hover {
+  background-color: #ffcccc !important;
+} */
+
+/* Простое hover выделение для всех строк, кроме ячеек со статусом */
+.incidents-card .table tbody tr:hover td:not([class*="status-"]) {
+  background-color: #f5f7fa !important;
+}
+/* Цветное выделение ячеек со статусом */
+.incidents-card .table tbody td.status-new {
+  background-color: #fff9e6 !important;
+  color: #856404 !important;
+  font-weight: 600;
+}
+.incidents-card .table tbody td.status-accepted {
+  background-color: #e6f7e6 !important;
+  color: #155724 !important;
+  font-weight: 600;
+}
+.incidents-card .table tbody td.status-assigned {
+  background-color: #e6f0ff !important;
+  color: #004085 !important;
+  font-weight: 600;
+}
+.incidents-card .table tbody td.status-resolved {
+  background-color: #d4edda !important;
+  color: #155724 !important;
+  font-weight: 600;
+}
+.incidents-card .table tbody td.status-declined {
+  background-color: #f8d7da !important;
+  color: #721c24 !important;
+  font-weight: 600;
+}
+
+/* Hover-эффекты для ячеек со статусом */
+.incidents-card .table tbody tr:hover td.status-new {
+  background-color: #fff3cc !important;
+}
+.incidents-card .table tbody tr:hover td.status-accepted {
+  background-color: #d4f0d4 !important;
+}
+.incidents-card .table tbody tr:hover td.status-assigned {
+  background-color: #cce0ff !important;
+}
+.incidents-card .table tbody tr:hover td.status-resolved {
+  background-color: #c3e6cb !important;
+}
+.incidents-card .table tbody tr:hover td.status-declined {
+  background-color: #f5c6cb !important;
+}
+.responsible-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.comment-cell {
+  font-style: italic;
+  color: #6c757d;
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+/* Скрываем последний столбец (Комментарий) при узком экране */
+@media (max-width: 1400px) {
+  .table th:last-child,
+  .table td:last-child {
+      display: none;
+  }
+  .table {
+      min-width: 900px;
+  }
+}
+@media (max-width: 1200px) {
+  .table {
+      min-width: 800px;
+  }
+  .table thead th,
+  .table tbody td {
+      padding: 8px 4px;
+      font-size: 0.85em;
+  }
+}
+@media (min-width: 1401px) {
+  .table {
+      min-width: 1200px;
+  }
+}
+.status-filters {
+  padding: 12px;
+  background: #f7f8fa;
+  border-radius: 6px;
+  border: 1px solid #e3e8f0;
+}
+.status-filters .form-check {
+  margin-bottom: 0;
+}
+.status-filters .form-check-input:disabled + .form-check-label {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.form-label {
+  font-weight: 600;
+  color: #232a3a;
+  margin-bottom: 6px;
+}
+.form-control {
+  border: 1px solid #e3e8f0;
+  border-radius: 6px;
+  padding: 8px 12px;
+}
+
+/* Компактные поля для дат */
+.date-input-compact {
+  max-width: 180px;
+  padding: 8px 10px;
+  font-size: 0.95em;
+}
+
+/* Уменьшаем отступы между полями формы */
+.row.g-2 {
+  --bs-gutter-x: 0.5rem;
+  --bs-gutter-y: 0.5rem;
+}

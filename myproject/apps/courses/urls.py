@@ -1,6 +1,6 @@
 from django.urls import path
 from . import views as course_views
-from .views import UserCourseTrajectoryDetailView, UserCourseTrajectoryListView
+from .views import UserCourseTrajectoryDetailView, UserCourseTrajectoryListView, IncidentCoursesListView
 
 app_name = 'courses'
 
@@ -31,6 +31,9 @@ urlpatterns = [
     path('trajectory/<int:pk>/', UserCourseTrajectoryDetailView.as_view(), name='user_course_trajectory_detail'),
     path('trajectories/', UserCourseTrajectoryListView.as_view(), name='user_course_trajectory_list'),
     path('trajectory-create/', course_views.TrajectoryCreateView.as_view(), name='trajectory_create'),
+    
+    # Курсы-инциденты
+    path('incident-courses/', IncidentCoursesListView.as_view(), name='incident_courses_list'),
 
     # Сертификаты
     path('user-certificates/', course_views.CertificateListView.as_view(), name='user_certificates'),

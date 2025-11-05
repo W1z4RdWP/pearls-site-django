@@ -1,0 +1,104 @@
+{% extends 'layout.html' %}
+{% load static %}
+{% block title %}Детали инцидентов{% endblock %}
+{% block specific_styles %}
+    <link rel="stylesheet" href="{% static 'builder/css/incidents.css' %}">
+{% endblock %}
+{% block content %}
+<div class="incidents-card mb-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h2 class="mb-0">Детали инцидентов</h2>
+        <a href="{% url 'builder:incidents' %}" class="btn btn-secondary">← Назад к списку</a>
+    </div>
+    
+    <!-- Фильтры -->
+    <form method="get" id="incident-detail-filter-form" class="mb-4">
+        <div class="row mb-2 g-2 align-items-center">
+            <!-- Поиск по названию -->
+            <div class="col-md-3 col-lg-3">
+                <input type="text" class="form-control" id="search" name="search" placeholder="Поиск по названию инцидента..." value="{{ search }}">
+            </div>
+            <!-- Фильтр по дате -->
+            <div class="col-md-3 col-lg-2">
+                <input type="date" class="form-control date-input-compact" id="date_from" name="date_from" value="{{ date_from }}">
+            </div>
+            <div class="col-md-3 col-lg-2">
+                <input type="date" class="form-control date-input-compact" id="date_to" name="date_to" value="{{ date_to }}">
+            </div>
+            <!-- Фильтр по пользователю -->
+            <div class="col-md-3 col-lg-2">
+                <select class="form-control" id="assigned_user" name="assigned_user">
+                    <option value="">Все пользователи</option>
+                    {% for user in users %}
+                        <option value="{{ user.id }}" {% if selected_user_id == user.id %}selected{% endif %}>
+                            {{ user.get_full_name|default:user.username }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <!-- Фильтр по нарушителям -->
+            <div class="col-md-3 col-lg-2">
+                <select class="form-control" id="violator_filter" name="violator_filter">
+                    <option value="all" {% if violator_filter == 'all' %}selected{% endif %}>Все</option>
+                    <option value="yes" {% if violator_filter == 'yes' %}selected{% endif %}>Только нарушители</option>
+                    <option value="no" {% if violator_filter == 'no' %}selected{% endif %}>Только не нарушители</option>
+                </select>
+            </div>
+        </div>
+        <!-- Кнопки под строкой поиска -->
+        <div class="row mb-2">
+            <div class="col-md-3 col-lg-3">
+                <button type="submit" class="btn btn-primary">Применить фильтры</button>
+                <a href="{% url 'builder:incident_detail' %}" class="btn btn-secondary">Сбросить</a>
+            </div>
+        </div>
+    </form>
+    
+    <h3 class="mb-3">Назначенные пользователи</h3>
+    
+    <div class="incidents-table-responsive">
+        <table class="table">
+            <thead>
+                <tr>
+                    <th style="width: 5%;">№</th>
+                    <th style="width: 10%;">Дата назначения</th>
+                    <th style="width: 20%;">Название инцидента</th>
+                    <th style="width: 15%;">Назначено</th>
+                    <th style="width: 10%;">Нарушитель</th>
+                    <th style="width: 10%;">Дедлайн</th>
+                    <th style="width: 10%;">Ответственный</th>
+                    <th style="width: 10%;">Прогресс</th>
+                    <th style="width: 10%;">Статус</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% if incident_user_list %}
+                    {% for item in incident_user_list %}
+                    <tr>
+                        <td>{{ forloop.counter }}</td>
+                        <td>{{ item.incident.created_at|date:"d.m.Y" }}</td>
+                        <td>{{ item.incident.title }}</td>
+                        <td>{{ item.user.get_full_name|default:item.user.username }}</td>
+                        <td>
+                            {% if item.is_violator %}
+                                <span class="badge bg-danger">Да</span>
+                            {% else %}
+                                <span class="badge bg-secondary">Нет</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ item.incident.deadline|date:"d.m.Y"|default:"—" }}</td>
+                        <td>—</td>
+                        <td style="text-align: center;">0%</td>
+                        <td class="status-{{ item.incident.status }}" style="text-align: center;">{{ item.incident.get_status_display }}</td>
+                    </tr>
+                    {% endfor %}
+                {% else %}
+                    <tr>
+                        <td colspan="9" class="text-center">Нет назначенных пользователей</td>
+                    </tr>
+                {% endif %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

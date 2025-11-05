@@ -133,7 +133,7 @@
             <div class="card shadow">
                 <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
                     <h6 class="m-0 font-weight-bold text-primary">Список курсов</h6>
-                    <a href="{% url 'courses:create-course' %}" class="btn btn-primary btn-sm">
+                    <a href="{% url 'courses:create-course' %}?is_incident=1" class="btn btn-primary btn-sm">
                         <i class="fas fa-plus"></i> Создать курс
                     </a>
                 </div>
@@ -192,7 +192,7 @@
                                 <i class="fas fa-graduation-cap fa-3x text-muted mb-3"></i>
                                 <h5>Курсы не найдены</h5>
                                 <p class="text-muted">На платформе пока нет созданных курсов</p>
-                                <a href="{% url 'courses:create-course' %}" class="btn btn-primary">
+                                <a href="{% url 'courses:create-course' %}?is_incident=1" class="btn btn-primary">
                                     <i class="fas fa-plus"></i> Создать первый курс
                                 </a>
                             </div>

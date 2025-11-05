@@ -35,6 +35,8 @@ urlpatterns = [
     path('documents/', views.DocumentListView.as_view(), name='documents'),
     path('incidents/', views.IncidentListView.as_view(), name='incidents'),
     path('incidents/add/', views.IncidentCreateView.as_view(), name='incident_add'),
+    path('incidents/<int:pk>/edit/', views.IncidentUpdateView.as_view(), name='incident_edit'),
+    path('incidents/detail/', views.IncidentDetailListView.as_view(), name='incident_detail'),
 
     # Поиск/реордеры/клипборд
     path('search/', views.ajax_search_tree, name='search_tree'),
@@ -70,9 +72,17 @@ urlpatterns = [
 
     # Курсы и документы
     path('courses/', views.CourseListView.as_view(), name='course_list'),
+    path('incident-courses/', views.IncidentCourseListView.as_view(), name='incident_course_list'),
     path('documents/<int:pk>/delete/', views.DocumentDeleteView.as_view(), name='document_delete'),
 
     # Audit API endpoints
     path('api/audit/history/', views.audit_history_api, name='audit_history_api'),
     path('api/audit/search/', views.audit_search_api, name='audit_search_api'),
+    
+    # User search API
+    path('api/users/search/', views.api_search_users, name='api_search_users'),
+    
+    # Groups API
+    path('api/groups/', views.api_get_groups, name='api_get_groups'),
+    path('api/groups/<int:group_id>/users/', views.api_get_group_users, name='api_get_group_users'),
 ]

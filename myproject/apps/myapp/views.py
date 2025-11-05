@@ -4,7 +4,7 @@ from django.views.generic import TemplateView, ListView
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from .models import Course, UserCourse, ChangeLog
-from courses.models import Course as CourseModel
+from courses.models import Course as CourseModel, TrajectoryCourse, UserCourseTrajectory
 from datetime import date
 
 
@@ -58,12 +58,73 @@ class IndexView(TemplateView):
     """
     template_name = 'home.html'
 
+    def _is_course_available_in_trajectory(self, user, course):
+        """
+        Проверяет, доступен ли курс в траектории для пользователя.
+        Курс доступен, если он первый в траектории или предыдущий завершён.
+        """
+        # Получаем все траектории пользователя, содержащие этот курс
+        user_trajectories = UserCourseTrajectory.objects.filter(
+            user=user,
+            trajectory__courses=course
+        )
+        
+        for ut in user_trajectories:
+            # Получаем порядок курса в траектории
+            tc = TrajectoryCourse.objects.filter(
+                trajectory=ut.trajectory,
+                course=course
+            ).first()
+            
+            if not tc:
+                continue
+                
+            # Если курс первый в траектории, он доступен
+            if tc.order == 1:
+                return True
+                
+            # Проверяем, завершен ли предыдущий курс
+            prev_tc = TrajectoryCourse.objects.filter(
+                trajectory=ut.trajectory,
+                order=tc.order - 1
+            ).first()
+            
+            if prev_tc:
+                prev_uc = UserCourse.objects.filter(
+                    user=user,
+                    course=prev_tc.course
+                ).first()
+                
+                if prev_uc and prev_uc.status == 'completed':
+                    return True
+        
+        return False
+
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         user = self.request.user
         if user.is_authenticated:
             # Используем менеджер для получения всех доступных курсов
-            context['courses'] = CourseModel.objects.available_for_user(user)
+            available_courses = CourseModel.objects.available_for_user(user)
+            
+            # Фильтруем курсы: исключаем курсы из траекторий, которые еще не доступны
+            filtered_courses = []
+            for course in available_courses:
+                # Проверяем, есть ли курс в траекториях пользователя
+                course_in_trajectories = TrajectoryCourse.objects.filter(
+                    trajectory__usercoursetrajectory__user=user,
+                    course=course
+                ).exists()
+                
+                if course_in_trajectories:
+                    # Если курс в траектории, проверяем его доступность
+                    if self._is_course_available_in_trajectory(user, course):
+                        filtered_courses.append(course)
+                else:
+                    # Если курс не в траектории, он доступен
+                    filtered_courses.append(course)
+            
+            context['courses'] = filtered_courses
         else:
             context['courses'] = []
         return context

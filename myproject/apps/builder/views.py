@@ -10,6 +10,7 @@ from django.urls import reverse_lazy, reverse
 from .models import CategoryName, Document, Incident, LessonVersion, LessonCategoryMirror, DictionarySection, DictionaryTerm
 from django.core.exceptions import PermissionDenied
 from .forms import DocumentForm, IncidentForm
+from .utils import get_compact_fio, user_has_category_access, filter_categories_and_lessons_for_user
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.db.models import Max, Q
@@ -33,35 +34,7 @@ from .audit_logger import (
 )
 
 
-def get_compact_fio(user):
-    """
-    Возвращает компактное ФИО: фамилия полностью, имя и отчество инициалами
-    Например: "Кузнецов В.А." вместо "Владислав Александрович Кузнецов"
-    """
-    if not user:
-        return None
-    
-    last_name = user.last_name or ''
-    first_name = user.first_name or ''
-    middle_name = getattr(user.profile, 'middle_name', '') if hasattr(user, 'profile') else ''
-    
-    # Формируем инициалы
-    first_initial = first_name[0] + '.' if first_name else ''
-    middle_initial = middle_name[0] + '.' if middle_name else ''
-    
-    # Собираем ФИО
-    parts = [last_name]
-    if first_initial:
-        parts.append(first_initial)
-    if middle_initial:
-        parts.append(middle_initial)
-    
-    return ' '.join(parts) if parts else user.username
 
-
- 
- 
- 
  
 def get_category_tree_data(category_id):
     """Получить полное дерево категории со всеми подкатегориями, уроками и зеркалами"""
@@ -229,94 +202,6 @@ def get_category_descendants(category_id):
     
     collect_descendants(category_id)
     return descendants
-
-
-
-
-def user_has_category_access(user, category):
-    """
-    Проверяет, есть ли у пользователя доступ к категории через allowed_groups (учитывает родителей).
-    Доступ наследуется вниз по дереву.
-    """
-    if not user.is_authenticated:
-        return False
-    user_groups = set(user.groups.values_list('id', flat=True))
-    cat = category
-    while cat:
-        allowed = set(cat.allowed_groups.values_list('id', flat=True))
-        if allowed and user_groups & allowed:
-            return True
-        cat = cat.parent
-    return False
-
-
-
-
-def filter_categories_and_lessons_for_user(user, categories, uncategorized_lessons):
-    """
-    Фильтрует дерево категорий и список уроков без категории для read-only пользователя,
-    чтобы показывать только те уроки, которые входят в доступные для пользователя курсы
-    ИЛИ доступны через группы в allowed_groups (категории и все вложенные).
-    """
-    # Получаем все курсы, доступные пользователю через менеджер
-    available_courses = Course.objects.available_for_user(user)
-    allowed_course_ids = set(c.id for c in available_courses)
-
-    # Собираем все разрешённые уроки (с учётом траекторий)
-    allowed_lesson_ids = set()
-    for course in available_courses:
-        trajectory = UserLessonTrajectory.objects.filter(user=user, course=course).first()
-        if trajectory:
-            allowed_lesson_ids.update(trajectory.lessons.values_list('id', flat=True))
-        else:
-            allowed_lesson_ids.update(course.lessons.values_list('id', flat=True))
-
-    # --- ДОБАВЛЯЕМ доступ через группы (категории и все вложенные) ---
-    def collect_group_accessible_lessons(cat_data, parent_access=False):
-        # parent_access: был ли доступ у родителя
-        cat_id = cat_data['id']
-        cat_obj = CategoryName.objects.get(id=cat_id)
-        has_access = parent_access or user_has_category_access(user, cat_obj)
-        group_lesson_ids = set()
-        if has_access:
-            group_lesson_ids.update(lesson['id'] for lesson in cat_data['lessons'])
-        for subcat in cat_data['subcategories']:
-            group_lesson_ids.update(collect_group_accessible_lessons(subcat, has_access))
-        return group_lesson_ids
-
-    group_access_lesson_ids = set()
-    for cat_data in categories:
-        if cat_data:
-            group_access_lesson_ids.update(collect_group_accessible_lessons(cat_data))
-    allowed_lesson_ids.update(group_access_lesson_ids)
-
-    # Фильтруем уроки без категории
-    filtered_uncat = uncategorized_lessons.filter(id__in=allowed_lesson_ids)
-
-    # Рекурсивно фильтруем дерево категорий (работаем со словарями из get_category_tree_data)
-    def filter_category(cat_data, parent_access=False):
-        cat_id = cat_data['id']
-        cat_obj = CategoryName.objects.get(id=cat_id)
-        has_access = parent_access or user_has_category_access(user, cat_obj)
-        # Фильтруем уроки в категории
-        filtered_lessons = [lesson for lesson in cat_data['lessons'] if lesson['id'] in allowed_lesson_ids]
-        # Рекурсивно фильтруем подкатегории
-        filtered_subcats = [filter_category(subcat, has_access) for subcat in cat_data['subcategories']]
-        filtered_subcats = [sc for sc in filtered_subcats if sc is not None]
-        if filtered_lessons or filtered_subcats:
-            filtered_cat = cat_data.copy()
-            filtered_cat['filtered_lessons'] = filtered_lessons
-            filtered_cat['filtered_subcategories'] = filtered_subcats
-            return filtered_cat
-        return None
-
-    filtered_categories = []
-    for cat_data in categories:
-        if cat_data:
-            filtered = filter_category(cat_data)
-            if filtered:
-                filtered_categories.append(filtered)
-    return filtered_categories, filtered_uncat
 
 
 
@@ -905,11 +790,76 @@ class IncidentListView(ListView):
     template_name = 'builder/incidents.html'
     context_object_name = 'incidents'
     ordering = ['-created_at']
+
     def dispatch(self, request, *args, **kwargs):
         # Только staff/superuser
         if not request.user.is_authenticated or not (request.user.is_staff or request.user.is_superuser):
             return render(request, '403.html', status=403)
         return super().dispatch(request, *args, **kwargs)
+
+    def get_queryset(self):
+        from django.utils import timezone
+        import datetime
+        
+        queryset = super().get_queryset()
+        
+        # Фильтр по дате создания
+        date_from = self.request.GET.get('date_from')
+        date_to = self.request.GET.get('date_to')
+        
+        # Если нет параметров в GET запросе (первичная загрузка), устанавливаем дефолтные значения
+        if not self.request.GET:
+            # Устанавливаем период с начала 2025 года до сегодняшней даты
+            date_from = '2025-01-01'
+            date_to = timezone.now().date().strftime('%Y-%m-%d')
+        
+        if date_from:
+            date_from_parsed = datetime.datetime.strptime(date_from, '%Y-%m-%d').date()
+            date_from_datetime = timezone.make_aware(datetime.datetime.combine(date_from_parsed, datetime.time.min))
+            queryset = queryset.filter(created_at__gte=date_from_datetime)
+        if date_to:
+            date_to_parsed = datetime.datetime.strptime(date_to, '%Y-%m-%d').date()
+            date_to_datetime = timezone.make_aware(datetime.datetime.combine(date_to_parsed, datetime.time.max))
+            queryset = queryset.filter(created_at__lte=date_to_datetime)
+        
+        # Фильтр по статусу
+        statuses = self.request.GET.getlist('status')
+        
+        # Если нет параметров в GET запросе (первичная загрузка), устанавливаем дефолтные статусы
+        if not self.request.GET:
+            statuses = ['new', 'accepted', 'assigned']
+        
+        if statuses:
+            queryset = queryset.filter(status__in=statuses)
+        
+        # Фильтр по типу
+        incident_type = self.request.GET.get('incident_type')
+        if incident_type:
+            queryset = queryset.filter(incident_type=incident_type)
+        
+        return queryset
+
+    def get_context_data(self, **kwargs):
+        from django.utils import timezone
+        
+        context = super().get_context_data(**kwargs)
+        context['status_choices'] = Incident.STATUS_CHOICES
+        context['incident_type_choices'] = Incident.INCIDENT_TYPE_CHOICES
+        
+        # Если нет параметров в GET запросе (первичная загрузка), устанавливаем дефолтные значения
+        if not self.request.GET:
+            context['selected_statuses'] = ['new', 'accepted', 'assigned']
+            context['selected_incident_type'] = ''
+            context['date_from'] = '2025-01-01'
+            context['date_to'] = timezone.now().date().strftime('%Y-%m-%d')
+        else:
+            # Передаем текущие значения фильтров в контекст
+            context['selected_statuses'] = self.request.GET.getlist('status', [])
+            context['selected_incident_type'] = self.request.GET.get('incident_type', '')
+            context['date_from'] = self.request.GET.get('date_from', '')
+            context['date_to'] = self.request.GET.get('date_to', '')
+        
+        return context
 
 
 
@@ -917,20 +867,156 @@ class IncidentCreateView(CreateView, AuditLoggerMixin):
     """
     Создание инцидента (ручное или автоматическое).
     """
+    model = Incident
+    form_class = IncidentForm
+    template_name = 'builder/incident_form.html'
+    success_url = reverse_lazy('builder:incidents')
+
     def dispatch(self, request, *args, **kwargs):
         if not request.user.is_authenticated or not (request.user.is_staff or request.user.is_superuser):
             return render(request, '403.html', status=403)
         return super().dispatch(request, *args, **kwargs)
-    model = Incident
-    form_class = IncidentForm
-    template_name = 'builder/incident_form.html'
-    success_url = '/builder/incidents/'
+
     
     def form_valid(self, form):
         response = super().form_valid(form)
         # Логируем создание инцидента
         self.log_create_action(self.object, "Создан новый инцидент")
         return response
+
+
+class IncidentUpdateView(UpdateView, AuditLoggerMixin):
+    """
+    Редактирование инцидента.
+    """
+    model = Incident
+    form_class = IncidentForm
+    template_name = 'builder/incident_form.html'
+    success_url = reverse_lazy('builder:incidents')
+
+    def dispatch(self, request, *args, **kwargs):
+        if not request.user.is_authenticated or not (request.user.is_staff or request.user.is_superuser):
+            return render(request, '403.html', status=403)
+        return super().dispatch(request, *args, **kwargs)
+    
+    def form_valid(self, form):
+        response = super().form_valid(form)
+        # Логируем обновление инцидента
+        self.log_update_action(self.object, "Инцидент обновлён")
+        return response
+
+
+
+class IncidentDetailListView(ListView):
+    """
+    Список по прогрессу пользователей по всем инцидентам
+    """
+    model = Incident
+    template_name = 'builder/incident_detail.html'
+    context_object_name = 'incidents'
+    ordering = ['-created_at']
+
+    def dispatch(self, request, *args, **kwargs):
+        if not request.user.is_authenticated or not (request.user.is_staff or request.user.is_superuser):
+            return render(request, '403.html', status=403)
+        return super().dispatch(request, *args, **kwargs)
+
+    def get_queryset(self):
+        from django.utils import timezone
+        import datetime
+        
+        queryset = super().get_queryset()
+        # Оптимизация: предзагрузка ManyToMany полей
+        queryset = queryset.prefetch_related('assigned_to', 'violators').select_related('user')
+        
+        # Фильтр по названию инцидента (поиск)
+        search = self.request.GET.get('search', '').strip()
+        if search:
+            queryset = queryset.filter(title__icontains=search)
+        
+        # Фильтр по дате создания
+        date_from = self.request.GET.get('date_from')
+        date_to = self.request.GET.get('date_to')
+        
+        # Если нет параметров в GET запросе (первичная загрузка), устанавливаем дефолтные значения
+        if not self.request.GET:
+            # Устанавливаем период с начала 2025 года до сегодняшней даты
+            date_from = '2025-01-01'
+            date_to = timezone.now().date().strftime('%Y-%m-%d')
+        
+        if date_from:
+            date_from_parsed = datetime.datetime.strptime(date_from, '%Y-%m-%d').date()
+            date_from_datetime = timezone.make_aware(datetime.datetime.combine(date_from_parsed, datetime.time.min))
+            queryset = queryset.filter(created_at__gte=date_from_datetime)
+        if date_to:
+            date_to_parsed = datetime.datetime.strptime(date_to, '%Y-%m-%d').date()
+            date_to_datetime = timezone.make_aware(datetime.datetime.combine(date_to_parsed, datetime.time.max))
+            queryset = queryset.filter(created_at__lte=date_to_datetime)
+        
+        return queryset
+
+    def get_context_data(self, **kwargs):
+        from django.utils import timezone
+        from django.contrib.auth import get_user_model
+        
+        context = super().get_context_data(**kwargs)
+        
+        # Получаем список всех активных пользователей для фильтра
+        User = get_user_model()
+        context['users'] = User.objects.filter(is_active=True).order_by('last_name', 'first_name')
+        
+        # Параметры фильтров
+        search = self.request.GET.get('search', '').strip()
+        selected_user_id = self.request.GET.get('assigned_user', '')
+        violator_filter = self.request.GET.get('violator_filter', 'all')  # 'all', 'yes', 'no'
+        
+        # Если нет параметров в GET запросе (первичная загрузка), устанавливаем дефолтные значения
+        if not self.request.GET:
+            context['date_from'] = '2025-01-01'
+            context['date_to'] = timezone.now().date().strftime('%Y-%m-%d')
+            context['search'] = ''
+            context['selected_user_id'] = None
+            context['violator_filter'] = 'all'
+        else:
+            context['date_from'] = self.request.GET.get('date_from', '')
+            context['date_to'] = self.request.GET.get('date_to', '')
+            context['search'] = search
+            try:
+                context['selected_user_id'] = int(selected_user_id) if selected_user_id else None
+            except (ValueError, TypeError):
+                context['selected_user_id'] = None
+            context['violator_filter'] = violator_filter
+        
+        # Создаем список всех назначенных пользователей со всех инцидентов
+        incident_user_list = []
+        selected_user_id = context['selected_user_id']
+        violator_filter = context['violator_filter']
+        
+        for incident in context['incidents']:
+            assigned_users = incident.assigned_to.all()
+            violators = incident.violators.all()
+            
+            for user in assigned_users:
+                # Фильтр по назначенному пользователю
+                if selected_user_id and user.id != selected_user_id:
+                    continue
+                
+                is_violator = user in violators
+                
+                # Фильтр по нарушителям
+                if violator_filter == 'yes' and not is_violator:
+                    continue
+                if violator_filter == 'no' and is_violator:
+                    continue
+                
+                incident_user_list.append({
+                    'incident': incident,
+                    'user': user,
+                    'is_violator': is_violator,
+                })
+        
+        context['incident_user_list'] = incident_user_list
+        return context
 
 
 
@@ -1936,15 +2022,16 @@ class TrajectoryManagementView(TemplateView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         
-        # Статистика для дашборда
-        context['total_courses'] = Course.objects.count()
+        # Статистика для дашборда (исключаем курсы-инциденты)
+        context['total_courses'] = Course.objects.filter(is_incident=False).count()
+        context['total_incident_courses'] = Course.objects.filter(is_incident=True).count()
         context['total_lessons'] = Lesson.objects.count()
         context['total_trajectories'] = Trajectory.objects.count()
         context['total_quizzes'] = Quiz.objects.count()
         context['total_users'] = User.objects.count()
         
-        # Последние созданные элементы
-        context['recent_courses'] = Course.objects.order_by('-created_at')[:5]
+        # Последние созданные элементы (исключаем курсы-инциденты из общего списка)
+        context['recent_courses'] = Course.objects.filter(is_incident=False).order_by('-created_at')[:5]
         context['recent_lessons'] = Lesson.objects.order_by('-id')[:5]
         context['recent_trajectories'] = Trajectory.objects.order_by('-id')[:5]
         context['recent_quizzes'] = Quiz.objects.order_by('-id')[:5]
@@ -2366,7 +2453,7 @@ def trajectory_delete(request, trajectory_id):
 
 class CourseListView(ListView):
     """
-    Представление для просмотра всех курсов на платформе
+    Представление для просмотра всех курсов на платформе сотрудниками УЦ.
     """
     template_name = 'builder/course_list.html'
     context_object_name = 'courses'
@@ -2381,7 +2468,7 @@ class CourseListView(ListView):
         from courses.models import Course
         from django.db.models import Q
         
-        queryset = Course.objects.all()
+        queryset = Course.objects.exclude(is_incident=True)
         
         # Поиск по названию
         search_query = self.request.GET.get('search', '').strip()
@@ -2424,9 +2511,83 @@ class CourseListView(ListView):
         context['selected_group'] = self.request.GET.get('group', '')
         
         # Статистика (всегда показываем общую статистику)
-        context['total_courses'] = Course.objects.count()
-        context['active_courses'] = Course.objects.count()  # Все курсы считаются активными
-        context['total_lessons'] = sum(course.lessons.count() for course in Course.objects.all())
+        context['total_courses'] = Course.objects.exclude(is_incident=True).count()
+        context['active_courses'] = Course.objects.exclude(is_incident=True).count()  # Все курсы считаются активными
+        context['total_lessons'] = sum(course.lessons.count() for course in Course.objects.exclude(is_incident=True))
+        context['total_authors'] = User.objects.filter(course__isnull=False).distinct().count()
+        
+        # Список авторов для фильтра
+        context['authors'] = User.objects.filter(course__isnull=False).distinct().order_by('first_name', 'last_name', 'username')
+        
+        # Список групп для фильтра
+        from django.contrib.auth.models import Group
+        context['groups'] = Group.objects.all().order_by('name')
+        
+        return context
+
+
+
+
+class IncidentCourseListView(ListView):
+    """
+    Представление для просмотра всех курсов-инцидентов на платформе сотрудниками УЦ.
+    """
+    template_name = 'builder/incident_course_list.html'
+    context_object_name = 'courses'
+    paginate_by = 12
+
+    def dispatch(self, request, *args, **kwargs):
+        if not request.user.is_authenticated or not (request.user.is_staff or request.user.is_superuser):
+            return render(request, '403.html', status=403)
+        return super().dispatch(request, *args, **kwargs)
+
+    def get_queryset(self):
+        queryset = Course.objects.filter(is_incident=True)
+
+                # Поиск по названию
+        search_query = self.request.GET.get('search', '').strip()
+        if search_query:
+            queryset = queryset.filter(
+                Q(title__icontains=search_query) | 
+                Q(description__icontains=search_query) |
+                Q(slug__icontains=search_query)
+            )
+        
+        # Фильтр по автору
+        author_id = self.request.GET.get('author', '').strip()
+        if author_id:
+            try:
+                queryset = queryset.filter(author_id=int(author_id))
+            except (ValueError, TypeError):
+                pass
+        
+        # Фильтр по группам
+        group_id = self.request.GET.get('group', '').strip()
+        if group_id:
+            try:
+                from django.contrib.auth.models import Group
+                group = Group.objects.get(id=int(group_id))
+                # Фильтруем курсы, которые принадлежат этой группе через траектории
+                queryset = queryset.filter(trajectory__groups=group).distinct()
+            except (ValueError, TypeError, Group.DoesNotExist):
+                pass
+        
+        return queryset.order_by('-created_at')
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        from courses.models import Course
+        from django.contrib.auth.models import User
+        
+        # Получаем параметры фильтрации для сохранения в форме
+        context['search_query'] = self.request.GET.get('search', '')
+        context['selected_author'] = self.request.GET.get('author', '')
+        context['selected_group'] = self.request.GET.get('group', '')
+        
+        # Статистика (всегда показываем общую статистику)
+        context['total_courses'] = Course.objects.filter(is_incident=True).count()
+        context['active_courses'] = Course.objects.filter(is_incident=True).count()  # Все курсы считаются активными
+        context['total_lessons'] = sum(course.lessons.count() for course in Course.objects.filter(is_incident=True))
         context['total_authors'] = User.objects.filter(course__isnull=False).distinct().count()
         
         # Список авторов для фильтра
@@ -2655,3 +2816,87 @@ def get_responsible_user_for_lesson(lesson_version):
     except Exception:
         pass
     return lesson_version.updated_by
+
+
+@login_required
+def api_search_users(request):
+    """
+    API endpoint для поиска пользователей по имени/фамилии.
+    Возвращает JSON с данными пользователей.
+    """
+    if not (request.user.is_staff or request.user.is_superuser):
+        return JsonResponse({'error': 'Доступ запрещен'}, status=403)
+    
+    search_query = request.GET.get('q', '').strip()
+    
+    users = User.objects.filter(is_active=True)
+    
+    if search_query:
+        users = users.filter(
+            Q(first_name__icontains=search_query) | 
+            Q(last_name__icontains=search_query) |
+            Q(username__icontains=search_query)
+        )
+    
+    users = users.order_by('last_name', 'first_name')[:50]  # Ограничиваем до 50 результатов
+    
+    users_data = []
+    for user in users:
+        full_name = user.get_full_name() or user.username
+        users_data.append({
+            'id': user.id,
+            'full_name': full_name,
+            'username': user.username,
+        })
+    
+    return JsonResponse({'users': users_data})
+
+
+@login_required
+def api_get_groups(request):
+    """
+    API endpoint для получения списка всех групп.
+    Возвращает JSON с данными групп.
+    """
+    if not (request.user.is_staff or request.user.is_superuser):
+        return JsonResponse({'error': 'Доступ запрещен'}, status=403)
+    
+    groups = Group.objects.all().order_by('name')
+    
+    groups_data = []
+    for group in groups:
+        groups_data.append({
+            'id': group.id,
+            'name': group.name,
+            'user_count': group.user_set.filter(is_active=True).count(),
+        })
+    
+    return JsonResponse({'groups': groups_data})
+
+
+@login_required
+def api_get_group_users(request, group_id):
+    """
+    API endpoint для получения пользователей конкретной группы.
+    Возвращает JSON с данными пользователей группы.
+    """
+    if not (request.user.is_staff or request.user.is_superuser):
+        return JsonResponse({'error': 'Доступ запрещен'}, status=403)
+    
+    try:
+        group = Group.objects.get(id=group_id)
+    except Group.DoesNotExist:
+        return JsonResponse({'error': 'Группа не найдена'}, status=404)
+    
+    users = group.user_set.filter(is_active=True).order_by('last_name', 'first_name')
+    
+    users_data = []
+    for user in users:
+        full_name = user.get_full_name() or user.username
+        users_data.append({
+            'id': user.id,
+            'full_name': full_name,
+            'username': user.username,
+        })
+    
+    return JsonResponse({'users': users_data})

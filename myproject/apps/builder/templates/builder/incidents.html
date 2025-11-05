@@ -2,48 +2,181 @@
 {% load static %}
 {% block title %}Инциденты{% endblock %}
 {% block specific_styles %}
-<!-- <link rel="stylesheet" href="{% static 'builder/css/builder_style.css' %}"> -->
-<link rel="stylesheet" href="{% static 'builder/css/incidents.css' %}">
+    <link rel="stylesheet" href="{% static 'builder/css/incidents.css' %}">
 {% endblock %}
 {% block content %}
-<div class="incidents-bg">
-    <div class="incidents-card mb-4">
-        <div class="d-flex justify-content-between align-items-center mb-3">
-            <h2 class="mb-0">Инциденты</h2>
-            <a href="{% url 'builder:incident_add' %}" class="btn btn-primary">+ Новый инцидент</a>
-        </div>
+<div class="incidents-card mb-4">
+        <!-- <h2 class="mb-3">Инциденты</h2> -->
+        
+        <!-- Фильтры -->
+        <form method="get" id="incidents-filter-form" class="mb-4">
+            <div class="row mb-2 g-2 align-items-center">
+                <!-- Фильтр по дате -->
+                <div class="col-md-3 col-lg-2">
+                    <input type="date" class="form-control date-input-compact" id="date_from" name="date_from" value="{{ date_from }}">
+                </div>
+                <div class="col-md-3 col-lg-2">
+                    <input type="date" class="form-control date-input-compact" id="date_to" name="date_to" value="{{ date_to }}">
+                </div>
+                <!-- Фильтр по типу -->
+                <div class="col-md-3 col-lg-2">
+                    <select class="form-control" id="incident_type" name="incident_type">
+                        <option value="">Тип инцидента</option>
+                        {% for value, label in incident_type_choices %}
+                            <option value="{{ value }}" {% if selected_incident_type == value %}selected{% endif %}>{{ label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <!-- Кнопка добавления -->
+                <div class="col-md-3 col-lg-6 text-end">
+                    <a href="{% url 'builder:incident_add' %}" class="btn btn-primary">+ Новый инцидент</a>
+                </div>
+            </div>
+            
+            <!-- Фильтр по статусу -->
+            <div class="mb-2">
+                <!-- <label class="form-label mb-1">Статус</label> -->
+                <div class="status-filters d-flex flex-wrap gap-2 align-items-center">
+                    {% for value, label in status_choices %}
+                        <div class="form-check">
+                            <input class="form-check-input status-checkbox" 
+                                   type="checkbox" 
+                                   name="status" 
+                                   value="{{ value }}" 
+                                   id="status_{{ value }}"
+                                   {% if value in selected_statuses %}checked{% endif %}>
+                            <label class="form-check-label" for="status_{{ value }}">
+                                {{ label }}
+                            </label>
+                        </div>
+                    {% endfor %}
+                    <div class="d-flex gap-2 ms-auto">
+                        <button type="submit" class="btn btn-primary">Применить фильтры</button>
+                        <a href="{% url 'builder:incidents' %}" class="btn btn-secondary">Сбросить</a>
+                    </div>
+                </div>
+            </div>
+            
+        </form>
+        
         <div class="incidents-table-responsive">
-            <table class="table table-hover">
+            <table class="table">
                 <thead>
                     <tr>
-                        <th>Дата</th>
-                        <th>Сотрудник</th>
-                        <th>Тип</th>
-                        <th>Тема/Ошибка</th>
-                        <th>Документы</th>
-                        <th>Статус</th>
+                        <th style="width: 8%;" title="Дата">Дата</th>
+                        <th style="width: 18%;" title="Описание">Описание</th>
+                        <th style="width: 12%;" title="Тип инцидента">Тип инцидента</th>
+                        <th style="width: 12%;" title="Кто зафиксировал">Кто зафиксировал</th>
+                        <!-- <th style="width: 15%;" title="Ответственный за инцидент">Ответственный за инцидент</th> -->
+                        <th style="width: 8%;" title="Дедлайн">Дедлайн</th>
+                        <th style="width: 7%;" title="Кол-во обуч, всего">Кол-во обуч, всего</th>
+                        <th style="width: 7%;" title="Кол-во обуч, прошедших их обуч">Кол-во обуч, прошедших их обуч</th>
+                        <th style="width: 8%;" title="Статус">Статус</th>
+                        <th style="width: 5%;" class="comment-column" title="Комментарий (опционально)">Комментарий (опционально)</th>
                     </tr>
                 </thead>
                 <tbody>
                     {% for inc in incidents %}
-                    <tr>
-                        <td>{{ inc.created_at|date:"d.m.Y H:i" }}</td>
-                        <td>{{ inc.user.get_full_name|default:inc.user.username }}</td>
+                    <tr class="status-row-{{ inc.status }}" onclick="window.location.href='{% url 'builder:incident_edit' inc.pk %}'">
+                        <td>{{ inc.created_at|date:"d.m.Y" }}</td>
+                        <td>{{ inc.title }}</td>
                         <td>{{ inc.get_incident_type_display }}</td>
-                        <td>{{ inc.topic }}<br><span class="incident-meta">{{ inc.error_type }}</span></td>
-                        <td class="incident-docs">
-                            {% for doc in inc.related_documents.all %}
-                                <a href="{{ doc.file.url }}" target="_blank">{{ doc.title }}</a>
-                            {% empty %}-{% endfor %}
-                        </td>
+                        <td>{{ inc.user.get_full_name|default:inc.user.username }}</td>
+                        <!--<td class="responsible-cell">
+                            {% if inc.violators.exists %}
+                                {% for resp in inc.violators.all %}
+                                    {{ resp.get_full_name|default:resp.username }}{% if not forloop.last %}, {% endif %}
+                                {% endfor %}
+                            {% else %}
+                                —
+                            {% endif %}
+                        </td> -->
+                        <td>{{ inc.deadline|date:"d.m.Y"|default:"—" }}</td>
+                        <td style="text-align: center;">—</td>
+                        <td style="text-align: center;">—</td>
                         <td class="status-{{ inc.status }}">{{ inc.get_status_display }}</td>
+                        <td class="comment-cell comment-column">{{ inc.description|default:"—" }}</td>
                     </tr>
                     {% empty %}
-                    <tr><td colspan="6" class="text-center">Нет инцидентов</td></tr>
+                    <tr><td colspan="10" class="text-center">Нет инцидентов</td></tr>
                     {% endfor %}
                 </tbody>
             </table>
         </div>
-    </div>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const statusCheckboxes = document.querySelectorAll('.status-checkbox');
+    const dateFromInput = document.getElementById('date_from');
+    const dateToInput = document.getElementById('date_to');
+    
+    // Статусы, которые нужно блокировать при выборе завершен/отклонен
+    const blockedStatuses = ['new', 'accepted', 'assigned'];
+    const completedStatuses = ['resolved', 'declined'];
+    
+    function updateFilters() {
+        const checkedStatuses = Array.from(statusCheckboxes)
+            .filter(cb => cb.checked)
+            .map(cb => cb.value);
+        
+        const hasCompletedStatus = checkedStatuses.some(s => completedStatuses.includes(s));
+        
+        // Если выбран завершен или отклонен
+        if (hasCompletedStatus) {
+            // Автоматически устанавливаем период -30 дней от сегодняшней даты
+            const today = new Date();
+            const dateTo = new Date(today);
+            dateTo.setDate(dateTo.getDate());
+            
+            const dateFrom = new Date(today);
+            dateFrom.setDate(dateFrom.getDate() - 30);
+            
+            dateFromInput.value = dateFrom.toISOString().split('T')[0];
+            dateToInput.value = dateTo.toISOString().split('T')[0];
+            
+            // Блокируем чекбоксы для новых, принятых, назначенных
+            statusCheckboxes.forEach(checkbox => {
+                if (blockedStatuses.includes(checkbox.value)) {
+                    checkbox.disabled = true;
+                    // Снимаем выбор с заблокированных статусов
+                    if (checkbox.checked) {
+                        checkbox.checked = false;
+                    }
+                }
+            });
+        } else {
+            // Разблокируем все чекбоксы
+            statusCheckboxes.forEach(checkbox => {
+                checkbox.disabled = false;
+            });
+            
+            // Проверяем, есть ли хотя бы один выбранный статус
+            const hasAnyChecked = Array.from(statusCheckboxes).some(cb => cb.checked);
+            
+            // Если ни один статус не выбран, автоматически выбираем дефолтные
+            if (!hasAnyChecked) {
+                statusCheckboxes.forEach(checkbox => {
+                    if (blockedStatuses.includes(checkbox.value)) {
+                        checkbox.checked = true;
+                    }
+                });
+                
+                // Также восстанавливаем дефолтные даты (с начала 2025 года до сегодня)
+                const today = new Date();
+                dateToInput.value = today.toISOString().split('T')[0];
+                dateFromInput.value = '2025-01-01';
+            }
+        }
+    }
+    
+    // Обработчик изменения статусов
+    statusCheckboxes.forEach(checkbox => {
+        checkbox.addEventListener('change', updateFilters);
+    });
+    
+    // Инициализация при загрузке
+    updateFilters();
+});
+</script>
 {% endblock %} 

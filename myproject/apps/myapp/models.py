@@ -160,12 +160,13 @@ class UserAnswer(models.Model):
         - score_points(FloatField) - баллы за ответ (0, 0.5, 1) для многоуровневой оценки.
     
     """
+    
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='user_answers')
     quiz_result = models.ForeignKey('QuizResult', on_delete=models.CASCADE, related_name='answers')
     question = models.ForeignKey('quizzes.Question', on_delete=models.CASCADE)
     selected_answer = models.ForeignKey('quizzes.Answer', on_delete=models.SET_NULL, null=True, blank=True)
     is_correct = models.BooleanField(null=True, blank=True, help_text="Для открытых ответов: None = не оценено")
-    answer_text = models.CharField(max_length=500, blank=True, null=True)
+    answer_text = models.CharField(max_length=2000, blank=True, null=True)
     score_points = models.FloatField(
         null=True,
         blank=True,
