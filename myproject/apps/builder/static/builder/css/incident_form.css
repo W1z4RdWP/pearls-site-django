@@ -291,7 +291,45 @@
     }
 }
 
-/* Стили для поля выбора ответственных */
+/* Стили для поля выбора назначенных */
+.assigned-select-field {
+    width: 100%;
+    border-radius: 6px;
+    border: 1px solid #e3e8f0;
+    padding: 10px 12px;
+    font-size: 1em;
+    background: #fff;
+    color: #232a3a;
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    transition: border 0.2s, background 0.2s;
+    min-height: 38px;
+    box-sizing: border-box;
+}
+
+.assigned-select-field:hover {
+    border-color: #4d7cff;
+    background: #f7f8fa;
+}
+
+.assigned-display-text {
+    flex: 1;
+}
+
+.assigned-count {
+    font-weight: 600;
+    color: #4d7cff;
+}
+
+.assigned-select-icon {
+    color: #999;
+    margin-left: 8px;
+    font-size: 0.8em;
+}
+
+/* Для обратной совместимости оставляем и responsible-select-field */
 .responsible-select-field {
     width: 100%;
     border-radius: 6px;
@@ -579,6 +617,38 @@
 .selected-user-username {
     font-size: 0.9em;
     color: #666;
+}
+
+/* Контейнер для действий (галочка и крестик) */
+.selected-user-actions {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+/* Стили для галочки "Ответственный" */
+.selected-user-checkbox {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+    margin: 0;
+    font-weight: 400;
+    color: #666;
+    font-size: 0.9em;
+    white-space: nowrap;
+}
+
+.selected-user-checkbox input[type="checkbox"] {
+    cursor: pointer;
+    width: 18px;
+    height: 18px;
+    margin: 0;
+    accent-color: #4d7cff;
+}
+
+.checkbox-label {
+    user-select: none;
 }
 
 .selected-user-remove {

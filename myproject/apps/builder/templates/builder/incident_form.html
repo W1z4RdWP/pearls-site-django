@@ -42,16 +42,16 @@
         </div>
 
         <div class="form-group">
-            <label for="responsible-display">{{ form.responsible_users.label }}</label>
-            <div class="responsible-select-field" id="responsibleSelectField">
-                <span id="responsibleDisplayText" class="responsible-display-text">
-                    <span id="responsibleCount" class="responsible-count">0</span> пользователей выбрано
+            <label for="assigned-display">Кому назначен</label>
+            <div class="assigned-select-field" id="assignedSelectField">
+                <span id="assignedDisplayText" class="assigned-display-text">
+                    <span id="assignedCount" class="assigned-count">0</span> пользователей выбрано
                 </span>
-                <span class="responsible-select-icon">&#9660;</span>
+                <span class="assigned-select-icon">&#9660;</span>
             </div>
-            {{ form.responsible_users }}
-            {% if form.responsible_users.errors %}
-                <div class="text-danger mt-1">{{ form.responsible_users.errors }}</div>
+            {{ form.assigned_to }}
+            {% if form.assigned_to.errors %}
+                <div class="text-danger mt-1">{{ form.assigned_to.errors }}</div>
             {% endif %}
         </div>
 
@@ -106,12 +106,12 @@
     </div>
 </div>
 
-<!-- Модальное окно для выбора ответственных -->
-<div id="responsibleModal" class="responsible-modal">
+<!-- Модальное окно для выбора назначенных -->
+<div id="assignedModal" class="responsible-modal">
     <div class="responsible-modal-content">
         <div class="responsible-modal-header">
-            <h3>Выберите ответственных</h3>
-            <span class="responsible-modal-close" id="responsibleModalClose">&times;</span>
+            <h3>Выберите назначенных</h3>
+            <span class="responsible-modal-close" id="assignedModalClose">&times;</span>
         </div>
         <div class="responsible-modal-body">
             <div class="responsible-columns">
@@ -130,7 +130,7 @@
                 <div class="responsible-right-column">
                     <h4>Выбранные пользователи</h4>
                     <div class="responsible-search-box">
-                        <input type="text" id="responsibleSearchInput" class="form-control" placeholder="Поиск пользователя для добавления...">
+                        <input type="text" id="assignedSearchInput" class="form-control" placeholder="Поиск пользователя для добавления...">
                         <div id="searchResultsDropdown" class="search-results-dropdown" style="display: none;"></div>
                     </div>
                     <div id="selectedUsersList" class="selected-users-list">
@@ -139,8 +139,8 @@
                 </div>
             </div>
             <div class="responsible-modal-footer">
-                <button type="button" class="btn btn-primary" id="confirmResponsibleBtn">Применить</button>
-                <button type="button" class="btn btn-secondary" id="cancelResponsibleBtn">Отмена</button>
+                <button type="button" class="btn btn-primary" id="confirmAssignedBtn">Применить</button>
+                <button type="button" class="btn btn-secondary" id="cancelAssignedBtn">Отмена</button>
             </div>
         </div>
     </div>
@@ -164,20 +164,23 @@
     const userDisplayName = document.getElementById('userDisplayName');
     const userInput = document.getElementById('{{ form.user.id_for_label }}');
     
-    // Элементы DOM для выбора ответственных
-    const responsibleModal = document.getElementById('responsibleModal');
-    const responsibleSelectField = document.getElementById('responsibleSelectField');
-    const responsibleModalClose = document.getElementById('responsibleModalClose');
-    const responsibleSearchInput = document.getElementById('responsibleSearchInput');
+    // Элементы DOM для выбора назначенных
+    const assignedModal = document.getElementById('assignedModal');
+    const assignedSelectField = document.getElementById('assignedSelectField');
+    const assignedModalClose = document.getElementById('assignedModalClose');
+    const assignedSearchInput = document.getElementById('assignedSearchInput');
     const searchResultsDropdown = document.getElementById('searchResultsDropdown');
     const groupList = document.getElementById('groupList');
     const selectedUsersList = document.getElementById('selectedUsersList');
-    const confirmResponsibleBtn = document.getElementById('confirmResponsibleBtn');
-    const cancelResponsibleBtn = document.getElementById('cancelResponsibleBtn');
-    const responsibleCount = document.getElementById('responsibleCount');
+    const confirmAssignedBtn = document.getElementById('confirmAssignedBtn');
+    const cancelAssignedBtn = document.getElementById('cancelAssignedBtn');
+    const assignedCount = document.getElementById('assignedCount');
     
-    // Хранилище выбранных ответственных пользователей
-    let selectedResponsibleUsers = new Map(); // userId -> {id, full_name, username}
+    // Хранилище выбранных назначенных пользователей
+    let selectedAssignedUsers = new Map(); // userId -> {id, full_name, username}
+    
+    // Хранилище ответственных пользователей (отмеченные галочкой)
+    let responsibleUsers = new Set(); // Set of userId
     
     // Кэш последних результатов поиска
     let lastSearchResults = [];
@@ -200,8 +203,8 @@
         if (event.target == modal) {
             modal.style.display = 'none';
         }
-        if (event.target == responsibleModal) {
-            responsibleModal.style.display = 'none';
+        if (event.target == assignedModal) {
+            assignedModal.style.display = 'none';
             hideSearchResults();
         }
     });
@@ -276,30 +279,30 @@
         userDisplayName.classList.add('user-display-placeholder');
     }
     
-    // ========== ФУНКЦИИ ДЛЯ ВЫБОРА ОТВЕТСТВЕННЫХ ==========
+    // ========== ФУНКЦИИ ДЛЯ ВЫБОРА НАЗНАЧЕННЫХ ==========
     
-    // Открытие модального окна выбора ответственных
-    responsibleSelectField.addEventListener('click', function() {
-        responsibleModal.style.display = 'block';
+    // Открытие модального окна выбора назначенных
+    assignedSelectField.addEventListener('click', function() {
+        assignedModal.style.display = 'block';
         loadGroups();
-        loadInitialResponsibleUsers();
+        loadInitialAssignedUsers();
     });
     
     // Закрытие модального окна
-    responsibleModalClose.addEventListener('click', function() {
-        responsibleModal.style.display = 'none';
+    assignedModalClose.addEventListener('click', function() {
+        assignedModal.style.display = 'none';
         hideSearchResults();
     });
     
-    cancelResponsibleBtn.addEventListener('click', function() {
-        responsibleModal.style.display = 'none';
+    cancelAssignedBtn.addEventListener('click', function() {
+        assignedModal.style.display = 'none';
         hideSearchResults();
     });
     
     // Применение выбора
-    confirmResponsibleBtn.addEventListener('click', function() {
-        applyResponsibleSelection();
-        responsibleModal.style.display = 'none';
+    confirmAssignedBtn.addEventListener('click', function() {
+        applyAssignedSelection();
+        assignedModal.style.display = 'none';
         hideSearchResults();
     });
     
@@ -355,8 +358,8 @@
             .then(response => response.json())
             .then(data => {
                 data.users.forEach(function(user) {
-                    if (!selectedResponsibleUsers.has(user.id)) {
-                        selectedResponsibleUsers.set(user.id, user);
+                    if (!selectedAssignedUsers.has(user.id)) {
+                        selectedAssignedUsers.set(user.id, user);
                     }
                 });
                 displaySelectedUsers();
@@ -366,10 +369,10 @@
             });
     }
     
-    // Поиск пользователей для добавления в ответственные
-    let responsibleSearchTimeout;
-    responsibleSearchInput.addEventListener('input', function() {
-        clearTimeout(responsibleSearchTimeout);
+    // Поиск пользователей для добавления в назначенные
+    let assignedSearchTimeout;
+    assignedSearchInput.addEventListener('input', function() {
+        clearTimeout(assignedSearchTimeout);
         const query = this.value.trim();
         
         if (query.length === 0) {
@@ -377,13 +380,13 @@
             return;
         }
         
-        responsibleSearchTimeout = setTimeout(function() {
+        assignedSearchTimeout = setTimeout(function() {
             searchUsers(query);
         }, 300);
     });
     
     // Обработка клавиши Escape для закрытия выпадающего списка
-    responsibleSearchInput.addEventListener('keydown', function(event) {
+    assignedSearchInput.addEventListener('keydown', function(event) {
         if (event.key === 'Escape') {
             hideSearchResults();
             this.blur();
@@ -392,7 +395,7 @@
     
     // Закрытие выпадающего списка при клике вне его
     document.addEventListener('click', function(event) {
-        if (!responsibleSearchInput.contains(event.target) && !searchResultsDropdown.contains(event.target)) {
+        if (!assignedSearchInput.contains(event.target) && !searchResultsDropdown.contains(event.target)) {
             hideSearchResults();
         }
     });
@@ -426,7 +429,7 @@
         let html = '';
         users.forEach(function(user) {
             // Пропускаем уже выбранных пользователей
-            if (selectedResponsibleUsers.has(user.id)) {
+            if (selectedAssignedUsers.has(user.id)) {
                 return;
             }
             
@@ -460,10 +463,10 @@
         // Находим пользователя в сохраненных результатах поиска
         const user = lastSearchResults.find(u => u.id === userId);
         
-        if (user && !selectedResponsibleUsers.has(userId)) {
-            selectedResponsibleUsers.set(userId, user);
+        if (user && !selectedAssignedUsers.has(userId)) {
+            selectedAssignedUsers.set(userId, user);
             displaySelectedUsers();
-            responsibleSearchInput.value = '';
+            assignedSearchInput.value = '';
             hideSearchResults();
         }
     }
@@ -476,25 +479,44 @@
     
     // Отображение выбранных пользователей
     function displaySelectedUsers() {
-        if (selectedResponsibleUsers.size === 0) {
+        if (selectedAssignedUsers.size === 0) {
             selectedUsersList.innerHTML = '<div class="selected-users-empty">Пользователи не выбраны</div>';
             return;
         }
         
         let html = '';
-        selectedResponsibleUsers.forEach(function(user, userId) {
+        selectedAssignedUsers.forEach(function(user, userId) {
+            const isResponsible = responsibleUsers.has(userId);
             html += `
                 <div class="selected-user-item" data-user-id="${userId}">
                     <div class="selected-user-info">
                         <div class="selected-user-name">${user.full_name}</div>
-                        <div class="selected-user-username">@${user.username}</div>
                     </div>
-                    <span class="selected-user-remove" data-user-id="${userId}">&times;</span>
+                    <div class="selected-user-actions">
+                        <label class="selected-user-checkbox" title="Ответственный">
+                            <input type="checkbox" data-user-id="${userId}" ${isResponsible ? 'checked' : ''}>
+                            <span class="checkbox-label">Ответственный</span>
+                        </label>
+                        <span class="selected-user-remove" data-user-id="${userId}" title="Удалить">&times;</span>
+                    </div>
                 </div>
             `;
         });
         
         selectedUsersList.innerHTML = html;
+        
+        // Добавляем обработчики для галочек
+        const checkboxes = selectedUsersList.querySelectorAll('input[type="checkbox"]');
+        checkboxes.forEach(function(checkbox) {
+            checkbox.addEventListener('change', function() {
+                const userId = parseInt(this.getAttribute('data-user-id'));
+                if (this.checked) {
+                    responsibleUsers.add(userId);
+                } else {
+                    responsibleUsers.delete(userId);
+                }
+            });
+        });
         
         // Добавляем обработчики для удаления пользователей
         const removeButtons = selectedUsersList.querySelectorAll('.selected-user-remove');
@@ -502,29 +524,35 @@
             btn.addEventListener('click', function(e) {
                 e.stopPropagation();
                 const userId = parseInt(this.getAttribute('data-user-id'));
-                selectedResponsibleUsers.delete(userId);
+                selectedAssignedUsers.delete(userId);
+                responsibleUsers.delete(userId); // Также удаляем из ответственных
                 displaySelectedUsers();
             });
         });
     }
     
     // Загрузка изначально выбранных пользователей (при редактировании)
-    function loadInitialResponsibleUsers() {
-        const hiddenInputs = document.querySelectorAll('input[name="responsible_users"]');
+    function loadInitialAssignedUsers() {
+        const assignedInputs = document.querySelectorAll('input[name="assigned_to"]');
+        const responsibleInputs = document.querySelectorAll('input[name="responsible_users"]');
         
-        if (hiddenInputs.length === 0) {
-            return;
-        }
-        
-        // Собираем ID выбранных пользователей
-        const userIds = [];
-        hiddenInputs.forEach(function(input) {
+        // Собираем ID назначенных пользователей
+        const assignedUserIds = [];
+        assignedInputs.forEach(function(input) {
             if (input.value) {
-                userIds.push(parseInt(input.value));
+                assignedUserIds.push(parseInt(input.value));
             }
         });
         
-        if (userIds.length === 0) {
+        // Собираем ID ответственных пользователей
+        const responsibleUserIds = [];
+        responsibleInputs.forEach(function(input) {
+            if (input.value) {
+                responsibleUserIds.push(parseInt(input.value));
+            }
+        });
+        
+        if (assignedUserIds.length === 0) {
             return;
         }
         
@@ -532,12 +560,18 @@
         fetch(searchUsersUrl + '?q=')
             .then(response => response.json())
             .then(data => {
-                userIds.forEach(function(userId) {
+                assignedUserIds.forEach(function(userId) {
                     const user = data.users.find(u => u.id === userId);
                     if (user) {
-                        selectedResponsibleUsers.set(userId, user);
+                        selectedAssignedUsers.set(userId, user);
                     }
                 });
+                
+                // Добавляем ответственных в Set
+                responsibleUserIds.forEach(function(userId) {
+                    responsibleUsers.add(userId);
+                });
+                
                 displaySelectedUsers();
             })
             .catch(error => {
@@ -545,17 +579,34 @@
             });
     }
     
-    // Применение выбора ответственных
-    function applyResponsibleSelection() {
-        // Удаляем все существующие скрытые поля
-        const oldInputs = document.querySelectorAll('input[name="responsible_users"]');
-        oldInputs.forEach(function(input) {
+    // Применение выбора назначенных
+    function applyAssignedSelection() {
+        // Удаляем все существующие скрытые поля для assigned_to
+        const oldAssignedInputs = document.querySelectorAll('input[name="assigned_to"]');
+        oldAssignedInputs.forEach(function(input) {
             input.remove();
         });
         
-        // Находим форму и добавляем новые скрытые поля для выбранных пользователей
+        // Удаляем все существующие скрытые поля для responsible_users
+        const oldResponsibleInputs = document.querySelectorAll('input[name="responsible_users"]');
+        oldResponsibleInputs.forEach(function(input) {
+            input.remove();
+        });
+        
+        // Находим форму и добавляем новые скрытые поля
         const form = document.querySelector('form');
-        selectedResponsibleUsers.forEach(function(user, userId) {
+        
+        // Добавляем скрытые поля для назначенных пользователей
+        selectedAssignedUsers.forEach(function(user, userId) {
+            const hiddenInput = document.createElement('input');
+            hiddenInput.type = 'hidden';
+            hiddenInput.name = 'assigned_to';
+            hiddenInput.value = userId;
+            form.appendChild(hiddenInput);
+        });
+        
+        // Добавляем скрытые поля для ответственных пользователей
+        responsibleUsers.forEach(function(userId) {
             const hiddenInput = document.createElement('input');
             hiddenInput.type = 'hidden';
             hiddenInput.name = 'responsible_users';
@@ -564,13 +615,13 @@
         });
         
         // Обновляем счетчик
-        responsibleCount.textContent = selectedResponsibleUsers.size;
+        assignedCount.textContent = selectedAssignedUsers.size;
     }
     
     // Инициализация счетчика при загрузке страницы
     document.addEventListener('DOMContentLoaded', function() {
-        const hiddenInputs = document.querySelectorAll('input[name="responsible_users"]');
-        responsibleCount.textContent = hiddenInputs.length;
+        const hiddenInputs = document.querySelectorAll('input[name="assigned_to"]');
+        assignedCount.textContent = hiddenInputs.length;
     });
 </script>
 {% endblock %} 

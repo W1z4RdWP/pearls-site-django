@@ -42,6 +42,9 @@ class CategoryName(models.Model):
             k = k.parent
         return ' / '.join(full_path[::-1])
 
+
+
+
 class Document(models.Model):
     """
     Документ для базы знаний. Может быть привязан к уроку или использоваться отдельно.
@@ -76,6 +79,7 @@ class Incident(models.Model):
     description = models.TextField(max_length=1000, blank=True, null=True, verbose_name='Комментарий/описание')
     incident_type = models.CharField(max_length=32, choices=INCIDENT_TYPE_CHOICES, verbose_name='Тип инцидента')
     user = models.ForeignKey(get_user_model(), on_delete=models.CASCADE, related_name='created_incidents', verbose_name='Кто зафиксировал')
+    assigned_to = models.ManyToManyField(get_user_model(), related_name='assigned_incidents', blank=True, verbose_name='Кому назначен')
     responsible_users = models.ManyToManyField(get_user_model(), related_name='responsible_incidents', blank=True, verbose_name='Ответственные за инцидент')
     status = models.CharField(max_length=32, choices=STATUS_CHOICES, default='new', verbose_name='Статус')
     
