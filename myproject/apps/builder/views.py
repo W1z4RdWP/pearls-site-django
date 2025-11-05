@@ -907,6 +907,30 @@ class IncidentUpdateView(UpdateView, AuditLoggerMixin):
 
 
 
+class IncidentDetailListView(DetailView):
+    """
+    Список по прогрессу пользователей по выбранному инциденту
+    """
+    model = Incident
+    template_name = 'builder/incident_detail.html'
+    context_object_name = 'incident'
+    pk_url_kwarg = 'pk'
+
+    def dispatch(self, request, *args, **kwargs):
+        if not request.user.is_authenticated or not (request.user.is_staff or request.user.is_superuser):
+            return render(request, '403.html', status=403)
+        return super().dispatch(request, *args, **kwargs)
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        incident = self.get_object()
+
+        context['assigned_users'] = incident.assigned_to.all()
+        context['initiator_users'] = incident.initiator_users.all()
+        return context
+
+
+
 
 @csrf_exempt
 @login_required
