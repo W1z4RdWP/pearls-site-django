@@ -50,6 +50,44 @@
     padding: 8px 12px !important;
     line-height: 1.5 !important;
 }
+
+/* Стили для множественного выбора (select multiple) */
+.incident-form-card select.form-control[multiple],
+.incident-form-card select[multiple].form-control {
+    height: auto !important;
+    min-height: 120px !important;
+    max-height: 200px !important;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+    padding: 8px !important;
+    border: 1px solid #e3e8f0 !important;
+    border-radius: 6px;
+    background: #fff !important;
+    box-sizing: border-box !important;
+    width: 100% !important;
+}
+
+.incident-form-card select.form-control[multiple] option,
+.incident-form-card select[multiple].form-control option {
+    padding: 8px 12px;
+    margin: 2px 0;
+    border-radius: 4px;
+    cursor: pointer;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.incident-form-card select.form-control[multiple] option:checked,
+.incident-form-card select[multiple].form-control option:checked {
+    background: #4d7cff;
+    color: #fff;
+}
+
+.incident-form-card select.form-control[multiple] option:hover,
+.incident-form-card select[multiple].form-control option:hover {
+    background: #f0f4ff;
+}
 .incident-form-card .form-control:focus {
     border: 1.5px solid #4d7cff;
     outline: none;
@@ -671,6 +709,36 @@
     text-align: center;
     color: #999;
     font-size: 0.95em;
+}
+
+/* Стили для чекбоксов нарушителей */
+.violators-checkboxes {
+    margin-top: 12px;
+    padding: 16px;
+    background: #f7f8fa;
+    border: 1px solid #e3e8f0;
+    border-radius: 6px;
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+.violators-checkboxes .form-check {
+    padding: 8px 0;
+    margin-bottom: 8px;
+}
+
+.violators-checkboxes .form-check-label {
+    font-weight: 400 !important;
+    color: #232a3a;
+    cursor: pointer;
+    margin-left: 8px;
+}
+
+.violators-checkboxes .form-check-input {
+    cursor: pointer;
+    width: 18px;
+    height: 18px;
+    accent-color: #4d7cff;
 }
 
 /* Футер модального окна */

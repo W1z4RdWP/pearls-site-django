@@ -42,17 +42,17 @@
         </div>
 
         <div class="form-group">
-            <label for="assigned-display">Кому назначен</label>
-            <div class="assigned-select-field" id="assignedSelectField">
-                <span id="assignedDisplayText" class="assigned-display-text">
-                    <span id="assignedCount" class="assigned-count">0</span> пользователей выбрано
-                </span>
-                <span class="assigned-select-icon">&#9660;</span>
-            </div>
+            <label for="{{ form.assigned_to.id_for_label }}">{{ form.assigned_to.label }}</label>
             {{ form.assigned_to }}
             {% if form.assigned_to.errors %}
                 <div class="text-danger mt-1">{{ form.assigned_to.errors }}</div>
             {% endif %}
+            <small class="form-text text-muted">Удерживайте Ctrl (или Cmd на Mac) для выбора нескольких пользователей</small>
+        </div>
+
+        <div class="form-group" id="violatorsGroup" style="display: none;">
+            <label>Отметить нарушителей среди выбранных пользователей:</label>
+            <div id="violatorsCheckboxes" class="violators-checkboxes"></div>
         </div>
 
         <div class="form-group">
@@ -106,45 +106,6 @@
     </div>
 </div>
 
-<!-- Модальное окно для выбора назначенных -->
-<div id="assignedModal" class="responsible-modal">
-    <div class="responsible-modal-content">
-        <div class="responsible-modal-header">
-            <h3>Выберите назначенных</h3>
-            <span class="responsible-modal-close" id="assignedModalClose">&times;</span>
-        </div>
-        <div class="responsible-modal-body">
-            <div class="responsible-columns">
-                <!-- Левая колонка - Группы -->
-                <div class="responsible-left-column">
-                    <h4>Группы</h4>
-                    <div id="groupList" class="group-list">
-                        <div class="group-list-loading">Загрузка групп...</div>
-                    </div>
-                </div>
-                
-                <!-- Разделитель -->
-                <div class="responsible-divider"></div>
-                
-                <!-- Правая колонка - Выбранные пользователи -->
-                <div class="responsible-right-column">
-                    <h4>Выбранные пользователи</h4>
-                    <div class="responsible-search-box">
-                        <input type="text" id="assignedSearchInput" class="form-control" placeholder="Поиск пользователя для добавления...">
-                        <div id="searchResultsDropdown" class="search-results-dropdown" style="display: none;"></div>
-                    </div>
-                    <div id="selectedUsersList" class="selected-users-list">
-                        <div class="selected-users-empty">Пользователи не выбраны</div>
-                    </div>
-                </div>
-            </div>
-            <div class="responsible-modal-footer">
-                <button type="button" class="btn btn-primary" id="confirmAssignedBtn">Применить</button>
-                <button type="button" class="btn btn-secondary" id="cancelAssignedBtn">Отмена</button>
-            </div>
-        </div>
-    </div>
-</div>
 
 {% endblock %}
 
@@ -152,8 +113,6 @@
 <script>
     // API endpoints
     const searchUsersUrl = "{% url 'builder:api_search_users' %}";
-    const getGroupsUrl = "{% url 'builder:api_get_groups' %}";
-    const getGroupUsersUrl = "{% url 'builder:api_get_group_users' 0 %}".replace('/0/', '/{id}/');
     
     // Элементы DOM для выбора пользователя (кто зафиксировал)
     const modal = document.getElementById('userModal');
@@ -164,26 +123,13 @@
     const userDisplayName = document.getElementById('userDisplayName');
     const userInput = document.getElementById('{{ form.user.id_for_label }}');
     
-    // Элементы DOM для выбора назначенных
-    const assignedModal = document.getElementById('assignedModal');
-    const assignedSelectField = document.getElementById('assignedSelectField');
-    const assignedModalClose = document.getElementById('assignedModalClose');
-    const assignedSearchInput = document.getElementById('assignedSearchInput');
-    const searchResultsDropdown = document.getElementById('searchResultsDropdown');
-    const groupList = document.getElementById('groupList');
-    const selectedUsersList = document.getElementById('selectedUsersList');
-    const confirmAssignedBtn = document.getElementById('confirmAssignedBtn');
-    const cancelAssignedBtn = document.getElementById('cancelAssignedBtn');
-    const assignedCount = document.getElementById('assignedCount');
-    
-    // Хранилище выбранных назначенных пользователей
-    let selectedAssignedUsers = new Map(); // userId -> {id, full_name, username}
+    // Элементы DOM для выбора назначенных и нарушителей
+    const assignedToSelect = document.getElementById('{{ form.assigned_to.id_for_label }}');
+    const violatorsGroup = document.getElementById('violatorsGroup');
+    const violatorsCheckboxes = document.getElementById('violatorsCheckboxes');
     
     // Хранилище нарушителей (отмеченные галочкой)
-    let responsibleUsers = new Set(); // Set of userId (название переменной оставлено для совместимости)
-    
-    // Кэш последних результатов поиска
-    let lastSearchResults = [];
+    let violatorsSet = new Set();
     
     // ========== ФУНКЦИИ ДЛЯ ВЫБОРА ПОЛЬЗОВАТЕЛЯ (КТО ЗАФИКСИРОВАЛ) ==========
     
@@ -202,10 +148,6 @@
     window.addEventListener('click', function(event) {
         if (event.target == modal) {
             modal.style.display = 'none';
-        }
-        if (event.target == assignedModal) {
-            assignedModal.style.display = 'none';
-            hideSearchResults();
         }
     });
     
@@ -279,349 +221,106 @@
         userDisplayName.classList.add('user-display-placeholder');
     }
     
-    // ========== ФУНКЦИИ ДЛЯ ВЫБОРА НАЗНАЧЕННЫХ ==========
+    // ========== ФУНКЦИИ ДЛЯ ВЫБОРА НАЗНАЧЕННЫХ И НАРУШИТЕЛЕЙ ==========
     
-    // Открытие модального окна выбора назначенных
-    assignedSelectField.addEventListener('click', function() {
-        assignedModal.style.display = 'block';
-        loadGroups();
-        loadInitialAssignedUsers();
-    });
-    
-    // Закрытие модального окна
-    assignedModalClose.addEventListener('click', function() {
-        assignedModal.style.display = 'none';
-        hideSearchResults();
-    });
-    
-    cancelAssignedBtn.addEventListener('click', function() {
-        assignedModal.style.display = 'none';
-        hideSearchResults();
-    });
-    
-    // Применение выбора
-    confirmAssignedBtn.addEventListener('click', function() {
-        applyAssignedSelection();
-        assignedModal.style.display = 'none';
-        hideSearchResults();
-    });
-    
-    // Загрузка списка групп
-    function loadGroups() {
-        groupList.innerHTML = '<div class="group-list-loading">Загрузка групп...</div>';
+    // Функция для обновления чекбоксов нарушителей
+    function updateViolatorsCheckboxes() {
+        const selectedOptions = Array.from(assignedToSelect.selectedOptions);
         
-        fetch(getGroupsUrl)
-            .then(response => response.json())
-            .then(data => {
-                displayGroups(data.groups);
-            })
-            .catch(error => {
-                console.error('Ошибка загрузки групп:', error);
-                groupList.innerHTML = '<div class="group-list-error">Ошибка загрузки групп</div>';
-            });
-    }
-    
-    // Отображение списка групп
-    function displayGroups(groups) {
-        if (groups.length === 0) {
-            groupList.innerHTML = '<div class="group-list-empty">Группы не найдены</div>';
+        if (selectedOptions.length === 0) {
+            violatorsGroup.style.display = 'none';
+            violatorsCheckboxes.innerHTML = '';
             return;
         }
+        
+        violatorsGroup.style.display = 'block';
         
         let html = '';
-        groups.forEach(function(group) {
-            html += `
-                <div class="group-item" data-group-id="${group.id}">
-                    <div class="group-item-name">${group.name}</div>
-                    <div class="group-item-count">${group.user_count} пользователей</div>
-                </div>
-            `;
-        });
-        
-        groupList.innerHTML = html;
-        
-        // Добавляем обработчики клика на каждую группу
-        const groupItems = groupList.querySelectorAll('.group-item');
-        groupItems.forEach(function(item) {
-            item.addEventListener('click', function() {
-                const groupId = this.getAttribute('data-group-id');
-                addGroupUsers(groupId);
-            });
-        });
-    }
-    
-    // Добавление всех пользователей группы
-    function addGroupUsers(groupId) {
-        const url = getGroupUsersUrl.replace('{id}', groupId);
-        
-        fetch(url)
-            .then(response => response.json())
-            .then(data => {
-                data.users.forEach(function(user) {
-                    if (!selectedAssignedUsers.has(user.id)) {
-                        selectedAssignedUsers.set(user.id, user);
-                    }
-                });
-                displaySelectedUsers();
-            })
-            .catch(error => {
-                console.error('Ошибка загрузки пользователей группы:', error);
-            });
-    }
-    
-    // Поиск пользователей для добавления в назначенные
-    let assignedSearchTimeout;
-    assignedSearchInput.addEventListener('input', function() {
-        clearTimeout(assignedSearchTimeout);
-        const query = this.value.trim();
-        
-        if (query.length === 0) {
-            hideSearchResults();
-            return;
-        }
-        
-        assignedSearchTimeout = setTimeout(function() {
-            searchUsers(query);
-        }, 300);
-    });
-    
-    // Обработка клавиши Escape для закрытия выпадающего списка
-    assignedSearchInput.addEventListener('keydown', function(event) {
-        if (event.key === 'Escape') {
-            hideSearchResults();
-            this.blur();
-        }
-    });
-    
-    // Закрытие выпадающего списка при клике вне его
-    document.addEventListener('click', function(event) {
-        if (!assignedSearchInput.contains(event.target) && !searchResultsDropdown.contains(event.target)) {
-            hideSearchResults();
-        }
-    });
-    
-    // Поиск пользователей и отображение результатов
-    function searchUsers(query) {
-        searchResultsDropdown.innerHTML = '<div class="search-results-loading">Поиск...</div>';
-        searchResultsDropdown.style.display = 'block';
-        
-        const url = searchUsersUrl + '?q=' + encodeURIComponent(query);
-        
-        fetch(url)
-            .then(response => response.json())
-            .then(data => {
-                lastSearchResults = data.users; // Сохраняем результаты
-                displaySearchResults(data.users);
-            })
-            .catch(error => {
-                console.error('Ошибка поиска пользователей:', error);
-                searchResultsDropdown.innerHTML = '<div class="search-results-empty">Ошибка поиска</div>';
-            });
-    }
-    
-    // Отображение результатов поиска
-    function displaySearchResults(users) {
-        if (users.length === 0) {
-            searchResultsDropdown.innerHTML = '<div class="search-results-empty">Пользователи не найдены</div>';
-            return;
-        }
-        
-        let html = '';
-        users.forEach(function(user) {
-            // Пропускаем уже выбранных пользователей
-            if (selectedAssignedUsers.has(user.id)) {
-                return;
-            }
+        selectedOptions.forEach(function(option) {
+            const userId = parseInt(option.value);
+            const userName = option.text;
+            const isViolator = violatorsSet.has(userId);
             
             html += `
-                <div class="search-result-item" data-user-id="${user.id}">
-                    <div class="search-result-name">${user.full_name}</div>
-                    <div class="search-result-username">@${user.username}</div>
+                <div class="form-check mb-2">
+                    <input class="form-check-input" type="checkbox" 
+                           id="violator_${userId}" 
+                           value="${userId}" 
+                           ${isViolator ? 'checked' : ''}>
+                    <label class="form-check-label" for="violator_${userId}">
+                        ${userName}
+                    </label>
                 </div>
             `;
         });
         
-        if (html === '') {
-            searchResultsDropdown.innerHTML = '<div class="search-results-empty">Все найденные пользователи уже выбраны</div>';
-            return;
-        }
+        violatorsCheckboxes.innerHTML = html;
         
-        searchResultsDropdown.innerHTML = html;
-        
-        // Добавляем обработчики клика на результаты
-        const resultItems = searchResultsDropdown.querySelectorAll('.search-result-item');
-        resultItems.forEach(function(item) {
-            item.addEventListener('click', function() {
-                const userId = parseInt(this.getAttribute('data-user-id'));
-                addUserFromSearch(userId);
-            });
-        });
-    }
-    
-    // Добавление пользователя из результатов поиска
-    function addUserFromSearch(userId) {
-        // Находим пользователя в сохраненных результатах поиска
-        const user = lastSearchResults.find(u => u.id === userId);
-        
-        if (user && !selectedAssignedUsers.has(userId)) {
-            selectedAssignedUsers.set(userId, user);
-            displaySelectedUsers();
-            assignedSearchInput.value = '';
-            hideSearchResults();
-        }
-    }
-    
-    // Скрытие выпадающего списка результатов
-    function hideSearchResults() {
-        searchResultsDropdown.style.display = 'none';
-        searchResultsDropdown.innerHTML = '';
-    }
-    
-    // Отображение выбранных пользователей
-    function displaySelectedUsers() {
-        if (selectedAssignedUsers.size === 0) {
-            selectedUsersList.innerHTML = '<div class="selected-users-empty">Пользователи не выбраны</div>';
-            return;
-        }
-        
-        let html = '';
-        selectedAssignedUsers.forEach(function(user, userId) {
-            const isResponsible = responsibleUsers.has(userId);
-            html += `
-                <div class="selected-user-item" data-user-id="${userId}">
-                    <div class="selected-user-info">
-                        <div class="selected-user-name">${user.full_name}</div>
-                    </div>
-                    <div class="selected-user-actions">
-                        <label class="selected-user-checkbox" title="Нарушитель">
-                            <input type="checkbox" data-user-id="${userId}" ${isResponsible ? 'checked' : ''}>
-                            <span class="checkbox-label">Нарушитель</span>
-                        </label>
-                        <span class="selected-user-remove" data-user-id="${userId}" title="Удалить">&times;</span>
-                    </div>
-                </div>
-            `;
-        });
-        
-        selectedUsersList.innerHTML = html;
-        
-        // Добавляем обработчики для галочек
-        const checkboxes = selectedUsersList.querySelectorAll('input[type="checkbox"]');
+        // Добавляем обработчики для чекбоксов
+        const checkboxes = violatorsCheckboxes.querySelectorAll('input[type="checkbox"]');
         checkboxes.forEach(function(checkbox) {
             checkbox.addEventListener('change', function() {
-                const userId = parseInt(this.getAttribute('data-user-id'));
+                const userId = parseInt(this.value);
                 if (this.checked) {
-                    responsibleUsers.add(userId);
+                    violatorsSet.add(userId);
                 } else {
-                    responsibleUsers.delete(userId);
+                    violatorsSet.delete(userId);
                 }
-            });
-        });
-        
-        // Добавляем обработчики для удаления пользователей
-        const removeButtons = selectedUsersList.querySelectorAll('.selected-user-remove');
-        removeButtons.forEach(function(btn) {
-            btn.addEventListener('click', function(e) {
-                e.stopPropagation();
-                const userId = parseInt(this.getAttribute('data-user-id'));
-                selectedAssignedUsers.delete(userId);
-                responsibleUsers.delete(userId); // Также удаляем из нарушителей
-                displaySelectedUsers();
+                updateViolatorsHiddenFields();
             });
         });
     }
     
-    // Загрузка изначально выбранных пользователей (при редактировании)
-    function loadInitialAssignedUsers() {
-        const assignedInputs = document.querySelectorAll('input[name="assigned_to"]');
-        const violatorInputs = document.querySelectorAll('input[name="violators"]');
-        
-        // Собираем ID назначенных пользователей
-        const assignedUserIds = [];
-        assignedInputs.forEach(function(input) {
-            if (input.value) {
-                assignedUserIds.push(parseInt(input.value));
-            }
-        });
-        
-        // Собираем ID нарушителей
-        const violatorUserIds = [];
-        violatorInputs.forEach(function(input) {
-            if (input.value) {
-                violatorUserIds.push(parseInt(input.value));
-            }
-        });
-        
-        if (assignedUserIds.length === 0) {
-            return;
-        }
-        
-        // Загружаем информацию о пользователях
-        fetch(searchUsersUrl + '?q=')
-            .then(response => response.json())
-            .then(data => {
-                assignedUserIds.forEach(function(userId) {
-                    const user = data.users.find(u => u.id === userId);
-                    if (user) {
-                        selectedAssignedUsers.set(userId, user);
-                    }
-                });
-                
-                // Добавляем нарушителей в Set
-                violatorUserIds.forEach(function(userId) {
-                    responsibleUsers.add(userId);
-                });
-                
-                displaySelectedUsers();
-            })
-            .catch(error => {
-                console.error('Ошибка загрузки пользователей:', error);
-            });
-    }
-    
-    // Применение выбора назначенных
-    function applyAssignedSelection() {
-        // Удаляем все существующие скрытые поля для assigned_to
-        const oldAssignedInputs = document.querySelectorAll('input[name="assigned_to"]');
-        oldAssignedInputs.forEach(function(input) {
-            input.remove();
-        });
-        
+    // Функция для обновления скрытых полей violators
+    function updateViolatorsHiddenFields() {
         // Удаляем все существующие скрытые поля для violators
         const oldViolatorInputs = document.querySelectorAll('input[name="violators"]');
         oldViolatorInputs.forEach(function(input) {
             input.remove();
         });
         
-        // Находим форму и добавляем новые скрытые поля
+        // Добавляем новые скрытые поля для нарушителей
         const form = document.querySelector('form');
-        
-        // Добавляем скрытые поля для назначенных пользователей
-        selectedAssignedUsers.forEach(function(user, userId) {
-            const hiddenInput = document.createElement('input');
-            hiddenInput.type = 'hidden';
-            hiddenInput.name = 'assigned_to';
-            hiddenInput.value = userId;
-            form.appendChild(hiddenInput);
-        });
-        
-        // Добавляем скрытые поля для нарушителей
-        responsibleUsers.forEach(function(userId) {
+        violatorsSet.forEach(function(userId) {
             const hiddenInput = document.createElement('input');
             hiddenInput.type = 'hidden';
             hiddenInput.name = 'violators';
             hiddenInput.value = userId;
             form.appendChild(hiddenInput);
         });
-        
-        // Обновляем счетчик
-        assignedCount.textContent = selectedAssignedUsers.size;
     }
     
-    // Инициализация счетчика при загрузке страницы
+    // Обработчик изменения выбора в assigned_to
+    assignedToSelect.addEventListener('change', function() {
+        // Обновляем множество нарушителей - удаляем тех, кто больше не выбран
+        const selectedUserIds = new Set();
+        Array.from(this.selectedOptions).forEach(function(option) {
+            selectedUserIds.add(parseInt(option.value));
+        });
+        
+        // Удаляем из violatorsSet тех, кто больше не выбран
+        violatorsSet.forEach(function(userId) {
+            if (!selectedUserIds.has(userId)) {
+                violatorsSet.delete(userId);
+            }
+        });
+        
+        updateViolatorsCheckboxes();
+        updateViolatorsHiddenFields();
+    });
+    
+    // Инициализация при загрузке страницы
     document.addEventListener('DOMContentLoaded', function() {
-        const hiddenInputs = document.querySelectorAll('input[name="assigned_to"]');
-        assignedCount.textContent = hiddenInputs.length;
+        // Загружаем изначально выбранных нарушителей
+        const violatorInputs = document.querySelectorAll('input[name="violators"]');
+        violatorInputs.forEach(function(input) {
+            if (input.value) {
+                violatorsSet.add(parseInt(input.value));
+            }
+        });
+        
+        // Обновляем чекбоксы нарушителей
+        updateViolatorsCheckboxes();
     });
 </script>
 {% endblock %} 
