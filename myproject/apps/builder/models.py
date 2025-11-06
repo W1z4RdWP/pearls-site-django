@@ -58,8 +58,7 @@ class Document(models.Model):
 
  
  
- 
- 
+  
 class Incident(models.Model):
     """
     Инцидент, связанный с обучением или ошибкой. Может автоматически назначать материалы и тесты.

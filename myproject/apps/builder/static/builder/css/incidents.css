@@ -370,3 +370,21 @@
   --bs-gutter-x: 0.5rem;
   --bs-gutter-y: 0.5rem;
 }
+
+/* Выделение строки при одиночном клике */
+.incident-row.row-selected {
+  background-color: #e3f2fd !important;
+  border: 2px solid #2196f3 !important;
+}
+
+.incident-row.row-selected td {
+  background-color: #e3f2fd !important;
+}
+
+.incident-row.row-selected td.status-new,
+.incident-row.row-selected td.status-accepted,
+.incident-row.row-selected td.status-assigned,
+.incident-row.row-selected td.status-resolved,
+.incident-row.row-selected td.status-declined {
+  background-color: inherit !important;
+}

@@ -37,7 +37,10 @@ class IncidentForm(forms.ModelForm):
             'title': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Введение в Dent'}),
             'incident_type': forms.Select(attrs={'class': 'form-control'}),
             'user': forms.HiddenInput(),
-            'deadline': forms.DateTimeInput(attrs={'class': 'form-control', 'type': 'datetime-local'}),
+            'deadline': forms.DateTimeInput(
+                attrs={'class': 'form-control', 'type': 'datetime-local'},
+                format='%Y-%m-%dT%H:%M'
+            ),
             'status': forms.Select(attrs={'class': 'form-control'}),
             'description': forms.Textarea(attrs={'class': 'form-control', 'rows': 3, 'placeholder': 'Дополнительные комментарии...'}),
         }
@@ -50,6 +53,19 @@ class IncidentForm(forms.ModelForm):
         self.fields['assigned_to'].queryset = User.objects.filter(is_active=True).order_by('last_name', 'first_name')
         self.fields['violators'].queryset = User.objects.filter(is_active=True).order_by('last_name', 'first_name')
         self.fields['user'].queryset = User.objects.filter(is_active=True).order_by('last_name', 'first_name')
+        
+        # Настраиваем формат для поля deadline для правильного отображения в datetime-local
+        if self.instance and self.instance.pk and self.instance.deadline:
+            # Форматируем datetime в формат для datetime-local (YYYY-MM-DDTHH:MM)
+            from django.utils import timezone
+            deadline = self.instance.deadline
+            if timezone.is_aware(deadline):
+                deadline = timezone.localtime(deadline)
+            # Устанавливаем значение в формате для datetime-local
+            formatted_value = deadline.strftime('%Y-%m-%dT%H:%M')
+            self.fields['deadline'].widget.attrs['value'] = formatted_value
+            # Также устанавливаем initial значение для виджета
+            self.fields['deadline'].initial = formatted_value
 
 
 
