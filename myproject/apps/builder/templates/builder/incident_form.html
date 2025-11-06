@@ -49,9 +49,12 @@
                 </span>
                 <span class="assigned-select-icon">&#9660;</span>
             </div>
-            <div id="assignedToContainer">{{ form.assigned_to }}</div>
+            <div id="assignedToContainer">{{ form.assigned_to }}{{ form.violators }}</div>
             {% if form.assigned_to.errors %}
                 <div class="text-danger mt-1">{{ form.assigned_to.errors }}</div>
+            {% endif %}
+            {% if form.violators.errors %}
+                <div class="text-danger mt-1">{{ form.violators.errors }}</div>
             {% endif %}
         </div>
 

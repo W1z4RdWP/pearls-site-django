@@ -29,6 +29,9 @@ let selectedAssignedUsers = new Map(); // userId -> {id, full_name, username}
 // Хранилище нарушителей (отмеченные галочкой)
 let violatorsSet = new Set(); // Set of userId
 
+// Флаг, указывающий, были ли загружены начальные данные из формы
+let initialDataLoaded = false;
+
 // Кэш последних результатов поиска
 let lastSearchResults = [];
 
@@ -121,9 +124,93 @@ function selectUser(userId, userName) {
     modal.style.display = 'none';
 }
 
-// Если пользователь не выбран, добавляем класс placeholder
-if (!userInput.value) {
-    userDisplayName.classList.add('user-display-placeholder');
+// Инициализация поля пользователя при загрузке страницы
+function initializeUserField() {
+    // Проверяем, что элементы существуют
+    if (!userInput || !userDisplayName) {
+        return;
+    }
+    
+    // Проверяем, есть ли значение в скрытом поле
+    const userId = userInput.value;
+    
+    // Проверяем текст, который уже отображается из шаблона
+    const templateValue = userDisplayName.textContent.trim();
+    
+    if (userId) {
+        // Если есть значение в скрытом поле, но текст placeholder - загружаем информацию
+        if (templateValue === 'Выберите пользователя...' || !templateValue) {
+            fetch(searchUsersUrl + '?q=')
+                .then(response => response.json())
+                .then(data => {
+                    const user = data.users.find(u => u.id === parseInt(userId));
+                    if (user) {
+                        userDisplayName.textContent = user.full_name;
+                        userDisplayName.classList.remove('user-display-placeholder');
+                    }
+                })
+                .catch(error => {
+                    console.error('Ошибка загрузки пользователя:', error);
+                });
+        } else {
+            // Если текст уже отображается из шаблона, просто убираем класс placeholder
+            userDisplayName.classList.remove('user-display-placeholder');
+        }
+    } else {
+        // Если пользователь не выбран, проверяем текст из шаблона
+        if (templateValue && templateValue !== 'Выберите пользователя...') {
+            // Если в шаблоне есть значение, но нет в скрытом поле - это странно, но оставляем как есть
+            userDisplayName.classList.remove('user-display-placeholder');
+        } else {
+            // Добавляем класс placeholder
+            userDisplayName.classList.add('user-display-placeholder');
+        }
+    }
+}
+
+// Инициализация поля дедлайна при загрузке страницы
+function initializeDeadlineField() {
+    const deadlineInput = document.getElementById('id_deadline');
+    if (deadlineInput && deadlineInput.value) {
+        // Преобразуем значение datetime в формат для datetime-local
+        // Django может передавать datetime в формате "YYYY-MM-DD HH:MM:SS" или "YYYY-MM-DDTHH:MM"
+        let deadlineValue = deadlineInput.value.trim();
+        
+        // Если значение содержит пробел, заменяем на 'T'
+        if (deadlineValue.includes(' ')) {
+            deadlineValue = deadlineValue.replace(' ', 'T');
+        }
+        
+        // Если значение содержит секунды и миллисекунды, удаляем их
+        // Формат должен быть YYYY-MM-DDTHH:MM
+        if (deadlineValue.includes('T')) {
+            const parts = deadlineValue.split('T');
+            if (parts.length === 2) {
+                const datePart = parts[0];
+                let timePart = parts[1];
+                
+                // Удаляем секунды и миллисекунды из части времени
+                if (timePart.includes(':')) {
+                    const timeParts = timePart.split(':');
+                    if (timeParts.length >= 2) {
+                        // Берем только часы и минуты
+                        timePart = timeParts[0] + ':' + timeParts[1];
+                    }
+                }
+                
+                deadlineValue = datePart + 'T' + timePart;
+            }
+        } else if (deadlineValue.includes(':')) {
+            // Если формат без 'T', но с временем
+            const parts = deadlineValue.split(':');
+            if (parts.length >= 2) {
+                deadlineValue = parts.slice(0, 2).join(':');
+            }
+        }
+        
+        // Устанавливаем значение
+        deadlineInput.value = deadlineValue;
+    }
 }
 
 // ========== ФУНКЦИИ ДЛЯ ВЫБОРА НАЗНАЧЕННЫХ ==========
@@ -132,7 +219,13 @@ if (!userInput.value) {
 assignedSelectField.addEventListener('click', function() {
     assignedModal.style.display = 'block';
     loadGroups();
-    loadInitialAssignedUsers();
+    // Загружаем начальные данные только если они еще не были загружены
+    if (!initialDataLoaded) {
+        loadInitialAssignedUsers();
+    } else {
+        // Если данные уже загружены, просто обновляем отображение
+        displaySelectedUsers();
+    }
 });
 
 // Закрытие модального окна
@@ -387,7 +480,10 @@ function loadInitialAssignedUsers() {
     const assignedUserIds = [];
     assignedInputs.forEach(function(input) {
         if (input.value) {
-            assignedUserIds.push(parseInt(input.value));
+            const userId = parseInt(input.value);
+            if (userId && !assignedUserIds.includes(userId)) {
+                assignedUserIds.push(userId);
+            }
         }
     });
     
@@ -395,11 +491,21 @@ function loadInitialAssignedUsers() {
     const violatorUserIds = [];
     violatorInputs.forEach(function(input) {
         if (input.value) {
-            violatorUserIds.push(parseInt(input.value));
+            const userId = parseInt(input.value);
+            if (userId && !violatorUserIds.includes(userId)) {
+                violatorUserIds.push(userId);
+            }
         }
     });
     
-    if (assignedUserIds.length === 0) {
+    
+    // Если нет ни назначенных, ни нарушителей, но данные уже были загружены ранее, ничего не делаем
+    if (assignedUserIds.length === 0 && violatorUserIds.length === 0) {
+        if (initialDataLoaded) {
+            return;
+        }
+        // Если данных нет и они еще не загружены, помечаем как загруженные
+        initialDataLoaded = true;
         return;
     }
     
@@ -407,30 +513,47 @@ function loadInitialAssignedUsers() {
     fetch(searchUsersUrl + '?q=')
         .then(response => response.json())
         .then(data => {
+            // Добавляем назначенных пользователей (только если их еще нет)
             assignedUserIds.forEach(function(userId) {
-                const user = data.users.find(u => u.id === userId);
-                if (user) {
-                    selectedAssignedUsers.set(userId, user);
+                if (!selectedAssignedUsers.has(userId)) {
+                    const user = data.users.find(u => u.id === userId);
+                    if (user) {
+                        selectedAssignedUsers.set(userId, user);
+                    }
                 }
             });
             
-            // Добавляем нарушителей в Set
+            // Добавляем нарушителей в Set (даже если они уже есть, это безопасно)
             violatorUserIds.forEach(function(userId) {
                 violatorsSet.add(userId);
             });
             
-            displaySelectedUsers();
+            
+            // Обновляем отображение, если есть назначенные пользователи
+            if (selectedAssignedUsers.size > 0) {
+                displaySelectedUsers();
+            }
+            
+            // Обновляем счетчик
+            assignedCount.textContent = selectedAssignedUsers.size;
+            
+            // Помечаем, что начальные данные загружены
+            initialDataLoaded = true;
         })
         .catch(error => {
             console.error('Ошибка загрузки пользователей:', error);
+            initialDataLoaded = true; // Помечаем даже при ошибке, чтобы не пытаться загрузить снова
         });
 }
 
 // Применение выбора назначенных
 function applyAssignedSelection() {
+    // Обновляем скрытые поля перед применением
     updateHiddenFields();
     // Обновляем счетчик
     assignedCount.textContent = selectedAssignedUsers.size;
+    // Помечаем, что данные были изменены и должны быть сохранены
+    initialDataLoaded = true;
 }
 
 // Функция для обновления скрытых полей в форме
@@ -476,13 +599,6 @@ function updateHiddenFields() {
         container.appendChild(hiddenInput);
     });
     
-    // Отладочная информация
-    console.log('Обновлены скрытые поля:', {
-        assigned_to: Array.from(selectedAssignedUsers.keys()),
-        violators: Array.from(violatorsSet),
-        total_assigned_inputs: form.querySelectorAll('input[name="assigned_to"]').length,
-        total_violator_inputs: form.querySelectorAll('input[name="violators"]').length
-    });
 }
 
 // Обработчик отправки формы - гарантируем, что скрытые поля обновлены
@@ -498,4 +614,12 @@ document.addEventListener('DOMContentLoaded', function() {
     // Инициализация счетчика при загрузке страницы
     const hiddenInputs = document.querySelectorAll('input[name="assigned_to"]');
     assignedCount.textContent = hiddenInputs.length;
+    
+    // Инициализация полей при загрузке страницы редактирования
+    initializeUserField();
+    initializeDeadlineField();
+    
+    // Загружаем изначально выбранных пользователей и нарушителей при редактировании
+    // Это нужно делать сразу при загрузке страницы, чтобы нарушители загрузились
+    loadInitialAssignedUsers();
 });
