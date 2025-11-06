@@ -2900,3 +2900,50 @@ def api_get_group_users(request, group_id):
         })
     
     return JsonResponse({'users': users_data})
+
+
+@login_required
+def api_get_users_by_ids(request):
+    """
+    API endpoint для получения пользователей по списку ID.
+    Принимает список ID через параметр 'ids' (через запятую или как массив).
+    Возвращает JSON с данными пользователей.
+    """
+    if not (request.user.is_staff or request.user.is_superuser):
+        return JsonResponse({'error': 'Доступ запрещен'}, status=403)
+    
+    # Получаем список ID из параметра запроса
+    ids_param = request.GET.get('ids', '')
+    
+    if not ids_param:
+        return JsonResponse({'users': []})
+    
+    # Парсим ID - может быть строка через запятую или JSON массив
+    try:
+        # Пытаемся распарсить как JSON массив
+        user_ids = json.loads(ids_param)
+        if not isinstance(user_ids, list):
+            user_ids = [user_ids]
+    except (json.JSONDecodeError, ValueError):
+        # Если не JSON, то парсим как строку через запятую
+        user_ids = [int(id_str.strip()) for id_str in ids_param.split(',') if id_str.strip().isdigit()]
+    
+    # Фильтруем только валидные ID
+    user_ids = [uid for uid in user_ids if isinstance(uid, int) and uid > 0]
+    
+    if not user_ids:
+        return JsonResponse({'users': []})
+    
+    # Получаем пользователей по ID
+    users = User.objects.filter(id__in=user_ids, is_active=True).order_by('last_name', 'first_name')
+    
+    users_data = []
+    for user in users:
+        full_name = user.get_full_name() or user.username
+        users_data.append({
+            'id': user.id,
+            'full_name': full_name,
+            'username': user.username,
+        })
+    
+    return JsonResponse({'users': users_data})

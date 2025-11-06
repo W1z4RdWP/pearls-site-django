@@ -155,6 +155,7 @@
 <script>
     // API endpoints для incident_form.js
     const searchUsersUrl = "{% url 'builder:api_search_users' %}";
+    const getUsersByIdsUrl = "{% url 'builder:api_get_users_by_ids' %}";
     const getGroupsUrl = "{% url 'builder:api_get_groups' %}";
     const getGroupUsersUrlTemplate = "{% url 'builder:api_get_group_users' 0 %}";
     const userInputId = "{{ form.user.id_for_label }}";
