@@ -12,7 +12,7 @@ from django.urls import reverse_lazy
 from django.core.exceptions import PermissionDenied
 from myapp.models import UserProgress, UserCourse, QuizResult, UserAnswer
 from quizzes.models import Quiz, QuizLock
-from courses.models import Course, Lesson, UserLessonTrajectory
+from courses.models import Course, Lesson, UserLessonTrajectory, UserCourseTrajectory, Trajectory
 from django.core.paginator import Paginator, PageNotAnInteger, EmptyPage
 from django.utils.decorators import method_decorator
 from django.contrib.admin.views.decorators import staff_member_required
@@ -681,6 +681,56 @@ class UserEditDetailedView(UpdateView):
             }
         
         context['quiz_data'] = quiz_data
+        
+        # Данные для вкладки "Назначенное обучение"
+        assigned_courses = UserCourse.objects.filter(user=user).select_related('course').order_by('-start_date')
+        assigned_trajectories = UserCourseTrajectory.objects.filter(user=user).select_related('trajectory').order_by('-started_at')
+        
+        # Формируем список назначенных обучений (курсы + траектории)
+        assigned_trainings = []
+        
+        # Добавляем курсы
+        for user_course in assigned_courses:
+            # Формируем статус для отображения
+            status_display = user_course.get_status_display()
+            if user_course.status == 'started':
+                status_display = 'В процессе'
+            elif user_course.status == 'available':
+                status_display = 'Не начат'
+            
+            # Определяем тип назначения: если курс-инцидент, то "Курс-инцидент", иначе "Курс"
+            assignment_type = 'Курс-инцидент' if user_course.course.is_incident else 'Курс'
+            
+            assigned_trainings.append({
+                'type': 'course',
+                'id': user_course.id,
+                'name': user_course.course.title,
+                'assignment_date': user_course.start_date,
+                'status': status_display,
+                'status_code': user_course.status,
+                'due_date': None,  # Пока прочерк
+                'assignment_type': assignment_type,
+                'object': user_course,
+            })
+        
+        # Добавляем траектории
+        for user_trajectory in assigned_trajectories:
+            assigned_trainings.append({
+                'type': 'trajectory',
+                'id': user_trajectory.id,
+                'name': user_trajectory.trajectory.name,
+                'assignment_date': user_trajectory.started_at,
+                'status': 'Завершена' if user_trajectory.completed else 'В процессе',
+                'status_code': 'completed' if user_trajectory.completed else 'started',
+                'due_date': None,  # Пока прочерк
+                'assignment_type': 'Траектория',
+                'object': user_trajectory,
+            })
+        
+        # Сортируем по дате назначения (новые сверху)
+        assigned_trainings.sort(key=lambda x: x['assignment_date'], reverse=True)
+        
+        context['assigned_trainings'] = assigned_trainings
         
         # Определяем активную вкладку
         context['active_tab'] = self.request.GET.get('tab', 'personal')

@@ -1582,9 +1582,13 @@ class UserCourseTrajectoryListView(ListView):
         user = self.request.user
         available_courses = Course.objects.available_for_user(user)
         
-        # Фильтруем курсы: исключаем курсы из траекторий, которые еще не доступны
+        # Фильтруем курсы: исключаем курсы из траекторий, которые еще не доступны, и курсы-инциденты
         filtered_courses = []
         for course in available_courses:
+            # Исключаем курсы-инциденты
+            if course.is_incident:
+                continue
+            
             # Проверяем, есть ли курс в траекториях пользователя
             course_in_trajectories = TrajectoryCourse.objects.filter(
                 trajectory__usercoursetrajectory__user=user,

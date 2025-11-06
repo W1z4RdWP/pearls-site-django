@@ -70,6 +70,36 @@
         border-color: #007bff;
         background-color: #f8f9ff;
     }
+    
+    .assigned-training-wrapper {
+        padding: 20px 0;
+    }
+    
+    .assigned-training-wrapper .table {
+        margin-bottom: 0;
+    }
+    
+    .assigned-training-wrapper .table thead th {
+        border-bottom: 2px solid #dee2e6;
+        font-weight: 600;
+        color: #495057;
+        padding: 12px;
+    }
+    
+    .assigned-training-wrapper .table tbody td {
+        padding: 12px;
+        vertical-align: middle;
+        border-bottom: 1px solid #f0f0f0;
+    }
+    
+    .assigned-training-wrapper .table tbody tr:hover {
+        background-color: #f8f9fa;
+    }
+    
+    .assigned-training-wrapper .badge {
+        font-weight: 500;
+        padding: 6px 12px;
+    }
 </style>
 {% endblock %}
 
@@ -126,6 +156,12 @@
             <button class="nav-link {% if active_tab == 'quizzes' %}active{% endif %}" id="quizzes-tab" data-bs-toggle="tab" 
                     data-bs-target="#quizzes" type="button" role="tab" aria-controls="quizzes" aria-selected="{% if active_tab == 'quizzes' %}true{% else %}false{% endif %}">
                 Попытки тестов
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link {% if active_tab == 'assigned_training' %}active{% endif %}" id="assigned-training-tab" data-bs-toggle="tab" 
+                    data-bs-target="#assigned-training" type="button" role="tab" aria-controls="assigned-training" aria-selected="{% if active_tab == 'assigned_training' %}true{% else %}false{% endif %}">
+                Назначенное обучение
             </button>
         </li>
     </ul>
@@ -614,6 +650,74 @@
                 {% endif %}
             </div>
         </div>
+
+        <!-- Вкладка: Назначенное обучение -->
+        <div class="tab-pane fade {% if active_tab == 'assigned_training' %}show active{% endif %}" id="assigned-training" role="tabpanel" aria-labelledby="assigned-training-tab">
+            <div class="assigned-training-wrapper">
+                <p class="text-muted mb-4">Информация о назначенных пользователю курсах, мероприятиях и статусе их завершения.</p>
+                
+                <!-- Кнопки действий -->
+                <div class="d-flex justify-content-end mb-3">
+                    <div class="btn-group">
+                        <button type="button" class="btn btn-success dropdown-toggle" id="assignTrainingBtn" data-bs-toggle="dropdown" aria-expanded="false">
+                            Назначить обучение
+                        </button>
+                        <ul class="dropdown-menu" aria-labelledby="assignTrainingBtn">
+                            <li><a class="dropdown-item" href="#" id="assignCourseBtn">Назначить курс</a></li>
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Таблица назначенных обучений -->
+                {% if assigned_trainings %}
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th style="width: 50px;">№</th>
+                                <th>Название</th>
+                                <th>Дата назначения</th>
+                                <th>Статус</th>
+                                <th>Срок выполнения</th>
+                                <th>Тип назначения</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for training in assigned_trainings %}
+                            <tr>
+                                <td>{{ forloop.counter }}</td>
+                                <td>
+                                    {% if training.type == 'course' %}
+                                        <i class="fas fa-book me-2 text-primary"></i>
+                                    {% else %}
+                                        <i class="fas fa-route me-2 text-info"></i>
+                                    {% endif %}
+                                    {{ training.name }}
+                                </td>
+                                <td>—</td>
+                                <td>
+                                    <span class="badge 
+                                        {% if training.status_code == 'completed' %}bg-success
+                                        {% elif training.status_code == 'started' %}bg-warning text-dark
+                                        {% else %}bg-secondary{% endif %}">
+                                        {{ training.status }}
+                                    </span>
+                                </td>
+                                <td>—</td>
+                                <td>{{ training.assignment_type }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle me-2"></i>
+                    У пользователя нет назначенных курсов или траекторий.
+                </div>
+                {% endif %}
+            </div>
+        </div>
     </div>
 </div>
 
@@ -840,6 +944,18 @@ function filterCourses(filter) {
     url.searchParams.delete('courses_page');
     window.location.href = url.toString();
 }
+
+// Обработчик кнопки "Назначить курс"
+document.addEventListener('DOMContentLoaded', function() {
+    const assignCourseBtn = document.getElementById('assignCourseBtn');
+    if (assignCourseBtn) {
+        assignCourseBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            // Пока ничего не делает, как указано в требованиях
+            console.log('Назначить курс - функционал будет реализован позже');
+        });
+    }
+});
 </script>
 {% endblock %}
 
