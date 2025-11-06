@@ -1,5 +1,6 @@
 {% extends 'layout.html' %}
 {% load static %}
+{% load quiz_filters %}
 
 
 {% block specific_styles %}
@@ -261,7 +262,13 @@
                                                     <div class="material-title">{{ material.title }}</div>
                                                     <div class="material-type">Тест</div>
                                                 </div>
-                                                <span class="badge bg-success">✓</span>
+                                                {% with quiz_status=quiz_statuses|get_item:material.title %}
+                                                    {% if quiz_status == 'pending' %}
+                                                        <span class="badge" style="background-color: #f39c12; color: white;"><i class="fa fa-hourglass-half"></i></span>
+                                                    {% else %}
+                                                        <span class="badge bg-success">✓</span>
+                                                    {% endif %}
+                                                {% endwith %}
                                             </a>
                                             {% if user.is_authenticated and user.is_staff %}
                                                 <form method="POST" action="{% url 'courses:remove_quiz_from_course' course_slug=course.slug quiz_id=material.id %}" style="margin-left: 10px;">
@@ -350,7 +357,16 @@
                                         <h6 class="alert-heading mb-2">
                                             <i class="fa fa-graduation-cap"></i> Финальный тест
                                         </h6>
-                                        <p class="mb-3">Для завершения курса необходимо пройти финальный тест</p>
+                                        
+                                        {% if final_quiz_status == 'pending' %}
+                                            <div class="alert alert-warning border-0 mb-3" style="background: #fff3cd; border: 1px solid #ffeaa7; border-radius: 6px;">
+                                                <i class="fa fa-hourglass-half text-warning"></i>
+                                                <strong>Тест ожидает проверки</strong>
+                                                <p class="mb-0 mt-2 small">Ваш тест отправлен на проверку наставнику. Результаты будут доступны после проверки.</p>
+                                            </div>
+                                        {% else %}
+                                            <p class="mb-3">Для завершения курса необходимо пройти финальный тест</p>
+                                        {% endif %}
                                         
                                         {% if quiz_attempts_info %}
                                             {% if quiz_attempts_info.is_locked %}
@@ -374,7 +390,11 @@
                                         {% endif %}
                                         
                                         <div class="action-buttons">
-                                            {% if quiz_attempts_info and quiz_attempts_info.is_locked %}
+                                            {% if final_quiz_status == 'pending' %}
+                                                <span class="btn-modern disabled" style="opacity: 0.6; cursor: not-allowed; background: #6c757d;">
+                                                    <i class="fa fa-hourglass-half"></i> Тест ожидает проверки
+                                                </span>
+                                            {% elif quiz_attempts_info and quiz_attempts_info.is_locked %}
                                                 <span class="btn-modern disabled" style="opacity: 0.6; cursor: not-allowed; background: #6c757d;">
                                                     <i class="fa fa-lock"></i> Тест заблокирован
                                                 </span>
