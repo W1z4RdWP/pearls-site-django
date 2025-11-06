@@ -467,6 +467,238 @@ class UserUpdateView(UpdateView):
             profile_form.save()
         return response
 
+
+class UserEditDetailedView(UpdateView):
+    """
+    Объединенный view для редактирования пользователя с вкладками:
+    - Персональная информация (форма редактирования)
+    - Прогресс (dashboard прогресса)
+    - Попытки тестов (quiz attempts)
+    """
+    model = User
+    template_name = 'user_management/user_edit_detailed.html'
+    fields = ['email', 'first_name', 'last_name', 'groups', 'is_active']
+    context_object_name = 'target_user'
+
+    def dispatch(self, request, *args, **kwargs):
+        if not request.user.is_authenticated or not (request.user.is_staff or request.user.is_superuser or (hasattr(request.user, 'profile') and request.user.profile.is_mentor_user)):
+            raise PermissionDenied("У вас нет доступа к управлению пользователями.")
+        user_to_edit = self.get_object()
+        if hasattr(request.user, 'is_staff') and request.user.is_staff:
+            if get_user_privilege_level(request.user) < get_user_privilege_level(user_to_edit):
+                self.readonly = True
+            else:
+                self.readonly = False
+        else:
+            self.readonly = False
+        return super().dispatch(request, *args, **kwargs)
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        user = self.get_object()
+        
+        # Данные для формы редактирования (из UserUpdateView)
+        if self.request.POST:
+            context['profile_form'] = UserProfileForm(self.request.POST, self.request.FILES, instance=user.profile, user_instance=user)
+        else:
+            context['profile_form'] = UserProfileForm(instance=user.profile, user_instance=user)
+        context['readonly'] = getattr(self, 'readonly', False)
+        context['roles'] = Role.objects.all()
+        
+        # Данные для вкладки прогресса (из UserProgressDashboardView)
+        profile = user.profile
+        available_courses = Course.objects.available_for_user(user)
+        user_courses = []
+        for course in available_courses:
+            user_course = UserCourse.objects.filter(user=user, course=course).first()
+            if user_course:
+                user_courses.append(user_course)
+            else:
+                user_course = UserCourse.objects.create(user=user, course=course, status='available')
+                user_courses.append(user_course)
+        
+        quiz_results = list(QuizResult.objects.filter(user=user).order_by('-completed_at'))
+        courses_progress = []
+        
+        for user_course in user_courses:
+            course = user_course.course
+            trajectory = UserLessonTrajectory.objects.filter(user=user, course=course).first()
+            
+            if trajectory:
+                lessons = trajectory.lessons.all().order_by('order')
+                total_lessons = lessons.count()
+                lesson_ids = lessons.values_list('id', flat=True)
+                completed_lessons = UserProgress.objects.filter(
+                    user=user, course=course, completed=True, lesson_id__in=lesson_ids
+                ).count()
+            else:
+                lessons = course.lessons.all().order_by('order')
+                total_lessons = lessons.count()
+                completed_lessons = UserProgress.objects.filter(
+                    user=user, course=course, completed=True
+                ).count()
+            
+            completed_quizzes = QuizResult.objects.filter(
+                user=user, course=course,
+                quiz_title__in=[quiz.name for quiz in course.quizzes.all()],
+                passed=True
+            ).values('quiz_title').distinct().count()
+            total_quizzes = course.quizzes.count()
+            
+            total_materials = total_lessons + total_quizzes
+            completed_materials = completed_lessons + completed_quizzes
+            progress_percent = int((completed_materials / total_materials) * 100) if total_materials > 0 else 0
+            
+            quiz_passed = False
+            if course.final_quiz:
+                quiz_passed = QuizResult.objects.filter(
+                    user=user, course=course, quiz_title=course.final_quiz.name, passed=True
+                ).exists()
+            
+            materials_detail = []
+            for lesson in lessons:
+                progress = UserProgress.objects.filter(user=user, lesson=lesson, completed=True).first()
+                materials_detail.append({
+                    'type': 'lesson', 'lesson': lesson, 'completed': progress is not None,
+                    'completed_at': progress.completed_at if progress else None,
+                    'order': lesson.order, 'title': lesson.title
+                })
+            
+            for quiz in course.quizzes.all():
+                quiz_attempts = QuizResult.objects.filter(
+                    user=user, course=course, quiz_title=quiz.name
+                ).order_by('-completed_at')
+                quiz_result = quiz_attempts.filter(passed=True).first()
+                best_attempt = None
+                if quiz_attempts.exists():
+                    best_attempt = sorted(quiz_attempts, key=lambda x: (x.percent, x.completed_at), reverse=True)[0]
+                
+                materials_detail.append({
+                    'type': 'quiz', 'quiz': quiz, 'completed': quiz_result is not None,
+                    'completed_at': quiz_result.completed_at if quiz_result else None,
+                    'order': quiz.order, 'title': quiz.name,
+                    'attempts_count': quiz_attempts.count(), 'best_attempt': best_attempt
+                })
+            
+            materials_detail.sort(key=lambda x: x['order'])
+            lessons_detail = materials_detail
+            
+            best_attempt = None
+            if course.final_quiz:
+                attempts = [qr for qr in quiz_results if qr.quiz_title == course.final_quiz.name]
+                if attempts:
+                    best_attempt = sorted(attempts, key=lambda x: (x.percent, x.completed_at), reverse=True)[0]
+            
+            courses_progress.append({
+                'course': course, 'user_course': user_course,
+                'total_lessons': total_lessons, 'completed_lessons': completed_lessons,
+                'total_quizzes': total_quizzes, 'completed_quizzes': completed_quizzes,
+                'total_materials': total_materials, 'completed_materials': completed_materials,
+                'progress_percent': progress_percent, 'quiz_passed': quiz_passed,
+                'lessons_detail': lessons_detail, 'best_attempt': best_attempt,
+            })
+        
+        total_courses = len(courses_progress)
+        completed_courses = len([cp for cp in courses_progress if cp['user_course'].status == 'completed'])
+        started_courses = len([cp for cp in courses_progress if cp['user_course'].status == 'started'])
+        total_lessons_completed = sum(cp['completed_lessons'] for cp in courses_progress)
+        total_lessons_available = sum(cp['total_lessons'] for cp in courses_progress)
+        total_materials_completed = sum(cp['completed_materials'] for cp in courses_progress)
+        total_materials_available = sum(cp['total_materials'] for cp in courses_progress)
+        overall_progress = int((total_materials_completed / total_materials_available) * 100) if total_materials_available > 0 else 0
+        
+        course_filter = self.request.GET.get('course_filter', 'completed')
+        if course_filter == 'completed':
+            courses_progress = [cp for cp in courses_progress if cp['user_course'].status == 'completed']
+        elif course_filter == 'started':
+            courses_progress = [cp for cp in courses_progress if cp['user_course'].status == 'started']
+        
+        paginator_courses = Paginator(courses_progress, 4)
+        page_number_courses = self.request.GET.get('courses_page', 1)
+        try:
+            page_obj_courses = paginator_courses.page(page_number_courses)
+        except PageNotAnInteger:
+            page_obj_courses = paginator_courses.page(1)
+        except EmptyPage:
+            page_obj_courses = paginator_courses.page(paginator_courses.num_pages)
+        
+        context.update({
+            'courses_progress': courses_progress, 'total_courses': total_courses,
+            'completed_courses': completed_courses, 'started_courses': started_courses,
+            'total_lessons_completed': total_lessons_completed,
+            'total_lessons_available': total_lessons_available,
+            'overall_progress': overall_progress,
+            'page_obj_courses': page_obj_courses, 'course_filter': course_filter,
+        })
+        
+        # Данные для вкладки попыток тестов (из UserQuizAttemptsView)
+        available_courses_quiz = Course.objects.available_for_user(user)
+        quizzes = set()
+        for course in available_courses_quiz:
+            if course.final_quiz:
+                quizzes.add(course.final_quiz)
+            for quiz in course.quizzes.all():
+                quizzes.add(quiz)
+        
+        quizzes = sorted(list(quizzes), key=lambda q: q.name)
+        quiz_data = {}
+        for quiz in quizzes:
+            results = QuizResult.objects.filter(user=user, quiz_title=quiz.name).order_by('-completed_at')
+            attempts_with_results = []
+            for i, result in enumerate(results, 1):
+                attempts_with_results.append({
+                    'result': result, 'attempt_number': i,
+                    'started_at': result.completed_at, 'completed_at': result.completed_at
+                })
+            
+            total_attempts = results.count()
+            passed_attempts = results.filter(passed=True).count()
+            failed_attempts = results.filter(passed=False).count()
+            excluded_attempts = results.filter(passed=False, excluded_from_limit=True).count()
+            best_result = results.order_by('-percent').first()
+            best_score = best_result.percent if best_result else None
+            
+            quiz_lock = QuizLock.objects.filter(user=user, quiz=quiz).first()
+            is_blocked = quiz_lock.is_locked if quiz_lock else False
+            
+            quiz_type = "Неизвестно"
+            related_course = None
+            final_course = Course.objects.filter(final_quiz=quiz).first()
+            if final_course:
+                quiz_type = "Финальный тест"
+                related_course = final_course
+            else:
+                material_course = Course.objects.filter(course_quizzes=quiz).first()
+                if material_course:
+                    quiz_type = "Тест из материалов курса"
+                    related_course = material_course
+            
+            quiz_data[quiz] = {
+                'attempts': attempts_with_results, 'total_attempts': total_attempts,
+                'passed_attempts': passed_attempts, 'failed_attempts': failed_attempts,
+                'excluded_attempts': excluded_attempts, 'best_score': best_score,
+                'is_blocked': is_blocked, 'quiz_type': quiz_type, 'related_course': related_course
+            }
+        
+        context['quiz_data'] = quiz_data
+        
+        # Определяем активную вкладку
+        context['active_tab'] = self.request.GET.get('tab', 'personal')
+        
+        return context
+
+    def form_valid(self, form):
+        if getattr(self, 'readonly', False):
+            raise PermissionDenied("Недостаточно прав для редактирования этого пользователя.")
+        response = super().form_valid(form)
+        profile_form = UserProfileForm(self.request.POST, self.request.FILES, instance=self.object.profile, user_instance=self.object)
+        if profile_form.is_valid():
+            profile_form.save()
+        return response
+
+    def get_success_url(self):
+        return reverse('user_management:user_edit_detailed', kwargs={'pk': self.object.pk}) + '?tab=personal'
+
 class UserProgressDashboardView(DetailView):
     model = User
     template_name = 'user_management/user_progress_dashboard.html'

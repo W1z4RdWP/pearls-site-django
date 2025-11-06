@@ -1,0 +1,845 @@
+{% extends 'layout.html' %}
+{% load static %}
+{% load widget_tweaks %}
+
+{% block specific_styles %}
+<link rel="stylesheet" href="{% static 'user_management/css/user_form.css' %}">
+<link rel="stylesheet" href="{% static 'user_management/css/user_progress_dashboard.css' %}">
+<link rel="stylesheet" href="{% static 'user_management/css/user_list.css' %}">
+<link rel="stylesheet" href="{% static 'user_management/css/user_quiz_attempts.css' %}">
+<style>
+    .user-info-card {
+        background: #f8f9fa;
+        border-radius: 12px;
+        padding: 20px;
+        margin-bottom: 30px;
+        border: 1px solid #dee2e6;
+        position: relative;
+    }
+    
+    .admin-badge-position {
+        position: absolute;
+        top: 15px;
+        right: 20px;
+    }
+    
+    .nav-tabs {
+        border-bottom: 2px solid #dee2e6;
+        margin-bottom: 30px;
+    }
+    
+    .nav-tabs .nav-link {
+        color: #495057;
+        border: none;
+        border-bottom: 3px solid transparent;
+        padding: 12px 24px;
+        font-weight: 500;
+    }
+    
+    .nav-tabs .nav-link:hover {
+        border-bottom-color: #007bff;
+        color: #007bff;
+    }
+    
+    .nav-tabs .nav-link.active {
+        color: #007bff;
+        border-bottom-color: #007bff;
+        background-color: transparent;
+    }
+    
+    .tab-content {
+        min-height: 400px;
+    }
+    
+    .tab-pane {
+        padding-top: 20px;
+    }
+    
+    .um-progress-stat-card {
+        cursor: pointer;
+        transition: all 0.3s ease;
+        border: 2px solid transparent;
+    }
+    
+    .um-progress-stat-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    }
+    
+    .um-progress-stat-card.active {
+        border-color: #007bff;
+        background-color: #f8f9ff;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="user-edit-detailed-wrapper">
+    <!-- Навигация -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="h3 mb-0">
+            <a href="{% url 'user_management:user_list' %}" class="text-decoration-none me-2">←</a>
+            Информация о пользователе
+        </h1>
+    </div>
+
+    <!-- Информация о пользователе (шапка) -->
+    <div class="user-info-card">
+        <div class="row align-items-center">
+            <div class="col-md-2">
+                <img src="{{ target_user.profile.image.url }}" alt="avatar" 
+                     class="rounded-circle" style="width: 80px; height: 80px; object-fit: cover;">
+            </div>
+            <div class="col-md-10">
+                <h4 class="mb-1">{{ target_user.get_full_name|default:target_user.username }}</h4>
+                <p class="text-muted mb-1">{{ target_user.email }}</p>
+                <p class="mb-0">
+                    <strong>Группы:</strong> 
+                    {% for group in target_user.groups.all %}
+                        <span class="badge bg-primary me-1">{{ group.name }}</span>
+                    {% empty %}
+                        <span class="text-muted">Не назначены</span>
+                    {% endfor %}
+                </p>
+                {% if target_user.is_staff or target_user.is_superuser %}
+                    <span class="badge bg-warning text-dark me-1 admin-badge-position"><i class="fas fa-user-shield me-1"></i>Администратор УЦ</span>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Вкладки -->
+    <ul class="nav nav-tabs" id="userTabs" role="tablist">
+        <li class="nav-item" role="presentation">
+            <button class="nav-link {% if active_tab == 'personal' %}active{% endif %}" id="personal-tab" data-bs-toggle="tab" 
+                    data-bs-target="#personal" type="button" role="tab" aria-controls="personal" aria-selected="{% if active_tab == 'personal' %}true{% else %}false{% endif %}">
+                Персональная информация
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link {% if active_tab == 'progress' %}active{% endif %}" id="progress-tab" data-bs-toggle="tab" 
+                    data-bs-target="#progress" type="button" role="tab" aria-controls="progress" aria-selected="{% if active_tab == 'progress' %}true{% else %}false{% endif %}">
+                Прогресс
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link {% if active_tab == 'quizzes' %}active{% endif %}" id="quizzes-tab" data-bs-toggle="tab" 
+                    data-bs-target="#quizzes" type="button" role="tab" aria-controls="quizzes" aria-selected="{% if active_tab == 'quizzes' %}true{% else %}false{% endif %}">
+                Попытки тестов
+            </button>
+        </li>
+    </ul>
+
+    <div class="tab-content" id="userTabsContent">
+        <!-- Вкладка: Персональная информация -->
+        <div class="tab-pane fade {% if active_tab == 'personal' %}show active{% endif %}" id="personal" role="tabpanel" aria-labelledby="personal-tab">
+            <form method="post" enctype="multipart/form-data" class="user-form">
+                {% csrf_token %}
+                <div class="form-section">
+                    <h2 class="section-title">Общая информация о пользователе</h2>
+                    {% if readonly %}
+                        <p class="um-user-warning">Вы не можете редактировать этого пользователя</p>
+                        {{ form.first_name.label_tag }}{{ form.first_name|attr:'readonly:readonly,disabled:disabled' }}
+                        {{ form.last_name.label_tag }}{{ form.last_name|attr:'readonly:readonly,disabled:disabled' }}
+                        {{ profile_form.middle_name.label_tag }}{{ profile_form.middle_name|attr:'readonly:readonly,disabled:disabled' }}
+                        {{ profile_form.role.label_tag }}{{ profile_form.role|attr:'readonly:readonly,disabled:disabled' }}
+                        {{ form.email.label_tag }}{{ form.email|attr:'readonly:readonly,disabled:disabled' }}
+                        {{ form.groups.label_tag }}
+                        {% with target_user.groups.all as groups %}
+                            {% if groups|length == 1 %}
+                                <p class="um-user-groups">Пользователь состоите в группе: <b>{{ groups.0.name }}</b></p>
+                            {% elif groups|length > 1 %}
+                                <p class="um-user-groups">Группы пользователя:</p>
+                                <ul class="um-user-groups-list">
+                                    {% for group in groups %}
+                                        <li><b>{{ group.name }}</b></li>
+                                    {% endfor %}
+                                </ul>
+                            {% else %}
+                                <p class="um-user-groups">Пользователь не состоит в группах</p>
+                            {% endif %}
+                        {% endwith %}
+                        <label for="id_date_of_birth">{{ profile_form.date_of_birth.label }}</label>
+                        <input type="date" id="id_date_of_birth" name="date_of_birth" class="form-control" value="{{ profile_form.date_of_birth.value|date:'Y-m-d'|default:'' }}" readonly disabled/>
+                        {{ profile_form.phone_number.label_tag }}{{ profile_form.phone_number|attr:'readonly:readonly,disabled:disabled' }}
+                        {{ profile_form.bio.label_tag }}{{ profile_form.bio|attr:'readonly:readonly,disabled:disabled' }}
+                        <br>
+                        {{ profile_form.is_mentor.label_tag }}{{ profile_form.is_mentor|attr:'readonly:readonly,disabled:disabled' }}
+                    {% else %}
+                        {{ form.first_name.label_tag }}{{ form.first_name }}
+                        {{ form.last_name.label_tag }}{{ form.last_name }}
+                        {{ profile_form.middle_name.label_tag }}{{ profile_form.middle_name }}
+                        <label for="id_role">{{ profile_form.role.label }}</label>
+                        <div class="role-field-wrapper" style="position:relative; display:flex; align-items:center; gap:8px;">
+                            <div style="flex:1;">
+                                {{ profile_form.role }}
+                            </div>
+                            <button type="button" class="btn btn-link p-0" data-bs-toggle="modal" data-bs-target="#roleModal" style="margin-left:8px;">
+                                <i class="fa fa-cog"></i>
+                            </button>
+                            <div class="form-check" title="Пользователь является ответственным за свою должность">
+                                <input type="checkbox" class="form-check-input" id="is_responsible" 
+                                       {% if profile_form.instance.is_responsible %}checked{% endif %}>
+                                <label class="form-check-label" for="is_responsible">Ответственный</label>
+                            </div>
+                        </div>
+                        <br>
+                        {{ form.email.label_tag }}{{ form.email }}
+                        <label for="id_groups">Группы пользователя</label>
+                        <div class="um-user-groups-checkboxes">
+                            {% for group in form.groups.field.queryset %}
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" name="groups" id="group_{{ group.id }}" value="{{ group.id }}" {% if group.id in form.groups.value %}checked{% endif %}>
+                                    <label class="form-check-label" for="group_{{ group.id }}">{{ group.name }}</label>
+                                </div>
+                            {% endfor %}
+                        </div>
+                        <label for="id_date_of_birth">{{ profile_form.date_of_birth.label }}</label>
+                        <input type="date" id="id_date_of_birth" name="date_of_birth" class="form-control" value="{{ profile_form.date_of_birth.value|date:'Y-m-d'|default:'' }}"/>
+                        <div class="phone-field-wrapper">
+                            <label for="id_phone_number">{{ profile_form.phone_number.label }}</label>
+                            <input type="text" id="id_phone_number" name="phone_number" class="form-control" maxlength="12" autocomplete="off" value="{{ profile_form.phone_number.value|default:'' }}"/>
+                            <div class="form-check">
+                                {{ profile_form.phone_arbitrary_format }}
+                                <label for="id_phone_arbitrary_format" class="form-check-label">Произвольный формат</label>
+                            </div>
+                        </div>
+                        {{ profile_form.bio.label_tag }}{{ profile_form.bio }}
+                        {{ profile_form.image.label_tag }}{{ profile_form.image }}
+                        {{ form.is_active.label_tag }}{{ form.is_active }}
+                        <br>
+                        {{ profile_form.is_approved.label_tag }}{{ profile_form.is_approved }}
+                        <br>
+                        {{ profile_form.is_mentor.label_tag }}{{ profile_form.is_mentor }}
+                    {% endif %}
+                </div>
+                <div class="form-actions">
+                    {% if not readonly %}
+                        <a href="{% url 'user_management:user_password_change' target_user.pk %}" class="btn btn-outline-info">
+                            Сменить пароль
+                        </a>
+                        <button type="submit" class="btn btn-primary">Сохранить</button>
+                    {% endif %}
+                </div>
+            </form>
+        </div>
+
+        <!-- Вкладка: Прогресс -->
+        <div class="tab-pane fade {% if active_tab == 'progress' %}show active{% endif %}" id="progress" role="tabpanel" aria-labelledby="progress-tab">
+            <div class="um-progress-dashboard-wrapper">
+                <!-- Общая статистика -->
+                <div class="um-progress-overview">
+                    <div class="um-progress-stats-grid">
+                        <div class="um-progress-stat-card {% if course_filter == 'all' %}active{% endif %}" 
+                             data-filter="all" onclick="filterCourses('all')">
+                            <h3>Общий прогресс</h3>
+                            <div class="um-progress-stat-value">{{ overall_progress }}%</div>
+                            <div class="um-progress-stat-desc">
+                                {{ total_lessons_completed }} из {{ total_lessons_available }} уроков
+                            </div>
+                        </div>
+                        <div class="um-progress-stat-card {% if course_filter == 'all' %}active{% endif %}" 
+                             data-filter="all" onclick="filterCourses('all')">
+                            <h3>Всего курсов</h3>
+                            <div class="um-progress-stat-value">{{ total_courses }}</div>
+                            <div class="um-progress-stat-desc">
+                                {{ completed_courses }} завершено, {{ started_courses }} в процессе
+                            </div>
+                        </div>
+                        <div class="um-progress-stat-card {% if course_filter == 'completed' %}active{% endif %}" 
+                             data-filter="completed" onclick="filterCourses('completed')">
+                            <h3>Завершенные курсы</h3>
+                            <div class="um-progress-stat-value">{{ completed_courses }}</div>
+                            <div class="um-progress-stat-desc">
+                                {% if total_courses > 0 %}
+                                    {% widthratio completed_courses total_courses 100 %}% от общего числа
+                                {% else %}
+                                    Нет курсов
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="um-progress-stat-card {% if course_filter == 'started' %}active{% endif %}" 
+                             data-filter="started" onclick="filterCourses('started')">
+                            <h3>Курсы в процессе</h3>
+                            <div class="um-progress-stat-value">{{ started_courses }}</div>
+                            <div class="um-progress-stat-desc">
+                                Активно изучаются
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Детальный прогресс по курсам -->
+                <div class="um-progress-courses">
+                    <h2>Детальный прогресс по курсам</h2>
+                    {% if page_obj_courses and page_obj_courses.object_list %}
+                        {% for course_progress in page_obj_courses %}
+                        <div class="um-progress-course-card">
+                            <div class="um-progress-course-header">
+                                <div class="um-progress-course-info">
+                                    <h3 class="um-progress-course-title">{{ course_progress.course.title }}</h3>
+                                    <div class="um-progress-course-meta">
+                                        <span class="um-progress-course-status um-status-{{ course_progress.user_course.status }}">
+                                            {% if course_progress.user_course.status == 'completed' %}
+                                                Завершен
+                                            {% elif course_progress.user_course.status == 'started' %}
+                                                В процессе
+                                            {% else %}
+                                                Доступен
+                                            {% endif %}
+                                        </span>
+                                        <span class="um-progress-course-date">
+                                            Начат: {{ course_progress.user_course.start_date|date:'d.m.Y' }}
+                                        </span>
+                                        {% if course_progress.user_course.end_date %}
+                                            <span class="um-progress-course-date">
+                                                Завершен: {{ course_progress.user_course.end_date|date:'d.m.Y' }}
+                                            </span>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                <div class="um-progress-course-stats">
+                                    <div class="um-progress-course-progress">
+                                        <div class="um-progress-bar">
+                                            <div class="um-progress-bar-fill" style="width: {{ course_progress.progress_percent }}%"></div>
+                                        </div>
+                                        <span class="um-progress-percent">{{ course_progress.progress_percent }}%</span>
+                                    </div>
+                                    <div class="um-progress-lessons-count">
+                                        {{ course_progress.completed_lessons }} из {{ course_progress.total_lessons }} уроков{% if course_progress.total_quizzes > 0 %}, {{ course_progress.completed_quizzes }} из {{ course_progress.total_quizzes }} тестов{% endif %}
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Информация о финальном тесте -->
+                            {% if course_progress.course.final_quiz %}
+                            <div class="um-progress-quiz-info">
+                                <h4>Финальный тест: {{ course_progress.course.final_quiz.name }}</h4>
+                                <div class="um-progress-quiz-status">
+                                    {% if course_progress.quiz_passed %}
+                                        <span class="um-quiz-passed">✓ Пройден</span>
+                                    {% else %}
+                                        <span class="um-quiz-not-passed">✗ Не пройден</span>
+                                    {% endif %}
+                                    {% if course_progress.best_attempt %}
+                                        <a href="{% url 'user_management:user_quiz_report' course_progress.best_attempt.id %}" class="btn btn-outline-info ms-3">Отчёт</a>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            {% endif %}
+
+                            <!-- Детали по материалам -->
+                            <div class="um-progress-lessons-detail">
+                                <h4>Материалы курса</h4>
+                                <div class="um-progress-lessons-list">
+                                    {% for material_detail in course_progress.lessons_detail %}
+                                    <div class="um-progress-lesson-item {% if material_detail.completed %}um-lesson-completed{% endif %}">
+                                        <div class="um-progress-lesson-info">
+                                            <span class="um-progress-lesson-order">{{ material_detail.order }}.</span>
+                                            <span class="um-progress-lesson-title">
+                                                {% if material_detail.type == 'lesson' %}
+                                                    📄 {{ material_detail.title }}
+                                                {% elif material_detail.type == 'quiz' %}
+                                                    🎓 {{ material_detail.title }}
+                                                {% endif %}
+                                            </span>
+                                        </div>
+                                        <div class="um-progress-lesson-status">
+                                            {% if material_detail.completed %}
+                                                <span class="um-lesson-completed-badge">✓</span>
+                                                <span class="um-lesson-completed-date">
+                                                    {{ material_detail.completed_at|date:'d.m.Y H:i' }}
+                                                </span>
+                                            {% else %}
+                                                <span class="um-lesson-not-completed-badge">○</span>
+                                            {% endif %}
+                                            
+                                            {% if material_detail.type == 'quiz' and material_detail.attempts_count > 0 %}
+                                                <div class="um-quiz-attempts-info">
+                                                    <small class="um-attempts-count">
+                                                        {% if material_detail.attempts_count == 1 %}
+                                                            {{ material_detail.attempts_count }} попытка
+                                                        {% elif material_detail.attempts_count < 5 %}
+                                                            {{ material_detail.attempts_count }} попытки
+                                                        {% else %}
+                                                            {{ material_detail.attempts_count }} попыток
+                                                        {% endif %}
+                                                    </small>
+                                                    {% if material_detail.best_attempt %}
+                                                        <a href="{% url 'user_management:user_quiz_report' material_detail.best_attempt.id %}" 
+                                                           class="btn btn-sm btn-outline-info ms-2" title="Лучший результат">
+                                                            Отчёт
+                                                        </a>
+                                                    {% endif %}
+                                                </div>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+
+                            <!-- Информация о наградах -->
+                            {% if course_progress.user_course.status == 'completed' %}
+                            <div class="um-progress-rewards">
+                                <h4>Награды за курс</h4>
+                                <div class="um-progress-rewards-grid">
+                                    <!-- DASCOIN -->
+                                    <div class="um-progress-reward-item">
+                                        <span class="um-reward-icon">💎</span>
+                                        <span class="um-reward-text">{{ course_progress.course.points }} DASCOIN</span>
+                                    </div>
+                                    
+                                    <!-- Бейджи за курс -->
+                                    {% for user_badge in target_user.profile.get_badges %}
+                                        {% if user_badge.badge.badge_type == 'course' and user_badge.badge.name == 'Курс: '|add:course_progress.course.title %}
+                                            <div class="um-progress-reward-item">
+                                                <span class="um-reward-icon">
+                                                    {% if user_badge.badge.icon %}
+                                                        <img src="{{ user_badge.badge.icon.url }}" alt="{{ user_badge.badge.name }}" class="um-badge-icon">
+                                                    {% else %}
+                                                        <i class="fa fa-medal"></i>
+                                                    {% endif %}
+                                                </span>
+                                                <span class="um-reward-text">{{ user_badge.badge.name }}</span>
+                                                <small class="um-reward-date">{{ user_badge.earned_at|date:"d.m.Y" }}</small>
+                                            </div>
+                                        {% endif %}
+                                    {% endfor %}
+                                </div>
+                            </div>
+                            {% endif %}
+                        </div>
+                        {% endfor %}
+                        <nav aria-label="Page navigation">
+                            <ul class="pagination justify-content-center">
+                                {% if page_obj_courses.has_previous %}
+                                    <li class="page-item">
+                                        <a class="page-link" href="?tab=progress&courses_page={{ page_obj_courses.previous_page_number }}">Назад</a>
+                                    </li>
+                                {% endif %}
+                                {% for num in page_obj_courses.paginator.page_range %}
+                                    {% if page_obj_courses.has_other_pages %}
+                                        <li class="page-item {% if page_obj_courses.number == num %}active{% endif %}">
+                                            <a class="page-link" href="?tab=progress&courses_page={{ num }}">{{ num }}</a>
+                                        </li>
+                                    {% endif %}
+                                {% endfor %}
+                                {% if page_obj_courses.has_next %}
+                                    <li class="page-item">
+                                        <a class="page-link" href="?tab=progress&courses_page={{ page_obj_courses.next_page_number }}">Вперед</a>
+                                    </li>
+                                {% endif %}
+                            </ul>
+                        </nav>
+                    {% else %}
+                        <div class="um-progress-no-courses">
+                            <p>У пользователя нет назначенных курсов.</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Вкладка: Попытки тестов -->
+        <div class="tab-pane fade {% if active_tab == 'quizzes' %}show active{% endif %}" id="quizzes" role="tabpanel" aria-labelledby="quizzes-tab">
+            <div class="quiz-attempts-container">
+                {% if quiz_data %}
+                <div class="search-container">
+                    <!-- Фильтр по статусу блокировки -->
+                    <div class="mb-3">
+                        <label class="d-block mb-2 text-muted small">
+                            <i class="fas fa-filter me-1"></i>Фильтр по статусу:
+                        </label>
+                        <div class="btn-group w-100" role="group" aria-label="Фильтр по статусу">
+                            <input type="radio" class="btn-check" name="statusFilter" id="filterAll" value="all" checked>
+                            <label class="btn btn-outline-primary" for="filterAll">
+                                <i class="fas fa-list me-1"></i>Все тесты
+                            </label>
+                            
+                            <input type="radio" class="btn-check" name="statusFilter" id="filterBlocked" value="blocked">
+                            <label class="btn btn-outline-danger" for="filterBlocked">
+                                <i class="fas fa-lock me-1"></i>Заблокированные
+                            </label>
+                            
+                            <input type="radio" class="btn-check" name="statusFilter" id="filterUnlocked" value="unlocked">
+                            <label class="btn btn-outline-success" for="filterUnlocked">
+                                <i class="fas fa-unlock me-1"></i>Разблокированные
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- Поиск по названию теста -->
+                    <div class="d-flex align-items-center">
+                        <i class="fas fa-search me-3 text-muted"></i>
+                        <input type="text" id="quizSearch" class="search-input" placeholder="Поиск по названию теста...">
+                    </div>
+                </div>
+                {% endif %}
+
+                {% if quiz_data %}
+                    {% for quiz, data in quiz_data.items %}
+                    <div class="quiz-card" data-quiz-name="{{ quiz.name|lower }}" data-is-blocked="{% if data.is_blocked %}true{% else %}false{% endif %}">
+                        <div class="quiz-header">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h5 class="mb-0">{{ quiz.name }}</h5>
+                                    <small class="text-light">
+                                        <i class="fas fa-info-circle me-1"></i>{{ data.quiz_type }}
+                                        {% if data.related_course %}
+                                            | Курс: {{ data.related_course.title }}
+                                        {% endif %}
+                                    </small>
+                                </div>
+                                <div class="text-end">
+                                    <small>ID: {{ quiz.id }}</small><br>
+                                    <small>
+                                        Лимит: {% if quiz.attempt_limit > 0 %}{{ quiz.attempt_limit }}{% else %}∞{% endif %} | 
+                                        Проходной балл: {{ quiz.pass_threshold }}%
+                                    </small>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="quiz-body">
+                            <!-- Статистика -->
+                            <div class="quiz-stats">
+                                <div class="stat-item">
+                                    <div class="stat-value">{{ data.total_attempts }}</div>
+                                    <div class="stat-label">Всего попыток</div>
+                                </div>
+                                <div class="stat-item">
+                                    <div class="stat-value">{{ data.passed_attempts }}</div>
+                                    <div class="stat-label">Успешных</div>
+                                </div>
+                                <div class="stat-item">
+                                    <div class="stat-value">{{ data.failed_attempts }}</div>
+                                    <div class="stat-label">Неуспешных {% if quiz.attempt_limit > 0 %}(из {{ quiz.attempt_limit }}){% endif %}</div>
+                                </div>
+                                {% if data.excluded_attempts > 0 %}
+                                <div class="stat-item">
+                                    <div class="stat-value">{{ data.excluded_attempts }}</div>
+                                    <div class="stat-label">Исключенных из лимита</div>
+                                </div>
+                                {% endif %}
+                                <div class="stat-item">
+                                    <div class="stat-value">
+                                        {% if data.best_score %}{{ data.best_score }}%{% else %}—{% endif %}
+                                    </div>
+                                    <div class="stat-label">Лучший результат</div>
+                                </div>
+                            </div>
+
+                            <!-- Статус доступа -->
+                            <div class="alert-info">
+                                <strong>Статус доступа:</strong>
+                                {% if data.is_blocked %}
+                                    <span class="status-badge status-blocked">
+                                        <i class="fas fa-lock me-1"></i>Заблокирован (превышен лимит неуспешных попыток)
+                                    </span>
+                                {% else %}
+                                    <span class="status-badge status-passed">
+                                        <i class="fas fa-unlock me-1"></i>Доступен
+                                    </span>
+                                {% endif %}
+                            </div>
+
+                            <!-- Таблица попыток -->
+                            {% if data.attempts %}
+                            <table class="attempts-table">
+                                <thead>
+                                    <tr>
+                                        <th>№</th>
+                                        <th>Дата</th>
+                                        <th>Результат</th>
+                                        <th>Статус</th>
+                                        <th>Действия</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for attempt in data.attempts %}
+                                    <tr>
+                                        <td>{{ attempt.attempt_number }}</td>
+                                        <td>{{ attempt.started_at|date:"d.m.Y H:i" }}</td>
+                                        <td>
+                                            {{ attempt.result.score }}/{{ attempt.result.total_questions }} 
+                                            ({{ attempt.result.percent }}%)
+                                        </td>
+                                        <td>
+                                            {% if attempt.result.passed %}
+                                                <span class="status-badge status-passed">Пройден</span>
+                                            {% else %}
+                                                <span class="status-badge status-failed">Не пройден</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            <a href="{% url 'user_management:user_quiz_report' attempt.result.id %}" 
+                                               class="btn btn-sm btn-outline-primary" title="Посмотреть отчет">
+                                                <i class="fas fa-file-alt me-1"></i>Отчет
+                                            </a>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                            {% else %}
+                            <div class="no-attempts">
+                                <i class="fas fa-info-circle me-2"></i>
+                                Пользователь еще не проходил этот тест
+                            </div>
+                            {% endif %}
+
+                            <!-- Действия -->
+                            <div class="quiz-actions">
+                                {% if data.is_blocked %}
+                                <form method="post" action="{% url 'user_management:unlock_quiz_access' target_user.pk quiz.pk %}" style="display: inline;">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn-unlock" onclick="return confirm('Разблокировать доступ к тесту? Пользователь сможет пройти еще одну попытку.')">
+                                        <i class="fas fa-unlock me-1"></i>Разблокировать
+                                    </button>
+                                </form>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                <div class="card">
+                    <div class="card-body text-center py-5">
+                        <i class="fas fa-clipboard-question fa-3x text-muted mb-3"></i>
+                        <h5 class="text-muted">Нет данных о тестах</h5>
+                        <p class="text-muted">Пользователь еще не проходил ни одного теста</p>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Модальное окно для управления ролями -->
+<div class="modal fade" id="roleModal" tabindex="-1" aria-labelledby="roleModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="roleModalLabel">Управление должностями</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Закрыть"></button>
+      </div>
+      <div class="modal-body">
+        <form method="post" action="{% url 'user_management:role_manage' %}" id="role-manage-form">
+          {% csrf_token %}
+          <div class="mb-3">
+            <label for="id_new_role" class="form-label">Добавить новую должность</label>
+            <input type="text" class="form-control" id="id_new_role" name="new_role" maxlength="200">
+          </div>
+          <button type="submit" class="btn btn-primary mb-3">Добавить</button>
+        </form>
+        <hr>
+        <h6>Существующие должности:</h6>
+        <ul class="list-group">
+          {% for role in roles %}
+          <li class="list-group-item d-flex justify-content-between align-items-center" id="role-item-{{ role.id }}">
+            <span class="role-name" id="role-name-{{ role.id }}">{{ role.name }}</span>
+            <div class="role-action-btns" style="display:flex; gap:6px; align-items:center; margin-left:10px;">
+              <button type="button" class="btn btn-sm btn-secondary" onclick="editRole({{ role.id }}, '{{ role.name|escapejs }}')">
+                <i class="fa fa-pencil"></i>
+              </button>
+              <form method="post" action="{% url 'user_management:role_delete' role.id %}" style="display:inline; margin:0;">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Удалить должность?')">
+                  <i class="fa fa-trash"></i>
+                </button>
+              </form>
+            </div>
+          </li>
+          {% empty %}
+          <li class="list-group-item">Нет должностей</li>
+          {% endfor %}
+        </ul>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="{% static 'user_management/js/phone_field.js' %}" defer></script>
+<script src="{% static 'user_management/js/user_quiz_attempts.js' %}" defer></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    var arb = document.getElementById('id_phone_arbitrary_format');
+    var cb = document.getElementById('arbitrary_format_checkbox');
+    if (cb && arb) {
+        cb.checked = arb.checked;
+        cb.addEventListener('change', function() { arb.checked = cb.checked; });
+        arb.addEventListener('change', function() { cb.checked = arb.checked; });
+    }
+});
+
+function editRole(roleId, roleName) {
+  const item = document.getElementById('role-item-' + roleId);
+  const nameSpan = document.getElementById('role-name-' + roleId);
+  nameSpan.style.display = 'none';
+
+  if (item.querySelector('form.role-edit-form')) return;
+
+  function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+      const cookies = document.cookie.split(';');
+      for (let i = 0; i < cookies.length; i++) {
+        const cookie = cookies[i].trim();
+        if (cookie.substring(0, name.length + 1) === (name + '=')) {
+          cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+          break;
+        }
+      }
+    }
+    return cookieValue;
+  }
+  const csrfToken = getCookie('csrftoken');
+
+  const form = document.createElement('form');
+  form.method = 'post';
+  form.action = `/user_management/roles/${roleId}/edit/`;
+  form.className = 'role-edit-form';
+  form.style.display = 'inline';
+  form.innerHTML = `
+    <input type="hidden" name="csrfmiddlewaretoken" value="${csrfToken}">
+    <input type="text" name="new_name" value="${roleName}" class="form-control form-control-sm d-inline" style="width:120px;display:inline-block;">
+    <button type="submit" class="btn btn-sm btn-success ms-1"><i class="fa fa-save"></i></button>
+    <button type="button" class="btn btn-sm btn-secondary ms-1" onclick="cancelEditRole(${roleId}, '${roleName}')"><i class="fa fa-times"></i></button>
+  `;
+  nameSpan.after(form);
+}
+
+function cancelEditRole(roleId, roleName) {
+  const item = document.getElementById('role-item-' + roleId);
+  const form = item.querySelector('form.role-edit-form');
+  if (form) form.remove();
+  const nameSpan = document.getElementById('role-name-' + roleId);
+  nameSpan.style.display = '';
+}
+
+// Обработчик изменения галочки "Ответственный"
+document.addEventListener('DOMContentLoaded', function() {
+    const responsibleCheckbox = document.getElementById('is_responsible');
+    const roleSelect = document.getElementById('id_role');
+    
+    if (responsibleCheckbox && roleSelect) {
+        responsibleCheckbox.addEventListener('change', function() {
+            const isChecked = this.checked;
+            const roleId = roleSelect.value;
+            const userId = {{ target_user.id|default:'null' }};
+            
+            if (!roleId) {
+                alert('Сначала выберите должность для пользователя');
+                this.checked = !isChecked;
+                return;
+            }
+            
+            if (!userId) {
+                alert('Ошибка: не удалось определить пользователя');
+                this.checked = !isChecked;
+                return;
+            }
+            
+            if (isChecked) {
+                fetch(`/user_management/roles/${roleId}/users/`)
+                    .then(response => response.json())
+                    .then(data => {
+                        const currentResponsible = data.users.find(user => user.is_responsible);
+                        
+                        if (currentResponsible && currentResponsible.id !== userId) {
+                            this.checked = false;
+                            alert(`Для должности "${roleSelect.options[roleSelect.selectedIndex].text}" уже назначен ответственный - это ${currentResponsible.full_name}`);
+                            return;
+                        }
+                        
+                        const responsibleId = userId;
+                        
+                        fetch(`/user_management/roles/${roleId}/responsible/`, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/x-www-form-urlencoded',
+                                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+                            },
+                            body: `responsible_id=${responsibleId}`
+                        })
+                        .then(response => {
+                            if (response.ok) {
+                                alert('Пользователь назначен ответственным за данную должность');
+                            } else {
+                                this.checked = false;
+                                alert('Ошибка при назначении ответственности');
+                            }
+                        })
+                        .catch(error => {
+                            console.error('Ошибка:', error);
+                            this.checked = false;
+                            alert('Ошибка при назначении ответственности');
+                        });
+                    })
+                    .catch(error => {
+                        console.error('Ошибка загрузки данных роли:', error);
+                        this.checked = false;
+                        alert('Ошибка при проверке ответственности');
+                    });
+            } else {
+                const responsibleId = '';
+                
+                fetch(`/user_management/roles/${roleId}/responsible/`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                        'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+                    },
+                    body: `responsible_id=${responsibleId}`
+                })
+                .then(response => {
+                    if (response.ok) {
+                        alert('Ответственность снята с пользователя');
+                    } else {
+                        this.checked = true;
+                        alert('Ошибка при снятии ответственности');
+                    }
+                })
+                .catch(error => {
+                    console.error('Ошибка:', error);
+                    this.checked = true;
+                    alert('Ошибка при снятии ответственности');
+                });
+            }
+        });
+        
+        roleSelect.addEventListener('change', function() {
+            const roleId = this.value;
+            if (roleId) {
+                fetch(`/user_management/roles/${roleId}/users/`)
+                    .then(response => response.json())
+                    .then(data => {
+                        const currentUserId = {{ target_user.id|default:'null' }};
+                        const isResponsible = data.users.some(user => 
+                            user.id === currentUserId && user.is_responsible
+                        );
+                        responsibleCheckbox.checked = isResponsible;
+                    })
+                    .catch(error => {
+                        console.error('Ошибка загрузки данных роли:', error);
+                        responsibleCheckbox.checked = false;
+                    });
+            } else {
+                responsibleCheckbox.checked = false;
+            }
+        });
+    }
+});
+
+function filterCourses(filter) {
+    const url = new URL(window.location);
+    url.searchParams.set('tab', 'progress');
+    url.searchParams.set('course_filter', filter);
+    url.searchParams.delete('courses_page');
+    window.location.href = url.toString();
+}
+</script>
+{% endblock %}
+
