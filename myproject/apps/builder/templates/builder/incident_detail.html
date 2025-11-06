@@ -13,10 +13,14 @@
     
     <!-- Фильтры -->
     <form method="get" id="incident-detail-filter-form" class="mb-4">
+        <!-- Скрытое поле для сохранения параметра search, если он был передан изначально -->
+        {% if search %}
+        <input type="hidden" name="search" value="{{ search }}" id="hidden_search">
+        {% endif %}
         <div class="row mb-2 g-2 align-items-center">
             <!-- Поиск по названию -->
             <div class="col-md-3 col-lg-3">
-                <input type="text" class="form-control" id="search" name="search" placeholder="Поиск по названию инцидента..." value="{{ search }}">
+                <input type="text" class="form-control" id="search" {% if not search %}name="search"{% endif %} placeholder="Поиск по названию инцидента..." value="{{ search }}" {% if search %}readonly{% endif %}>
             </div>
             <!-- Фильтр по дате -->
             <div class="col-md-3 col-lg-2">
@@ -49,7 +53,7 @@
         <div class="row mb-2">
             <div class="col-md-3 col-lg-3">
                 <button type="submit" class="btn btn-primary">Применить фильтры</button>
-                <a href="{% url 'builder:incident_detail' %}" class="btn btn-secondary">Сбросить</a>
+                <a href="{% url 'builder:incident_detail' %}{% if search %}?search={{ search|urlencode }}{% endif %}" class="btn btn-secondary" id="reset-button">Сбросить</a>
             </div>
         </div>
     </form>
@@ -128,6 +132,50 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (field.tagName === 'INPUT') {
                     field.setAttribute('readonly', 'readonly');
                 }
+            }
+        });
+        
+        // Убеждаемся, что скрытое поле search существует и содержит значение
+        let hiddenSearch = document.getElementById('hidden_search');
+        if (!hiddenSearch) {
+            hiddenSearch = document.createElement('input');
+            hiddenSearch.type = 'hidden';
+            hiddenSearch.name = 'search';
+            hiddenSearch.id = 'hidden_search';
+            hiddenSearch.value = searchParam;
+            document.getElementById('incident-detail-filter-form').appendChild(hiddenSearch);
+        }
+        
+        // Обновляем ссылку кнопки "Сбросить", чтобы она сохраняла параметр search
+        const resetButton = document.getElementById('reset-button');
+        if (resetButton) {
+            const baseUrl = resetButton.getAttribute('href').split('?')[0];
+            resetButton.href = baseUrl + '?search=' + encodeURIComponent(searchParam);
+        }
+    }
+    
+    // Обработчик отправки формы - гарантируем сохранение параметра search
+    const form = document.getElementById('incident-detail-filter-form');
+    if (form && searchParam) {
+        form.addEventListener('submit', function(e) {
+            // Убеждаемся, что параметр search будет передан через скрытое поле
+            let hiddenSearch = document.getElementById('hidden_search');
+            if (!hiddenSearch) {
+                hiddenSearch = document.createElement('input');
+                hiddenSearch.type = 'hidden';
+                hiddenSearch.name = 'search';
+                hiddenSearch.id = 'hidden_search';
+                hiddenSearch.value = searchParam;
+                form.appendChild(hiddenSearch);
+            } else {
+                // Всегда обновляем значение скрытого поля на исходное значение из URL
+                hiddenSearch.value = searchParam;
+            }
+            
+            // Удаляем атрибут name у видимого поля, если он есть, чтобы оно не отправлялось
+            const visibleSearchInput = document.getElementById('search');
+            if (visibleSearchInput && visibleSearchInput.hasAttribute('name')) {
+                visibleSearchInput.removeAttribute('name');
             }
         });
     }
