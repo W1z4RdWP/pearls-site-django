@@ -81,7 +81,6 @@ function loadUsers(query) {
             displayUsers(data.users);
         })
         .catch(error => {
-            console.error('Ошибка загрузки пользователей:', error);
             userList.innerHTML = '<div class="user-list-error">Ошибка загрузки данных</div>';
         });
 }
@@ -171,18 +170,35 @@ function initializeUserField() {
 // Инициализация поля дедлайна при загрузке страницы
 function initializeDeadlineField() {
     const deadlineInput = document.getElementById('id_deadline');
-    if (deadlineInput && deadlineInput.value) {
-        // Преобразуем значение datetime в формат для datetime-local
-        // Django может передавать datetime в формате "YYYY-MM-DD HH:MM:SS" или "YYYY-MM-DDTHH:MM"
-        let deadlineValue = deadlineInput.value.trim();
-        
+    if (!deadlineInput) {
+        return;
+    }
+    
+    // Проверяем значение из атрибута value (если установлено в форме) или из value
+    let deadlineValue = deadlineInput.value || deadlineInput.getAttribute('value') || '';
+    
+    if (!deadlineValue || deadlineValue.trim() === '') {
+        return;
+    }
+    
+    deadlineValue = deadlineValue.trim();
+    
+    // Если значение уже в правильном формате (YYYY-MM-DDTHH:MM), используем его
+    const datetimeLocalRegex = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/;
+    if (datetimeLocalRegex.test(deadlineValue)) {
+        deadlineInput.value = deadlineValue;
+        return;
+    }
+    
+    // Пытаемся преобразовать значение в формат datetime-local
+    try {
         // Если значение содержит пробел, заменяем на 'T'
         if (deadlineValue.includes(' ')) {
             deadlineValue = deadlineValue.replace(' ', 'T');
         }
         
-        // Если значение содержит секунды и миллисекунды, удаляем их
-        // Формат должен быть YYYY-MM-DDTHH:MM
+        // Парсим дату
+        let dateObj;
         if (deadlineValue.includes('T')) {
             const parts = deadlineValue.split('T');
             if (parts.length === 2) {
@@ -199,17 +215,40 @@ function initializeDeadlineField() {
                 }
                 
                 deadlineValue = datePart + 'T' + timePart;
+                dateObj = new Date(deadlineValue);
+            } else {
+                dateObj = new Date(deadlineValue);
             }
-        } else if (deadlineValue.includes(':')) {
-            // Если формат без 'T', но с временем
-            const parts = deadlineValue.split(':');
-            if (parts.length >= 2) {
-                deadlineValue = parts.slice(0, 2).join(':');
-            }
+        } else {
+            dateObj = new Date(deadlineValue);
         }
         
+        // Проверяем, что дата валидна
+        if (isNaN(dateObj.getTime())) {
+            // Если не удалось распарсить через Date, попробуем другой способ
+            // Формат может быть YYYY-MM-DD HH:MM:SS или YYYY-MM-DD HH:MM
+            const spaceMatch = deadlineValue.match(/^(\d{4}-\d{2}-\d{2})\s+(\d{2}:\d{2})/);
+            if (spaceMatch) {
+                deadlineValue = spaceMatch[1] + 'T' + spaceMatch[2];
+                deadlineInput.value = deadlineValue;
+                return;
+            }
+            return;
+        }
+        
+        // Форматируем в формат datetime-local (YYYY-MM-DDTHH:MM)
+        const year = dateObj.getFullYear();
+        const month = String(dateObj.getMonth() + 1).padStart(2, '0');
+        const day = String(dateObj.getDate()).padStart(2, '0');
+        const hours = String(dateObj.getHours()).padStart(2, '0');
+        const minutes = String(dateObj.getMinutes()).padStart(2, '0');
+        
+        const formattedValue = `${year}-${month}-${day}T${hours}:${minutes}`;
+        
         // Устанавливаем значение
-        deadlineInput.value = deadlineValue;
+        deadlineInput.value = formattedValue;
+    } catch (error) {
+        // Ошибка при инициализации поля deadline
     }
 }
 
