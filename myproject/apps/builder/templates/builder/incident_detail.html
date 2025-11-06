@@ -101,4 +101,36 @@
         </table>
     </div>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Проверяем наличие параметра search в URL
+    const urlParams = new URLSearchParams(window.location.search);
+    const searchParam = urlParams.get('search');
+    
+    // Если параметр search присутствует, блокируем поля фильтрации
+    if (searchParam) {
+        const fieldsToBlock = [
+            'search',      // Поиск по названию
+            'date_from',   // Фильтр по дате начала
+            'date_to',     // Фильтр по дате конца
+            'assigned_user' // Фильтр по пользователю
+        ];
+        
+        fieldsToBlock.forEach(function(fieldId) {
+            const field = document.getElementById(fieldId);
+            if (field) {
+                field.disabled = true;
+                // Добавляем визуальный стиль для заблокированных полей
+                field.style.backgroundColor = '#e9ecef';
+                field.style.cursor = 'not-allowed';
+                // Для input полей добавляем readonly
+                if (field.tagName === 'INPUT') {
+                    field.setAttribute('readonly', 'readonly');
+                }
+            }
+        });
+    }
+});
+</script>
 {% endblock %}
