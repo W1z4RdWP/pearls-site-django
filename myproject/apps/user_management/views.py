@@ -25,7 +25,7 @@ from django.contrib import messages
 from .utils import send_user_credentials_email
 from gamification.models import DascoinTransaction
 import logging
-from datetime import datetime
+from datetime import datetime, timedelta
 from django.utils import timezone
 from django.template.loader import render_to_string
 from openpyxl import Workbook
@@ -2050,11 +2050,23 @@ def api_assign_courses_to_user(request, user_id):
     try:
         data = json.loads(request.body)
         course_ids = data.get('course_ids', [])
+        deadline_days = data.get('deadline_days', 7)  # По умолчанию 7 дней
     except (json.JSONDecodeError, AttributeError):
         return JsonResponse({'error': 'Неверный формат данных'}, status=400)
     
     if not course_ids or not isinstance(course_ids, list):
         return JsonResponse({'error': 'Список курсов не указан'}, status=400)
+    
+    # Валидация deadline_days
+    try:
+        deadline_days = int(deadline_days)
+        if deadline_days < 1:
+            return JsonResponse({'error': 'Количество дней должно быть больше 0'}, status=400)
+    except (ValueError, TypeError):
+        return JsonResponse({'error': 'Неверное значение количества дней'}, status=400)
+    
+    # Вычисляем deadline (дата назначения + количество дней)
+    deadline = timezone.now() + timedelta(days=deadline_days)
     
     # Получаем курсы
     courses = Course.objects.filter(id__in=course_ids).exclude(is_incident=True)
@@ -2073,8 +2085,13 @@ def api_assign_courses_to_user(request, user_id):
         user_course, created = UserCourse.objects.get_or_create(
             user=target_user,
             course=course,
-            defaults={'status': 'available'}
+            defaults={'status': 'available', 'deadline': deadline}
         )
+        
+        # Если курс уже был назначен, обновляем deadline только если он не был установлен ранее
+        if not created and not user_course.deadline:
+            user_course.deadline = deadline
+            user_course.save(update_fields=['deadline'])
         
         if created:
             assigned_count += 1

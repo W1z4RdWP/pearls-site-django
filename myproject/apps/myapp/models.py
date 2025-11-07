@@ -45,6 +45,7 @@ class UserCourse(models.Model):
     course = models.ForeignKey(Course, on_delete=models.CASCADE)
     start_date = models.DateTimeField(auto_now_add=True)
     end_date = models.DateTimeField(null=True, blank=True)
+    deadline = models.DateTimeField(null=True, blank=True, verbose_name="Срок завершения курса", help_text="Дата, до которой нужно завершить курс")
     status = models.CharField(
         max_length=20, 
         choices=STATUS_CHOICES, 
