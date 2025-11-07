@@ -952,6 +952,7 @@ function filterCourses(filter) {
 const getGroupsWithCoursesUrl = "{% url 'user_management:api_get_groups_with_courses' %}";
 const getGroupCoursesUrlTemplate = "{% url 'user_management:api_get_group_courses' 0 %}";
 const searchCoursesUrl = "{% url 'user_management:api_search_courses' %}";
+const assignCoursesUrlTemplate = "{% url 'user_management:api_assign_courses_to_user' target_user.pk %}";
 const getGroupCoursesUrl = getGroupCoursesUrlTemplate.replace('/0/', '/{id}/');
 
 // Элементы DOM для назначения курсов (будут инициализированы в DOMContentLoaded)
@@ -1168,19 +1169,90 @@ function displaySelectedCourses() {
 }
 
 // Применение выбора курсов
-if (confirmCourseAssignmentBtn) {
-    confirmCourseAssignmentBtn.addEventListener('click', function() {
-        // TODO: Реализовать назначение курсов пользователю
-        const courseIds = Array.from(selectedCourses.keys());
-        console.log('Назначить курсы:', courseIds);
-        
-        // Здесь будет отправка запроса на сервер для назначения курсов
-        // Пока просто закрываем модальное окно
-        courseModal.style.display = 'none';
-        hideCourseSearchResults();
-        
-        // Показываем сообщение пользователю
-        alert('Функционал назначения курсов будет реализован позже. Выбрано курсов: ' + courseIds.length);
+function applyCourseAssignment() {
+    const courseIds = Array.from(selectedCourses.keys());
+    
+    if (courseIds.length === 0) {
+        alert('Выберите хотя бы один курс для назначения');
+        return;
+    }
+    
+    // Отключаем кнопку на время выполнения запроса
+    if (confirmCourseAssignmentBtn) {
+        confirmCourseAssignmentBtn.disabled = true;
+        confirmCourseAssignmentBtn.textContent = 'Назначение...';
+    }
+    
+    // Получаем CSRF токен
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+    const csrfToken = getCookie('csrftoken');
+    
+    // Отправляем запрос на сервер
+    fetch(assignCoursesUrlTemplate, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': csrfToken
+        },
+        body: JSON.stringify({
+            course_ids: courseIds
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.error) {
+            alert('Ошибка: ' + data.error);
+        } else {
+            // Формируем сообщение о результате
+            let message = `Назначено курсов: ${data.assigned_count}`;
+            if (data.already_assigned_count > 0) {
+                message += `\nУже были назначены: ${data.already_assigned_count}`;
+            }
+            
+            if (data.assigned_count > 0) {
+                // Очищаем выбранные курсы
+                selectedCourses.clear();
+                displaySelectedCourses();
+                
+                // Закрываем модальное окно
+                if (courseModal) {
+                    courseModal.style.display = 'none';
+                }
+                hideCourseSearchResults();
+                
+                // Показываем сообщение об успехе
+                alert(message);
+                
+                // Перезагружаем страницу для обновления данных
+                window.location.reload();
+            } else {
+                alert('Все выбранные курсы уже были назначены пользователю');
+            }
+        }
+    })
+    .catch(error => {
+        console.error('Ошибка:', error);
+        alert('Произошла ошибка при назначении курсов');
+    })
+    .finally(() => {
+        // Включаем кнопку обратно
+        if (confirmCourseAssignmentBtn) {
+            confirmCourseAssignmentBtn.disabled = false;
+            confirmCourseAssignmentBtn.textContent = 'Применить';
+        }
     });
 }
 
@@ -1265,19 +1337,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // Применение выбора курсов
     if (confirmCourseAssignmentBtn) {
         confirmCourseAssignmentBtn.addEventListener('click', function() {
-            // TODO: Реализовать назначение курсов пользователю
-            const courseIds = Array.from(selectedCourses.keys());
-            console.log('Назначить курсы:', courseIds);
-            
-            // Здесь будет отправка запроса на сервер для назначения курсов
-            // Пока просто закрываем модальное окно
-            if (courseModal) {
-                courseModal.style.display = 'none';
-            }
-            hideCourseSearchResults();
-            
-            // Показываем сообщение пользователю
-            alert('Функционал назначения курсов будет реализован позже. Выбрано курсов: ' + courseIds.length);
+            applyCourseAssignment();
         });
     }
 });

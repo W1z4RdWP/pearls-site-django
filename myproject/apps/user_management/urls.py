@@ -40,5 +40,6 @@ urlpatterns = [
     path('api/groups/with-courses/', views.api_get_groups_with_courses, name='api_get_groups_with_courses'),
     path('api/groups/<int:group_id>/courses/', views.api_get_group_courses, name='api_get_group_courses'),
     path('api/courses/search/', views.api_search_courses, name='api_search_courses'),
+    path('api/users/<int:user_id>/assign-courses/', views.api_assign_courses_to_user, name='api_assign_courses_to_user'),
 
 ]

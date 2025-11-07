@@ -32,6 +32,7 @@ from openpyxl import Workbook
 from openpyxl.styles import Font, PatternFill
 from urllib.parse import urlencode
 from weasyprint import HTML
+import json
 
 
 # Получаем логгер для записи в журнал аудита
@@ -2028,5 +2029,88 @@ def api_search_courses(request):
         })
     
     return JsonResponse({'courses': courses_data})
+
+
+@login_required
+@require_POST
+def api_assign_courses_to_user(request, user_id):
+    """
+    API endpoint для индивидуального назначения курсов пользователю.
+    Принимает список ID курсов и назначает их пользователю, если они еще не назначены.
+    """
+    if not (request.user.is_staff or request.user.is_superuser):
+        return JsonResponse({'error': 'Доступ запрещен'}, status=403)
+    
+    try:
+        target_user = User.objects.get(id=user_id)
+    except User.DoesNotExist:
+        return JsonResponse({'error': 'Пользователь не найден'}, status=404)
+    
+    # Получаем список ID курсов из POST запроса
+    try:
+        data = json.loads(request.body)
+        course_ids = data.get('course_ids', [])
+    except (json.JSONDecodeError, AttributeError):
+        return JsonResponse({'error': 'Неверный формат данных'}, status=400)
+    
+    if not course_ids or not isinstance(course_ids, list):
+        return JsonResponse({'error': 'Список курсов не указан'}, status=400)
+    
+    # Получаем курсы
+    courses = Course.objects.filter(id__in=course_ids).exclude(is_incident=True)
+    
+    if courses.count() != len(course_ids):
+        return JsonResponse({'error': 'Некоторые курсы не найдены'}, status=400)
+    
+    # Назначаем курсы пользователю
+    assigned_count = 0
+    already_assigned_count = 0
+    assigned_courses = []
+    already_assigned_courses = []
+    
+    for course in courses:
+        # Проверяем, не назначен ли уже курс пользователю
+        user_course, created = UserCourse.objects.get_or_create(
+            user=target_user,
+            course=course,
+            defaults={'status': 'available'}
+        )
+        
+        if created:
+            assigned_count += 1
+            assigned_courses.append({
+                'id': course.id,
+                'title': course.title
+            })
+            
+            # Создаем внутреннее уведомление
+            try:
+                from notifications.models import Notification
+                Notification.create_course_assignment_notification(target_user, course)
+            except Exception as e:
+                audit_logger.error(f"Ошибка создания уведомления о курсе {course.title}: {e}")
+            
+            # Отправляем email уведомление
+            try:
+                from .utils import send_course_assignment_email
+                send_course_assignment_email(target_user, course)
+                audit_logger.info(f"Отправлено email уведомление о курсе {course.title} пользователю {target_user.email}")
+            except Exception as e:
+                audit_logger.error(f"Ошибка отправки email уведомления о курсе {course.title}: {e}")
+        else:
+            already_assigned_count += 1
+            already_assigned_courses.append({
+                'id': course.id,
+                'title': course.title
+            })
+    
+    return JsonResponse({
+        'success': True,
+        'assigned_count': assigned_count,
+        'already_assigned_count': already_assigned_count,
+        'assigned_courses': assigned_courses,
+        'already_assigned_courses': already_assigned_courses,
+        'message': f'Назначено курсов: {assigned_count}, уже были назначены: {already_assigned_count}'
+    })
 
 
