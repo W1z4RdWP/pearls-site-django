@@ -227,6 +227,12 @@ class CourseDetailView(DetailView):
 
         if user.is_authenticated:
             user_course = UserCourse.objects.filter(user=user, course=course).first()
+            
+            # Проверяем deadline и блокируем курс, если срок истек
+            if user_course and user_course.deadline and user_course.status not in ['completed', 'blocked']:
+                if timezone.now() > user_course.deadline:
+                    user_course.status = 'blocked'
+                    user_course.save(update_fields=['status'])
 
             # Если курс начат или завершен
             if user_course and user_course.status in ['started', 'completed']:
@@ -501,9 +507,12 @@ class CourseDetailView(DetailView):
         if hasattr(request.user, 'profile') and request.user.profile:
             user_country = request.user.profile.country or ''
 
-        # Проверяем deadline
+        # Проверяем deadline и блокируем курс, если срок истек
         is_deadline_overdue = False
         if user_course and user_course.deadline:
+            if timezone.now() > user_course.deadline and user_course.status not in ['completed', 'blocked']:
+                user_course.status = 'blocked'
+                user_course.save(update_fields=['status'])
             is_deadline_overdue = timezone.now() > user_course.deadline
         
         # Формирование контекста
@@ -1654,15 +1663,30 @@ class UserCourseTrajectoryListView(ListView):
             else:
                 percent = int((completed_materials / total_materials) * 100)
 
+            # Проверяем deadline и блокируем курс, если срок истек
+            deadline = user_course.deadline
+            is_deadline_overdue = False
+            if deadline:
+                from django.utils import timezone
+                if timezone.now() > deadline and user_course.status not in ['completed', 'blocked']:
+                    user_course.status = 'blocked'
+                    user_course.save(update_fields=['status'])
+                is_deadline_overdue = timezone.now() > deadline
+
             # Определяем статус курса
-            final_quiz_status = None
-            if course.final_quiz:
-                quiz_passed = QuizResult.objects.filter(
-                    user=user,
-                    course=course,
-                    quiz_title=course.final_quiz.name,
-                    passed=True
-                ).exists()
+            # Если курс заблокирован, используем статус blocked
+            if user_course.status == 'blocked':
+                status = 'blocked'
+                final_quiz_status = None
+            else:
+                final_quiz_status = None
+                if course.final_quiz:
+                    quiz_passed = QuizResult.objects.filter(
+                        user=user,
+                        course=course,
+                        quiz_title=course.final_quiz.name,
+                        passed=True
+                    ).exists()
                 
                 # Получаем статус финального теста (pending/reviewed/completed)
                 latest_final_quiz_result = QuizResult.objects.filter(
@@ -1681,21 +1705,14 @@ class UserCourseTrajectoryListView(ListView):
                     status = 'in_progress'
                 else:
                     status = 'available'
+        else:
+            # Если нет финального теста, курс завершен когда все материалы пройдены
+            if total_materials > 0 and completed_materials >= total_materials:
+                status = 'completed'
+            elif completed_materials > 0 or user_course.status in ['started', 'in_progress']:
+                status = 'in_progress'
             else:
-                # Если нет финального теста, курс завершен когда все материалы пройдены
-                if total_materials > 0 and completed_materials >= total_materials:
-                    status = 'completed'
-                elif completed_materials > 0 or user_course.status in ['started', 'in_progress']:
-                    status = 'in_progress'
-                else:
-                    status = 'available'
-
-            # Проверяем deadline
-            deadline = user_course.deadline
-            is_deadline_overdue = False
-            if deadline:
-                from django.utils import timezone
-                is_deadline_overdue = timezone.now() > deadline
+                status = 'available'
             
             course_data = {
                 'course': course,

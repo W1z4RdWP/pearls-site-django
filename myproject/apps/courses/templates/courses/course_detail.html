@@ -46,7 +46,20 @@
 </div>
 
 <div class="container">
-    {% if user_course and user_course.status in 'started,completed' %}
+    {% if user_course and user_course.status == 'blocked' %}
+        <div class="alert alert-danger border-0 mb-4" style="background: #f8d7da; border: 1px solid #f5c6cb; border-radius: 8px; padding: 30px;">
+            <div class="text-center">
+                <i class="fa fa-lock fa-3x text-danger mb-3"></i>
+                <h2 class="text-danger mb-3">Курс заблокирован</h2>
+                <p class="lead mb-3">
+                    Курс не был завершен до установленного срока: <strong>{{ user_course.deadline|date:"d.m.Y" }}</strong>
+                </p>
+                <p class="mb-0">
+                    Для разблокировки курса обратитесь в службу поддержки.
+                </p>
+            </div>
+        </div>
+    {% elif user_course and user_course.status in 'started,completed' %}
     <div class="progress-modern">
         <div class="progress-bar-modern" style="width: {{ progress }}%"></div>
     </div>
@@ -55,6 +68,7 @@
     </div>
     {% endif %}
     
+    {% if user_course and user_course.status != 'blocked' %}
     <div class="row">
         <div class="col-lg-8">
             <div class="course-content">
@@ -532,6 +546,7 @@
             </div>
         </div>
     </div>
+    {% endif %}
     
     {# Анимация завершения курса #}
     {% if show_completion_animation %}
