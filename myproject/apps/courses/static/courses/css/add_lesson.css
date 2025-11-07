@@ -124,6 +124,12 @@
     color: #666;
     font-size: 12px;
     transition: transform 0.2s;
+    padding: 4px 8px;
+    margin: -4px -8px;
+    cursor: pointer;
+    display: inline-block;
+    min-width: 24px;
+    text-align: center;
 }
 
 .toggle-arrow.expanded {

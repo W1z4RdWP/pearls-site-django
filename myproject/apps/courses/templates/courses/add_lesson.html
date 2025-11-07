@@ -46,7 +46,7 @@
                     <div id="uncategorized-block" style="display:none;">
                         <ul class="category-tree">
                             {% for lesson in uncategorized_lessons %}
-                            <li class="lesson-item" data-lesson-id="{{ lesson.id }}" onclick="selectItem(this, 'uncategorized', '{{ lesson.id }}', '{{ lesson.title }}')">
+                            <li class="lesson-item" data-lesson-id="{{ lesson.id }}">
                                 <span class="lesson-icon">📄</span>
                                 <span class="lesson-title">{{ lesson.title }}</span>
                             </li>
@@ -56,7 +56,7 @@
                     <div id="tests-block" style="display:none;">
                         <ul class="category-tree">
                             {% for quiz in all_quizzes %}
-                            <li class="lesson-item" data-quiz-id="{{ quiz.id }}" onclick="selectItem(this, 'quiz', '{{ quiz.id }}', '{{ quiz.name }}')">
+                            <li class="lesson-item" data-quiz-id="{{ quiz.id }}">
                                 <span class="lesson-icon">🧪</span>
                                 <span class="lesson-title">{{ quiz.name }}</span>
                             </li>

@@ -1,5 +1,5 @@
 <li class="category-item" data-category-id="{{ category.id }}">
-    <div class="category-header" onclick="selectItem(this, 'category', '{{ category.id }}', '{{ category.name }}')">
+    <div class="category-header">
         <span class="category-icon">📁</span>
         <span class="category-title">{{ category.name }}</span>
         {% if category.subcategories or category.lessons %}
@@ -10,7 +10,7 @@
     {% if category.lessons %}
         <ul class="lesson-list" style="display: none;">
             {% for lesson in category.lessons %}
-                <li class="lesson-item" data-lesson-id="{{ lesson.id }}" onclick="selectItem(this, 'lesson', '{{ lesson.id }}', '{{ lesson.title }}')">
+                <li class="lesson-item" data-lesson-id="{{ lesson.id }}">
                     <span class="lesson-icon">📄</span>
                     <span class="lesson-title">{{ lesson.title }}</span>
                 </li>

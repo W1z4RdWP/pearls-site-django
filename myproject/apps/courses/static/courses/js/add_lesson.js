@@ -19,7 +19,28 @@ function toggleCategory(element) {
     }
 }
 
+// Обработчик одиночного клика - только выделение
 function selectItem(element, type, id, title) {
+    const itemId = `${type}_${id}`;
+    
+    // Убираем выделение со всех элементов того же типа
+    const allItems = document.querySelectorAll(`.category-item .category-header, .lesson-item`);
+    allItems.forEach(item => {
+        if (item !== element) {
+            item.classList.remove('selected');
+        }
+    });
+    
+    // Переключаем выделение текущего элемента
+    if (element.classList.contains('selected')) {
+        element.classList.remove('selected');
+    } else {
+        element.classList.add('selected');
+    }
+}
+
+// Обработчик двойного клика - добавление/удаление из выбранных
+function handleDoubleClick(element, type, id, title) {
     const itemId = `${type}_${id}`;
     
     if (selectedItems.has(itemId)) {
@@ -356,6 +377,81 @@ document.addEventListener('DOMContentLoaded', function() {
         if (subcategoryList) subcategoryList.style.display = 'none';
         if (lessonList) lessonList.style.display = 'none';
     });
+    
+    // Используем делегирование событий для обработки кликов
+    const clickTimers = new Map();
+    
+    // Обработчик кликов для категорий (делегирование)
+    const categoriesBlock = document.getElementById('categories-block');
+    if (categoriesBlock) {
+        categoriesBlock.addEventListener('click', function(e) {
+            const categoryHeader = e.target.closest('.category-header');
+            if (!categoryHeader) return;
+            
+            // Пропускаем клик, если кликнули на стрелочку
+            if (e.target.classList.contains('toggle-arrow')) {
+                return;
+            }
+            
+            const categoryItem = categoryHeader.closest('.category-item');
+            const categoryId = categoryItem.dataset.categoryId;
+            const categoryTitle = categoryHeader.querySelector('.category-title').textContent;
+            
+            const timerKey = `category_${categoryId}`;
+            const existingTimer = clickTimers.get(timerKey);
+            
+            if (existingTimer) {
+                clearTimeout(existingTimer);
+                clickTimers.delete(timerKey);
+                // Двойной клик - добавление/удаление
+                handleDoubleClick(categoryHeader, 'category', categoryId, categoryTitle);
+            } else {
+                const timer = setTimeout(() => {
+                    clickTimers.delete(timerKey);
+                    // Одиночный клик - только выделение
+                    selectItem(categoryHeader, 'category', categoryId, categoryTitle);
+                }, 300);
+                clickTimers.set(timerKey, timer);
+            }
+        });
+    }
+    
+    // Обработчик кликов для уроков (делегирование)
+    const leftPanel = document.querySelector('.left-panel');
+    if (leftPanel) {
+        leftPanel.addEventListener('click', function(e) {
+            const lessonItem = e.target.closest('.lesson-item');
+            if (!lessonItem) return;
+            
+            const lessonId = lessonItem.dataset.lessonId || lessonItem.dataset.quizId;
+            if (!lessonId) return;
+            
+            const lessonTitle = lessonItem.querySelector('.lesson-title').textContent;
+            let type = 'lesson';
+            if (lessonItem.dataset.quizId) {
+                type = 'quiz';
+            } else if (lessonItem.closest('#uncategorized-block')) {
+                type = 'uncategorized';
+            }
+            
+            const timerKey = `${type}_${lessonId}`;
+            const existingTimer = clickTimers.get(timerKey);
+            
+            if (existingTimer) {
+                clearTimeout(existingTimer);
+                clickTimers.delete(timerKey);
+                // Двойной клик - добавление/удаление
+                handleDoubleClick(lessonItem, type, lessonId, lessonTitle);
+            } else {
+                const timer = setTimeout(() => {
+                    clickTimers.delete(timerKey);
+                    // Одиночный клик - только выделение
+                    selectItem(lessonItem, type, lessonId, lessonTitle);
+                }, 300);
+                clickTimers.set(timerKey, timer);
+            }
+        });
+    }
     
     // Добавляем обработчик поиска с задержкой
     const searchInput = document.getElementById('searchInput');
