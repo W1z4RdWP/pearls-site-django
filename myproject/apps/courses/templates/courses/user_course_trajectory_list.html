@@ -170,16 +170,41 @@
                         </div>
                     {% endif %}
                     
+                    {% if course_data.deadline and course_data.status not in 'completed,blocked' %}
+                        {% if course_data.is_deadline_overdue %}
+                            <div class="alert alert-danger border-0 mb-2" style="background: #f8d7da; border: 1px solid #f5c6cb; border-radius: 6px; padding: 8px 12px; font-size: 0.875rem;">
+                                <i class="fa fa-exclamation-triangle text-danger"></i>
+                                <strong>Просрочен</strong>
+                                <span class="text-muted small">(до {{ course_data.deadline|date:"d.m.Y" }})</span>
+                            </div>
+                        {% else %}
+                            <div class="alert alert-warning border-0 mb-2" style="background: #fff3cd; border: 1px solid #ffeaa7; border-radius: 6px; padding: 8px 12px; font-size: 0.875rem;">
+                                <i class="fa fa-clock-o text-warning"></i>
+                                <strong>Завершить до {{ course_data.deadline|date:"d.m.Y" }}</strong>
+                            </div>
+                        {% endif %}
+                    {% endif %}
+                    
                     <div class="course-actions">
-                        {% if course_data.status == 'completed' %}
+                        {% if course_data.status == 'blocked' %}
+                            <span class="status-badge" style="background-color: #dc3545; color: white; padding: 5px 10px; border-radius: 4px; font-size: 0.875rem;">
+                                <i class="fa fa-lock"></i> Заблокирован
+                            </span>
+                        {% elif course_data.status == 'completed' %}
                             <span class="status-badge completed">
                                 <i class="fa fa-trophy"></i> Курс завершен
                             </span>
                         {% elif course_data.status == 'in_progress' %}
                             {% if course_data.course.final_quiz and course_data.percent == 100 and not course_data.quiz_passed %}
-                                <a href="{% url 'quizzes:quiz_start' course_data.course.final_quiz.id %}" class="btn btn-warning btn-sm">
-                                    <i class="fa fa-question-circle"></i> Пройти финальный тест
-                                </a>
+                                {% if course_data.final_quiz_status == 'pending' %}
+                                    <span class="status-badge" style="background-color: #f39c12; color: white; padding: 5px 10px; border-radius: 4px; font-size: 0.875rem;">
+                                        <i class="fa fa-hourglass-half"></i> Тест ожидает проверки
+                                    </span>
+                                {% else %}
+                                    <a href="{% url 'quizzes:quiz_start' course_data.course.final_quiz.id %}" class="btn btn-warning btn-sm">
+                                        <i class="fa fa-question-circle"></i> Пройти финальный тест
+                                    </a>
+                                {% endif %}
                             {% endif %}
                         {% endif %}
                         

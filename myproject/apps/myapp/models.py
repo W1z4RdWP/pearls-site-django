@@ -40,11 +40,13 @@ class UserCourse(models.Model):
         ('available', 'Доступен'),
         ('started', 'Начат'),
         ('completed', 'Завершен'),
+        ('blocked', 'Заблокирован')
     ]
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='started_courses')
     course = models.ForeignKey(Course, on_delete=models.CASCADE)
     start_date = models.DateTimeField(auto_now_add=True)
     end_date = models.DateTimeField(null=True, blank=True)
+    deadline = models.DateTimeField(null=True, blank=True, verbose_name="Срок завершения курса", help_text="Дата, до которой нужно завершить курс")
     status = models.CharField(
         max_length=20, 
         choices=STATUS_CHOICES, 
@@ -62,7 +64,13 @@ class UserCourse(models.Model):
         ]
 
     def save(self, *args, **kwargs):
-        """Устанавливаем end_date только при первом завершении курса"""
+        """Устанавливаем end_date только при первом завершении курса и проверяем deadline"""
+        # Проверяем deadline и блокируем курс, если срок истек
+        if self.deadline and self.status not in ['completed', 'blocked']:
+            if timezone.now() > self.deadline:
+                self.status = 'blocked'
+        
+        # Устанавливаем end_date только при первом завершении курса
         if self.status == 'completed' and not self.end_date:
             self.end_date = timezone.now()
         super().save(*args, **kwargs)

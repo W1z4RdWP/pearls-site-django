@@ -548,8 +548,15 @@ function loadInitialAssignedUsers() {
         return;
     }
     
-    // Загружаем информацию о пользователях
-    fetch(searchUsersUrl + '?q=')
+    // Объединяем все ID пользователей (назначенные + нарушители)
+    const allUserIds = [...new Set([...assignedUserIds, ...violatorUserIds])];
+    
+    // Загружаем информацию о пользователях по их ID
+    // Используем новый endpoint, который принимает список ID
+    const idsParam = allUserIds.join(',');
+    const url = getUsersByIdsUrl + '?ids=' + encodeURIComponent(idsParam);
+    
+    fetch(url)
         .then(response => response.json())
         .then(data => {
             // Добавляем назначенных пользователей (только если их еще нет)
@@ -558,6 +565,10 @@ function loadInitialAssignedUsers() {
                     const user = data.users.find(u => u.id === userId);
                     if (user) {
                         selectedAssignedUsers.set(userId, user);
+                    } else {
+                        // Если пользователь не найден в ответе API, это может означать,
+                        // что он был деактивирован или удален. Логируем для отладки.
+                        console.warn('Пользователь с ID ' + userId + ' не найден при загрузке начальных данных');
                     }
                 }
             });

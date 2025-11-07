@@ -75,12 +75,11 @@
                 <th>Дата рождения</th>
                 <th>Группы</th>
                 <th>Статус</th>
-                <th>Действия</th>
             </tr>
         </thead>
         <tbody>
             {% for user in users %}
-            <tr>
+            <tr style="cursor: pointer;" onclick="window.location.href='{% url 'user_management:user_edit_detailed' user.pk %}'">
                 <td>{{ forloop.counter|add:page_obj.start_index|add:"-1" }}</td>
                 <td>
                     <div class="um-user-avatar-name">
@@ -100,19 +99,9 @@
                         <span class="um-status um-status-unapproved" title="Не подтверждён">⏳ Не подтверждён</span>
                     {% endif %}
                 </td>
-                <td>
-                    <div class="um-action-btns">
-                        {% if not request.user.profile.is_mentor_user or request.user.is_superuser or request.user.is_staff %}
-                            <a href="{% url 'user_management:user_edit' user.pk %}" class="um-action-btn" title="Редактировать"><i class="fa-solid fa-pen-to-square"></i></a>
-                        {% endif %}
-                        <a href="{% url 'user_management:user_progress' user.pk %}" class="um-action-btn" title="Прогресс обучения"><i class="fa-solid fa-chart-line"></i></a>
-                        <a href="{% url 'user_management:user_quiz_attempts' user.pk %}" class="um-action-btn" title="Тесты пользователя"><i class="fa-solid fa-clipboard-question"></i></a>
-                    </div>
-                </td>
-
             </tr>
             {% empty %}
-            <tr><td colspan="6">Нет пользователей</td></tr>
+            <tr><td colspan="5">Нет пользователей</td></tr>
             {% endfor %}
         </tbody>
     </table>

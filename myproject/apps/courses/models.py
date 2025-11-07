@@ -255,6 +255,8 @@ class Course(models.Model):
         return self.title
     
 
+
+
 class Lesson(models.Model):
     """
     Класс отвечающий за таблицу уроков в БД.

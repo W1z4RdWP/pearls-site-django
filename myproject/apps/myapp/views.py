@@ -107,6 +107,9 @@ class IndexView(TemplateView):
             # Используем менеджер для получения всех доступных курсов
             available_courses = CourseModel.objects.available_for_user(user)
             
+            # Исключаем курсы-инциденты из карусели
+            available_courses = available_courses.exclude(is_incident=True)
+            
             # Фильтруем курсы: исключаем курсы из траекторий, которые еще не доступны
             filtered_courses = []
             for course in available_courses:

@@ -304,9 +304,27 @@ class AuditLog(models.Model):
     def get_changes_summary(self):
         """Возвращает краткое описание изменений"""
         if self.action == 'update' and self.old_values and self.new_values:
+            # Парсим JSON, если значения являются строками
+            old_values = self.old_values
+            new_values = self.new_values
+            if isinstance(old_values, str):
+                try:
+                    old_values = json.loads(old_values)
+                except (json.JSONDecodeError, TypeError):
+                    return ''
+            if isinstance(new_values, str):
+                try:
+                    new_values = json.loads(new_values)
+                except (json.JSONDecodeError, TypeError):
+                    return ''
+            
+            # Проверяем, что значения являются словарями
+            if not isinstance(old_values, dict) or not isinstance(new_values, dict):
+                return ''
+            
             changes = []
-            for field, new_value in self.new_values.items():
-                old_value = self.old_values.get(field)
+            for field, new_value in new_values.items():
+                old_value = old_values.get(field)
                 if old_value != new_value:
                     changes.append(f"{field}: '{old_value}' → '{new_value}'")
             return '; '.join(changes)
