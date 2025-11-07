@@ -2635,13 +2635,7 @@ def export_metrics_to_excel(request, submission_id):
             filename = f"metrics_{submission.id}_{date_str}.xlsx"
         else:
             filename = f"{clinic_name_safe}_{date_str}.xlsx"
-        
-        # Отладочная информация
-        print(f"DEBUG: Original clinic name: {submission.clinic_name}")
-        print(f"DEBUG: Safe clinic name: {clinic_name_safe}")
-        print(f"DEBUG: Date string: {date_str}")
-        print(f"DEBUG: Final filename: {filename}")
-        
+
         # Пробуем разные варианты заголовков
         response['Content-Disposition'] = f'attachment; filename="{filename}"'
         response['Content-Type'] = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
