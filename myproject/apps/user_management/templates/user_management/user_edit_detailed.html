@@ -7,6 +7,7 @@
 <link rel="stylesheet" href="{% static 'user_management/css/user_progress_dashboard.css' %}">
 <link rel="stylesheet" href="{% static 'user_management/css/user_list.css' %}">
 <link rel="stylesheet" href="{% static 'user_management/css/user_quiz_attempts.css' %}">
+<link rel="stylesheet" href="{% static 'builder/css/incident_form.css' %}">
 <style>
     .user-info-card {
         background: #f8f9fa;
@@ -945,17 +946,381 @@ function filterCourses(filter) {
     window.location.href = url.toString();
 }
 
-// Обработчик кнопки "Назначить курс"
+// ========== ФУНКЦИИ ДЛЯ НАЗНАЧЕНИЯ КУРСОВ ==========
+
+// API endpoints (определяются в шаблоне)
+const getGroupsWithCoursesUrl = "{% url 'user_management:api_get_groups_with_courses' %}";
+const getGroupCoursesUrlTemplate = "{% url 'user_management:api_get_group_courses' 0 %}";
+const searchCoursesUrl = "{% url 'user_management:api_search_courses' %}";
+const getGroupCoursesUrl = getGroupCoursesUrlTemplate.replace('/0/', '/{id}/');
+
+// Элементы DOM для назначения курсов (будут инициализированы в DOMContentLoaded)
+let courseModal, courseModalClose, courseSearchInput, courseSearchResultsDropdown;
+let groupCourseList, selectedCoursesList, confirmCourseAssignmentBtn, cancelCourseAssignmentBtn;
+
+// Хранилище выбранных курсов
+let selectedCourses = new Map(); // courseId -> {id, title, description, author}
+
+// Кэш последних результатов поиска
+let lastCourseSearchResults = [];
+
+// Обработчики событий будут инициализированы в DOMContentLoaded
+
+// Загрузка списка групп с курсами
+function loadGroupsForCourses() {
+    if (!groupCourseList) return;
+    
+    groupCourseList.innerHTML = '<div class="group-list-loading">Загрузка групп...</div>';
+    
+    fetch(getGroupsWithCoursesUrl)
+        .then(response => response.json())
+        .then(data => {
+            displayGroupsWithCourses(data.groups);
+        })
+        .catch(error => {
+            console.error('Ошибка загрузки групп:', error);
+            groupCourseList.innerHTML = '<div class="group-list-error">Ошибка загрузки групп</div>';
+        });
+}
+
+// Отображение списка групп с курсами
+function displayGroupsWithCourses(groups) {
+    if (!groupCourseList) return;
+    
+    if (groups.length === 0) {
+        groupCourseList.innerHTML = '<div class="group-list-empty">Группы не найдены</div>';
+        return;
+    }
+    
+    let html = '';
+    groups.forEach(function(group) {
+        html += `
+            <div class="group-item" data-group-id="${group.id}">
+                <div class="group-item-name">${group.name}</div>
+                <div class="group-item-count">${group.courses_count} курсов, ${group.user_count} пользователей</div>
+            </div>
+        `;
+    });
+    
+    groupCourseList.innerHTML = html;
+    
+    // Добавляем обработчики клика на каждую группу
+    const groupItems = groupCourseList.querySelectorAll('.group-item');
+    groupItems.forEach(function(item) {
+        item.addEventListener('click', function() {
+            const groupId = this.getAttribute('data-group-id');
+            addGroupCourses(groupId);
+        });
+    });
+}
+
+// Добавление всех курсов группы
+function addGroupCourses(groupId) {
+    const url = getGroupCoursesUrl.replace('{id}', groupId);
+    
+    fetch(url)
+        .then(response => response.json())
+        .then(data => {
+            data.courses.forEach(function(course) {
+                if (!selectedCourses.has(course.id)) {
+                    selectedCourses.set(course.id, course);
+                }
+            });
+            displaySelectedCourses();
+        })
+        .catch(error => {
+            console.error('Ошибка загрузки курсов группы:', error);
+        });
+}
+
+// Поиск курсов для добавления
+let courseSearchTimeout;
+
+// Закрытие выпадающего списка при клике вне его
+document.addEventListener('click', function(event) {
+    if (courseSearchInput && courseSearchResultsDropdown) {
+        if (!courseSearchInput.contains(event.target) && !courseSearchResultsDropdown.contains(event.target)) {
+            hideCourseSearchResults();
+        }
+    }
+});
+
+// Поиск курсов и отображение результатов
+function searchCourses(query) {
+    if (!courseSearchResultsDropdown) return;
+    
+    courseSearchResultsDropdown.innerHTML = '<div class="search-results-loading">Поиск...</div>';
+    courseSearchResultsDropdown.style.display = 'block';
+    
+    const url = searchCoursesUrl + '?q=' + encodeURIComponent(query);
+    
+    fetch(url)
+        .then(response => response.json())
+        .then(data => {
+            lastCourseSearchResults = data.courses;
+            displayCourseSearchResults(data.courses);
+        })
+        .catch(error => {
+            console.error('Ошибка поиска курсов:', error);
+            courseSearchResultsDropdown.innerHTML = '<div class="search-results-empty">Ошибка поиска</div>';
+        });
+}
+
+// Отображение результатов поиска курсов
+function displayCourseSearchResults(courses) {
+    if (!courseSearchResultsDropdown) return;
+    
+    if (courses.length === 0) {
+        courseSearchResultsDropdown.innerHTML = '<div class="search-results-empty">Курсы не найдены</div>';
+        return;
+    }
+    
+    let html = '';
+    courses.forEach(function(course) {
+        // Пропускаем уже выбранные курсы
+        if (selectedCourses.has(course.id)) {
+            return;
+        }
+        
+        html += `
+            <div class="search-result-item" data-course-id="${course.id}">
+                <div class="search-result-name">${course.title}</div>
+                <div class="search-result-username">${course.author}</div>
+            </div>
+        `;
+    });
+    
+    if (html === '') {
+        courseSearchResultsDropdown.innerHTML = '<div class="search-results-empty">Все найденные курсы уже выбраны</div>';
+        return;
+    }
+    
+    courseSearchResultsDropdown.innerHTML = html;
+    
+    // Добавляем обработчики клика на результаты
+    const resultItems = courseSearchResultsDropdown.querySelectorAll('.search-result-item');
+    resultItems.forEach(function(item) {
+        item.addEventListener('click', function() {
+            const courseId = parseInt(this.getAttribute('data-course-id'));
+            addCourseFromSearch(courseId);
+        });
+    });
+}
+
+// Добавление курса из результатов поиска
+function addCourseFromSearch(courseId) {
+    const course = lastCourseSearchResults.find(c => c.id === courseId);
+    
+    if (course && !selectedCourses.has(courseId)) {
+        selectedCourses.set(courseId, course);
+        displaySelectedCourses();
+        if (courseSearchInput) {
+            courseSearchInput.value = '';
+        }
+        hideCourseSearchResults();
+    }
+}
+
+// Скрытие выпадающего списка результатов
+function hideCourseSearchResults() {
+    if (courseSearchResultsDropdown) {
+        courseSearchResultsDropdown.style.display = 'none';
+        courseSearchResultsDropdown.innerHTML = '';
+    }
+}
+
+// Отображение выбранных курсов
+function displaySelectedCourses() {
+    if (!selectedCoursesList) return;
+    
+    if (selectedCourses.size === 0) {
+        selectedCoursesList.innerHTML = '<div class="selected-users-empty">Курсы не выбраны</div>';
+        return;
+    }
+    
+    let html = '';
+    selectedCourses.forEach(function(course, courseId) {
+        html += `
+            <div class="selected-user-item" data-course-id="${courseId}">
+                <div class="selected-user-info">
+                    <div class="selected-user-name">${course.title}</div>
+                    <div class="selected-user-username">${course.author}</div>
+                </div>
+                <div class="selected-user-actions">
+                    <span class="selected-user-remove" data-course-id="${courseId}" title="Удалить">&times;</span>
+                </div>
+            </div>
+        `;
+    });
+    
+    selectedCoursesList.innerHTML = html;
+    
+    // Добавляем обработчики для удаления курсов
+    const removeButtons = selectedCoursesList.querySelectorAll('.selected-user-remove');
+    removeButtons.forEach(function(btn) {
+        btn.addEventListener('click', function(e) {
+            e.stopPropagation();
+            const courseId = parseInt(this.getAttribute('data-course-id'));
+            selectedCourses.delete(courseId);
+            displaySelectedCourses();
+        });
+    });
+}
+
+// Применение выбора курсов
+if (confirmCourseAssignmentBtn) {
+    confirmCourseAssignmentBtn.addEventListener('click', function() {
+        // TODO: Реализовать назначение курсов пользователю
+        const courseIds = Array.from(selectedCourses.keys());
+        console.log('Назначить курсы:', courseIds);
+        
+        // Здесь будет отправка запроса на сервер для назначения курсов
+        // Пока просто закрываем модальное окно
+        courseModal.style.display = 'none';
+        hideCourseSearchResults();
+        
+        // Показываем сообщение пользователю
+        alert('Функционал назначения курсов будет реализован позже. Выбрано курсов: ' + courseIds.length);
+    });
+}
+
+// Инициализация элементов DOM и обработчиков
 document.addEventListener('DOMContentLoaded', function() {
+    // Инициализация элементов DOM
+    courseModal = document.getElementById('courseAssignmentModal');
+    courseModalClose = document.getElementById('courseModalClose');
+    courseSearchInput = document.getElementById('courseSearchInput');
+    courseSearchResultsDropdown = document.getElementById('courseSearchResultsDropdown');
+    groupCourseList = document.getElementById('groupCourseList');
+    selectedCoursesList = document.getElementById('selectedCoursesList');
+    confirmCourseAssignmentBtn = document.getElementById('confirmCourseAssignmentBtn');
+    cancelCourseAssignmentBtn = document.getElementById('cancelCourseAssignmentBtn');
+    
+    // Обработчик кнопки "Назначить курс"
     const assignCourseBtn = document.getElementById('assignCourseBtn');
     if (assignCourseBtn) {
         assignCourseBtn.addEventListener('click', function(e) {
             e.preventDefault();
-            // Пока ничего не делает, как указано в требованиях
-            console.log('Назначить курс - функционал будет реализован позже');
+            if (courseModal) {
+                courseModal.style.display = 'block';
+                loadGroupsForCourses();
+            }
+        });
+    }
+    
+    // Закрытие модального окна
+    if (courseModalClose) {
+        courseModalClose.addEventListener('click', function() {
+            if (courseModal) {
+                courseModal.style.display = 'none';
+            }
+            hideCourseSearchResults();
+        });
+    }
+    
+    if (cancelCourseAssignmentBtn) {
+        cancelCourseAssignmentBtn.addEventListener('click', function() {
+            if (courseModal) {
+                courseModal.style.display = 'none';
+            }
+            hideCourseSearchResults();
+        });
+    }
+    
+    // Закрытие при клике вне модального окна
+    window.addEventListener('click', function(event) {
+        if (event.target == courseModal) {
+            courseModal.style.display = 'none';
+            hideCourseSearchResults();
+        }
+    });
+    
+    // Поиск курсов для добавления
+    if (courseSearchInput) {
+        courseSearchInput.addEventListener('input', function() {
+            clearTimeout(courseSearchTimeout);
+            const query = this.value.trim();
+            
+            if (query.length === 0) {
+                hideCourseSearchResults();
+                return;
+            }
+            
+            courseSearchTimeout = setTimeout(function() {
+                searchCourses(query);
+            }, 300);
+        });
+    }
+    
+    // Обработка клавиши Escape для закрытия выпадающего списка
+    if (courseSearchInput) {
+        courseSearchInput.addEventListener('keydown', function(event) {
+            if (event.key === 'Escape') {
+                hideCourseSearchResults();
+                this.blur();
+            }
+        });
+    }
+    
+    // Применение выбора курсов
+    if (confirmCourseAssignmentBtn) {
+        confirmCourseAssignmentBtn.addEventListener('click', function() {
+            // TODO: Реализовать назначение курсов пользователю
+            const courseIds = Array.from(selectedCourses.keys());
+            console.log('Назначить курсы:', courseIds);
+            
+            // Здесь будет отправка запроса на сервер для назначения курсов
+            // Пока просто закрываем модальное окно
+            if (courseModal) {
+                courseModal.style.display = 'none';
+            }
+            hideCourseSearchResults();
+            
+            // Показываем сообщение пользователю
+            alert('Функционал назначения курсов будет реализован позже. Выбрано курсов: ' + courseIds.length);
         });
     }
 });
 </script>
+
+<!-- Модальное окно для назначения курсов -->
+<div id="courseAssignmentModal" class="responsible-modal">
+    <div class="responsible-modal-content">
+        <div class="responsible-modal-header">
+            <h3>Назначить курсы</h3>
+            <span class="responsible-modal-close" id="courseModalClose">&times;</span>
+        </div>
+        <div class="responsible-modal-body">
+            <div class="responsible-columns">
+                <!-- Левая колонка - Группы и курсы -->
+                <div class="responsible-left-column">
+                    <h4>Группы и курсы</h4>
+                    <div id="groupCourseList" class="group-list">
+                        <div class="group-list-loading">Загрузка групп...</div>
+                    </div>
+                </div>
+                
+                <!-- Разделитель -->
+                <div class="responsible-divider"></div>
+                
+                <!-- Правая колонка - Выбранные курсы -->
+                <div class="responsible-right-column">
+                    <h4>Выбранные курсы</h4>
+                    <div class="responsible-search-box">
+                        <input type="text" id="courseSearchInput" class="form-control" placeholder="Поиск курса для добавления...">
+                        <div id="courseSearchResultsDropdown" class="search-results-dropdown" style="display: none;"></div>
+                    </div>
+                    <div id="selectedCoursesList" class="selected-users-list">
+                        <div class="selected-users-empty">Курсы не выбраны</div>
+                    </div>
+                </div>
+            </div>
+            <div class="responsible-modal-footer">
+                <button type="button" class="btn btn-primary" id="confirmCourseAssignmentBtn">Применить</button>
+                <button type="button" class="btn btn-secondary" id="cancelCourseAssignmentBtn">Отмена</button>
+            </div>
+        </div>
+    </div>
+</div>
 {% endblock %}
 

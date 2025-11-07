@@ -1,5 +1,5 @@
 from django.shortcuts import render, redirect, get_object_or_404
-from django.http import HttpResponse
+from django.http import HttpResponse, JsonResponse
 from django.views.generic import ListView, CreateView, UpdateView, DetailView, FormView, TemplateView
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.contrib.auth.decorators import login_required
@@ -1939,5 +1939,94 @@ def export_admin_user_transactions_pdf(request, user_id):
         }
     )
     return response
+
+
+@login_required
+def api_get_groups_with_courses(request):
+    """
+    API endpoint для получения списка всех групп с информацией о количестве курсов.
+    Возвращает JSON с данными групп.
+    """
+    if not (request.user.is_staff or request.user.is_superuser):
+        return JsonResponse({'error': 'Доступ запрещен'}, status=403)
+    
+    groups = Group.objects.all().order_by('name')
+    
+    groups_data = []
+    for group in groups:
+        # Получаем количество курсов, доступных для этой группы
+        courses_count = Course.objects.filter(allowed_groups=group).exclude(is_incident=True).count()
+        
+        groups_data.append({
+            'id': group.id,
+            'name': group.name,
+            'user_count': group.user_set.filter(is_active=True).count(),
+            'courses_count': courses_count,
+        })
+    
+    return JsonResponse({'groups': groups_data})
+
+
+@login_required
+def api_get_group_courses(request, group_id):
+    """
+    API endpoint для получения списка курсов, доступных для группы.
+    Возвращает JSON с данными курсов.
+    """
+    if not (request.user.is_staff or request.user.is_superuser):
+        return JsonResponse({'error': 'Доступ запрещен'}, status=403)
+    
+    try:
+        group = Group.objects.get(id=group_id)
+    except Group.DoesNotExist:
+        return JsonResponse({'error': 'Группа не найдена'}, status=404)
+    
+    # Получаем курсы, доступные для этой группы (исключаем курсы-инциденты)
+    courses = Course.objects.filter(allowed_groups=group).exclude(is_incident=True).order_by('title')
+    
+    courses_data = []
+    for course in courses:
+        courses_data.append({
+            'id': course.id,
+            'title': course.title,
+            'description': course.description[:200] if course.description else '',  # Первые 200 символов
+            'author': course.author.get_full_name() or course.author.username,
+        })
+    
+    return JsonResponse({'courses': courses_data})
+
+
+@login_required
+def api_search_courses(request):
+    """
+    API endpoint для поиска курсов по названию.
+    Возвращает JSON с данными курсов.
+    """
+    if not (request.user.is_staff or request.user.is_superuser):
+        return JsonResponse({'error': 'Доступ запрещен'}, status=403)
+    
+    query = request.GET.get('q', '').strip()
+    
+    # Исключаем курсы-инциденты
+    courses = Course.objects.exclude(is_incident=True)
+    
+    if query:
+        courses = courses.filter(
+            Q(title__icontains=query) | 
+            Q(description__icontains=query)
+        )
+    
+    courses = courses.order_by('title')[:50]  # Ограничиваем 50 результатами
+    
+    courses_data = []
+    for course in courses:
+        courses_data.append({
+            'id': course.id,
+            'title': course.title,
+            'description': course.description[:200] if course.description else '',
+            'author': course.author.get_full_name() or course.author.username,
+        })
+    
+    return JsonResponse({'courses': courses_data})
 
 

@@ -36,4 +36,9 @@ urlpatterns = [
     path('admin/user/<int:user_id>/transactions/export/excel/', views.export_admin_user_transactions_excel, name='export_admin_user_transactions_excel'),
     path('admin/user/<int:user_id>/transactions/export/pdf/', views.export_admin_user_transactions_pdf, name='export_admin_user_transactions_pdf'),
 
+    # API endpoints для назначения курсов
+    path('api/groups/with-courses/', views.api_get_groups_with_courses, name='api_get_groups_with_courses'),
+    path('api/groups/<int:group_id>/courses/', views.api_get_group_courses, name='api_get_group_courses'),
+    path('api/courses/search/', views.api_search_courses, name='api_search_courses'),
+
 ]
