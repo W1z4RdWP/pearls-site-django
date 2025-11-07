@@ -2046,27 +2046,61 @@ def api_assign_courses_to_user(request, user_id):
     except User.DoesNotExist:
         return JsonResponse({'error': 'Пользователь не найден'}, status=404)
     
-    # Получаем список ID курсов из POST запроса
+    # Получаем данные из POST запроса
     try:
         data = json.loads(request.body)
-        course_ids = data.get('course_ids', [])
-        deadline_days = data.get('deadline_days', 7)  # По умолчанию 7 дней
     except (json.JSONDecodeError, AttributeError):
         return JsonResponse({'error': 'Неверный формат данных'}, status=400)
     
-    if not course_ids or not isinstance(course_ids, list):
+    # Поддержка нового формата с индивидуальными deadline_days для каждого курса
+    courses_data = data.get('courses', [])
+    
+    # Поддержка старого формата для обратной совместимости
+    if not courses_data:
+        course_ids = data.get('course_ids', [])
+        deadline_days = data.get('deadline_days', 7)
+        
+        if not course_ids or not isinstance(course_ids, list):
+            return JsonResponse({'error': 'Список курсов не указан'}, status=400)
+        
+        # Валидация deadline_days
+        try:
+            deadline_days = int(deadline_days)
+            if deadline_days < 1:
+                return JsonResponse({'error': 'Количество дней должно быть больше 0'}, status=400)
+        except (ValueError, TypeError):
+            return JsonResponse({'error': 'Неверное значение количества дней'}, status=400)
+        
+        # Преобразуем старый формат в новый
+        courses_data = [{'course_id': cid, 'deadline_days': deadline_days} for cid in course_ids]
+    
+    if not courses_data or not isinstance(courses_data, list):
         return JsonResponse({'error': 'Список курсов не указан'}, status=400)
     
-    # Валидация deadline_days
-    try:
-        deadline_days = int(deadline_days)
-        if deadline_days < 1:
-            return JsonResponse({'error': 'Количество дней должно быть больше 0'}, status=400)
-    except (ValueError, TypeError):
-        return JsonResponse({'error': 'Неверное значение количества дней'}, status=400)
+    # Валидация и извлечение данных о курсах
+    course_deadlines = {}
+    course_ids = []
     
-    # Вычисляем deadline (дата назначения + количество дней)
-    deadline = timezone.now() + timedelta(days=deadline_days)
+    for course_item in courses_data:
+        if not isinstance(course_item, dict):
+            return JsonResponse({'error': 'Неверный формат данных курса'}, status=400)
+        
+        course_id = course_item.get('course_id')
+        deadline_days = course_item.get('deadline_days', 7)
+        
+        if not course_id:
+            return JsonResponse({'error': 'ID курса не указан'}, status=400)
+        
+        # Валидация deadline_days
+        try:
+            deadline_days = int(deadline_days)
+            if deadline_days < 1:
+                return JsonResponse({'error': 'Количество дней должно быть больше 0'}, status=400)
+        except (ValueError, TypeError):
+            return JsonResponse({'error': 'Неверное значение количества дней'}, status=400)
+        
+        course_ids.append(course_id)
+        course_deadlines[course_id] = deadline_days
     
     # Получаем курсы
     courses = Course.objects.filter(id__in=course_ids).exclude(is_incident=True)
@@ -2074,13 +2108,23 @@ def api_assign_courses_to_user(request, user_id):
     if courses.count() != len(course_ids):
         return JsonResponse({'error': 'Некоторые курсы не найдены'}, status=400)
     
+    # Создаем словарь курсов для быстрого доступа
+    courses_dict = {course.id: course for course in courses}
+    
     # Назначаем курсы пользователю
     assigned_count = 0
     already_assigned_count = 0
     assigned_courses = []
     already_assigned_courses = []
     
-    for course in courses:
+    for course_id in course_ids:
+        course = courses_dict.get(course_id)
+        if not course:
+            continue
+        
+        deadline_days = course_deadlines[course_id]
+        deadline = timezone.now() + timedelta(days=deadline_days)
+        
         # Проверяем, не назначен ли уже курс пользователю
         user_course, created = UserCourse.objects.get_or_create(
             user=target_user,

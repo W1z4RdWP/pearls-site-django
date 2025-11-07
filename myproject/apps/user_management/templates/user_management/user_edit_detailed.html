@@ -922,15 +922,24 @@ function displayGroupsWithCourses(groups) {
     });
 }
 
+// Получение значения по умолчанию для deadline_days
+function getDefaultDeadlineDays() {
+    const deadlineInput = document.getElementById('courseDeadlineInput');
+    return deadlineInput ? parseInt(deadlineInput.value) || 7 : 7;
+}
+
 // Добавление всех курсов группы
 function addGroupCourses(groupId) {
     const url = getGroupCoursesUrl.replace('{id}', groupId);
+    const defaultDeadline = getDefaultDeadlineDays();
     
     fetch(url)
         .then(response => response.json())
         .then(data => {
             data.courses.forEach(function(course) {
                 if (!selectedCourses.has(course.id)) {
+                    course.deadline_days = defaultDeadline;
+                    course.deadline_modified = false; // Флаг, что поле не было изменено вручную
                     selectedCourses.set(course.id, course);
                 }
             });
@@ -1018,8 +1027,11 @@ function displayCourseSearchResults(courses) {
 // Добавление курса из результатов поиска
 function addCourseFromSearch(courseId) {
     const course = lastCourseSearchResults.find(c => c.id === courseId);
+    const defaultDeadline = getDefaultDeadlineDays();
     
     if (course && !selectedCourses.has(courseId)) {
+        course.deadline_days = defaultDeadline;
+        course.deadline_modified = false; // Флаг, что поле не было изменено вручную
         selectedCourses.set(courseId, course);
         displaySelectedCourses();
         if (courseSearchInput) {
@@ -1048,13 +1060,28 @@ function displaySelectedCourses() {
     
     let html = '';
     selectedCourses.forEach(function(course, courseId) {
+        // Инициализируем deadline_days, если его нет
+        if (course.deadline_days === undefined) {
+            course.deadline_days = getDefaultDeadlineDays();
+        }
+        if (course.deadline_modified === undefined) {
+            course.deadline_modified = false;
+        }
+        
         html += `
             <div class="selected-user-item" data-course-id="${courseId}">
                 <div class="selected-user-info">
                     <div class="selected-user-name">${course.title}</div>
                     <div class="selected-user-username">${course.author}</div>
                 </div>
-                <div class="selected-user-actions">
+                <div class="selected-user-actions" style="display: flex; align-items: center; gap: 8px;">
+                    <input type="number" 
+                           class="form-control form-control-sm course-deadline-input" 
+                           data-course-id="${courseId}"
+                           value="${course.deadline_days}" 
+                           min="1" 
+                           style="width: 70px;"
+                           title="Количество дней для завершения курса">
                     <span class="selected-user-remove" data-course-id="${courseId}" title="Удалить">&times;</span>
                 </div>
             </div>
@@ -1073,6 +1100,32 @@ function displaySelectedCourses() {
             displaySelectedCourses();
         });
     });
+    
+    // Добавляем обработчики для индивидуальных полей deadline
+    const deadlineInputs = selectedCoursesList.querySelectorAll('.course-deadline-input');
+    deadlineInputs.forEach(function(input) {
+        const courseId = parseInt(input.getAttribute('data-course-id'));
+        const course = selectedCourses.get(courseId);
+        
+        if (course) {
+            // Обработчик изменения индивидуального поля
+            input.addEventListener('input', function() {
+                const value = parseInt(this.value);
+                if (value && value >= 1) {
+                    course.deadline_days = value;
+                    course.deadline_modified = true; // Помечаем, что поле изменено вручную
+                }
+            });
+            
+            // Обработчик потери фокуса для валидации
+            input.addEventListener('blur', function() {
+                const value = parseInt(this.value);
+                if (!value || value < 1) {
+                    this.value = course.deadline_days || getDefaultDeadlineDays();
+                }
+            });
+        }
+    });
 }
 
 // Применение выбора курсов
@@ -1084,12 +1137,26 @@ function applyCourseAssignment() {
         return;
     }
     
-    // Получаем количество дней для deadline
-    const deadlineInput = document.getElementById('courseDeadlineInput');
-    const deadlineDays = deadlineInput ? parseInt(deadlineInput.value) : 7;
+    // Формируем массив курсов с индивидуальными deadline_days
+    const coursesData = [];
+    let hasInvalidDeadline = false;
     
-    if (!deadlineDays || deadlineDays < 1) {
-        alert('Введите корректное количество дней для завершения курса (минимум 1 день)');
+    selectedCourses.forEach(function(course, courseId) {
+        const deadlineDays = course.deadline_days || getDefaultDeadlineDays();
+        
+        if (!deadlineDays || deadlineDays < 1) {
+            hasInvalidDeadline = true;
+            return;
+        }
+        
+        coursesData.push({
+            course_id: courseId,
+            deadline_days: deadlineDays
+        });
+    });
+    
+    if (hasInvalidDeadline || coursesData.length === 0) {
+        alert('Введите корректное количество дней для завершения курса (минимум 1 день) для всех курсов');
         return;
     }
     
@@ -1124,8 +1191,7 @@ function applyCourseAssignment() {
             'X-CSRFToken': csrfToken
         },
         body: JSON.stringify({
-            course_ids: courseIds,
-            deadline_days: deadlineDays
+            courses: coursesData
         })
     })
     .then(response => response.json())
@@ -1238,6 +1304,27 @@ document.addEventListener('DOMContentLoaded', function() {
             courseSearchTimeout = setTimeout(function() {
                 searchCourses(query);
             }, 300);
+        });
+    }
+    
+    // Обработчик изменения общего поля deadline
+    const courseDeadlineInput = document.getElementById('courseDeadlineInput');
+    if (courseDeadlineInput) {
+        courseDeadlineInput.addEventListener('input', function() {
+            const newValue = parseInt(this.value);
+            if (newValue && newValue >= 1) {
+                // Обновляем индивидуальные поля только для курсов, которые не были изменены вручную
+                selectedCourses.forEach(function(course, courseId) {
+                    if (!course.deadline_modified) {
+                        course.deadline_days = newValue;
+                        // Обновляем значение в поле ввода, если оно существует
+                        const input = selectedCoursesList ? selectedCoursesList.querySelector(`.course-deadline-input[data-course-id="${courseId}"]`) : null;
+                        if (input) {
+                            input.value = newValue;
+                        }
+                    }
+                });
+            }
         });
     }
     
