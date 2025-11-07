@@ -501,6 +501,11 @@ class CourseDetailView(DetailView):
         if hasattr(request.user, 'profile') and request.user.profile:
             user_country = request.user.profile.country or ''
 
+        # Проверяем deadline
+        is_deadline_overdue = False
+        if user_course and user_course.deadline:
+            is_deadline_overdue = timezone.now() > user_course.deadline
+        
         # Формирование контекста
         context.update({
             'course_author': course.author.username,
@@ -530,6 +535,7 @@ class CourseDetailView(DetailView):
             'lesson_blocked_id': lesson_blocked_id,
             'quiz_blocked_id': quiz_blocked_id,
             'quiz_statuses': locals().get('quiz_statuses', {}),
+            'is_deadline_overdue': is_deadline_overdue,
         })
         
         return context
@@ -1684,6 +1690,13 @@ class UserCourseTrajectoryListView(ListView):
                 else:
                     status = 'available'
 
+            # Проверяем deadline
+            deadline = user_course.deadline
+            is_deadline_overdue = False
+            if deadline:
+                from django.utils import timezone
+                is_deadline_overdue = timezone.now() > deadline
+            
             course_data = {
                 'course': course,
                 'user_course': user_course,
@@ -1696,7 +1709,9 @@ class UserCourseTrajectoryListView(ListView):
                 'percent': percent,
                 'status': status,
                 'quiz_passed': quiz_passed if course.final_quiz else None,
-                'final_quiz_status': final_quiz_status
+                'final_quiz_status': final_quiz_status,
+                'deadline': deadline,
+                'is_deadline_overdue': is_deadline_overdue
             }
             
             courses_data.append(course_data)

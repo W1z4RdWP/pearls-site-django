@@ -342,6 +342,21 @@
                                 <i class="fa fa-unlock"></i> Доступен
                             </div>
                             <p>Для того, чтобы начать курс, пожалуйста, нажмите на кнопку "Начать курс".</p>
+                            
+                            {% if user_course.deadline %}
+                                {% if is_deadline_overdue %}
+                                    <div class="alert alert-danger border-0 mb-3" style="background: #f8d7da; border: 1px solid #f5c6cb; border-radius: 6px;">
+                                        <i class="fa fa-exclamation-triangle text-danger"></i>
+                                        <strong>Просрочен</strong>
+                                        <p class="mb-0 mt-2 small">Срок завершения курса истек: {{ user_course.deadline|date:"d.m.Y" }}</p>
+                                    </div>
+                                {% else %}
+                                    <div class="alert alert-warning border-0 mb-3" style="background: #fff3cd; border: 1px solid #ffeaa7; border-radius: 6px;">
+                                        <i class="fa fa-clock-o text-warning"></i>
+                                        <strong>Завершить до {{ user_course.deadline|date:"d.m.Y" }}</strong>
+                                    </div>
+                                {% endif %}
+                            {% endif %}
 
                         {% elif user_course.status == 'started' %}
                             <div class="status-badge status-started">
@@ -350,6 +365,21 @@
                             <p class="text-muted mb-3">
                                 <i class="fa fa-calendar"></i> Начат: {{ user_course.start_date|date:"d.m.Y" }}
                             </p>
+                            
+                            {% if user_course.deadline %}
+                                {% if is_deadline_overdue %}
+                                    <div class="alert alert-danger border-0 mb-3" style="background: #f8d7da; border: 1px solid #f5c6cb; border-radius: 6px;">
+                                        <i class="fa fa-exclamation-triangle text-danger"></i>
+                                        <strong>Просрочен</strong>
+                                        <p class="mb-0 mt-2 small">Срок завершения курса истек: {{ user_course.deadline|date:"d.m.Y" }}</p>
+                                    </div>
+                                {% else %}
+                                    <div class="alert alert-warning border-0 mb-3" style="background: #fff3cd; border: 1px solid #ffeaa7; border-radius: 6px;">
+                                        <i class="fa fa-clock-o text-warning"></i>
+                                        <strong>Завершить до {{ user_course.deadline|date:"d.m.Y" }}</strong>
+                                    </div>
+                                {% endif %}
+                            {% endif %}
                             
                             {% if course.final_quiz %}
                                 <div class="alert alert-info border-0" style="background: #f8f9fa; border: 1px solid #dee2e6; border-radius: 8px;">
