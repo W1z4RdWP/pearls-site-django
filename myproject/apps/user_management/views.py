@@ -1,5 +1,5 @@
 from django.shortcuts import render, redirect, get_object_or_404
-from django.http import HttpResponse
+from django.http import HttpResponse, JsonResponse
 from django.views.generic import ListView, CreateView, UpdateView, DetailView, FormView, TemplateView
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.contrib.auth.decorators import login_required
@@ -12,7 +12,7 @@ from django.urls import reverse_lazy
 from django.core.exceptions import PermissionDenied
 from myapp.models import UserProgress, UserCourse, QuizResult, UserAnswer
 from quizzes.models import Quiz, QuizLock
-from courses.models import Course, Lesson, UserLessonTrajectory
+from courses.models import Course, Lesson, UserLessonTrajectory, UserCourseTrajectory, Trajectory
 from django.core.paginator import Paginator, PageNotAnInteger, EmptyPage
 from django.utils.decorators import method_decorator
 from django.contrib.admin.views.decorators import staff_member_required
@@ -25,13 +25,14 @@ from django.contrib import messages
 from .utils import send_user_credentials_email
 from gamification.models import DascoinTransaction
 import logging
-from datetime import datetime
+from datetime import datetime, timedelta
 from django.utils import timezone
 from django.template.loader import render_to_string
 from openpyxl import Workbook
 from openpyxl.styles import Font, PatternFill
 from urllib.parse import urlencode
 from weasyprint import HTML
+import json
 
 
 # Получаем логгер для записи в журнал аудита
@@ -466,6 +467,288 @@ class UserUpdateView(UpdateView):
         if profile_form.is_valid():
             profile_form.save()
         return response
+
+
+class UserEditDetailedView(UpdateView):
+    """
+    Объединенный view для редактирования пользователя с вкладками:
+    - Персональная информация (форма редактирования)
+    - Прогресс (dashboard прогресса)
+    - Попытки тестов (quiz attempts)
+    """
+    model = User
+    template_name = 'user_management/user_edit_detailed.html'
+    fields = ['email', 'first_name', 'last_name', 'groups', 'is_active']
+    context_object_name = 'target_user'
+
+    def dispatch(self, request, *args, **kwargs):
+        if not request.user.is_authenticated or not (request.user.is_staff or request.user.is_superuser or (hasattr(request.user, 'profile') and request.user.profile.is_mentor_user)):
+            raise PermissionDenied("У вас нет доступа к управлению пользователями.")
+        user_to_edit = self.get_object()
+        if hasattr(request.user, 'is_staff') and request.user.is_staff:
+            if get_user_privilege_level(request.user) < get_user_privilege_level(user_to_edit):
+                self.readonly = True
+            else:
+                self.readonly = False
+        else:
+            self.readonly = False
+        return super().dispatch(request, *args, **kwargs)
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        user = self.get_object()
+        
+        # Данные для формы редактирования (из UserUpdateView)
+        if self.request.POST:
+            context['profile_form'] = UserProfileForm(self.request.POST, self.request.FILES, instance=user.profile, user_instance=user)
+        else:
+            context['profile_form'] = UserProfileForm(instance=user.profile, user_instance=user)
+        context['readonly'] = getattr(self, 'readonly', False)
+        context['roles'] = Role.objects.all()
+        
+        # Данные для вкладки прогресса (из UserProgressDashboardView)
+        profile = user.profile
+        available_courses = Course.objects.available_for_user(user)
+        user_courses = []
+        for course in available_courses:
+            user_course = UserCourse.objects.filter(user=user, course=course).first()
+            if user_course:
+                user_courses.append(user_course)
+            else:
+                user_course = UserCourse.objects.create(user=user, course=course, status='available')
+                user_courses.append(user_course)
+        
+        quiz_results = list(QuizResult.objects.filter(user=user).order_by('-completed_at'))
+        courses_progress = []
+        
+        for user_course in user_courses:
+            course = user_course.course
+            trajectory = UserLessonTrajectory.objects.filter(user=user, course=course).first()
+            
+            if trajectory:
+                lessons = trajectory.lessons.all().order_by('order')
+                total_lessons = lessons.count()
+                lesson_ids = lessons.values_list('id', flat=True)
+                completed_lessons = UserProgress.objects.filter(
+                    user=user, course=course, completed=True, lesson_id__in=lesson_ids
+                ).count()
+            else:
+                lessons = course.lessons.all().order_by('order')
+                total_lessons = lessons.count()
+                completed_lessons = UserProgress.objects.filter(
+                    user=user, course=course, completed=True
+                ).count()
+            
+            completed_quizzes = QuizResult.objects.filter(
+                user=user, course=course,
+                quiz_title__in=[quiz.name for quiz in course.quizzes.all()],
+                passed=True
+            ).values('quiz_title').distinct().count()
+            total_quizzes = course.quizzes.count()
+            
+            total_materials = total_lessons + total_quizzes
+            completed_materials = completed_lessons + completed_quizzes
+            progress_percent = int((completed_materials / total_materials) * 100) if total_materials > 0 else 0
+            
+            quiz_passed = False
+            if course.final_quiz:
+                quiz_passed = QuizResult.objects.filter(
+                    user=user, course=course, quiz_title=course.final_quiz.name, passed=True
+                ).exists()
+            
+            materials_detail = []
+            for lesson in lessons:
+                progress = UserProgress.objects.filter(user=user, lesson=lesson, completed=True).first()
+                materials_detail.append({
+                    'type': 'lesson', 'lesson': lesson, 'completed': progress is not None,
+                    'completed_at': progress.completed_at if progress else None,
+                    'order': lesson.order, 'title': lesson.title
+                })
+            
+            for quiz in course.quizzes.all():
+                quiz_attempts = QuizResult.objects.filter(
+                    user=user, course=course, quiz_title=quiz.name
+                ).order_by('-completed_at')
+                quiz_result = quiz_attempts.filter(passed=True).first()
+                best_attempt = None
+                if quiz_attempts.exists():
+                    best_attempt = sorted(quiz_attempts, key=lambda x: (x.percent, x.completed_at), reverse=True)[0]
+                
+                materials_detail.append({
+                    'type': 'quiz', 'quiz': quiz, 'completed': quiz_result is not None,
+                    'completed_at': quiz_result.completed_at if quiz_result else None,
+                    'order': quiz.order, 'title': quiz.name,
+                    'attempts_count': quiz_attempts.count(), 'best_attempt': best_attempt
+                })
+            
+            materials_detail.sort(key=lambda x: x['order'])
+            lessons_detail = materials_detail
+            
+            best_attempt = None
+            if course.final_quiz:
+                attempts = [qr for qr in quiz_results if qr.quiz_title == course.final_quiz.name]
+                if attempts:
+                    best_attempt = sorted(attempts, key=lambda x: (x.percent, x.completed_at), reverse=True)[0]
+            
+            courses_progress.append({
+                'course': course, 'user_course': user_course,
+                'total_lessons': total_lessons, 'completed_lessons': completed_lessons,
+                'total_quizzes': total_quizzes, 'completed_quizzes': completed_quizzes,
+                'total_materials': total_materials, 'completed_materials': completed_materials,
+                'progress_percent': progress_percent, 'quiz_passed': quiz_passed,
+                'lessons_detail': lessons_detail, 'best_attempt': best_attempt,
+            })
+        
+        total_courses = len(courses_progress)
+        completed_courses = len([cp for cp in courses_progress if cp['user_course'].status == 'completed'])
+        started_courses = len([cp for cp in courses_progress if cp['user_course'].status == 'started'])
+        total_lessons_completed = sum(cp['completed_lessons'] for cp in courses_progress)
+        total_lessons_available = sum(cp['total_lessons'] for cp in courses_progress)
+        total_materials_completed = sum(cp['completed_materials'] for cp in courses_progress)
+        total_materials_available = sum(cp['total_materials'] for cp in courses_progress)
+        overall_progress = int((total_materials_completed / total_materials_available) * 100) if total_materials_available > 0 else 0
+        
+        course_filter = self.request.GET.get('course_filter', 'completed')
+        if course_filter == 'completed':
+            courses_progress = [cp for cp in courses_progress if cp['user_course'].status == 'completed']
+        elif course_filter == 'started':
+            courses_progress = [cp for cp in courses_progress if cp['user_course'].status == 'started']
+        
+        paginator_courses = Paginator(courses_progress, 4)
+        page_number_courses = self.request.GET.get('courses_page', 1)
+        try:
+            page_obj_courses = paginator_courses.page(page_number_courses)
+        except PageNotAnInteger:
+            page_obj_courses = paginator_courses.page(1)
+        except EmptyPage:
+            page_obj_courses = paginator_courses.page(paginator_courses.num_pages)
+        
+        context.update({
+            'courses_progress': courses_progress, 'total_courses': total_courses,
+            'completed_courses': completed_courses, 'started_courses': started_courses,
+            'total_lessons_completed': total_lessons_completed,
+            'total_lessons_available': total_lessons_available,
+            'overall_progress': overall_progress,
+            'page_obj_courses': page_obj_courses, 'course_filter': course_filter,
+        })
+        
+        # Данные для вкладки попыток тестов (из UserQuizAttemptsView)
+        available_courses_quiz = Course.objects.available_for_user(user)
+        quizzes = set()
+        for course in available_courses_quiz:
+            if course.final_quiz:
+                quizzes.add(course.final_quiz)
+            for quiz in course.quizzes.all():
+                quizzes.add(quiz)
+        
+        quizzes = sorted(list(quizzes), key=lambda q: q.name)
+        quiz_data = {}
+        for quiz in quizzes:
+            results = QuizResult.objects.filter(user=user, quiz_title=quiz.name).order_by('-completed_at')
+            attempts_with_results = []
+            for i, result in enumerate(results, 1):
+                attempts_with_results.append({
+                    'result': result, 'attempt_number': i,
+                    'started_at': result.completed_at, 'completed_at': result.completed_at
+                })
+            
+            total_attempts = results.count()
+            passed_attempts = results.filter(passed=True).count()
+            failed_attempts = results.filter(passed=False).count()
+            excluded_attempts = results.filter(passed=False, excluded_from_limit=True).count()
+            best_result = results.order_by('-percent').first()
+            best_score = best_result.percent if best_result else None
+            
+            quiz_lock = QuizLock.objects.filter(user=user, quiz=quiz).first()
+            is_blocked = quiz_lock.is_locked if quiz_lock else False
+            
+            quiz_type = "Неизвестно"
+            related_course = None
+            final_course = Course.objects.filter(final_quiz=quiz).first()
+            if final_course:
+                quiz_type = "Финальный тест"
+                related_course = final_course
+            else:
+                material_course = Course.objects.filter(course_quizzes=quiz).first()
+                if material_course:
+                    quiz_type = "Тест из материалов курса"
+                    related_course = material_course
+            
+            quiz_data[quiz] = {
+                'attempts': attempts_with_results, 'total_attempts': total_attempts,
+                'passed_attempts': passed_attempts, 'failed_attempts': failed_attempts,
+                'excluded_attempts': excluded_attempts, 'best_score': best_score,
+                'is_blocked': is_blocked, 'quiz_type': quiz_type, 'related_course': related_course
+            }
+        
+        context['quiz_data'] = quiz_data
+        
+        # Данные для вкладки "Назначенное обучение"
+        assigned_courses = UserCourse.objects.filter(user=user).select_related('course').order_by('-start_date')
+        assigned_trajectories = UserCourseTrajectory.objects.filter(user=user).select_related('trajectory').order_by('-started_at')
+        
+        # Формируем список назначенных обучений (курсы + траектории)
+        assigned_trainings = []
+        
+        # Добавляем курсы
+        for user_course in assigned_courses:
+            # Формируем статус для отображения
+            status_display = user_course.get_status_display()
+            if user_course.status == 'started':
+                status_display = 'В процессе'
+            elif user_course.status == 'available':
+                status_display = 'Не начат'
+            
+            # Определяем тип назначения: если курс-инцидент, то "Курс-инцидент", иначе "Курс"
+            assignment_type = 'Курс-инцидент' if user_course.course.is_incident else 'Курс'
+            
+            assigned_trainings.append({
+                'type': 'course',
+                'id': user_course.id,
+                'name': user_course.course.title,
+                'assignment_date': user_course.start_date,
+                'status': status_display,
+                'status_code': user_course.status,
+                'due_date': None,  # Пока прочерк
+                'assignment_type': assignment_type,
+                'object': user_course,
+            })
+        
+        # Добавляем траектории
+        for user_trajectory in assigned_trajectories:
+            assigned_trainings.append({
+                'type': 'trajectory',
+                'id': user_trajectory.id,
+                'name': user_trajectory.trajectory.name,
+                'assignment_date': user_trajectory.started_at,
+                'status': 'Завершена' if user_trajectory.completed else 'В процессе',
+                'status_code': 'completed' if user_trajectory.completed else 'started',
+                'due_date': None,  # Пока прочерк
+                'assignment_type': 'Траектория',
+                'object': user_trajectory,
+            })
+        
+        # Сортируем по дате назначения (новые сверху)
+        assigned_trainings.sort(key=lambda x: x['assignment_date'], reverse=True)
+        
+        context['assigned_trainings'] = assigned_trainings
+        
+        # Определяем активную вкладку
+        context['active_tab'] = self.request.GET.get('tab', 'personal')
+        
+        return context
+
+    def form_valid(self, form):
+        if getattr(self, 'readonly', False):
+            raise PermissionDenied("Недостаточно прав для редактирования этого пользователя.")
+        response = super().form_valid(form)
+        profile_form = UserProfileForm(self.request.POST, self.request.FILES, instance=self.object.profile, user_instance=self.object)
+        if profile_form.is_valid():
+            profile_form.save()
+        return response
+
+    def get_success_url(self):
+        return reverse('user_management:user_edit_detailed', kwargs={'pk': self.object.pk}) + '?tab=personal'
 
 class UserProgressDashboardView(DetailView):
     model = User
@@ -1657,5 +1940,238 @@ def export_admin_user_transactions_pdf(request, user_id):
         }
     )
     return response
+
+
+@login_required
+def api_get_groups_with_courses(request):
+    """
+    API endpoint для получения списка всех групп с информацией о количестве курсов.
+    Возвращает JSON с данными групп.
+    """
+    if not (request.user.is_staff or request.user.is_superuser):
+        return JsonResponse({'error': 'Доступ запрещен'}, status=403)
+    
+    groups = Group.objects.all().order_by('name')
+    
+    groups_data = []
+    for group in groups:
+        # Получаем количество курсов, доступных для этой группы
+        courses_count = Course.objects.filter(allowed_groups=group).exclude(is_incident=True).count()
+        
+        groups_data.append({
+            'id': group.id,
+            'name': group.name,
+            'user_count': group.user_set.filter(is_active=True).count(),
+            'courses_count': courses_count,
+        })
+    
+    return JsonResponse({'groups': groups_data})
+
+
+@login_required
+def api_get_group_courses(request, group_id):
+    """
+    API endpoint для получения списка курсов, доступных для группы.
+    Возвращает JSON с данными курсов.
+    """
+    if not (request.user.is_staff or request.user.is_superuser):
+        return JsonResponse({'error': 'Доступ запрещен'}, status=403)
+    
+    try:
+        group = Group.objects.get(id=group_id)
+    except Group.DoesNotExist:
+        return JsonResponse({'error': 'Группа не найдена'}, status=404)
+    
+    # Получаем курсы, доступные для этой группы (исключаем курсы-инциденты)
+    courses = Course.objects.filter(allowed_groups=group).exclude(is_incident=True).order_by('title')
+    
+    courses_data = []
+    for course in courses:
+        courses_data.append({
+            'id': course.id,
+            'title': course.title,
+            'description': course.description[:200] if course.description else '',  # Первые 200 символов
+            'author': course.author.get_full_name() or course.author.username,
+        })
+    
+    return JsonResponse({'courses': courses_data})
+
+
+@login_required
+def api_search_courses(request):
+    """
+    API endpoint для поиска курсов по названию.
+    Возвращает JSON с данными курсов.
+    """
+    if not (request.user.is_staff or request.user.is_superuser):
+        return JsonResponse({'error': 'Доступ запрещен'}, status=403)
+    
+    query = request.GET.get('q', '').strip()
+    
+    # Исключаем курсы-инциденты
+    courses = Course.objects.exclude(is_incident=True)
+    
+    if query:
+        courses = courses.filter(
+            Q(title__icontains=query) | 
+            Q(description__icontains=query)
+        )
+    
+    courses = courses.order_by('title')[:50]  # Ограничиваем 50 результатами
+    
+    courses_data = []
+    for course in courses:
+        courses_data.append({
+            'id': course.id,
+            'title': course.title,
+            'description': course.description[:200] if course.description else '',
+            'author': course.author.get_full_name() or course.author.username,
+        })
+    
+    return JsonResponse({'courses': courses_data})
+
+
+@login_required
+@require_POST
+def api_assign_courses_to_user(request, user_id):
+    """
+    API endpoint для индивидуального назначения курсов пользователю.
+    Принимает список ID курсов и назначает их пользователю, если они еще не назначены.
+    """
+    if not (request.user.is_staff or request.user.is_superuser):
+        return JsonResponse({'error': 'Доступ запрещен'}, status=403)
+    
+    try:
+        target_user = User.objects.get(id=user_id)
+    except User.DoesNotExist:
+        return JsonResponse({'error': 'Пользователь не найден'}, status=404)
+    
+    # Получаем данные из POST запроса
+    try:
+        data = json.loads(request.body)
+    except (json.JSONDecodeError, AttributeError):
+        return JsonResponse({'error': 'Неверный формат данных'}, status=400)
+    
+    # Поддержка нового формата с индивидуальными deadline_days для каждого курса
+    courses_data = data.get('courses', [])
+    
+    # Поддержка старого формата для обратной совместимости
+    if not courses_data:
+        course_ids = data.get('course_ids', [])
+        deadline_days = data.get('deadline_days', 7)
+        
+        if not course_ids or not isinstance(course_ids, list):
+            return JsonResponse({'error': 'Список курсов не указан'}, status=400)
+        
+        # Валидация deadline_days
+        try:
+            deadline_days = int(deadline_days)
+            if deadline_days < 1:
+                return JsonResponse({'error': 'Количество дней должно быть больше 0'}, status=400)
+        except (ValueError, TypeError):
+            return JsonResponse({'error': 'Неверное значение количества дней'}, status=400)
+        
+        # Преобразуем старый формат в новый
+        courses_data = [{'course_id': cid, 'deadline_days': deadline_days} for cid in course_ids]
+    
+    if not courses_data or not isinstance(courses_data, list):
+        return JsonResponse({'error': 'Список курсов не указан'}, status=400)
+    
+    # Валидация и извлечение данных о курсах
+    course_deadlines = {}
+    course_ids = []
+    
+    for course_item in courses_data:
+        if not isinstance(course_item, dict):
+            return JsonResponse({'error': 'Неверный формат данных курса'}, status=400)
+        
+        course_id = course_item.get('course_id')
+        deadline_days = course_item.get('deadline_days', 7)
+        
+        if not course_id:
+            return JsonResponse({'error': 'ID курса не указан'}, status=400)
+        
+        # Валидация deadline_days
+        try:
+            deadline_days = int(deadline_days)
+            if deadline_days < 1:
+                return JsonResponse({'error': 'Количество дней должно быть больше 0'}, status=400)
+        except (ValueError, TypeError):
+            return JsonResponse({'error': 'Неверное значение количества дней'}, status=400)
+        
+        course_ids.append(course_id)
+        course_deadlines[course_id] = deadline_days
+    
+    # Получаем курсы
+    courses = Course.objects.filter(id__in=course_ids).exclude(is_incident=True)
+    
+    if courses.count() != len(course_ids):
+        return JsonResponse({'error': 'Некоторые курсы не найдены'}, status=400)
+    
+    # Создаем словарь курсов для быстрого доступа
+    courses_dict = {course.id: course for course in courses}
+    
+    # Назначаем курсы пользователю
+    assigned_count = 0
+    already_assigned_count = 0
+    assigned_courses = []
+    already_assigned_courses = []
+    
+    for course_id in course_ids:
+        course = courses_dict.get(course_id)
+        if not course:
+            continue
+        
+        deadline_days = course_deadlines[course_id]
+        deadline = timezone.now() + timedelta(days=deadline_days)
+        
+        # Проверяем, не назначен ли уже курс пользователю
+        user_course, created = UserCourse.objects.get_or_create(
+            user=target_user,
+            course=course,
+            defaults={'status': 'available', 'deadline': deadline}
+        )
+        
+        # Если курс уже был назначен, обновляем deadline только если он не был установлен ранее
+        if not created and not user_course.deadline:
+            user_course.deadline = deadline
+            user_course.save(update_fields=['deadline'])
+        
+        if created:
+            assigned_count += 1
+            assigned_courses.append({
+                'id': course.id,
+                'title': course.title
+            })
+            
+            # Создаем внутреннее уведомление
+            try:
+                from notifications.models import Notification
+                Notification.create_course_assignment_notification(target_user, course)
+            except Exception as e:
+                audit_logger.error(f"Ошибка создания уведомления о курсе {course.title}: {e}")
+            
+            # Отправляем email уведомление
+            try:
+                from .utils import send_course_assignment_email
+                send_course_assignment_email(target_user, course)
+                audit_logger.info(f"Отправлено email уведомление о курсе {course.title} пользователю {target_user.email}")
+            except Exception as e:
+                audit_logger.error(f"Ошибка отправки email уведомления о курсе {course.title}: {e}")
+        else:
+            already_assigned_count += 1
+            already_assigned_courses.append({
+                'id': course.id,
+                'title': course.title
+            })
+    
+    return JsonResponse({
+        'success': True,
+        'assigned_count': assigned_count,
+        'already_assigned_count': already_assigned_count,
+        'assigned_courses': assigned_courses,
+        'already_assigned_courses': already_assigned_courses,
+        'message': f'Назначено курсов: {assigned_count}, уже были назначены: {already_assigned_count}'
+    })
 
 

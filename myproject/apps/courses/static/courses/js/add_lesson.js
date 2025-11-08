@@ -1,7 +1,7 @@
 let selectedItems = new Set();
 
 function toggleCategory(element) {
-    const categoryItem = element.closest('.category-item');
+    const categoryItem = element.closest('.category-block');
     const subcategoryList = categoryItem.querySelector('.subcategory-list');
     const lessonList = categoryItem.querySelector('.lesson-list');
     const arrow = element.querySelector('.toggle-arrow');
@@ -19,7 +19,24 @@ function toggleCategory(element) {
     }
 }
 
+// Обработчик одиночного клика - только выделение
 function selectItem(element, type, id, title) {
+    const itemId = `${type}_${id}`;
+    
+    // Убираем выделение со всех элементов того же типа
+    const allItems = document.querySelectorAll(`.category-block .category-header, .lesson-li`);
+    allItems.forEach(item => {
+        if (item !== element) {
+            item.classList.remove('selected');
+        }
+    });
+    
+    // Всегда выделяем текущий элемент
+    element.classList.add('selected');
+}
+
+// Обработчик двойного клика - добавление/удаление из выбранных
+function handleDoubleClick(element, type, id, title) {
     const itemId = `${type}_${id}`;
     
     if (selectedItems.has(itemId)) {
@@ -147,10 +164,10 @@ function performSearch(searchTerm) {
     
     if (activeTab === 'tests') {
         // Поиск по тестам
-        const testItems = testsBlock.querySelectorAll('.lesson-item');
+        const testItems = testsBlock.querySelectorAll('.lesson-li');
         
         testItems.forEach(item => {
-            const title = item.querySelector('.lesson-title');
+            const title = item.querySelector('.lesson-link');
             if (title) highlightText(title, '');
         });
         
@@ -162,7 +179,7 @@ function performSearch(searchTerm) {
         
         let foundCount = 0;
         testItems.forEach(item => {
-            const title = item.querySelector('.lesson-title');
+            const title = item.querySelector('.lesson-link');
             const titleText = title.textContent.toLowerCase();
             
             if (titleText.includes(searchTermLower)) {
@@ -179,10 +196,10 @@ function performSearch(searchTerm) {
         
     } else if (activeTab === 'uncategorized') {
         // Поиск по урокам без категории
-        const lessonItems = uncatBlock.querySelectorAll('.lesson-item');
+        const lessonItems = uncatBlock.querySelectorAll('.lesson-li');
         
         lessonItems.forEach(item => {
-            const title = item.querySelector('.lesson-title');
+            const title = item.querySelector('.lesson-link');
             if (title) highlightText(title, '');
         });
         
@@ -194,7 +211,7 @@ function performSearch(searchTerm) {
         
         let foundCount = 0;
         lessonItems.forEach(item => {
-            const title = item.querySelector('.lesson-title');
+            const title = item.querySelector('.lesson-link');
             const titleText = title.textContent.toLowerCase();
             
             if (titleText.includes(searchTermLower)) {
@@ -211,8 +228,8 @@ function performSearch(searchTerm) {
         
     } else {
         // Поиск по категориям (оригинальная логика)
-        const categoryItems = categoriesBlock.querySelectorAll('.category-item');
-        const lessonItems = categoriesBlock.querySelectorAll('.lesson-item');
+        const categoryItems = categoriesBlock.querySelectorAll('.category-block');
+        const lessonItems = categoriesBlock.querySelectorAll('.lesson-li');
         
         // Скрываем все элементы по умолчанию и убираем подсветку
         categoryItems.forEach(item => {
@@ -222,7 +239,7 @@ function performSearch(searchTerm) {
         });
         lessonItems.forEach(item => {
             item.style.display = 'none';
-            const title = item.querySelector('.lesson-title');
+            const title = item.querySelector('.lesson-link');
             if (title) highlightText(title, '');
         });
         
@@ -247,11 +264,11 @@ function performSearch(searchTerm) {
             const hasMatchingCategory = categoryTitleText.includes(searchTermLower);
             
             // Ищем совпадения в уроках этой категории
-            const lessonItemsInCategory = categoryItem.querySelectorAll('.lesson-item');
+            const lessonItemsInCategory = categoryItem.querySelectorAll('.lesson-li');
             let hasMatchingLessons = false;
             
             lessonItemsInCategory.forEach(lessonItem => {
-                const lessonTitle = lessonItem.querySelector('.lesson-title');
+                const lessonTitle = lessonItem.querySelector('.lesson-link');
                 const lessonTitleText = lessonTitle.textContent.toLowerCase();
                 if (lessonTitleText.includes(searchTermLower)) {
                     lessonItem.style.display = 'block';
@@ -263,10 +280,10 @@ function performSearch(searchTerm) {
                     categoryItem.style.display = 'block';
                     
                     // Показываем все родительские категории
-                    let parentCategory = categoryItem.parentElement.closest('.category-item');
+                    let parentCategory = categoryItem.parentElement.closest('.category-block');
                     while (parentCategory) {
                         parentCategory.style.display = 'block';
-                        parentCategory = parentCategory.parentElement.closest('.category-item');
+                        parentCategory = parentCategory.parentElement.closest('.category-block');
                     }
                 }
             });
@@ -281,10 +298,10 @@ function performSearch(searchTerm) {
                 });
                 
                 // Показываем все родительские категории
-                let parentCategory = categoryItem.parentElement.closest('.category-item');
+                let parentCategory = categoryItem.parentElement.closest('.category-block');
                 while (parentCategory) {
                     parentCategory.style.display = 'block';
-                    parentCategory = parentCategory.parentElement.closest('.category-item');
+                    parentCategory = parentCategory.parentElement.closest('.category-block');
                 }
             }
         });
@@ -349,13 +366,88 @@ document.addEventListener('DOMContentLoaded', function() {
             arrow.classList.remove('expanded');
         }
         
-        const categoryItem = header.closest('.category-item');
+        const categoryItem = header.closest('.category-block');
         const subcategoryList = categoryItem.querySelector('.subcategory-list');
         const lessonList = categoryItem.querySelector('.lesson-list');
         
         if (subcategoryList) subcategoryList.style.display = 'none';
         if (lessonList) lessonList.style.display = 'none';
     });
+    
+    // Используем делегирование событий для обработки кликов
+    const clickTimers = new Map();
+    
+    // Обработчик кликов для категорий (делегирование)
+    const categoriesBlock = document.getElementById('categories-block');
+    if (categoriesBlock) {
+        categoriesBlock.addEventListener('click', function(e) {
+            const categoryHeader = e.target.closest('.category-header');
+            if (!categoryHeader) return;
+            
+            // Пропускаем клик, если кликнули на стрелочку
+            if (e.target.classList.contains('toggle-arrow')) {
+                return;
+            }
+            
+            const categoryItem = categoryHeader.closest('.category-block');
+            const categoryId = categoryItem.dataset.categoryId;
+            const categoryTitle = categoryHeader.querySelector('.category-title').textContent;
+            
+            const timerKey = `category_${categoryId}`;
+            const existingTimer = clickTimers.get(timerKey);
+            
+            if (existingTimer) {
+                clearTimeout(existingTimer);
+                clickTimers.delete(timerKey);
+                // Двойной клик - добавление/удаление
+                handleDoubleClick(categoryHeader, 'category', categoryId, categoryTitle);
+            } else {
+                const timer = setTimeout(() => {
+                    clickTimers.delete(timerKey);
+                    // Одиночный клик - только выделение
+                    selectItem(categoryHeader, 'category', categoryId, categoryTitle);
+                }, 300);
+                clickTimers.set(timerKey, timer);
+            }
+        });
+    }
+    
+    // Обработчик кликов для уроков (делегирование)
+    const leftPanel = document.querySelector('.left-panel');
+    if (leftPanel) {
+        leftPanel.addEventListener('click', function(e) {
+            const lessonItem = e.target.closest('.lesson-li');
+            if (!lessonItem) return;
+            
+            const lessonId = lessonItem.dataset.lessonId || lessonItem.dataset.quizId;
+            if (!lessonId) return;
+            
+            const lessonTitle = lessonItem.querySelector('.lesson-link').textContent;
+            let type = 'lesson';
+            if (lessonItem.dataset.quizId) {
+                type = 'quiz';
+            } else if (lessonItem.closest('#uncategorized-block')) {
+                type = 'uncategorized';
+            }
+            
+            const timerKey = `${type}_${lessonId}`;
+            const existingTimer = clickTimers.get(timerKey);
+            
+            if (existingTimer) {
+                clearTimeout(existingTimer);
+                clickTimers.delete(timerKey);
+                // Двойной клик - добавление/удаление
+                handleDoubleClick(lessonItem, type, lessonId, lessonTitle);
+            } else {
+                const timer = setTimeout(() => {
+                    clickTimers.delete(timerKey);
+                    // Одиночный клик - только выделение
+                    selectItem(lessonItem, type, lessonId, lessonTitle);
+                }, 300);
+                clickTimers.set(timerKey, timer);
+            }
+        });
+    }
     
     // Добавляем обработчик поиска с задержкой
     const searchInput = document.getElementById('searchInput');

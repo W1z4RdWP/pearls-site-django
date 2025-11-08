@@ -46,9 +46,16 @@
                     <div id="uncategorized-block" style="display:none;">
                         <ul class="category-tree">
                             {% for lesson in uncategorized_lessons %}
-                            <li class="lesson-item" data-lesson-id="{{ lesson.id }}" onclick="selectItem(this, 'uncategorized', '{{ lesson.id }}', '{{ lesson.title }}')">
-                                <span class="lesson-icon">📄</span>
-                                <span class="lesson-title">{{ lesson.title }}</span>
+                            <li class="lesson-li" data-lesson-id="{{ lesson.id }}">
+                                <span class="lesson-icon svg-paper">
+                                    <svg width="16" height="16" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                                        <rect class="svg-paper-rect" x="4" y="3" width="12" height="14" rx="2"/>
+                                        <line class="svg-paper-line" x1="6.5" y1="7.5" x2="13.5" y2="7.5"/>
+                                        <line class="svg-paper-line" x1="6.5" y1="10.5" x2="13.5" y2="10.5"/>
+                                        <line class="svg-paper-line" x1="6.5" y1="13.5" x2="11.5" y2="13.5"/>
+                                    </svg>
+                                </span>
+                                <a class="lesson-link" title="{{ lesson.title }}">{{ lesson.title }}</a>
                             </li>
                             {% endfor %}
                         </ul>
@@ -56,9 +63,16 @@
                     <div id="tests-block" style="display:none;">
                         <ul class="category-tree">
                             {% for quiz in all_quizzes %}
-                            <li class="lesson-item" data-quiz-id="{{ quiz.id }}" onclick="selectItem(this, 'quiz', '{{ quiz.id }}', '{{ quiz.name }}')">
-                                <span class="lesson-icon">🧪</span>
-                                <span class="lesson-title">{{ quiz.name }}</span>
+                            <li class="lesson-li" data-quiz-id="{{ quiz.id }}">
+                                <span class="lesson-icon svg-paper">
+                                    <svg width="16" height="16" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                                        <rect class="svg-paper-rect" x="4" y="3" width="12" height="14" rx="2"/>
+                                        <line class="svg-paper-line" x1="6.5" y1="7.5" x2="13.5" y2="7.5"/>
+                                        <line class="svg-paper-line" x1="6.5" y1="10.5" x2="13.5" y2="10.5"/>
+                                        <line class="svg-paper-line" x1="6.5" y1="13.5" x2="11.5" y2="13.5"/>
+                                    </svg>
+                                </span>
+                                <a class="lesson-link" title="{{ quiz.name }}">{{ quiz.name }}</a>
                             </li>
                             {% endfor %}
                         </ul>

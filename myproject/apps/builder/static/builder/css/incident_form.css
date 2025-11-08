@@ -421,13 +421,16 @@
 
 .responsible-modal-content {
     background-color: #fff;
-    margin: 3% auto;
+    margin: 20px;
     padding: 0;
     border-radius: 10px;
-    width: 90%;
-    max-width: 1000px;
+    width: calc(100% - 40px);
+    height: calc(100% - 40px);
+    max-width: calc(100% - 40px);
     box-shadow: 0 4px 24px rgba(0, 0, 0, 0.15);
     animation: slideDown 0.3s;
+    display: flex;
+    flex-direction: column;
 }
 
 .responsible-modal-header {
@@ -461,14 +464,19 @@
 
 .responsible-modal-body {
     padding: 24px;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
 }
 
 /* Двухколоночная структура */
 .responsible-columns {
     display: flex;
     gap: 20px;
-    min-height: 500px;
-    max-height: 600px;
+    flex: 1;
+    min-height: 0;
+    overflow: hidden;
 }
 
 .responsible-left-column,
@@ -502,7 +510,7 @@
 }
 
 .group-item {
-    padding: 14px 16px;
+    padding: 8px 12px;
     cursor: pointer;
     border-bottom: 1px solid #e3e8f0;
     background: #fff;
@@ -520,7 +528,7 @@
 .group-item-name {
     font-weight: 600;
     color: #232a3a;
-    margin-bottom: 4px;
+    margin-bottom: 2px;
 }
 
 .group-item-count {
@@ -618,28 +626,28 @@
     border: 1px solid #e3e8f0;
     border-radius: 6px;
     background: #f7f8fa;
-    padding: 8px;
+    padding: 0;
 }
 
 .selected-user-item {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 12px 14px;
+    padding: 6px 12px;
     background: #fff;
-    border: 1px solid #e3e8f0;
-    border-radius: 6px;
-    margin-bottom: 8px;
-    transition: background 0.2s, border 0.2s;
+    border: none;
+    border-bottom: 1px solid #e3e8f0;
+    border-radius: 0;
+    margin-bottom: 0;
+    transition: background 0.2s;
 }
 
 .selected-user-item:last-child {
-    margin-bottom: 0;
+    border-bottom: none;
 }
 
 .selected-user-item:hover {
     background: #f0f4ff;
-    border-color: #4d7cff;
 }
 
 .selected-user-info {
@@ -649,7 +657,7 @@
 .selected-user-name {
     font-weight: 600;
     color: #232a3a;
-    margin-bottom: 4px;
+    margin-bottom: 2px;
 }
 
 .selected-user-username {
@@ -760,14 +768,15 @@
 /* Адаптивность для модального окна ответственных */
 @media (max-width: 768px) {
     .responsible-modal-content {
-        width: 95%;
-        margin: 5% auto;
+        width: calc(100% - 20px);
+        height: calc(100% - 20px);
+        margin: 10px;
+        border-radius: 8px;
     }
     
     .responsible-columns {
         flex-direction: column;
-        min-height: auto;
-        max-height: none;
+        min-height: 0;
     }
     
     .responsible-divider {
@@ -778,11 +787,13 @@
     
     .responsible-left-column,
     .responsible-right-column {
-        max-height: 300px;
+        min-height: 0;
+        flex: 1;
     }
     
     .group-list,
     .selected-users-list {
-        max-height: 250px;
+        min-height: 0;
+        flex: 1;
     }
 }

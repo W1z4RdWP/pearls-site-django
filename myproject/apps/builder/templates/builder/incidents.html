@@ -58,6 +58,11 @@
             </div>
         </form>
         
+        <!-- Кнопка "Подробнее" (всегда видна) -->
+        <div id="details-button-container" class="mb-3">
+            <a id="details-button" href="{% url 'builder:incident_detail' %}" class="btn btn-primary">Подробнее</a>
+        </div>
+        
         <div class="incidents-table-responsive">
             <table class="table">
                 <thead>
@@ -76,15 +81,19 @@
                 </thead>
                 <tbody>
                     {% for inc in incidents %}
-                    <tr class="status-row-{{ inc.status }}" onclick="window.location.href='{% url 'builder:incident_edit' inc.pk %}'">
+                    <tr class="status-row-{{ inc.status }} incident-row" 
+                        data-incident-title="{{ inc.title }}"
+                        data-incident-id="{{ inc.pk }}"
+                        onclick="selectRow(this, event)"
+                        ondblclick="window.location.href='{% url 'builder:incident_edit' inc.pk %}'">
                         <td>{{ inc.created_at|date:"d.m.Y" }}</td>
                         <td>{{ inc.title }}</td>
                         <td>{{ inc.get_incident_type_display }}</td>
                         <td>{{ inc.user.get_full_name|default:inc.user.username }}</td>
-                        <td>
-                            {% if inc.assigned_to.exists %}
-                                {% for assigned in inc.assigned_to.all %}
-                                    {{ assigned.get_full_name|default:assigned.username }}{% if not forloop.last %}, {% endif %}
+                        <!--<td class="responsible-cell">
+                            {% if inc.violators.exists %}
+                                {% for resp in inc.violators.all %}
+                                    {{ resp.get_full_name|default:resp.username }}{% if not forloop.last %}, {% endif %}
                                 {% endfor %}
                             {% else %}
                                 —
@@ -105,6 +114,9 @@
 </div>
 
 <script>
+// Базовый URL для страницы деталей инцидента
+const incidentDetailUrl = "{% url 'builder:incident_detail' %}";
+
 document.addEventListener('DOMContentLoaded', function() {
     const statusCheckboxes = document.querySelectorAll('.status-checkbox');
     const dateFromInput = document.getElementById('date_from');
@@ -176,6 +188,79 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Инициализация при загрузке
     updateFilters();
+});
+
+// Переменная для отслеживания таймаута одиночного клика
+let clickTimeout = null;
+
+// Функция для выделения строки и показа кнопки "Подробнее"
+function selectRow(row, event) {
+    // Предотвращаем выделение при двойном клике
+    if (event.detail === 2) {
+        if (clickTimeout) {
+            clearTimeout(clickTimeout);
+            clickTimeout = null;
+        }
+        return;
+    }
+    
+    // Очищаем предыдущий таймаут
+    if (clickTimeout) {
+        clearTimeout(clickTimeout);
+    }
+    
+    // Устанавливаем таймаут для обработки одиночного клика
+    clickTimeout = setTimeout(function() {
+        // Убираем выделение со всех строк
+        document.querySelectorAll('.incident-row').forEach(r => {
+            r.classList.remove('row-selected');
+        });
+        
+        // Выделяем выбранную строку
+        row.classList.add('row-selected');
+        
+        // Обновляем кнопку "Подробнее" с названием инцидента
+        const detailsButton = document.getElementById('details-button');
+        const incidentTitle = row.getAttribute('data-incident-title');
+        
+        if (detailsButton && incidentTitle) {
+            // Обрезаем название до 30 символов
+            const truncatedTitle = incidentTitle.length > 30 
+                ? incidentTitle.substring(0, 30) + '...' 
+                : incidentTitle;
+            
+            // Меняем текст кнопки
+            detailsButton.textContent = 'Подробнее по "' + truncatedTitle + '"';
+            
+            // Формируем URL с параметром search
+            const detailUrl = incidentDetailUrl + "?search=" + encodeURIComponent(incidentTitle);
+            detailsButton.href = detailUrl;
+        }
+        
+        clickTimeout = null;
+    }, 200); // Задержка 200мс для различения одиночного и двойного клика
+}
+
+// Убираем выделение при клике вне таблицы
+document.addEventListener('click', function(event) {
+    if (!event.target.closest('.incident-row') && !event.target.closest('#details-button-container')) {
+        // Очищаем таймаут, если он есть
+        if (clickTimeout) {
+            clearTimeout(clickTimeout);
+            clickTimeout = null;
+        }
+        
+        document.querySelectorAll('.incident-row').forEach(r => {
+            r.classList.remove('row-selected');
+        });
+        
+        // Возвращаем кнопку к исходному состоянию
+        const detailsButton = document.getElementById('details-button');
+        if (detailsButton) {
+            detailsButton.textContent = 'Подробнее';
+            detailsButton.href = incidentDetailUrl;
+        }
+    }
 });
 </script>
 {% endblock %} 

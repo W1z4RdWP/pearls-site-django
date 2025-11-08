@@ -1,18 +1,29 @@
-<li class="category-item" data-category-id="{{ category.id }}">
-    <div class="category-header" onclick="selectItem(this, 'category', '{{ category.id }}', '{{ category.name }}')">
-        <span class="category-icon">📁</span>
-        <span class="category-title">{{ category.name }}</span>
+<li class="category-block" data-category-id="{{ category.id }}">
+    <div class="category-header">
+        <span class="category-icon folder-icon svg-folder">
+            <svg width="18" height="18" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                <path class="svg-folder-path" d="M2 5.5A1.5 1.5 0 0 1 3.5 4h3.672a1.5 1.5 0 0 1 1.06.44l1.414 1.414A1.5 1.5 0 0 0 10.707 6H16.5A1.5 1.5 0 0 1 18 7.5v7A1.5 1.5 0 0 1 16.5 16h-13A1.5 1.5 0 0 1 2 14.5v-9z"/>
+            </svg>
+        </span>
+        <span class="category-title" title="{{ category.name }}">{{ category.name }}</span>
         {% if category.subcategories or category.lessons %}
-            <span class="toggle-arrow" onclick="event.stopPropagation(); toggleCategory(this.parentElement)">▶</span>
+            <span class="toggle-arrow" onclick="event.stopPropagation(); toggleCategory(this.parentElement)">&#9654;</span>
         {% endif %}
     </div>
     
     {% if category.lessons %}
         <ul class="lesson-list" style="display: none;">
             {% for lesson in category.lessons %}
-                <li class="lesson-item" data-lesson-id="{{ lesson.id }}" onclick="selectItem(this, 'lesson', '{{ lesson.id }}', '{{ lesson.title }}')">
-                    <span class="lesson-icon">📄</span>
-                    <span class="lesson-title">{{ lesson.title }}</span>
+                <li class="lesson-li" data-lesson-id="{{ lesson.id }}">
+                    <span class="lesson-icon svg-paper">
+                        <svg width="16" height="16" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                            <rect class="svg-paper-rect" x="4" y="3" width="12" height="14" rx="2"/>
+                            <line class="svg-paper-line" x1="6.5" y1="7.5" x2="13.5" y2="7.5"/>
+                            <line class="svg-paper-line" x1="6.5" y1="10.5" x2="13.5" y2="10.5"/>
+                            <line class="svg-paper-line" x1="6.5" y1="13.5" x2="11.5" y2="13.5"/>
+                        </svg>
+                    </span>
+                    <a class="lesson-link" title="{{ lesson.title }}">{{ lesson.title }}</a>
                 </li>
             {% endfor %}
         </ul>

@@ -40,11 +40,13 @@ class UserCourse(models.Model):
         ('available', 'Доступен'),
         ('started', 'Начат'),
         ('completed', 'Завершен'),
+        ('blocked', 'Заблокирован')
     ]
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='started_courses')
     course = models.ForeignKey(Course, on_delete=models.CASCADE)
     start_date = models.DateTimeField(auto_now_add=True)
     end_date = models.DateTimeField(null=True, blank=True)
+    deadline = models.DateTimeField(null=True, blank=True, verbose_name="Срок завершения курса", help_text="Дата, до которой нужно завершить курс")
     status = models.CharField(
         max_length=20, 
         choices=STATUS_CHOICES, 
@@ -62,7 +64,13 @@ class UserCourse(models.Model):
         ]
 
     def save(self, *args, **kwargs):
-        """Устанавливаем end_date только при первом завершении курса"""
+        """Устанавливаем end_date только при первом завершении курса и проверяем deadline"""
+        # Проверяем deadline и блокируем курс, если срок истек
+        if self.deadline and self.status not in ['completed', 'blocked']:
+            if timezone.now() > self.deadline:
+                self.status = 'blocked'
+        
+        # Устанавливаем end_date только при первом завершении курса
         if self.status == 'completed' and not self.end_date:
             self.end_date = timezone.now()
         super().save(*args, **kwargs)
@@ -160,12 +168,13 @@ class UserAnswer(models.Model):
         - score_points(FloatField) - баллы за ответ (0, 0.5, 1) для многоуровневой оценки.
     
     """
+    
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='user_answers')
     quiz_result = models.ForeignKey('QuizResult', on_delete=models.CASCADE, related_name='answers')
     question = models.ForeignKey('quizzes.Question', on_delete=models.CASCADE)
     selected_answer = models.ForeignKey('quizzes.Answer', on_delete=models.SET_NULL, null=True, blank=True)
     is_correct = models.BooleanField(null=True, blank=True, help_text="Для открытых ответов: None = не оценено")
-    answer_text = models.CharField(max_length=500, blank=True, null=True)
+    answer_text = models.CharField(max_length=2000, blank=True, null=True)
     score_points = models.FloatField(
         null=True,
         blank=True,

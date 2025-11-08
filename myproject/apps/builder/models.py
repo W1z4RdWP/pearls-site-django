@@ -58,8 +58,7 @@ class Document(models.Model):
 
  
  
- 
- 
+  
 class Incident(models.Model):
     """
     Инцидент, связанный с обучением или ошибкой. Может автоматически назначать материалы и тесты.
@@ -80,7 +79,7 @@ class Incident(models.Model):
     incident_type = models.CharField(max_length=32, choices=INCIDENT_TYPE_CHOICES, verbose_name='Тип инцидента')
     user = models.ForeignKey(get_user_model(), on_delete=models.CASCADE, related_name='created_incidents', verbose_name='Кто зафиксировал')
     assigned_to = models.ManyToManyField(get_user_model(), related_name='assigned_incidents', blank=True, verbose_name='Кому назначен')
-    violators = models.ManyToManyField(get_user_model(), related_name='violator_incidents', blank=True, verbose_name='Нарушитель')
+    violators = models.ManyToManyField(get_user_model(), related_name='violator_incidents', blank=True, verbose_name='Виновник/нарушитель инцидента')
     status = models.CharField(max_length=32, choices=STATUS_CHOICES, default='new', verbose_name='Статус')
     
     # Временные метки
@@ -100,7 +99,6 @@ class Incident(models.Model):
 
     def __str__(self) -> str:
         return f"{self.title} ({self.get_incident_type_display()})"
-
  
  
  
@@ -306,9 +304,27 @@ class AuditLog(models.Model):
     def get_changes_summary(self):
         """Возвращает краткое описание изменений"""
         if self.action == 'update' and self.old_values and self.new_values:
+            # Парсим JSON, если значения являются строками
+            old_values = self.old_values
+            new_values = self.new_values
+            if isinstance(old_values, str):
+                try:
+                    old_values = json.loads(old_values)
+                except (json.JSONDecodeError, TypeError):
+                    return ''
+            if isinstance(new_values, str):
+                try:
+                    new_values = json.loads(new_values)
+                except (json.JSONDecodeError, TypeError):
+                    return ''
+            
+            # Проверяем, что значения являются словарями
+            if not isinstance(old_values, dict) or not isinstance(new_values, dict):
+                return ''
+            
             changes = []
-            for field, new_value in self.new_values.items():
-                old_value = self.old_values.get(field)
+            for field, new_value in new_values.items():
+                old_value = old_values.get(field)
                 if old_value != new_value:
                     changes.append(f"{field}: '{old_value}' → '{new_value}'")
             return '; '.join(changes)

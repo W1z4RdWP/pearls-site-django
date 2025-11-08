@@ -910,6 +910,119 @@ class IncidentUpdateView(UpdateView, AuditLoggerMixin):
 
 
 
+class IncidentDetailListView(ListView):
+    """
+    Список по прогрессу пользователей по всем инцидентам
+    """
+    model = Incident
+    template_name = 'builder/incident_detail.html'
+    context_object_name = 'incidents'
+    ordering = ['-created_at']
+
+    def dispatch(self, request, *args, **kwargs):
+        if not request.user.is_authenticated or not (request.user.is_staff or request.user.is_superuser):
+            return render(request, '403.html', status=403)
+        return super().dispatch(request, *args, **kwargs)
+
+    def get_queryset(self):
+        from django.utils import timezone
+        import datetime
+        
+        queryset = super().get_queryset()
+        # Оптимизация: предзагрузка ManyToMany полей
+        queryset = queryset.prefetch_related('assigned_to', 'violators').select_related('user')
+        
+        # Фильтр по названию инцидента (поиск)
+        search = self.request.GET.get('search', '').strip()
+        if search:
+            queryset = queryset.filter(title__icontains=search)
+        
+        # Фильтр по дате создания
+        date_from = self.request.GET.get('date_from')
+        date_to = self.request.GET.get('date_to')
+        
+        # Если нет параметров в GET запросе (первичная загрузка), устанавливаем дефолтные значения
+        if not self.request.GET:
+            # Устанавливаем период с начала 2025 года до сегодняшней даты
+            date_from = '2025-01-01'
+            date_to = timezone.now().date().strftime('%Y-%m-%d')
+        
+        if date_from:
+            date_from_parsed = datetime.datetime.strptime(date_from, '%Y-%m-%d').date()
+            date_from_datetime = timezone.make_aware(datetime.datetime.combine(date_from_parsed, datetime.time.min))
+            queryset = queryset.filter(created_at__gte=date_from_datetime)
+        if date_to:
+            date_to_parsed = datetime.datetime.strptime(date_to, '%Y-%m-%d').date()
+            date_to_datetime = timezone.make_aware(datetime.datetime.combine(date_to_parsed, datetime.time.max))
+            queryset = queryset.filter(created_at__lte=date_to_datetime)
+        
+        return queryset
+
+    def get_context_data(self, **kwargs):
+        from django.utils import timezone
+        from django.contrib.auth import get_user_model
+        
+        context = super().get_context_data(**kwargs)
+        
+        # Получаем список всех активных пользователей для фильтра
+        User = get_user_model()
+        context['users'] = User.objects.filter(is_active=True).order_by('last_name', 'first_name')
+        
+        # Параметры фильтров
+        search = self.request.GET.get('search', '').strip()
+        selected_user_id = self.request.GET.get('assigned_user', '')
+        violator_filter = self.request.GET.get('violator_filter', 'all')  # 'all', 'yes', 'no'
+        
+        # Если нет параметров в GET запросе (первичная загрузка), устанавливаем дефолтные значения
+        if not self.request.GET:
+            context['date_from'] = '2025-01-01'
+            context['date_to'] = timezone.now().date().strftime('%Y-%m-%d')
+            context['search'] = ''
+            context['selected_user_id'] = None
+            context['violator_filter'] = 'all'
+        else:
+            context['date_from'] = self.request.GET.get('date_from', '')
+            context['date_to'] = self.request.GET.get('date_to', '')
+            context['search'] = search
+            try:
+                context['selected_user_id'] = int(selected_user_id) if selected_user_id else None
+            except (ValueError, TypeError):
+                context['selected_user_id'] = None
+            context['violator_filter'] = violator_filter
+        
+        # Создаем список всех назначенных пользователей со всех инцидентов
+        incident_user_list = []
+        selected_user_id = context['selected_user_id']
+        violator_filter = context['violator_filter']
+        
+        for incident in context['incidents']:
+            assigned_users = incident.assigned_to.all()
+            violators = incident.violators.all()
+            
+            for user in assigned_users:
+                # Фильтр по назначенному пользователю
+                if selected_user_id and user.id != selected_user_id:
+                    continue
+                
+                is_violator = user in violators
+                
+                # Фильтр по нарушителям
+                if violator_filter == 'yes' and not is_violator:
+                    continue
+                if violator_filter == 'no' and is_violator:
+                    continue
+                
+                incident_user_list.append({
+                    'incident': incident,
+                    'user': user,
+                    'is_violator': is_violator,
+                })
+        
+        context['incident_user_list'] = incident_user_list
+        return context
+
+
+
 
 @csrf_exempt
 @login_required
@@ -2779,6 +2892,53 @@ def api_get_group_users(request, group_id):
         return JsonResponse({'error': 'Группа не найдена'}, status=404)
     
     users = group.user_set.filter(is_active=True).order_by('last_name', 'first_name')
+    
+    users_data = []
+    for user in users:
+        full_name = user.get_full_name() or user.username
+        users_data.append({
+            'id': user.id,
+            'full_name': full_name,
+            'username': user.username,
+        })
+    
+    return JsonResponse({'users': users_data})
+
+
+@login_required
+def api_get_users_by_ids(request):
+    """
+    API endpoint для получения пользователей по списку ID.
+    Принимает список ID через параметр 'ids' (через запятую или как массив).
+    Возвращает JSON с данными пользователей.
+    """
+    if not (request.user.is_staff or request.user.is_superuser):
+        return JsonResponse({'error': 'Доступ запрещен'}, status=403)
+    
+    # Получаем список ID из параметра запроса
+    ids_param = request.GET.get('ids', '')
+    
+    if not ids_param:
+        return JsonResponse({'users': []})
+    
+    # Парсим ID - может быть строка через запятую или JSON массив
+    try:
+        # Пытаемся распарсить как JSON массив
+        user_ids = json.loads(ids_param)
+        if not isinstance(user_ids, list):
+            user_ids = [user_ids]
+    except (json.JSONDecodeError, ValueError):
+        # Если не JSON, то парсим как строку через запятую
+        user_ids = [int(id_str.strip()) for id_str in ids_param.split(',') if id_str.strip().isdigit()]
+    
+    # Фильтруем только валидные ID
+    user_ids = [uid for uid in user_ids if isinstance(uid, int) and uid > 0]
+    
+    if not user_ids:
+        return JsonResponse({'users': []})
+    
+    # Получаем пользователей по ID
+    users = User.objects.filter(id__in=user_ids, is_active=True).order_by('last_name', 'first_name')
     
     users_data = []
     for user in users:

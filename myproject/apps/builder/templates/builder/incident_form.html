@@ -42,17 +42,20 @@
         </div>
 
         <div class="form-group">
-            <label for="{{ form.assigned_to.id_for_label }}">{{ form.assigned_to.label }}</label>
-            {{ form.assigned_to }}
+            <label for="assigned-display">Кому назначен</label>
+            <div class="assigned-select-field" id="assignedSelectField">
+                <span id="assignedDisplayText" class="assigned-display-text">
+                    <span id="assignedCount" class="assigned-count">0</span> пользователей выбрано
+                </span>
+                <span class="assigned-select-icon">&#9660;</span>
+            </div>
+            <div id="assignedToContainer">{{ form.assigned_to }}{{ form.violators }}</div>
             {% if form.assigned_to.errors %}
                 <div class="text-danger mt-1">{{ form.assigned_to.errors }}</div>
             {% endif %}
-            <small class="form-text text-muted">Удерживайте Ctrl (или Cmd на Mac) для выбора нескольких пользователей</small>
-        </div>
-
-        <div class="form-group" id="violatorsGroup" style="display: none;">
-            <label>Отметить нарушителей среди выбранных пользователей:</label>
-            <div id="violatorsCheckboxes" class="violators-checkboxes"></div>
+            {% if form.violators.errors %}
+                <div class="text-danger mt-1">{{ form.violators.errors }}</div>
+            {% endif %}
         </div>
 
         <div class="form-group">
@@ -111,216 +114,12 @@
 
 {% block specific_scripts %}
 <script>
-    // API endpoints
+    // API endpoints для incident_form.js
     const searchUsersUrl = "{% url 'builder:api_search_users' %}";
-    
-    // Элементы DOM для выбора пользователя (кто зафиксировал)
-    const modal = document.getElementById('userModal');
-    const userSelectField = document.getElementById('userSelectField');
-    const userModalClose = document.getElementById('userModalClose');
-    const userSearchInput = document.getElementById('userSearchInput');
-    const userList = document.getElementById('userList');
-    const userDisplayName = document.getElementById('userDisplayName');
-    const userInput = document.getElementById('{{ form.user.id_for_label }}');
-    
-    // Элементы DOM для выбора назначенных и нарушителей
-    const assignedToSelect = document.getElementById('{{ form.assigned_to.id_for_label }}');
-    const violatorsGroup = document.getElementById('violatorsGroup');
-    const violatorsCheckboxes = document.getElementById('violatorsCheckboxes');
-    
-    // Хранилище нарушителей (отмеченные галочкой)
-    let violatorsSet = new Set();
-    
-    // ========== ФУНКЦИИ ДЛЯ ВЫБОРА ПОЛЬЗОВАТЕЛЯ (КТО ЗАФИКСИРОВАЛ) ==========
-    
-    // Открытие модального окна
-    userSelectField.addEventListener('click', function() {
-        modal.style.display = 'block';
-        loadUsers('');
-        userSearchInput.focus();
-    });
-    
-    // Закрытие модального окна
-    userModalClose.addEventListener('click', function() {
-        modal.style.display = 'none';
-    });
-    
-    window.addEventListener('click', function(event) {
-        if (event.target == modal) {
-            modal.style.display = 'none';
-        }
-    });
-    
-    // Поиск пользователей с задержкой
-    let searchTimeout;
-    userSearchInput.addEventListener('input', function() {
-        clearTimeout(searchTimeout);
-        const query = this.value;
-        searchTimeout = setTimeout(function() {
-            loadUsers(query);
-        }, 300);
-    });
-    
-    // Загрузка списка пользователей
-    function loadUsers(query) {
-        userList.innerHTML = '<div class="user-list-loading">Загрузка...</div>';
-        
-        const url = searchUsersUrl + '?q=' + encodeURIComponent(query);
-        
-        fetch(url)
-            .then(response => response.json())
-            .then(data => {
-                displayUsers(data.users);
-            })
-            .catch(error => {
-                console.error('Ошибка загрузки пользователей:', error);
-                userList.innerHTML = '<div class="user-list-error">Ошибка загрузки данных</div>';
-            });
-    }
-    
-    // Отображение списка пользователей
-    function displayUsers(users) {
-        if (users.length === 0) {
-            userList.innerHTML = '<div class="user-list-empty">Пользователи не найдены</div>';
-            return;
-        }
-        
-        let html = '';
-        users.forEach(function(user) {
-            html += `
-                <div class="user-list-item" data-user-id="${user.id}" data-user-name="${user.full_name}">
-                    <div class="user-list-item-name">${user.full_name}</div>
-                    <div class="user-list-item-username">@${user.username}</div>
-                </div>
-            `;
-        });
-        
-        userList.innerHTML = html;
-        
-        // Добавляем обработчики клика на каждого пользователя
-        const userItems = userList.querySelectorAll('.user-list-item');
-        userItems.forEach(function(item) {
-            item.addEventListener('click', function() {
-                const userId = this.getAttribute('data-user-id');
-                const userName = this.getAttribute('data-user-name');
-                selectUser(userId, userName);
-            });
-        });
-    }
-    
-    // Выбор пользователя
-    function selectUser(userId, userName) {
-        userInput.value = userId;
-        userDisplayName.textContent = userName;
-        userDisplayName.classList.remove('user-display-placeholder');
-        modal.style.display = 'none';
-    }
-    
-    // Если пользователь не выбран, добавляем класс placeholder
-    if (!userInput.value) {
-        userDisplayName.classList.add('user-display-placeholder');
-    }
-    
-    // ========== ФУНКЦИИ ДЛЯ ВЫБОРА НАЗНАЧЕННЫХ И НАРУШИТЕЛЕЙ ==========
-    
-    // Функция для обновления чекбоксов нарушителей
-    function updateViolatorsCheckboxes() {
-        const selectedOptions = Array.from(assignedToSelect.selectedOptions);
-        
-        if (selectedOptions.length === 0) {
-            violatorsGroup.style.display = 'none';
-            violatorsCheckboxes.innerHTML = '';
-            return;
-        }
-        
-        violatorsGroup.style.display = 'block';
-        
-        let html = '';
-        selectedOptions.forEach(function(option) {
-            const userId = parseInt(option.value);
-            const userName = option.text;
-            const isViolator = violatorsSet.has(userId);
-            
-            html += `
-                <div class="form-check mb-2">
-                    <input class="form-check-input" type="checkbox" 
-                           id="violator_${userId}" 
-                           value="${userId}" 
-                           ${isViolator ? 'checked' : ''}>
-                    <label class="form-check-label" for="violator_${userId}">
-                        ${userName}
-                    </label>
-                </div>
-            `;
-        });
-        
-        violatorsCheckboxes.innerHTML = html;
-        
-        // Добавляем обработчики для чекбоксов
-        const checkboxes = violatorsCheckboxes.querySelectorAll('input[type="checkbox"]');
-        checkboxes.forEach(function(checkbox) {
-            checkbox.addEventListener('change', function() {
-                const userId = parseInt(this.value);
-                if (this.checked) {
-                    violatorsSet.add(userId);
-                } else {
-                    violatorsSet.delete(userId);
-                }
-                updateViolatorsHiddenFields();
-            });
-        });
-    }
-    
-    // Функция для обновления скрытых полей violators
-    function updateViolatorsHiddenFields() {
-        // Удаляем все существующие скрытые поля для violators
-        const oldViolatorInputs = document.querySelectorAll('input[name="violators"]');
-        oldViolatorInputs.forEach(function(input) {
-            input.remove();
-        });
-        
-        // Добавляем новые скрытые поля для нарушителей
-        const form = document.querySelector('form');
-        violatorsSet.forEach(function(userId) {
-            const hiddenInput = document.createElement('input');
-            hiddenInput.type = 'hidden';
-            hiddenInput.name = 'violators';
-            hiddenInput.value = userId;
-            form.appendChild(hiddenInput);
-        });
-    }
-    
-    // Обработчик изменения выбора в assigned_to
-    assignedToSelect.addEventListener('change', function() {
-        // Обновляем множество нарушителей - удаляем тех, кто больше не выбран
-        const selectedUserIds = new Set();
-        Array.from(this.selectedOptions).forEach(function(option) {
-            selectedUserIds.add(parseInt(option.value));
-        });
-        
-        // Удаляем из violatorsSet тех, кто больше не выбран
-        violatorsSet.forEach(function(userId) {
-            if (!selectedUserIds.has(userId)) {
-                violatorsSet.delete(userId);
-            }
-        });
-        
-        updateViolatorsCheckboxes();
-        updateViolatorsHiddenFields();
-    });
-    
-    // Инициализация при загрузке страницы
-    document.addEventListener('DOMContentLoaded', function() {
-        // Загружаем изначально выбранных нарушителей
-        const violatorInputs = document.querySelectorAll('input[name="violators"]');
-        violatorInputs.forEach(function(input) {
-            if (input.value) {
-                violatorsSet.add(parseInt(input.value));
-            }
-        });
-        
-        // Обновляем чекбоксы нарушителей
-        updateViolatorsCheckboxes();
-    });
+    const getUsersByIdsUrl = "{% url 'builder:api_get_users_by_ids' %}";
+    const getGroupsUrl = "{% url 'builder:api_get_groups' %}";
+    const getGroupUsersUrlTemplate = "{% url 'builder:api_get_group_users' 0 %}";
+    const userInputId = "{{ form.user.id_for_label }}";
 </script>
+<script src="{% static 'builder/js/incident_form.js' %}"></script>
 {% endblock %} 

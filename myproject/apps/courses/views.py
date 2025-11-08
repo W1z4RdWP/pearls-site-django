@@ -217,6 +217,7 @@ class CourseDetailView(DetailView):
         trajectory = None
         show_final_quiz = False
         show_completion_animation = False
+        quiz_statuses = {}
         
         # Аудит
         audit_logger.info(
@@ -226,6 +227,12 @@ class CourseDetailView(DetailView):
 
         if user.is_authenticated:
             user_course = UserCourse.objects.filter(user=user, course=course).first()
+            
+            # Проверяем deadline и блокируем курс, если срок истек
+            if user_course and user_course.deadline and user_course.status not in ['completed', 'blocked']:
+                if timezone.now() > user_course.deadline:
+                    user_course.status = 'blocked'
+                    user_course.save(update_fields=['status'])
 
             # Если курс начат или завершен
             if user_course and user_course.status in ['started', 'completed']:
@@ -262,6 +269,19 @@ class CourseDetailView(DetailView):
                         ).values_list('quiz_title', flat=True)
                     )
                     completed_quizzes = len(completed_quizzes_ids)
+                    
+                    # Получаем статус каждого теста (для отображения иконки ожидания проверки)
+                    quiz_statuses = {}
+                    for quiz in course.quizzes:
+                        latest_result = QuizResult.objects.filter(
+                            user=user,
+                            course=course,
+                            quiz_title=quiz.name
+                        ).order_by('-completed_at').first()
+                        if latest_result:
+                            quiz_statuses[quiz.name] = latest_result.status
+                        else:
+                            quiz_statuses[quiz.name] = None
 
                     max_completed_order = UserProgress.objects.filter(
                         user=user,
@@ -304,6 +324,19 @@ class CourseDetailView(DetailView):
                         ).values_list('quiz_title', flat=True).distinct()
                     )
                     completed_quizzes = len(completed_quizzes_ids)
+                    
+                    # Получаем статус каждого теста (для отображения иконки ожидания проверки)
+                    quiz_statuses = {}
+                    for quiz in course.quizzes:
+                        latest_result = QuizResult.objects.filter(
+                            user=user,
+                            course=course,
+                            quiz_title=quiz.name
+                        ).order_by('-completed_at').first()
+                        if latest_result:
+                            quiz_statuses[quiz.name] = latest_result.status
+                        else:
+                            quiz_statuses[quiz.name] = None
 
                     max_completed_order = UserProgress.objects.filter(
                         user=user,
@@ -370,6 +403,7 @@ class CourseDetailView(DetailView):
                             user_course.save()
 
                 # Проверка для отображения финального теста
+                final_quiz_status = None
                 if course.final_quiz:
                     final_quiz_passed = QuizResult.objects.filter(
                         user=user,
@@ -379,6 +413,16 @@ class CourseDetailView(DetailView):
                     ).exists()
                     if final_quiz_passed:
                         show_final_quiz = True
+                    
+                    # Получаем статус финального теста (pending/reviewed/completed)
+                    latest_final_quiz_result = QuizResult.objects.filter(
+                        user=user,
+                        course=course,
+                        quiz_title=course.final_quiz.name
+                    ).order_by('-completed_at').first()
+                    
+                    if latest_final_quiz_result:
+                        final_quiz_status = latest_final_quiz_result.status
                     
                     # Получаем информацию о попытках для финального теста в рамках этого курса (исключаем те, что помечены как исключенные из лимита)
                     failed_attempts = QuizResult.objects.filter(
@@ -463,6 +507,14 @@ class CourseDetailView(DetailView):
         if hasattr(request.user, 'profile') and request.user.profile:
             user_country = request.user.profile.country or ''
 
+        # Проверяем deadline и блокируем курс, если срок истек
+        is_deadline_overdue = False
+        if user_course and user_course.deadline:
+            if timezone.now() > user_course.deadline and user_course.status not in ['completed', 'blocked']:
+                user_course.status = 'blocked'
+                user_course.save(update_fields=['status'])
+            is_deadline_overdue = timezone.now() > user_course.deadline
+        
         # Формирование контекста
         context.update({
             'course_author': course.author.username,
@@ -485,11 +537,14 @@ class CourseDetailView(DetailView):
             'user_trajectories_info': user_trajectories_info,
             'quiz_attempts_info': locals().get('quiz_attempts_info'),
             'quiz_passed': locals().get('final_quiz_passed', False),
+            'final_quiz_status': locals().get('final_quiz_status'),
             'is_dental_checkup_course': course.title == "Чек-ап стоматологической клиники",
             'user_country': user_country,
             'highlight_start_button': highlight_start,
             'lesson_blocked_id': lesson_blocked_id,
             'quiz_blocked_id': quiz_blocked_id,
+            'quiz_statuses': locals().get('quiz_statuses', {}),
+            'is_deadline_overdue': is_deadline_overdue,
         })
         
         return context
@@ -1542,9 +1597,13 @@ class UserCourseTrajectoryListView(ListView):
         user = self.request.user
         available_courses = Course.objects.available_for_user(user)
         
-        # Фильтруем курсы: исключаем курсы из траекторий, которые еще не доступны
+        # Фильтруем курсы: исключаем курсы из траекторий, которые еще не доступны, и курсы-инциденты
         filtered_courses = []
         for course in available_courses:
+            # Исключаем курсы-инциденты
+            if course.is_incident:
+                continue
+            
             # Проверяем, есть ли курс в траекториях пользователя
             course_in_trajectories = TrajectoryCourse.objects.filter(
                 trajectory__usercoursetrajectory__user=user,
@@ -1604,14 +1663,40 @@ class UserCourseTrajectoryListView(ListView):
             else:
                 percent = int((completed_materials / total_materials) * 100)
 
+            # Проверяем deadline и блокируем курс, если срок истек
+            deadline = user_course.deadline
+            is_deadline_overdue = False
+            if deadline:
+                from django.utils import timezone
+                if timezone.now() > deadline and user_course.status not in ['completed', 'blocked']:
+                    user_course.status = 'blocked'
+                    user_course.save(update_fields=['status'])
+                is_deadline_overdue = timezone.now() > deadline
+
             # Определяем статус курса
-            if course.final_quiz:
-                quiz_passed = QuizResult.objects.filter(
+            # Если курс заблокирован, используем статус blocked
+            if user_course.status == 'blocked':
+                status = 'blocked'
+                final_quiz_status = None
+            else:
+                final_quiz_status = None
+                if course.final_quiz:
+                    quiz_passed = QuizResult.objects.filter(
+                        user=user,
+                        course=course,
+                        quiz_title=course.final_quiz.name,
+                        passed=True
+                    ).exists()
+                
+                # Получаем статус финального теста (pending/reviewed/completed)
+                latest_final_quiz_result = QuizResult.objects.filter(
                     user=user,
                     course=course,
-                    quiz_title=course.final_quiz.name,
-                    passed=True
-                ).exists()
+                    quiz_title=course.final_quiz.name
+                ).order_by('-completed_at').first()
+                
+                if latest_final_quiz_result:
+                    final_quiz_status = latest_final_quiz_result.status
                 
                 # Курс считается завершенным только если все материалы пройдены И финальный тест пройден
                 if total_materials > 0 and completed_materials >= total_materials and quiz_passed:
@@ -1620,15 +1705,15 @@ class UserCourseTrajectoryListView(ListView):
                     status = 'in_progress'
                 else:
                     status = 'available'
+        else:
+            # Если нет финального теста, курс завершен когда все материалы пройдены
+            if total_materials > 0 and completed_materials >= total_materials:
+                status = 'completed'
+            elif completed_materials > 0 or user_course.status in ['started', 'in_progress']:
+                status = 'in_progress'
             else:
-                # Если нет финального теста, курс завершен когда все материалы пройдены
-                if total_materials > 0 and completed_materials >= total_materials:
-                    status = 'completed'
-                elif completed_materials > 0 or user_course.status in ['started', 'in_progress']:
-                    status = 'in_progress'
-                else:
-                    status = 'available'
-
+                status = 'available'
+            
             course_data = {
                 'course': course,
                 'user_course': user_course,
@@ -1640,7 +1725,10 @@ class UserCourseTrajectoryListView(ListView):
                 'total_materials': total_materials,
                 'percent': percent,
                 'status': status,
-                'quiz_passed': quiz_passed if course.final_quiz else None
+                'quiz_passed': quiz_passed if course.final_quiz else None,
+                'final_quiz_status': final_quiz_status,
+                'deadline': deadline,
+                'is_deadline_overdue': is_deadline_overdue
             }
             
             courses_data.append(course_data)
@@ -2547,13 +2635,7 @@ def export_metrics_to_excel(request, submission_id):
             filename = f"metrics_{submission.id}_{date_str}.xlsx"
         else:
             filename = f"{clinic_name_safe}_{date_str}.xlsx"
-        
-        # Отладочная информация
-        print(f"DEBUG: Original clinic name: {submission.clinic_name}")
-        print(f"DEBUG: Safe clinic name: {clinic_name_safe}")
-        print(f"DEBUG: Date string: {date_str}")
-        print(f"DEBUG: Final filename: {filename}")
-        
+
         # Пробуем разные варианты заголовков
         response['Content-Disposition'] = f'attachment; filename="{filename}"'
         response['Content-Type'] = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'

@@ -9,6 +9,7 @@ urlpatterns = [
     path('users/add/step1/', views.UserCreateStep1View.as_view(), name='user_create_step1'),
     path('users/add/step2/', views.UserCreateStep2View.as_view(), name='user_create_step2'),
     path('users/<int:pk>/edit/', views.UserUpdateView.as_view(), name='user_edit'),
+    path('users/<int:pk>/detailed/', views.UserEditDetailedView.as_view(), name='user_edit_detailed'),
     path('user/<int:pk>/password/', views.UserPasswordChangeView.as_view(), name='user_password_change'),
     path('users/<int:pk>/progress/', views.UserProgressDashboardView.as_view(), name='user_progress'),
     path('users/<int:pk>/quiz-attempts/', views.UserQuizAttemptsView.as_view(), name='user_quiz_attempts'),
@@ -34,5 +35,11 @@ urlpatterns = [
     path('admin/user/<int:user_id>/transactions/', views.AdminUserTransactionsView.as_view(), name='admin_user_transactions'),
     path('admin/user/<int:user_id>/transactions/export/excel/', views.export_admin_user_transactions_excel, name='export_admin_user_transactions_excel'),
     path('admin/user/<int:user_id>/transactions/export/pdf/', views.export_admin_user_transactions_pdf, name='export_admin_user_transactions_pdf'),
+
+    # API endpoints для назначения курсов
+    path('api/groups/with-courses/', views.api_get_groups_with_courses, name='api_get_groups_with_courses'),
+    path('api/groups/<int:group_id>/courses/', views.api_get_group_courses, name='api_get_group_courses'),
+    path('api/courses/search/', views.api_search_courses, name='api_search_courses'),
+    path('api/users/<int:user_id>/assign-courses/', views.api_assign_courses_to_user, name='api_assign_courses_to_user'),
 
 ]

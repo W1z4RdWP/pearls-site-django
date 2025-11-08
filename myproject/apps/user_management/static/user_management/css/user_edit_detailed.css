@@ -1,0 +1,92 @@
+.user-info-card {
+    background: #f8f9fa;
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 30px;
+    border: 1px solid #dee2e6;
+    position: relative;
+}
+
+.admin-badge-position {
+    position: absolute;
+    top: 15px;
+    right: 20px;
+}
+
+.nav-tabs {
+    border-bottom: 2px solid #dee2e6;
+    margin-bottom: 30px;
+}
+
+.nav-tabs .nav-link {
+    color: #495057;
+    border: none;
+    border-bottom: 3px solid transparent;
+    padding: 12px 24px;
+    font-weight: 500;
+}
+
+.nav-tabs .nav-link:hover {
+    border-bottom-color: #007bff;
+    color: #007bff;
+}
+
+.nav-tabs .nav-link.active {
+    color: #007bff;
+    border-bottom-color: #007bff;
+    background-color: transparent;
+}
+
+.tab-content {
+    min-height: 400px;
+}
+
+.tab-pane {
+    padding-top: 20px;
+}
+
+.um-progress-stat-card {
+    cursor: pointer;
+    transition: all 0.3s ease;
+    border: 2px solid transparent;
+}
+
+.um-progress-stat-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+
+.um-progress-stat-card.active {
+    border-color: #007bff;
+    background-color: #f8f9ff;
+}
+
+.assigned-training-wrapper {
+    padding: 20px 0;
+}
+
+.assigned-training-wrapper .table {
+    margin-bottom: 0;
+}
+
+.assigned-training-wrapper .table thead th {
+    border-bottom: 2px solid #dee2e6;
+    font-weight: 600;
+    color: #495057;
+    padding: 12px;
+}
+
+.assigned-training-wrapper .table tbody td {
+    padding: 12px;
+    vertical-align: middle;
+    border-bottom: 1px solid #f0f0f0;
+}
+
+.assigned-training-wrapper .table tbody tr:hover {
+    background-color: #f8f9fa;
+}
+
+.assigned-training-wrapper .badge {
+    font-weight: 500;
+    padding: 6px 12px;
+}

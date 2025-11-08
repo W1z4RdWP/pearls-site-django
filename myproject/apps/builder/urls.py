@@ -36,6 +36,7 @@ urlpatterns = [
     path('incidents/', views.IncidentListView.as_view(), name='incidents'),
     path('incidents/add/', views.IncidentCreateView.as_view(), name='incident_add'),
     path('incidents/<int:pk>/edit/', views.IncidentUpdateView.as_view(), name='incident_edit'),
+    path('incidents/detail/', views.IncidentDetailListView.as_view(), name='incident_detail'),
 
     # Поиск/реордеры/клипборд
     path('search/', views.ajax_search_tree, name='search_tree'),
@@ -80,6 +81,7 @@ urlpatterns = [
     
     # User search API
     path('api/users/search/', views.api_search_users, name='api_search_users'),
+    path('api/users/by-ids/', views.api_get_users_by_ids, name='api_get_users_by_ids'),
     
     # Groups API
     path('api/groups/', views.api_get_groups, name='api_get_groups'),
