@@ -1487,7 +1487,10 @@ class UserCourseTrajectoryListView(ListView):
 
     def get_queryset(self):
         user = self.request.user
-        user_trajectories = UserCourseTrajectory.objects.filter(user=user).select_related('trajectory')
+        user_trajectories = UserCourseTrajectory.objects.filter(
+            user=user,
+            trajectory__isnull=False
+        ).select_related('trajectory')
         
         # Проверяем, нужно ли скрывать специализированные траектории
         if self._should_hide_specialized_trajectories(user):
@@ -1678,9 +1681,11 @@ class UserCourseTrajectoryListView(ListView):
             if user_course.status == 'blocked':
                 status = 'blocked'
                 final_quiz_status = None
+                quiz_passed = False
             else:
                 final_quiz_status = None
                 quiz_passed = False
+                
                 if course.final_quiz:
                     quiz_passed = QuizResult.objects.filter(
                         user=user,
@@ -1699,21 +1704,22 @@ class UserCourseTrajectoryListView(ListView):
                     if latest_final_quiz_result:
                         final_quiz_status = latest_final_quiz_result.status
                 
-                # Курс считается завершенным только если все материалы пройдены И финальный тест пройден
-                if total_materials > 0 and completed_materials >= total_materials and quiz_passed:
-                    status = 'completed'
-                elif completed_materials > 0 or user_course.status in ['started', 'in_progress']:
-                    status = 'in_progress'
+                # Курс считается завершенным только если все материалы пройдены И финальный тест пройден (если есть)
+                if course.final_quiz:
+                    if total_materials > 0 and completed_materials >= total_materials and quiz_passed:
+                        status = 'completed'
+                    elif completed_materials > 0 or user_course.status in ['started', 'in_progress']:
+                        status = 'in_progress'
+                    else:
+                        status = 'available'
                 else:
-                    status = 'available'
-        else:
-            # Если нет финального теста, курс завершен когда все материалы пройдены
-            if total_materials > 0 and completed_materials >= total_materials:
-                status = 'completed'
-            elif completed_materials > 0 or user_course.status in ['started', 'in_progress']:
-                status = 'in_progress'
-            else:
-                status = 'available'
+                    # Если нет финального теста, курс завершен когда все материалы пройдены
+                    if total_materials > 0 and completed_materials >= total_materials:
+                        status = 'completed'
+                    elif completed_materials > 0 or user_course.status in ['started', 'in_progress']:
+                        status = 'in_progress'
+                    else:
+                        status = 'available'
             
             course_data = {
                 'course': course,
