@@ -1,3 +1,7 @@
+from courses.models import Course, UserLessonTrajectory
+from .models import CategoryName
+
+
 def get_compact_fio(user):
     """
     Возвращает компактное ФИО: фамилия полностью, имя и отчество инициалами

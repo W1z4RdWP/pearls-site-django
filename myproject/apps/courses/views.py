@@ -1680,6 +1680,7 @@ class UserCourseTrajectoryListView(ListView):
                 final_quiz_status = None
             else:
                 final_quiz_status = None
+                quiz_passed = False
                 if course.final_quiz:
                     quiz_passed = QuizResult.objects.filter(
                         user=user,
@@ -1687,16 +1688,16 @@ class UserCourseTrajectoryListView(ListView):
                         quiz_title=course.final_quiz.name,
                         passed=True
                     ).exists()
-                
-                # Получаем статус финального теста (pending/reviewed/completed)
-                latest_final_quiz_result = QuizResult.objects.filter(
-                    user=user,
-                    course=course,
-                    quiz_title=course.final_quiz.name
-                ).order_by('-completed_at').first()
-                
-                if latest_final_quiz_result:
-                    final_quiz_status = latest_final_quiz_result.status
+                    
+                    # Получаем статус финального теста (pending/reviewed/completed)
+                    latest_final_quiz_result = QuizResult.objects.filter(
+                        user=user,
+                        course=course,
+                        quiz_title=course.final_quiz.name
+                    ).order_by('-completed_at').first()
+                    
+                    if latest_final_quiz_result:
+                        final_quiz_status = latest_final_quiz_result.status
                 
                 # Курс считается завершенным только если все материалы пройдены И финальный тест пройден
                 if total_materials > 0 and completed_materials >= total_materials and quiz_passed:
