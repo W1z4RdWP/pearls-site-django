@@ -1,5 +1,6 @@
 {% extends 'layout.html' %}
 {% load static %}
+{% load quiz_filters %}
 {% block title %}Инциденты{% endblock %}
 {% block specific_styles %}
     <link rel="stylesheet" href="{% static 'builder/css/incidents.css' %}">
@@ -100,7 +101,9 @@
                                 —
                             {% endif %}
                         </td> -->
-                        <td>{{ inc.deadline|date:"d.m.Y"|default:"—" }}</td>
+                        <td class="{% if inc.deadline and inc.deadline|is_overdue:now %}deadline-overdue{% endif %}">
+                            {{ inc.deadline|date:"d.m.Y"|default:"—" }}
+                        </td>
                         <td style="text-align: center;">—</td>
                         <td style="text-align: center;">—</td>
                         <td class="status-{{ inc.status }}">{{ inc.get_status_display }}</td>

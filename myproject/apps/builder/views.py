@@ -845,6 +845,7 @@ class IncidentListView(ListView):
         context = super().get_context_data(**kwargs)
         context['status_choices'] = Incident.STATUS_CHOICES
         context['incident_type_choices'] = Incident.INCIDENT_TYPE_CHOICES
+        context['now'] = timezone.now()  # Текущая дата и время для проверки просроченных дедлайнов
         
         # Если нет параметров в GET запросе (первичная загрузка), устанавливаем дефолтные значения
         if not self.request.GET:
@@ -960,6 +961,7 @@ class IncidentDetailListView(ListView):
         from django.contrib.auth import get_user_model
         
         context = super().get_context_data(**kwargs)
+        context['now'] = timezone.now()  # Текущая дата и время для проверки просроченных дедлайнов
         
         # Получаем список всех активных пользователей для фильтра
         User = get_user_model()

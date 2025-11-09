@@ -1,5 +1,6 @@
 {% extends 'layout.html' %}
 {% load static %}
+{% load quiz_filters %}
 {% block title %}Детали инцидентов{% endblock %}
 {% block specific_styles %}
     <link rel="stylesheet" href="{% static 'builder/css/incidents.css' %}">
@@ -90,7 +91,9 @@
                                 <span class="badge bg-secondary">Нет</span>
                             {% endif %}
                         </td>
-                        <td>{{ item.incident.deadline|date:"d.m.Y"|default:"—" }}</td>
+                        <td class="{% if item.incident.deadline and item.incident.deadline|is_overdue:now %}deadline-overdue{% endif %}">
+                            {{ item.incident.deadline|date:"d.m.Y"|default:"—" }}
+                        </td>
                         <td>
                             {% if item.incident.responsible_mentor %}
                                 {{ item.incident.responsible_mentor.get_full_name|default:item.incident.responsible_mentor.username }}
