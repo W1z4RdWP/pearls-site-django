@@ -1704,14 +1704,23 @@ class UserCourseTrajectoryListView(ListView):
                     if latest_final_quiz_result:
                         final_quiz_status = latest_final_quiz_result.status
                 
-                # Курс считается завершенным только если все материалы пройдены И финальный тест пройден (если есть)
-                if course.final_quiz:
-                    if total_materials > 0 and completed_materials >= total_materials and quiz_passed:
-                        status = 'completed'
-                    elif completed_materials > 0 or user_course.status in ['started', 'in_progress']:
-                        status = 'in_progress'
-                    else:
-                        status = 'available'
+                    # Получаем статус финального теста (pending/reviewed/completed)
+                    latest_final_quiz_result = QuizResult.objects.filter(
+                        user=user,
+                        course=course,
+                        quiz_title=course.final_quiz.name
+                    ).order_by('-completed_at').first()
+                
+                    if latest_final_quiz_result:
+                        final_quiz_status = latest_final_quiz_result.status
+                
+                        # Курс считается завершенным только если все материалы пройдены И финальный тест пройден
+                        if total_materials > 0 and completed_materials >= total_materials and quiz_passed:
+                            status = 'completed'
+                        elif completed_materials > 0 or user_course.status in ['started', 'in_progress']:
+                            status = 'in_progress'
+                        else:
+                            status = 'available'
                 else:
                     # Если нет финального теста, курс завершен когда все материалы пройдены
                     if total_materials > 0 and completed_materials >= total_materials:
@@ -1720,25 +1729,25 @@ class UserCourseTrajectoryListView(ListView):
                         status = 'in_progress'
                     else:
                         status = 'available'
-            
-            course_data = {
-                'course': course,
-                'user_course': user_course,
-                'completed_lessons': completed_lessons,
-                'completed_quizzes': completed_quizzes,
-                'total_lessons': total_lessons,
-                'total_quizzes': total_quizzes,
-                'completed_materials': completed_materials,
-                'total_materials': total_materials,
-                'percent': percent,
-                'status': status,
-                'quiz_passed': quiz_passed if course.final_quiz else None,
-                'final_quiz_status': final_quiz_status,
-                'deadline': deadline,
-                'is_deadline_overdue': is_deadline_overdue
-            }
-            
-            courses_data.append(course_data)
+                    
+                    course_data = {
+                        'course': course,
+                        'user_course': user_course,
+                        'completed_lessons': completed_lessons,
+                        'completed_quizzes': completed_quizzes,
+                        'total_lessons': total_lessons,
+                        'total_quizzes': total_quizzes,
+                        'completed_materials': completed_materials,
+                        'total_materials': total_materials,
+                        'percent': percent,
+                        'status': status,
+                        'quiz_passed': quiz_passed if course.final_quiz else None,
+                        'final_quiz_status': final_quiz_status,
+                        'deadline': deadline,
+                        'is_deadline_overdue': is_deadline_overdue
+                    }
+                    
+                    courses_data.append(course_data)
         
         # Сохраняем общие значения ДО фильтрации
         total_courses_all = len(courses_data)

@@ -1,6 +1,5 @@
-from courses.models import Course, UserLessonTrajectory
 from .models import CategoryName
-
+from courses.models import Course, UserLessonTrajectory
 
 def get_compact_fio(user):
     """
