@@ -2516,10 +2516,10 @@ class CourseListView(ListView):
         context['total_courses'] = Course.objects.exclude(is_incident=True).count()
         context['active_courses'] = Course.objects.exclude(is_incident=True).count()  # Все курсы считаются активными
         context['total_lessons'] = sum(course.lessons.count() for course in Course.objects.exclude(is_incident=True))
-        context['total_authors'] = User.objects.filter(course__isnull=False).distinct().count()
+        context['total_authors'] = User.objects.filter(authored_courses__isnull=False).distinct().count()
         
         # Список авторов для фильтра
-        context['authors'] = User.objects.filter(course__isnull=False).distinct().order_by('first_name', 'last_name', 'username')
+        context['authors'] = User.objects.filter(authored_courses__isnull=False).distinct().order_by('first_name', 'last_name', 'username')
         
         # Список групп для фильтра
         from django.contrib.auth.models import Group
@@ -2590,10 +2590,10 @@ class IncidentCourseListView(ListView):
         context['total_courses'] = Course.objects.filter(is_incident=True).count()
         context['active_courses'] = Course.objects.filter(is_incident=True).count()  # Все курсы считаются активными
         context['total_lessons'] = sum(course.lessons.count() for course in Course.objects.filter(is_incident=True))
-        context['total_authors'] = User.objects.filter(course__isnull=False).distinct().count()
+        context['total_authors'] = User.objects.filter(authored_courses__isnull=False).distinct().count()
         
         # Список авторов для фильтра
-        context['authors'] = User.objects.filter(course__isnull=False).distinct().order_by('first_name', 'last_name', 'username')
+        context['authors'] = User.objects.filter(authored_courses__isnull=False).distinct().order_by('first_name', 'last_name', 'username')
         
         # Список групп для фильтра
         from django.contrib.auth.models import Group
