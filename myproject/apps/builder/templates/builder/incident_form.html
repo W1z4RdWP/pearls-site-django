@@ -109,45 +109,6 @@
     </div>
 </div>
 
-<!-- Модальное окно для выбора назначенных -->
-<div id="assignedModal" class="responsible-modal">
-    <div class="responsible-modal-content">
-        <div class="responsible-modal-header">
-            <h3>Выберите назначенных</h3>
-            <span class="responsible-modal-close" id="assignedModalClose">&times;</span>
-        </div>
-        <div class="responsible-modal-body">
-            <div class="responsible-columns">
-                <!-- Левая колонка - Группы -->
-                <div class="responsible-left-column">
-                    <h4>Группы</h4>
-                    <div id="groupList" class="group-list">
-                        <div class="group-list-loading">Загрузка групп...</div>
-                    </div>
-                </div>
-                
-                <!-- Разделитель -->
-                <div class="responsible-divider"></div>
-                
-                <!-- Правая колонка - Выбранные пользователи -->
-                <div class="responsible-right-column">
-                    <h4>Выбранные пользователи</h4>
-                    <div class="responsible-search-box">
-                        <input type="text" id="assignedSearchInput" class="form-control" placeholder="Поиск пользователя для добавления...">
-                        <div id="searchResultsDropdown" class="search-results-dropdown" style="display: none;"></div>
-                    </div>
-                    <div id="selectedUsersList" class="selected-users-list">
-                        <div class="selected-users-empty">Пользователи не выбраны</div>
-                    </div>
-                </div>
-            </div>
-            <div class="responsible-modal-footer">
-                <button type="button" class="btn btn-primary" id="confirmAssignedBtn">Применить</button>
-                <button type="button" class="btn btn-secondary" id="cancelAssignedBtn">Отмена</button>
-            </div>
-        </div>
-    </div>
-</div>
 
 {% endblock %}
 

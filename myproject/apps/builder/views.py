@@ -803,6 +803,9 @@ class IncidentListView(ListView):
         
         queryset = super().get_queryset()
         
+        # Оптимизация: предзагрузка ManyToMany полей
+        queryset = queryset.prefetch_related('assigned_to', 'violators').select_related('user')
+        
         # Фильтр по дате создания
         date_from = self.request.GET.get('date_from')
         date_to = self.request.GET.get('date_to')
