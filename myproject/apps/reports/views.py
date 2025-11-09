@@ -150,20 +150,43 @@ class HomeworkCheckDashboardView(LoginRequiredMixin, UserPassesTestMixin, Templa
         recent_completions = combined[:10]
 
         # Подсчитываем количество тестов, ожидающих проверки (pending)
+        # Учитываем только лучшие попытки для каждой комбинации (user, quiz_title, course)
+        from myapp.models import QuizResult
+        
         if is_admin:
             # Для администраторов - все pending тесты
-            pending_tests_count = QuizResult.objects.filter(status='pending').count()
+            base_query = QuizResult.objects.filter(status='pending')
         else:
             # Для наставников - только pending тесты студентов из их групп
             mentor_groups = self.request.user.groups.all()
             if mentor_groups.exists():
                 mentor_group_users = User.objects.filter(groups__in=mentor_groups).distinct()
-                pending_tests_count = QuizResult.objects.filter(
+                base_query = QuizResult.objects.filter(
                     status='pending',
                     user__in=mentor_group_users
-                ).count()
+                )
             else:
-                pending_tests_count = 0
+                base_query = QuizResult.objects.none()
+        
+        # Получаем только лучшие попытки для каждой комбинации (user, quiz_title, course)
+        # Сортируем по user, quiz_title, затем по course (с учетом NULL), затем по percent и completed_at
+        all_results = base_query.order_by(
+            'user_id', 'quiz_title', 'course_id', '-percent', '-completed_at'
+        )
+        
+        # Группируем по (user, quiz_title, course) и берем первую (лучшую) попытку
+        seen = set()
+        best_result_ids = []
+        for result in all_results:
+            # Используем None для course_id, если курс не указан
+            course_id = result.course_id if result.course_id else None
+            key = (result.user_id, result.quiz_title, course_id)
+            if key not in seen:
+                seen.add(key)
+                best_result_ids.append(result.id)
+        
+        # Считаем только лучшие попытки
+        pending_tests_count = len(best_result_ids)
 
         context.update({
             'total_materials': total_materials,
