@@ -1,7 +1,8 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.http import HttpRequest, HttpResponse, JsonResponse
 from django.views.decorators.http import require_http_methods
-from django.db.models import Count, Exists, OuterRef
+from django.db.models import Count, Exists, OuterRef, Max, Q
+from datetime import timedelta
 from django.contrib import messages
 from django.views.generic import DetailView, TemplateView
 from django.core.paginator import Paginator
@@ -1512,19 +1513,42 @@ class PendingQuizzesView(LoginRequiredMixin, UserPassesTestMixin, TemplateView):
         # Фильтруем результаты тестов по статусу
         if status_filter == 'all':
             # Показываем и pending, и reviewed
-            pending_results = QuizResult.objects.filter(
+            base_query = QuizResult.objects.filter(
                 status__in=['pending', 'reviewed']
-            ).select_related('user', 'course').order_by('-completed_at')
+            )
         elif status_filter == 'reviewed':
             # Только проверенные
-            pending_results = QuizResult.objects.filter(
+            base_query = QuizResult.objects.filter(
                 status='reviewed'
-            ).select_related('user', 'course').order_by('-completed_at')
+            )
         else:
             # По умолчанию только ожидающие проверки
-            pending_results = QuizResult.objects.filter(
+            base_query = QuizResult.objects.filter(
                 status='pending'
-            ).select_related('user', 'course').order_by('-completed_at')
+            )
+        
+        # Получаем только лучшие попытки для каждой комбинации (user, quiz_title, course)
+        # Сначала получаем все результаты, затем фильтруем лучшие попытки
+        # Сортируем по user, quiz_title, затем по course (с учетом NULL), затем по percent и completed_at
+        all_results = base_query.select_related('user', 'course', 'course__responsible_mentor').order_by(
+            'user_id', 'quiz_title', 'course_id', '-percent', '-completed_at'
+        )
+        
+        # Группируем по (user, quiz_title, course) и берем первую (лучшую) попытку
+        seen = set()
+        best_result_ids = []
+        for result in all_results:
+            # Используем None для course_id, если курс не указан
+            course_id = result.course_id if result.course_id else None
+            key = (result.user_id, result.quiz_title, course_id)
+            if key not in seen:
+                seen.add(key)
+                best_result_ids.append(result.id)
+        
+        # Фильтруем только лучшие попытки
+        pending_results = base_query.filter(
+            id__in=best_result_ids
+        ).select_related('user', 'course', 'course__responsible_mentor').order_by('-completed_at')
         
         paginator = Paginator(pending_results, 20)
         page_number = self.request.GET.get('page', 1)
@@ -1533,6 +1557,7 @@ class PendingQuizzesView(LoginRequiredMixin, UserPassesTestMixin, TemplateView):
         context['pending_results'] = page_obj
         context['page_obj'] = page_obj
         context['status_filter'] = status_filter
+        context['now'] = timezone.now()
         
         return context
 

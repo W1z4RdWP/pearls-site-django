@@ -1,5 +1,6 @@
 {% extends "layout.html" %}
 {% load static %}
+{% load quiz_filters %}
 
 {% block specific_styles %}
 <link rel="stylesheet" href="{% static 'quizzes/css/quiz_styles.css' %}">
@@ -31,29 +32,72 @@
             <thead>
                 <tr>
                     <th style="width: 50px;">№</th>
+                    <th>Дата прохождения</th>
                     <th>Студент</th>
                     <th>Тест</th>
                     <th>Курс</th>
-                    <th>Дата прохождения</th>
+                    <th>Дедлайн</th>
+                    <th>Наставник</th>
                     <th>Статус</th>
                 </tr>
             </thead>
             <tbody>
                 {% for result in pending_results %}
-                <tr onclick="window.location.href='{% url 'quizzes:review_quiz' result.id %}'">
-                    <td style="text-align: center; color: #7f8c8d;">{{ forloop.counter|add:page_obj.start_index|add:"-1" }}</td>
-                    <td>{{ result.user.get_full_name|default:result.user.username }}</td>
-                    <td>{{ result.quiz_title }}</td>
-                    <td>{{ result.course.title|default:"-" }}</td>
-                    <td>{{ result.completed_at|date:"d.m.Y H:i" }}</td>
-                    <td>
-                        {% if result.status == 'pending' %}
-                            <span class="status-badge status-pending">⏳ Ожидает проверки</span>
-                        {% elif result.status == 'reviewed' %}
-                            <span class="status-badge status-reviewed">✅ Проверен</span>
-                        {% endif %}
-                    </td>
-                </tr>
+                {% if result.course and result.course.mentors_time_to_check %}
+                    {% with deadline=result.completed_at|add_days:result.course.mentors_time_to_check %}
+                    <tr onclick="window.location.href='{% url 'quizzes:review_quiz' result.id %}'">
+                        <td style="text-align: center; color: #7f8c8d;">{{ forloop.counter|add:page_obj.start_index|add:"-1" }}</td>
+                        <td>{{ result.completed_at|date:"d.m.Y H:i" }}</td>
+                        <td>{{ result.user.get_full_name|default:result.user.username }}</td>
+                        <td>{{ result.quiz_title }}</td>
+                        <td>{{ result.course.title|default:"-" }}</td>
+                        <td class="{% if deadline and deadline|is_overdue:now %}deadline-overdue{% endif %}">
+                            {% if deadline %}
+                                {{ deadline|date:"d.m.Y H:i" }}
+                            {% else %}
+                                -
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if result.course.responsible_mentor %}
+                                {{ result.course.responsible_mentor.get_full_name|default:result.course.responsible_mentor.username }}
+                            {% else %}
+                                -
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if result.status == 'pending' %}
+                                <span class="status-badge status-pending">⏳ Ожидает проверки</span>
+                            {% elif result.status == 'reviewed' %}
+                                <span class="status-badge status-reviewed">✅ Проверен</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endwith %}
+                {% else %}
+                    <tr onclick="window.location.href='{% url 'quizzes:review_quiz' result.id %}'">
+                        <td style="text-align: center; color: #7f8c8d;">{{ forloop.counter|add:page_obj.start_index|add:"-1" }}</td>
+                        <td>{{ result.completed_at|date:"d.m.Y H:i" }}</td>
+                        <td>{{ result.user.get_full_name|default:result.user.username }}</td>
+                        <td>{{ result.quiz_title }}</td>
+                        <td>{{ result.course.title|default:"-" }}</td>
+                        <td>-</td>
+                        <td>
+                            {% if result.course and result.course.responsible_mentor %}
+                                {{ result.course.responsible_mentor.get_full_name|default:result.course.responsible_mentor.username }}
+                            {% else %}
+                                -
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if result.status == 'pending' %}
+                                <span class="status-badge status-pending">⏳ Ожидает проверки</span>
+                            {% elif result.status == 'reviewed' %}
+                                <span class="status-badge status-reviewed">✅ Проверен</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                {% endif %}
                 {% endfor %}
             </tbody>
         </table>
