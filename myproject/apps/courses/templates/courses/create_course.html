@@ -51,10 +51,19 @@
                 <div class="field-errors">{{ form.slug.errors }}</div>
             {% endif %}
             
-            {{ form.final_quiz.label_tag }}{{ form.final_quiz }}
-            {% if form.final_quiz.errors %}
-                <div class="field-errors">{{ form.final_quiz.errors }}</div>
-            {% endif %}
+            <div class="form-group" style="width: 100%; margin-bottom: 5%;">
+                <label for="quiz-display">{{ form.final_quiz.label }}</label>
+                <div class="user-select-field" id="quizSelectField">
+                    <span id="quizDisplayName" class="user-display-name">
+                        {% if form.final_quiz.value %}{{ form.instance.final_quiz.name }}{% else %}Выберите тест...{% endif %}
+                    </span>
+                    <span class="user-select-icon">&#9660;</span>
+                </div>
+                {{ form.final_quiz }}
+                {% if form.final_quiz.errors %}
+                    <div class="text-danger mt-1">{{ form.final_quiz.errors }}</div>
+                {% endif %}
+            </div>
 
             
             <div class="form-group" style="width: 100%; margin-bottom: 5%;">
@@ -147,6 +156,26 @@
     </div>
 </div>
 
+<!-- Модальное окно для выбора теста -->
+<div id="quizModal" class="user-modal">
+    <div class="user-modal-content">
+        <div class="user-modal-header">
+            <h3>Выберите тест</h3>
+            <span class="user-modal-close" id="quizModalClose">&times;</span>
+        </div>
+        <div class="user-modal-body">
+            <div class="user-search-box">
+                <input type="text" id="quizSearchInput" class="form-control" placeholder="Поиск по названию теста...">
+            </div>
+            <div class="user-list-container">
+                <div id="quizList" class="user-list">
+                    <div class="user-list-loading">Загрузка...</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
 <style>
 /* Дополнительные стили для CKEditor */
 .ckeditor-wrapper {
@@ -231,6 +260,8 @@
         // API endpoints
         const searchUsersUrl = "{% url 'builder:api_search_users' %}";
         const userInputId = "{{ form.responsible_mentor.id_for_label }}";
+        const searchQuizzesUrl = "{% url 'quizzes:quiz_search_ajax' %}";
+        const quizInputId = "{{ form.final_quiz.id_for_label }}";
     </script>
     <script src="{% static 'courses/js/create_course.js' %}"></script>
 {% endblock %}

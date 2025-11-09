@@ -56,20 +56,26 @@ def search_quizzes_ajax(request):
     """
     AJAX endpoint для поиска тестов по названию
     Возвращает JSON с результатами поиска без пагинации
+    При пустом запросе возвращает все тесты (с ограничением в 100)
     """
     search_term = request.GET.get('q', '').strip()
 
-    if not search_term:
-        return JsonResponse({'success': False, 'error': 'Пустой поисковый запрос'})
-
-    # Поиск по названию (case-insensitive)
-    quizzes = Quiz.objects.filter(
-        name__icontains=search_term
-    ).annotate(
-        questions_count=Count('question')
-    ).order_by('-id').values(
-        'id', 'name', 'questions_count', 'attempt_limit', 'pass_threshold'
-    )
+    # Поиск по названию (case-insensitive) или все тесты при пустом запросе
+    if search_term:
+        quizzes = Quiz.objects.filter(
+            name__icontains=search_term
+        ).annotate(
+            questions_count=Count('question')
+        ).order_by('-id').values(
+            'id', 'name', 'questions_count', 'attempt_limit', 'pass_threshold'
+        )
+    else:
+        # При пустом запросе возвращаем все тесты с ограничением
+        quizzes = Quiz.objects.all().annotate(
+            questions_count=Count('question')
+        ).order_by('-id').values(
+            'id', 'name', 'questions_count', 'attempt_limit', 'pass_threshold'
+        )[:100]  # Ограничение на 100 тестов
 
     # Преобразуем QuerySet в список для JSON
     results = list(quizzes)

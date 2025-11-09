@@ -20,7 +20,8 @@ class CourseForm(forms.ModelForm):
                 config_name='extends'
             ),
             'allowed_groups': forms.SelectMultiple(attrs={'class': 'form-select'}),
-            'responsible_mentor': forms.HiddenInput()
+            'responsible_mentor': forms.HiddenInput(),
+            'final_quiz': forms.HiddenInput()
         }
 
 

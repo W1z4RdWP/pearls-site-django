@@ -49,9 +49,14 @@ if (userModalClose) {
     });
 }
 
+// Обработчик закрытия модальных окон при клике вне их
 window.addEventListener('click', function(event) {
     if (event.target == modal) {
         modal.style.display = 'none';
+    }
+    // quizModal будет определен после загрузки DOM
+    if (typeof quizModal !== 'undefined' && event.target == quizModal) {
+        quizModal.style.display = 'none';
     }
 });
 
@@ -166,7 +171,161 @@ function initializeUserField() {
     }
 }
 
+// ========== ФУНКЦИИ ДЛЯ ВЫБОРА ТЕСТА ==========
+
+// Элементы DOM для выбора теста (инициализируются после загрузки DOM)
+let quizModal, quizSelectField, quizModalClose, quizSearchInput, quizList, quizDisplayName, quizInput;
+
 // Инициализация при загрузке страницы
 document.addEventListener('DOMContentLoaded', function() {
+    // Инициализация элементов для выбора теста
+    quizModal = document.getElementById('quizModal');
+    quizSelectField = document.getElementById('quizSelectField');
+    quizModalClose = document.getElementById('quizModalClose');
+    quizSearchInput = document.getElementById('quizSearchInput');
+    quizList = document.getElementById('quizList');
+    quizDisplayName = document.getElementById('quizDisplayName');
+    quizInput = document.getElementById(quizInputId);
+    
+    // Открытие модального окна выбора теста
+    if (quizSelectField) {
+        quizSelectField.addEventListener('click', function() {
+            quizModal.style.display = 'block';
+            loadQuizzes('');
+            if (quizSearchInput) {
+                quizSearchInput.focus();
+            }
+        });
+    }
+
+    // Закрытие модального окна выбора теста
+    if (quizModalClose) {
+        quizModalClose.addEventListener('click', function() {
+            quizModal.style.display = 'none';
+        });
+    }
+    
+    // Поиск тестов с задержкой
+    if (quizSearchInput) {
+        quizSearchInput.addEventListener('input', function() {
+            clearTimeout(quizSearchTimeout);
+            const query = this.value;
+            quizSearchTimeout = setTimeout(function() {
+                loadQuizzes(query);
+            }, 300);
+        });
+    }
+    
     initializeUserField();
+    initializeQuizField();
 });
+
+// Поиск тестов с задержкой
+let quizSearchTimeout;
+
+// Загрузка списка тестов
+function loadQuizzes(query) {
+    if (!quizList) return;
+    
+    quizList.innerHTML = '<div class="user-list-loading">Загрузка...</div>';
+    
+    const url = searchQuizzesUrl + '?q=' + encodeURIComponent(query);
+    
+    fetch(url)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                displayQuizzes(data.results);
+            } else {
+                quizList.innerHTML = '<div class="user-list-error">Ошибка загрузки данных</div>';
+            }
+        })
+        .catch(error => {
+            quizList.innerHTML = '<div class="user-list-error">Ошибка загрузки данных</div>';
+        });
+}
+
+// Отображение списка тестов
+function displayQuizzes(quizzes) {
+    if (!quizList) return;
+    
+    if (quizzes.length === 0) {
+        quizList.innerHTML = '<div class="user-list-empty">Тесты не найдены</div>';
+        return;
+    }
+    
+    let html = '';
+    quizzes.forEach(function(quiz) {
+        const questionsText = quiz.questions_count === 1 ? 'вопрос' : 
+                              quiz.questions_count < 5 ? 'вопроса' : 'вопросов';
+        html += `
+            <div class="user-list-item" data-quiz-id="${quiz.id}" data-quiz-name="${quiz.name}">
+                <div class="user-list-item-name">${quiz.name}</div>
+                <div class="user-list-item-username">${quiz.questions_count} ${questionsText}</div>
+            </div>
+        `;
+    });
+    
+    quizList.innerHTML = html;
+    
+    // Добавляем обработчики клика на каждый тест
+    const quizItems = quizList.querySelectorAll('.user-list-item');
+    quizItems.forEach(function(item) {
+        item.addEventListener('click', function() {
+            const quizId = this.getAttribute('data-quiz-id');
+            const quizName = this.getAttribute('data-quiz-name');
+            selectQuiz(quizId, quizName);
+        });
+    });
+}
+
+// Выбор теста
+function selectQuiz(quizId, quizName) {
+    if (quizInput) {
+        quizInput.value = quizId;
+    }
+    if (quizDisplayName) {
+        quizDisplayName.textContent = quizName;
+        quizDisplayName.classList.remove('user-display-placeholder');
+    }
+    if (quizModal) {
+        quizModal.style.display = 'none';
+    }
+}
+
+// Инициализация поля теста при загрузке страницы
+function initializeQuizField() {
+    if (!quizInput || !quizDisplayName) {
+        return;
+    }
+    
+    const quizId = quizInput.value;
+    const templateValue = quizDisplayName.textContent.trim();
+    
+    if (quizId) {
+        if (templateValue === 'Выберите тест...' || !templateValue) {
+            fetch(searchQuizzesUrl + '?q=')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        const quiz = data.results.find(q => q.id === parseInt(quizId));
+                        if (quiz) {
+                            quizDisplayName.textContent = quiz.name;
+                            quizDisplayName.classList.remove('user-display-placeholder');
+                        }
+                    }
+                })
+                .catch(error => {
+                    console.error('Ошибка загрузки теста:', error);
+                });
+        } else {
+            quizDisplayName.classList.remove('user-display-placeholder');
+        }
+    } else {
+        if (templateValue && templateValue !== 'Выберите тест...') {
+            quizDisplayName.classList.remove('user-display-placeholder');
+        } else {
+            quizDisplayName.classList.add('user-display-placeholder');
+        }
+    }
+}
