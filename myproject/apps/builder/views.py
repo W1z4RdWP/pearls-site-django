@@ -717,22 +717,48 @@ class DashboardView(TemplateView):
         context = super().get_context_data(**kwargs)
         
         # Получаем неоцененные TEXT ответы
-        from myapp.models import UserAnswer
+        from myapp.models import UserAnswer, QuizResult
         from quizzes.models import Question
         
-        # Сначала подсчитываем общее количество неоцененных ответов
+        # Получаем все неоцененные ответы
         unrated_answers_queryset = UserAnswer.objects.filter(
             question__question_type='text',
             is_correct__isnull=True,  # Не оценено
             answer_text__isnull=False,  # Есть текстовый ответ
             answer_text__gt=''  # Не пустой ответ
+        ).select_related('user', 'question', 'quiz_result', 'quiz_result__course')
+        
+        # Получаем все уникальные quiz_result из неоцененных ответов
+        quiz_result_ids = unrated_answers_queryset.values_list('quiz_result_id', flat=True).distinct()
+        quiz_results = QuizResult.objects.filter(id__in=quiz_result_ids).select_related('user', 'course').order_by(
+            'user_id', 'quiz_title', 'course_id', '-percent', '-completed_at'
         )
         
-        # Общее количество неоцененных ответов
-        context['total_unrated_count'] = unrated_answers_queryset.count()
+        # Группируем результаты по (user, quiz_title, course) и находим лучшие попытки
+        # Лучшая попытка = максимальный percent, при равенстве - последняя по дате
+        # Благодаря сортировке первая попытка в каждой группе будет лучшей
+        seen = set()
+        best_result_ids = []
+        for result in quiz_results:
+            # Используем None для course_id, если курс не указан
+            course_id = result.course_id if result.course_id else None
+            key = (result.user_id, result.quiz_title, course_id)
+            
+            if key not in seen:
+                seen.add(key)
+                best_result_ids.append(result.id)
+        
+        # Преобразуем в set для более быстрого поиска
+        best_result_ids = set(best_result_ids)
+        
+        # Фильтруем только ответы из лучших попыток
+        unrated_answers_best = unrated_answers_queryset.filter(quiz_result_id__in=best_result_ids)
+        
+        # Общее количество неоцененных ответов из лучших попыток
+        context['total_unrated_count'] = unrated_answers_best.count()
         
         # Для отображения ограничиваем до 20 записей для производительности
-        unrated_text_answers = unrated_answers_queryset.select_related('user', 'question', 'quiz_result').order_by('-quiz_result__completed_at')[:20]
+        unrated_text_answers = unrated_answers_best.order_by('-quiz_result__completed_at')[:20]
         
         # Группируем по пользователям и тестам для удобства
         grouped_answers = {}
