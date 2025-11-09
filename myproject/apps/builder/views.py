@@ -927,7 +927,7 @@ class IncidentDetailListView(ListView):
         
         queryset = super().get_queryset()
         # Оптимизация: предзагрузка ManyToMany полей
-        queryset = queryset.prefetch_related('assigned_to', 'violators').select_related('user')
+        queryset = queryset.prefetch_related('assigned_to', 'violators').select_related('user', 'responsible_mentor')
         
         # Фильтр по названию инцидента (поиск)
         search = self.request.GET.get('search', '').strip()

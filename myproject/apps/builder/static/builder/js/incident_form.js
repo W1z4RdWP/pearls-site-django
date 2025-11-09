@@ -11,6 +11,14 @@ const userList = document.getElementById('userList');
 const userDisplayName = document.getElementById('userDisplayName');
 const userInput = document.getElementById(userInputId);
 
+// Элементы DOM для выбора наставника (проверяющий наставник)
+const mentorSelectField = document.getElementById('mentorSelectField');
+const mentorDisplayName = document.getElementById('mentorDisplayName');
+const mentorInput = document.getElementById(mentorInputId);
+
+// Переменная для отслеживания, какое поле открыто (user или mentor)
+let currentActiveField = null;
+
 // Элементы DOM для выбора назначенных
 const assignedModal = document.getElementById('assignedModal');
 const assignedSelectField = document.getElementById('assignedSelectField');
@@ -37,21 +45,38 @@ let lastSearchResults = [];
 
 // ========== ФУНКЦИИ ДЛЯ ВЫБОРА ПОЛЬЗОВАТЕЛЯ (КТО ЗАФИКСИРОВАЛ) ==========
 
-// Открытие модального окна
-userSelectField.addEventListener('click', function() {
-    modal.style.display = 'block';
-    loadUsers('');
-    userSearchInput.focus();
-});
+// Открытие модального окна для поля "Кто зафиксировал"
+if (userSelectField) {
+    userSelectField.addEventListener('click', function() {
+        currentActiveField = 'user';
+        modal.style.display = 'block';
+        loadUsers('');
+        userSearchInput.focus();
+    });
+}
+
+// Открытие модального окна для поля "Проверяющий наставник"
+if (mentorSelectField) {
+    mentorSelectField.addEventListener('click', function() {
+        currentActiveField = 'mentor';
+        modal.style.display = 'block';
+        loadUsers('');
+        userSearchInput.focus();
+    });
+}
 
 // Закрытие модального окна
-userModalClose.addEventListener('click', function() {
-    modal.style.display = 'none';
-});
+if (userModalClose) {
+    userModalClose.addEventListener('click', function() {
+        modal.style.display = 'none';
+        currentActiveField = null;
+    });
+}
 
 window.addEventListener('click', function(event) {
     if (event.target == modal) {
         modal.style.display = 'none';
+        currentActiveField = null;
     }
     if (event.target == assignedModal) {
         assignedModal.style.display = 'none';
@@ -117,10 +142,27 @@ function displayUsers(users) {
 
 // Выбор пользователя
 function selectUser(userId, userName) {
-    userInput.value = userId;
-    userDisplayName.textContent = userName;
-    userDisplayName.classList.remove('user-display-placeholder');
+    if (currentActiveField === 'user') {
+        // Обновляем поле "Кто зафиксировал"
+        if (userInput) {
+            userInput.value = userId;
+        }
+        if (userDisplayName) {
+            userDisplayName.textContent = userName;
+            userDisplayName.classList.remove('user-display-placeholder');
+        }
+    } else if (currentActiveField === 'mentor') {
+        // Обновляем поле "Проверяющий наставник"
+        if (mentorInput) {
+            mentorInput.value = userId;
+        }
+        if (mentorDisplayName) {
+            mentorDisplayName.textContent = userName;
+            mentorDisplayName.classList.remove('user-display-placeholder');
+        }
+    }
     modal.style.display = 'none';
+    currentActiveField = null;
 }
 
 // Инициализация поля пользователя при загрузке страницы
@@ -165,6 +207,80 @@ function initializeUserField() {
             userDisplayName.classList.add('user-display-placeholder');
         }
     }
+}
+
+// Инициализация поля наставника при загрузке страницы
+function initializeMentorField() {
+    // Проверяем, что элементы существуют
+    if (!mentorInput || !mentorDisplayName) {
+        return;
+    }
+    
+    // Проверяем, есть ли значение в скрытом поле
+    const userId = mentorInput.value;
+    
+    // Проверяем текст, который уже отображается из шаблона
+    const templateValue = mentorDisplayName.textContent.trim();
+    
+    if (userId) {
+        // Если есть значение в скрытом поле, но текст placeholder - загружаем информацию
+        if (templateValue === 'Выберите пользователя...' || !templateValue) {
+            fetch(searchUsersUrl + '?q=')
+                .then(response => response.json())
+                .then(data => {
+                    const user = data.users.find(u => u.id === parseInt(userId));
+                    if (user) {
+                        mentorDisplayName.textContent = user.full_name;
+                        mentorDisplayName.classList.remove('user-display-placeholder');
+                    }
+                })
+                .catch(error => {
+                    console.error('Ошибка загрузки наставника:', error);
+                });
+        } else {
+            // Если текст уже отображается из шаблона, просто убираем класс placeholder
+            mentorDisplayName.classList.remove('user-display-placeholder');
+        }
+    } else {
+        // Если наставник не выбран, проверяем текст из шаблона
+        if (templateValue && templateValue !== 'Выберите пользователя...') {
+            // Если в шаблоне есть значение, но нет в скрытом поле - это странно, но оставляем как есть
+            mentorDisplayName.classList.remove('user-display-placeholder');
+        } else {
+            // Добавляем класс placeholder
+            mentorDisplayName.classList.add('user-display-placeholder');
+        }
+    }
+}
+
+// Инициализация счетчика времени проверки
+function initializeTimeCounter() {
+    const decreaseBtn = document.getElementById('timeCounterDecrease');
+    const increaseBtn = document.getElementById('timeCounterIncrease');
+    const timeInput = document.getElementById('id_mentors_time_to_check');
+    
+    if (!decreaseBtn || !increaseBtn || !timeInput) {
+        return;
+    }
+    
+    // Установка минимального значения
+    const minValue = parseInt(timeInput.getAttribute('min')) || 1;
+    
+    // Обработчик для кнопки уменьшения
+    decreaseBtn.addEventListener('click', function() {
+        let currentValue = parseInt(timeInput.value) || minValue;
+        if (currentValue > minValue) {
+            currentValue--;
+            timeInput.value = currentValue;
+        }
+    });
+    
+    // Обработчик для кнопки увеличения
+    increaseBtn.addEventListener('click', function() {
+        let currentValue = parseInt(timeInput.value) || minValue;
+        currentValue++;
+        timeInput.value = currentValue;
+    });
 }
 
 // Инициализация поля дедлайна при загрузке страницы
@@ -667,7 +783,9 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Инициализация полей при загрузке страницы редактирования
     initializeUserField();
+    initializeMentorField();
     initializeDeadlineField();
+    initializeTimeCounter();
     
     // Загружаем изначально выбранных пользователей и нарушителей при редактировании
     // Это нужно делать сразу при загрузке страницы, чтобы нарушители загрузились

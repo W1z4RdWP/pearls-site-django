@@ -91,7 +91,13 @@
                             {% endif %}
                         </td>
                         <td>{{ item.incident.deadline|date:"d.m.Y"|default:"—" }}</td>
-                        <td>—</td>
+                        <td>
+                            {% if item.incident.responsible_mentor %}
+                                {{ item.incident.responsible_mentor.get_full_name|default:item.incident.responsible_mentor.username }}
+                            {% else %}
+                                —
+                            {% endif %}
+                        </td>
                         <td style="text-align: center;">0%</td>
                         <td class="status-{{ item.incident.status }}" style="text-align: center;">{{ item.incident.get_status_display }}</td>
                     </tr>

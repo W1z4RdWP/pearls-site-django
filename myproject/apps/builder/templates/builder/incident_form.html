@@ -27,6 +27,32 @@
             {% endif %}
         </div>
 
+        <div class="form-group" style="width: 100%; margin-bottom: 5%;">
+            <label for="mentor-display">{{ form.responsible_mentor.label }}</label>
+            <div style="display: flex; align-items: center; gap: 15px;">
+                <div class="user-select-field" id="mentorSelectField" style="flex: 1;">
+                    <span id="mentorDisplayName" class="user-display-name">
+                        {% if form.responsible_mentor.value %}{{ form.instance.responsible_mentor.get_full_name }}{% else %}Выберите пользователя...{% endif %}
+                    </span>
+                    <span class="user-select-icon">&#9660;</span>
+                </div>
+                <div class="time-counter-wrapper">
+                    <button type="button" class="time-counter-btn" id="timeCounterDecrease">−</button>
+                    <input type="number" id="id_mentors_time_to_check" name="mentors_time_to_check" 
+                           value="{{ form.mentors_time_to_check.value|default:2 }}" 
+                           min="1" class="time-counter-input" readonly>
+                    <button type="button" class="time-counter-btn" id="timeCounterIncrease">+</button>
+                </div>
+            </div>
+            {{ form.responsible_mentor }}
+            {% if form.responsible_mentor.errors %}
+                <div class="text-danger mt-1">{{ form.responsible_mentor.errors }}</div>
+            {% endif %}
+            {% if form.mentors_time_to_check.errors %}
+                <div class="text-danger mt-1">{{ form.mentors_time_to_check.errors }}</div>
+            {% endif %}
+        </div>
+
         <div class="form-group">
             <label for="user-display">{{ form.user.label }}</label>
             <div class="user-select-field" id="userSelectField">
@@ -159,6 +185,7 @@
     const getGroupsUrl = "{% url 'builder:api_get_groups' %}";
     const getGroupUsersUrlTemplate = "{% url 'builder:api_get_group_users' 0 %}";
     const userInputId = "{{ form.user.id_for_label }}";
+    const mentorInputId = "{{ form.responsible_mentor.id_for_label }}";
 </script>
 <script src="{% static 'builder/js/incident_form.js' %}"></script>
 {% endblock %} 
