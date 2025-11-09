@@ -14,90 +14,111 @@
         <p>Список тестов с открытыми вопросами, ожидающих оценки наставником</p>
     </div>
     
-    <div class="filter-buttons">
-        <a href="?status=pending" class="filter-btn {% if status_filter == 'pending' %}active{% endif %}">
-            ⏳ Ожидают проверки
-        </a>
-        <a href="?status=reviewed" class="filter-btn {% if status_filter == 'reviewed' %}active{% endif %}">
-            ✅ Проверенные
-        </a>
-        <a href="?status=all" class="filter-btn {% if status_filter == 'all' %}active{% endif %}">
-            📋 Все
-        </a>
-    </div>
+    <!-- Фильтры -->
+    <form method="get" id="pending-quizzes-filter-form" class="mb-4">
+        <div class="row mb-2 g-2 align-items-center">
+            <!-- Фильтр по дате -->
+            <div class="col-md-3 col-lg-2">
+                <input type="date" class="form-control date-input-compact" id="date_from" name="date_from" value="{{ date_from }}">
+            </div>
+            <div class="col-md-3 col-lg-2">
+                <input type="date" class="form-control date-input-compact" id="date_to" name="date_to" value="{{ date_to }}">
+            </div>
+            <!-- Фильтр по статусу -->
+            <div class="col-md-3 col-lg-2">
+                <select class="form-control" id="status_select" name="status">
+                    <option value="pending" {% if status_filter == 'pending' %}selected{% endif %}>⏳ Ожидают проверки</option>
+                    <option value="reviewed" {% if status_filter == 'reviewed' %}selected{% endif %}>✅ Проверенные</option>
+                </select>
+            </div>
+            <!-- Кнопки действий -->
+            <div class="col-md-3 col-lg-6 text-end">
+                <button type="submit" class="btn btn-primary">Применить фильтры</button>
+                <a href="{% url 'quizzes:pending_quizzes' %}" class="btn btn-secondary">Сбросить</a>
+            </div>
+        </div>
+    </form>
     
     {% if pending_results %}
-    <div class="pending-table">
-        <table>
+    <div class="pending-table-responsive">
+        <table class="table">
             <thead>
                 <tr>
-                    <th style="width: 50px;">№</th>
-                    <th>Дата прохождения</th>
-                    <th>Студент</th>
-                    <th>Тест</th>
-                    <th>Курс</th>
-                    <th>Дедлайн</th>
-                    <th>Наставник</th>
-                    <th>Статус</th>
+                    <th style="width: 5%;" title="№">№</th>
+                    <th style="width: 10%;" title="Дата прохождения">Дата прохождения</th>
+                    <th style="width: 15%;" title="Студент">Студент</th>
+                    <th style="width: 18%;" title="Тест">Тест</th>
+                    <th style="width: 15%;" title="Курс">Курс</th>
+                    <th style="width: 10%;" title="Дедлайн">Дедлайн</th>
+                    <th style="width: 12%;" title="Наставник">Наставник</th>
+                    <th style="width: 10%;" title="Статус">Статус</th>
                 </tr>
             </thead>
             <tbody>
                 {% for result in pending_results %}
                 {% if result.course and result.course.mentors_time_to_check %}
                     {% with deadline=result.completed_at|add_days:result.course.mentors_time_to_check %}
-                    <tr onclick="window.location.href='{% url 'quizzes:review_quiz' result.id %}'">
+                    <tr class="pending-row" 
+                        data-result-id="{{ result.id }}"
+                        onclick="selectPendingRow(this, event)"
+                        ondblclick="window.location.href='{% url 'quizzes:review_quiz' result.id %}'">
                         <td style="text-align: center; color: #7f8c8d;">{{ forloop.counter|add:page_obj.start_index|add:"-1" }}</td>
                         <td>{{ result.completed_at|date:"d.m.Y H:i" }}</td>
                         <td>{{ result.user.get_full_name|default:result.user.username }}</td>
                         <td>{{ result.quiz_title }}</td>
-                        <td>{{ result.course.title|default:"-" }}</td>
+                        <td>{{ result.course.title|default:"—" }}</td>
                         <td class="{% if deadline and deadline|is_overdue:now %}deadline-overdue{% endif %}">
                             {% if deadline %}
                                 {{ deadline|date:"d.m.Y H:i" }}
                             {% else %}
-                                -
+                                —
                             {% endif %}
                         </td>
                         <td>
                             {% if result.course.responsible_mentor %}
                                 {{ result.course.responsible_mentor.get_full_name|default:result.course.responsible_mentor.username }}
                             {% else %}
-                                -
+                                —
                             {% endif %}
                         </td>
-                        <td>
+                        <td class="status-{{ result.status }}">
                             {% if result.status == 'pending' %}
-                                <span class="status-badge status-pending">⏳ Ожидает проверки</span>
+                                ⏳ Ожидает проверки
                             {% elif result.status == 'reviewed' %}
-                                <span class="status-badge status-reviewed">✅ Проверен</span>
+                                ✅ Проверен
                             {% endif %}
                         </td>
                     </tr>
                     {% endwith %}
                 {% else %}
-                    <tr onclick="window.location.href='{% url 'quizzes:review_quiz' result.id %}'">
+                    <tr class="pending-row" 
+                        data-result-id="{{ result.id }}"
+                        onclick="selectPendingRow(this, event)"
+                        ondblclick="window.location.href='{% url 'quizzes:review_quiz' result.id %}'">
                         <td style="text-align: center; color: #7f8c8d;">{{ forloop.counter|add:page_obj.start_index|add:"-1" }}</td>
                         <td>{{ result.completed_at|date:"d.m.Y H:i" }}</td>
                         <td>{{ result.user.get_full_name|default:result.user.username }}</td>
                         <td>{{ result.quiz_title }}</td>
-                        <td>{{ result.course.title|default:"-" }}</td>
-                        <td>-</td>
+                        <td>{{ result.course.title|default:"—" }}</td>
+                        <td>—</td>
                         <td>
                             {% if result.course and result.course.responsible_mentor %}
                                 {{ result.course.responsible_mentor.get_full_name|default:result.course.responsible_mentor.username }}
                             {% else %}
-                                -
+                                —
                             {% endif %}
                         </td>
-                        <td>
+                        <td class="status-{{ result.status }}">
                             {% if result.status == 'pending' %}
-                                <span class="status-badge status-pending">⏳ Ожидает проверки</span>
+                                ⏳ Ожидает проверки
                             {% elif result.status == 'reviewed' %}
-                                <span class="status-badge status-reviewed">✅ Проверен</span>
+                                ✅ Проверен
                             {% endif %}
                         </td>
                     </tr>
                 {% endif %}
+                {% empty %}
+                <tr><td colspan="8" class="text-center">Нет тестов, ожидающих проверки</td></tr>
                 {% endfor %}
             </tbody>
         </table>
@@ -106,8 +127,8 @@
     {% if page_obj.has_other_pages %}
     <div class="pagination">
         {% if page_obj.has_previous %}
-        <a href="?status={{ status_filter }}&page=1">« Первая</a>
-        <a href="?status={{ status_filter }}&page={{ page_obj.previous_page_number }}">Назад</a>
+        <a href="?status={{ status_filter }}&date_from={{ date_from }}&date_to={{ date_to }}&page=1">« Первая</a>
+        <a href="?status={{ status_filter }}&date_from={{ date_from }}&date_to={{ date_to }}&page={{ page_obj.previous_page_number }}">Назад</a>
         {% endif %}
         
         <span class="current">
@@ -115,8 +136,8 @@
         </span>
         
         {% if page_obj.has_next %}
-        <a href="?status={{ status_filter }}&page={{ page_obj.next_page_number }}">Вперед</a>
-        <a href="?status={{ status_filter }}&page={{ page_obj.paginator.num_pages }}">Последняя »</a>
+        <a href="?status={{ status_filter }}&date_from={{ date_from }}&date_to={{ date_to }}&page={{ page_obj.next_page_number }}">Вперед</a>
+        <a href="?status={{ status_filter }}&date_from={{ date_from }}&date_to={{ date_to }}&page={{ page_obj.paginator.num_pages }}">Последняя »</a>
         {% endif %}
     </div>
     {% endif %}
@@ -127,5 +148,83 @@
     </div>
     {% endif %}
 </div>
+
+<script>
+// Переменная для отслеживания таймаута одиночного клика
+let clickTimeout = null;
+
+// Функция для выделения строки при одинарном клике
+function selectPendingRow(row, event) {
+    // Предотвращаем выделение при двойном клике
+    if (event.detail === 2) {
+        if (clickTimeout) {
+            clearTimeout(clickTimeout);
+            clickTimeout = null;
+        }
+        return;
+    }
+    
+    // Очищаем предыдущий таймаут
+    if (clickTimeout) {
+        clearTimeout(clickTimeout);
+    }
+    
+    // Устанавливаем таймаут для обработки одиночного клика
+    clickTimeout = setTimeout(function() {
+        // Убираем выделение со всех строк
+        document.querySelectorAll('.pending-row').forEach(r => {
+            r.classList.remove('row-selected');
+        });
+        
+        // Выделяем выбранную строку
+        row.classList.add('row-selected');
+        
+        clickTimeout = null;
+    }, 200); // Задержка 200мс для различения одиночного и двойного клика
+}
+
+// Убираем выделение при клике вне таблицы
+document.addEventListener('click', function(event) {
+    if (!event.target.closest('.pending-row')) {
+        // Очищаем таймаут, если он есть
+        if (clickTimeout) {
+            clearTimeout(clickTimeout);
+            clickTimeout = null;
+        }
+        
+        document.querySelectorAll('.pending-row').forEach(r => {
+            r.classList.remove('row-selected');
+        });
+    }
+});
+
+document.addEventListener('DOMContentLoaded', function() {
+    const statusSelect = document.getElementById('status_select');
+    const dateFromInput = document.getElementById('date_from');
+    const dateToInput = document.getElementById('date_to');
+    
+    // Обработчик изменения статуса
+    statusSelect.addEventListener('change', function() {
+        const status = this.value;
+        
+        // Автоматически изменяем период в зависимости от статуса
+        const today = new Date();
+        const dateTo = new Date(today);
+        dateTo.setDate(dateTo.getDate());
+        
+        if (status === 'reviewed') {
+            // Для проверенных - последние 30 дней
+            const dateFrom = new Date(today);
+            dateFrom.setDate(dateFrom.getDate() - 30);
+            dateFromInput.value = dateFrom.toISOString().split('T')[0];
+            dateToInput.value = dateTo.toISOString().split('T')[0];
+        } else {
+            // Для ожидающих проверки - с начала 2025 года
+            dateFromInput.value = '2025-01-01';
+            dateToInput.value = dateTo.toISOString().split('T')[0];
+        }
+    });
+});
+</script>
 {% endblock %}
 

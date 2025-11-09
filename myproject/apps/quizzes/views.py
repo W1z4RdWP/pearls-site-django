@@ -1505,18 +1505,35 @@ class PendingQuizzesView(LoginRequiredMixin, UserPassesTestMixin, TemplateView):
         return self.request.user.is_authenticated and self.request.user.is_staff
     
     def get_context_data(self, **kwargs):
+        import datetime
         context = super().get_context_data(**kwargs)
         
-        # Получаем фильтр из GET-параметров (по умолчанию 'pending')
+        # Получаем фильтр из GET-параметров
         status_filter = self.request.GET.get('status', 'pending')
         
+        # Фильтр по дате создания
+        date_from = self.request.GET.get('date_from')
+        date_to = self.request.GET.get('date_to')
+        
+        # Если нет параметров в GET запросе (первичная загрузка), устанавливаем дефолтные значения
+        if not self.request.GET:
+            # По умолчанию период с начала 2025 года до сегодняшней даты
+            date_from = '2025-01-01'
+            date_to = timezone.now().date().strftime('%Y-%m-%d')
+            status_filter = 'pending'
+        elif not date_from and not date_to:
+            # Если статус changed, но даты не указаны, устанавливаем дефолтные
+            if status_filter == 'reviewed':
+                # Для проверенных - последние 30 дней
+                date_to = timezone.now().date().strftime('%Y-%m-%d')
+                date_from = (timezone.now().date() - timedelta(days=30)).strftime('%Y-%m-%d')
+            else:
+                # Для ожидающих проверки - с начала 2025 года
+                date_from = '2025-01-01'
+                date_to = timezone.now().date().strftime('%Y-%m-%d')
+        
         # Фильтруем результаты тестов по статусу
-        if status_filter == 'all':
-            # Показываем и pending, и reviewed
-            base_query = QuizResult.objects.filter(
-                status__in=['pending', 'reviewed']
-            )
-        elif status_filter == 'reviewed':
+        if status_filter == 'reviewed':
             # Только проверенные
             base_query = QuizResult.objects.filter(
                 status='reviewed'
@@ -1526,6 +1543,16 @@ class PendingQuizzesView(LoginRequiredMixin, UserPassesTestMixin, TemplateView):
             base_query = QuizResult.objects.filter(
                 status='pending'
             )
+        
+        # Фильтр по дате прохождения
+        if date_from:
+            date_from_parsed = datetime.datetime.strptime(date_from, '%Y-%m-%d').date()
+            date_from_datetime = timezone.make_aware(datetime.datetime.combine(date_from_parsed, datetime.time.min))
+            base_query = base_query.filter(completed_at__gte=date_from_datetime)
+        if date_to:
+            date_to_parsed = datetime.datetime.strptime(date_to, '%Y-%m-%d').date()
+            date_to_datetime = timezone.make_aware(datetime.datetime.combine(date_to_parsed, datetime.time.max))
+            base_query = base_query.filter(completed_at__lte=date_to_datetime)
         
         # Получаем только лучшие попытки для каждой комбинации (user, quiz_title, course)
         # Сначала получаем все результаты, затем фильтруем лучшие попытки
@@ -1558,6 +1585,10 @@ class PendingQuizzesView(LoginRequiredMixin, UserPassesTestMixin, TemplateView):
         context['page_obj'] = page_obj
         context['status_filter'] = status_filter
         context['now'] = timezone.now()
+        
+        # Передаем текущие значения фильтров в контекст
+        context['date_from'] = date_from if date_from else ''
+        context['date_to'] = date_to if date_to else ''
         
         return context
 

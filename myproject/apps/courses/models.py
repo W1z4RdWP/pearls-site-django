@@ -149,7 +149,7 @@ class Course(models.Model):
         description (TextField) - описание курса
         allowed_groups (ManyToMany) - группы пользователей, которым автоматически назначентся выбранный курс.
         responsible_mentor (ForeignKey) - проверяющий наставник, будет назначаться ответственным за проверку тестов в курсе.
-        
+        mentors_time_to_check (PositiveIntegerField) - время для наставника на проверку теста, после завершения студентом 
     """
    
     title = models.CharField(max_length=200, verbose_name="Название курса")
