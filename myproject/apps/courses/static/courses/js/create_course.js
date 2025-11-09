@@ -362,3 +362,55 @@ function initializeQuizField() {
         }
     }
 }
+
+        // Обработка иконок помощи
+        document.addEventListener('DOMContentLoaded', function() {
+            const helpIcons = document.querySelectorAll('.help-icon');
+            
+            helpIcons.forEach(function(icon) {
+                // Обработка переносов строк в подсказке
+                const tooltip = icon.getAttribute('data-tooltip');
+                if (tooltip) {
+                    // Заменяем &#10; на реальные переносы строк
+                    const formattedTooltip = tooltip.replace(/&#10;/g, '\n');
+                    icon.setAttribute('data-tooltip', formattedTooltip);
+                }
+                
+                // Обработка клика для показа/скрытия подсказки
+                icon.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    const isActive = icon.classList.contains('active');
+                    
+                    // Закрываем все другие подсказки
+                    helpIcons.forEach(function(otherIcon) {
+                        if (otherIcon !== icon) {
+                            otherIcon.classList.remove('active');
+                        }
+                    });
+                    
+                    // Переключаем текущую подсказку
+                    if (isActive) {
+                        icon.classList.remove('active');
+                    } else {
+                        icon.classList.add('active');
+                    }
+                });
+                
+                // Обработка нажатия Enter/Space для доступности
+                icon.addEventListener('keydown', function(e) {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        icon.click();
+                    }
+                });
+            });
+            
+            // Закрытие подсказок при клике вне их
+            document.addEventListener('click', function(e) {
+                if (!e.target.closest('.help-icon')) {
+                    helpIcons.forEach(function(icon) {
+                        icon.classList.remove('active');
+                    });
+                }
+            });
+        });

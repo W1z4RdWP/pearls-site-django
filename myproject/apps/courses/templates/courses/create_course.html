@@ -67,7 +67,10 @@
 
             
             <div class="form-group" style="width: 100%; margin-bottom: 5%;">
-                <label for="user-display">{{ form.responsible_mentor.label }}</label>
+                <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+                    <label for="user-display" style="margin: 0;">{{ form.responsible_mentor.label }}</label>
+                    <span class="help-icon" tabindex="0" role="button" aria-label="Подсказка" data-tooltip="В списке отображаются сотрудники со статусом «Наставник».&#10;Этот человек отвечает за проверку и подтверждение корректности выполнения теста обучающегося.&#10;Поле обязательное для заполнения, даже если тест не требует проверки — наставник должен быть назначен в любом случае.">?</span>
+                </div>
                 <div style="display: flex; align-items: center; gap: 15px;">
                     <div class="user-select-field" id="userSelectField" style="flex: 1;">
                         <span id="userDisplayName" class="user-display-name">
@@ -81,6 +84,7 @@
                                value="{{ form.mentors_time_to_check.value|default:2 }}" 
                                min="1" class="time-counter-input" readonly>
                         <button type="button" class="time-counter-btn" id="timeCounterIncrease">+</button>
+                        <span class="help-icon" tabindex="0" role="button" aria-label="Подсказка" data-tooltip="Укажите период, в течение которого наставник должен проверить тест после завершения урока.&#10;По умолчанию — 2 дня после окончания урока, но срок можно увеличить или уменьшить при необходимости.">?</span>
                     </div>
                 </div>
                 {{ form.responsible_mentor }}
