@@ -21,6 +21,15 @@
                 <p><strong>Проходной балл:</strong> {{ pass_threshold }}%</p>
                 <p><strong>Дата сдачи теста:</strong> {{ last_attempt.completed_at|date:"d.m.Y H:i" }}</p>
             </div>
+        {% elif pending %}
+            <div class="alert alert-info">
+                <h4><i class="fa fa-clock-o"></i> Ожидает проверки наставником</h4>
+                <p><strong>Результат:</strong> {{ best_result.score|floatformat:1 }}/{{ best_result.total_questions }} правильных ответов</p>
+                <p><strong>Ваш результат:</strong> {{ best_result.percent }}%</p>
+                <p><strong>Проходной балл:</strong> {{ pass_threshold }}%</p>
+                <p><strong>Дата прохождения:</strong> {{ last_attempt.completed_at|date:"d.m.Y H:i" }}</p>
+                <p class="mb-0"><strong>Статус:</strong> Ваш тест отправлен на проверку наставнику. Результат будет доступен после проверки открытых вопросов.</p>
+            </div>
         {% else %}
             <div class="alert alert-warning">
                 <h4><i class="fa fa-exclamation-triangle"></i> Тест не пройден</h4>

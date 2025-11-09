@@ -1071,6 +1071,9 @@ def _reset_quiz(request) -> HttpRequest:
             del request.session[key]
     return request
 
+
+
+
 def quiz_best_result(request, quiz_id: int) -> HttpResponse:
     """
     Отображает лучший результат теста для пользователя в рамках курса.
@@ -1109,6 +1112,11 @@ def quiz_best_result(request, quiz_id: int) -> HttpResponse:
     # Проверяем, есть ли в тесте открытые вопросы
     has_text_questions = Question.objects.filter(quiz=quiz, question_type=Question.TEXT).exists()
     
+    # Проверяем, ожидает ли последняя попытка проверки наставником
+    pending = False
+    if has_text_questions and last_attempt and last_attempt.status == 'pending':
+        pending = True
+
     context = {
         'quiz': quiz,
         'course': course,
@@ -1117,11 +1125,15 @@ def quiz_best_result(request, quiz_id: int) -> HttpResponse:
         'passed': best_result.passed,
         'pass_threshold': quiz.pass_threshold,
         'has_text_questions': has_text_questions,
+        'pending': pending,
         'mentor_comment': best_result.mentor_comment if best_result.mentor_comment else None,
         'reviewed_by': best_result.reviewed_by if best_result.reviewed_by else None,
     }
     
     return render(request, 'quizzes/quiz_best_result.html', context)
+
+
+
 
 def start_quiz_handler(request):
     if request.method == 'POST':
