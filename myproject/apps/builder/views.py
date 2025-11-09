@@ -845,6 +845,7 @@ class IncidentListView(ListView):
         context = super().get_context_data(**kwargs)
         context['status_choices'] = Incident.STATUS_CHOICES
         context['incident_type_choices'] = Incident.INCIDENT_TYPE_CHOICES
+        context['now'] = timezone.now()  # Текущая дата и время для проверки просроченных дедлайнов
         
         # Если нет параметров в GET запросе (первичная загрузка), устанавливаем дефолтные значения
         if not self.request.GET:
@@ -927,7 +928,7 @@ class IncidentDetailListView(ListView):
         
         queryset = super().get_queryset()
         # Оптимизация: предзагрузка ManyToMany полей
-        queryset = queryset.prefetch_related('assigned_to', 'violators').select_related('user')
+        queryset = queryset.prefetch_related('assigned_to', 'violators').select_related('user', 'responsible_mentor')
         
         # Фильтр по названию инцидента (поиск)
         search = self.request.GET.get('search', '').strip()
@@ -960,6 +961,7 @@ class IncidentDetailListView(ListView):
         from django.contrib.auth import get_user_model
         
         context = super().get_context_data(**kwargs)
+        context['now'] = timezone.now()  # Текущая дата и время для проверки просроченных дедлайнов
         
         # Получаем список всех активных пользователей для фильтра
         User = get_user_model()
@@ -2514,10 +2516,10 @@ class CourseListView(ListView):
         context['total_courses'] = Course.objects.exclude(is_incident=True).count()
         context['active_courses'] = Course.objects.exclude(is_incident=True).count()  # Все курсы считаются активными
         context['total_lessons'] = sum(course.lessons.count() for course in Course.objects.exclude(is_incident=True))
-        context['total_authors'] = User.objects.filter(course__isnull=False).distinct().count()
+        context['total_authors'] = User.objects.filter(authored_courses__isnull=False).distinct().count()
         
         # Список авторов для фильтра
-        context['authors'] = User.objects.filter(course__isnull=False).distinct().order_by('first_name', 'last_name', 'username')
+        context['authors'] = User.objects.filter(authored_courses__isnull=False).distinct().order_by('first_name', 'last_name', 'username')
         
         # Список групп для фильтра
         from django.contrib.auth.models import Group
@@ -2588,10 +2590,10 @@ class IncidentCourseListView(ListView):
         context['total_courses'] = Course.objects.filter(is_incident=True).count()
         context['active_courses'] = Course.objects.filter(is_incident=True).count()  # Все курсы считаются активными
         context['total_lessons'] = sum(course.lessons.count() for course in Course.objects.filter(is_incident=True))
-        context['total_authors'] = User.objects.filter(course__isnull=False).distinct().count()
+        context['total_authors'] = User.objects.filter(authored_courses__isnull=False).distinct().count()
         
         # Список авторов для фильтра
-        context['authors'] = User.objects.filter(course__isnull=False).distinct().order_by('first_name', 'last_name', 'username')
+        context['authors'] = User.objects.filter(authored_courses__isnull=False).distinct().order_by('first_name', 'last_name', 'username')
         
         # Список групп для фильтра
         from django.contrib.auth.models import Group
@@ -2823,13 +2825,22 @@ def api_search_users(request):
     """
     API endpoint для поиска пользователей по имени/фамилии.
     Возвращает JSON с данными пользователей.
+    
+    Параметры:
+        q: поисковый запрос (необязательно)
+        mentor_only: если 'true', возвращает только пользователей с ролью наставника (is_mentor=True)
     """
     if not (request.user.is_staff or request.user.is_superuser):
         return JsonResponse({'error': 'Доступ запрещен'}, status=403)
     
     search_query = request.GET.get('q', '').strip()
+    mentor_only = request.GET.get('mentor_only', '').lower() == 'true'
     
-    users = User.objects.filter(is_active=True)
+    users = User.objects.filter(is_active=True).select_related('profile')
+    
+    # Фильтруем только наставников, если указан параметр mentor_only
+    if mentor_only:
+        users = users.filter(profile__is_mentor=True)
     
     if search_query:
         users = users.filter(

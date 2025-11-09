@@ -2,6 +2,7 @@
 {% load static %}
 {% block specific_styles %} 
     <link rel="stylesheet" href="{% static 'user_management/css/user_form.css' %}">
+    <link rel="stylesheet" href="{% static 'builder/css/incident_form.css' %}">
 {% endblock %}
 
 {% block title %}Редактировать курс{% endblock %}
@@ -60,10 +61,50 @@
                 <div class="field-errors">{{ form.slug.errors }}</div>
             {% endif %}
             
-            {{ form.final_quiz.label_tag }}{{ form.final_quiz }}
-            {% if form.final_quiz.errors %}
-                <div class="field-errors">{{ form.final_quiz.errors }}</div>
-            {% endif %}
+            <div class="form-group" style="width: 100%; margin-bottom: 5%;">
+                <label for="quiz-display">{{ form.final_quiz.label }}</label>
+                <div class="user-select-field" id="quizSelectField">
+                    <span id="quizDisplayName" class="user-display-name">
+                        {% if form.final_quiz.value %}{{ form.instance.final_quiz.name }}{% else %}Выберите тест...{% endif %}
+                    </span>
+                    <span class="user-select-icon">&#9660;</span>
+                </div>
+                {{ form.final_quiz }}
+                {% if form.final_quiz.errors %}
+                    <div class="text-danger mt-1">{{ form.final_quiz.errors }}</div>
+                {% endif %}
+            </div>
+
+            
+            <div class="form-group" style="width: 100%; margin-bottom: 5%;">
+                <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+                    <label for="user-display" style="margin: 0;">{{ form.responsible_mentor.label }}</label>
+                    <span class="help-icon" tabindex="0" role="button" aria-label="Подсказка" data-tooltip="В списке отображаются сотрудники со статусом «Наставник».&#10;Этот человек отвечает за проверку и подтверждение корректности выполнения теста обучающегося.&#10;Поле обязательное для заполнения, даже если тест не требует проверки — наставник должен быть назначен в любом случае.">?</span>
+                </div>
+                <div style="display: flex; align-items: center; gap: 15px;">
+                    <div class="user-select-field" id="userSelectField" style="flex: 1;">
+                        <span id="userDisplayName" class="user-display-name">
+                            {% if form.responsible_mentor.value %}{{ form.instance.responsible_mentor.get_full_name }}{% else %}Выберите пользователя...{% endif %}
+                        </span>
+                        <span class="user-select-icon">&#9660;</span>
+                    </div>
+                    <div class="time-counter-wrapper">
+                        <button type="button" class="time-counter-btn" id="timeCounterDecrease">−</button>
+                        <input type="number" id="id_mentors_time_to_check" name="mentors_time_to_check" 
+                               value="{{ form.mentors_time_to_check.value|default:course.mentors_time_to_check|default:2 }}" 
+                               min="1" class="time-counter-input" readonly>
+                        <button type="button" class="time-counter-btn" id="timeCounterIncrease">+</button>
+                        <span class="help-icon" tabindex="0" role="button" aria-label="Подсказка" data-tooltip="Укажите период, в течение которого наставник должен проверить тест после завершения урока.&#10;По умолчанию — 2 дня после окончания урока, но срок можно увеличить или уменьшить при необходимости.">?</span>
+                    </div>
+                </div>
+                {{ form.responsible_mentor }}
+                {% if form.responsible_mentor.errors %}
+                    <div class="text-danger mt-1">{{ form.responsible_mentor.errors }}</div>
+                {% endif %}
+                {% if form.mentors_time_to_check.errors %}
+                    <div class="text-danger mt-1">{{ form.mentors_time_to_check.errors }}</div>
+                {% endif %}
+            </div>
             
             <label for="id_allowed_groups">{{ form.allowed_groups.label }}</label>
             <div class="um-user-groups-checkboxes">
@@ -115,6 +156,46 @@
             <a href="{% url 'courses:course_detail' course.slug %}" class="btn btn-secondary">Отмена</a>
         </div>
     </form>
+</div>
+
+<!-- Модальное окно для выбора пользователя -->
+<div id="userModal" class="user-modal">
+    <div class="user-modal-content">
+        <div class="user-modal-header">
+            <h3>Выберите сотрудника</h3>
+            <span class="user-modal-close" id="userModalClose">&times;</span>
+        </div>
+        <div class="user-modal-body">
+            <div class="user-search-box">
+                <input type="text" id="userSearchInput" class="form-control" placeholder="Поиск по имени или фамилии...">
+            </div>
+            <div class="user-list-container">
+                <div id="userList" class="user-list">
+                    <div class="user-list-loading">Загрузка...</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Модальное окно для выбора теста -->
+<div id="quizModal" class="user-modal">
+    <div class="user-modal-content">
+        <div class="user-modal-header">
+            <h3>Выберите тест</h3>
+            <span class="user-modal-close" id="quizModalClose">&times;</span>
+        </div>
+        <div class="user-modal-body">
+            <div class="user-search-box">
+                <input type="text" id="quizSearchInput" class="form-control" placeholder="Поиск по названию теста...">
+            </div>
+            <div class="user-list-container">
+                <div id="quizList" class="user-list">
+                    <div class="user-list-loading">Загрузка...</div>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
 
 <style>
@@ -205,6 +286,182 @@
     margin-left: 0;
     cursor: pointer;
 }
+
+/* Стили для счетчика времени проверки */
+.time-counter-wrapper {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    flex-shrink: 0;
+    vertical-align: middle;
+}
+
+.time-counter-btn {
+    width: 32px;
+    height: 38px;
+    min-height: 38px;
+    border: 1px solid #e3e8f0;
+    border-radius: 6px;
+    background: #fff;
+    color: #232a3a;
+    font-size: 1.2em;
+    font-weight: 600;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+    padding: 0;
+    margin: 0;
+    line-height: 1;
+    vertical-align: middle;
+    box-sizing: border-box;
+    flex-shrink: 0;
+}
+
+.time-counter-btn:hover {
+    background: #f7f8fa;
+    border-color: #4d7cff;
+    color: #4d7cff;
+}
+
+.time-counter-btn:active {
+    background: #e3e8f0;
+    transform: scale(0.95);
+}
+
+.time-counter-input {
+    width: 35px !important;
+    min-width: 35px !important;
+    max-width: 35px !important;
+    height: 38px !important;
+    border: 1px solid #e3e8f0;
+    border-radius: 6px;
+    text-align: center;
+    font-size: 1em !important;
+    font-weight: 600;
+    color: #232a3a !important;
+    background: #fff !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    cursor: default;
+    box-sizing: border-box;
+    flex-shrink: 0;
+    -moz-appearance: textfield;
+    line-height: 38px;
+    vertical-align: middle;
+}
+
+.time-counter-input::-webkit-outer-spin-button,
+.time-counter-input::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+.time-counter-input:focus {
+    outline: none;
+    border-color: #4d7cff;
+}
+
+/* Стили для иконки вопроса и подсказки */
+.help-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background-color: #6c757d;
+    color: #fff;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    position: relative;
+    transition: background-color 0.2s;
+    flex-shrink: 0;
+    line-height: 1;
+}
+
+.help-icon:hover {
+    background-color: #4d7cff;
+}
+
+.help-icon::after {
+    content: attr(data-tooltip);
+    position: absolute;
+    bottom: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    margin-bottom: 8px;
+    padding: 10px 14px;
+    background-color: #232a3a;
+    color: #fff;
+    font-size: 0.875rem;
+    line-height: 1.5;
+    white-space: pre-line;
+    border-radius: 6px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transition: opacity 0.2s, visibility 0.2s;
+    min-width: 280px;
+    max-width: 350px;
+    z-index: 10001;
+    text-align: left;
+}
+
+.help-icon::before {
+    content: '';
+    position: absolute;
+    bottom: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    margin-bottom: 2px;
+    border: 6px solid transparent;
+    border-top-color: #232a3a;
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transition: opacity 0.2s, visibility 0.2s;
+    z-index: 10002;
+}
+
+.help-icon:hover::after,
+.help-icon:focus::after,
+.help-icon.active::after {
+    opacity: 1;
+    visibility: visible;
+}
+
+.help-icon:hover::before,
+.help-icon:focus::before,
+.help-icon.active::before {
+    opacity: 1;
+    visibility: visible;
+}
+
+.help-icon:focus {
+    outline: 2px solid #4d7cff;
+    outline-offset: 2px;
+}
+
+/* Адаптивное позиционирование подсказки для мобильных устройств */
+@media (max-width: 768px) {
+    .help-icon::after {
+        left: auto;
+        right: 0;
+        transform: none;
+        min-width: 250px;
+        max-width: calc(100vw - 40px);
+    }
+    
+    .help-icon::before {
+        left: auto;
+        right: 10px;
+        transform: none;
+    }
+}
 </style>
 
 <script>
@@ -237,6 +494,67 @@ document.addEventListener('DOMContentLoaded', function() {
             localStorage.removeItem('edit_course_form_groups');
         }, 100);
     });
+    
+    // Обработка иконок помощи
+    const helpIcons = document.querySelectorAll('.help-icon');
+    
+    helpIcons.forEach(function(icon) {
+        // Обработка переносов строк в подсказке
+        const tooltip = icon.getAttribute('data-tooltip');
+        if (tooltip) {
+            // Заменяем &#10; на реальные переносы строк
+            const formattedTooltip = tooltip.replace(/&#10;/g, '\n');
+            icon.setAttribute('data-tooltip', formattedTooltip);
+        }
+        
+        // Обработка клика для показа/скрытия подсказки
+        icon.addEventListener('click', function(e) {
+            e.stopPropagation();
+            const isActive = icon.classList.contains('active');
+            
+            // Закрываем все другие подсказки
+            helpIcons.forEach(function(otherIcon) {
+                if (otherIcon !== icon) {
+                    otherIcon.classList.remove('active');
+                }
+            });
+            
+            // Переключаем текущую подсказку
+            if (isActive) {
+                icon.classList.remove('active');
+            } else {
+                icon.classList.add('active');
+            }
+        });
+        
+        // Обработка нажатия Enter/Space для доступности
+        icon.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                icon.click();
+            }
+        });
+    });
+    
+    // Закрытие подсказок при клике вне их
+    document.addEventListener('click', function(e) {
+        if (!e.target.closest('.help-icon')) {
+            helpIcons.forEach(function(icon) {
+                icon.classList.remove('active');
+            });
+        }
+    });
 });
 </script>
 {% endblock content %}
+
+{% block specific_scripts %}
+    <script>
+        // API endpoints
+        const searchUsersUrl = "{% url 'builder:api_search_users' %}";
+        const userInputId = "{{ form.responsible_mentor.id_for_label }}";
+        const searchQuizzesUrl = "{% url 'quizzes:quiz_search_ajax' %}";
+        const quizInputId = "{{ form.final_quiz.id_for_label }}";
+    </script>
+    <script src="{% static 'courses/js/create_course.js' %}"></script>
+{% endblock %}

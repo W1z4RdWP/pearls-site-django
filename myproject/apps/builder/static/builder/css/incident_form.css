@@ -729,3 +729,79 @@
         flex: 1;
     }
 }
+
+/* Стили для счетчика времени проверки */
+.time-counter-wrapper {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    flex-shrink: 0;
+    vertical-align: middle;
+}
+
+.time-counter-btn {
+    width: 32px;
+    height: 38px;
+    min-height: 38px;
+    border: 1px solid #e3e8f0;
+    border-radius: 6px;
+    background: #fff;
+    color: #232a3a;
+    font-size: 1.2em;
+    font-weight: 600;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+    padding: 0;
+    margin: 0;
+    line-height: 1;
+    vertical-align: middle;
+    box-sizing: border-box;
+    flex-shrink: 0;
+}
+
+.time-counter-btn:hover {
+    background: #f7f8fa;
+    border-color: #4d7cff;
+    color: #4d7cff;
+}
+
+.time-counter-btn:active {
+    background: #e3e8f0;
+    transform: scale(0.95);
+}
+
+.time-counter-input {
+    width: 35px !important;
+    min-width: 35px !important;
+    max-width: 35px !important;
+    height: 38px !important;
+    border: 1px solid #e3e8f0;
+    border-radius: 6px;
+    text-align: center;
+    font-size: 1em !important;
+    font-weight: 600;
+    color: #232a3a !important;
+    background: #fff !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    cursor: default;
+    box-sizing: border-box;
+    flex-shrink: 0;
+    -moz-appearance: textfield;
+    line-height: 38px;
+    vertical-align: middle;
+}
+
+.time-counter-input::-webkit-outer-spin-button,
+.time-counter-input::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+.time-counter-input:focus {
+    outline: none;
+    border-color: #4d7cff;
+}

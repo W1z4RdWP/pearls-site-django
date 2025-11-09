@@ -32,10 +32,11 @@ class IncidentForm(forms.ModelForm):
     
     class Meta:
         model = Incident
-        fields = ['title', 'incident_type', 'user', 'assigned_to', 'violators', 'deadline', 'status', 'description']
+        fields = ['title', 'incident_type', 'responsible_mentor', 'mentors_time_to_check', 'user', 'assigned_to', 'violators', 'deadline', 'status', 'description']
         widgets = {
             'title': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Введение в Dent'}),
             'incident_type': forms.Select(attrs={'class': 'form-control'}),
+            'responsible_mentor': forms.HiddenInput(),
             'user': forms.HiddenInput(),
             'deadline': forms.DateTimeInput(
                 attrs={'class': 'form-control', 'type': 'datetime-local'},
@@ -66,16 +67,3 @@ class IncidentForm(forms.ModelForm):
             self.fields['deadline'].widget.attrs['value'] = formatted_value
             # Также устанавливаем initial значение для виджета
             self.fields['deadline'].initial = formatted_value
-
-
-
-# class IncidentForm(forms.ModelForm):
-#     """Форма для создания/редактирования инцидента."""
-#     class Meta:
-#         model = Incident
-#         fields = ['title', 'user', 'incident_type', 'description', 'related_documents', 'role', 'error_type', 'topic', 'status']
-#         widgets = {
-#             'description': forms.Textarea(attrs={'rows': 3}),
-#             'related_documents': forms.SelectMultiple(attrs={'size': 5}),
-#         }
-

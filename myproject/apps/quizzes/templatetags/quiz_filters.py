@@ -1,4 +1,5 @@
 from django import template
+from datetime import timedelta
 
 register = template.Library()
 
@@ -68,4 +69,33 @@ def trim(value):
     if value is None:
         return ''
     return str(value).strip()
+
+
+@register.filter
+def add_days(value, days):
+    """
+    Добавить дни к дате.
+    Использование: {{ date|add_days:5 }}
+    """
+    if value is None or days is None:
+        return None
+    try:
+        days = int(days)
+        return value + timedelta(days=days)
+    except (ValueError, TypeError, AttributeError):
+        return None
+
+
+@register.filter
+def is_overdue(deadline, now):
+    """
+    Проверить, просрочен ли дедлайн.
+    Использование: {{ deadline|is_overdue:now }}
+    """
+    if deadline is None or now is None:
+        return False
+    try:
+        return now > deadline
+    except (TypeError, AttributeError):
+        return False
 

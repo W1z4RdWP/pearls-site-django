@@ -1,7 +1,8 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.http import HttpRequest, HttpResponse, JsonResponse
 from django.views.decorators.http import require_http_methods
-from django.db.models import Count, Exists, OuterRef
+from django.db.models import Count, Exists, OuterRef, Max, Q
+from datetime import timedelta
 from django.contrib import messages
 from django.views.generic import DetailView, TemplateView
 from django.core.paginator import Paginator
@@ -56,20 +57,26 @@ def search_quizzes_ajax(request):
     """
     AJAX endpoint для поиска тестов по названию
     Возвращает JSON с результатами поиска без пагинации
+    При пустом запросе возвращает все тесты (с ограничением в 100)
     """
     search_term = request.GET.get('q', '').strip()
 
-    if not search_term:
-        return JsonResponse({'success': False, 'error': 'Пустой поисковый запрос'})
-
-    # Поиск по названию (case-insensitive)
-    quizzes = Quiz.objects.filter(
-        name__icontains=search_term
-    ).annotate(
-        questions_count=Count('question')
-    ).order_by('-id').values(
-        'id', 'name', 'questions_count', 'attempt_limit', 'pass_threshold'
-    )
+    # Поиск по названию (case-insensitive) или все тесты при пустом запросе
+    if search_term:
+        quizzes = Quiz.objects.filter(
+            name__icontains=search_term
+        ).annotate(
+            questions_count=Count('question')
+        ).order_by('-id').values(
+            'id', 'name', 'questions_count', 'attempt_limit', 'pass_threshold'
+        )
+    else:
+        # При пустом запросе возвращаем все тесты с ограничением
+        quizzes = Quiz.objects.all().annotate(
+            questions_count=Count('question')
+        ).order_by('-id').values(
+            'id', 'name', 'questions_count', 'attempt_limit', 'pass_threshold'
+        )[:100]  # Ограничение на 100 тестов
 
     # Преобразуем QuerySet в список для JSON
     results = list(quizzes)
@@ -1071,6 +1078,9 @@ def _reset_quiz(request) -> HttpRequest:
             del request.session[key]
     return request
 
+
+
+
 def quiz_best_result(request, quiz_id: int) -> HttpResponse:
     """
     Отображает лучший результат теста для пользователя в рамках курса.
@@ -1109,6 +1119,11 @@ def quiz_best_result(request, quiz_id: int) -> HttpResponse:
     # Проверяем, есть ли в тесте открытые вопросы
     has_text_questions = Question.objects.filter(quiz=quiz, question_type=Question.TEXT).exists()
     
+    # Проверяем, ожидает ли последняя попытка проверки наставником
+    pending = False
+    if has_text_questions and last_attempt and last_attempt.status == 'pending':
+        pending = True
+
     context = {
         'quiz': quiz,
         'course': course,
@@ -1117,11 +1132,15 @@ def quiz_best_result(request, quiz_id: int) -> HttpResponse:
         'passed': best_result.passed,
         'pass_threshold': quiz.pass_threshold,
         'has_text_questions': has_text_questions,
+        'pending': pending,
         'mentor_comment': best_result.mentor_comment if best_result.mentor_comment else None,
         'reviewed_by': best_result.reviewed_by if best_result.reviewed_by else None,
     }
     
     return render(request, 'quizzes/quiz_best_result.html', context)
+
+
+
 
 def start_quiz_handler(request):
     if request.method == 'POST':
@@ -1486,27 +1505,77 @@ class PendingQuizzesView(LoginRequiredMixin, UserPassesTestMixin, TemplateView):
         return self.request.user.is_authenticated and self.request.user.is_staff
     
     def get_context_data(self, **kwargs):
+        import datetime
         context = super().get_context_data(**kwargs)
         
-        # Получаем фильтр из GET-параметров (по умолчанию 'pending')
+        # Получаем фильтр из GET-параметров
         status_filter = self.request.GET.get('status', 'pending')
         
+        # Фильтр по дате создания
+        date_from = self.request.GET.get('date_from')
+        date_to = self.request.GET.get('date_to')
+        
+        # Если нет параметров в GET запросе (первичная загрузка), устанавливаем дефолтные значения
+        if not self.request.GET:
+            # По умолчанию период с начала 2025 года до сегодняшней даты
+            date_from = '2025-01-01'
+            date_to = timezone.now().date().strftime('%Y-%m-%d')
+            status_filter = 'pending'
+        elif not date_from and not date_to:
+            # Если статус changed, но даты не указаны, устанавливаем дефолтные
+            if status_filter == 'reviewed':
+                # Для проверенных - последние 30 дней
+                date_to = timezone.now().date().strftime('%Y-%m-%d')
+                date_from = (timezone.now().date() - timedelta(days=30)).strftime('%Y-%m-%d')
+            else:
+                # Для ожидающих проверки - с начала 2025 года
+                date_from = '2025-01-01'
+                date_to = timezone.now().date().strftime('%Y-%m-%d')
+        
         # Фильтруем результаты тестов по статусу
-        if status_filter == 'all':
-            # Показываем и pending, и reviewed
-            pending_results = QuizResult.objects.filter(
-                status__in=['pending', 'reviewed']
-            ).select_related('user', 'course').order_by('-completed_at')
-        elif status_filter == 'reviewed':
+        if status_filter == 'reviewed':
             # Только проверенные
-            pending_results = QuizResult.objects.filter(
+            base_query = QuizResult.objects.filter(
                 status='reviewed'
-            ).select_related('user', 'course').order_by('-completed_at')
+            )
         else:
             # По умолчанию только ожидающие проверки
-            pending_results = QuizResult.objects.filter(
+            base_query = QuizResult.objects.filter(
                 status='pending'
-            ).select_related('user', 'course').order_by('-completed_at')
+            )
+        
+        # Фильтр по дате прохождения
+        if date_from:
+            date_from_parsed = datetime.datetime.strptime(date_from, '%Y-%m-%d').date()
+            date_from_datetime = timezone.make_aware(datetime.datetime.combine(date_from_parsed, datetime.time.min))
+            base_query = base_query.filter(completed_at__gte=date_from_datetime)
+        if date_to:
+            date_to_parsed = datetime.datetime.strptime(date_to, '%Y-%m-%d').date()
+            date_to_datetime = timezone.make_aware(datetime.datetime.combine(date_to_parsed, datetime.time.max))
+            base_query = base_query.filter(completed_at__lte=date_to_datetime)
+        
+        # Получаем только лучшие попытки для каждой комбинации (user, quiz_title, course)
+        # Сначала получаем все результаты, затем фильтруем лучшие попытки
+        # Сортируем по user, quiz_title, затем по course (с учетом NULL), затем по percent и completed_at
+        all_results = base_query.select_related('user', 'course', 'course__responsible_mentor').order_by(
+            'user_id', 'quiz_title', 'course_id', '-percent', '-completed_at'
+        )
+        
+        # Группируем по (user, quiz_title, course) и берем первую (лучшую) попытку
+        seen = set()
+        best_result_ids = []
+        for result in all_results:
+            # Используем None для course_id, если курс не указан
+            course_id = result.course_id if result.course_id else None
+            key = (result.user_id, result.quiz_title, course_id)
+            if key not in seen:
+                seen.add(key)
+                best_result_ids.append(result.id)
+        
+        # Фильтруем только лучшие попытки
+        pending_results = base_query.filter(
+            id__in=best_result_ids
+        ).select_related('user', 'course', 'course__responsible_mentor').order_by('-completed_at')
         
         paginator = Paginator(pending_results, 20)
         page_number = self.request.GET.get('page', 1)
@@ -1515,6 +1584,11 @@ class PendingQuizzesView(LoginRequiredMixin, UserPassesTestMixin, TemplateView):
         context['pending_results'] = page_obj
         context['page_obj'] = page_obj
         context['status_filter'] = status_filter
+        context['now'] = timezone.now()
+        
+        # Передаем текущие значения фильтров в контекст
+        context['date_from'] = date_from if date_from else ''
+        context['date_to'] = date_to if date_to else ''
         
         return context
 

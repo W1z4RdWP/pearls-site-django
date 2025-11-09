@@ -249,8 +249,8 @@
   background-color: #ffcccc !important;
 } */
 
-/* Простое hover выделение для всех строк, кроме ячеек со статусом */
-.incidents-card .table tbody tr:hover td:not([class*="status-"]) {
+/* Простое hover выделение для всех строк, кроме ячеек со статусом и просроченных дедлайнов */
+.incidents-card .table tbody tr:hover td:not([class*="status-"]):not(.deadline-overdue) {
   background-color: #f5f7fa !important;
 }
 /* Цветное выделение ячеек со статусом */
@@ -296,6 +296,25 @@
 .incidents-card .table tbody tr:hover td.status-declined {
   background-color: #f5c6cb !important;
 }
+
+/* Стиль для просроченного дедлайна */
+.incidents-card .table tbody td.deadline-overdue {
+  background-color: #ffb6c1 !important;
+  color: #8b0000 !important;
+  font-weight: 600;
+}
+
+/* Стиль для времени в дедлайне - на 3px меньше даты */
+.incidents-card .table tbody td .deadline-time {
+  font-size: calc(1em - 3px);
+}
+
+/* Hover-эффект для просроченного дедлайна - сохраняем розовый цвет */
+.incidents-card .table tbody tr:hover td.deadline-overdue {
+  background-color: #ffb6c1 !important;
+  color: #8b0000 !important;
+}
+
 .responsible-list {
   margin: 0;
   padding: 0;
