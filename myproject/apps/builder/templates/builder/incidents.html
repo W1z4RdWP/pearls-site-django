@@ -102,7 +102,11 @@
                             {% endif %}
                         </td> -->
                         <td class="{% if inc.deadline and inc.deadline|is_overdue:now %}deadline-overdue{% endif %}">
-                            {{ inc.deadline|date:"d.m.Y"|default:"—" }}
+                            {% if inc.deadline %}
+                                <span class="deadline-date">{{ inc.deadline|date:"d.m.Y" }}</span> <span class="deadline-time">{{ inc.deadline|date:"H:i" }}</span>
+                            {% else %}
+                                —
+                            {% endif %}
                         </td>
                         <td style="text-align: center;">—</td>
                         <td style="text-align: center;">—</td>

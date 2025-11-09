@@ -69,7 +69,7 @@
                         <td>{{ result.course.title|default:"—" }}</td>
                         <td class="{% if deadline and deadline|is_overdue:now %}deadline-overdue{% endif %}">
                             {% if deadline %}
-                                {{ deadline|date:"d.m.Y H:i" }}
+                                <span class="deadline-date">{{ deadline|date:"d.m.Y" }}</span> <span class="deadline-time">{{ deadline|date:"H:i" }}</span>
                             {% else %}
                                 —
                             {% endif %}

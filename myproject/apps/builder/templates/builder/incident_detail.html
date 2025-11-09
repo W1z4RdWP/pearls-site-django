@@ -92,7 +92,11 @@
                             {% endif %}
                         </td>
                         <td class="{% if item.incident.deadline and item.incident.deadline|is_overdue:now %}deadline-overdue{% endif %}">
-                            {{ item.incident.deadline|date:"d.m.Y"|default:"—" }}
+                            {% if item.incident.deadline %}
+                                <span class="deadline-date">{{ item.incident.deadline|date:"d.m.Y" }}</span> <span class="deadline-time">{{ item.incident.deadline|date:"H:i" }}</span>
+                            {% else %}
+                                —
+                            {% endif %}
                         </td>
                         <td>
                             {% if item.incident.responsible_mentor %}

@@ -172,6 +172,11 @@
     font-weight: 600;
 }
 
+/* Стиль для времени в дедлайне - на 3px меньше даты */
+.table tbody td .deadline-time {
+    font-size: calc(1em - 3px);
+}
+
 /* Адаптивность */
 @media (max-width: 1400px) {
     .table {
