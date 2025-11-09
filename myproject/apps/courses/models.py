@@ -148,12 +148,14 @@ class Course(models.Model):
         title (CharField) - заголовок курса
         description (TextField) - описание курса
         allowed_groups (ManyToMany) - группы пользователей, которым автоматически назначентся выбранный курс.
+        responsible_mentor (ForeignKey) - проверяющий наставник, будет назначаться ответственным за проверку тестов в курсе.
         
     """
    
     title = models.CharField(max_length=200, verbose_name="Название курса")
     description = CKEditor5Field('Описание курса', config_name='noTablesImages', blank=True, null=True)
-    author = models.ForeignKey(User, on_delete=models.CASCADE, verbose_name="Автор")
+    author = models.ForeignKey(User, on_delete=models.CASCADE, verbose_name="Автор", related_name='authored_courses')
+    responsible_mentor = models.ForeignKey(User, on_delete=models.CASCADE, verbose_name='Проверяющий наставник', related_name='mentored_courses', blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True, verbose_name="Дата создания")
     image = models.ImageField(upload_to='course_images/', default='course_images/default.jpg', blank=True, null=True, verbose_name="Изображение курса")
     slug = models.SlugField(max_length=200, unique=True, blank=True)

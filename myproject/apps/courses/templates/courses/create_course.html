@@ -2,9 +2,11 @@
 {% load static %}
 {% block specific_styles %} 
     <link rel="stylesheet" href="{% static 'user_management/css/user_form.css' %}">
+    <link rel="stylesheet" href="{% static 'courses/css/create_course.css' %}">
 {% endblock %}
 
 {% block title %}Создать курс{% endblock %}
+
 
 {% block content %}
 <div class="user-form-wrapper">
@@ -53,6 +55,21 @@
             {% if form.final_quiz.errors %}
                 <div class="field-errors">{{ form.final_quiz.errors }}</div>
             {% endif %}
+
+            
+            <div class="form-group" style="width: 100%; margin-bottom: 5%;">
+                <label for="user-display">{{ form.responsible_mentor.label }}</label>
+                <div class="user-select-field" id="userSelectField">
+                    <span id="userDisplayName" class="user-display-name">
+                        {% if form.responsible_mentor.value %}{{ form.instance.responsible_mentor.get_full_name }}{% else %}Выберите пользователя...{% endif %}
+                    </span>
+                    <span class="user-select-icon">&#9660;</span>
+                </div>
+                {{ form.responsible_mentor }}
+                {% if form.responsible_mentor.errors %}
+                    <div class="text-danger mt-1">{{ form.responsible_mentor.errors }}</div>
+                {% endif %}
+            </div>
             
             <label for="id_allowed_groups">{{ form.allowed_groups.label }}</label>
             <div class="um-user-groups-checkboxes">
@@ -107,6 +124,27 @@
             <a href="{% url 'builder:trajectory_management' %}" class="btn btn-secondary">Отмена</a>
         </div>
     </form>
+</div>
+
+
+<!-- Модальное окно для выбора пользователя -->
+<div id="userModal" class="user-modal">
+    <div class="user-modal-content">
+        <div class="user-modal-header">
+            <h3>Выберите сотрудника</h3>
+            <span class="user-modal-close" id="userModalClose">&times;</span>
+        </div>
+        <div class="user-modal-body">
+            <div class="user-search-box">
+                <input type="text" id="userSearchInput" class="form-control" placeholder="Поиск по имени или фамилии...">
+            </div>
+            <div class="user-list-container">
+                <div id="userList" class="user-list">
+                    <div class="user-list-loading">Загрузка...</div>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
 
 <style>
@@ -186,32 +224,16 @@
     cursor: pointer;
 }
 </style>
-
-<script>
-// Сохранение состояния чекбоксов при ошибках валидации
-document.addEventListener('DOMContentLoaded', function() {
-    const checkboxes = document.querySelectorAll('input[name="allowed_groups"]');
-    
-    // Сохранение состояния при изменении
-    checkboxes.forEach(checkbox => {
-        checkbox.addEventListener('change', function() {
-            const checkedGroups = Array.from(checkboxes)
-                .filter(cb => cb.checked)
-                .map(cb => cb.value);
-            localStorage.setItem('course_form_groups', JSON.stringify(checkedGroups));
-        });
-    });
-    
-    // Очистка localStorage при успешной отправке
-    const form = document.querySelector('.user-form');
-    form.addEventListener('submit', function() {
-        setTimeout(() => {
-            localStorage.removeItem('course_form_groups');
-        }, 100);
-    });
-});
-</script>
 {% endblock content %}
+
+{% block specific_scripts %}
+    <script>
+        // API endpoints
+        const searchUsersUrl = "{% url 'builder:api_search_users' %}";
+        const userInputId = "{{ form.responsible_mentor.id_for_label }}";
+    </script>
+    <script src="{% static 'courses/js/create_course.js' %}"></script>
+{% endblock %}
 
 
 

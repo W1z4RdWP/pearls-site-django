@@ -66,16 +66,3 @@ class IncidentForm(forms.ModelForm):
             self.fields['deadline'].widget.attrs['value'] = formatted_value
             # Также устанавливаем initial значение для виджета
             self.fields['deadline'].initial = formatted_value
-
-
-
-# class IncidentForm(forms.ModelForm):
-#     """Форма для создания/редактирования инцидента."""
-#     class Meta:
-#         model = Incident
-#         fields = ['title', 'user', 'incident_type', 'description', 'related_documents', 'role', 'error_type', 'topic', 'status']
-#         widgets = {
-#             'description': forms.Textarea(attrs={'rows': 3}),
-#             'related_documents': forms.SelectMultiple(attrs={'size': 5}),
-#         }
-
