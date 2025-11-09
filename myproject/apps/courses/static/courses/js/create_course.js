@@ -218,7 +218,40 @@ document.addEventListener('DOMContentLoaded', function() {
     
     initializeUserField();
     initializeQuizField();
+    initializeTimeCounter();
 });
+
+// ========== ФУНКЦИИ ДЛЯ СЧЕТЧИКА ВРЕМЕНИ ПРОВЕРКИ ==========
+
+// Инициализация счетчика времени проверки
+function initializeTimeCounter() {
+    const decreaseBtn = document.getElementById('timeCounterDecrease');
+    const increaseBtn = document.getElementById('timeCounterIncrease');
+    const timeInput = document.getElementById('id_mentors_time_to_check');
+    
+    if (!decreaseBtn || !increaseBtn || !timeInput) {
+        return;
+    }
+    
+    // Установка минимального значения
+    const minValue = parseInt(timeInput.getAttribute('min')) || 1;
+    
+    // Обработчик для кнопки уменьшения
+    decreaseBtn.addEventListener('click', function() {
+        let currentValue = parseInt(timeInput.value) || minValue;
+        if (currentValue > minValue) {
+            currentValue--;
+            timeInput.value = currentValue;
+        }
+    });
+    
+    // Обработчик для кнопки увеличения
+    increaseBtn.addEventListener('click', function() {
+        let currentValue = parseInt(timeInput.value) || minValue;
+        currentValue++;
+        timeInput.value = currentValue;
+    });
+}
 
 // Поиск тестов с задержкой
 let quizSearchTimeout;
