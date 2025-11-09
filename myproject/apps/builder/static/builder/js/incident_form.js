@@ -98,7 +98,13 @@ userSearchInput.addEventListener('input', function() {
 function loadUsers(query) {
     userList.innerHTML = '<div class="user-list-loading">Загрузка...</div>';
     
-    const url = searchUsersUrl + '?q=' + encodeURIComponent(query);
+    // Формируем URL с параметрами
+    let url = searchUsersUrl + '?q=' + encodeURIComponent(query);
+    
+    // Если открыто поле "Проверяющий наставник", добавляем фильтр для наставников
+    if (currentActiveField === 'mentor') {
+        url += '&mentor_only=true';
+    }
     
     fetch(url)
         .then(response => response.json())
@@ -225,7 +231,9 @@ function initializeMentorField() {
     if (userId) {
         // Если есть значение в скрытом поле, но текст placeholder - загружаем информацию
         if (templateValue === 'Выберите пользователя...' || !templateValue) {
-            fetch(searchUsersUrl + '?q=')
+            // Используем api_get_users_by_ids для загрузки конкретного пользователя по ID
+            const url = getUsersByIdsUrl + '?ids=' + encodeURIComponent(userId);
+            fetch(url)
                 .then(response => response.json())
                 .then(data => {
                     const user = data.users.find(u => u.id === parseInt(userId));

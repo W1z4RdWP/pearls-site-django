@@ -2825,13 +2825,22 @@ def api_search_users(request):
     """
     API endpoint для поиска пользователей по имени/фамилии.
     Возвращает JSON с данными пользователей.
+    
+    Параметры:
+        q: поисковый запрос (необязательно)
+        mentor_only: если 'true', возвращает только пользователей с ролью наставника (is_mentor=True)
     """
     if not (request.user.is_staff or request.user.is_superuser):
         return JsonResponse({'error': 'Доступ запрещен'}, status=403)
     
     search_query = request.GET.get('q', '').strip()
+    mentor_only = request.GET.get('mentor_only', '').lower() == 'true'
     
-    users = User.objects.filter(is_active=True)
+    users = User.objects.filter(is_active=True).select_related('profile')
+    
+    # Фильтруем только наставников, если указан параметр mentor_only
+    if mentor_only:
+        users = users.filter(profile__is_mentor=True)
     
     if search_query:
         users = users.filter(
