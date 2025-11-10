@@ -33,9 +33,12 @@ const userList = document.getElementById('userList');
 const userDisplayName = document.getElementById('userDisplayName');
 const userInput = document.getElementById(userInputId);
 
+let currentActiveField = 'mentor';
+
 // Открытие модального окна
 if (userSelectField) {
     userSelectField.addEventListener('click', function() {
+        currentActiveField = 'mentor';
         modal.style.display = 'block';
         loadUsers('');
         userSearchInput.focus();
@@ -78,7 +81,10 @@ function loadUsers(query) {
     
     userList.innerHTML = '<div class="user-list-loading">Загрузка...</div>';
     
-    const url = searchUsersUrl + '?q=' + encodeURIComponent(query);
+    let url = searchUsersUrl + '?q=' + encodeURIComponent(query);
+
+    // добавляем фильтр для наставников
+    url += '&mentor_only=true';
     
     fetch(url)
         .then(response => response.json())
@@ -147,7 +153,7 @@ function initializeUserField() {
     
     if (userId) {
         if (templateValue === 'Выберите пользователя...' || !templateValue) {
-            fetch(searchUsersUrl + '?q=')
+            fetch(searchUsersUrl + '?q=&mentor_only=true')
                 .then(response => response.json())
                 .then(data => {
                     const user = data.users.find(u => u.id === parseInt(userId));
