@@ -7,13 +7,14 @@ from django.contrib.auth.decorators import login_required, permission_required
 from django.utils.decorators import method_decorator
 from django.views.generic import ListView, CreateView, UpdateView, DeleteView, FormView
 from django.urls import reverse_lazy, reverse
+from myapp.views import is_admin
 from .models import CategoryName, Document, Incident, LessonVersion, LessonCategoryMirror, DictionarySection, DictionaryTerm
 from django.core.exceptions import PermissionDenied
 from .forms import DocumentForm, IncidentForm
 from .utils import get_compact_fio, user_has_category_access, filter_categories_and_lessons_for_user
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
-from django.db.models import Max, Q
+from django.db.models import Max, Q, Count, F
 from django.db import transaction
 from django.views.decorators.http import require_POST
 import json
@@ -862,6 +863,30 @@ class IncidentListView(ListView):
         incident_type = self.request.GET.get('incident_type')
         if incident_type:
             queryset = queryset.filter(incident_type=incident_type)
+        
+        # Добавляем аннотации для подсчета назначенных и завершивших курс пользователей
+        # Исключаем админов, суперпользователей и авторов курса
+        queryset = queryset.annotate(
+            assigned_users_count=Count(
+                'course__usercourse',
+                distinct=True,
+                filter=Q(
+                    course__isnull=False,
+                    course__usercourse__user__is_staff=False,
+                    course__usercourse__user__is_superuser=False
+                ) & ~Q(course__usercourse__user=F('course__author'))
+            ),
+            completed_users_count=Count(
+                'course__usercourse',
+                distinct=True,
+                filter=Q(
+                    course__isnull=False,
+                    course__usercourse__status='completed',
+                    course__usercourse__user__is_staff=False,
+                    course__usercourse__user__is_superuser=False
+                ) & ~Q(course__usercourse__user=F('course__author'))
+            )
+        )
         
         return queryset
 
