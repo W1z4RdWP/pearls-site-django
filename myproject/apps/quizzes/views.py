@@ -1519,6 +1519,9 @@ class PendingQuizzesView(LoginRequiredMixin, UserPassesTestMixin, TemplateView):
         # Фильтр по наставнику
         mentor_id = self.request.GET.get('mentor', '')
         
+        # Фильтр по просроченным тестам
+        is_overdue_filter = self.request.GET.get('is_overdue_filter', '')
+        
         # Если нет параметров в GET запросе (первичная загрузка), устанавливаем дефолтные значения
         if not self.request.GET:
             # По умолчанию период с начала 2025 года до сегодняшней даты
@@ -1558,17 +1561,46 @@ class PendingQuizzesView(LoginRequiredMixin, UserPassesTestMixin, TemplateView):
             date_to_datetime = timezone.make_aware(datetime.datetime.combine(date_to_parsed, datetime.time.max))
             base_query = base_query.filter(completed_at__lte=date_to_datetime)
 
-
+        # Фильтр по наставнику
         if mentor_id:
             base_query = base_query.filter(course__responsible_mentor_id=mentor_id)
 
-        # Фильтр по наставнику
-        mentors_query = base_query.filter(
+        # Фильтр по просроченным тестам
+        if is_overdue_filter:
+            # Получаем текущее время
+            now = timezone.now()
+            # Фильтруем результаты, у которых есть курс с mentors_time_to_check и дедлайн просрочен
+            # Дедлайн = completed_at + mentors_time_to_check дней
+            # Получаем все результаты с курсами, у которых есть mentors_time_to_check
+            results_with_courses = base_query.filter(
+                course__isnull=False,
+                course__mentors_time_to_check__isnull=False,
+                course__mentors_time_to_check__gt=0
+            ).select_related('course')
+            
+            # Фильтруем в Python, так как Django ORM не поддерживает умножение F на timedelta напрямую
+            overdue_result_ids = []
+            for result in results_with_courses:
+                if result.completed_at and result.course.mentors_time_to_check:
+                    deadline = result.completed_at + timedelta(days=result.course.mentors_time_to_check)
+                    if deadline < now:
+                        overdue_result_ids.append(result.id)
+            
+            # Применяем фильтр по ID просроченных результатов
+            if overdue_result_ids:
+                base_query = base_query.filter(id__in=overdue_result_ids)
+            else:
+                # Если нет просроченных результатов, возвращаем пустой queryset
+                base_query = base_query.none()
+
+        # Получаем список всех наставников из всех результатов (до фильтрации по наставнику)
+        # Это нужно для того, чтобы в выпадающем списке были все наставники, а не только те, что в текущих результатах
+        all_mentors_query = QuizResult.objects.filter(
             course__responsible_mentor__isnull=False
         ).values_list('course__responsible_mentor', flat=True).distinct()
-
+        
         # Объекты User наставников
-        mentors = User.objects.filter(id__in=mentors_query).order_by('first_name', 'last_name', 'username')
+        mentors = User.objects.filter(id__in=all_mentors_query).order_by('first_name', 'last_name', 'username')
 
         # Получаем только лучшие попытки для каждой комбинации (user, quiz_title, course)
         # Сначала получаем все результаты, затем фильтруем лучшие попытки
@@ -1607,6 +1639,7 @@ class PendingQuizzesView(LoginRequiredMixin, UserPassesTestMixin, TemplateView):
         context['date_to'] = date_to if date_to else ''
         context['mentors'] = mentors
         context['selected_mentor_id'] = mentor_id if mentor_id else ''
+        context['is_overdue_filter'] = bool(is_overdue_filter)
         
         return context
 

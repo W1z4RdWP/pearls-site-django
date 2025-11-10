@@ -35,16 +35,20 @@
                 <select class="form-control" id="mentor_select" name="mentor">
                     <option value="">Все наставники</option>
                     {% for mentor in mentors %}
-                    <option value="{{ mentor.id }}" {% if selected_mentor_id == mentor.id|stringformat:"s" %}selected{% endif %}>
+                    <option value="{{ mentor.id }}" {% if selected_mentor_id|stringformat:"s" == mentor.id|stringformat:"s" %}selected{% endif %}>
                         {{ mentor.get_full_name|default:mentor.username }}
                     </option>
                     {% endfor %}
                 </select>
             </div>
+            <div class="col-md-3 col-lg-2">
+                <input type="checkbox" name="is_overdue_filter" id="is_overdue_filter" value="1" {% if is_overdue_filter %}checked{% endif %}>
+                <label for="is_overdue_filter">Просрочен</label>
+            </div>
             <!-- Кнопки действий -->
-            <div class="col-md-3 col-lg-4 text-end">
+            <div class="col-md-2 col-lg-2 text-end">
                 <button type="submit" class="btn btn-primary">Применить фильтры</button>
-                <a href="{% url 'quizzes:pending_quizzes' %}" class="btn btn-secondary">Сбросить</a>
+                <a href="{% url 'quizzes:pending_quizzes' %}" class="btn btn-secondary" style="width: 85%;">Сбросить</a>
             </div>
         </div>
     </form>
@@ -137,8 +141,8 @@
     {% if page_obj.has_other_pages %}
     <div class="pagination">
         {% if page_obj.has_previous %}
-        <a href="?status={{ status_filter }}&date_from={{ date_from }}&date_to={{ date_to }}&page=1">« Первая</a>
-        <a href="?status={{ status_filter }}&date_from={{ date_from }}&date_to={{ date_to }}&page={{ page_obj.previous_page_number }}">Назад</a>
+        <a href="?status={{ status_filter }}&date_from={{ date_from }}&date_to={{ date_to }}{% if selected_mentor_id %}&mentor={{ selected_mentor_id }}{% endif %}{% if is_overdue_filter %}&is_overdue_filter=1{% endif %}&page=1">« Первая</a>
+        <a href="?status={{ status_filter }}&date_from={{ date_from }}&date_to={{ date_to }}{% if selected_mentor_id %}&mentor={{ selected_mentor_id }}{% endif %}{% if is_overdue_filter %}&is_overdue_filter=1{% endif %}&page={{ page_obj.previous_page_number }}">Назад</a>
         {% endif %}
         
         <span class="current">
@@ -146,8 +150,8 @@
         </span>
         
         {% if page_obj.has_next %}
-        <a href="?status={{ status_filter }}&date_from={{ date_from }}&date_to={{ date_to }}&page={{ page_obj.next_page_number }}">Вперед</a>
-        <a href="?status={{ status_filter }}&date_from={{ date_from }}&date_to={{ date_to }}&page={{ page_obj.paginator.num_pages }}">Последняя »</a>
+        <a href="?status={{ status_filter }}&date_from={{ date_from }}&date_to={{ date_to }}{% if selected_mentor_id %}&mentor={{ selected_mentor_id }}{% endif %}{% if is_overdue_filter %}&is_overdue_filter=1{% endif %}&page={{ page_obj.next_page_number }}">Вперед</a>
+        <a href="?status={{ status_filter }}&date_from={{ date_from }}&date_to={{ date_to }}{% if selected_mentor_id %}&mentor={{ selected_mentor_id }}{% endif %}{% if is_overdue_filter %}&is_overdue_filter=1{% endif %}&page={{ page_obj.paginator.num_pages }}">Последняя »</a>
         {% endif %}
     </div>
     {% endif %}
