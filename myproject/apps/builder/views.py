@@ -933,6 +933,83 @@ class IncidentUpdateView(UpdateView, AuditLoggerMixin):
         return response
 
 
+@method_decorator(login_required, name='dispatch')
+class CreateCourseFromIncidentView(View):
+    """
+    Создание курса-инцидента из инцидента.
+    """
+    def dispatch(self, request, *args, **kwargs):
+        if not request.user.is_authenticated or not (request.user.is_staff or request.user.is_superuser):
+            return render(request, '403.html', status=403)
+        return super().dispatch(request, *args, **kwargs)
+    
+    def post(self, request, *args, **kwargs):
+        incident_id = kwargs.get('pk')
+        try:
+            incident = get_object_or_404(Incident, pk=incident_id)
+            
+            # Проверяем, не создан ли уже курс для этого инцидента
+            if incident.course:
+                return redirect('courses:course_detail', slug=incident.course.slug)
+            
+            # Создаем курс с названием инцидента
+            course = Course.objects.create(
+                title=incident.title,
+                description=incident.description or '',
+                author=request.user,
+                is_incident=True,
+                responsible_mentor=incident.responsible_mentor,
+                mentors_time_to_check=incident.mentors_time_to_check or 2
+            )
+            
+            # Связываем инцидент с курсом
+            incident.course = course
+            incident.save()
+            
+            # Назначаем курс всем staff/superuser
+            from django.contrib.auth import get_user_model
+            User = get_user_model()
+            staff_users = User.objects.filter(
+                is_active=True
+            ).filter(
+                models.Q(is_staff=True) | models.Q(is_superuser=True)
+            ).distinct()
+            
+            for user in staff_users:
+                UserCourse.objects.get_or_create(
+                    user=user,
+                    course=course,
+                    defaults={'status': 'available'}
+                )
+            
+            # Назначаем курс пользователям, связанным с инцидентом
+            if incident.assigned_to.exists():
+                for user in incident.assigned_to.all():
+                    UserCourse.objects.get_or_create(
+                        user=user,
+                        course=course,
+                        defaults={'status': 'available', 'deadline': incident.deadline}
+                    )
+            
+            if incident.violators.exists():
+                for user in incident.violators.all():
+                    UserCourse.objects.get_or_create(
+                        user=user,
+                        course=course,
+                        defaults={'status': 'available', 'deadline': incident.deadline}
+                    )
+            
+            # Перенаправляем на страницу курса
+            return redirect('courses:course_detail', slug=course.slug)
+        except Exception as e:
+            # В случае ошибки перенаправляем обратно на форму инцидента с сообщением об ошибке
+            from django.contrib import messages
+            import traceback
+            messages.error(request, f'Ошибка при создании курса: {str(e)}')
+            if incident_id:
+                return redirect('builder:incident_edit', pk=incident_id)
+            return redirect('builder:incidents')
+
 
 class IncidentDetailListView(ListView):
     """

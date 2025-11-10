@@ -90,9 +90,18 @@ class Incident(models.Model):
     resolved_at = models.DateTimeField(null=True, blank=True, verbose_name="Дата решения")
     deadline = models.DateTimeField(null=True, blank=True, verbose_name="Дедлайн")
     
-
+    # Связь с курсом-инцидентом
+    course = models.ForeignKey(
+        'courses.Course',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='incidents',
+        verbose_name='Курс-инцидент'
+    )
     
 
+    
     class Meta:
         indexes = [
             models.Index(fields=['user'], name='incident_user_idx'),

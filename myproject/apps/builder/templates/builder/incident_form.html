@@ -112,11 +112,30 @@
             {% endif %}
         </div>
 
-        <div class="form-actions mt-4">
-            <button type="submit" class="btn btn-primary">Сохранить</button>
-            <a href="{% url 'builder:incidents' %}" class="btn btn-secondary">Отмена</a>
+        <div class="form-actions mt-4" style="display: flex; justify-content: space-between; align-items: center;">
+            <div>
+                <button type="submit" class="btn btn-primary">Сохранить</button>
+                <a href="{% url 'builder:incidents' %}" class="btn btn-secondary">Отмена</a>
+            </div>
+            {% if object and object.pk %}
+                {% if object.course %}
+                    <a href="{% url 'courses:course_detail' slug=object.course.slug %}" class="btn btn-success">
+                        <i class="fa fa-graduation-cap"></i> Перейти к курсу
+                    </a>
+                {% else %}
+                    <button type="button" class="btn btn-success" onclick="document.getElementById('create-course-form').submit();">
+                        <i class="fa fa-graduation-cap"></i> Сформировать курс
+                    </button>
+                {% endif %}
+            {% endif %}
         </div>
     </form>
+    
+    {% if object and object.pk and not object.course %}
+        <form id="create-course-form" method="POST" action="{% url 'builder:incident_create_course' pk=object.pk %}" style="display: none;">
+            {% csrf_token %}
+        </form>
+    {% endif %}
 </div>
 
 <!-- Модальное окно для выбора пользователя -->
