@@ -992,9 +992,14 @@ class CreateCourseFromIncidentView(View):
                 mentors_time_to_check=incident.mentors_time_to_check or 2
             )
             
-            # Связываем инцидент с курсом
+            # Связываем инцидент с курсом и обновляем статус
             incident.course = course
-            incident.save()
+            incident.status = 'assigned'
+            incident.save(update_fields=['course', 'status', 'updated_at'])
+
+            if incident.course and not incident.status == 'assigned':
+                incident.status = 'assigned'
+                incident.save(update_fields=['course', 'status', 'updated_at'])
             
             # Назначаем курс всем staff/superuser
             from django.contrib.auth import get_user_model
