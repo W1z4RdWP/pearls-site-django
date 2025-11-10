@@ -42,7 +42,7 @@ class IncidentForm(forms.ModelForm):
                 attrs={'class': 'form-control', 'type': 'datetime-local'},
                 format='%Y-%m-%dT%H:%M'
             ),
-            'status': forms.Select(attrs={'class': 'form-control'}),
+            'status': forms.Select(attrs={'class': 'form-control', 'disabled': True}),
             'description': forms.Textarea(attrs={'class': 'form-control', 'rows': 3, 'placeholder': 'Дополнительные комментарии...'}),
         }
     

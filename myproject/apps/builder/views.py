@@ -906,6 +906,8 @@ class IncidentCreateView(CreateView, AuditLoggerMixin):
 
     
     def form_valid(self, form):
+        # Устанавливаем статус "Принят" для нового инцидента
+        form.instance.status = 'accepted'
         response = super().form_valid(form)
         # Логируем создание инцидента
         self.log_create_action(self.object, "Создан новый инцидент")
@@ -927,7 +929,35 @@ class IncidentUpdateView(UpdateView, AuditLoggerMixin):
         return super().dispatch(request, *args, **kwargs)
     
     def form_valid(self, form):
+        # Сохраняем старый список назначенных пользователей до сохранения формы
+        old_assigned_users = set(self.object.assigned_to.all())
+        
+        # Получаем новый список назначенных пользователей из формы (до сохранения)
+        new_assigned_users = set(form.cleaned_data.get('assigned_to', []))
+        
+        # Определяем, какие пользователи были удалены и добавлены
+        removed_users = old_assigned_users - new_assigned_users
+        added_users = new_assigned_users - old_assigned_users
+        
+        # Сохраняем форму
         response = super().form_valid(form)
+        
+        # Если у инцидента есть связанный курс, обновляем назначения курса
+        if self.object.course:
+            course = self.object.course
+            
+            # Удаляем назначение курса для пользователей, которые были удалены из списка назначенных
+            for user in removed_users:
+                UserCourse.objects.filter(user=user, course=course).delete()
+            
+            # Назначаем курс новым пользователям
+            for user in added_users:
+                UserCourse.objects.get_or_create(
+                    user=user,
+                    course=course,
+                    defaults={'status': 'available', 'deadline': self.object.deadline}
+                )
+        
         # Логируем обновление инцидента
         self.log_update_action(self.object, "Инцидент обновлён")
         return response
