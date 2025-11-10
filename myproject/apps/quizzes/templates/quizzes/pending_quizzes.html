@@ -31,8 +31,18 @@
                     <option value="reviewed" {% if status_filter == 'reviewed' %}selected{% endif %}>✅ Проверенные</option>
                 </select>
             </div>
+            <div class="col-md-3 col-lg-2">
+                <select class="form-control" id="mentor_select" name="mentor">
+                    <option value="">Все наставники</option>
+                    {% for mentor in mentors %}
+                    <option value="{{ mentor.id }}" {% if selected_mentor_id == mentor.id|stringformat:"s" %}selected{% endif %}>
+                        {{ mentor.get_full_name|default:mentor.username }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
             <!-- Кнопки действий -->
-            <div class="col-md-3 col-lg-6 text-end">
+            <div class="col-md-3 col-lg-4 text-end">
                 <button type="submit" class="btn btn-primary">Применить фильтры</button>
                 <a href="{% url 'quizzes:pending_quizzes' %}" class="btn btn-secondary">Сбросить</a>
             </div>

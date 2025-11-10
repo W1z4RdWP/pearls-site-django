@@ -7,6 +7,7 @@ from django.contrib import messages
 from django.views.generic import DetailView, TemplateView
 from django.core.paginator import Paginator
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
+from django.contrib.auth.models import User
 
 from myapp.models import QuizResult, UserCourse, UserAnswer, UserProgress
 from courses.models import Course
@@ -1514,6 +1515,9 @@ class PendingQuizzesView(LoginRequiredMixin, UserPassesTestMixin, TemplateView):
         # Фильтр по дате создания
         date_from = self.request.GET.get('date_from')
         date_to = self.request.GET.get('date_to')
+
+        # Фильтр по наставнику
+        mentor_id = self.request.GET.get('mentor', '')
         
         # Если нет параметров в GET запросе (первичная загрузка), устанавливаем дефолтные значения
         if not self.request.GET:
@@ -1553,7 +1557,19 @@ class PendingQuizzesView(LoginRequiredMixin, UserPassesTestMixin, TemplateView):
             date_to_parsed = datetime.datetime.strptime(date_to, '%Y-%m-%d').date()
             date_to_datetime = timezone.make_aware(datetime.datetime.combine(date_to_parsed, datetime.time.max))
             base_query = base_query.filter(completed_at__lte=date_to_datetime)
-        
+
+
+        if mentor_id:
+            base_query = base_query.filter(course__responsible_mentor_id=mentor_id)
+
+        # Фильтр по наставнику
+        mentors_query = base_query.filter(
+            course__responsible_mentor__isnull=False
+        ).values_list('course__responsible_mentor', flat=True).distinct()
+
+        # Объекты User наставников
+        mentors = User.objects.filter(id__in=mentors_query).order_by('first_name', 'last_name', 'username')
+
         # Получаем только лучшие попытки для каждой комбинации (user, quiz_title, course)
         # Сначала получаем все результаты, затем фильтруем лучшие попытки
         # Сортируем по user, quiz_title, затем по course (с учетом NULL), затем по percent и completed_at
@@ -1589,8 +1605,12 @@ class PendingQuizzesView(LoginRequiredMixin, UserPassesTestMixin, TemplateView):
         # Передаем текущие значения фильтров в контекст
         context['date_from'] = date_from if date_from else ''
         context['date_to'] = date_to if date_to else ''
+        context['mentors'] = mentors
+        context['selected_mentor_id'] = mentor_id if mentor_id else ''
         
         return context
+
+
 
 
 class ReviewQuizView(LoginRequiredMixin, UserPassesTestMixin, DetailView):
