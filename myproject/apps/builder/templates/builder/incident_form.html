@@ -102,7 +102,10 @@
         </div>
 
         <div class="form-group">
-            <label for="{{ form.description.id_for_label }}">{{ form.description.label }}</label>
+            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+                <label for="{{ form.description.id_for_label }}" style="margin: 0;">{{ form.description.label }}</label>
+                <span class="help-icon" tabindex="0" role="button" aria-label="Подсказка" data-tooltip="Здесь нужно зафиксировать саму суть ситуации, без общих фраз.&#10;&#10;💡 Отвечай на 4 коротких вопроса:&#10;1. Что произошло? (описать событие, факт — например: &quot;пациент ждал 40 минут&quot;, &quot;в DENT не внесли оплату&quot;).&#10;2. Где произошло? (филиал, кабинет, отдел).&#10;3. С кем / с какой ролью? (администратор, врач, ассистент, техник).&#10;4. Почему или из-за чего? (ошибка, недопонимание, отсутствие стандарта, неисправное оборудование и т.д.).&#10;&#10;❗️Не нужно писать: &quot;виноват админ&quot; или &quot;пациент грубый&quot; — важно зафиксировать факт и контекст, не эмоцию.&#10;&#10;Пример хорошего описания:&#10;&quot;Пациент ожидал приём 35 минут из-за того, что администратор не уведомил врача о прибытии. В расписании была путаница, не было отметки о переносе.&quot;&#10;&#10;Пример плохого описания:&#10;&quot;Админ опять всё перепутал. Пациент злой.&quot;">?</span>
+            </div>
             {{ form.description }}
             {% if form.description.errors %}
                 <div class="text-danger mt-1">{{ form.description.errors }}</div>
