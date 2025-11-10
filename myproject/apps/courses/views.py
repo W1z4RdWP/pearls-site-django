@@ -374,11 +374,12 @@ class CourseDetailView(DetailView):
                                 user_course.status = 'completed'
                                 user_course.save()
                                 
-                                # Начисляем очки только если курс только что завершен
-                                award_dascoin_points(user, course.points, f"Завершение курса {course.title}")
-                                award_course_badge(user, course)
-                                # Выдаем сертификат за курс (если настроено)
-                                issue_certificate(user, course=course)
+                                # Начисляем очки только если курс только что завершен И курс не является инцидентом
+                                if not course.is_incident:
+                                    award_dascoin_points(user, course.points, f"Завершение курса {course.title}")
+                                    award_course_badge(user, course)
+                                    # Выдаем сертификат за курс (если настроено)
+                                    issue_certificate(user, course=course)
                             else:
                                 # Курс уже был завершен, просто обновляем статус
                                 user_course.status = 'completed'
@@ -394,9 +395,10 @@ class CourseDetailView(DetailView):
                             user_course.status = 'completed'
                             user_course.save()
                             
-                            # Начисляем очки только если курс только что завершен
-                            award_dascoin_points(user, course.points, f"Завершение курса {course.title}")
-                            award_course_badge(user, course)
+                            # Начисляем очки только если курс только что завершен И курс не является инцидентом
+                            if not course.is_incident:
+                                award_dascoin_points(user, course.points, f"Завершение курса {course.title}")
+                                award_course_badge(user, course)
                         else:
                             # Курс уже был завершен, просто обновляем статус
                             user_course.status = 'completed'
@@ -1307,8 +1309,8 @@ def complete_lesson(request, course_slug, lesson_id):
         transaction_type='award'
     ).exists()
     
-    # Начисляем очки только если урок завершается впервые И баллы не были начислены ранее
-    if not progress.completed and not already_rewarded:
+    # Начисляем очки только если урок завершается впервые И баллы не были начислены ранее И курс не является инцидентом
+    if not progress.completed and not already_rewarded and not course.is_incident:
         award_dascoin_points(user, lesson.points, lesson_reward_reason)
     
     # Создаем или обновляем прогресс
@@ -1371,10 +1373,12 @@ def complete_lesson(request, course_slug, lesson_id):
                 if not was_completed_before:
                     user_course.status = 'completed'
                     user_course.save()
-                    award_dascoin_points(user, course.points, f"Завершение курса {course.title}")
-                    award_course_badge(user, course)
-                    # Выдаем сертификат за курс (если настроено)
-                    issue_certificate(user, course=course)
+                    # Начисляем баллы только если курс не является инцидентом
+                    if not course.is_incident:
+                        award_dascoin_points(user, course.points, f"Завершение курса {course.title}")
+                        award_course_badge(user, course)
+                        # Выдаем сертификат за курс (если настроено)
+                        issue_certificate(user, course=course)
                 else:
                     # Курс уже был завершен, просто обновляем статус
                     user_course.status = 'completed'
@@ -1385,10 +1389,12 @@ def complete_lesson(request, course_slug, lesson_id):
             if not was_completed_before:
                 user_course.status = 'completed'
                 user_course.save()
-                award_dascoin_points(user, course.points, f"Завершение курса {course.title}")
-                award_course_badge(user, course)
-                # Выдаем сертификат за курс (если настроено)
-                issue_certificate(user, course=course)
+                # Начисляем баллы только если курс не является инцидентом
+                if not course.is_incident:
+                    award_dascoin_points(user, course.points, f"Завершение курса {course.title}")
+                    award_course_badge(user, course)
+                    # Выдаем сертификат за курс (если настроено)
+                    issue_certificate(user, course=course)
             else:
                 # Курс уже был завершен, просто обновляем статус
                 user_course.status = 'completed'
@@ -1446,10 +1452,12 @@ def complete_course(request, course_id):
             if not was_completed_before:
                 user_course.status = 'completed'
                 user_course.save()
-                award_dascoin_points(user, course.points, f"Завершение курса {course.title}") 
-                award_course_badge(user, course)
-                # Выдаем сертификат за курс (если настроено)
-                issue_certificate(user, course=course)
+                # Начисляем очки только если курс не является инцидентом
+                if not course.is_incident:
+                    award_dascoin_points(user, course.points, f"Завершение курса {course.title}") 
+                    award_course_badge(user, course)
+                    # Выдаем сертификат за курс (если настроено)
+                    issue_certificate(user, course=course)
             else:
                 # Курс уже был завершен, просто обновляем статус
                 user_course.status = 'completed'
@@ -1463,10 +1471,12 @@ def complete_course(request, course_id):
         if not was_completed_before:
             user_course.status = 'completed'
             user_course.save()
-            award_dascoin_points(user, course.points, f"Завершение курса {course.title}") 
-            award_course_badge(user, course)
-            # Выдаем сертификат за курс (если настроено)
-            issue_certificate(user, course=course)
+            # Начисляем очки только если курс не является инцидентом
+            if not course.is_incident:
+                award_dascoin_points(user, course.points, f"Завершение курса {course.title}") 
+                award_course_badge(user, course)
+                # Выдаем сертификат за курс (если настроено)
+                issue_certificate(user, course=course)
         else:
             # Курс уже был завершен, просто обновляем статус
             user_course.status = 'completed'

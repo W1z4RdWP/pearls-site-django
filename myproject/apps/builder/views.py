@@ -33,6 +33,10 @@ from .audit_logger import (
     log_reorder, log_mirror, log_actualize, serialize_model_data,
     AuditLoggerMixin
 )
+from user_management.utils import send_course_assignment_email
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 
@@ -1045,19 +1049,47 @@ class CreateCourseFromIncidentView(View):
             # Назначаем курс пользователям, связанным с инцидентом
             if incident.assigned_to.exists():
                 for user in incident.assigned_to.all():
-                    UserCourse.objects.get_or_create(
+                    user_course, created = UserCourse.objects.get_or_create(
                         user=user,
                         course=course,
                         defaults={'status': 'available', 'deadline': incident.deadline}
                     )
+                    if created:
+                        # Создаем внутреннее уведомление
+                        try:
+                            from notifications.models import Notification
+                            Notification.create_course_assignment_notification(user, course)
+                        except Exception as e:
+                            logger.error(f"Ошибка создания внутреннего уведомления о курсе-инциденте {course.title}: {e}")
+                        
+                        # Отправляем email уведомление
+                        try:
+                            send_course_assignment_email(user, course)
+                            logger.info(f"Отправлено email уведомление о курсе-инциденте {course.title} пользователю {user.email}")
+                        except Exception as e:
+                            logger.error(f"Ошибка отправки email уведомления о курсе-инциденте {course.title}: {e}")
             
             if incident.violators.exists():
                 for user in incident.violators.all():
-                    UserCourse.objects.get_or_create(
+                    user_course, created = UserCourse.objects.get_or_create(
                         user=user,
                         course=course,
                         defaults={'status': 'available', 'deadline': incident.deadline}
                     )
+                    if created:
+                        # Создаем внутреннее уведомление
+                        try:
+                            from notifications.models import Notification
+                            Notification.create_course_assignment_notification(user, course)
+                        except Exception as e:
+                            logger.error(f"Ошибка создания внутреннего уведомления о курсе-инциденте {course.title}: {e}")
+                        
+                        # Отправляем email уведомление
+                        try:
+                            send_course_assignment_email(user, course)
+                            logger.info(f"Отправлено email уведомление о курсе-инциденте {course.title} пользователю {user.email}")
+                        except Exception as e:
+                            logger.error(f"Ошибка отправки email уведомления о курсе-инциденте {course.title}: {e}")
             
             # Перенаправляем на страницу курса
             return redirect('courses:course_detail', slug=course.slug)
