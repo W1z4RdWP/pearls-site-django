@@ -5,3 +5,6 @@ class BuilderConfig(AppConfig):
     default_auto_field = 'django.db.models.BigAutoField'
     name = 'builder'
     app_label = 'builder'
+    
+    def ready(self):
+        import builder.signals  # noqa

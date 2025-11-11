@@ -869,26 +869,28 @@ class IncidentListView(ListView):
             queryset = queryset.filter(incident_type=incident_type)
         
         # Добавляем аннотации для подсчета назначенных и завершивших курс пользователей
+        # Считаем только пользователей из assigned_to (сигнал синхронизирует доступ к курсу)
         # Исключаем админов, суперпользователей и авторов курса
         queryset = queryset.annotate(
             assigned_users_count=Count(
-                'course__usercourse',
+                'assigned_to',
                 distinct=True,
                 filter=Q(
                     course__isnull=False,
-                    course__usercourse__user__is_staff=False,
-                    course__usercourse__user__is_superuser=False
-                ) & ~Q(course__usercourse__user=F('course__author'))
+                    assigned_to__is_staff=False,
+                    assigned_to__is_superuser=False
+                ) & ~Q(assigned_to=F('course__author'))
             ),
             completed_users_count=Count(
-                'course__usercourse',
+                'assigned_to',
                 distinct=True,
                 filter=Q(
                     course__isnull=False,
                     course__usercourse__status='completed',
-                    course__usercourse__user__is_staff=False,
-                    course__usercourse__user__is_superuser=False
-                ) & ~Q(course__usercourse__user=F('course__author'))
+                    course__usercourse__user=F('assigned_to'),
+                    assigned_to__is_staff=False,
+                    assigned_to__is_superuser=False
+                ) & ~Q(assigned_to=F('course__author'))
             )
         )
         
