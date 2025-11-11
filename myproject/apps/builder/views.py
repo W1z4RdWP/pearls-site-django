@@ -2654,7 +2654,7 @@ class CourseListView(ListView):
     """
     template_name = 'builder/course_list.html'
     context_object_name = 'courses'
-    paginate_by = 12
+    paginate_by = 15
     
     def dispatch(self, request, *args, **kwargs):
         if not request.user.is_authenticated or not (request.user.is_staff or request.user.is_superuser):
@@ -2731,7 +2731,7 @@ class IncidentCourseListView(ListView):
     """
     template_name = 'builder/incident_course_list.html'
     context_object_name = 'courses'
-    paginate_by = 12
+    paginate_by = 15
 
     def dispatch(self, request, *args, **kwargs):
         if not request.user.is_authenticated or not (request.user.is_staff or request.user.is_superuser):
