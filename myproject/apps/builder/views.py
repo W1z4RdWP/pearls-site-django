@@ -1124,8 +1124,8 @@ class IncidentDetailListView(ListView):
         import datetime
         
         queryset = super().get_queryset()
-        # Оптимизация: предзагрузка ManyToMany полей
-        queryset = queryset.prefetch_related('assigned_to', 'violators').select_related('user', 'responsible_mentor')
+        # Оптимизация: предзагрузка ManyToMany полей и связанных объектов
+        queryset = queryset.prefetch_related('assigned_to', 'violators').select_related('user', 'responsible_mentor', 'course')
         
         # Фильтр по названию инцидента (поиск)
         search = self.request.GET.get('search', '').strip()
@@ -1156,6 +1156,7 @@ class IncidentDetailListView(ListView):
     def get_context_data(self, **kwargs):
         from django.utils import timezone
         from django.contrib.auth import get_user_model
+        from myapp.models import QuizResult
         
         context = super().get_context_data(**kwargs)
         context['now'] = timezone.now()  # Текущая дата и время для проверки просроченных дедлайнов
@@ -1208,10 +1209,54 @@ class IncidentDetailListView(ListView):
                 if violator_filter == 'no' and is_violator:
                     continue
                 
+                # Вычисляем прогресс курса, если он есть
+                progress_percent = None
+                if incident.course:
+                    course = incident.course
+                    
+                    # Получаем траекторию пользователя для этого курса
+                    trajectory = UserLessonTrajectory.objects.filter(user=user, course=course).first()
+                    
+                    if trajectory:
+                        # Используем уроки из траектории
+                        lessons = trajectory.lessons.all().order_by('order')
+                        total_lessons = lessons.count()
+                        lesson_ids = lessons.values_list('id', flat=True)
+                        completed_lessons = UserProgress.objects.filter(
+                            user=user,
+                            course=course,
+                            completed=True,
+                            lesson_id__in=lesson_ids
+                        ).count()
+                    else:
+                        # Используем все уроки курса
+                        lessons = course.lessons.all().order_by('order')
+                        total_lessons = lessons.count()
+                        completed_lessons = UserProgress.objects.filter(
+                            user=user,
+                            course=course,
+                            completed=True
+                        ).count()
+                    
+                    # Подсчитываем завершенные тесты в рамках этого курса (только уникальные по quiz_title)
+                    completed_quizzes = QuizResult.objects.filter(
+                        user=user,
+                        course=course,
+                        quiz_title__in=[quiz.name for quiz in course.quizzes.all()],
+                        passed=True
+                    ).values('quiz_title').distinct().count()
+                    total_quizzes = course.quizzes.count()
+                    
+                    # Вычисляем процент прогресса с учетом уроков и тестов
+                    total_materials = total_lessons + total_quizzes
+                    completed_materials = completed_lessons + completed_quizzes
+                    progress_percent = int((completed_materials / total_materials) * 100) if total_materials > 0 else 0
+                
                 incident_user_list.append({
                     'incident': incident,
                     'user': user,
                     'is_violator': is_violator,
+                    'progress_percent': progress_percent,
                 })
         
         context['incident_user_list'] = incident_user_list

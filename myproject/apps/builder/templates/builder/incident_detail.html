@@ -105,7 +105,13 @@
                                 —
                             {% endif %}
                         </td>
-                        <td style="text-align: center;">0%</td>
+                        <td style="text-align: center;">
+                            {% if item.progress_percent is not None %}
+                                {{ item.progress_percent }}%
+                            {% else %}
+                                —
+                            {% endif %}
+                        </td>
                         <td class="status-{{ item.incident.status }}" style="text-align: center;">{{ item.incident.get_status_display }}</td>
                     </tr>
                     {% endfor %}
