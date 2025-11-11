@@ -1,12 +1,16 @@
-from django.db.models.signals import m2m_changed, post_save
+from django.db.models.signals import m2m_changed, post_save, pre_save
 from django.dispatch import receiver
 from django.contrib.auth.models import User,Group
+from django.utils import timezone
 from courses.models import Course, Trajectory, UserCourseTrajectory, TrajectoryCourse
 from myapp.models import UserCourse
 from user_management.utils import send_course_assignment_email, send_trajectory_assignment_email
 import logging
 
 logger = logging.getLogger(__name__)
+
+# Словарь для хранения старых значений UserCourse перед сохранением
+_user_course_old_status = {}
 
 
 
@@ -349,3 +353,78 @@ def auto_assign_specialized_courses_on_completion(sender, instance, created, **k
                             logger.error(f"Ошибка отправки email уведомления о траектории {trajectory.name}: {e}")
             else:
                 logger.info(f"Пользователь {user.username} не состоит ни в одной специализированной группе")
+
+
+@receiver(pre_save, sender=UserCourse)
+def store_old_user_course_status(sender, instance, **kwargs):
+    """
+    Сохраняем старый статус UserCourse перед сохранением для проверки изменений
+    """
+    if instance.pk:
+        try:
+            old_instance = UserCourse.objects.get(pk=instance.pk)
+            _user_course_old_status[instance.pk] = old_instance.status
+        except UserCourse.DoesNotExist:
+            _user_course_old_status[instance.pk] = None
+    else:
+        # Для новых записей используем временный ключ
+        _user_course_old_status[id(instance)] = None
+
+
+@receiver(post_save, sender=UserCourse)
+def check_incident_completion_on_course_completion(sender, instance, created, **kwargs):
+    """
+    Проверяет, все ли назначенные пользователи завершили курс-инцидент,
+    и если да, меняет статус инцидента на 'Завершён'
+    """
+    # Проверяем, что курс завершен и статус изменился на 'completed'
+    if instance.status == 'completed':
+        # Получаем старый статус
+        if instance.pk:
+            old_status = _user_course_old_status.pop(instance.pk, None)
+        else:
+            # Для новых записей используем временный ключ
+            old_status = _user_course_old_status.pop(id(instance), None)
+        
+        # Если статус изменился на 'completed' (не был 'completed' ранее) или это новая запись
+        if old_status != 'completed' or created:
+            course = instance.course
+            
+            # Проверяем, что курс является инцидентом
+            if course and course.is_incident:
+                try:
+                    from builder.models import Incident
+                    
+                    # Находим все инциденты, связанные с этим курсом
+                    incidents = Incident.objects.filter(course=course)
+                    
+                    for incident in incidents:
+                        # Получаем всех назначенных пользователей инцидента
+                        assigned_users = incident.assigned_to.all()
+                        
+                        if not assigned_users.exists():
+                            # Если нет назначенных пользователей, пропускаем
+                            continue
+                        
+                        # Проверяем, все ли назначенные пользователи завершили курс
+                        # Оптимизация: используем один запрос вместо цикла
+                        assigned_user_ids = list(assigned_users.values_list('id', flat=True))
+                        completed_count = UserCourse.objects.filter(
+                            user_id__in=assigned_user_ids,
+                            course=course,
+                            status='completed'
+                        ).count()
+                        
+                        # Если все назначенные пользователи завершили курс
+                        if completed_count == len(assigned_user_ids) and incident.status != 'resolved':
+                            incident.status = 'resolved'
+                            if not incident.resolved_at:
+                                incident.resolved_at = timezone.now()
+                            incident.save(update_fields=['status', 'resolved_at', 'updated_at'])
+                            logger.info(f"Инцидент {incident.title} автоматически завершен, так как все назначенные пользователи ({completed_count}) завершили курс")
+                
+                except ImportError:
+                    # Если модель Incident не найдена, просто пропускаем
+                    pass
+                except Exception as e:
+                    logger.error(f"Ошибка при проверке завершения инцидента для курса {course.title}: {e}")

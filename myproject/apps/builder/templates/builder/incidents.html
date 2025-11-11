@@ -108,8 +108,20 @@
                                 —
                             {% endif %}
                         </td>
-                        <td style="text-align: center;">—</td>
-                        <td style="text-align: center;">—</td>
+                        <td style="text-align: center;">
+                            {% if inc.course %}
+                                {{ inc.assigned_users_count|default:0 }}
+                            {% else %}
+                                —
+                            {% endif %}
+                        </td>
+                        <td style="text-align: center;">
+                            {% if inc.course %}
+                                {{ inc.completed_users_count|default:0 }}
+                            {% else %}
+                                —
+                            {% endif %}
+                        </td>
                         <td class="status-{{ inc.status }}">{{ inc.get_status_display }}</td>
                         <td class="comment-cell comment-column">{{ inc.description|default:"—" }}</td>
                     </tr>

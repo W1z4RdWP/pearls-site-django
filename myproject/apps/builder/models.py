@@ -74,8 +74,8 @@ class Incident(models.Model):
         ('resolved', 'Завершён'),
         ('declined', 'Отклонён')
     ]
-    title = models.CharField(max_length=255, verbose_name='Название инцидента (описание)')
-    description = models.TextField(max_length=1000, blank=True, null=True, verbose_name='Комментарий/описание')
+    title = models.CharField(max_length=255, verbose_name='Название инцидента')
+    description = models.TextField(max_length=1000, blank=True, null=True, verbose_name='Описание проблемы')
     incident_type = models.CharField(max_length=32, choices=INCIDENT_TYPE_CHOICES, verbose_name='Тип инцидента')
     responsible_mentor = models.ForeignKey(get_user_model(), on_delete=models.CASCADE, verbose_name='Проверяющий наставник', related_name='mentored_incidents', blank=True, null=True)
     mentors_time_to_check = models.PositiveIntegerField(default=2, verbose_name="Время на проверку (дней)", help_text="Количество дней для проверки наставником")
@@ -90,9 +90,18 @@ class Incident(models.Model):
     resolved_at = models.DateTimeField(null=True, blank=True, verbose_name="Дата решения")
     deadline = models.DateTimeField(null=True, blank=True, verbose_name="Дедлайн")
     
-
+    # Связь с курсом-инцидентом
+    course = models.ForeignKey(
+        'courses.Course',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='incidents',
+        verbose_name='Курс-инцидент'
+    )
     
 
+    
     class Meta:
         indexes = [
             models.Index(fields=['user'], name='incident_user_idx'),

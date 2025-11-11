@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import CategoryName, Document, LessonVersion, LessonCategoryMirror, DictionaryTerm, DictionarySection, LessonAllowedRole, AuditLog
+from .models import CategoryName, Document, Incident, LessonVersion, LessonCategoryMirror, DictionaryTerm, DictionarySection, LessonAllowedRole, AuditLog
 from django.utils.html import format_html
 from django.urls import reverse
 from django.utils.safestring import mark_safe
@@ -33,7 +33,7 @@ class DocumentAdmin(admin.ModelAdmin):
     search_fields = ('title',)
 
 
-
+admin.site.register(Incident)
 
 admin.site.register(DictionaryTerm)
 

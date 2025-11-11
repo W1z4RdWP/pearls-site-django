@@ -7,13 +7,14 @@ from django.contrib.auth.decorators import login_required, permission_required
 from django.utils.decorators import method_decorator
 from django.views.generic import ListView, CreateView, UpdateView, DeleteView, FormView
 from django.urls import reverse_lazy, reverse
+from myapp.views import is_admin
 from .models import CategoryName, Document, Incident, LessonVersion, LessonCategoryMirror, DictionarySection, DictionaryTerm
 from django.core.exceptions import PermissionDenied
 from .forms import DocumentForm, IncidentForm
 from .utils import get_compact_fio, user_has_category_access, filter_categories_and_lessons_for_user
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
-from django.db.models import Max, Q
+from django.db.models import Max, Q, Count, F
 from django.db import transaction
 from django.views.decorators.http import require_POST
 import json
@@ -32,6 +33,10 @@ from .audit_logger import (
     log_reorder, log_mirror, log_actualize, serialize_model_data,
     AuditLoggerMixin
 )
+from user_management.utils import send_course_assignment_email
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 
@@ -863,6 +868,32 @@ class IncidentListView(ListView):
         if incident_type:
             queryset = queryset.filter(incident_type=incident_type)
         
+        # Добавляем аннотации для подсчета назначенных и завершивших курс пользователей
+        # Считаем только пользователей из assigned_to (сигнал синхронизирует доступ к курсу)
+        # Исключаем админов, суперпользователей и авторов курса
+        queryset = queryset.annotate(
+            assigned_users_count=Count(
+                'assigned_to',
+                distinct=True,
+                filter=Q(
+                    course__isnull=False,
+                    assigned_to__is_staff=False,
+                    assigned_to__is_superuser=False
+                ) & ~Q(assigned_to=F('course__author'))
+            ),
+            completed_users_count=Count(
+                'assigned_to',
+                distinct=True,
+                filter=Q(
+                    course__isnull=False,
+                    course__usercourse__status='completed',
+                    course__usercourse__user=F('assigned_to'),
+                    assigned_to__is_staff=False,
+                    assigned_to__is_superuser=False
+                ) & ~Q(assigned_to=F('course__author'))
+            )
+        )
+        
         return queryset
 
     def get_context_data(self, **kwargs):
@@ -906,6 +937,8 @@ class IncidentCreateView(CreateView, AuditLoggerMixin):
 
     
     def form_valid(self, form):
+        # Устанавливаем статус "Принят" для нового инцидента
+        form.instance.status = 'accepted'
         response = super().form_valid(form)
         # Логируем создание инцидента
         self.log_create_action(self.object, "Создан новый инцидент")
@@ -927,11 +960,149 @@ class IncidentUpdateView(UpdateView, AuditLoggerMixin):
         return super().dispatch(request, *args, **kwargs)
     
     def form_valid(self, form):
+        # Сохраняем старый список назначенных пользователей до сохранения формы
+        old_assigned_users = set(self.object.assigned_to.all())
+        
+        # Получаем новый список назначенных пользователей из формы (до сохранения)
+        new_assigned_users = set(form.cleaned_data.get('assigned_to', []))
+        
+        # Определяем, какие пользователи были удалены и добавлены
+        removed_users = old_assigned_users - new_assigned_users
+        added_users = new_assigned_users - old_assigned_users
+        
+        # Сохраняем форму
         response = super().form_valid(form)
+        
+        # Если у инцидента есть связанный курс, обновляем назначения курса
+        if self.object.course:
+            course = self.object.course
+            
+            # Удаляем назначение курса для пользователей, которые были удалены из списка назначенных
+            for user in removed_users:
+                UserCourse.objects.filter(user=user, course=course).delete()
+            
+            # Назначаем курс новым пользователям
+            for user in added_users:
+                UserCourse.objects.get_or_create(
+                    user=user,
+                    course=course,
+                    defaults={'status': 'available', 'deadline': self.object.deadline}
+                )
+        
         # Логируем обновление инцидента
         self.log_update_action(self.object, "Инцидент обновлён")
         return response
 
+
+@method_decorator(login_required, name='dispatch')
+class CreateCourseFromIncidentView(View):
+    """
+    Создание курса-инцидента из инцидента.
+    """
+    def dispatch(self, request, *args, **kwargs):
+        if not request.user.is_authenticated or not (request.user.is_staff or request.user.is_superuser):
+            return render(request, '403.html', status=403)
+        return super().dispatch(request, *args, **kwargs)
+    
+    def post(self, request, *args, **kwargs):
+        incident_id = kwargs.get('pk')
+        try:
+            incident = get_object_or_404(Incident, pk=incident_id)
+            
+            # Проверяем, не создан ли уже курс для этого инцидента
+            if incident.course:
+                return redirect('courses:course_detail', slug=incident.course.slug)
+            
+            # Создаем курс с названием инцидента
+            course = Course.objects.create(
+                title=incident.title,
+                description=incident.description or '',
+                author=request.user,
+                is_incident=True,
+                responsible_mentor=incident.responsible_mentor,
+                mentors_time_to_check=incident.mentors_time_to_check or 2
+            )
+            
+            # Связываем инцидент с курсом и обновляем статус
+            incident.course = course
+            incident.status = 'assigned'
+            incident.save(update_fields=['course', 'status', 'updated_at'])
+
+            if incident.course and not incident.status == 'assigned':
+                incident.status = 'assigned'
+                incident.save(update_fields=['course', 'status', 'updated_at'])
+            
+            # Назначаем курс всем staff/superuser
+            from django.contrib.auth import get_user_model
+            User = get_user_model()
+            staff_users = User.objects.filter(
+                is_active=True
+            ).filter(
+                models.Q(is_staff=True) | models.Q(is_superuser=True)
+            ).distinct()
+            
+            for user in staff_users:
+                UserCourse.objects.get_or_create(
+                    user=user,
+                    course=course,
+                    defaults={'status': 'available'}
+                )
+            
+            # Назначаем курс пользователям, связанным с инцидентом
+            if incident.assigned_to.exists():
+                for user in incident.assigned_to.all():
+                    user_course, created = UserCourse.objects.get_or_create(
+                        user=user,
+                        course=course,
+                        defaults={'status': 'available', 'deadline': incident.deadline}
+                    )
+                    if created:
+                        # Создаем внутреннее уведомление
+                        try:
+                            from notifications.models import Notification
+                            Notification.create_course_assignment_notification(user, course)
+                        except Exception as e:
+                            logger.error(f"Ошибка создания внутреннего уведомления о курсе-инциденте {course.title}: {e}")
+                        
+                        # Отправляем email уведомление
+                        try:
+                            send_course_assignment_email(user, course)
+                            logger.info(f"Отправлено email уведомление о курсе-инциденте {course.title} пользователю {user.email}")
+                        except Exception as e:
+                            logger.error(f"Ошибка отправки email уведомления о курсе-инциденте {course.title}: {e}")
+            
+            if incident.violators.exists():
+                for user in incident.violators.all():
+                    user_course, created = UserCourse.objects.get_or_create(
+                        user=user,
+                        course=course,
+                        defaults={'status': 'available', 'deadline': incident.deadline}
+                    )
+                    if created:
+                        # Создаем внутреннее уведомление
+                        try:
+                            from notifications.models import Notification
+                            Notification.create_course_assignment_notification(user, course)
+                        except Exception as e:
+                            logger.error(f"Ошибка создания внутреннего уведомления о курсе-инциденте {course.title}: {e}")
+                        
+                        # Отправляем email уведомление
+                        try:
+                            send_course_assignment_email(user, course)
+                            logger.info(f"Отправлено email уведомление о курсе-инциденте {course.title} пользователю {user.email}")
+                        except Exception as e:
+                            logger.error(f"Ошибка отправки email уведомления о курсе-инциденте {course.title}: {e}")
+            
+            # Перенаправляем на страницу курса
+            return redirect('courses:course_detail', slug=course.slug)
+        except Exception as e:
+            # В случае ошибки перенаправляем обратно на форму инцидента с сообщением об ошибке
+            from django.contrib import messages
+            import traceback
+            messages.error(request, f'Ошибка при создании курса: {str(e)}')
+            if incident_id:
+                return redirect('builder:incident_edit', pk=incident_id)
+            return redirect('builder:incidents')
 
 
 class IncidentDetailListView(ListView):
@@ -953,8 +1124,8 @@ class IncidentDetailListView(ListView):
         import datetime
         
         queryset = super().get_queryset()
-        # Оптимизация: предзагрузка ManyToMany полей
-        queryset = queryset.prefetch_related('assigned_to', 'violators').select_related('user', 'responsible_mentor')
+        # Оптимизация: предзагрузка ManyToMany полей и связанных объектов
+        queryset = queryset.prefetch_related('assigned_to', 'violators').select_related('user', 'responsible_mentor', 'course')
         
         # Фильтр по названию инцидента (поиск)
         search = self.request.GET.get('search', '').strip()
@@ -985,6 +1156,7 @@ class IncidentDetailListView(ListView):
     def get_context_data(self, **kwargs):
         from django.utils import timezone
         from django.contrib.auth import get_user_model
+        from myapp.models import QuizResult
         
         context = super().get_context_data(**kwargs)
         context['now'] = timezone.now()  # Текущая дата и время для проверки просроченных дедлайнов
@@ -1037,10 +1209,54 @@ class IncidentDetailListView(ListView):
                 if violator_filter == 'no' and is_violator:
                     continue
                 
+                # Вычисляем прогресс курса, если он есть
+                progress_percent = None
+                if incident.course:
+                    course = incident.course
+                    
+                    # Получаем траекторию пользователя для этого курса
+                    trajectory = UserLessonTrajectory.objects.filter(user=user, course=course).first()
+                    
+                    if trajectory:
+                        # Используем уроки из траектории
+                        lessons = trajectory.lessons.all().order_by('order')
+                        total_lessons = lessons.count()
+                        lesson_ids = lessons.values_list('id', flat=True)
+                        completed_lessons = UserProgress.objects.filter(
+                            user=user,
+                            course=course,
+                            completed=True,
+                            lesson_id__in=lesson_ids
+                        ).count()
+                    else:
+                        # Используем все уроки курса
+                        lessons = course.lessons.all().order_by('order')
+                        total_lessons = lessons.count()
+                        completed_lessons = UserProgress.objects.filter(
+                            user=user,
+                            course=course,
+                            completed=True
+                        ).count()
+                    
+                    # Подсчитываем завершенные тесты в рамках этого курса (только уникальные по quiz_title)
+                    completed_quizzes = QuizResult.objects.filter(
+                        user=user,
+                        course=course,
+                        quiz_title__in=[quiz.name for quiz in course.quizzes.all()],
+                        passed=True
+                    ).values('quiz_title').distinct().count()
+                    total_quizzes = course.quizzes.count()
+                    
+                    # Вычисляем процент прогресса с учетом уроков и тестов
+                    total_materials = total_lessons + total_quizzes
+                    completed_materials = completed_lessons + completed_quizzes
+                    progress_percent = int((completed_materials / total_materials) * 100) if total_materials > 0 else 0
+                
                 incident_user_list.append({
                     'incident': incident,
                     'user': user,
                     'is_violator': is_violator,
+                    'progress_percent': progress_percent,
                 })
         
         context['incident_user_list'] = incident_user_list
@@ -2485,7 +2701,7 @@ class CourseListView(ListView):
     """
     template_name = 'builder/course_list.html'
     context_object_name = 'courses'
-    paginate_by = 12
+    paginate_by = 15
     
     def dispatch(self, request, *args, **kwargs):
         if not request.user.is_authenticated or not (request.user.is_staff or request.user.is_superuser):
@@ -2562,7 +2778,7 @@ class IncidentCourseListView(ListView):
     """
     template_name = 'builder/incident_course_list.html'
     context_object_name = 'courses'
-    paginate_by = 12
+    paginate_by = 15
 
     def dispatch(self, request, *args, **kwargs):
         if not request.user.is_authenticated or not (request.user.is_staff or request.user.is_superuser):

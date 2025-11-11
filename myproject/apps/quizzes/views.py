@@ -7,6 +7,7 @@ from django.contrib import messages
 from django.views.generic import DetailView, TemplateView
 from django.core.paginator import Paginator
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
+from django.contrib.auth.models import User
 
 from myapp.models import QuizResult, UserCourse, UserAnswer, UserProgress
 from courses.models import Course
@@ -922,8 +923,8 @@ def get_finish(request) -> HttpResponse:
             
             # Завершаем курс только если все уроки И все тесты пройдены
             if completed_lessons >= total_lessons and completed_quizzes >= total_quizzes:
-                # Начисляем очки за тест только если он не был пройден ранее И тест не запускается из панели управления
-                if not previous_quiz_result and not from_control_panel:
+                # Начисляем очки за тест только если он не был пройден ранее И тест не запускается из панели управления И курс не является инцидентом
+                if not previous_quiz_result and not from_control_panel and not course.is_incident:
                     award_dascoin_points(request.user, 10, f"Прохождение теста {quiz.name}")
                 
                 # Проверяем, есть ли финальный тест
@@ -941,8 +942,8 @@ def get_finish(request) -> HttpResponse:
                         if user_course.status != 'completed':
                             user_course.status = 'completed'
                             user_course.save()
-                            # Начисляем баллы за завершение курса только если тест не запускается из панели управления
-                            if not from_control_panel:
+                            # Начисляем баллы за завершение курса только если тест не запускается из панели управления И курс не является инцидентом
+                            if not from_control_panel and not course.is_incident:
                                 award_dascoin_points(request.user, course.points, f"Завершение курса {course.title}")
                                 award_course_badge(request.user, course)
                                 # Выдаем сертификат за курс (если настроено)
@@ -957,8 +958,8 @@ def get_finish(request) -> HttpResponse:
                     if user_course.status != 'completed':
                         user_course.status = 'completed'
                         user_course.save()
-                        # Начисляем баллы за завершение курса только если тест не запускается из панели управления
-                        if not from_control_panel:
+                        # Начисляем баллы за завершение курса только если тест не запускается из панели управления И курс не является инцидентом
+                        if not from_control_panel and not course.is_incident:
                             award_dascoin_points(request.user, course.points, f"Завершение курса {course.title}")
                             award_course_badge(request.user, course)
                             # Выдаем сертификат за курс (если настроено)
@@ -971,8 +972,8 @@ def get_finish(request) -> HttpResponse:
                     return redirect('quizzes:quizzes')
                 return redirect('courses:course_detail', slug=course.slug)
             else:
-                # Если не все уроки завершены, начисляем только очки за тест (если не из панели управления)
-                if not previous_quiz_result and not from_control_panel:
+                # Если не все уроки завершены, начисляем только очки за тест (если не из панели управления И курс не является инцидентом)
+                if not previous_quiz_result and not from_control_panel and not course.is_incident:
                     award_dascoin_points(request.user, 10, f"Прохождение теста {quiz.name}")
                 if percent_score == 100:
                     award_achievement(request.user, 'perfect_score', 'Идеальный результат', 'Получили 100% за прохождение теста')
@@ -981,8 +982,8 @@ def get_finish(request) -> HttpResponse:
                     return redirect('quizzes:quizzes')
                 return redirect('courses:course_detail', slug=course.slug)
         else:
-            # Если пользователь не проходит этот курс, начисляем только очки за тест (если не из панели управления)
-            if not previous_quiz_result and not from_control_panel:
+            # Если пользователь не проходит этот курс, начисляем только очки за тест (если не из панели управления И курс не является инцидентом)
+            if not previous_quiz_result and not from_control_panel and not course.is_incident:
                 award_dascoin_points(request.user, 10, f"Прохождение теста {quiz.name}")
             if percent_score == 100:
                 award_achievement(request.user, 'perfect_score', 'Идеальный результат', 'Получили 100% за прохождение теста')
@@ -1514,6 +1515,12 @@ class PendingQuizzesView(LoginRequiredMixin, UserPassesTestMixin, TemplateView):
         # Фильтр по дате создания
         date_from = self.request.GET.get('date_from')
         date_to = self.request.GET.get('date_to')
+
+        # Фильтр по наставнику
+        mentor_id = self.request.GET.get('mentor', '')
+        
+        # Фильтр по просроченным тестам
+        is_overdue_filter = self.request.GET.get('is_overdue_filter', '')
         
         # Если нет параметров в GET запросе (первичная загрузка), устанавливаем дефолтные значения
         if not self.request.GET:
@@ -1553,7 +1560,48 @@ class PendingQuizzesView(LoginRequiredMixin, UserPassesTestMixin, TemplateView):
             date_to_parsed = datetime.datetime.strptime(date_to, '%Y-%m-%d').date()
             date_to_datetime = timezone.make_aware(datetime.datetime.combine(date_to_parsed, datetime.time.max))
             base_query = base_query.filter(completed_at__lte=date_to_datetime)
+
+        # Фильтр по наставнику
+        if mentor_id:
+            base_query = base_query.filter(course__responsible_mentor_id=mentor_id)
+
+        # Фильтр по просроченным тестам
+        if is_overdue_filter:
+            # Получаем текущее время
+            now = timezone.now()
+            # Фильтруем результаты, у которых есть курс с mentors_time_to_check и дедлайн просрочен
+            # Дедлайн = completed_at + mentors_time_to_check дней
+            # Получаем все результаты с курсами, у которых есть mentors_time_to_check
+            results_with_courses = base_query.filter(
+                course__isnull=False,
+                course__mentors_time_to_check__isnull=False,
+                course__mentors_time_to_check__gt=0
+            ).select_related('course')
+            
+            # Фильтруем в Python, так как Django ORM не поддерживает умножение F на timedelta напрямую
+            overdue_result_ids = []
+            for result in results_with_courses:
+                if result.completed_at and result.course.mentors_time_to_check:
+                    deadline = result.completed_at + timedelta(days=result.course.mentors_time_to_check)
+                    if deadline < now:
+                        overdue_result_ids.append(result.id)
+            
+            # Применяем фильтр по ID просроченных результатов
+            if overdue_result_ids:
+                base_query = base_query.filter(id__in=overdue_result_ids)
+            else:
+                # Если нет просроченных результатов, возвращаем пустой queryset
+                base_query = base_query.none()
+
+        # Получаем список всех наставников из всех результатов (до фильтрации по наставнику)
+        # Это нужно для того, чтобы в выпадающем списке были все наставники, а не только те, что в текущих результатах
+        all_mentors_query = QuizResult.objects.filter(
+            course__responsible_mentor__isnull=False
+        ).values_list('course__responsible_mentor', flat=True).distinct()
         
+        # Объекты User наставников
+        mentors = User.objects.filter(id__in=all_mentors_query).order_by('first_name', 'last_name', 'username')
+
         # Получаем только лучшие попытки для каждой комбинации (user, quiz_title, course)
         # Сначала получаем все результаты, затем фильтруем лучшие попытки
         # Сортируем по user, quiz_title, затем по course (с учетом NULL), затем по percent и completed_at
@@ -1589,8 +1637,13 @@ class PendingQuizzesView(LoginRequiredMixin, UserPassesTestMixin, TemplateView):
         # Передаем текущие значения фильтров в контекст
         context['date_from'] = date_from if date_from else ''
         context['date_to'] = date_to if date_to else ''
+        context['mentors'] = mentors
+        context['selected_mentor_id'] = mentor_id if mentor_id else ''
+        context['is_overdue_filter'] = bool(is_overdue_filter)
         
         return context
+
+
 
 
 class ReviewQuizView(LoginRequiredMixin, UserPassesTestMixin, DetailView):
@@ -1738,8 +1791,8 @@ class ReviewQuizView(LoginRequiredMixin, UserPassesTestMixin, DetailView):
                         
                         # Завершаем курс только если все уроки И все тесты пройдены
                         if completed_lessons >= total_lessons and completed_quizzes >= total_quizzes:
-                            # Начисляем очки за тест только если он не был пройден ранее
-                            if not previous_quiz_result:
+                            # Начисляем очки за тест только если он не был пройден ранее И курс не является инцидентом
+                            if not previous_quiz_result and not course.is_incident:
                                 award_dascoin_points(quiz_result.user, 10, f"Прохождение теста {quiz.name}")
                             
                             # Проверяем, есть ли финальный тест
@@ -1757,29 +1810,33 @@ class ReviewQuizView(LoginRequiredMixin, UserPassesTestMixin, DetailView):
                                     if user_course.status != 'completed':
                                         user_course.status = 'completed'
                                         user_course.save()
-                                        award_dascoin_points(quiz_result.user, course.points, f"Завершение курса {course.title}")
-                                        award_course_badge(quiz_result.user, course)
-                                        issue_certificate(quiz_result.user, course=course)
+                                        # Начисляем баллы только если курс не является инцидентом
+                                        if not course.is_incident:
+                                            award_dascoin_points(quiz_result.user, course.points, f"Завершение курса {course.title}")
+                                            award_course_badge(quiz_result.user, course)
+                                            issue_certificate(quiz_result.user, course=course)
                             else:
                                 # Финального теста нет - завершаем курс
                                 if user_course.status != 'completed':
                                     user_course.status = 'completed'
                                     user_course.save()
-                                    award_dascoin_points(quiz_result.user, course.points, f"Завершение курса {course.title}")
-                                    award_course_badge(quiz_result.user, course)
-                                    issue_certificate(quiz_result.user, course=course)
+                                    # Начисляем баллы только если курс не является инцидентом
+                                    if not course.is_incident:
+                                        award_dascoin_points(quiz_result.user, course.points, f"Завершение курса {course.title}")
+                                        award_course_badge(quiz_result.user, course)
+                                        issue_certificate(quiz_result.user, course=course)
                             
                             if percent_score == 100:
                                 award_achievement(quiz_result.user, 'perfect_score', 'Идеальный результат', 'Получили 100% за прохождение теста')
                         else:
-                            # Если не все уроки завершены, начисляем только очки за тест
-                            if not previous_quiz_result:
+                            # Если не все уроки завершены, начисляем только очки за тест (если курс не является инцидентом)
+                            if not previous_quiz_result and not course.is_incident:
                                 award_dascoin_points(quiz_result.user, 10, f"Прохождение теста {quiz.name}")
                             if percent_score == 100:
                                 award_achievement(quiz_result.user, 'perfect_score', 'Идеальный результат', 'Получили 100% за прохождение теста')
                     else:
-                        # Если пользователь не проходит этот курс, начисляем только очки за тест
-                        if not previous_quiz_result:
+                        # Если пользователь не проходит этот курс, начисляем только очки за тест (если курс не является инцидентом)
+                        if not previous_quiz_result and not course.is_incident:
                             award_dascoin_points(quiz_result.user, 10, f"Прохождение теста {quiz.name}")
                         if percent_score == 100:
                             award_achievement(quiz_result.user, 'perfect_score', 'Идеальный результат', 'Получили 100% за прохождение теста')
