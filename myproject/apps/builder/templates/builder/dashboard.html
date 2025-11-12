@@ -124,7 +124,7 @@
                         <div class="list-group">
                             {% for group in unrated_text_answers %}
                                 {% for answer in group.answers %}
-                                <a href="{% url 'user_management:user_quiz_report' quiz_id=group.quiz_result.id %}" 
+                                <a href="{% url 'quizzes:review_quiz' result_id=group.quiz_result.id %}" 
                                    class="list-group-item list-group-item-action">
                                     <div class="d-flex w-100 justify-content-between align-items-center">
                                         <div class="flex-grow-1">
