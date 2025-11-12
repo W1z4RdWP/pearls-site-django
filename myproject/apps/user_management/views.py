@@ -22,7 +22,7 @@ from django.contrib.auth.forms import SetPasswordForm
 from django.views.decorators.http import require_POST
 from django.urls import reverse
 from django.contrib import messages
-from .utils import send_user_credentials_email
+from .utils import send_user_credentials_email, get_user_privilege_level
 from gamification.models import DascoinTransaction
 import logging
 from datetime import datetime, timedelta
@@ -173,15 +173,6 @@ class UserCreateStep2View(CreateView):
         
         return redirect(self.success_url)
 
-
-
-
-def get_user_privilege_level(user):
-    if user.is_superuser:
-        return 3
-    if user.is_staff:
-        return 2
-    return 1
 
 
 
@@ -485,7 +476,12 @@ class UserEditDetailedView(UpdateView):
         if not request.user.is_authenticated or not (request.user.is_staff or request.user.is_superuser or (hasattr(request.user, 'profile') and request.user.profile.is_mentor_user)):
             raise PermissionDenied("У вас нет доступа к управлению пользователями.")
         user_to_edit = self.get_object()
-        if hasattr(request.user, 'is_staff') and request.user.is_staff:
+        
+        # Наставники (не staff/superuser) всегда имеют readonly доступ
+        if hasattr(request.user, 'profile') and request.user.profile.is_mentor_user and not request.user.is_staff and not request.user.is_superuser:
+            self.readonly = True
+        elif request.user.is_staff or request.user.is_superuser:
+            # Для staff/superuser проверяем уровень привилегий
             if get_user_privilege_level(request.user) < get_user_privilege_level(user_to_edit):
                 self.readonly = True
             else:
@@ -741,6 +737,9 @@ class UserEditDetailedView(UpdateView):
     def form_valid(self, form):
         if getattr(self, 'readonly', False):
             raise PermissionDenied("Недостаточно прав для редактирования этого пользователя.")
+        # Дополнительная проверка для наставников (не staff/superuser)
+        if hasattr(self.request.user, 'profile') and self.request.user.profile.is_mentor_user and not self.request.user.is_staff and not self.request.user.is_superuser:
+            raise PermissionDenied("Наставники не могут редактировать персональную информацию пользователей.")
         response = super().form_valid(form)
         profile_form = UserProfileForm(self.request.POST, self.request.FILES, instance=self.object.profile, user_instance=self.object)
         if profile_form.is_valid():

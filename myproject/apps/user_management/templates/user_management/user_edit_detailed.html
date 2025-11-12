@@ -565,6 +565,7 @@
                 
                 
                 <!-- Кнопки действий -->
+                 {% if not readonly %}
                 <div class="d-flex justify-content-end mb-3">
                     <div class="btn-group">
                         <button type="button" class="btn btn-success dropdown-toggle" id="assignTrainingBtn" data-bs-toggle="dropdown" aria-expanded="false">
@@ -575,6 +576,7 @@
                         </ul>
                     </div>
                 </div>
+                {% endif %}
 
                 <!-- Таблица назначенных обучений -->
                 {% if assigned_trainings %}
