@@ -387,6 +387,10 @@ class LessonCreateView(CreateView, AuditLoggerMixin):
         category_id = self.kwargs.get('category_id')
         if category_id:
             context['preselected_category'] = get_object_or_404(CategoryName, pk=category_id)
+        # Сохраняем URL возврата в контексте для использования в шаблоне
+        return_url = self.request.GET.get('return_url')
+        if return_url:
+            context['return_url'] = return_url
         return context
 
     def form_valid(self, form):
@@ -430,6 +434,14 @@ class LessonCreateView(CreateView, AuditLoggerMixin):
 
 
     def get_success_url(self):
+        # Проверяем наличие параметра возврата
+        return_url = self.request.GET.get('return_url')
+        if return_url:
+            # Декодируем URL и возвращаемся обратно
+            from urllib.parse import unquote
+            decoded_url = unquote(return_url)
+            return decoded_url
+        # Если параметра нет, возвращаемся в мастер уроков
         return f"{reverse('builder:lesson_master')}?new_lesson={self.object.id}"
 
 
