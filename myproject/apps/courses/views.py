@@ -1256,7 +1256,11 @@ def redir_to_quiz(request, course_slug):
         action = request.POST.get('action')
         if action == 'start_quiz':
             request.session['course_slug'] = course.slug
-            return redirect('quizzes:quiz_start', quiz_id=course.final_quiz.id)
+            from django.urls import reverse
+            from urllib.parse import urlencode
+            url = reverse('quizzes:quiz_start', kwargs={'quiz_id': course.final_quiz.id})
+            params = urlencode({'course_slug': course.slug})
+            return redirect(f'{url}?{params}')
         else:
             return redirect('courses:course_detail', slug=course.slug)
 
@@ -1464,7 +1468,11 @@ def complete_course(request, course_id):
                 user_course.save()
             return redirect('courses:course_detail', slug=course.slug)
         else:
-            return redirect('quizzes:quiz_start', quiz_id=course.final_quiz.id)
+            from django.urls import reverse
+            from urllib.parse import urlencode
+            url = reverse('quizzes:quiz_start', kwargs={'quiz_id': course.final_quiz.id})
+            params = urlencode({'course_slug': course.slug})
+            return redirect(f'{url}?{params}')
     else:
         # Проверяем, был ли курс уже завершен ранее
         was_completed_before = user_course.status == 'completed'
