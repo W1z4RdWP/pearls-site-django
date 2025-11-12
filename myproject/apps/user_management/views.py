@@ -974,7 +974,7 @@ class UserProgressDashboardView(DetailView):
             page_obj = paginator.page(paginator.num_pages)
         
         # Фильтрация курсов по статусу
-        course_filter = self.request.GET.get('course_filter', 'all')
+        course_filter = self.request.GET.get('course_filter', 'completed')
         if course_filter == 'completed':
             courses_progress = [cp for cp in courses_progress if cp['user_course'].status == 'completed']
         elif course_filter == 'started':
