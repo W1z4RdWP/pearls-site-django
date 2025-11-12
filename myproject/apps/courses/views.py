@@ -406,6 +406,7 @@ class CourseDetailView(DetailView):
 
                 # Проверка для отображения финального теста
                 final_quiz_status = None
+                final_quiz_passed = False
                 if course.final_quiz:
                     final_quiz_passed = QuizResult.objects.filter(
                         user=user,
@@ -413,6 +414,13 @@ class CourseDetailView(DetailView):
                         quiz_title=course.final_quiz.name,
                         passed=True
                     ).exists()
+                    
+                    # Если курс помечен как завершенный, но финальный тест не пройден - сбрасываем статус
+                    if user_course.status == 'completed' and not final_quiz_passed:
+                        user_course.status = 'started'
+                        user_course.save(update_fields=['status'])
+                        # Перезагружаем объект из базы данных для обновления в памяти
+                        user_course.refresh_from_db()
                     if final_quiz_passed:
                         show_final_quiz = True
                     
