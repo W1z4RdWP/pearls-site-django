@@ -801,12 +801,21 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Поиск курсов для добавления
     if (courseSearchInput) {
+        // Загрузка всех курсов при фокусе на поле поиска
+        courseSearchInput.addEventListener('focus', function() {
+            // Если поле пустое, загружаем все курсы
+            if (this.value.trim().length === 0) {
+                searchCourses('');
+            }
+        });
+        
         courseSearchInput.addEventListener('input', function() {
             clearTimeout(courseSearchTimeout);
             const query = this.value.trim();
             
             if (query.length === 0) {
-                hideCourseSearchResults();
+                // При пустом запросе показываем все курсы
+                searchCourses('');
                 return;
             }
             

@@ -51,40 +51,106 @@
     
     <div class="col-md-9">
         <div class="card shadow-sm">
-            <div class="card-body">                
-                {% if total_unrated_count > 0 %}
-                
-                <div class="mb-4">
-                    <h4>Неоцененные открытые ответы: {{ total_unrated_count }}</h4>
-                    <div class="list-group">
-                        {% for group in unrated_text_answers %}
-                            {% for answer in group.answers %}
-                            <a href="{% url 'user_management:user_quiz_report' quiz_id=group.quiz_result.id %}" 
-                               class="list-group-item list-group-item-action">
-                                <div class="d-flex w-100 justify-content-between align-items-center">
-                                    <div class="flex-grow-1">
-                                        <div class="d-flex justify-content-between align-items-start">
-                                            <div>
-                                                <strong>{{ group.user.get_full_name|default:group.user.username }}</strong>
-                                                <span class="text-muted">•</span>
-                                                <span class="text-primary">{{ group.quiz_result.quiz_title }}</span>
-                                                <span class="text-muted">•</span>
-                                                <span class="text-secondary">{{ answer.question.text|truncatechars:60 }}</span>
+            <div class="card-body">
+                {% if user.profile.is_mentor_user and not user.is_superuser and not user.is_staff %}
+                    {# Для наставников показываем топ-5 пользователей по DASCOIN #}
+                    {% if top_users_dascoin %}
+                    <div class="mb-4">
+                        <h4><i class="fas fa-trophy text-warning"></i> Топ-5 пользователей по баллам DASCOIN</h4>
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th style="width: 50px;">№</th>
+                                        <th style="width: 70px;"></th>
+                                        <th>Пользователь</th>
+                                        <th class="text-end">Баллы DASCOIN</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for user_item in top_users_dascoin %}
+                                    <tr>
+                                        <td class="text-center">
+                                            {% if forloop.counter == 1 %}
+                                                <i class="fas fa-medal" style="color: #FFD700; font-size: 1.5em;" title="1 место"></i>
+                                            {% elif forloop.counter == 2 %}
+                                                <i class="fas fa-medal" style="color: #C0C0C0; font-size: 1.5em;" title="2 место"></i>
+                                            {% elif forloop.counter == 3 %}
+                                                <i class="fas fa-medal" style="color: #CD7F32; font-size: 1.5em;" title="3 место"></i>
+                                            {% else %}
+                                                <span class="text-muted">{{ forloop.counter }}</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            {% if user_item.profile.image %}
+                                                <img src="{{ user_item.profile.image.url }}" 
+                                                     alt="{{ user_item.get_full_name|default:user_item.username }}" 
+                                                     class="rounded-circle" 
+                                                     style="width: 50px; height: 50px; object-fit: cover;">
+                                            {% else %}
+                                                <div class="rounded-circle bg-secondary d-flex align-items-center justify-content-center" 
+                                                     style="width: 50px; height: 50px;">
+                                                    <i class="fas fa-user text-white"></i>
+                                                </div>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            <strong>{{ user_item.get_full_name|default:user_item.username }}</strong>
+                                            <br>
+                                            <small class="text-muted">{{ user_item.email }}</small>
+                                        </td>
+                                        <td class="text-end">
+                                            <span class="badge bg-warning text-dark" style="font-size: 1em; padding: 0.5em 0.75em;">
+                                                <i class="fas fa-gem"></i> {{ user_item.profile.dascoin_points|default:0 }}
+                                            </span>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    {% else %}
+                    <div class="alert alert-info">
+                        <h5><i class="fas fa-info-circle"></i> Нет данных</h5>
+                        <p class="mb-0">В вашей группе пока нет пользователей с баллами DASCOIN.</p>
+                    </div>
+                    {% endif %}
+                {% else %}
+                    {# Для администраторов показываем неоцененные ответы #}
+                    {% if total_unrated_count > 0 %}
+                    <div class="mb-4">
+                        <h4>Неоцененные открытые ответы: {{ total_unrated_count }}</h4>
+                        <div class="list-group">
+                            {% for group in unrated_text_answers %}
+                                {% for answer in group.answers %}
+                                <a href="{% url 'quizzes:review_quiz' result_id=group.quiz_result.id %}" 
+                                   class="list-group-item list-group-item-action">
+                                    <div class="d-flex w-100 justify-content-between align-items-center">
+                                        <div class="flex-grow-1">
+                                            <div class="d-flex justify-content-between align-items-start">
+                                                <div>
+                                                    <strong>{{ group.user.get_full_name|default:group.user.username }}</strong>
+                                                    <span class="text-muted">•</span>
+                                                    <span class="text-primary">{{ group.quiz_result.quiz_title }}</span>
+                                                    <span class="text-muted">•</span>
+                                                    <span class="text-secondary">{{ answer.question.text|truncatechars:60 }}</span>
+                                                </div>
                                             </div>
                                         </div>
+                                        <small class="text-muted ms-3">{{ group.quiz_result.completed_at|date:"d.m.Y H:i" }}</small>
                                     </div>
-                                    <small class="text-muted ms-3">{{ group.quiz_result.completed_at|date:"d.m.Y H:i" }}</small>
-                                </div>
-                            </a>
+                                </a>
+                                {% endfor %}
                             {% endfor %}
-                        {% endfor %}
+                        </div>
                     </div>
-                </div>
-                {% else %}
-                <div class="alert alert-success">
-                    <h5><i class="fas fa-check-circle"></i> Все открытые ответы оценены</h5>
-                    <p class="mb-0">Нет неоцененных открытых ответов в системе.</p>
-                </div>
+                    {% else %}
+                    <div class="alert alert-success">
+                        <h5><i class="fas fa-check-circle"></i> Все открытые ответы оценены</h5>
+                        <p class="mb-0">Нет неоцененных открытых ответов в системе.</p>
+                    </div>
+                    {% endif %}
                 {% endif %}
             </div>
         </div>

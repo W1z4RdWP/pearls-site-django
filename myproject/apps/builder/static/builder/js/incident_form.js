@@ -86,9 +86,22 @@ window.addEventListener('click', function(event) {
 
 // Поиск пользователей с задержкой
 let searchTimeout;
+// Загрузка всех пользователей при фокусе на поле поиска
+userSearchInput.addEventListener('focus', function() {
+    // Если поле пустое, загружаем всех пользователей
+    if (this.value.trim().length === 0) {
+        loadUsers('');
+    }
+});
+
 userSearchInput.addEventListener('input', function() {
     clearTimeout(searchTimeout);
     const query = this.value;
+    // При пустом запросе показываем всех пользователей
+    if (query.trim().length === 0) {
+        loadUsers('');
+        return;
+    }
     searchTimeout = setTimeout(function() {
         loadUsers(query);
     }, 300);
@@ -474,12 +487,21 @@ function addGroupUsers(groupId) {
 
 // Поиск пользователей для добавления в назначенные
 let assignedSearchTimeout;
+// Загрузка всех пользователей при фокусе на поле поиска
+assignedSearchInput.addEventListener('focus', function() {
+    // Если поле пустое, загружаем всех пользователей
+    if (this.value.trim().length === 0) {
+        searchUsers('');
+    }
+});
+
 assignedSearchInput.addEventListener('input', function() {
     clearTimeout(assignedSearchTimeout);
     const query = this.value.trim();
     
     if (query.length === 0) {
-        hideSearchResults();
+        // При пустом запросе показываем всех пользователей
+        searchUsers('');
         return;
     }
     

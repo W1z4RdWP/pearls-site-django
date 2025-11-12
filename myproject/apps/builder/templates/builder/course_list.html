@@ -173,7 +173,7 @@
                                                         <i class="fas fa-edit"></i> Редактировать
                                                     </a></li>
                                                     <li><a class="dropdown-item" href="{% url 'courses:add_lesson' course.slug %}">
-                                                        <i class="fas fa-plus"></i> Добавить урок
+                                                        <i class="fas fa-plus"></i> Добавить материал
                                                     </a></li>
                                                     <li><hr class="dropdown-divider"></li>
                                                     <li><a class="dropdown-item text-danger" href="#" onclick="deleteCourse('{{ course.slug }}', '{{ course.title }}')">
@@ -203,6 +203,7 @@
             </div>
         </div>
     </div>
+    
      <!-- Пагинация -->
      {% if is_paginated %}
      <div class="row mt-3 mt-md-4">

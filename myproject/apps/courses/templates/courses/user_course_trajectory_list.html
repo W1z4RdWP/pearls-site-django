@@ -202,7 +202,7 @@
                                         <i class="fa fa-hourglass-half"></i> Тест ожидает проверки
                                     </span>
                                 {% else %}
-                                    <a href="{% url 'quizzes:quiz_start' course_data.course.final_quiz.id %}" class="btn btn-warning btn-sm">
+                                    <a href="{% url 'quizzes:quiz_start' quiz_id=course_data.course.final_quiz.id %}?course_slug={{ course_data.course.slug }}" class="btn btn-warning btn-sm">
                                         <i class="fa fa-question-circle"></i> Пройти финальный тест
                                     </a>
                                 {% endif %}

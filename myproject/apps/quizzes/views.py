@@ -1503,7 +1503,13 @@ class PendingQuizzesView(LoginRequiredMixin, UserPassesTestMixin, TemplateView):
     
     def test_func(self):
         """Проверка прав доступа"""
-        return self.request.user.is_authenticated and self.request.user.is_staff
+        if not self.request.user.is_authenticated:
+            return False
+        # Доступ для staff/superuser или наставников
+        return (self.request.user.is_staff or 
+                self.request.user.is_superuser or
+                (hasattr(self.request.user, 'profile') and 
+                 self.request.user.profile.is_mentor_user))
     
     def get_context_data(self, **kwargs):
         import datetime
@@ -1550,6 +1556,20 @@ class PendingQuizzesView(LoginRequiredMixin, UserPassesTestMixin, TemplateView):
             base_query = QuizResult.objects.filter(
                 status='pending'
             )
+        
+        # Фильтрация по группам для наставников (не staff/superuser)
+        if (hasattr(self.request.user, 'profile') and 
+            self.request.user.profile.is_mentor_user and 
+            not self.request.user.is_staff and 
+            not self.request.user.is_superuser):
+            # Получаем группы наставника
+            mentor_groups = self.request.user.groups.all()
+            if mentor_groups.exists():
+                # Показываем только результаты тестов пользователей из групп наставника
+                base_query = base_query.filter(user__groups__in=mentor_groups).distinct()
+            else:
+                # Если у наставника нет групп, показываем пустой список
+                base_query = base_query.none()
         
         # Фильтр по дате прохождения
         if date_from:
@@ -1601,6 +1621,13 @@ class PendingQuizzesView(LoginRequiredMixin, UserPassesTestMixin, TemplateView):
         
         # Объекты User наставников
         mentors = User.objects.filter(id__in=all_mentors_query).order_by('first_name', 'last_name', 'username')
+        
+        # Для наставников (не staff/superuser) ограничиваем список наставников только собой
+        if (hasattr(self.request.user, 'profile') and 
+            self.request.user.profile.is_mentor_user and 
+            not self.request.user.is_staff and 
+            not self.request.user.is_superuser):
+            mentors = mentors.filter(id=self.request.user.id)
 
         # Получаем только лучшие попытки для каждой комбинации (user, quiz_title, course)
         # Сначала получаем все результаты, затем фильтруем лучшие попытки
@@ -1659,7 +1686,31 @@ class ReviewQuizView(LoginRequiredMixin, UserPassesTestMixin, DetailView):
     
     def test_func(self):
         """Проверка прав доступа"""
-        return self.request.user.is_authenticated and self.request.user.is_staff
+        if not self.request.user.is_authenticated:
+            return False
+        
+        # Доступ для staff/superuser
+        if self.request.user.is_staff or self.request.user.is_superuser:
+            return True
+        
+        # Доступ для наставников, но только для тестов пользователей из их групп
+        if (hasattr(self.request.user, 'profile') and 
+            self.request.user.profile.is_mentor_user):
+            # Получаем объект результата теста
+            result_id = self.kwargs.get('result_id')
+            if result_id:
+                try:
+                    quiz_result = QuizResult.objects.get(id=result_id)
+                    # Проверяем, что пользователь теста состоит в группах наставника
+                    mentor_groups = self.request.user.groups.all()
+                    if mentor_groups.exists():
+                        user_groups = quiz_result.user.groups.all()
+                        # Проверяем пересечение групп
+                        return mentor_groups.filter(id__in=user_groups).exists()
+                except QuizResult.DoesNotExist:
+                    return False
+        
+        return False
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)

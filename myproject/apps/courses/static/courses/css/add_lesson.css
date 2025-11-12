@@ -107,6 +107,7 @@
     line-height: 1.2;
     cursor: pointer;
     transition: background-color 0.2s ease;
+    position: relative;
 }
 
 .category-header:hover {
@@ -404,4 +405,16 @@
 
 .tab-btn.active:hover {
     background-color: #5a32a3;
+}
+
+/* Стили для кнопки создания урока в футере */
+.btn-outline-primary {
+    background-color: white;
+    color: #6f42c1;
+    border: 1px solid #6f42c1;
+}
+
+.btn-outline-primary:hover {
+    background-color: #6f42c1;
+    color: white;
 }

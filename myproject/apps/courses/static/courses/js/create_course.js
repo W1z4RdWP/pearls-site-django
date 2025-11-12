@@ -213,9 +213,22 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Поиск тестов с задержкой
     if (quizSearchInput) {
+        // Загрузка всех тестов при фокусе на поле поиска
+        quizSearchInput.addEventListener('focus', function() {
+            // Если поле пустое, загружаем все тесты
+            if (this.value.trim().length === 0) {
+                loadQuizzes('');
+            }
+        });
+        
         quizSearchInput.addEventListener('input', function() {
             clearTimeout(quizSearchTimeout);
             const query = this.value;
+            // При пустом запросе показываем все тесты
+            if (query.trim().length === 0) {
+                loadQuizzes('');
+                return;
+            }
             quizSearchTimeout = setTimeout(function() {
                 loadQuizzes(query);
             }, 300);
@@ -288,12 +301,27 @@ function loadQuizzes(query) {
 function displayQuizzes(quizzes) {
     if (!quizList) return;
     
+    let html = '';
+    
+    // Добавляем опцию для сброса теста (пустое значение)
+    html += `
+        <div class="user-list-item user-list-item-clear" data-quiz-id="" data-quiz-name="">
+            <div class="user-list-item-name" style="color: #6c757d; font-style: italic;">— Не назначать финальный тест —</div>
+        </div>
+    `;
+    
     if (quizzes.length === 0) {
-        quizList.innerHTML = '<div class="user-list-empty">Тесты не найдены</div>';
+        quizList.innerHTML = html + '<div class="user-list-empty">Тесты не найдены</div>';
+        // Добавляем обработчик для опции сброса
+        const clearItem = quizList.querySelector('.user-list-item-clear');
+        if (clearItem) {
+            clearItem.addEventListener('click', function() {
+                selectQuiz('', '');
+            });
+        }
         return;
     }
     
-    let html = '';
     quizzes.forEach(function(quiz) {
         const questionsText = quiz.questions_count === 1 ? 'вопрос' : 
                               quiz.questions_count < 5 ? 'вопроса' : 'вопросов';
@@ -307,7 +335,7 @@ function displayQuizzes(quizzes) {
     
     quizList.innerHTML = html;
     
-    // Добавляем обработчики клика на каждый тест
+    // Добавляем обработчики клика на каждый тест и опцию сброса
     const quizItems = quizList.querySelectorAll('.user-list-item');
     quizItems.forEach(function(item) {
         item.addEventListener('click', function() {
@@ -321,11 +349,17 @@ function displayQuizzes(quizzes) {
 // Выбор теста
 function selectQuiz(quizId, quizName) {
     if (quizInput) {
-        quizInput.value = quizId;
+        quizInput.value = quizId || '';
     }
     if (quizDisplayName) {
-        quizDisplayName.textContent = quizName;
-        quizDisplayName.classList.remove('user-display-placeholder');
+        if (quizId && quizName) {
+            quizDisplayName.textContent = quizName;
+            quizDisplayName.classList.remove('user-display-placeholder');
+        } else {
+            // Сброс теста - показываем placeholder
+            quizDisplayName.textContent = 'Выберите тест...';
+            quizDisplayName.classList.add('user-display-placeholder');
+        }
     }
     if (quizModal) {
         quizModal.style.display = 'none';

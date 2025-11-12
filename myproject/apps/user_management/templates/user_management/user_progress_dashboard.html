@@ -264,19 +264,19 @@
                 <ul class="pagination justify-content-center">
                     {% if page_obj_courses.has_previous %}
                         <li class="page-item">
-                            <a class="page-link" href="?courses_page={{ page_obj_courses.previous_page_number }}">Назад</a>
+                            <a class="page-link" href="?course_filter={{ course_filter }}&courses_page={{ page_obj_courses.previous_page_number }}">Назад</a>
                         </li>
                     {% endif %}
                     {% for num in page_obj_courses.paginator.page_range %}
                         {% if page_obj_courses.has_other_pages %}
                             <li class="page-item {% if page_obj_courses.number == num %}active{% endif %}">
-                                <a class="page-link" href="?courses_page={{ num }}">{{ num }}</a>
+                                <a class="page-link" href="?course_filter={{ course_filter }}&courses_page={{ num }}">{{ num }}</a>
                             </li>
                         {% endif %}
                     {% endfor %}
                     {% if page_obj_courses.has_next %}
                         <li class="page-item">
-                            <a class="page-link" href="?courses_page={{ page_obj_courses.next_page_number }}">Вперед</a>
+                            <a class="page-link" href="?course_filter={{ course_filter }}&courses_page={{ page_obj_courses.next_page_number }}">Вперед</a>
                         </li>
                     {% endif %}
                 </ul>
