@@ -83,6 +83,7 @@ class Incident(models.Model):
     assigned_to = models.ManyToManyField(get_user_model(), related_name='assigned_incidents', blank=True, verbose_name='Кому назначен')
     violators = models.ManyToManyField(get_user_model(), related_name='violator_incidents', blank=True, verbose_name='Виновник/нарушитель инцидента')
     status = models.CharField(max_length=32, choices=STATUS_CHOICES, default='new', verbose_name='Статус')
+    previous_status = models.CharField(max_length=32, choices=STATUS_CHOICES, blank=True, null=True, verbose_name='Предыдущий статус', help_text='Статус до отклонения')
     
     # Временные метки
     created_at = models.DateTimeField(auto_now_add=True, verbose_name="Дата создания")

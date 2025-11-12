@@ -60,9 +60,17 @@
             
         </form>
         
-        <!-- Кнопка "Подробнее" (всегда видна) -->
-        <div id="details-button-container" class="mb-3">
+        <!-- Кнопки "Подробнее", "Отклонить" и "Возобновить" -->
+        <div id="details-button-container" class="mb-3 d-flex gap-2">
             <a id="details-button" href="{% url 'builder:incident_detail' %}" class="btn btn-primary">Подробнее</a>
+            <form id="decline-form" method="post" action="" style="display: none;">
+                {% csrf_token %}
+                <button type="submit" id="decline-button" class="btn btn-danger">Отклонить</button>
+            </form>
+            <form id="resume-form" method="post" action="" style="display: none;">
+                {% csrf_token %}
+                <button type="submit" id="resume-button" class="btn btn-success">Возобновить</button>
+            </form>
         </div>
         
         <div class="incidents-table-responsive">
@@ -75,8 +83,8 @@
                         <th style="width: 12%;" title="Кто зафиксировал">Кто зафиксировал</th>
                         <!-- <th style="width: 15%;" title="Ответственный за инцидент">Ответственный за инцидент</th> -->
                         <th style="width: 8%;" title="Дедлайн">Дедлайн</th>
-                        <th style="width: 7%;" title="Кол-во обуч, всего">Кол-во обуч, всего</th>
-                        <th style="width: 7%;" title="Кол-во обуч, прошедших их обуч">Кол-во обуч, прошедших их обуч</th>
+                        <th style="width: 7%;" title="Всего обучающихся">Всего обучающихся</th>
+                        <th style="width: 7%;" title="Завершили обуч.">Завершили обуч.</th>
                         <th style="width: 8%;" title="Статус">Статус</th>
                         <th style="width: 5%;" class="comment-column" title="Комментарий (опционально)">Комментарий (опционально)</th>
                     </tr>
@@ -86,6 +94,7 @@
                     <tr class="status-row-{{ inc.status }} incident-row" 
                         data-incident-title="{{ inc.title }}"
                         data-incident-id="{{ inc.pk }}"
+                        data-incident-status="{{ inc.status }}"
                         onclick="selectRow(this, event)"
                         ondblclick="window.location.href='{% url 'builder:incident_edit' inc.pk %}'">
                         <td>{{ inc.created_at|date:"d.m.Y" }}</td>
@@ -136,6 +145,10 @@
 <script>
 // Базовый URL для страницы деталей инцидента
 const incidentDetailUrl = "{% url 'builder:incident_detail' %}";
+// Функция для формирования URL отклонения/возобновления инцидента
+function getIncidentDeclineUrl(incidentId) {
+    return `/builder/incidents/${incidentId}/decline/`;
+}
 
 document.addEventListener('DOMContentLoaded', function() {
     const statusCheckboxes = document.querySelectorAll('.status-checkbox');
@@ -242,6 +255,8 @@ function selectRow(row, event) {
         // Обновляем кнопку "Подробнее" с названием инцидента
         const detailsButton = document.getElementById('details-button');
         const incidentTitle = row.getAttribute('data-incident-title');
+        const incidentId = row.getAttribute('data-incident-id');
+        const incidentStatus = row.getAttribute('data-incident-status');
         
         if (detailsButton && incidentTitle) {
             // Обрезаем название до 30 символов
@@ -255,6 +270,34 @@ function selectRow(row, event) {
             // Формируем URL с параметром search
             const detailUrl = incidentDetailUrl + "?search=" + encodeURIComponent(incidentTitle);
             detailsButton.href = detailUrl;
+        }
+        
+        // Показываем/скрываем кнопки "Отклонить" и "Возобновить"
+        const declineForm = document.getElementById('decline-form');
+        const resumeForm = document.getElementById('resume-form');
+        
+        if (incidentId && incidentStatus) {
+            const declineUrl = getIncidentDeclineUrl(incidentId);
+            
+            if (incidentStatus === 'declined') {
+                // Показываем кнопку "Возобновить" только для отклонённых инцидентов
+                if (declineForm) declineForm.style.display = 'none';
+                if (resumeForm) {
+                    resumeForm.action = declineUrl;
+                    resumeForm.style.display = 'inline-block';
+                }
+            } else {
+                // Показываем кнопку "Отклонить" только если статус не "Отклонён"
+                if (resumeForm) resumeForm.style.display = 'none';
+                if (declineForm) {
+                    declineForm.action = declineUrl;
+                    declineForm.style.display = 'inline-block';
+                }
+            }
+        } else {
+            // Скрываем обе кнопки, если нет выбранного инцидента
+            if (declineForm) declineForm.style.display = 'none';
+            if (resumeForm) resumeForm.style.display = 'none';
         }
         
         clickTimeout = null;
@@ -280,6 +323,12 @@ document.addEventListener('click', function(event) {
             detailsButton.textContent = 'Подробнее';
             detailsButton.href = incidentDetailUrl;
         }
+        
+        // Скрываем кнопки "Отклонить" и "Возобновить"
+        const declineForm = document.getElementById('decline-form');
+        const resumeForm = document.getElementById('resume-form');
+        if (declineForm) declineForm.style.display = 'none';
+        if (resumeForm) resumeForm.style.display = 'none';
     }
 });
 </script>

@@ -1029,6 +1029,49 @@ class IncidentUpdateView(UpdateView, AuditLoggerMixin):
 
 
 @method_decorator(login_required, name='dispatch')
+class IncidentDeclineView(View, AuditLoggerMixin):
+    """
+    Отклонение или возобновление инцидента.
+    """
+    def dispatch(self, request, *args, **kwargs):
+        if not request.user.is_authenticated or not (request.user.is_staff or request.user.is_superuser):
+            return render(request, '403.html', status=403)
+        return super().dispatch(request, *args, **kwargs)
+    
+    def post(self, request, *args, **kwargs):
+        incident_id = kwargs.get('pk')
+        incident = get_object_or_404(Incident, pk=incident_id)
+        
+        # Сохраняем старые значения для аудита
+        old_values = serialize_model_data(incident)
+        
+        if incident.status == 'declined':
+            # Возобновляем инцидент - возвращаем предыдущий статус
+            if incident.previous_status:
+                incident.status = incident.previous_status
+                incident.previous_status = None
+                comment = f"Инцидент возобновлён. Статус изменён на '{incident.get_status_display()}'"
+            else:
+                # Если предыдущий статус не сохранён, устанавливаем 'new'
+                incident.status = 'new'
+                incident.previous_status = None
+                comment = "Инцидент возобновлён. Статус изменён на 'Новый'"
+        else:
+            # Отклоняем инцидент - сохраняем текущий статус и устанавливаем 'declined'
+            previous_status_display = dict(Incident.STATUS_CHOICES).get(incident.status, incident.status)
+            incident.previous_status = incident.status
+            incident.status = 'declined'
+            comment = f"Инцидент отклонён. Предыдущий статус: '{previous_status_display}'"
+        
+        incident.save(update_fields=['status', 'previous_status', 'updated_at'])
+        
+        # Логируем действие
+        self.log_update_action(incident, old_values, comment)
+        
+        return redirect('builder:incidents')
+
+
+@method_decorator(login_required, name='dispatch')
 class CreateCourseFromIncidentView(View):
     """
     Создание курса-инцидента из инцидента.
