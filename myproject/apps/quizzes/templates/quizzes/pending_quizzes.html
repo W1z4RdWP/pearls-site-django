@@ -81,7 +81,7 @@
                         <td>{{ result.user.get_full_name|default:result.user.username }}</td>
                         <td>{{ result.quiz_title }}</td>
                         <td>{{ result.course.title|default:"—" }}</td>
-                        <td class="{% if deadline and deadline|is_overdue:now %}deadline-overdue{% endif %}">
+                        <td class="{% if deadline and result.status == 'pending' and deadline|is_overdue:now %}deadline-overdue{% endif %}">
                             {% if deadline %}
                                 <span class="deadline-date">{{ deadline|date:"d.m.Y" }}</span> <span class="deadline-time">{{ deadline|date:"H:i" }}</span>
                             {% else %}
