@@ -5,7 +5,9 @@
     <link rel="stylesheet" href="{% static 'builder/css/builder_style.css' %}">
     <link rel="stylesheet" href="{% static 'builder/css/incident_form.css' %}">
 {% endblock %}
+
 {% block content %}
+
 <div class="incident-form-card">
     <h2 class="mb-4">{% if object %}Редактирование инцидента{% else %}Новый инцидент{% endif %}</h2>
     <form method="post">
@@ -212,14 +214,16 @@
 {% endblock %}
 
 {% block specific_scripts %}
-<script>
-    // API endpoints для incident_form.js
-    const searchUsersUrl = "{% url 'builder:api_search_users' %}";
-    const getUsersByIdsUrl = "{% url 'builder:api_get_users_by_ids' %}";
-    const getGroupsUrl = "{% url 'builder:api_get_groups' %}";
-    const getGroupUsersUrlTemplate = "{% url 'builder:api_get_group_users' 0 %}";
-    const userInputId = "{{ form.user.id_for_label }}";
-    const mentorInputId = "{{ form.responsible_mentor.id_for_label }}";
-</script>
-<script src="{% static 'builder/js/incident_form.js' %}"></script>
+
+    <script>
+        // API endpoints для incident_form.js
+        const searchUsersUrl = "{% url 'builder:api_search_users' %}";
+        const getUsersByIdsUrl = "{% url 'builder:api_get_users_by_ids' %}";
+        const getGroupsUrl = "{% url 'builder:api_get_groups' %}";
+        const getGroupUsersUrlTemplate = "{% url 'builder:api_get_group_users' 0 %}";
+        const userInputId = "{{ form.user.id_for_label }}";
+        const mentorInputId = "{{ form.responsible_mentor.id_for_label }}";
+    </script>
+    <script src="{% static 'builder/js/incident_form.js' %}"></script>
+
 {% endblock %} 
