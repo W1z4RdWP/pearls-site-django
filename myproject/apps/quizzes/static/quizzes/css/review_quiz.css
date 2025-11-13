@@ -261,3 +261,18 @@
     color: #e74c3c;
     font-weight: 600;
 }
+
+.multiple-answers-group {
+    margin-top: 10px;
+}
+
+.multiple-answer-item {
+    padding: 8px 0;
+}
+
+.answer-divider {
+    margin: 10px 0;
+    border: none;
+    border-top: 1px solid #e3e8f0;
+    background: none;
+}

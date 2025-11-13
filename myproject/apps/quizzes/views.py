@@ -1731,9 +1731,17 @@ class ReviewQuizView(LoginRequiredMixin, UserPassesTestMixin, DetailView):
             quiz_result=quiz_result
         ).select_related('question', 'selected_answer').order_by('question__id')
         
+        # Группируем ответы по вопросам (особенно важно для MULTIPLE типа)
+        grouped_answers = {}
+        for answer in all_answers:
+            if answer.question not in grouped_answers:
+                grouped_answers[answer.question] = []
+            grouped_answers[answer.question].append(answer)
+        
         context['quiz'] = quiz
         context['text_answers'] = text_answers
         context['all_answers'] = all_answers
+        context['grouped_answers'] = grouped_answers
         
         return context
     
