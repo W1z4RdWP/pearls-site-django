@@ -1124,12 +1124,29 @@ def quiz_best_result(request, quiz_id: int) -> HttpResponse:
     pending = False
     if has_text_questions and last_attempt and last_attempt.status == 'pending':
         pending = True
+    
+    # Если тест ожидает проверки, используем last_attempt для отображения
+    display_result = last_attempt if pending else best_result
+    
+    # Для pending статуса пересчитываем процент с учетом открытых вопросов как 0 баллов
+    # Это дает честный процент от общего количества вопросов
+    display_percent = best_result.percent
+    if pending and last_attempt:
+        total_questions = Question.objects.filter(quiz=quiz).count()
+        # score содержит только баллы за автопроверяемые вопросы
+        # открытые вопросы считаются как 0 баллов до проверки
+        if total_questions > 0:
+            display_percent = int((last_attempt.score / total_questions) * 100)
+        else:
+            display_percent = 0
 
     context = {
         'quiz': quiz,
         'course': course,
         'best_result': best_result,
         'last_attempt': last_attempt,
+        'display_result': display_result,  # Результат для отображения (last_attempt для pending, best_result для остальных)
+        'display_percent': display_percent,  # Процент для отображения (с учетом открытых вопросов как 0 для pending)
         'passed': best_result.passed,
         'pass_threshold': quiz.pass_threshold,
         'has_text_questions': has_text_questions,
