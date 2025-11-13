@@ -63,6 +63,7 @@
         <!-- Кнопки "Подробнее", "Отклонить" и "Возобновить" -->
         <div id="details-button-container" class="mb-3 d-flex gap-2">
             <a id="details-button" href="{% url 'builder:incident_detail' %}" class="btn btn-primary">Подробнее</a>
+            <a id="violators_details-button" href="{% url 'builder:incident_detail' %}" class="btn btn-primary">Нарушители</a>
             <form id="decline-form" method="post" action="" style="display: none;">
                 {% csrf_token %}
                 <button type="submit" id="decline-button" class="btn btn-danger">Отклонить</button>
@@ -150,6 +151,33 @@ function getIncidentDeclineUrl(incidentId) {
     return `/builder/incidents/${incidentId}/decline/`;
 }
 
+// Функция для формирования URL с фильтром по нарушителям
+function buildViolatorsUrl(incidentTitle) {
+    const baseUrl = incidentDetailUrl;
+    const params = new URLSearchParams();
+    
+    // Устанавливаем фильтр по нарушителям (заблокирован)
+    params.append('violator_filter', 'yes');
+    
+    // Устанавливаем период - последние 30 дней
+    const today = new Date();
+    const dateTo = new Date(today);
+    const dateFrom = new Date(today);
+    dateFrom.setDate(dateFrom.getDate() - 30);
+    
+    params.append('date_from', dateFrom.toISOString().split('T')[0]);
+    params.append('date_to', dateTo.toISOString().split('T')[0]);
+    
+    // Добавляем поиск по названию инцидента, если строка выбрана (но можно будет изменить)
+    if (incidentTitle) {
+        params.append('search', incidentTitle);
+    }
+    
+    // assigned_user не добавляем - по умолчанию будет "Все"
+    
+    return baseUrl + '?' + params.toString();
+}
+
 document.addEventListener('DOMContentLoaded', function() {
     const statusCheckboxes = document.querySelectorAll('.status-checkbox');
     const dateFromInput = document.getElementById('date_from');
@@ -221,6 +249,12 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Инициализация при загрузке
     updateFilters();
+    
+    // Инициализация кнопки "Нарушители" с правильным URL
+    const violatorsButton = document.getElementById('violators_details-button');
+    if (violatorsButton) {
+        violatorsButton.href = buildViolatorsUrl(null);
+    }
 });
 
 // Переменная для отслеживания таймаута одиночного клика
@@ -254,6 +288,7 @@ function selectRow(row, event) {
         
         // Обновляем кнопку "Подробнее" с названием инцидента
         const detailsButton = document.getElementById('details-button');
+        const violatorsButton = document.getElementById('violators_details-button');
         const incidentTitle = row.getAttribute('data-incident-title');
         const incidentId = row.getAttribute('data-incident-id');
         const incidentStatus = row.getAttribute('data-incident-status');
@@ -270,6 +305,20 @@ function selectRow(row, event) {
             // Формируем URL с параметром search
             const detailUrl = incidentDetailUrl + "?search=" + encodeURIComponent(incidentTitle);
             detailsButton.href = detailUrl;
+        }
+        
+        // Обновляем кнопку "Нарушители"
+        if (violatorsButton) {
+            if (incidentTitle) {
+                // Обрезаем название до 30 символов
+                const truncatedTitle = incidentTitle.length > 30 
+                    ? incidentTitle.substring(0, 30) + '...' 
+                    : incidentTitle;
+                violatorsButton.textContent = 'Нарушители по "' + truncatedTitle + '"';
+            } else {
+                violatorsButton.textContent = 'Нарушители';
+            }
+            violatorsButton.href = buildViolatorsUrl(incidentTitle || null);
         }
         
         // Показываем/скрываем кнопки "Отклонить" и "Возобновить"
@@ -317,11 +366,16 @@ document.addEventListener('click', function(event) {
             r.classList.remove('row-selected');
         });
         
-        // Возвращаем кнопку к исходному состоянию
+        // Возвращаем кнопки к исходному состоянию
         const detailsButton = document.getElementById('details-button');
+        const violatorsButton = document.getElementById('violators_details-button');
         if (detailsButton) {
             detailsButton.textContent = 'Подробнее';
             detailsButton.href = incidentDetailUrl;
+        }
+        if (violatorsButton) {
+            violatorsButton.textContent = 'Нарушители';
+            violatorsButton.href = buildViolatorsUrl(null);
         }
         
         // Скрываем кнопки "Отклонить" и "Возобновить"

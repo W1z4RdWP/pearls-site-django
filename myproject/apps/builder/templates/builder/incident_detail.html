@@ -14,14 +14,10 @@
     
     <!-- Фильтры -->
     <form method="get" id="incident-detail-filter-form" class="mb-4">
-        <!-- Скрытое поле для сохранения параметра search, если он был передан изначально -->
-        {% if search %}
-        <input type="hidden" name="search" value="{{ search }}" id="hidden_search">
-        {% endif %}
         <div class="row mb-2 g-2 align-items-center">
             <!-- Поиск по названию -->
             <div class="col-md-3 col-lg-3">
-                <input type="text" class="form-control" id="search" {% if not search %}name="search"{% endif %} placeholder="Поиск по названию инцидента..." value="{{ search }}" {% if search %}readonly{% endif %}>
+                <input type="text" class="form-control" id="search" name="search" placeholder="Поиск по названию инцидента..." value="{{ search }}">
             </div>
             <!-- Фильтр по дате -->
             <div class="col-md-3 col-lg-2">
@@ -43,18 +39,21 @@
             </div>
             <!-- Фильтр по нарушителям -->
             <div class="col-md-3 col-lg-2">
-                <select class="form-control" id="violator_filter" name="violator_filter">
+                <select class="form-control" id="violator_filter" name="violator_filter" {% if violator_filter == 'yes' and violator_filter_locked %}disabled{% endif %}>
                     <option value="all" {% if violator_filter == 'all' %}selected{% endif %}>Тип участника: Все</option>
                     <option value="yes" {% if violator_filter == 'yes' %}selected{% endif %}>Только нарушители</option>
                     <option value="no" {% if violator_filter == 'no' %}selected{% endif %}>Только не нарушители</option>
                 </select>
+                {% if violator_filter == 'yes' and violator_filter_locked %}
+                <input type="hidden" name="violator_filter" value="yes">
+                {% endif %}
             </div>
         </div>
         <!-- Кнопки под строкой поиска -->
         <div class="row mb-2">
             <div class="col-md-3 col-lg-3">
                 <button type="submit" class="btn btn-primary">Применить фильтры</button>
-                <a href="{% url 'builder:incident_detail' %}{% if search %}?search={{ search|urlencode }}{% endif %}" class="btn btn-secondary" id="reset-button">Сбросить</a>
+                <a href="{% url 'builder:incident_detail' %}{% if violator_filter_locked %}?violator_filter=yes&date_from={{ date_from }}&date_to={{ date_to }}{% elif search %}?search={{ search|urlencode }}{% endif %}" class="btn btn-secondary" id="reset-button">Сбросить</a>
             </div>
         </div>
     </form>
@@ -127,76 +126,51 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // Проверяем наличие параметра search в URL
+    // Проверяем наличие параметров в URL
     const urlParams = new URLSearchParams(window.location.search);
     const searchParam = urlParams.get('search');
+    const violatorFilterParam = urlParams.get('violator_filter');
+    const violatorFilterLocked = violatorFilterParam === 'yes';
     
-    // Если параметр search присутствует, блокируем поля фильтрации
-    if (searchParam) {
-        const fieldsToBlock = [
-            'search',      // Поиск по названию
-            'date_from',   // Фильтр по дате начала
-            'date_to',     // Фильтр по дате конца
-            'assigned_user' // Фильтр по пользователю
-        ];
-        
-        fieldsToBlock.forEach(function(fieldId) {
-            const field = document.getElementById(fieldId);
-            if (field) {
-                field.disabled = true;
-                // Добавляем визуальный стиль для заблокированных полей
-                field.style.backgroundColor = '#e9ecef';
-                field.style.cursor = 'not-allowed';
-                // Для input полей добавляем readonly
-                if (field.tagName === 'INPUT') {
-                    field.setAttribute('readonly', 'readonly');
-                }
-            }
-        });
-        
-        // Убеждаемся, что скрытое поле search существует и содержит значение
-        let hiddenSearch = document.getElementById('hidden_search');
-        if (!hiddenSearch) {
-            hiddenSearch = document.createElement('input');
-            hiddenSearch.type = 'hidden';
-            hiddenSearch.name = 'search';
-            hiddenSearch.id = 'hidden_search';
-            hiddenSearch.value = searchParam;
-            document.getElementById('incident-detail-filter-form').appendChild(hiddenSearch);
-        }
-        
-        // Обновляем ссылку кнопки "Сбросить", чтобы она сохраняла параметр search
-        const resetButton = document.getElementById('reset-button');
-        if (resetButton) {
-            const baseUrl = resetButton.getAttribute('href').split('?')[0];
-            resetButton.href = baseUrl + '?search=' + encodeURIComponent(searchParam);
+    // Если фильтр по нарушителям заблокирован, добавляем визуальный стиль
+    if (violatorFilterLocked) {
+        const violatorFilterField = document.getElementById('violator_filter');
+        if (violatorFilterField && violatorFilterField.disabled) {
+            violatorFilterField.style.backgroundColor = '#e9ecef';
+            violatorFilterField.style.cursor = 'not-allowed';
         }
     }
     
-    // Обработчик отправки формы - гарантируем сохранение параметра search
+    // Обработчик отправки формы - гарантируем сохранение параметра violator_filter, если он заблокирован
     const form = document.getElementById('incident-detail-filter-form');
-    if (form && searchParam) {
+    if (form && violatorFilterLocked) {
         form.addEventListener('submit', function(e) {
-            // Убеждаемся, что параметр search будет передан через скрытое поле
-            let hiddenSearch = document.getElementById('hidden_search');
-            if (!hiddenSearch) {
-                hiddenSearch = document.createElement('input');
-                hiddenSearch.type = 'hidden';
-                hiddenSearch.name = 'search';
-                hiddenSearch.id = 'hidden_search';
-                hiddenSearch.value = searchParam;
-                form.appendChild(hiddenSearch);
-            } else {
-                // Всегда обновляем значение скрытого поля на исходное значение из URL
-                hiddenSearch.value = searchParam;
-            }
-            
-            // Удаляем атрибут name у видимого поля, если он есть, чтобы оно не отправлялось
-            const visibleSearchInput = document.getElementById('search');
-            if (visibleSearchInput && visibleSearchInput.hasAttribute('name')) {
-                visibleSearchInput.removeAttribute('name');
+            // Убеждаемся, что параметр violator_filter будет передан через скрытое поле
+            let hiddenViolatorFilter = document.querySelector('input[name="violator_filter"][type="hidden"]');
+            if (!hiddenViolatorFilter) {
+                hiddenViolatorFilter = document.createElement('input');
+                hiddenViolatorFilter.type = 'hidden';
+                hiddenViolatorFilter.name = 'violator_filter';
+                hiddenViolatorFilter.value = 'yes';
+                form.appendChild(hiddenViolatorFilter);
             }
         });
+        
+        // Обновляем ссылку кнопки "Сбросить", чтобы она сохраняла параметры фильтра по нарушителям
+        const resetButton = document.getElementById('reset-button');
+        if (resetButton) {
+            const dateFrom = urlParams.get('date_from') || '';
+            const dateTo = urlParams.get('date_to') || '';
+            const baseUrl = "{% url 'builder:incident_detail' %}";
+            let resetUrl = baseUrl + '?violator_filter=yes';
+            if (dateFrom) {
+                resetUrl += '&date_from=' + encodeURIComponent(dateFrom);
+            }
+            if (dateTo) {
+                resetUrl += '&date_to=' + encodeURIComponent(dateTo);
+            }
+            resetButton.href = resetUrl;
+        }
     }
 });
 </script>

@@ -1266,15 +1266,28 @@ class IncidentDetailListView(ListView):
             context['search'] = ''
             context['selected_user_id'] = None
             context['violator_filter'] = 'all'
+            context['violator_filter_locked'] = False
         else:
-            context['date_from'] = self.request.GET.get('date_from', '')
-            context['date_to'] = self.request.GET.get('date_to', '')
+            date_from = self.request.GET.get('date_from', '')
+            date_to = self.request.GET.get('date_to', '')
+            
+            # Если violator_filter=yes и даты не указаны, устанавливаем последние 30 дней
+            if violator_filter == 'yes' and not date_from and not date_to:
+                import datetime
+                today = timezone.now().date()
+                date_from = (today - datetime.timedelta(days=30)).strftime('%Y-%m-%d')
+                date_to = today.strftime('%Y-%m-%d')
+            
+            context['date_from'] = date_from
+            context['date_to'] = date_to
             context['search'] = search
             try:
                 context['selected_user_id'] = int(selected_user_id) if selected_user_id else None
             except (ValueError, TypeError):
                 context['selected_user_id'] = None
             context['violator_filter'] = violator_filter
+            # Блокируем фильтр по нарушителям, если он установлен в 'yes' (переход с кнопки "Нарушители")
+            context['violator_filter_locked'] = (violator_filter == 'yes')
         
         # Создаем список всех назначенных пользователей со всех инцидентов
         incident_user_list = []
