@@ -96,7 +96,7 @@ def get_questions(request, quiz_id: int = None, is_start: bool = False) -> HttpR
     if request.method == 'POST' or is_start:
         # Если is_start=True, quiz_id берется из URL
         if is_start and not quiz_id:
-            return redirect('quizzes')
+            return redirect('quizzes:quizzes')
         
         # Получаем объект quiz для стартового вопроса
         if is_start:
@@ -187,7 +187,7 @@ def get_questions(request, quiz_id: int = None, is_start: bool = False) -> HttpR
             quiz_id = request.session.get('quiz_id')
             current_question_id = request.session.get('current_question_id')
             if not quiz_id or not current_question_id:
-                return redirect('quizzes')
+                return redirect('quizzes:quizzes')
             
             # Получаем объект quiz для последующих вопросов
             quiz_obj = get_object_or_404(Quiz, id=quiz_id)
@@ -673,7 +673,7 @@ def get_answer(request) -> HttpResponse:
                     
                 }
             else:
-                return redirect('quizzes')
+                return redirect('quizzes:quizzes')
 
         # Сохраняем обновлённые ответы в сессии
         request.session['quiz_answers'] = quiz_answers
@@ -686,7 +686,7 @@ def get_answer(request) -> HttpResponse:
 
         return render(request, 'quizzes/answer.html', context)
     
-    return redirect('quizzes')
+    return redirect('quizzes:quizzes')
 
 
 
@@ -696,7 +696,7 @@ def get_finish(request) -> HttpResponse:
 
     quiz_id = request.session.get('quiz_id')
     if not quiz_id:
-        return redirect('quizzes')
+        return redirect('quizzes:quizzes')
     
     quiz = get_object_or_404(Quiz, id=quiz_id)
 
@@ -1095,7 +1095,7 @@ def quiz_best_result(request, quiz_id: int) -> HttpResponse:
     course_slug = request.GET.get('course_slug')
     
     if not course_slug:
-        return redirect('quizzes')
+        return redirect('quizzes:quizzes')
     
     course = get_object_or_404(Course, slug=course_slug)
     
@@ -1147,7 +1147,7 @@ def start_quiz_handler(request):
     if request.method == 'POST':
         quiz_id = request.POST.get('quiz_id')
         if not quiz_id:
-            return redirect('quizzes')
+            return redirect('quizzes:quizzes')
         
         # Сохраняем в сессии и перенаправляем на тест
         request.session['quiz_id'] = int(quiz_id)
@@ -1155,7 +1155,7 @@ def start_quiz_handler(request):
         request.session['current_question_id'] = None
         return redirect('quizzes:quiz_start', quiz_id=quiz_id)
     
-    return redirect('quizzes')
+    return redirect('quizzes:quizzes')
 
 
 from django.views.generic import CreateView, UpdateView, DeleteView
