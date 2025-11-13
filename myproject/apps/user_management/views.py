@@ -2154,9 +2154,15 @@ def api_assign_courses_to_user(request, user_id):
             try:
                 from .utils import send_course_assignment_email
                 send_course_assignment_email(target_user, course)
-                audit_logger.info(f"Отправлено email уведомление о курсе {course.title} пользователю {target_user.email}")
+                audit_logger.info(f"Отправлено email уведомление о курсе {course.title} пользователю {target_user.email}",
+                extra={
+                    'user': request.user.username if request.user.is_authenticated else 'Anonymous'
+                })
             except Exception as e:
-                audit_logger.error(f"Ошибка отправки email уведомления о курсе {course.title}: {e}")
+                audit_logger.error(f"Ошибка отправки email уведомления о курсе {course.title}: {e}",
+                extra={
+                    'user': request.user.username if request.user.is_authenticated else 'Anonymous'
+                })
         else:
             already_assigned_count += 1
             already_assigned_courses.append({

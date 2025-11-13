@@ -1812,6 +1812,16 @@ class ReviewQuizView(LoginRequiredMixin, UserPassesTestMixin, DetailView):
             quiz_result.mentor_comment = mentor_comment
             quiz_result.save()
             
+            # Создаем уведомление для пользователя об оценке теста
+            try:
+                from notifications.models import Notification
+                Notification.create_quiz_reviewed_notification(quiz_result)
+            except Exception as e:
+                # Логируем ошибку, но не прерываем процесс
+                import logging
+                logger = logging.getLogger(__name__)
+                logger.error(f"Ошибка создания уведомления об оценке теста: {e}")
+            
             # Начисляем баллы и выдаем сертификаты, если тест пройден
             if passed:
                 course = quiz_result.course
