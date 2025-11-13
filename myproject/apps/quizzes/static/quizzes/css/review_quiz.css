@@ -92,6 +92,10 @@
     color: #2c3e50;
     line-height: 1.5;
     font-size: 0.95em;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    word-break: break-word;
+    white-space: pre-wrap;
 }
 
 .score-selector {
@@ -248,6 +252,13 @@
     border-bottom: 1px solid #ecf0f1;
 }
 
+.answer-item p {
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    word-break: break-word;
+    white-space: pre-wrap;
+}
+
 .answer-item:last-child {
     border-bottom: none;
 }
@@ -260,4 +271,19 @@
 .answer-incorrect {
     color: #e74c3c;
     font-weight: 600;
+}
+
+.multiple-answers-group {
+    margin-top: 10px;
+}
+
+.multiple-answer-item {
+    padding: 8px 0;
+}
+
+.answer-divider {
+    margin: 10px 0;
+    border: none;
+    border-top: 1px solid #e3e8f0;
+    background: none;
 }

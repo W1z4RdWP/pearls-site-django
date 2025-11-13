@@ -45,13 +45,21 @@
                 <input type="checkbox" name="is_overdue_filter" id="is_overdue_filter" value="1" {% if is_overdue_filter %}checked{% endif %}>
                 <label for="is_overdue_filter">Просрочен</label>
             </div>
-            <!-- Кнопки действий -->
-            <div class="col-md-2 col-lg-2 text-end">
-                <button type="submit" class="btn btn-primary">Применить фильтры</button>
-                <a href="{% url 'quizzes:pending_quizzes' %}" class="btn btn-secondary" style="width: 85%;">Сбросить</a>
+        </div>
+        <!-- Кнопки действий -->
+        <div class="row">
+            <div class="col-md-2 col-lg-2">
+                <button type="submit" class="btn btn-primary w-30">Применить фильтры</button>
+            </div>
+            <div class="col-md-1 col-lg-1">
+                <a href="{% url 'quizzes:pending_quizzes' %}" class="btn btn-secondary w-30">Сбросить</a>
+            </div>
+            <div class="col-md-2 col-lg-3">
+                <button type="button" id="column-comments-button" class="btn btn-secondary w-30">Комментарий к столбцам</button>
             </div>
         </div>
     </form>
+
     
     {% if pending_results %}
     <div class="pending-table-responsive">
@@ -81,7 +89,7 @@
                         <td>{{ result.user.get_full_name|default:result.user.username }}</td>
                         <td>{{ result.quiz_title }}</td>
                         <td>{{ result.course.title|default:"—" }}</td>
-                        <td class="{% if deadline and deadline|is_overdue:now %}deadline-overdue{% endif %}">
+                        <td class="{% if deadline and result.status == 'pending' and deadline|is_overdue:now %}deadline-overdue{% endif %}">
                             {% if deadline %}
                                 <span class="deadline-date">{{ deadline|date:"d.m.Y" }}</span> <span class="deadline-time">{{ deadline|date:"H:i" }}</span>
                             {% else %}
@@ -212,6 +220,100 @@ document.addEventListener('click', function(event) {
     }
 });
 
+// Модальное окно для редактирования комментариев к столбцам
+// Ключ для localStorage
+const COLUMN_TITLES_STORAGE_KEY = 'pending_quizzes_table_column_titles';
+
+// Функция для получения сохраненных title из localStorage
+function getSavedColumnTitles() {
+    const saved = localStorage.getItem(COLUMN_TITLES_STORAGE_KEY);
+    return saved ? JSON.parse(saved) : {};
+}
+
+// Функция для сохранения title в localStorage
+function saveColumnTitles(titles) {
+    localStorage.setItem(COLUMN_TITLES_STORAGE_KEY, JSON.stringify(titles));
+}
+
+// Функция для применения сохраненных title к столбцам
+function applySavedColumnTitles() {
+    const savedTitles = getSavedColumnTitles();
+    const tableHeaders = document.querySelectorAll('.table thead th');
+    
+    tableHeaders.forEach((th, index) => {
+        const columnName = th.textContent.trim();
+        if (savedTitles[columnName]) {
+            th.setAttribute('title', savedTitles[columnName]);
+        }
+    });
+}
+
+// Функция для открытия модального окна
+function openColumnCommentsModal() {
+    const tableHeaders = document.querySelectorAll('.table thead th');
+    const savedTitles = getSavedColumnTitles();
+    const formBody = document.getElementById('column-comments-form-body');
+    
+    if (!formBody) return;
+    
+    // Очищаем форму
+    formBody.innerHTML = '';
+    
+    // Создаем поля для каждого столбца
+    tableHeaders.forEach((th) => {
+        const columnName = th.textContent.trim();
+        const currentTitle = savedTitles[columnName] || th.getAttribute('title') || '';
+        
+        const row = document.createElement('div');
+        row.style.marginBottom = '16px';
+        
+        const label = document.createElement('label');
+        label.style.display = 'block';
+        label.style.marginBottom = '6px';
+        label.style.fontWeight = '500';
+        label.textContent = columnName;
+        
+        const input = document.createElement('input');
+        input.type = 'text';
+        input.value = currentTitle;
+        input.dataset.columnName = columnName;
+        input.style.width = '100%';
+        input.style.padding = '8px 12px';
+        input.style.border = '1px solid #c3c8d0';
+        input.style.borderRadius = '6px';
+        input.style.fontSize = '0.95em';
+        input.style.boxSizing = 'border-box';
+        
+        input.addEventListener('focus', function() {
+            this.style.border = '1.5px solid #4d7cff';
+            this.style.boxShadow = '0 0 0 2px #4d7cff22';
+            this.style.outline = 'none';
+        });
+        
+        input.addEventListener('blur', function() {
+            this.style.border = '1px solid #c3c8d0';
+            this.style.boxShadow = 'none';
+        });
+        
+        row.appendChild(label);
+        row.appendChild(input);
+        formBody.appendChild(row);
+    });
+    
+    const columnCommentsModal = document.getElementById('column-comments-modal');
+    if (columnCommentsModal) {
+        columnCommentsModal.style.display = 'flex';
+    }
+}
+
+// Функция для закрытия модального окна
+function closeColumnCommentsModal() {
+    const columnCommentsModal = document.getElementById('column-comments-modal');
+    if (columnCommentsModal) {
+        columnCommentsModal.style.display = 'none';
+    }
+}
+
 document.addEventListener('DOMContentLoaded', function() {
     const statusSelect = document.getElementById('status_select');
     const dateFromInput = document.getElementById('date_from');
@@ -238,7 +340,156 @@ document.addEventListener('DOMContentLoaded', function() {
             dateToInput.value = dateTo.toISOString().split('T')[0];
         }
     });
+    
+    // Инициализация обработчиков для модального окна комментариев к столбцам
+    const columnCommentsButton = document.getElementById('column-comments-button');
+    const columnCommentsClose = document.getElementById('column-comments-modal-close');
+    const columnCommentsForm = document.getElementById('column-comments-form');
+    const columnCommentsModal = document.getElementById('column-comments-modal');
+    
+    if (columnCommentsButton) {
+        columnCommentsButton.addEventListener('click', openColumnCommentsModal);
+    }
+    
+    if (columnCommentsClose) {
+        columnCommentsClose.addEventListener('click', closeColumnCommentsModal);
+    }
+    
+    // Закрытие при клике вне модального окна
+    if (columnCommentsModal) {
+        columnCommentsModal.addEventListener('click', function(event) {
+            if (event.target === columnCommentsModal) {
+                closeColumnCommentsModal();
+            }
+        });
+    }
+    
+    // Обработчик отправки формы
+    if (columnCommentsForm) {
+        columnCommentsForm.addEventListener('submit', function(event) {
+            event.preventDefault();
+            
+            const formBody = document.getElementById('column-comments-form-body');
+            if (!formBody) return;
+            
+            const inputs = formBody.querySelectorAll('input[data-column-name]');
+            const titles = {};
+            
+            inputs.forEach(input => {
+                const columnName = input.dataset.columnName;
+                const title = input.value.trim();
+                titles[columnName] = title;
+            });
+            
+            // Сохраняем в localStorage
+            saveColumnTitles(titles);
+            
+            // Применяем к столбцам
+            applySavedColumnTitles();
+            
+            // Закрываем модальное окно
+            closeColumnCommentsModal();
+        });
+    }
+    
+    // Применяем сохраненные title к столбцам при загрузке страницы
+    applySavedColumnTitles();
 });
 </script>
+
+<!-- Модальное окно для редактирования комментариев к столбцам -->
+<div id="column-comments-modal" style="display:none; position:fixed; z-index:99999; left:0; top:0; width:100vw; height:100vh; background:rgba(0,0,0,0.35); align-items:center; justify-content:center;">
+    <div style="background:#fff; color:#232a3a; padding:32px 32px 24px 32px; border-radius:12px; box-shadow:0 2px 16px #0007; min-width:500px; max-width:95vw; max-height:90vh; overflow-y:auto; text-align:left; position:relative;">
+        <button id="column-comments-modal-close" style="position:absolute; right:12px; top:12px; background:none; border:none; font-size:1.5em; color:#888; cursor:pointer;">&times;</button>
+        <h4 style="margin-top:0; margin-bottom:24px;">Комментарий к столбцам</h4>
+        <form id="column-comments-form">
+            <div id="column-comments-form-body"></div>
+            <div style="margin-top:24px; display:flex; gap:12px; justify-content:flex-end;">
+                <button type="button" class="btn btn-secondary" onclick="closeColumnCommentsModal()">Отмена</button>
+                <button type="submit" class="btn btn-primary">Сохранить</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<style>
+#column-comments-modal {
+    display: none;
+    position: fixed;
+    z-index: 99999;
+    left: 0;
+    top: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(0,0,0,0.35);
+    align-items: center;
+    justify-content: center;
+}
+
+#column-comments-modal > div {
+    background: #fff;
+    color: #232a3a;
+    padding: 32px 32px 24px 32px;
+    border-radius: 12px;
+    box-shadow: 0 2px 16px rgba(0,0,0,0.07);
+    min-width: 500px;
+    max-width: 95vw;
+    max-height: 90vh;
+    overflow-y: auto;
+    text-align: left;
+    position: relative;
+}
+
+#column-comments-modal h4 {
+    margin-top: 0;
+    margin-bottom: 24px;
+    font-size: 1.35em;
+    font-weight: 700;
+}
+
+#column-comments-modal-close {
+    position: absolute;
+    right: 12px;
+    top: 12px;
+    background: none;
+    border: none;
+    font-size: 1.5em;
+    color: #888;
+    cursor: pointer;
+    padding: 0;
+    width: 30px;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+#column-comments-modal-close:hover {
+    color: #333;
+}
+
+#column-comments-form label {
+    display: block;
+    margin-bottom: 6px;
+    font-weight: 500;
+    color: #232a3a;
+}
+
+#column-comments-form input[type="text"] {
+    width: 100%;
+    padding: 8px 12px;
+    border: 1px solid #c3c8d0;
+    border-radius: 6px;
+    font-size: 0.95em;
+    box-sizing: border-box;
+    transition: border 0.2s, box-shadow 0.2s;
+}
+
+#column-comments-form input[type="text"]:focus {
+    border: 1.5px solid #4d7cff;
+    box-shadow: 0 0 0 2px rgba(77, 124, 255, 0.13);
+    outline: none;
+}
+</style>
 {% endblock %}
 

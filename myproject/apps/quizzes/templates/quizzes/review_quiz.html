@@ -98,18 +98,36 @@
         </div>
     </form>
     
-    {% if all_answers %}
+    {% if grouped_answers %}
     <div class="all-answers-section">
         <h3>Все ответы студента (для справки)</h3>
-        {% for answer in all_answers %}
+        {% for question, answers in grouped_answers.items %}
         <div class="answer-item">
-            <strong>{{ answer.question.text }}</strong>
-            {% if answer.question.question_type == 'text' %}
-                <p>Ответ: {{ answer.answer_text }}</p>
-            {% elif answer.selected_answer %}
+            <strong>{{ question.text }}</strong>
+            {% if question.question_type == 'text' %}
+                <p>Ответ: {{ answers.0.answer_text|default:"Ответ не предоставлен" }}</p>
+            {% elif question.question_type == 'multiple' %}
+                <div class="multiple-answers-group">
+                    {% for answer in answers %}
+                        <div class="multiple-answer-item">
+                            <p>
+                                Ответ: {{ answer.selected_answer.text|default:"—" }}
+                                {% if answer.selected_answer and answer.selected_answer.is_correct %}
+                                    <span class="answer-correct">✓ Верно</span>
+                                {% else %}
+                                    <span class="answer-incorrect">✗ Неверно</span>
+                                {% endif %}
+                            </p>
+                        </div>
+                        {% if not forloop.last %}
+                            <hr class="answer-divider">
+                        {% endif %}
+                    {% endfor %}
+                </div>
+            {% elif answers.0.selected_answer %}
                 <p>
-                    Ответ: {{ answer.selected_answer.text }}
-                    {% if answer.is_correct %}
+                    Ответ: {{ answers.0.selected_answer.text }}
+                    {% if answers.0.is_correct %}
                         <span class="answer-correct">✓ Верно</span>
                     {% else %}
                         <span class="answer-incorrect">✗ Неверно</span>

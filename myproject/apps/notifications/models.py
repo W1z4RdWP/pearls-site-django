@@ -17,6 +17,7 @@ class Notification(models.Model):
         # Новые типы: техподдержка
         ('ticket_status', 'Изменение статуса тикета'),
         ('ticket_comment', 'Новое сообщение по тикету'),
+        ('quiz_reviewed', 'Оценка теста наставником'),
     ]
     
     user = models.ForeignKey(User, on_delete=models.CASCADE, verbose_name="Пользователь")
@@ -54,6 +55,13 @@ class Notification(models.Model):
         null=True,
         blank=True,
         verbose_name="Связанный тикет"
+    )
+    related_quiz_result = models.ForeignKey(
+        'myapp.QuizResult',
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        verbose_name="Связанный результат теста"
     )
     points_change = models.IntegerField(
         null=True, 
@@ -100,6 +108,12 @@ class Notification(models.Model):
         # Новые маршруты для тикетов
         elif self.notification_type in ('ticket_status', 'ticket_comment') and self.related_ticket:
             return reverse('tech_support:ticket_detail', kwargs={'pk': self.related_ticket.pk})
+        elif self.notification_type == 'quiz_reviewed' and self.related_quiz_result:
+            # Получаем quiz_id из quiz_title
+            from quizzes.models import Quiz
+            quiz = Quiz.objects.filter(name=self.related_quiz_result.quiz_title).first()
+            if quiz and self.related_quiz_result.course:
+                return reverse('quizzes:quiz_best_result', kwargs={'quiz_id': quiz.id}) + f'?course_slug={self.related_quiz_result.course.slug}'
         return '#'
     
     @classmethod
@@ -213,4 +227,26 @@ class Notification(models.Model):
             title=title,
             message=message,
             related_ticket=ticket,
+        )
+    
+    @classmethod
+    def create_quiz_reviewed_notification(cls, quiz_result):
+        """Создает уведомление об оценке теста наставником"""
+        from quizzes.models import Quiz
+        quiz = Quiz.objects.filter(name=quiz_result.quiz_title).first()
+        quiz_name = quiz.name if quiz else quiz_result.quiz_title
+        
+        title = "Тест проверен наставником"
+        message = f"Ваш тест «{quiz_name}» был проверен наставником. "
+        if quiz_result.mentor_comment:
+            message += f"Комментарий: {quiz_result.mentor_comment[:200]}"
+        else:
+            message += f"Результат: {quiz_result.percent}%"
+        
+        return cls.objects.create(
+            user=quiz_result.user,
+            notification_type='quiz_reviewed',
+            title=title,
+            message=message,
+            related_quiz_result=quiz_result,
         )

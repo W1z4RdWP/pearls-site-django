@@ -107,6 +107,11 @@
 {% block content %}
 
     <div class="lesson-navigation">
+        <a href="{% url 'courses:course_detail' slug=course.slug %}" 
+        class="btn btn-outline-secondary" style="margin-right: 10px;">
+            <i class="fa fa-arrow-left"></i> Вернуться к курсу
+        </a>
+        
         {% if previous_lesson %}
             <a href="{% url 'courses:lesson_detail' course_slug=course.slug lesson_id=previous_lesson.id %}" 
             class="btn btn-primary">

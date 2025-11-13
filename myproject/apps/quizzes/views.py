@@ -96,7 +96,7 @@ def get_questions(request, quiz_id: int = None, is_start: bool = False) -> HttpR
     if request.method == 'POST' or is_start:
         # Если is_start=True, quiz_id берется из URL
         if is_start and not quiz_id:
-            return redirect('quizzes')
+            return redirect('quizzes:quizzes')
         
         # Получаем объект quiz для стартового вопроса
         if is_start:
@@ -187,7 +187,7 @@ def get_questions(request, quiz_id: int = None, is_start: bool = False) -> HttpR
             quiz_id = request.session.get('quiz_id')
             current_question_id = request.session.get('current_question_id')
             if not quiz_id or not current_question_id:
-                return redirect('quizzes')
+                return redirect('quizzes:quizzes')
             
             # Получаем объект quiz для последующих вопросов
             quiz_obj = get_object_or_404(Quiz, id=quiz_id)
@@ -673,7 +673,7 @@ def get_answer(request) -> HttpResponse:
                     
                 }
             else:
-                return redirect('quizzes')
+                return redirect('quizzes:quizzes')
 
         # Сохраняем обновлённые ответы в сессии
         request.session['quiz_answers'] = quiz_answers
@@ -686,7 +686,7 @@ def get_answer(request) -> HttpResponse:
 
         return render(request, 'quizzes/answer.html', context)
     
-    return redirect('quizzes')
+    return redirect('quizzes:quizzes')
 
 
 
@@ -696,7 +696,7 @@ def get_finish(request) -> HttpResponse:
 
     quiz_id = request.session.get('quiz_id')
     if not quiz_id:
-        return redirect('quizzes')
+        return redirect('quizzes:quizzes')
     
     quiz = get_object_or_404(Quiz, id=quiz_id)
 
@@ -1095,7 +1095,7 @@ def quiz_best_result(request, quiz_id: int) -> HttpResponse:
     course_slug = request.GET.get('course_slug')
     
     if not course_slug:
-        return redirect('quizzes')
+        return redirect('quizzes:quizzes')
     
     course = get_object_or_404(Course, slug=course_slug)
     
@@ -1124,12 +1124,29 @@ def quiz_best_result(request, quiz_id: int) -> HttpResponse:
     pending = False
     if has_text_questions and last_attempt and last_attempt.status == 'pending':
         pending = True
+    
+    # Если тест ожидает проверки, используем last_attempt для отображения
+    display_result = last_attempt if pending else best_result
+    
+    # Для pending статуса пересчитываем процент с учетом открытых вопросов как 0 баллов
+    # Это дает честный процент от общего количества вопросов
+    display_percent = best_result.percent
+    if pending and last_attempt:
+        total_questions = Question.objects.filter(quiz=quiz).count()
+        # score содержит только баллы за автопроверяемые вопросы
+        # открытые вопросы считаются как 0 баллов до проверки
+        if total_questions > 0:
+            display_percent = int((last_attempt.score / total_questions) * 100)
+        else:
+            display_percent = 0
 
     context = {
         'quiz': quiz,
         'course': course,
         'best_result': best_result,
         'last_attempt': last_attempt,
+        'display_result': display_result,  # Результат для отображения (last_attempt для pending, best_result для остальных)
+        'display_percent': display_percent,  # Процент для отображения (с учетом открытых вопросов как 0 для pending)
         'passed': best_result.passed,
         'pass_threshold': quiz.pass_threshold,
         'has_text_questions': has_text_questions,
@@ -1147,7 +1164,7 @@ def start_quiz_handler(request):
     if request.method == 'POST':
         quiz_id = request.POST.get('quiz_id')
         if not quiz_id:
-            return redirect('quizzes')
+            return redirect('quizzes:quizzes')
         
         # Сохраняем в сессии и перенаправляем на тест
         request.session['quiz_id'] = int(quiz_id)
@@ -1155,7 +1172,7 @@ def start_quiz_handler(request):
         request.session['current_question_id'] = None
         return redirect('quizzes:quiz_start', quiz_id=quiz_id)
     
-    return redirect('quizzes')
+    return redirect('quizzes:quizzes')
 
 
 from django.views.generic import CreateView, UpdateView, DeleteView
@@ -1731,9 +1748,17 @@ class ReviewQuizView(LoginRequiredMixin, UserPassesTestMixin, DetailView):
             quiz_result=quiz_result
         ).select_related('question', 'selected_answer').order_by('question__id')
         
+        # Группируем ответы по вопросам (особенно важно для MULTIPLE типа)
+        grouped_answers = {}
+        for answer in all_answers:
+            if answer.question not in grouped_answers:
+                grouped_answers[answer.question] = []
+            grouped_answers[answer.question].append(answer)
+        
         context['quiz'] = quiz
         context['text_answers'] = text_answers
         context['all_answers'] = all_answers
+        context['grouped_answers'] = grouped_answers
         
         return context
     
@@ -1803,6 +1828,16 @@ class ReviewQuizView(LoginRequiredMixin, UserPassesTestMixin, DetailView):
             quiz_result.reviewed_at = timezone.now()
             quiz_result.mentor_comment = mentor_comment
             quiz_result.save()
+            
+            # Создаем уведомление для пользователя об оценке теста
+            try:
+                from notifications.models import Notification
+                Notification.create_quiz_reviewed_notification(quiz_result)
+            except Exception as e:
+                # Логируем ошибку, но не прерываем процесс
+                import logging
+                logger = logging.getLogger(__name__)
+                logger.error(f"Ошибка создания уведомления об оценке теста: {e}")
             
             # Начисляем баллы и выдаем сертификаты, если тест пройден
             if passed:
