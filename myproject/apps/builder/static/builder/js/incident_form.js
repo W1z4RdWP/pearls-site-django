@@ -140,8 +140,7 @@ function displayUsers(users) {
     users.forEach(function(user) {
         html += `
             <div class="user-list-item" data-user-id="${user.id}" data-user-name="${user.full_name}">
-                <div class="user-list-item-name">${user.full_name}</div>
-                <div class="user-list-item-username">@${user.username}</div>
+                <div class="user-list-item-name">${user.full_name}${user.role ? ' (' + user.role + ')' : ''}</div>
             </div>
         `;
     });
@@ -560,8 +559,7 @@ function displaySearchResults(users) {
         
         html += `
             <div class="search-result-item" data-user-id="${user.id}">
-                <div class="search-result-name">${user.full_name}</div>
-                <div class="search-result-username">@${user.username}</div>
+                <div class="search-result-name">${user.full_name}${user.role ? ' (' + user.role + ')' : ''}</div>
             </div>
         `;
     });

@@ -3167,7 +3167,7 @@ def api_search_users(request):
     search_query = request.GET.get('q', '').strip()
     mentor_only = request.GET.get('mentor_only', '').lower() == 'true'
     
-    users = User.objects.filter(is_active=True).select_related('profile')
+    users = User.objects.filter(is_active=True).select_related('profile', 'profile__role')
     
     # Фильтруем только наставников, если указан параметр mentor_only
     if mentor_only:
@@ -3185,10 +3185,12 @@ def api_search_users(request):
     users_data = []
     for user in users:
         full_name = user.get_full_name() or user.username
+        role_name = user.profile.role.name if user.profile and user.profile.role else None
         users_data.append({
             'id': user.id,
             'full_name': full_name,
             'username': user.username,
+            'role': role_name,  # Название должности
         })
     
     return JsonResponse({'users': users_data})

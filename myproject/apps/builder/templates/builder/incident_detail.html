@@ -44,7 +44,7 @@
             <!-- Фильтр по нарушителям -->
             <div class="col-md-3 col-lg-2">
                 <select class="form-control" id="violator_filter" name="violator_filter">
-                    <option value="all" {% if violator_filter == 'all' %}selected{% endif %}>Все</option>
+                    <option value="all" {% if violator_filter == 'all' %}selected{% endif %}>Тип участника: Все</option>
                     <option value="yes" {% if violator_filter == 'yes' %}selected{% endif %}>Только нарушители</option>
                     <option value="no" {% if violator_filter == 'no' %}selected{% endif %}>Только не нарушители</option>
                 </select>
