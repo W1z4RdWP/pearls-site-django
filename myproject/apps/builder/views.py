@@ -974,14 +974,21 @@ class IncidentCreateView(CreateView, AuditLoggerMixin):
     model = Incident
     form_class = IncidentForm
     template_name = 'builder/incident_form.html'
-    success_url = reverse_lazy('builder:incidents')
 
     def dispatch(self, request, *args, **kwargs):
         if not request.user.is_authenticated or not (request.user.is_staff or request.user.is_superuser):
             return render(request, '403.html', status=403)
         return super().dispatch(request, *args, **kwargs)
 
-    
+
+    def get_success_url(self):
+        """
+        Возвращает URL для редиректа после успешного создания инцидента.
+        Перенаправляет на страницу редактирования созданного инцидента.
+        """
+        return reverse('builder:incident_edit', kwargs={'pk': self.object.pk})
+
+
     def form_valid(self, form):
         # Устанавливаем статус "Принят" для нового инцидента
         form.instance.status = 'accepted'
