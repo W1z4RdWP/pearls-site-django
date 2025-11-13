@@ -92,6 +92,10 @@
     color: #2c3e50;
     line-height: 1.5;
     font-size: 0.95em;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    word-break: break-word;
+    white-space: pre-wrap;
 }
 
 .score-selector {
@@ -246,6 +250,13 @@
 .answer-item {
     padding: 15px;
     border-bottom: 1px solid #ecf0f1;
+}
+
+.answer-item p {
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    word-break: break-word;
+    white-space: pre-wrap;
 }
 
 .answer-item:last-child {
