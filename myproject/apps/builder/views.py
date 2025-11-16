@@ -1201,6 +1201,8 @@ class CreateCourseFromIncidentView(View):
             return redirect('builder:incidents')
 
 
+
+
 class IncidentDetailListView(ListView):
     """
     Список по прогрессу пользователей по всем инцидентам

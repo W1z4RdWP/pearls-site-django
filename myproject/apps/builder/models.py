@@ -71,6 +71,7 @@ class Incident(models.Model):
         ('new', 'Новый'),
         ('accepted', 'Принят'),
         ('assigned', 'Назначен'),
+        ('studies_completed', 'Обучение завершено'),
         ('resolved', 'Завершён'),
         ('declined', 'Отклонён')
     ]
@@ -82,6 +83,9 @@ class Incident(models.Model):
     user = models.ForeignKey(get_user_model(), on_delete=models.CASCADE, related_name='created_incidents', verbose_name='Кто зафиксировал')
     assigned_to = models.ManyToManyField(get_user_model(), related_name='assigned_incidents', blank=True, verbose_name='Кому назначен')
     violators = models.ManyToManyField(get_user_model(), related_name='violator_incidents', blank=True, verbose_name='Виновник/нарушитель инцидента')
+    assigned_to_time_to_complete= models.PositiveIntegerField(default=3, verbose_name='Время на завершение обучения (дней)', blank=True, null=True, help_text="Количество дней для завершения обучения назначенными/нарушителями")
+    expert = models.ForeignKey(get_user_model(), on_delete=models.CASCADE, related_name='course_expert', verbose_name='Ответственный за актуальность курса', blank=True, null=True)
+    expert_time_to_complete = models.PositiveIntegerField(default=3, verbose_name='Время на завершение/актуализацию (дней)', blank=True, null=True)
     status = models.CharField(max_length=32, choices=STATUS_CHOICES, default='new', verbose_name='Статус')
     previous_status = models.CharField(max_length=32, choices=STATUS_CHOICES, blank=True, null=True, verbose_name='Предыдущий статус', help_text='Статус до отклонения')
     

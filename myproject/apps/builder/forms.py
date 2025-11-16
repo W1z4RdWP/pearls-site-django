@@ -32,16 +32,20 @@ class IncidentForm(forms.ModelForm):
     
     class Meta:
         model = Incident
-        fields = ['title', 'incident_type', 'responsible_mentor', 'mentors_time_to_check', 'user', 'assigned_to', 'violators', 'deadline', 'status', 'description']
+        fields = ['title', 'incident_type', 'responsible_mentor', 'mentors_time_to_check', 
+        'user', 'assigned_to', 'violators', 'expert', 'assigned_to_time_to_complete', 'expert_time_to_complete', 'status', 'description']
         widgets = {
             'title': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Введение в Dent'}),
             'incident_type': forms.Select(attrs={'class': 'form-control'}),
             'responsible_mentor': forms.HiddenInput(),
             'user': forms.HiddenInput(),
-            'deadline': forms.DateTimeInput(
-                attrs={'class': 'form-control', 'type': 'datetime-local'},
-                format='%Y-%m-%dT%H:%M'
-            ),
+            # 'deadline': forms.DateTimeInput(
+            #     attrs={'class': 'form-control', 'type': 'datetime-local'},
+            #     format='%Y-%m-%dT%H:%M'
+            # ),
+            'expert': forms.HiddenInput(),
+            'assigned_to_time_to_complete': forms.HiddenInput(),
+            'expert_time_to_complete': forms.HiddenInput(),
             'status': forms.Select(attrs={'class': 'form-control', 'disabled': True}),
             'description': forms.Textarea(attrs={'class': 'form-control', 'rows': 3, 'placeholder': 'Дополнительные комментарии...'}),
         }

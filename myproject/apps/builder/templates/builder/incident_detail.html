@@ -76,7 +76,7 @@
                     <th style="width: 20%;">Название инцидента</th>
                     <th style="width: 15%;">Назначено</th>
                     <th style="width: 10%;">Нарушитель</th>
-                    <th style="width: 10%;">Дедлайн</th>
+                    <!-- <th style="width: 10%;">Дедлайн</th> -->
                     <th style="width: 10%;">Ответственный</th>
                     <th style="width: 10%;">Прогресс</th>
                     <th style="width: 10%;">Статус</th>
@@ -97,13 +97,13 @@
                                 <span class="badge bg-secondary">Нет</span>
                             {% endif %}
                         </td>
-                        <td class="{% if item.incident.deadline and item.incident.deadline|is_overdue:now %}deadline-overdue{% endif %}">
+                        <!-- <td class="{% if item.incident.deadline and item.incident.deadline|is_overdue:now %}deadline-overdue{% endif %}">
                             {% if item.incident.deadline %}
                                 <span class="deadline-date">{{ item.incident.deadline|date:"d.m.Y" }}</span> <span class="deadline-time">{{ item.incident.deadline|date:"H:i" }}</span>
                             {% else %}
                                 —
                             {% endif %}
-                        </td>
+                        </td> -->
                         <td>
                             {% if item.incident.responsible_mentor %}
                                 {{ item.incident.responsible_mentor.get_full_name|default:item.incident.responsible_mentor.username }}

@@ -95,7 +95,7 @@
                         <th style="width: 12%;" title="Тип инцидента">Тип инцидента</th>
                         <th style="width: 12%;" title="Кто зафиксировал">Кто зафиксировал</th>
                         <!-- <th style="width: 15%;" title="Ответственный за инцидент">Ответственный за инцидент</th> -->
-                        <th style="width: 8%;" title="Дедлайн">Дедлайн</th>
+                        <!-- <th style="width: 8%;" title="Дедлайн">Дедлайн</th> -->
                         <th style="width: 7%;" title="Всего обучающихся">Всего обучающихся</th>
                         <th style="width: 7%;" title="Завершили обуч.">Завершили обуч.</th>
                         <th style="width: 8%;" title="Статус">Статус</th>
@@ -123,13 +123,13 @@
                                 —
                             {% endif %}
                         </td> -->
-                        <td class="{% if inc.deadline and inc.deadline|is_overdue:now %}deadline-overdue{% endif %}">
+                        <!-- <td class="{% if inc.deadline and inc.deadline|is_overdue:now %}deadline-overdue{% endif %}">
                             {% if inc.deadline %}
                                 <span class="deadline-date">{{ inc.deadline|date:"d.m.Y" }}</span> <span class="deadline-time">{{ inc.deadline|date:"H:i" }}</span>
                             {% else %}
                                 —
                             {% endif %}
-                        </td>
+                        </td> -->
                         <td style="text-align: center;">
                             {% if inc.course %}
                                 {{ inc.assigned_users_count|default:0 }}
