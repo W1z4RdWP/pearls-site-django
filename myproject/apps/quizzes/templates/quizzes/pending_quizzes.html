@@ -3,8 +3,8 @@
 {% load quiz_filters %}
 
 {% block specific_styles %}
-<link rel="stylesheet" href="{% static 'quizzes/css/quiz_styles.css' %}">
-<link rel="stylesheet" href="{% static 'quizzes/css/pending_quizzes.css' %}">
+    <link rel="stylesheet" href="{% static 'quizzes/css/quiz_styles.css' %}">
+    <link rel="stylesheet" href="{% static 'quizzes/css/pending_quizzes.css' %}">
 {% endblock %}
 
 {% block content %}
@@ -55,7 +55,7 @@
                 <a href="{% url 'quizzes:pending_quizzes' %}" class="btn btn-secondary w-30">Сбросить</a>
             </div>
             <div class="col-md-2 col-lg-3">
-                <button type="button" id="column-comments-button" class="btn btn-secondary w-30">Комментарий к столбцам</button>
+                <button type="button" id="column-comments-button" class="btn btn-secondary w-30" title="Комментарий к столбцам">К</button>
             </div>
         </div>
     </form>

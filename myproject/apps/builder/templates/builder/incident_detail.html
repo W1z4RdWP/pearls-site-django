@@ -58,7 +58,7 @@
                 <a href="{% url 'builder:incident_detail' %}{% if violator_filter_locked %}?violator_filter=yes&date_from={{ date_from }}&date_to={{ date_to }}{% elif search %}?search={{ search|urlencode }}{% endif %}" class="btn btn-secondary w-30" id="reset-button">Сбросить</a>
             </div>
             <div class="col-md-2 col-lg-3">
-                <button type="button" id="column-comments-button" class="btn btn-secondary w-30">Комментарий к столбцам</button>
+                <button type="button" id="column-comments-button" class="btn btn-secondary w-30" title="Комментарий к столбцам">К</button>
             </div>
         </div>
     </form>
