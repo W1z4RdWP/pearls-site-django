@@ -559,6 +559,7 @@
                                 <span class="d-none d-sm-inline">Добавить</span>
                             </a>
                             {% if incident %}
+                                <a href="{% url 'builder:incidents' %}" class="btn-mini btn-primary">Инциденты</a>
                                 <!-- Если курс-инцидент, то редактируем связанный с ним инцидент -->
                                 <a href="{% url 'builder:incident_edit' pk=incident.id %}" class="btn-mini edit" title="Редактировать инцидент">
                                     <i class="fa fa-edit"></i>
