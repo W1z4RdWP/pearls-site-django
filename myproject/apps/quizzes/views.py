@@ -122,13 +122,14 @@ def get_questions(request, quiz_id: int = None, is_start: bool = False) -> HttpR
                         # Создаем UserCourse если его нет
                         user_course = UserCourse.objects.create(user=request.user, course=course, status='available')
                     
-                    # Блокируем доступ к тесту, если курс не начат - редиректим на страницу курса с подсветкой
-                    if user_course.status not in ['started', 'completed']:
-                        from django.urls import reverse
-                        from urllib.parse import urlencode
-                        url = reverse('courses:course_detail', kwargs={'slug': course.slug})
-                        params = urlencode({'highlight_start': '1', 'quiz_blocked': quiz.id})
-                        return redirect(f'{url}?{params}')
+                    # Блокируем доступ к тесту, если курс не начат - редиректим на страницу курса с подсветкой (пропускаем для админов)
+                    if not (request.user.is_staff or request.user.is_superuser):
+                        if user_course.status not in ['started', 'completed']:
+                            from django.urls import reverse
+                            from urllib.parse import urlencode
+                            url = reverse('courses:course_detail', kwargs={'slug': course.slug})
+                            params = urlencode({'highlight_start': '1', 'quiz_blocked': quiz.id})
+                            return redirect(f'{url}?{params}')
                 except Course.DoesNotExist:
                     pass
             else:
@@ -153,9 +154,10 @@ def get_questions(request, quiz_id: int = None, is_start: bool = False) -> HttpR
                             if not user_course:
                                 user_course = UserCourse.objects.create(user=request.user, course=course, status='available')
                             
-                            # Блокируем доступ к тесту, если курс не начат
-                            if user_course.status not in ['started', 'completed']:
-                                return render(request, 'courses/quiz_start_required.html', {'course': course})
+                            # Блокируем доступ к тесту, если курс не начат (пропускаем для админов)
+                            if not (request.user.is_staff or request.user.is_superuser):
+                                if user_course.status not in ['started', 'completed']:
+                                    return render(request, 'courses/quiz_start_required.html', {'course': course})
                 else:
                     # При запуске из панели управления очищаем курс из сессии
                     if 'course_slug' in request.session:

@@ -82,7 +82,7 @@
                                     <span class="d-none d-sm-inline">Изменить порядок</span>
                                 </a>
                             {% endif %}
-                            {% if user_course and user_course.status == 'available' %}
+                            {% if user_course and user_course.status == 'available' and not user.is_staff and not user.is_superuser %}
                                 <form method="POST" action="{% url 'courses:course_detail' slug=course.slug %}" style="margin: 0;">
                                     {% csrf_token %}
                                     {% if course.get_course_materials or course.final_quiz %}
@@ -109,7 +109,7 @@
                                         {% comment %} Скрываем KZ урок метрик для пользователей НЕ из Казахстана {% endcomment %}
                                     {% elif material.title == 'Метрики эффективности стоматологической клиники' or material.title == 'KZ Метрики эффективности стоматологической клиники' %}
                                         {% comment %} Показываем форму метрик вместо урока (если он не скрыт выше) {% endcomment %}
-                                        {% if user_course and user_course.status in 'started,completed' %}
+                                        {% if user.is_staff or user.is_superuser or user_course and user_course.status in 'started,completed' %}
                                             <div class="material-item lesson d-flex align-items-center p-3">
                                                 <a href="{% url 'courses:lesson_detail' course.slug material.id %}" 
                                                    class="d-flex align-items-center flex-grow-1 text-decoration-none">
@@ -139,7 +139,7 @@
                                                     </form>
                                                 {% endif %}
                                             </div>
-                                        {% else %}
+                                        {% elif not user.is_staff and not user.is_superuser %}
                                             <div class="material-item blocked d-flex align-items-center p-3">
                                                 <span class="material-icon"><i class="fa fa-book"></i></span>
                                                 <div class="flex-grow-1">
@@ -175,7 +175,7 @@
                                         </a>
                                     {% else %}
                                         {% comment %} Обычные уроки курса "Чек-ап" {% endcomment %}
-                                        {% if user_course and user_course.status in 'started,completed' %}
+                                        {% if user.is_staff or user.is_superuser or user_course and user_course.status in 'started,completed' %}
                                             <div class="material-item lesson d-flex align-items-center p-3">
                                                 <a href="{% url 'courses:lesson_detail' course.slug material.id %}" 
                                                    class="d-flex align-items-center flex-grow-1 text-decoration-none">
@@ -199,7 +199,7 @@
                                                     </form>
                                                 {% endif %}
                                             </div>
-                                        {% else %}
+                                        {% elif not user.is_staff and not user.is_superuser %}
                                             <div class="material-item blocked d-flex align-items-center p-3">
                                                 <span class="material-icon"><i class="fa fa-book"></i></span>
                                                 <div class="flex-grow-1">
@@ -221,7 +221,7 @@
                                         {% endif %}
                                     {% endif %}
                                 {% else %}
-                                    {% if user_course and user_course.status in 'started,completed' %}
+                                    {% if user.is_staff or user.is_superuser or user_course and user_course.status in 'started,completed' %}
                                         <div class="material-item lesson d-flex align-items-center p-3">
                                             <a href="{% url 'courses:lesson_detail' course.slug material.id %}" class="d-flex align-items-center flex-grow-1 text-decoration-none">
                                                 <span class="material-icon"><i class="fa fa-book"></i></span>
@@ -244,7 +244,7 @@
                                                 </form>
                                             {% endif %}
                                         </div>
-                                    {% else %}
+                                    {% elif not user.is_staff and not user.is_superuser %}
                                         <div class="material-item blocked d-flex align-items-center p-3">
                                             <span class="material-icon"><i class="fa fa-book"></i></span>
                                             <div class="flex-grow-1">
@@ -266,7 +266,7 @@
                                     {% endif %}
                                 {% endif %}
                             {% elif material.type == 'quiz' %}
-                                {% if user_course and user_course.status in 'started,completed' %}
+                                {% if user.is_staff or user.is_superuser or user_course and user_course.status in 'started,completed' %}
                                     {% with quiz_status=quiz_statuses|get_item:material.title %}
                                         {% if material.title in completed_quizzes_ids or quiz_status == 'pending' %}
                                             <div class="material-item quiz d-flex align-items-center p-3">
@@ -317,7 +317,7 @@
                                             </div>
                                         {% endif %}
                                     {% endwith %}
-                                {% else %}
+                                {% elif not user.is_staff and not user.is_superuser %}
                                     <div class="material-item blocked d-flex align-items-center p-3">
                                         <span class="material-icon">🎓</span>
                                         <div class="flex-grow-1">

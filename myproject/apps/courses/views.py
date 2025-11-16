@@ -629,13 +629,45 @@ class LessonDetailView(DetailView):
         course = get_object_or_404(Course, slug=course_slug)
         lesson = get_object_or_404(Lesson, id=lesson_id, courses=course)
         
-        # Проверка доступа к курсу через менеджер
-        available_courses = Course.objects.available_for_user(self.request.user)
-        if course not in available_courses:
-            return redirect('courses:course_detail', slug=course.slug)
+        # Проверка доступа к курсу через менеджер (пропускаем для админов)
+        if not (self.request.user.is_staff or self.request.user.is_superuser):
+            available_courses = Course.objects.available_for_user(self.request.user)
+            if course not in available_courses:
+                return redirect('courses:course_detail', slug=course.slug)
         
         return lesson
 
+
+    def get(self, request, *args, **kwargs):
+        """Переопределяем get для проверки доступа перед рендерингом"""
+        self.object = self.get_object()
+        lesson = self.object
+        course_slug = self.kwargs.get('course_slug')
+        course = get_object_or_404(Course, slug=course_slug)
+        
+        # Получаем UserCourse для проверки статуса
+        user_course = UserCourse.objects.filter(user=request.user, course=course).first()
+        if not user_course:
+            user_course = UserCourse.objects.create(user=request.user, course=course, status='available')
+
+        # Блокируем доступ к уроку, если курс не начат (пропускаем для админов)
+        if not (request.user.is_staff or request.user.is_superuser):
+            if user_course.status not in ['started', 'completed']:
+                from django.urls import reverse
+                from urllib.parse import urlencode
+                url = reverse('courses:course_detail', kwargs={'slug': course.slug})
+                params = urlencode({'highlight_start': '1', 'lesson_blocked': lesson.id})
+                return redirect(f'{url}?{params}')
+
+        # Проверка траектории (пропускаем для админов)
+        trajectory = UserLessonTrajectory.objects.filter(user=request.user, course=course).first()
+        if trajectory and not (request.user.is_staff or request.user.is_superuser):
+            lessons_in_trajectory = trajectory.lessons.all()
+            if lesson not in lessons_in_trajectory:
+                return render(request, 'courses/lesson_access_denied.html', {'course': course, 'lesson': lesson})
+        
+        # Если все проверки пройдены, вызываем стандартный метод get
+        return super().get(request, *args, **kwargs)
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -643,25 +675,8 @@ class LessonDetailView(DetailView):
         course_slug = self.kwargs.get('course_slug')
         course = get_object_or_404(Course, slug=course_slug)
         
-        # Получаем UserCourse для проверки статуса
-        user_course = UserCourse.objects.filter(user=self.request.user, course=course).first()
-        if not user_course:
-            user_course = UserCourse.objects.create(user=self.request.user, course=course, status='available')
-
-        # Блокируем доступ к уроку, если курс не начат
-        if user_course.status not in ['started', 'completed']:
-            from django.urls import reverse
-            from urllib.parse import urlencode
-            url = reverse('courses:course_detail', kwargs={'slug': course.slug})
-            params = urlencode({'highlight_start': '1', 'lesson_blocked': lesson.id})
-            return redirect(f'{url}?{params}')
-
-        # Проверка траектории
+        # Получаем траекторию для определения предыдущего и следующего уроков
         trajectory = UserLessonTrajectory.objects.filter(user=self.request.user, course=course).first()
-        if trajectory:
-            lessons_in_trajectory = trajectory.lessons.all()
-            if lesson not in lessons_in_trajectory:
-                return render(self.request, 'courses/lesson_access_denied.html', {'course': course, 'lesson': lesson})
         
         # Определяем страну пользователя (нужна для фильтрации уроков метрик)
         user_country = ''
