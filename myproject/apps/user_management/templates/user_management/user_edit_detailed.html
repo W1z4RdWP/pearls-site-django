@@ -604,7 +604,13 @@
                                     {% endif %}
                                     {{ training.name }}
                                 </td>
-                                <td>—</td>
+                                <td>
+                                    {% if training.assignment_date %}
+                                        {{ training.assignment_date|date:"d.m.Y" }} <small style="font-size: calc(1em - 3px);">{{ training.assignment_date|date:"H:i" }}</small>
+                                    {% else %}
+                                        —
+                                    {% endif %}
+                                </td>
                                 <td>
                                     <span class="badge 
                                         {% if training.status_code == 'completed' %}bg-success
@@ -613,7 +619,13 @@
                                         {{ training.status }}
                                     </span>
                                 </td>
-                                <td>—</td>
+                                <td>
+                                    {% if training.due_date %}
+                                        {{ training.due_date|date:"d.m.Y" }} <small style="font-size: calc(1em - 3px);">{{ training.due_date|date:"H:i" }}</small>
+                                    {% else %}
+                                        —
+                                    {% endif %}
+                                </td>
                                 <td>{{ training.assignment_type }}</td>
                             </tr>
                             {% endfor %}
