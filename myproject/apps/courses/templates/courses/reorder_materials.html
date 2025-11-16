@@ -2,80 +2,96 @@
 {% load static %}
 
 {% block specific_styles %}
+    <link rel="stylesheet" href="{% static 'courses/css/course_custom_buttons.css' %}">
+    <link rel="stylesheet" href="{% static 'courses/css/course_description.css' %}">
+    <link rel="stylesheet" href="{% static 'courses/css/course_detail.css' %}">
     <link rel="stylesheet" href="{% static 'courses/css/reorder_materials.css' %}">
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
 {% endblock %}
 
 {% block content %}
-<div class="container mt-4">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <div>
-            <h2>Изменить порядок материалов</h2>
-            <p class="text-muted">Курс: {{ course.title }}</p>
-        </div>
-        <div>
-            <a href="{% url 'courses:course_detail' slug=course.slug %}" class="btn btn-secondary">
-                <i class="fa fa-arrow-left"></i> Вернуться к курсу
-            </a>
+
+<!-- Hero Section -->
+<div class="course-hero">
+    <div class="container">
+        <div class="row align-items-center">
+            <div class="col-lg-8">
+                <div class="course-description" id="course-description">
+                    <h1>{{ course.title }}</h1>
+                    <p class="lead">{{ course.description|safe }}</p>
+                </div>
+            </div>
+            <div class="col-lg-4 text-center" id="course-description-image">
+                {% if course.image %}
+                    <img src="{{ course.image.url }}" alt="{{ course.title }}" class="course-image">
+                {% endif %}
+            </div>
         </div>
     </div>
+</div>
 
+<div class="container">
     <div class="row">
-        <div class="col-md-8">
-            <div class="card">
-                <div class="card-header">
-                    <h5 class="mb-0">
-                        <i class="fa fa-sort"></i> Перетащите материалы для изменения порядка
-                    </h5>
-                </div>
-                <div class="card-body">
-                    <div id="materials-list" class="materials-list">
+        <div class="col-lg-8">
+            <div class="course-content">
+                <div class="materials-section">
+                    <div class="materials-header">
+                        <h3 class="materials-title">Материалы курса</h3>
+                        <div class="d-flex gap-2">
+                            <a href="{% url 'courses:course_detail' slug=course.slug %}" class="btn-mini edit" title="Вернуться к курсу">
+                                <i class="fa fa-arrow-left"></i>
+                                <span class="d-none d-sm-inline">Вернуться к курсу</span>
+                            </a>
+                        </div>
+                    </div>
+                    <div class="materials-list" id="materials-list">
                         {% for material in materials %}
-                        <div class="material-item" data-type="{{ material.type }}" data-id="{{ material.id }}">
-                            <div class="material-content">
-                                <div class="material-info">
-                                    <div class="material-title">{{ material.title }}</div>
-                                    <div class="material-meta">
-                                        {% if material.type == 'lesson' %}
-                                            <span class="badge bg-primary">Урок</span>
-                                        {% else %}
-                                            <span class="badge bg-info">Тест</span>
-                                            <small class="text-muted">{{ material.object.points }} DASCOIN</small>
-                                        {% endif %}
+                            {% if material.type == 'lesson' %}
+                                <div class="material-item lesson d-flex align-items-center p-3" data-type="{{ material.type }}" data-id="{{ material.id }}">
+                                    <div class="d-flex align-items-center flex-grow-1 text-decoration-none">
+                                        <span class="material-icon"><i class="fa fa-book"></i></span>
+                                        <div class="flex-grow-1">
+                                            <div class="material-title">{{ material.title }}</div>
+                                            <div class="material-type">Урок</div>
+                                        </div>
+                                    </div>
+                                    <div class="material-handle">
+                                        <i class="fa fa-grip-vertical"></i>
                                     </div>
                                 </div>
-                                <div class="material-handle">
-                                    <i class="fa fa-grip-vertical"></i>
+                            {% elif material.type == 'quiz' %}
+                                <div class="material-item quiz d-flex align-items-center p-3" data-type="{{ material.type }}" data-id="{{ material.id }}">
+                                    <div class="d-flex align-items-center flex-grow-1 text-decoration-none">
+                                        <span class="material-icon"><i class="fa fa-graduation-cap"></i></span>
+                                        <div class="flex-grow-1">
+                                            <div class="material-title">{{ material.title }}</div>
+                                            <div class="material-type">Тест</div>
+                                        </div>
+                                    </div>
+                                    <div class="material-handle">
+                                        <i class="fa fa-grip-vertical"></i>
+                                    </div>
                                 </div>
-                            </div>
-                        </div>
+                            {% endif %}
                         {% endfor %}
                     </div>
                 </div>
             </div>
         </div>
         
-        <div class="col-md-4">
-            <div class="card">
-                <div class="card-header">
-                    <h6 class="mb-0">Инструкции</h6>
+        <div class="col-lg-4">
+            <div class="sidebar-card">
+                <div class="sidebar-header">
+                    <h4>Изменение порядка</h4>
                 </div>
-                <div class="card-body">
-                    <ul class="list-unstyled">
-                        <li><i class="fa-regular fa-hand-pointer"></i> Перетащите элементы для изменения порядка</li>
-                        <li><i class="fa fa-save text-success"></i> Изменения сохраняются автоматически</li>
-                        <li>📄 - Уроки</li>
-                        <li>🎓 - Тесты</li>
-                    </ul>
-                </div>
-            </div>
-            
-            <div class="card mt-3">
-                <div class="card-body text-center">
-                    <button id="save-order" class="btn btn-success" disabled>
-                        <i class="fa fa-save"></i> Сохранить порядок
-                    </button>
-                    <div id="save-status" class="mt-2"></div>
+                <div class="sidebar-body">
+                    <p class="text-muted mb-3">Перетащите материалы для изменения их порядка в курсе.</p>
+                    <div class="action-buttons">
+                        <button id="save-order" class="btn-modern" disabled>
+                            <i class="fa fa-save"></i> Сохранить порядок
+                        </button>
+                    </div>
+                    <div id="save-status" class="mt-3"></div>
                 </div>
             </div>
         </div>

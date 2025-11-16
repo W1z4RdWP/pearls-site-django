@@ -189,7 +189,7 @@
     color: #ff7875;
 }
 
-.toggle-arrow {
+/* .toggle-arrow {
     margin-left: 10px;
     font-size: 1em;
     cursor: pointer;
@@ -199,7 +199,7 @@
 }
 .category-header.open .toggle-arrow {
     color: var(--builder-sidebar-arrow-open);
-}
+} */
 
 .category-block > .lesson-list,
 .category-block > .subcategory-list {
