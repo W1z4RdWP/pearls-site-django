@@ -68,7 +68,7 @@
     </div>
     {% endif %}
     
-    {% if user_course and user_course.status != 'blocked' %}
+    {% if user_course and user_course.status != 'blocked' or request.user.is_staff %}
     <div class="row">
         <div class="col-lg-8">
             <div class="course-content">
@@ -505,7 +505,11 @@
                                 </div>
                             {% endif %}
                         {% endif %}
-
+                    {% elif request.user.is_staff %}
+                        <div class="text-center">
+                            <p class="text-muted mb-3">Вы авторизованы как администратор системы</p>
+                            <p class="text-muted">Статусы курса отключены</p>
+                        </div>
                     {% else %}
                         <div class="text-center">
                             <p class="text-muted mb-3">Чтобы начать курс, пожалуйста, войдите в систему</p>
@@ -515,6 +519,33 @@
                         </div>
                     {% endif %}
                 </div>
+                
+                {# Кнопки назначения для курса-инцидента #}
+                {% if incident and user.is_authenticated and user.is_staff %}
+                    <div class="admin-panel" style="margin-top: 20px;">
+                        <h6 class="admin-title">
+                            <i class="fa fa-user-plus"></i> Назначение курса
+                        </h6>
+                        <div class="admin-buttons" style="display: flex; flex-direction: column; gap: 10px;">
+                            {% if incident.expert %}
+                                <button type="button" class="btn-mini add" id="assignToExpertBtn" 
+                                        onclick="assignCourseToExpert('{{ course.slug }}')"
+                                        title="Назначить курс руководителю {{ incident.expert.get_full_name }}">
+                                    <i class="fa fa-user-tie"></i>
+                                    <span>Назначить руководителю</span>
+                                </button>
+                            {% endif %}
+                            {% if incident.assigned_to.exists %}
+                                <button type="button" class="btn-mini add" id="assignToAssignedBtn"
+                                        onclick="assignCourseToAssigned('{{ course.slug }}')"
+                                        title="Назначить курс назначенным пользователям">
+                                    <i class="fa fa-users"></i>
+                                    <span>Назначить назначенным</span>
+                                </button>
+                            {% endif %}
+                        </div>
+                    </div>
+                {% endif %}
                 
                 {# Админ-панель #}
                 {% if user.is_authenticated and user.is_staff %}
@@ -582,4 +613,91 @@
         </div>
     {% endif %}
 </div>
+
+{% if incident and user.is_authenticated and user.is_staff %}
+<script>
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+
+function assignCourseToExpert(courseSlug) {
+    const btn = document.getElementById('assignToExpertBtn');
+    const originalText = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Назначение...';
+    
+    const csrftoken = getCookie('csrftoken');
+    const url = '{% url "courses:assign_course_to_expert" slug="PLACEHOLDER" %}'.replace('PLACEHOLDER', courseSlug);
+    
+    fetch(url, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': csrftoken,
+            'Content-Type': 'application/json',
+        },
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert(data.message);
+        } else {
+            alert('Ошибка: ' + (data.error || 'Неизвестная ошибка'));
+        }
+        btn.disabled = false;
+        btn.innerHTML = originalText;
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Ошибка при назначении курса');
+        btn.disabled = false;
+        btn.innerHTML = originalText;
+    });
+}
+
+function assignCourseToAssigned(courseSlug) {
+    const btn = document.getElementById('assignToAssignedBtn');
+    const originalText = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Назначение...';
+    
+    const csrftoken = getCookie('csrftoken');
+    const url = '{% url "courses:assign_course_to_assigned" slug="PLACEHOLDER" %}'.replace('PLACEHOLDER', courseSlug);
+    
+    fetch(url, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': csrftoken,
+            'Content-Type': 'application/json',
+        },
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert(data.message);
+        } else {
+            alert('Ошибка: ' + (data.error || 'Неизвестная ошибка'));
+        }
+        btn.disabled = false;
+        btn.innerHTML = originalText;
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Ошибка при назначении курса');
+        btn.disabled = false;
+        btn.innerHTML = originalText;
+    });
+}
+</script>
+{% endif %}
 {% endblock %}

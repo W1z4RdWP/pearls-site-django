@@ -17,7 +17,7 @@ from .models import Course, Lesson, UserLessonTrajectory, Trajectory, UserCourse
 from myapp.models import UserProgress, UserCourse, QuizResult
 from myapp.views import is_admin, is_author_or_admin
 import logging
-from builder.models import CategoryName
+from builder.models import CategoryName, Incident
 from django.contrib.auth import get_user_model
 from django.utils.decorators import method_decorator
 from gamification.utils import award_dascoin_points, award_course_badge, award_trajectory_badge, award_first_lesson_badge
@@ -525,6 +525,12 @@ class CourseDetailView(DetailView):
                 user_course.save(update_fields=['status'])
             is_deadline_overdue = timezone.now() > user_course.deadline
         
+        # Получаем инцидент, связанный с курсом (если курс-инцидент)
+        incident = None
+        if course.is_incident:
+            from builder.models import Incident
+            incident = Incident.objects.filter(course=course).first()
+        
         # Формирование контекста
         context.update({
             'course_author': course.author.username,
@@ -555,6 +561,7 @@ class CourseDetailView(DetailView):
             'quiz_blocked_id': quiz_blocked_id,
             'quiz_statuses': locals().get('quiz_statuses', {}),
             'is_deadline_overdue': is_deadline_overdue,
+            'incident': incident,
         })
         
         return context
@@ -2720,3 +2727,114 @@ class ExternalUsersActivityControlView(ListView):
         context['recent_activities'] = self.get_queryset()[:10]
         
         return context
+
+
+@method_decorator(login_required, name='dispatch')
+class AssignCourseToExpertView(View):
+    """
+    Назначение курса-инцидента руководителю (expert) из связанного инцидента.
+    """
+    def dispatch(self, request, *args, **kwargs):
+        if not request.user.is_authenticated or not (request.user.is_staff or request.user.is_superuser):
+            return render(request, '403.html', status=403)
+        return super().dispatch(request, *args, **kwargs)
+    
+    def post(self, request, *args, **kwargs):
+        course_slug = kwargs.get('slug')
+        try:
+            course = get_object_or_404(Course, slug=course_slug, is_incident=True)
+            incident = Incident.objects.filter(course=course).first()
+            
+            if not incident:
+                return JsonResponse({'success': False, 'error': 'Инцидент не найден'}, status=404)
+            
+            if not incident.expert:
+                return JsonResponse({'success': False, 'error': 'Руководитель не назначен в инциденте'}, status=400)
+            
+            # Назначаем курс руководителю
+            user_course, created = UserCourse.objects.get_or_create(
+                user=incident.expert,
+                course=course,
+                defaults={'status': 'available'}
+            )
+            
+            if created:
+                # Создаем внутреннее уведомление
+                try:
+                    from notifications.models import Notification
+                    Notification.create_course_assignment_notification(incident.expert, course)
+                except Exception as e:
+                    logger.error(f"Ошибка создания внутреннего уведомления о курсе-инциденте {course.title}: {e}")
+                
+                # Отправляем email уведомление
+                try:
+                    from user_management.utils import send_course_assignment_email
+                    send_course_assignment_email(incident.expert, course)
+                    logger.info(f"Отправлено email уведомление о курсе-инциденте {course.title} руководителю {incident.expert.email}")
+                except Exception as e:
+                    logger.error(f"Ошибка отправки email уведомления о курсе-инциденте {course.title}: {e}")
+            
+            return JsonResponse({
+                'success': True, 
+                'message': f'Курс назначен руководителю {incident.expert.get_full_name()}'
+            })
+        except Exception as e:
+            logger.error(f"Ошибка назначения курса руководителю: {e}")
+            return JsonResponse({'success': False, 'error': str(e)}, status=500)
+
+
+@method_decorator(login_required, name='dispatch')
+class AssignCourseToAssignedView(View):
+    """
+    Назначение курса-инцидента назначенным пользователям (assigned_to) из связанного инцидента.
+    """
+    def dispatch(self, request, *args, **kwargs):
+        if not request.user.is_authenticated or not (request.user.is_staff or request.user.is_superuser):
+            return render(request, '403.html', status=403)
+        return super().dispatch(request, *args, **kwargs)
+    
+    def post(self, request, *args, **kwargs):
+        course_slug = kwargs.get('slug')
+        try:
+            course = get_object_or_404(Course, slug=course_slug, is_incident=True)
+            incident = Incident.objects.filter(course=course).first()
+            
+            if not incident:
+                return JsonResponse({'success': False, 'error': 'Инцидент не найден'}, status=404)
+            
+            if not incident.assigned_to.exists():
+                return JsonResponse({'success': False, 'error': 'Нет назначенных пользователей в инциденте'}, status=400)
+            
+            assigned_count = 0
+            # Назначаем курс всем назначенным пользователям
+            for user in incident.assigned_to.all():
+                user_course, created = UserCourse.objects.get_or_create(
+                    user=user,
+                    course=course,
+                    defaults={'status': 'available', 'deadline': incident.deadline}
+                )
+                
+                if created:
+                    assigned_count += 1
+                    # Создаем внутреннее уведомление
+                    try:
+                        from notifications.models import Notification
+                        Notification.create_course_assignment_notification(user, course)
+                    except Exception as e:
+                        logger.error(f"Ошибка создания внутреннего уведомления о курсе-инциденте {course.title}: {e}")
+                    
+                    # Отправляем email уведомление
+                    try:
+                        from user_management.utils import send_course_assignment_email
+                        send_course_assignment_email(user, course)
+                        logger.info(f"Отправлено email уведомление о курсе-инциденте {course.title} пользователю {user.email}")
+                    except Exception as e:
+                        logger.error(f"Ошибка отправки email уведомления о курсе-инциденте {course.title}: {e}")
+            
+            return JsonResponse({
+                'success': True, 
+                'message': f'Курс назначен {assigned_count} пользователям'
+            })
+        except Exception as e:
+            logger.error(f"Ошибка назначения курса назначенным пользователям: {e}")
+            return JsonResponse({'success': False, 'error': str(e)}, status=500)

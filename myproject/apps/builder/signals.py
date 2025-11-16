@@ -30,17 +30,7 @@ def update_course_access_on_incident_assignment_change(sender, instance, action,
                 logger.info(f"Удален доступ к курсу {course.title} у пользователя {user.username} при удалении из инцидента {instance.title}")
     
     elif action == "post_add":
-        # При добавлении пользователей в инцидент назначаем им курс
-        from django.contrib.auth import get_user_model
-        User = get_user_model()
-        added_users = User.objects.filter(pk__in=pk_set)
-        
-        for user in added_users:
-            user_course, created = UserCourse.objects.get_or_create(
-                user=user,
-                course=course,
-                defaults={'status': 'available', 'deadline': instance.deadline}
-            )
-            if created:
-                logger.info(f"Назначен курс {course.title} пользователю {user.username} при добавлении в инцидент {instance.title}")
+        # Автоназначение курса при добавлении пользователей в инцидент отключено
+        # Назначение происходит вручную через кнопки в деталке курса
+        pass
 
