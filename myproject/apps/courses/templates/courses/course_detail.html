@@ -68,7 +68,7 @@
     </div>
     {% endif %}
     
-    {% if user_course and user_course.status != 'blocked' %}
+    {% if user_course and user_course.status != 'blocked' or request.user.is_staff %}
     <div class="row">
         <div class="col-lg-8">
             <div class="course-content">
@@ -82,7 +82,7 @@
                                     <span class="d-none d-sm-inline">Изменить порядок</span>
                                 </a>
                             {% endif %}
-                            {% if user_course and user_course.status == 'available' %}
+                            {% if user_course and user_course.status == 'available' and not user.is_staff and not user.is_superuser %}
                                 <form method="POST" action="{% url 'courses:course_detail' slug=course.slug %}" style="margin: 0;">
                                     {% csrf_token %}
                                     {% if course.get_course_materials or course.final_quiz %}
@@ -109,7 +109,7 @@
                                         {% comment %} Скрываем KZ урок метрик для пользователей НЕ из Казахстана {% endcomment %}
                                     {% elif material.title == 'Метрики эффективности стоматологической клиники' or material.title == 'KZ Метрики эффективности стоматологической клиники' %}
                                         {% comment %} Показываем форму метрик вместо урока (если он не скрыт выше) {% endcomment %}
-                                        {% if user_course and user_course.status in 'started,completed' %}
+                                        {% if user.is_staff or user.is_superuser or user_course and user_course.status in 'started,completed' %}
                                             <div class="material-item lesson d-flex align-items-center p-3">
                                                 <a href="{% url 'courses:lesson_detail' course.slug material.id %}" 
                                                    class="d-flex align-items-center flex-grow-1 text-decoration-none">
@@ -139,7 +139,7 @@
                                                     </form>
                                                 {% endif %}
                                             </div>
-                                        {% else %}
+                                        {% elif not user.is_staff and not user.is_superuser %}
                                             <div class="material-item blocked d-flex align-items-center p-3">
                                                 <span class="material-icon"><i class="fa fa-book"></i></span>
                                                 <div class="flex-grow-1">
@@ -175,7 +175,7 @@
                                         </a>
                                     {% else %}
                                         {% comment %} Обычные уроки курса "Чек-ап" {% endcomment %}
-                                        {% if user_course and user_course.status in 'started,completed' %}
+                                        {% if user.is_staff or user.is_superuser or user_course and user_course.status in 'started,completed' %}
                                             <div class="material-item lesson d-flex align-items-center p-3">
                                                 <a href="{% url 'courses:lesson_detail' course.slug material.id %}" 
                                                    class="d-flex align-items-center flex-grow-1 text-decoration-none">
@@ -199,7 +199,7 @@
                                                     </form>
                                                 {% endif %}
                                             </div>
-                                        {% else %}
+                                        {% elif not user.is_staff and not user.is_superuser %}
                                             <div class="material-item blocked d-flex align-items-center p-3">
                                                 <span class="material-icon"><i class="fa fa-book"></i></span>
                                                 <div class="flex-grow-1">
@@ -221,7 +221,7 @@
                                         {% endif %}
                                     {% endif %}
                                 {% else %}
-                                    {% if user_course and user_course.status in 'started,completed' %}
+                                    {% if user.is_staff or user.is_superuser or user_course and user_course.status in 'started,completed' %}
                                         <div class="material-item lesson d-flex align-items-center p-3">
                                             <a href="{% url 'courses:lesson_detail' course.slug material.id %}" class="d-flex align-items-center flex-grow-1 text-decoration-none">
                                                 <span class="material-icon"><i class="fa fa-book"></i></span>
@@ -244,7 +244,7 @@
                                                 </form>
                                             {% endif %}
                                         </div>
-                                    {% else %}
+                                    {% elif not user.is_staff and not user.is_superuser %}
                                         <div class="material-item blocked d-flex align-items-center p-3">
                                             <span class="material-icon"><i class="fa fa-book"></i></span>
                                             <div class="flex-grow-1">
@@ -266,7 +266,7 @@
                                     {% endif %}
                                 {% endif %}
                             {% elif material.type == 'quiz' %}
-                                {% if user_course and user_course.status in 'started,completed' %}
+                                {% if user.is_staff or user.is_superuser or user_course and user_course.status in 'started,completed' %}
                                     {% with quiz_status=quiz_statuses|get_item:material.title %}
                                         {% if material.title in completed_quizzes_ids or quiz_status == 'pending' %}
                                             <div class="material-item quiz d-flex align-items-center p-3">
@@ -317,7 +317,7 @@
                                             </div>
                                         {% endif %}
                                     {% endwith %}
-                                {% else %}
+                                {% elif not user.is_staff and not user.is_superuser %}
                                     <div class="material-item blocked d-flex align-items-center p-3">
                                         <span class="material-icon">🎓</span>
                                         <div class="flex-grow-1">
@@ -505,7 +505,11 @@
                                 </div>
                             {% endif %}
                         {% endif %}
-
+                    {% elif request.user.is_staff %}
+                        <div class="text-center">
+                            <p class="text-muted mb-3">Вы авторизованы как администратор системы</p>
+                            <p class="text-muted">Статусы курса отключены</p>
+                        </div>
                     {% else %}
                         <div class="text-center">
                             <p class="text-muted mb-3">Чтобы начать курс, пожалуйста, войдите в систему</p>
@@ -515,6 +519,33 @@
                         </div>
                     {% endif %}
                 </div>
+                
+                {# Кнопки назначения для курса-инцидента #}
+                {% if incident and user.is_authenticated and user.is_staff %}
+                    <div class="admin-panel" style="margin-top: 20px;">
+                        <h6 class="admin-title">
+                            <i class="fa fa-user-plus"></i> Назначение курса
+                        </h6>
+                        <div class="admin-buttons" style="display: flex; flex-direction: column; gap: 10px;">
+                            {% if incident.expert %}
+                                <button type="button" class="btn-mini add" id="assignToExpertBtn" 
+                                        onclick="assignCourseToExpert('{{ course.slug }}')"
+                                        title="Назначить курс руководителю {{ incident.expert.get_full_name }}">
+                                    <i class="fa fa-user-tie"></i>
+                                    <span>Назначить руководителю</span>
+                                </button>
+                            {% endif %}
+                            {% if incident.assigned_to.exists %}
+                                <button type="button" class="btn-mini add" id="assignToAssignedBtn"
+                                        onclick="assignCourseToAssigned('{{ course.slug }}')"
+                                        title="Назначить курс назначенным пользователям">
+                                    <i class="fa fa-users"></i>
+                                    <span>Назначить сотрудникам</span>
+                                </button>
+                            {% endif %}
+                        </div>
+                    </div>
+                {% endif %}
                 
                 {# Админ-панель #}
                 {% if user.is_authenticated and user.is_staff %}
@@ -527,19 +558,29 @@
                                 <i class="fa fa-plus"></i>
                                 <span class="d-none d-sm-inline">Добавить</span>
                             </a>
-                            <a href="{% url 'courses:edit_course' course.slug %}" class="btn-mini edit" title="Редактировать">
-                                <i class="fa fa-edit"></i>
-                                <span class="d-none d-sm-inline">Редактировать</span>
-                            </a>
-                            <form method="POST" action="{% url 'courses:delete_course' course.slug %}" style="display: inline;">
-                                {% csrf_token %}
-                                <button type="submit" class="btn-mini delete"
-                                        title="Удалить курс"
-                                        onclick="return confirm('Вы уверены, что хотите удалить этот курс? Все уроки будут удалены!')">
-                                    <i class="fa fa-trash"></i>
-                                    <span class="d-none d-sm-inline">Удалить</span>
-                                </button>
-                            </form>
+                            {% if incident %}
+                                <a href="{% url 'builder:incidents' %}" class="btn-mini btn-primary">Инциденты</a>
+                                <!-- Если курс-инцидент, то редактируем связанный с ним инцидент -->
+                                <a href="{% url 'builder:incident_edit' pk=incident.id %}" class="btn-mini edit" title="Редактировать инцидент">
+                                    <i class="fa fa-edit"></i>
+                                    <span class="d-none d-sm-inline">Редактировать инцидент</span>
+                                </a>
+                            {% else %}
+                                <a href="{% url 'courses:edit_course' slug=course.slug %}" class="btn-mini edit" title="Редактировать">
+                                    <i class="fa fa-edit"></i>
+                                    <span class="d-none d-sm-inline">Редактировать</span>
+                                </a>
+                                <form method="POST" action="{% url 'courses:delete_course' course.slug %}" style="display: inline;">
+                                    <!-- Кнопка удалить отсутствует у курсов-инцидентов -->
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn-mini delete"
+                                            title="Удалить курс"
+                                            onclick="return confirm('Вы уверены, что хотите удалить этот курс? Все уроки будут удалены!')">
+                                        <i class="fa fa-trash"></i>
+                                        <span class="d-none d-sm-inline">Удалить</span>
+                                    </button>
+                                </form>
+                            {% endif %}
                         </div>
                     </div>
                 {% endif %}
@@ -582,4 +623,91 @@
         </div>
     {% endif %}
 </div>
+
+{% if incident and user.is_authenticated and user.is_staff %}
+<script>
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+
+function assignCourseToExpert(courseSlug) {
+    const btn = document.getElementById('assignToExpertBtn');
+    const originalText = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Назначение...';
+    
+    const csrftoken = getCookie('csrftoken');
+    const url = '{% url "courses:assign_course_to_expert" slug="PLACEHOLDER" %}'.replace('PLACEHOLDER', courseSlug);
+    
+    fetch(url, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': csrftoken,
+            'Content-Type': 'application/json',
+        },
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert(data.message);
+        } else {
+            alert('Ошибка: ' + (data.error || 'Неизвестная ошибка'));
+        }
+        btn.disabled = false;
+        btn.innerHTML = originalText;
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Ошибка при назначении курса');
+        btn.disabled = false;
+        btn.innerHTML = originalText;
+    });
+}
+
+function assignCourseToAssigned(courseSlug) {
+    const btn = document.getElementById('assignToAssignedBtn');
+    const originalText = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Назначение...';
+    
+    const csrftoken = getCookie('csrftoken');
+    const url = '{% url "courses:assign_course_to_assigned" slug="PLACEHOLDER" %}'.replace('PLACEHOLDER', courseSlug);
+    
+    fetch(url, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': csrftoken,
+            'Content-Type': 'application/json',
+        },
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert(data.message);
+        } else {
+            alert('Ошибка: ' + (data.error || 'Неизвестная ошибка'));
+        }
+        btn.disabled = false;
+        btn.innerHTML = originalText;
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Ошибка при назначении курса');
+        btn.disabled = false;
+        btn.innerHTML = originalText;
+    });
+}
+</script>
+{% endif %}
 {% endblock %}

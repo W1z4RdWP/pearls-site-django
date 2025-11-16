@@ -16,7 +16,11 @@ const mentorSelectField = document.getElementById('mentorSelectField');
 const mentorDisplayName = document.getElementById('mentorDisplayName');
 const mentorInput = document.getElementById(mentorInputId);
 
-// Переменная для отслеживания, какое поле открыто (user или mentor)
+const expertSelectField = document.getElementById('expertSelectField');
+const expertDisplayName = document.getElementById('expertDisplayName');
+const expertInput = document.getElementById(expertInputId);
+
+// Переменная для отслеживания, какое поле открыто (user, mentor или expert)
 let currentActiveField = null;
 
 // Элементы DOM для выбора назначенных
@@ -59,6 +63,16 @@ if (userSelectField) {
 if (mentorSelectField) {
     mentorSelectField.addEventListener('click', function() {
         currentActiveField = 'mentor';
+        modal.style.display = 'block';
+        loadUsers('');
+        userSearchInput.focus();
+    });
+}
+
+// Открытие модального окна для поля "Ответственный за актуальность курса"
+if (expertSelectField) {
+    expertSelectField.addEventListener('click', function() {
+        currentActiveField = 'expert';
         modal.style.display = 'block';
         loadUsers('');
         userSearchInput.focus();
@@ -178,6 +192,15 @@ function selectUser(userId, userName) {
             mentorDisplayName.textContent = userName;
             mentorDisplayName.classList.remove('user-display-placeholder');
         }
+    } else if (currentActiveField === 'expert') {
+        // Обновляем поле "Ответственный за актуальность курса"
+        if (expertInput) {
+            expertInput.value = userId;
+        }
+        if (expertDisplayName) {
+            expertDisplayName.textContent = userName;
+            expertDisplayName.classList.remove('user-display-placeholder');
+        }
     }
     modal.style.display = 'none';
     currentActiveField = null;
@@ -273,11 +296,117 @@ function initializeMentorField() {
     }
 }
 
-// Инициализация счетчика времени проверки
+// Инициализация поля эксперта при загрузке страницы
+function initializeExpertField() {
+    // Проверяем, что элементы существуют
+    if (!expertInput || !expertDisplayName) {
+        return;
+    }
+    
+    // Проверяем, есть ли значение в скрытом поле
+    const userId = expertInput.value;
+    
+    // Проверяем текст, который уже отображается из шаблона
+    const templateValue = expertDisplayName.textContent.trim();
+    
+    if (userId) {
+        // Если есть значение в скрытом поле, но текст placeholder - загружаем информацию
+        if (templateValue === 'Выберите пользователя...' || !templateValue) {
+            // Используем api_get_users_by_ids для загрузки конкретного пользователя по ID
+            const url = getUsersByIdsUrl + '?ids=' + encodeURIComponent(userId);
+            fetch(url)
+                .then(response => response.json())
+                .then(data => {
+                    const user = data.users.find(u => u.id === parseInt(userId));
+                    if (user) {
+                        expertDisplayName.textContent = user.full_name;
+                        expertDisplayName.classList.remove('user-display-placeholder');
+                    }
+                })
+                .catch(error => {
+                    console.error('Ошибка загрузки эксперта:', error);
+                });
+        } else {
+            // Если текст уже отображается из шаблона, просто убираем класс placeholder
+            expertDisplayName.classList.remove('user-display-placeholder');
+        }
+    } else {
+        // Если эксперт не выбран, проверяем текст из шаблона
+        if (templateValue && templateValue !== 'Выберите пользователя...') {
+            // Если в шаблоне есть значение, но нет в скрытом поле - это странно, но оставляем как есть
+            expertDisplayName.classList.remove('user-display-placeholder');
+        } else {
+            // Добавляем класс placeholder
+            expertDisplayName.classList.add('user-display-placeholder');
+        }
+    }
+}
+
+// Инициализация счетчика времени проверки для наставника
 function initializeTimeCounter() {
     const decreaseBtn = document.getElementById('timeCounterDecrease');
     const increaseBtn = document.getElementById('timeCounterIncrease');
     const timeInput = document.getElementById('id_mentors_time_to_check');
+    
+    if (!decreaseBtn || !increaseBtn || !timeInput) {
+        return;
+    }
+    
+    // Установка минимального значения
+    const minValue = parseInt(timeInput.getAttribute('min')) || 1;
+    
+    // Обработчик для кнопки уменьшения
+    decreaseBtn.addEventListener('click', function() {
+        let currentValue = parseInt(timeInput.value) || minValue;
+        if (currentValue > minValue) {
+            currentValue--;
+            timeInput.value = currentValue;
+        }
+    });
+    
+    // Обработчик для кнопки увеличения
+    increaseBtn.addEventListener('click', function() {
+        let currentValue = parseInt(timeInput.value) || minValue;
+        currentValue++;
+        timeInput.value = currentValue;
+    });
+}
+
+// Инициализация счетчика времени для эксперта
+function initializeExpertTimeCounter() {
+    const decreaseBtn = document.getElementById('expertTimeCounterDecrease');
+    const increaseBtn = document.getElementById('expertTimeCounterIncrease');
+    const timeInput = document.getElementById('id_expert_time_to_complete');
+    
+    if (!decreaseBtn || !increaseBtn || !timeInput) {
+        return;
+    }
+    
+    // Установка минимального значения
+    const minValue = parseInt(timeInput.getAttribute('min')) || 1;
+    
+    // Обработчик для кнопки уменьшения
+    decreaseBtn.addEventListener('click', function() {
+        let currentValue = parseInt(timeInput.value) || minValue;
+        if (currentValue > minValue) {
+            currentValue--;
+            timeInput.value = currentValue;
+        }
+    });
+    
+    // Обработчик для кнопки увеличения
+    increaseBtn.addEventListener('click', function() {
+        let currentValue = parseInt(timeInput.value) || minValue;
+        currentValue++;
+        timeInput.value = currentValue;
+    });
+}
+
+// Инициализация счетчика времени для назначенных пользователей
+function initializeAssignedTimeCounter() {
+    const decreaseBtn = document.getElementById('assignedTimeCounterDecrease');
+    const increaseBtn = document.getElementById('assignedTimeCounterIncrease');
+    const timeInput = document.getElementById('id_assigned_to_time_to_complete');
     
     if (!decreaseBtn || !increaseBtn || !timeInput) {
         return;
@@ -812,8 +941,11 @@ document.addEventListener('DOMContentLoaded', function() {
     // Инициализация полей при загрузке страницы редактирования
     initializeUserField();
     initializeMentorField();
+    initializeExpertField();
     initializeDeadlineField();
     initializeTimeCounter();
+    initializeExpertTimeCounter();
+    initializeAssignedTimeCounter();
     
     // Загружаем изначально выбранных пользователей и нарушителей при редактировании
     // Это нужно делать сразу при загрузке страницы, чтобы нарушители загрузились

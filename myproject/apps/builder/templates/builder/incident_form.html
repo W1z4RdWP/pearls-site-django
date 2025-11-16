@@ -76,11 +76,21 @@
 
         <div class="form-group">
             <label for="assigned-display">Кому назначен</label>
-            <div class="assigned-select-field" id="assignedSelectField">
-                <span id="assignedDisplayText" class="assigned-display-text">
-                    <span id="assignedCount" class="assigned-count">0</span> пользователей выбрано
-                </span>
-                <span class="assigned-select-icon">&#9660;</span>
+            <div style="display: flex; align-items: center; gap: 15px;">
+                <div class="assigned-select-field" id="assignedSelectField" style="flex: 1;">
+                    <span id="assignedDisplayText" class="assigned-display-text">
+                        <span id="assignedCount" class="assigned-count">0</span> пользователей выбрано
+                    </span>
+                    <span class="assigned-select-icon">&#9660;</span>
+                </div>
+                <div class="time-counter-wrapper">
+                    <button type="button" class="time-counter-btn" id="assignedTimeCounterDecrease">−</button>
+                    <input type="number" id="id_assigned_to_time_to_complete" name="assigned_to_time_to_complete" 
+                           value="{{ form.assigned_to_time_to_complete.value|default:3 }}" 
+                           min="1" class="time-counter-input" readonly>
+                    <button type="button" class="time-counter-btn" id="assignedTimeCounterIncrease">+</button>
+                    <span class="help-icon" tabindex="0" role="button" aria-label="Подсказка" data-tooltip="Кол-во дней для прохождения курса, начинается отсчет, после прохождения курса ответственным руководителем за актуальность курса">?</span>
+                </div>
             </div>
             <div id="assignedToContainer">{{ form.assigned_to }}{{ form.violators }}</div>
             {% if form.assigned_to.errors %}
@@ -89,15 +99,42 @@
             {% if form.violators.errors %}
                 <div class="text-danger mt-1">{{ form.violators.errors }}</div>
             {% endif %}
+            {% if form.assigned_to_time_to_complete.errors %}
+                <div class="text-danger mt-1">{{ form.assigned_to_time_to_complete.errors }}</div>
+            {% endif %}
         </div>
 
         <div class="form-group">
+            <label for="{{ form.expert.id_for_label }}">{{ form.expert.label }}</label>
+            <div style="display: flex; align-items: center; gap: 15px;">
+                <div class="user-select-field" id="expertSelectField" style="flex: 1;">
+                    <span id="expertDisplayName" class="user-display-name">
+                        {% if form.expert.value %}{{ form.instance.expert.get_full_name }}{% else %}Выберите пользователя...{% endif %}
+                    </span>
+                    <span class="user-select-icon">&#9660;</span>
+                </div>
+                <div class="time-counter-wrapper">
+                    <button type="button" class="time-counter-btn" id="expertTimeCounterDecrease">−</button>
+                    <input type="number" id="id_expert_time_to_complete" name="expert_time_to_complete" 
+                           value="{{ form.expert_time_to_complete.value|default:3 }}" 
+                           min="1" class="time-counter-input" readonly>
+                    <button type="button" class="time-counter-btn" id="expertTimeCounterIncrease">+</button>
+                    <span class="help-icon" tabindex="0" role="button" aria-label="Подсказка" data-tooltip="Укажите период, в течение которого руководитель должен проверить уроки курса.&#10;По умолчанию — 3 дня, но срок можно увеличить или уменьшить при необходимости.">?</span>
+                </div>
+            </div>
+            {{ form.expert }}
+            {% if form.expert.errors %}
+                <div class="text-danger mt-1">{{ form.expert.errors }}</div>
+            {% endif %}
+        </div>
+
+        <!-- <div class="form-group">
             <label for="{{ form.deadline.id_for_label }}">{{ form.deadline.label }}</label>
             {{ form.deadline }}
             {% if form.deadline.errors %}
                 <div class="text-danger mt-1">{{ form.deadline.errors }}</div>
             {% endif %}
-        </div>
+        </div> -->
 
         <div class="form-group">
             <label for="{{ form.status.id_for_label }}">{{ form.status.label }}</label>
@@ -124,7 +161,7 @@
         <div class="form-actions mt-4" style="display: flex; justify-content: space-between; align-items: center;">
             <div>
                 <button type="submit" class="btn btn-primary">Сохранить</button>
-                <a href="{% url 'builder:incidents' %}" class="btn btn-secondary">Отмена</a>
+                <a href="{% url 'builder:incidents' %}" class="btn btn-secondary">Инциденты</a>
             </div>
             {% if object and object.pk %}
                 {% if object.course %}
@@ -223,6 +260,7 @@
         const getGroupUsersUrlTemplate = "{% url 'builder:api_get_group_users' 0 %}";
         const userInputId = "{{ form.user.id_for_label }}";
         const mentorInputId = "{{ form.responsible_mentor.id_for_label }}";
+        const expertInputId = "{{ form.expert.id_for_label }}";
     </script>
     <script src="{% static 'builder/js/incident_form.js' %}"></script>
 

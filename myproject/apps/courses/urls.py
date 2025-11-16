@@ -1,6 +1,6 @@
 from django.urls import path
 from . import views as course_views
-from .views import UserCourseTrajectoryDetailView, UserCourseTrajectoryListView, IncidentCoursesListView
+from .views import UserCourseTrajectoryDetailView, UserCourseTrajectoryListView, IncidentCoursesListView, AssignCourseToExpertView, AssignCourseToAssignedView
 
 app_name = 'courses'
 
@@ -34,6 +34,8 @@ urlpatterns = [
     
     # Курсы-инциденты
     path('incident-courses/', IncidentCoursesListView.as_view(), name='incident_courses_list'),
+    path('course/<slug:slug>/assign-to-expert/', AssignCourseToExpertView.as_view(), name='assign_course_to_expert'),
+    path('course/<slug:slug>/assign-to-assigned/', AssignCourseToAssignedView.as_view(), name='assign_course_to_assigned'),
 
     # Сертификаты
     path('user-certificates/', course_views.CertificateListView.as_view(), name='user_certificates'),

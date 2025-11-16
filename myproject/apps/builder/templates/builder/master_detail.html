@@ -21,15 +21,17 @@
 <div class="container">
     <div class="master-detail-container">
         <div class="sidebar" id="sidebar">
-            <button id="toggle-sidebar-btn" class="btn btn-outline-secondary mb-2" type="button" title="Скрыть/показать категории">
-                <span id="toggle-sidebar-icon">⮜</span> Скрыть категории
-            </button>
-            <div class="tabs-switcher" style="display: flex; gap: 2px; margin: 0 0 16px 0;">
+            <div class="tabs-switcher">
                 <button id="tab-categories" class="tab-btn active" type="button">Категории</button>
                 <button id="tab-uncat" class="tab-btn" type="button">Без категории</button>
                 <button id="tab-dict" class="tab-btn" type="button">Словарь</button>
             </div>
-            <input type="text" id="tree-search-input" class="search-input builder-input" placeholder="Поиск по категориям и урокам...">
+            <div class="search-container">
+                <button id="toggle-sidebar-btn" class="btn btn-outline-secondary" type="button" title="Скрыть/показать категории">
+                    <span id="toggle-sidebar-icon">⮜</span>
+                </button>
+                <input type="text" id="tree-search-input" class="search-input builder-input" placeholder="Поиск по категориям и урокам...">
+            </div>
             <div id="categories-block">
                 <div class="category-scroll">
                     <ul class="category-list">

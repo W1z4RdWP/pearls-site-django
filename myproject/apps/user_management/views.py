@@ -705,7 +705,7 @@ class UserEditDetailedView(UpdateView):
                 'assignment_date': user_course.start_date,
                 'status': status_display,
                 'status_code': user_course.status,
-                'due_date': None,  # Пока прочерк
+                'due_date': user_course.deadline,
                 'assignment_type': assignment_type,
                 'object': user_course,
             })

@@ -174,7 +174,7 @@
         </div>
         
         <!-- Галочка подтверждения -->
-        {% if not is_dental_checkup_course %}
+        {% if not is_dental_checkup_course and not request.user.is_staff %}
         <div class="confirmation-checkbox" style="margin: 30px 0; padding: 20px; border: 1px solid #ddd; border-radius: 8px; background-color: #f9f9f9;">
             <label style="display: flex; align-items: center; cursor: pointer; font-size: 16px;">
                 <input type="checkbox" id="lessonConfirmation" style="margin-right: 12px; transform: scale(1.2);">

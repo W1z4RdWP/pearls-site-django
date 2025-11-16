@@ -883,6 +883,8 @@ class IncidentListView(ListView):
         # Фильтр по дате создания
         date_from = self.request.GET.get('date_from')
         date_to = self.request.GET.get('date_to')
+        date_from_datetime = None
+        date_to_datetime = None
         
         # Если нет параметров в GET запросе (первичная загрузка), устанавливаем дефолтные значения
         if not self.request.GET:
@@ -904,7 +906,7 @@ class IncidentListView(ListView):
         
         # Если нет параметров в GET запросе (первичная загрузка), устанавливаем дефолтные статусы
         if not self.request.GET:
-            statuses = ['new', 'accepted', 'assigned']
+            statuses = ['new', 'accepted', 'assigned', 'studies_completed']
         
         if statuses:
             queryset = queryset.filter(status__in=statuses)
@@ -940,6 +942,34 @@ class IncidentListView(ListView):
             )
         )
         
+        # Обновляем статусы инцидентов с неоцененными открытыми ответами
+        # Делаем это только для инцидентов с курсами, чтобы не делать лишних запросов
+        # Проверяем до применения фильтров по статусу, чтобы не пропустить инциденты
+        from builder.signals import check_and_update_incident_studies_completed_status
+        from builder.models import Incident
+        
+        # Получаем все инциденты с курсами, которые могут иметь неоцененные ответы
+        # Проверяем только те, которые могут быть в текущем queryset (по датам)
+        incidents_to_check = Incident.objects.filter(
+            course__isnull=False,
+            status__in=['new', 'accepted', 'assigned', 'studies_completed']
+        )
+        
+        # Применяем фильтры по дате, если они есть
+        if date_from_datetime:
+            incidents_to_check = incidents_to_check.filter(created_at__gte=date_from_datetime)
+        if date_to_datetime:
+            incidents_to_check = incidents_to_check.filter(created_at__lte=date_to_datetime)
+        
+        # Обновляем статусы
+        for incident in incidents_to_check:
+            try:
+                check_and_update_incident_studies_completed_status(incident)
+            except Exception as e:
+                import logging
+                logger = logging.getLogger(__name__)
+                logger.error(f"Ошибка при проверке статуса инцидента {incident.id}: {e}")
+        
         return queryset
 
     def get_context_data(self, **kwargs):
@@ -952,7 +982,7 @@ class IncidentListView(ListView):
         
         # Если нет параметров в GET запросе (первичная загрузка), устанавливаем дефолтные значения
         if not self.request.GET:
-            context['selected_statuses'] = ['new', 'accepted', 'assigned']
+            context['selected_statuses'] = ['new', 'accepted', 'assigned', 'studies_completed']
             context['selected_incident_type'] = ''
             context['date_from'] = '2025-01-01'
             context['date_to'] = timezone.now().date().strftime('%Y-%m-%d')
@@ -1128,66 +1158,7 @@ class CreateCourseFromIncidentView(View):
                 incident.status = 'assigned'
                 incident.save(update_fields=['course', 'status', 'updated_at'])
             
-            # Назначаем курс всем staff/superuser
-            from django.contrib.auth import get_user_model
-            User = get_user_model()
-            staff_users = User.objects.filter(
-                is_active=True
-            ).filter(
-                models.Q(is_staff=True) | models.Q(is_superuser=True)
-            ).distinct()
-            
-            for user in staff_users:
-                UserCourse.objects.get_or_create(
-                    user=user,
-                    course=course,
-                    defaults={'status': 'available'}
-                )
-            
-            # Назначаем курс пользователям, связанным с инцидентом
-            if incident.assigned_to.exists():
-                for user in incident.assigned_to.all():
-                    user_course, created = UserCourse.objects.get_or_create(
-                        user=user,
-                        course=course,
-                        defaults={'status': 'available', 'deadline': incident.deadline}
-                    )
-                    if created:
-                        # Создаем внутреннее уведомление
-                        try:
-                            from notifications.models import Notification
-                            Notification.create_course_assignment_notification(user, course)
-                        except Exception as e:
-                            logger.error(f"Ошибка создания внутреннего уведомления о курсе-инциденте {course.title}: {e}")
-                        
-                        # Отправляем email уведомление
-                        try:
-                            send_course_assignment_email(user, course)
-                            logger.info(f"Отправлено email уведомление о курсе-инциденте {course.title} пользователю {user.email}")
-                        except Exception as e:
-                            logger.error(f"Ошибка отправки email уведомления о курсе-инциденте {course.title}: {e}")
-            
-            if incident.violators.exists():
-                for user in incident.violators.all():
-                    user_course, created = UserCourse.objects.get_or_create(
-                        user=user,
-                        course=course,
-                        defaults={'status': 'available', 'deadline': incident.deadline}
-                    )
-                    if created:
-                        # Создаем внутреннее уведомление
-                        try:
-                            from notifications.models import Notification
-                            Notification.create_course_assignment_notification(user, course)
-                        except Exception as e:
-                            logger.error(f"Ошибка создания внутреннего уведомления о курсе-инциденте {course.title}: {e}")
-                        
-                        # Отправляем email уведомление
-                        try:
-                            send_course_assignment_email(user, course)
-                            logger.info(f"Отправлено email уведомление о курсе-инциденте {course.title} пользователю {user.email}")
-                        except Exception as e:
-                            logger.error(f"Ошибка отправки email уведомления о курсе-инциденте {course.title}: {e}")
+            # Автоназначение курса отключено - назначение происходит вручную через кнопки в деталке курса
             
             # Перенаправляем на страницу курса
             return redirect('courses:course_detail', slug=course.slug)
@@ -1199,6 +1170,10 @@ class CreateCourseFromIncidentView(View):
             if incident_id:
                 return redirect('builder:incident_edit', pk=incident_id)
             return redirect('builder:incidents')
+
+
+
+
 
 
 class IncidentDetailListView(ListView):
@@ -1221,7 +1196,7 @@ class IncidentDetailListView(ListView):
         
         queryset = super().get_queryset()
         # Оптимизация: предзагрузка ManyToMany полей и связанных объектов
-        queryset = queryset.prefetch_related('assigned_to', 'violators').select_related('user', 'responsible_mentor', 'course')
+        queryset = queryset.prefetch_related('assigned_to', 'violators').select_related('user', 'responsible_mentor', 'expert', 'course')
         
         # Фильтр по названию инцидента (поиск)
         search = self.request.GET.get('search', '').strip()
@@ -1365,8 +1340,78 @@ class IncidentDetailListView(ListView):
                     'incident': incident,
                     'user': user,
                     'is_violator': is_violator,
+                    'is_expert': False,
                     'progress_percent': progress_percent,
                 })
+            
+            # Добавляем expert, если он существует и не находится в assigned_to
+            if incident.expert:
+                expert = incident.expert
+                # Проверяем, что expert не входит в assigned_to, чтобы не дублировать
+                if expert not in assigned_users:
+                    # Проверяем фильтры: если они не пропускают expert, добавляем его в список
+                    should_add_expert = True
+                    
+                    # Фильтр по назначенному пользователю
+                    if selected_user_id and expert.id != selected_user_id:
+                        should_add_expert = False
+                    
+                    # Expert не является нарушителем (violator_filter не применяется к expert)
+                    # Но если фильтр установлен на 'yes' (только нарушители), пропускаем expert
+                    if violator_filter == 'yes':
+                        should_add_expert = False
+                    
+                    if should_add_expert:
+                        # Вычисляем прогресс курса, если он есть
+                        progress_percent = None
+                        if incident.course:
+                            course = incident.course
+                            
+                            # Получаем траекторию пользователя для этого курса
+                            trajectory = UserLessonTrajectory.objects.filter(user=expert, course=course).first()
+                            
+                            if trajectory:
+                                # Используем уроки из траектории
+                                lessons = trajectory.lessons.all().order_by('order')
+                                total_lessons = lessons.count()
+                                lesson_ids = lessons.values_list('id', flat=True)
+                                completed_lessons = UserProgress.objects.filter(
+                                    user=expert,
+                                    course=course,
+                                    completed=True,
+                                    lesson_id__in=lesson_ids
+                                ).count()
+                            else:
+                                # Используем все уроки курса
+                                lessons = course.lessons.all().order_by('order')
+                                total_lessons = lessons.count()
+                                completed_lessons = UserProgress.objects.filter(
+                                    user=expert,
+                                    course=course,
+                                    completed=True
+                                ).count()
+                            
+                            # Подсчитываем завершенные тесты в рамках этого курса (только уникальные по quiz_title)
+                            completed_quizzes = QuizResult.objects.filter(
+                                user=expert,
+                                course=course,
+                                quiz_title__in=[quiz.name for quiz in course.quizzes.all()],
+                                passed=True
+                            ).values('quiz_title').distinct().count()
+                            total_quizzes = course.quizzes.count()
+                            
+                            # Вычисляем процент прогресса с учетом уроков и тестов
+                            total_materials = total_lessons + total_quizzes
+                            completed_materials = completed_lessons + completed_quizzes
+                            progress_percent = int((completed_materials / total_materials) * 100) if total_materials > 0 else 0
+                        
+                        incident_user_list.append({
+                            'incident': incident,
+                            'user': expert,
+                            'is_violator': False,  # Expert никогда не является нарушителем
+                            'is_expert': True,  # Флаг, что это expert
+                            'progress_percent': progress_percent,
+                        })
         
         context['incident_user_list'] = incident_user_list
         return context
