@@ -1166,7 +1166,7 @@ class IncidentDetailListView(ListView):
         
         queryset = super().get_queryset()
         # Оптимизация: предзагрузка ManyToMany полей и связанных объектов
-        queryset = queryset.prefetch_related('assigned_to', 'violators').select_related('user', 'responsible_mentor', 'course')
+        queryset = queryset.prefetch_related('assigned_to', 'violators').select_related('user', 'responsible_mentor', 'expert', 'course')
         
         # Фильтр по названию инцидента (поиск)
         search = self.request.GET.get('search', '').strip()
@@ -1310,8 +1310,78 @@ class IncidentDetailListView(ListView):
                     'incident': incident,
                     'user': user,
                     'is_violator': is_violator,
+                    'is_expert': False,
                     'progress_percent': progress_percent,
                 })
+            
+            # Добавляем expert, если он существует и не находится в assigned_to
+            if incident.expert:
+                expert = incident.expert
+                # Проверяем, что expert не входит в assigned_to, чтобы не дублировать
+                if expert not in assigned_users:
+                    # Проверяем фильтры: если они не пропускают expert, добавляем его в список
+                    should_add_expert = True
+                    
+                    # Фильтр по назначенному пользователю
+                    if selected_user_id and expert.id != selected_user_id:
+                        should_add_expert = False
+                    
+                    # Expert не является нарушителем (violator_filter не применяется к expert)
+                    # Но если фильтр установлен на 'yes' (только нарушители), пропускаем expert
+                    if violator_filter == 'yes':
+                        should_add_expert = False
+                    
+                    if should_add_expert:
+                        # Вычисляем прогресс курса, если он есть
+                        progress_percent = None
+                        if incident.course:
+                            course = incident.course
+                            
+                            # Получаем траекторию пользователя для этого курса
+                            trajectory = UserLessonTrajectory.objects.filter(user=expert, course=course).first()
+                            
+                            if trajectory:
+                                # Используем уроки из траектории
+                                lessons = trajectory.lessons.all().order_by('order')
+                                total_lessons = lessons.count()
+                                lesson_ids = lessons.values_list('id', flat=True)
+                                completed_lessons = UserProgress.objects.filter(
+                                    user=expert,
+                                    course=course,
+                                    completed=True,
+                                    lesson_id__in=lesson_ids
+                                ).count()
+                            else:
+                                # Используем все уроки курса
+                                lessons = course.lessons.all().order_by('order')
+                                total_lessons = lessons.count()
+                                completed_lessons = UserProgress.objects.filter(
+                                    user=expert,
+                                    course=course,
+                                    completed=True
+                                ).count()
+                            
+                            # Подсчитываем завершенные тесты в рамках этого курса (только уникальные по quiz_title)
+                            completed_quizzes = QuizResult.objects.filter(
+                                user=expert,
+                                course=course,
+                                quiz_title__in=[quiz.name for quiz in course.quizzes.all()],
+                                passed=True
+                            ).values('quiz_title').distinct().count()
+                            total_quizzes = course.quizzes.count()
+                            
+                            # Вычисляем процент прогресса с учетом уроков и тестов
+                            total_materials = total_lessons + total_quizzes
+                            completed_materials = completed_lessons + completed_quizzes
+                            progress_percent = int((completed_materials / total_materials) * 100) if total_materials > 0 else 0
+                        
+                        incident_user_list.append({
+                            'incident': incident,
+                            'user': expert,
+                            'is_violator': False,  # Expert никогда не является нарушителем
+                            'is_expert': True,  # Флаг, что это expert
+                            'progress_percent': progress_percent,
+                        })
         
         context['incident_user_list'] = incident_user_list
         return context

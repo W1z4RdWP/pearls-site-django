@@ -2,6 +2,7 @@ from django.db.models.signals import m2m_changed, post_save, pre_save
 from django.dispatch import receiver
 from django.contrib.auth.models import User,Group
 from django.utils import timezone
+from datetime import timedelta
 from courses.models import Course, Trajectory, UserCourseTrajectory, TrajectoryCourse
 from myapp.models import UserCourse
 from user_management.utils import send_course_assignment_email, send_trajectory_assignment_email
@@ -399,8 +400,53 @@ def check_incident_completion_on_course_completion(sender, instance, created, **
                     incidents = Incident.objects.filter(course=course)
                     
                     for incident in incidents:
-                        # Получаем всех назначенных пользователей инцидента
+                        user = instance.user
+                        
+                        # Получаем всех назначенных пользователей инцидента (кэшируем для использования в двух местах)
                         assigned_users = incident.assigned_to.all()
+                        
+                        # Проверяем, является ли пользователь, завершивший курс, expert для инцидента
+                        if incident.expert and incident.expert == user:
+                            # Expert завершил курс - назначаем курс всем пользователям из assigned_to
+                            if assigned_users.exists():
+                                # Получаем время на завершение из инцидента (по умолчанию 3 дня)
+                                time_to_complete = incident.assigned_to_time_to_complete or 3
+                                deadline = timezone.now() + timedelta(days=time_to_complete)
+                                
+                                assigned_count = 0
+                                for assigned_user in assigned_users:
+                                    # Проверяем, не назначен ли уже курс пользователю
+                                    user_course, created = UserCourse.objects.get_or_create(
+                                        user=assigned_user,
+                                        course=course,
+                                        defaults={
+                                            'status': 'available',
+                                            'deadline': deadline
+                                        }
+                                    )
+                                    
+                                    # Если курс уже был назначен, обновляем deadline только если он не был установлен ранее
+                                    if not created and not user_course.deadline:
+                                        user_course.deadline = deadline
+                                        user_course.save(update_fields=['deadline'])
+                                    
+                                    if created:
+                                        assigned_count += 1
+                                        # Создаем внутреннее уведомление
+                                        try:
+                                            from notifications.models import Notification
+                                            Notification.create_course_assignment_notification(assigned_user, course)
+                                        except Exception as e:
+                                            logger.error(f"Ошибка создания внутреннего уведомления о курсе-инциденте {course.title}: {e}")
+                                        
+                                        # Отправляем email уведомление
+                                        try:
+                                            send_course_assignment_email(assigned_user, course)
+                                            logger.info(f"Отправлено email уведомление о курсе-инциденте {course.title} пользователю {assigned_user.email}")
+                                        except Exception as e:
+                                            logger.error(f"Ошибка отправки email уведомления о курсе-инциденте {course.title}: {e}")
+                                
+                                logger.info(f"После завершения курса expert'ом ({user.username}) курс {course.title} автоматически назначен {assigned_count} пользователям из assigned_to инцидента {incident.title}")
                         
                         if not assigned_users.exists():
                             # Если нет назначенных пользователей, пропускаем
