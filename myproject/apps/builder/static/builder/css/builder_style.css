@@ -109,7 +109,7 @@
     background: var(--builder-sidebar-bg);
     color: var(--builder-sidebar-text);
     border-radius: 10px 0 0 10px;
-    padding: 32px 0;
+    padding: 0 0 32px 0;
     display: flex;
     flex-direction: column;
 }
@@ -682,9 +682,9 @@ label {
     min-width: 60px !important;
     max-width: 100% !important;
     overflow-x: hidden;
-    padding: 32px 0 32px 0;
+    padding: 0 0 32px 0;
 }
-.master-detail-container.sidebar-collapsed .sidebar *:not(#toggle-sidebar-btn):not(.toggle-arrow) {
+.master-detail-container.sidebar-collapsed .sidebar *:not(#toggle-sidebar-btn):not(.toggle-arrow):not(.search-container) {
     opacity: 0;
     pointer-events: none;
     height: 0;
@@ -692,11 +692,30 @@ label {
     padding: 0;
 }
 .master-detail-container.sidebar-collapsed .sidebar #toggle-sidebar-btn {
-    opacity: 1;
-    pointer-events: auto;
+    opacity: 1 !important;
+    pointer-events: auto !important;
     width: 85%;
     margin-left: 0;
     margin-right: 0;
+    border-radius: 4px;
+    border-right: 1px solid #6c757d;
+    height: 36px !important;
+    display: flex !important;
+}
+
+.master-detail-container.sidebar-collapsed .sidebar .search-container {
+    opacity: 1 !important;
+    pointer-events: auto !important;
+    height: auto !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    justify-content: center;
+    gap: 0;
+    display: flex !important;
+}
+
+.master-detail-container.sidebar-collapsed .sidebar .search-container #tree-search-input {
+    display: none;
 }
 .master-detail-container.sidebar-collapsed .detail {
     flex: 1 1 100% !important;
@@ -822,8 +841,8 @@ label {
 
 .tabs-switcher {
     display: flex;
-    gap: 0;
-    margin-bottom: 12px;
+    gap: 2px;
+    margin: 0;
 }
 .tab-btn {
     flex: 1 1 0;
@@ -1018,14 +1037,47 @@ label {
 }
 
 
+/* Стили для контейнера поиска */
+.search-container {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    margin: 0 0 12px 0;
+}
+
+/* Стили для кнопки переключения сайдбара (квадратик) */
+.toggle-sidebar-square {
+    width: 36px;
+    height: 36px;
+    min-width: 36px;
+    min-height: 36px;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    border-top-left-radius: 0;
+    border-top-right-radius: 0;
+    border-bottom-right-radius: 0;
+    border-right: none;
+}
+
+.toggle-sidebar-square #toggle-sidebar-icon {
+    font-size: 16px;
+    line-height: 1;
+}
+
 /* Стили для поискового поля */
 #tree-search-input {
-    width: 100%;
+    flex: 1;
     padding: 8px 12px;
     border: 1px solid #ddd;
-    border-radius: 6px;
+    border-left: none;
+    border-top-left-radius: 0;
+    border-top-right-radius: 0;
+    border-bottom-left-radius: 0;
+    border-bottom-right-radius: 6px;
     font-size: 14px;
-    margin-bottom: 12px;
     background-color: var(--builder-input-bg);
     color: var(--builder-input-text);
     transition: border-color 0.2s ease;
@@ -1034,6 +1086,7 @@ label {
 #tree-search-input:focus {
     outline: none;
     border-color: var(--builder-btn-primary-bg);
+    border-left: none;
     box-shadow: 0 0 0 2px rgba(77, 124, 255, 0.1);
 }
 
