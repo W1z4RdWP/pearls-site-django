@@ -288,14 +288,6 @@ document.addEventListener('DOMContentLoaded', function() {
         columnCommentsClose.addEventListener('click', closeColumnCommentsModal);
     }
     
-    // Закрытие при клике вне модального окна
-    if (columnCommentsModal) {
-        columnCommentsModal.addEventListener('click', function(event) {
-            if (event.target === columnCommentsModal) {
-                closeColumnCommentsModal();
-            }
-        });
-    }
     
     // Обработчик отправки формы
     if (columnCommentsForm) {
@@ -333,7 +325,6 @@ document.addEventListener('DOMContentLoaded', function() {
 <!-- Модальное окно для редактирования комментариев к столбцам -->
 <div id="column-comments-modal" style="display:none; position:fixed; z-index:99999; left:0; top:0; width:100vw; height:100vh; background:rgba(0,0,0,0.35); align-items:center; justify-content:center;">
     <div style="background:#fff; color:#232a3a; padding:32px 32px 24px 32px; border-radius:12px; box-shadow:0 2px 16px #0007; min-width:500px; max-width:95vw; max-height:90vh; overflow-y:auto; text-align:left; position:relative;">
-        <button id="column-comments-modal-close" style="position:absolute; right:12px; top:12px; background:none; border:none; font-size:1.5em; color:#888; cursor:pointer;">&times;</button>
         <h4 style="margin-top:0; margin-bottom:24px;">Комментарий к столбцам</h4>
         <form id="column-comments-form">
             <div id="column-comments-form-body"></div>
@@ -344,84 +335,4 @@ document.addEventListener('DOMContentLoaded', function() {
         </form>
     </div>
 </div>
-
-<style>
-#column-comments-modal {
-    display: none;
-    position: fixed;
-    z-index: 99999;
-    left: 0;
-    top: 0;
-    width: 100vw;
-    height: 100vh;
-    background: rgba(0,0,0,0.35);
-    align-items: center;
-    justify-content: center;
-}
-
-#column-comments-modal > div {
-    background: #fff;
-    color: #232a3a;
-    padding: 32px 32px 24px 32px;
-    border-radius: 12px;
-    box-shadow: 0 2px 16px rgba(0,0,0,0.07);
-    min-width: 500px;
-    max-width: 95vw;
-    max-height: 90vh;
-    overflow-y: auto;
-    text-align: left;
-    position: relative;
-}
-
-#column-comments-modal h4 {
-    margin-top: 0;
-    margin-bottom: 24px;
-    font-size: 1.35em;
-    font-weight: 700;
-}
-
-#column-comments-modal-close {
-    position: absolute;
-    right: 12px;
-    top: 12px;
-    background: none;
-    border: none;
-    font-size: 1.5em;
-    color: #888;
-    cursor: pointer;
-    padding: 0;
-    width: 30px;
-    height: 30px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-#column-comments-modal-close:hover {
-    color: #333;
-}
-
-#column-comments-form label {
-    display: block;
-    margin-bottom: 6px;
-    font-weight: 500;
-    color: #232a3a;
-}
-
-#column-comments-form input[type="text"] {
-    width: 100%;
-    padding: 8px 12px;
-    border: 1px solid #c3c8d0;
-    border-radius: 6px;
-    font-size: 0.95em;
-    box-sizing: border-box;
-    transition: border 0.2s, box-shadow 0.2s;
-}
-
-#column-comments-form input[type="text"]:focus {
-    border: 1.5px solid #4d7cff;
-    box-shadow: 0 0 0 2px rgba(77, 124, 255, 0.13);
-    outline: none;
-}
-</style>
 {% endblock %}
