@@ -1,7 +1,8 @@
-from django.db.models.signals import m2m_changed
+from django.db.models.signals import m2m_changed, post_save
 from django.dispatch import receiver
 from .models import Incident
-from myapp.models import UserCourse
+from myapp.models import UserCourse, QuizResult, UserAnswer
+from quizzes.models import Question
 import logging
 
 logger = logging.getLogger(__name__)
@@ -33,4 +34,84 @@ def update_course_access_on_incident_assignment_change(sender, instance, action,
         # Автоназначение курса при добавлении пользователей в инцидент отключено
         # Назначение происходит вручную через кнопки в деталке курса
         pass
+
+
+def check_and_update_incident_studies_completed_status(incident):
+    """
+    Проверяет наличие неоцененных открытых ответов в тестах курса-инцидента
+    и обновляет статус инцидента на 'studies_completed', если есть такие ответы.
+    """
+    if not incident.course:
+        return
+    
+    course = incident.course
+    
+    # Получаем всех назначенных пользователей инцидента
+    assigned_users = incident.assigned_to.all()
+    if not assigned_users.exists():
+        return
+    
+    assigned_user_ids = list(assigned_users.values_list('id', flat=True))
+    
+    # Проверяем, есть ли неоцененные открытые ответы для назначенных пользователей
+    # в тестах курса-инцидента
+    unrated_text_answers = UserAnswer.objects.filter(
+        user_id__in=assigned_user_ids,
+        quiz_result__course=course,
+        question__question_type=Question.TEXT,
+        is_correct__isnull=True,  # Не оценено
+        answer_text__isnull=False,  # Есть текстовый ответ
+        answer_text__gt=''  # Не пустой ответ
+    ).exists()
+    
+    # Если есть неоцененные открытые ответы и статус не 'studies_completed', 'resolved' или 'declined'
+    if unrated_text_answers and incident.status not in ['studies_completed', 'resolved', 'declined']:
+        incident.status = 'studies_completed'
+        incident.save(update_fields=['status', 'updated_at'])
+        logger.info(f"Инцидент {incident.title} переведен в статус 'Обучение завершено' - есть неоцененные открытые ответы в тестах")
+    # Если нет неоцененных открытых ответов и статус 'studies_completed', возвращаем к предыдущему статусу
+    elif not unrated_text_answers and incident.status == 'studies_completed':
+        # Возвращаем к статусу 'assigned', если курс назначен
+        if incident.course:
+            incident.status = 'assigned'
+            incident.save(update_fields=['status', 'updated_at'])
+            logger.info(f"Инцидент {incident.title} возвращен в статус 'Назначен' - все открытые ответы оценены")
+
+
+@receiver(post_save, sender=QuizResult)
+def update_incident_status_on_quiz_result_change(sender, instance, created, **kwargs):
+    """
+    Обновляет статус инцидента при изменении результата теста.
+    Проверяет наличие неоцененных открытых ответов.
+    """
+    if not instance.course or not instance.course.is_incident:
+        return
+    
+    try:
+        incidents = Incident.objects.filter(course=instance.course)
+        for incident in incidents:
+            check_and_update_incident_studies_completed_status(incident)
+    except Exception as e:
+        logger.error(f"Ошибка при обновлении статуса инцидента для результата теста {instance.id}: {e}")
+
+
+@receiver(post_save, sender=UserAnswer)
+def update_incident_status_on_user_answer_change(sender, instance, created, **kwargs):
+    """
+    Обновляет статус инцидента при изменении ответа пользователя.
+    Проверяет наличие неоцененных открытых ответов.
+    """
+    if not instance.quiz_result or not instance.quiz_result.course:
+        return
+    
+    course = instance.quiz_result.course
+    if not course.is_incident:
+        return
+    
+    try:
+        incidents = Incident.objects.filter(course=course)
+        for incident in incidents:
+            check_and_update_incident_studies_completed_status(incident)
+    except Exception as e:
+        logger.error(f"Ошибка при обновлении статуса инцидента для ответа пользователя {instance.id}: {e}")
 

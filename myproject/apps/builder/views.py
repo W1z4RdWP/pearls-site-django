@@ -883,6 +883,8 @@ class IncidentListView(ListView):
         # Фильтр по дате создания
         date_from = self.request.GET.get('date_from')
         date_to = self.request.GET.get('date_to')
+        date_from_datetime = None
+        date_to_datetime = None
         
         # Если нет параметров в GET запросе (первичная загрузка), устанавливаем дефолтные значения
         if not self.request.GET:
@@ -904,7 +906,7 @@ class IncidentListView(ListView):
         
         # Если нет параметров в GET запросе (первичная загрузка), устанавливаем дефолтные статусы
         if not self.request.GET:
-            statuses = ['new', 'accepted', 'assigned']
+            statuses = ['new', 'accepted', 'assigned', 'studies_completed']
         
         if statuses:
             queryset = queryset.filter(status__in=statuses)
@@ -940,6 +942,34 @@ class IncidentListView(ListView):
             )
         )
         
+        # Обновляем статусы инцидентов с неоцененными открытыми ответами
+        # Делаем это только для инцидентов с курсами, чтобы не делать лишних запросов
+        # Проверяем до применения фильтров по статусу, чтобы не пропустить инциденты
+        from builder.signals import check_and_update_incident_studies_completed_status
+        from builder.models import Incident
+        
+        # Получаем все инциденты с курсами, которые могут иметь неоцененные ответы
+        # Проверяем только те, которые могут быть в текущем queryset (по датам)
+        incidents_to_check = Incident.objects.filter(
+            course__isnull=False,
+            status__in=['new', 'accepted', 'assigned', 'studies_completed']
+        )
+        
+        # Применяем фильтры по дате, если они есть
+        if date_from_datetime:
+            incidents_to_check = incidents_to_check.filter(created_at__gte=date_from_datetime)
+        if date_to_datetime:
+            incidents_to_check = incidents_to_check.filter(created_at__lte=date_to_datetime)
+        
+        # Обновляем статусы
+        for incident in incidents_to_check:
+            try:
+                check_and_update_incident_studies_completed_status(incident)
+            except Exception as e:
+                import logging
+                logger = logging.getLogger(__name__)
+                logger.error(f"Ошибка при проверке статуса инцидента {incident.id}: {e}")
+        
         return queryset
 
     def get_context_data(self, **kwargs):
@@ -952,7 +982,7 @@ class IncidentListView(ListView):
         
         # Если нет параметров в GET запросе (первичная загрузка), устанавливаем дефолтные значения
         if not self.request.GET:
-            context['selected_statuses'] = ['new', 'accepted', 'assigned']
+            context['selected_statuses'] = ['new', 'accepted', 'assigned', 'studies_completed']
             context['selected_incident_type'] = ''
             context['date_from'] = '2025-01-01'
             context['date_to'] = timezone.now().date().strftime('%Y-%m-%d')
