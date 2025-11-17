@@ -1649,8 +1649,8 @@ class UserCourseTrajectoryListView(ListView):
         filtered_courses = []
         for course in available_courses:
             # Исключаем курсы-инциденты
-            if course.is_incident:
-                continue
+            # if course.is_incident:
+            #     continue
             
             # Проверяем, доступен ли курс через группы пользователя напрямую (не через траекторию)
             course_available_via_groups = course.allowed_groups.filter(id__in=user.groups.all()).exists()
@@ -1794,6 +1794,7 @@ class UserCourseTrajectoryListView(ListView):
         completed_courses_all = len([c for c in courses_data if c['status'] == 'completed'])
         in_progress_courses_all = len([c for c in courses_data if c['status'] == 'in_progress'])
         available_courses_all = len([c for c in courses_data if c['status'] == 'available'])
+        incident_courses_all = len([c for c in courses_data if c['course'].is_incident])
         
         # Поиск по названию курса
         search_query = self.request.GET.get('search', '').strip()
@@ -1806,10 +1807,18 @@ class UserCourseTrajectoryListView(ListView):
         if status_filter != 'all':
             courses_data = [course for course in courses_data if course['status'] == status_filter]
         
+        # Фильтрация по инцидентам
+        incident_filter = self.request.GET.get('incident', 'all')
+        if incident_filter == 'true':
+            courses_data = [course for course in courses_data if course['course'].is_incident]
+        elif incident_filter == 'false':
+            courses_data = [course for course in courses_data if not course['course'].is_incident]
+        
         # Добавляем данные о курсах в контекст
         context.update({
             'courses_data': courses_data,
             'status_filter': status_filter,
+            'incident_filter': incident_filter,
             'search_query': search_query,
             'total_courses': len(courses_data),
             'completed_courses': len([c for c in courses_data if c['status'] == 'completed']),
@@ -1820,6 +1829,7 @@ class UserCourseTrajectoryListView(ListView):
             'completed_courses_all': completed_courses_all,
             'in_progress_courses_all': in_progress_courses_all,
             'available_courses_all': available_courses_all,
+            'incident_courses_all': incident_courses_all,
         })
         
         return context

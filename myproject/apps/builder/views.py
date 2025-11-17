@@ -1293,6 +1293,12 @@ class IncidentDetailListView(ListView):
                 if violator_filter == 'no' and is_violator:
                     continue
                 
+                # Проверяем, назначен ли курс пользователю (если у инцидента есть курс)
+                if incident.course:
+                    # Если курс не назначен пользователю, пропускаем этого пользователя
+                    if not UserCourse.objects.filter(user=user, course=incident.course).exists():
+                        continue
+                
                 # Вычисляем прогресс курса, если он есть
                 progress_percent = None
                 if incident.course:
@@ -1360,6 +1366,12 @@ class IncidentDetailListView(ListView):
                     # Но если фильтр установлен на 'yes' (только нарушители), пропускаем expert
                     if violator_filter == 'yes':
                         should_add_expert = False
+                    
+                    # Проверяем, назначен ли курс expert (если у инцидента есть курс)
+                    if incident.course:
+                        # Если курс не назначен expert, пропускаем его
+                        if not UserCourse.objects.filter(user=expert, course=incident.course).exists():
+                            should_add_expert = False
                     
                     if should_add_expert:
                         # Вычисляем прогресс курса, если он есть
