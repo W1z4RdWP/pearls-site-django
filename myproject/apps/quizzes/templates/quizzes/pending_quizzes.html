@@ -273,30 +273,32 @@ function openColumnCommentsModal() {
         label.style.fontWeight = '500';
         label.textContent = columnName;
         
-        const input = document.createElement('input');
-        input.type = 'text';
-        input.value = currentTitle;
-        input.dataset.columnName = columnName;
-        input.style.width = '100%';
-        input.style.padding = '8px 12px';
-        input.style.border = '1px solid #c3c8d0';
-        input.style.borderRadius = '6px';
-        input.style.fontSize = '0.95em';
-        input.style.boxSizing = 'border-box';
+        const textarea = document.createElement('textarea');
+        textarea.value = currentTitle;
+        textarea.dataset.columnName = columnName;
+        textarea.style.width = '100%';
+        textarea.style.padding = '8px 12px';
+        textarea.style.border = '1px solid #c3c8d0';
+        textarea.style.borderRadius = '6px';
+        textarea.style.fontSize = '0.95em';
+        textarea.style.boxSizing = 'border-box';
+        textarea.style.minHeight = '80px';
+        textarea.style.resize = 'vertical';
+        textarea.style.fontFamily = 'inherit';
         
-        input.addEventListener('focus', function() {
+        textarea.addEventListener('focus', function() {
             this.style.border = '1.5px solid #4d7cff';
             this.style.boxShadow = '0 0 0 2px #4d7cff22';
             this.style.outline = 'none';
         });
         
-        input.addEventListener('blur', function() {
+        textarea.addEventListener('blur', function() {
             this.style.border = '1px solid #c3c8d0';
             this.style.boxShadow = 'none';
         });
         
         row.appendChild(label);
-        row.appendChild(input);
+        row.appendChild(textarea);
         formBody.appendChild(row);
     });
     
@@ -364,12 +366,12 @@ document.addEventListener('DOMContentLoaded', function() {
             const formBody = document.getElementById('column-comments-form-body');
             if (!formBody) return;
             
-            const inputs = formBody.querySelectorAll('input[data-column-name]');
+            const textareas = formBody.querySelectorAll('textarea[data-column-name]');
             const titles = {};
             
-            inputs.forEach(input => {
-                const columnName = input.dataset.columnName;
-                const title = input.value.trim();
+            textareas.forEach(textarea => {
+                const columnName = textarea.dataset.columnName;
+                const title = textarea.value.trim();
                 titles[columnName] = title;
             });
             
