@@ -113,6 +113,16 @@
                             </select>
                         </div>
 
+                        <div class="mb-3 mentor-instruction-field" 
+                             {% if question.question_type != 'text' %}style="display: none;"{% endif %}>
+                            <label class="form-label">Комментарий для наставника</label>
+                            <textarea class="form-control" 
+                                    name="questions[{{ forloop.counter }}][mentor_instruction]" 
+                                    rows="3" 
+                                    placeholder="Введите комментарий, который будет отображаться наставнику при проверке этого вопроса">{{ question.mentor_instruction|default:"" }}</textarea>
+                            <div class="form-text">Этот комментарий будет показан наставнику при наведении на иконку "?" рядом с вопросом</div>
+                        </div>
+
                         <div class="answers-container" 
                              {% if question.question_type == 'text' %}style="display: none;"{% endif %}>
                             {% if question.question_type == 'sequence' %}

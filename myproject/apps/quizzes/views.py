@@ -820,6 +820,9 @@ def get_finish(request) -> HttpResponse:
                 )
         elif ans_data['question_type'] == 'text':
             answer_text = ans_data.get('answer_text', '')
+            # Обрезаем до 2000 символов, если превышает лимит
+            if len(answer_text) > 2000:
+                answer_text = answer_text[:2000]
             UserAnswer.objects.create(
                 user=request.user,
                 quiz_result=quiz_result,
@@ -831,6 +834,9 @@ def get_finish(request) -> HttpResponse:
         elif ans_data['question_type'] == 'match':
             # Для типа соответствие сохраняем соответствия как текст
             matches_text = '; '.join([f"{q_id}:{a_id}" for q_id, a_id in ans_data.get('user_matches', {}).items()])
+            # Обрезаем до 2000 символов, если превышает лимит
+            if len(matches_text) > 2000:
+                matches_text = matches_text[:2000]
             UserAnswer.objects.create(
                 user=request.user,
                 quiz_result=quiz_result,
@@ -842,6 +848,9 @@ def get_finish(request) -> HttpResponse:
         elif ans_data['question_type'] == 'sequence':
             # Для типа последовательность сохраняем порядок элементов как текст
             sequence_text = ','.join([str(ans_id) for ans_id in ans_data.get('user_sequence', [])])
+            # Обрезаем до 2000 символов, если превышает лимит
+            if len(sequence_text) > 2000:
+                sequence_text = sequence_text[:2000]
             UserAnswer.objects.create(
                 user=request.user,
                 quiz_result=quiz_result,
@@ -1230,7 +1239,7 @@ class QuizCreateView(UserPassesTestMixin, CreateView):
                         question_num = int(parts[0])
                         
                         if question_num not in questions_dict:
-                            questions_dict[question_num] = {'text': '', 'type': 'single', 'answers': {}, 'correct_answer': None}
+                            questions_dict[question_num] = {'text': '', 'type': 'single', 'answers': {}, 'correct_answer': None, 'mentor_instruction': ''}
                         
                         if len(parts) == 2:
                             if parts[1] == 'text':
@@ -1239,6 +1248,8 @@ class QuizCreateView(UserPassesTestMixin, CreateView):
                                 questions_dict[question_num]['type'] = value
                             elif parts[1] == 'correct_answer':
                                 questions_dict[question_num]['correct_answer'] = int(value)
+                            elif parts[1] == 'mentor_instruction':
+                                questions_dict[question_num]['mentor_instruction'] = value
                         elif len(parts) == 4 and parts[1] == 'answers':
                             answer_num = int(parts[2])
                             answer_field = parts[3]
@@ -1267,7 +1278,8 @@ class QuizCreateView(UserPassesTestMixin, CreateView):
                     question = Question.objects.create(
                         quiz=quiz,
                         text=question_data['text'],
-                        question_type=question_data['type']
+                        question_type=question_data['type'],
+                        mentor_instruction=question_data.get('mentor_instruction', '') or None
                     )
                     
                     # Создаем ответы (только для вопросов с вариантами ответов)
@@ -1356,8 +1368,9 @@ class QuizEditView(UserPassesTestMixin, UpdateView):
             try:
                 quiz = form.save()
                 
-                # Удаляем все существующие вопросы и ответы
-                Question.objects.filter(quiz=quiz).delete()
+                # Сохраняем старые вопросы для маппинга с UserAnswer (до удаления!)
+                from myapp.models import UserAnswer
+                old_questions = list(Question.objects.filter(quiz=quiz).order_by('id'))
                 
                 # Обрабатываем новые вопросы и ответы (аналогично созданию)
                 questions_dict = {}
@@ -1368,7 +1381,7 @@ class QuizEditView(UserPassesTestMixin, UpdateView):
                             question_num = int(parts[0])
                             
                             if question_num not in questions_dict:
-                                questions_dict[question_num] = {'text': '', 'type': 'single', 'answers': {}, 'correct_answer': None}
+                                questions_dict[question_num] = {'text': '', 'type': 'single', 'answers': {}, 'correct_answer': None, 'mentor_instruction': ''}
                             
                             if len(parts) == 2:
                                 if parts[1] == 'text':
@@ -1377,6 +1390,8 @@ class QuizEditView(UserPassesTestMixin, UpdateView):
                                     questions_dict[question_num]['type'] = value
                                 elif parts[1] == 'correct_answer':
                                     questions_dict[question_num]['correct_answer'] = int(value)
+                                elif parts[1] == 'mentor_instruction':
+                                    questions_dict[question_num]['mentor_instruction'] = value
                             elif len(parts) == 4 and parts[1] == 'answers':
                                 answer_num = int(parts[2])
                                 answer_field = parts[3]
@@ -1406,13 +1421,16 @@ class QuizEditView(UserPassesTestMixin, UpdateView):
                             continue
 
                 # Создаем новые вопросы и ответы
-                for question_num, question_data in questions_dict.items():
+                new_questions = []
+                for question_num, question_data in sorted(questions_dict.items()):
                     if question_data['text'].strip():
                         question = Question.objects.create(
                             quiz=quiz,
                             text=question_data['text'],
-                            question_type=question_data['type']
+                            question_type=question_data['type'],
+                            mentor_instruction=question_data.get('mentor_instruction', '') or None
                         )
+                        new_questions.append(question)
                         
                         if question_data['type'] in ['single', 'multiple', 'match', 'sequence']:
                             for answer_num, answer_data in question_data['answers'].items():
@@ -1429,6 +1447,33 @@ class QuizEditView(UserPassesTestMixin, UpdateView):
                                         is_correct=is_correct,
                                         image=answer_data.get('image')
                                     )
+                
+                # Обновляем UserAnswer: сопоставляем старые вопросы с новыми по позиции
+                # Делаем это ДО удаления старых вопросов!
+                if len(old_questions) > 0:
+                    if len(new_questions) > 0:
+                        # Создаем маппинг старых вопросов к новым по позиции
+                        question_mapping = {}
+                        min_count = min(len(old_questions), len(new_questions))
+                        for i in range(min_count):
+                            old_question = old_questions[i]
+                            new_question = new_questions[i]
+                            question_mapping[old_question.id] = new_question
+                        
+                        # Обновляем UserAnswer для сопоставленных вопросов
+                        # Это нужно сделать ДО удаления старых вопросов
+                        for old_question_id, new_question in question_mapping.items():
+                            UserAnswer.objects.filter(question_id=old_question_id).update(question=new_question)
+                    
+                    # Теперь можно безопасно удалить старые вопросы и ответы
+                    # UserAnswer уже обновлены и ссылаются на новые вопросы (если они есть)
+                    old_question_ids = [q.id for q in old_questions]
+                    Question.objects.filter(id__in=old_question_ids).delete()
+                
+                # Для вопросов, которые были удалены (их больше нет в новом тесте),
+                # UserAnswer останутся со ссылками на несуществующие вопросы
+                # Это нормально, так как они будут недоступны, но данные сохранятся
+                # Если нужно, можно удалить такие UserAnswer, но лучше оставить для истории
 
                 return JsonResponse({
                     'success': True,

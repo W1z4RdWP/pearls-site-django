@@ -49,6 +49,12 @@ class Question(models.Model):
       choices=QUESTION_TYPES,
       default=SINGLE
   )
+  mentor_instruction = models.TextField(
+      blank=True,
+      null=True,
+      verbose_name="Комментарий для наставника",
+      help_text="Текст, который будет отображаться наставнику при проверке открытого вопроса"
+  )
 
   class Meta:
     verbose_name = "Вопрос"

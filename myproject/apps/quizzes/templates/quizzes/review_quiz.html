@@ -62,6 +62,15 @@
             <div class="question-header">
                 <span class="question-number">Вопрос {{ forloop.counter }}</span>
                 <span class="question-text">{{ answer.question.text }}</span>
+                {% if answer.question.mentor_instruction %}
+                <span class="help-icon" 
+                      tabindex="0" 
+                      role="button" 
+                      aria-label="Подсказка" 
+                      data-tooltip="{{ answer.question.mentor_instruction|escape }}">
+                    ?
+                </span>
+                {% endif %}
             </div>
             
             <div class="student-answer">
