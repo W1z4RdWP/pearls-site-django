@@ -190,6 +190,15 @@ function addQuestion() {
             </select>
         </div>
 
+        <div class="mb-3 mentor-instruction-field" style="display: none;">
+            <label class="form-label">Комментарий для наставника</label>
+            <textarea class="form-control" 
+                    name="questions[${questionCounter}][mentor_instruction]" 
+                    rows="3" 
+                    placeholder="Введите комментарий, который будет отображаться наставнику при проверке этого вопроса"></textarea>
+            <div class="form-text">Этот комментарий будет показан наставнику при наведении на иконку "?" рядом с вопросом</div>
+        </div>
+
         <div class="answers-container">
             <label class="form-label">Варианты ответов</label>
             <div class="answer-item">
@@ -381,14 +390,23 @@ function removeMatchPair(button) {
 function toggleAnswers(select) {
     const questionBlock = select.closest('.question-block');
     const answersContainer = questionBlock.querySelector('.answers-container');
+    const mentorInstructionField = questionBlock.querySelector('.mentor-instruction-field');
     const questionId = questionBlock.dataset.questionId;
 
     if (select.value === 'text') {
         answersContainer.style.display = 'none';
+        // Показываем поле комментария для наставника
+        if (mentorInstructionField) {
+            mentorInstructionField.style.display = 'block';
+        }
         // Убираем required с полей ответов для текстовых вопросов
         answersContainer.querySelectorAll('input[type="text"]').forEach(input => input.required = false);
     } else if (select.value === 'sequence') {
         answersContainer.style.display = 'block';
+        // Скрываем поле комментария для наставника
+        if (mentorInstructionField) {
+            mentorInstructionField.style.display = 'none';
+        }
         // Для типа последовательность показываем специальную инструкцию
         const label = answersContainer.querySelector('label');
         if (label) {
@@ -484,6 +502,10 @@ function toggleAnswers(select) {
         }
     } else if (select.value === 'match') {
         answersContainer.style.display = 'block';
+        // Скрываем поле комментария для наставника
+        if (mentorInstructionField) {
+            mentorInstructionField.style.display = 'none';
+        }
         // Для типа соответствие показываем специальную инструкцию
         const label = answersContainer.querySelector('label');
         if (label) {
@@ -593,6 +615,10 @@ function toggleAnswers(select) {
         }
     } else {
         answersContainer.style.display = 'block';
+        // Скрываем поле комментария для наставника
+        if (mentorInstructionField) {
+            mentorInstructionField.style.display = 'none';
+        }
         // Добавляем required для полей ответов
         answersContainer.querySelectorAll('input[type="text"]').forEach(input => input.required = true);
 

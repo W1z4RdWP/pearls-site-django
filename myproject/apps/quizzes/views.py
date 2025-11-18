@@ -1239,7 +1239,7 @@ class QuizCreateView(UserPassesTestMixin, CreateView):
                         question_num = int(parts[0])
                         
                         if question_num not in questions_dict:
-                            questions_dict[question_num] = {'text': '', 'type': 'single', 'answers': {}, 'correct_answer': None}
+                            questions_dict[question_num] = {'text': '', 'type': 'single', 'answers': {}, 'correct_answer': None, 'mentor_instruction': ''}
                         
                         if len(parts) == 2:
                             if parts[1] == 'text':
@@ -1248,6 +1248,8 @@ class QuizCreateView(UserPassesTestMixin, CreateView):
                                 questions_dict[question_num]['type'] = value
                             elif parts[1] == 'correct_answer':
                                 questions_dict[question_num]['correct_answer'] = int(value)
+                            elif parts[1] == 'mentor_instruction':
+                                questions_dict[question_num]['mentor_instruction'] = value
                         elif len(parts) == 4 and parts[1] == 'answers':
                             answer_num = int(parts[2])
                             answer_field = parts[3]
@@ -1276,7 +1278,8 @@ class QuizCreateView(UserPassesTestMixin, CreateView):
                     question = Question.objects.create(
                         quiz=quiz,
                         text=question_data['text'],
-                        question_type=question_data['type']
+                        question_type=question_data['type'],
+                        mentor_instruction=question_data.get('mentor_instruction', '') or None
                     )
                     
                     # Создаем ответы (только для вопросов с вариантами ответов)
@@ -1377,7 +1380,7 @@ class QuizEditView(UserPassesTestMixin, UpdateView):
                             question_num = int(parts[0])
                             
                             if question_num not in questions_dict:
-                                questions_dict[question_num] = {'text': '', 'type': 'single', 'answers': {}, 'correct_answer': None}
+                                questions_dict[question_num] = {'text': '', 'type': 'single', 'answers': {}, 'correct_answer': None, 'mentor_instruction': ''}
                             
                             if len(parts) == 2:
                                 if parts[1] == 'text':
@@ -1386,6 +1389,8 @@ class QuizEditView(UserPassesTestMixin, UpdateView):
                                     questions_dict[question_num]['type'] = value
                                 elif parts[1] == 'correct_answer':
                                     questions_dict[question_num]['correct_answer'] = int(value)
+                                elif parts[1] == 'mentor_instruction':
+                                    questions_dict[question_num]['mentor_instruction'] = value
                             elif len(parts) == 4 and parts[1] == 'answers':
                                 answer_num = int(parts[2])
                                 answer_field = parts[3]
@@ -1420,7 +1425,8 @@ class QuizEditView(UserPassesTestMixin, UpdateView):
                         question = Question.objects.create(
                             quiz=quiz,
                             text=question_data['text'],
-                            question_type=question_data['type']
+                            question_type=question_data['type'],
+                            mentor_instruction=question_data.get('mentor_instruction', '') or None
                         )
                         
                         if question_data['type'] in ['single', 'multiple', 'match', 'sequence']:
