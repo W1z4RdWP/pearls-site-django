@@ -53,13 +53,13 @@
                 {% if question.question_type == 'text' %}
                     <div class="mb-3">
                         <label for="answer_text" class="form-label">Ваш ответ:</label>
-                        <textarea class="form-control" name="answer_text" id="answer_text" rows="4" required maxlength="999"></textarea>
+                        <textarea class="form-control" name="answer_text" id="answer_text" rows="4" required maxlength="2000"></textarea>
                         <div class="mt-2">
                             <small class="text-muted">
-                                Символов: <span id="char-count">0</span> / 999
+                                Символов: <span id="char-count">0</span> / 2000
                             </small>
                             <div id="char-limit-warning" class="alert alert-warning mt-2 mb-0" style="display: none;">
-                                <i class="fas fa-exclamation-triangle"></i> Достигнут лимит в 999 символов. Дальнейший ввод невозможен.
+                                <i class="fas fa-exclamation-triangle"></i> Достигнут лимит в 2000 символов. Дальнейший ввод невозможен.
                             </div>
                         </div>
                     </div>
@@ -177,7 +177,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const textarea = document.getElementById('answer_text');
     const charCount = document.getElementById('char-count');
     const warningDiv = document.getElementById('char-limit-warning');
-    const MAX_LENGTH = 999;
+    const MAX_LENGTH = 2000;
     let warningShown = false;
     
     if (!textarea || !charCount || !warningDiv) {
@@ -199,7 +199,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 warningDiv.style.display = 'block';
                 warningShown = true;
                 // Показываем alert один раз
-                alert('Достигнут лимит в 999 символов. Дальнейший ввод невозможен.');
+                alert('Достигнут лимит в 2000 символов. Дальнейший ввод невозможен.');
             }
         } else if (currentLength >= MAX_LENGTH * 0.9) {
             charCount.style.color = '#ffc107';
@@ -266,7 +266,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (!warningShown) {
                     warningDiv.style.display = 'block';
                     warningShown = true;
-                    alert('Достигнут лимит в 999 символов. Дальнейший ввод невозможен.');
+                    alert('Достигнут лимит в 2000 символов. Дальнейший ввод невозможен.');
                 }
             }
         }

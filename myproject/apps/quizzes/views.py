@@ -820,6 +820,9 @@ def get_finish(request) -> HttpResponse:
                 )
         elif ans_data['question_type'] == 'text':
             answer_text = ans_data.get('answer_text', '')
+            # Обрезаем до 2000 символов, если превышает лимит
+            if len(answer_text) > 2000:
+                answer_text = answer_text[:2000]
             UserAnswer.objects.create(
                 user=request.user,
                 quiz_result=quiz_result,
@@ -831,6 +834,9 @@ def get_finish(request) -> HttpResponse:
         elif ans_data['question_type'] == 'match':
             # Для типа соответствие сохраняем соответствия как текст
             matches_text = '; '.join([f"{q_id}:{a_id}" for q_id, a_id in ans_data.get('user_matches', {}).items()])
+            # Обрезаем до 2000 символов, если превышает лимит
+            if len(matches_text) > 2000:
+                matches_text = matches_text[:2000]
             UserAnswer.objects.create(
                 user=request.user,
                 quiz_result=quiz_result,
@@ -842,6 +848,9 @@ def get_finish(request) -> HttpResponse:
         elif ans_data['question_type'] == 'sequence':
             # Для типа последовательность сохраняем порядок элементов как текст
             sequence_text = ','.join([str(ans_id) for ans_id in ans_data.get('user_sequence', [])])
+            # Обрезаем до 2000 символов, если превышает лимит
+            if len(sequence_text) > 2000:
+                sequence_text = sequence_text[:2000]
             UserAnswer.objects.create(
                 user=request.user,
                 quiz_result=quiz_result,
