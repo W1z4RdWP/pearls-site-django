@@ -8,6 +8,20 @@
     <link rel="stylesheet" href="{% static 'courses/css/course_description.css' %}">
     <link rel="stylesheet" href="{% static 'courses/css/course_detail.css' %}">
     <script src="{% static 'courses/js/scripts.js' %}"></script>
+    <!-- Переопределение цвета материалов, для устранения конфликтов (Не удалять/не перемещать) -->
+    <style>
+        .material-title{
+            color: #495057 !important;
+        }
+        
+        .material-icon{
+            color: #495057 !important;
+        }
+
+        .material-type{
+            color: #495057 !important;
+        }
+    </style>
 {% endblock %}
 
 {% block content %}
