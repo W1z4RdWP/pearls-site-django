@@ -95,6 +95,71 @@ function initializeMainPageHandlers() {
     }
     // === ПОИСК ПО НАЗВАНИЮ ТЕСТА ===
     initializeQuizSearch();
+    
+    // === ОБРАБОТКА ЗАГРУЗКИ DOCX ===
+    initializeDocxUpload();
+}
+
+// === ФУНКЦИИ ДЛЯ ЗАГРУЗКИ DOCX ===
+
+function initializeDocxUpload() {
+    const uploadForm = document.getElementById('uploadQuizForm');
+    if (!uploadForm) return;
+    
+    uploadForm.addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        const formData = new FormData(this);
+        const progressDiv = document.getElementById('uploadProgress');
+        const submitBtn = this.querySelector('button[type="submit"]');
+        const originalBtnText = submitBtn.innerHTML;
+        
+        // Показываем индикатор загрузки
+        progressDiv.classList.remove('d-none');
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Обработка...';
+        
+        fetch(this.action, {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+            },
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
+            return response.json();
+        })
+        .then(data => {
+            if (data.success) {
+                // Закрываем модальное окно
+                const modal = bootstrap.Modal.getInstance(document.getElementById('uploadQuizModal'));
+                if (modal) {
+                    modal.hide();
+                }
+                
+                // Показываем сообщение об успехе
+                alert(`Тест "${data.name}" успешно создан!\nВопросов: ${data.questions_count}\nОтветов: ${data.answers_count || 'N/A'}`);
+                
+                // Перезагружаем страницу
+                location.reload();
+            } else {
+                alert('Ошибка: ' + (data.error || 'Неизвестная ошибка'));
+            }
+        })
+        .catch(error => {
+            alert('Произошла ошибка при загрузке файла: ' + error.message);
+            console.error('Error:', error);
+        })
+        .finally(() => {
+            // Восстанавливаем кнопку
+            progressDiv.classList.add('d-none');
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = originalBtnText;
+        });
+    });
 }
 
 // === ФУНКЦИИ ДЛЯ СТРАНИЦЫ РЕДАКТИРОВАНИЯ ===

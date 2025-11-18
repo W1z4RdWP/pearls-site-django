@@ -1,3 +1,5 @@
+# Utils package for quizzes app
+
 class DataMixin:
     def __init__(self):
         pass
@@ -8,3 +10,4 @@ class DataMixin:
         context['key'] = 'value'
         context.update(kwargs)
         return context
+

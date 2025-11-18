@@ -1981,3 +1981,162 @@ class ReviewQuizView(LoginRequiredMixin, UserPassesTestMixin, DetailView):
         
         messages.success(request, f'Оценка теста "{quiz_result.quiz_title}" для пользователя {quiz_result.user.username} сохранена.')
         return redirect('quizzes:pending_quizzes')
+
+
+@require_http_methods(["POST"])
+def quiz_upload_docx(request):
+    """
+    Обработка загрузки DOCX файла и создание теста.
+    
+    Формат DOCX:
+    - Курсивный текст = номер и текст вопроса
+    - Обычный текст = варианты ответов
+    - Жирный текст или маркер = правильный ответ
+    """
+    if not (request.user.is_staff or request.user.is_superuser):
+        return JsonResponse({'success': False, 'error': 'Доступ запрещен'}, status=403)
+    
+    if 'docx_file' not in request.FILES:
+        return JsonResponse({'success': False, 'error': 'Файл не загружен'})
+    
+    # Получаем название теста из формы
+    quiz_name = request.POST.get('quiz_name', '').strip()
+    if not quiz_name:
+        return JsonResponse({
+            'success': False,
+            'error': 'Не указано название теста'
+        })
+    
+    docx_file = request.FILES['docx_file']
+    
+    # Проверка расширения
+    if not docx_file.name.endswith('.docx'):
+        return JsonResponse({'success': False, 'error': 'Поддерживаются только файлы .docx'})
+    
+    # Проверка размера файла (максимум 10MB)
+    if docx_file.size > 10 * 1024 * 1024:
+        return JsonResponse({'success': False, 'error': 'Размер файла не должен превышать 10MB'})
+    
+    # Сохраняем файл во временную директорию
+    import tempfile
+    import os
+    
+    with tempfile.NamedTemporaryFile(delete=False, suffix='.docx') as tmp_file:
+        for chunk in docx_file.chunks():
+            tmp_file.write(chunk)
+        tmp_path = tmp_file.name
+    
+    try:
+        # Импортируем процессор
+        from .utils.docx_processor import DocxQuizProcessor
+        
+        # Обрабатываем файл
+        processor = DocxQuizProcessor()
+        quiz_data = processor.parse_docx(tmp_path)
+        
+        # Проверяем, что данные извлечены
+        if not quiz_data.get('questions'):
+            return JsonResponse({
+                'success': False,
+                'error': 'Не найдено ни одного вопроса. Убедитесь, что в документе есть курсивный текст с вопросами в формате "Вопрос 1. Текст вопроса".'
+            })
+        
+        # Проверяем, не существует ли уже тест с таким именем
+        if Quiz.objects.filter(name=quiz_name).exists():
+            return JsonResponse({
+                'success': False,
+                'error': f'Тест с названием "{quiz_name}" уже существует'
+            })
+        
+        # Создаем тест
+        quiz = Quiz.objects.create(
+            name=quiz_name,
+            attempt_limit=int(request.POST.get('attempt_limit', 0)),
+            pass_threshold=int(request.POST.get('pass_threshold', 70)),
+            time_limit=int(request.POST.get('time_limit', 0))
+        )
+        
+        # Создаем вопросы и ответы
+        created_questions = 0
+        created_answers = 0
+        
+        # Сортируем вопросы по порядку перед созданием
+        sorted_questions = sorted(
+            quiz_data.get('questions', []),
+            key=lambda x: x.get('order', 999)  # Если order не найден, ставим в конец
+        )
+        
+        for q_data in sorted_questions:
+            # Пропускаем вопросы без текста
+            if not q_data.get('text', '').strip():
+                continue
+            
+            # Пропускаем вопросы без ответов
+            answers = q_data.get('answers', [])
+            if not answers:
+                continue
+            
+            # Определяем тип вопроса
+            question_type = q_data.get('type', 'single')
+            
+            # Если несколько правильных ответов, меняем тип на multiple
+            correct_count = sum(1 for ans in answers if ans.get('is_correct', False))
+            if correct_count > 1:
+                question_type = 'multiple'
+            elif correct_count == 0:
+                # Если нет правильных ответов, пропускаем вопрос
+                continue
+            
+            # Создаем вопрос
+            question = Question.objects.create(
+                quiz=quiz,
+                text=q_data['text'].strip(),
+                question_type=question_type
+            )
+            created_questions += 1
+            
+            # Создаем ответы
+            for answer_data in answers:
+                if not answer_data.get('text', '').strip():
+                    continue
+                
+                Answer.objects.create(
+                    question=question,
+                    text=answer_data['text'].strip(),
+                    is_correct=answer_data.get('is_correct', False)
+                )
+                created_answers += 1
+        
+        # Проверяем, что созданы вопросы
+        if created_questions == 0:
+            quiz.delete()
+            return JsonResponse({
+                'success': False,
+                'error': 'Не удалось создать ни одного вопроса. Проверьте формат документа.'
+            })
+        
+        return JsonResponse({
+            'success': True,
+            'id': quiz.id,
+            'name': quiz.name,
+            'questions_count': created_questions,
+            'answers_count': created_answers
+        })
+    
+    except Exception as e:
+        import traceback
+        error_details = traceback.format_exc()
+        logging.error(f'Ошибка при обработке DOCX файла: {error_details}')
+        
+        return JsonResponse({
+            'success': False,
+            'error': f'Ошибка при обработке файла: {str(e)}'
+        })
+    
+    finally:
+        # Удаляем временный файл
+        if os.path.exists(tmp_path):
+            try:
+                os.unlink(tmp_path)
+            except Exception:
+                pass
