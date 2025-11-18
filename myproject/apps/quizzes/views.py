@@ -1368,8 +1368,9 @@ class QuizEditView(UserPassesTestMixin, UpdateView):
             try:
                 quiz = form.save()
                 
-                # Удаляем все существующие вопросы и ответы
-                Question.objects.filter(quiz=quiz).delete()
+                # Сохраняем старые вопросы для маппинга с UserAnswer (до удаления!)
+                from myapp.models import UserAnswer
+                old_questions = list(Question.objects.filter(quiz=quiz).order_by('id'))
                 
                 # Обрабатываем новые вопросы и ответы (аналогично созданию)
                 questions_dict = {}
@@ -1420,7 +1421,8 @@ class QuizEditView(UserPassesTestMixin, UpdateView):
                             continue
 
                 # Создаем новые вопросы и ответы
-                for question_num, question_data in questions_dict.items():
+                new_questions = []
+                for question_num, question_data in sorted(questions_dict.items()):
                     if question_data['text'].strip():
                         question = Question.objects.create(
                             quiz=quiz,
@@ -1428,6 +1430,7 @@ class QuizEditView(UserPassesTestMixin, UpdateView):
                             question_type=question_data['type'],
                             mentor_instruction=question_data.get('mentor_instruction', '') or None
                         )
+                        new_questions.append(question)
                         
                         if question_data['type'] in ['single', 'multiple', 'match', 'sequence']:
                             for answer_num, answer_data in question_data['answers'].items():
@@ -1444,6 +1447,33 @@ class QuizEditView(UserPassesTestMixin, UpdateView):
                                         is_correct=is_correct,
                                         image=answer_data.get('image')
                                     )
+                
+                # Обновляем UserAnswer: сопоставляем старые вопросы с новыми по позиции
+                # Делаем это ДО удаления старых вопросов!
+                if len(old_questions) > 0:
+                    if len(new_questions) > 0:
+                        # Создаем маппинг старых вопросов к новым по позиции
+                        question_mapping = {}
+                        min_count = min(len(old_questions), len(new_questions))
+                        for i in range(min_count):
+                            old_question = old_questions[i]
+                            new_question = new_questions[i]
+                            question_mapping[old_question.id] = new_question
+                        
+                        # Обновляем UserAnswer для сопоставленных вопросов
+                        # Это нужно сделать ДО удаления старых вопросов
+                        for old_question_id, new_question in question_mapping.items():
+                            UserAnswer.objects.filter(question_id=old_question_id).update(question=new_question)
+                    
+                    # Теперь можно безопасно удалить старые вопросы и ответы
+                    # UserAnswer уже обновлены и ссылаются на новые вопросы (если они есть)
+                    old_question_ids = [q.id for q in old_questions]
+                    Question.objects.filter(id__in=old_question_ids).delete()
+                
+                # Для вопросов, которые были удалены (их больше нет в новом тесте),
+                # UserAnswer останутся со ссылками на несуществующие вопросы
+                # Это нормально, так как они будут недоступны, но данные сохранятся
+                # Если нужно, можно удалить такие UserAnswer, но лучше оставить для истории
 
                 return JsonResponse({
                     'success': True,
