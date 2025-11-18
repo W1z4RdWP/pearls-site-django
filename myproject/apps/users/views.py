@@ -2,7 +2,7 @@ from openpyxl import Workbook
 from openpyxl.styles import Font, PatternFill
 from weasyprint import HTML
 from django.template.loader import render_to_string
-from datetime import datetime
+from datetime import datetime, date
 
 from collections import defaultdict
 import logging
@@ -223,6 +223,11 @@ class CustomLoginView(LoginView):
             )
             auth_login(self.request, user)
             
+            # Проверяем, нужно ли показать специальное видео для пользователя kupryazhkina_yv@smileterritory.ru 10 декабря
+            today = date.today()
+            if user.username == "kupryazhkina_yv@smileterritory.ru" and today.month == 12 and today.day == 10:
+                self.request.session['show_december_video'] = True
+            
             # Проверяем, нужно ли показать модальное окно при первом входе
             if not profile.first_login_shown:
                 profile.first_login_shown = True
@@ -240,6 +245,11 @@ class CustomLoginView(LoginView):
             }
         )
         auth_login(self.request, user)
+        
+        # Проверяем, нужно ли показать специальное видео для пользователя kupryazhkina_yv@smileterritory.ru 10 декабря
+        today = date.today()
+        if user.username == "kupryazhkina_yv@smileterritory.ru" and today.month == 12 and today.day == 10:
+            self.request.session['show_december_video'] = True
         
         # Проверяем, нужно ли показать модальное окно при первом входе
         if not profile.first_login_shown:
@@ -365,6 +375,15 @@ def clear_intro_modal_flag(request):
     """Очищает флаг показа модального окна из сессии"""
     if 'show_intro_modal' in request.session:
         del request.session['show_intro_modal']
+    return JsonResponse({'status': 'success'})
+
+
+@login_required
+@require_http_methods(["POST"])
+def clear_december_video_flag(request):
+    """Очищает флаг показа декабрьского видео из сессии"""
+    if 'show_december_video' in request.session:
+        del request.session['show_december_video']
     return JsonResponse({'status': 'success'})
 
 

@@ -410,8 +410,49 @@
                 });
             {% endif %}
             
+            // Обработчик для автоматического воспроизведения декабрьского видео при открытии модального окна
+            $('#decemberVideoModal').on('shown.bs.modal', function () {
+                var video = $(this).find('video')[0];
+                if (video) {
+                    // Убираем muted для звука
+                    video.muted = false;
+                    video.play().catch(function(error) {
+                        console.log('Автовоспроизведение заблокировано браузером:', error);
+                        // Если автовоспроизведение заблокировано, пробуем с muted
+                        video.muted = true;
+                        video.play().catch(function(err) {
+                            console.log('Автовоспроизведение с muted также заблокировано:', err);
+                        });
+                    });
+                }
+            });
+            
+            // Проверяем, нужно ли показать специальное декабрьское видео
+            {% if request.session.show_december_video %}
+                // Показываем модальное окно с декабрьским видео
+                $('#decemberVideoModal').modal('show');
+                
+                // Убираем флаг из сессии после показа
+                $.ajax({
+                    url: '{% url "users:clear_december_video_flag" %}',
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': $('input[name=csrfmiddlewaretoken]').val() || $('meta[name=csrf-token]').attr('content')
+                    }
+                });
+            {% endif %}
+            
             // Обработчик закрытия модального окна - останавливаем видео
             $('#introModal').on('hidden.bs.modal', function () {
+                var video = $(this).find('video')[0];
+                if (video) {
+                    video.pause();
+                    video.currentTime = 0; // Сбрасываем время воспроизведения
+                }
+            });
+            
+            // Обработчик закрытия декабрьского видео - останавливаем видео
+            $('#decemberVideoModal').on('hidden.bs.modal', function () {
                 var video = $(this).find('video')[0];
                 if (video) {
                     video.pause();
@@ -422,6 +463,15 @@
             // Обработчик нажатия кнопки закрытия - останавливаем видео
             $('#introModal .btn-close, #introModal .btn-primary').on('click', function() {
                 var video = $('#introModal video')[0];
+                if (video) {
+                    video.pause();
+                    video.currentTime = 0;
+                }
+            });
+            
+            // Обработчик нажатия кнопки закрытия декабрьского видео - останавливаем видео
+            $('#decemberVideoModal .btn-close, #decemberVideoModal .btn-primary').on('click', function() {
+                var video = $('#decemberVideoModal video')[0];
                 if (video) {
                     video.pause();
                     video.currentTime = 0;
@@ -449,6 +499,27 @@
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-primary" data-bs-dismiss="modal">Понятно</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Модальное окно для декабрьского видео -->
+    <div class="modal fade" id="decemberVideoModal" tabindex="-1" aria-labelledby="decemberVideoModalLabel" aria-hidden="true" data-bs-backdrop="static">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="decemberVideoModalLabel" style="text-align: center;">Хэппи бёрздэй ✨</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body text-center">
+                    <video controls class="w-100" style="max-height: 500px;">
+                        <source src="{% static 'global/video/ruki_vverh_18.mp4' %}" type="video/mp4">
+                        Ваш браузер не поддерживает видео.
+                    </video>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-primary" data-bs-dismiss="modal">Закрыть</button>
                 </div>
             </div>
         </div>
