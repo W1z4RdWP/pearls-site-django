@@ -8,9 +8,9 @@ from django.utils.decorators import method_decorator
 from django.views.generic import ListView, CreateView, UpdateView, DeleteView, FormView
 from django.urls import reverse_lazy, reverse
 from myapp.views import is_admin
-from .models import CategoryName, Document, Incident, LessonVersion, LessonCategoryMirror, DictionarySection, DictionaryTerm
+from .models import CategoryName, Document, Incident, LessonVersion, LessonCategoryMirror, DictionarySection, DictionaryTerm, IPR
 from django.core.exceptions import PermissionDenied
-from .forms import DocumentForm, IncidentForm
+from .forms import DocumentForm, IncidentForm, IPRForm
 from .utils import get_compact_fio, user_has_category_access, filter_categories_and_lessons_for_user
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
@@ -3238,6 +3238,7 @@ def api_search_users(request):
         q: поисковый запрос (необязательно)
         mentor_only: если 'true', возвращает только пользователей с ролью наставника (is_mentor=True)
         exclude_staff: если 'true', исключает пользователей с is_staff=True
+        exclude_existing_ipr: если 'true', исключает пользователей, у которых уже есть ИПР
     """
     if not (request.user.is_staff or request.user.is_superuser):
         return JsonResponse({'error': 'Доступ запрещен'}, status=403)
@@ -3245,6 +3246,7 @@ def api_search_users(request):
     search_query = request.GET.get('q', '').strip()
     mentor_only = request.GET.get('mentor_only', '').lower() == 'true'
     exclude_staff = request.GET.get('exclude_staff', '').lower() == 'true'
+    exclude_existing_ipr = request.GET.get('exclude_existing_ipr', '').lower() == 'true'
     
     users = User.objects.filter(is_active=True).select_related('profile', 'profile__role')
     
@@ -3255,6 +3257,11 @@ def api_search_users(request):
     # Исключаем пользователей с is_staff=True, если указан параметр exclude_staff
     if exclude_staff:
         users = users.filter(is_staff=False)
+    
+    # Исключаем пользователей с существующими ИПР, если указан параметр exclude_existing_ipr
+    if exclude_existing_ipr:
+        users_with_ipr = IPR.objects.values_list('user_id', flat=True).distinct()
+        users = users.exclude(id__in=users_with_ipr)
     
     if search_query:
         users = users.filter(
@@ -3383,3 +3390,87 @@ def api_get_users_by_ids(request):
         })
     
     return JsonResponse({'users': users_data})
+
+
+class IPRListView(ListView):
+    """
+    Список ИПР с информацией о пользователях и их курсах.
+    """
+    model = IPR
+    template_name = 'builder/ipr_list.html'
+    context_object_name = 'iprs'
+    ordering = ['-created_at']
+
+    def dispatch(self, request, *args, **kwargs):
+        # Только staff/superuser
+        if not request.user.is_authenticated or not (request.user.is_staff or request.user.is_superuser):
+            return render(request, '403.html', status=403)
+        return super().dispatch(request, *args, **kwargs)
+
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        queryset = queryset.select_related('user', 'user__profile', 'user__profile__department')
+        
+        # Фильтр по статусу
+        status = self.request.GET.get('status')
+        if status:
+            queryset = queryset.filter(status=status)
+        
+        return queryset
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['status_choices'] = IPR.STATUS_CHOICES
+        return context
+
+
+class IPRCreateView(CreateView, AuditLoggerMixin):
+    """
+    Создание ИПР.
+    """
+    model = IPR
+    form_class = IPRForm
+    template_name = 'builder/ipr_form.html'
+
+    def dispatch(self, request, *args, **kwargs):
+        if not request.user.is_authenticated or not (request.user.is_staff or request.user.is_superuser):
+            return render(request, '403.html', status=403)
+        return super().dispatch(request, *args, **kwargs)
+
+    def get_success_url(self):
+        """
+        Возвращает URL для редиректа после успешного создания ИПР.
+        Перенаправляет на страницу списка ИПР.
+        """
+        return reverse('builder:ipr_list')
+
+    def form_valid(self, form):
+        # Устанавливаем статус "Активен" для нового ИПР
+        form.instance.status = 'active'
+        response = super().form_valid(form)
+        # Логируем создание ИПР
+        self.log_create_action(self.object, "Создан новый ИПР")
+        return response
+
+
+class IPRUpdateView(UpdateView, AuditLoggerMixin):
+    """
+    Редактирование ИПР.
+    """
+    model = IPR
+    form_class = IPRForm
+    template_name = 'builder/ipr_form.html'
+    success_url = reverse_lazy('builder:ipr_list')
+
+    def dispatch(self, request, *args, **kwargs):
+        if not request.user.is_authenticated or not (request.user.is_staff or request.user.is_superuser):
+            return render(request, '403.html', status=403)
+        return super().dispatch(request, *args, **kwargs)
+    
+    def form_valid(self, form):
+        # Сохраняем старые значения для аудита
+        self.old_values = serialize_model_data(self.object)
+        response = super().form_valid(form)
+        # Логируем обновление ИПР
+        self.log_update_action(self.object, self.old_values, "Обновлен ИПР")
+        return response

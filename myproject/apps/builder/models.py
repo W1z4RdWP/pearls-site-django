@@ -1,4 +1,5 @@
 from django.db import models
+from django.db.models import Q
 from django.contrib.auth import get_user_model
 from django.conf import settings
 from django.contrib.contenttypes.models import ContentType
@@ -116,9 +117,80 @@ class Incident(models.Model):
     def __str__(self) -> str:
         return f"{self.title} ({self.get_incident_type_display()})"
  
+
+
+class IPR(models.Model):
+    """
+    Индивидуальный План Развития (ИПР) для пользователя.
+    Связывает пользователя с его планом развития и отслеживает прогресс по курсам.
+    """
+    STATUS_CHOICES = [
+        ('active', 'Активен'),
+        ('completed', 'Завершен'),
+        ('paused', 'Приостановлен'),
+        ('cancelled', 'Отменен'),
+    ]
+    
+    user = models.ForeignKey(get_user_model(), on_delete=models.CASCADE, related_name='iprs', verbose_name='Пользователь')
+    status = models.CharField(max_length=32, choices=STATUS_CHOICES, default='active', verbose_name='Статус')
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name="Дата создания")
+    updated_at = models.DateTimeField(auto_now=True, verbose_name="Дата обновления")
+    
+    class Meta:
+        verbose_name = 'ИПР'
+        verbose_name_plural = 'ИПР'
+        indexes = [
+            models.Index(fields=['user'], name='ipr_user_idx'),
+            models.Index(fields=['status'], name='ipr_status_idx'),
+        ]
+    
+    def __str__(self) -> str:
+        return f"ИПР для {self.user.get_full_name() or self.user.username} ({self.get_status_display()})"
+    
+    def get_active_modules_count(self):
+        """Возвращает количество активных модулей (курсов)"""
+        from myapp.models import UserCourse
+        from django.utils import timezone
+        now = timezone.now()
+        return UserCourse.objects.filter(
+            user=self.user,
+            status__in=['available', 'started']
+        ).filter(
+            Q(deadline__isnull=True) | Q(deadline__gte=now)
+        ).count()
+    
+    def get_overdue_modules_count(self):
+        """Возвращает количество просроченных модулей"""
+        from myapp.models import UserCourse
+        from django.utils import timezone
+        return UserCourse.objects.filter(
+            user=self.user,
+            deadline__lt=timezone.now(),
+            status__in=['available', 'started']
+        ).count()
+    
+    def get_completed_modules_count(self):
+        """Возвращает количество завершенных модулей"""
+        from myapp.models import UserCourse
+        return UserCourse.objects.filter(
+            user=self.user,
+            status='completed'
+        ).count()
+    
+    def get_nearest_deadline(self):
+        """Возвращает ближайший дедлайн"""
+        from myapp.models import UserCourse
+        from django.utils import timezone
+        nearest = UserCourse.objects.filter(
+            user=self.user,
+            deadline__gte=timezone.now(),
+            status__in=['available', 'started']
+        ).order_by('deadline').first()
+        return nearest.deadline if nearest else None
  
  
- 
+
+
 class LessonVersion(models.Model):
     """
     Версия урока базы знаний. Хранит историю изменений для каждого Lesson.

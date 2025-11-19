@@ -1,0 +1,183 @@
+:root {
+  --ipr-bg: #ffffff;
+  --ipr-card-bg: #fff;
+  --ipr-card-radius: 10px;
+  --ipr-card-shadow: 0 2px 8px #0002;
+  --ipr-card-padding: 32px 32px 24px 32px;
+  --ipr-card-title: #232323;
+  --ipr-title-font-weight: 700;
+  --ipr-title-letter-spacing: 0.5px;
+  --ipr-title-font-size: 1.2rem;
+  --ipr-meta: #888;
+  --ipr-meta-font-size: 0.95em;
+  --ipr-status-active: #28a745;
+  --ipr-status-completed: #6c757d;
+  --ipr-status-paused: #ffc107;
+  --ipr-status-cancelled: #dc3545;
+  --ipr-status-font-weight: 600;
+  --ipr-table-header-bg: #f8f9fa;
+  --ipr-table-header-border: #eaeaea;
+  --ipr-table-row-hover-bg: #f2f6ff;
+  --ipr-table-th-font-size: 1em;
+  --ipr-table-td-font-size: 1em;
+  --ipr-table-td-padding: 6px 8px;
+  --ipr-table-th-padding: 6px 8px;
+  --ipr-table-th-color: inherit;
+  --ipr-table-td-color: inherit;
+}
+
+
+.ipr-bg {
+  background: var(--ipr-bg);
+  min-height: 100vh;
+  padding: 40px 0;
+}
+
+.ipr-card {
+  background: var(--ipr-card-bg);
+  border-radius: var(--ipr-card-radius);
+  box-shadow: var(--ipr-card-shadow);
+  padding: var(--ipr-card-padding);
+  max-width: 1600px;
+  margin: 0 auto;
+}
+
+.ipr-card h2 {
+  color: var(--ipr-card-title);
+  font-weight: var(--ipr-title-font-weight);
+  letter-spacing: var(--ipr-title-letter-spacing);
+}
+
+.ipr-table-responsive {
+  overflow-x: auto;
+  margin-top: 20px;
+  width: 100%;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9em;
+  table-layout: fixed;
+  min-width: 1100px;
+}
+
+.table thead th {
+  background-color: #f7f8fa;
+  color: #232a3a;
+  font-weight: 600;
+  padding: 10px 6px;
+  border-bottom: 2px solid #e3e8f0;
+  text-align: left;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.table tbody td {
+  padding: 10px 6px;
+  border-bottom: 1px solid #e3e8f0;
+  vertical-align: top;
+  color: #232a3a;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.table tbody tr {
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.table tbody tr:hover td:not([class*="status-"]) {
+  background-color: #f5f7fa !important;
+}
+
+/* Цветное выделение ячеек со статусом */
+.ipr-card .table tbody td.status-active {
+  background-color: #d4edda !important;
+  color: #155724 !important;
+  font-weight: 600;
+}
+
+.ipr-card .table tbody td.status-completed {
+  background-color: #e2e3e5 !important;
+  color: #383d41 !important;
+  font-weight: 600;
+}
+
+.ipr-card .table tbody td.status-paused {
+  background-color: #fff3cd !important;
+  color: #856404 !important;
+  font-weight: 600;
+}
+
+.ipr-card .table tbody td.status-cancelled {
+  background-color: #f8d7da !important;
+  color: #721c24 !important;
+  font-weight: 600;
+}
+
+/* Hover-эффекты для ячеек со статусом */
+.ipr-card .table tbody tr:hover td.status-active {
+  background-color: #c3e6cb !important;
+}
+
+.ipr-card .table tbody tr:hover td.status-completed {
+  background-color: #d6d8db !important;
+}
+
+.ipr-card .table tbody tr:hover td.status-paused {
+  background-color: #ffeaa7 !important;
+}
+
+.ipr-card .table tbody tr:hover td.status-cancelled {
+  background-color: #f5c6cb !important;
+}
+
+/* Стиль для времени в дедлайне - на 3px меньше даты */
+.ipr-card .table tbody td .deadline-time {
+  font-size: calc(1em - 3px);
+}
+
+/* Выделение строки при одиночном клике */
+.ipr-row.row-selected {
+  background-color: #e3f2fd !important;
+  border: 2px solid #2196f3 !important;
+}
+
+.ipr-row.row-selected td {
+  background-color: #e3f2fd !important;
+}
+
+.ipr-row.row-selected td.status-active,
+.ipr-row.row-selected td.status-completed,
+.ipr-row.row-selected td.status-paused,
+.ipr-row.row-selected td.status-cancelled {
+  background-color: inherit !important;
+}
+
+.form-control {
+  border: 1px solid #e3e8f0;
+  border-radius: 6px;
+  padding: 8px 12px;
+}
+
+@media (max-width: 1200px) {
+  .table {
+    min-width: 800px;
+  }
+  .table thead th,
+  .table tbody td {
+    padding: 8px 4px;
+    font-size: 0.85em;
+  }
+}
+
+@media (max-width: 768px) {
+  .ipr-card {
+    padding: 18px 8px;
+    max-width: 100%;
+  }
+}
+

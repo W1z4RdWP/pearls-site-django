@@ -1,5 +1,5 @@
 from django import forms
-from .models import Document, Incident
+from .models import Document, Incident, IPR
 
 
 
@@ -71,3 +71,22 @@ class IncidentForm(forms.ModelForm):
             self.fields['deadline'].widget.attrs['value'] = formatted_value
             # Также устанавливаем initial значение для виджета
             self.fields['deadline'].initial = formatted_value
+
+
+class IPRForm(forms.ModelForm):
+    """Форма для создания/редактирования ИПР."""
+    
+    class Meta:
+        model = IPR
+        fields = ['user', 'status']
+        widgets = {
+            'user': forms.HiddenInput(),
+            'status': forms.Select(attrs={'class': 'form-control', 'disabled': True}),
+        }
+    
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Получаем всех пользователей для выбора
+        from django.contrib.auth import get_user_model
+        User = get_user_model()
+        self.fields['user'].queryset = User.objects.filter(is_active=True).order_by('last_name', 'first_name')

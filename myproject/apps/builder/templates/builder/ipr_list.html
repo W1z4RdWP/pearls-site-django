@@ -1,0 +1,135 @@
+{% extends 'layout.html' %}
+{% load static %}
+{% block title %}ИПР{% endblock %}
+{% block specific_styles %}
+    <link rel="stylesheet" href="{% static 'builder/css/ipr.css' %}">
+{% endblock %}
+{% block content %}
+<div class="ipr-card mb-4">
+        <!-- Фильтры -->
+        <form method="get" id="ipr-filter-form" class="mb-4">
+            <div class="row mb-2 g-2 align-items-center">
+                <!-- Фильтр по статусу -->
+                <div class="col-md-3 col-lg-2">
+                    <select class="form-control" id="ipr_status" name="status">
+                        <option value="">Все статусы</option>
+                        {% for value, label in status_choices %}
+                            <option value="{{ value }}" {% if request.GET.status == value %}selected{% endif %}>{{ label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <!-- Кнопка добавления -->
+                <div class="col-md-3 col-lg-10 text-end">
+                    <a href="{% url 'builder:ipr_add' %}" class="btn btn-primary">+ Новый ИПР</a>
+                </div>
+            </div>
+            
+            <div class="mb-2">
+                <div class="d-flex gap-2 ms-auto justify-content-end">
+                    <button type="submit" class="btn btn-primary">Применить фильтры</button>
+                    <a href="{% url 'builder:ipr_list' %}" class="btn btn-secondary">Сбросить</a>
+                </div>
+            </div>
+            
+        </form>
+        
+        <div class="ipr-table-responsive">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th style="width: 20%;" title="ФИО">ФИО</th>
+                        <th style="width: 12%;" title="Активных модулей">Активных модулей</th>
+                        <th style="width: 12%;" title="Просроченных">Просроченных</th>
+                        <th style="width: 12%;" title="Завершено">Завершено</th>
+                        <th style="width: 15%;" title="Ближайший дедлайн">Ближайший дедлайн</th>
+                        <th style="width: 15%;" title="Отделение">Отделение</th>
+                        <th style="width: 14%;" title="Статус">Статус</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for ipr in iprs %}
+                    <tr class="ipr-row status-row-{{ ipr.status }}" 
+                        data-ipr-id="{{ ipr.pk }}"
+                        data-ipr-status="{{ ipr.status }}"
+                        onclick="selectRow(this, event)"
+                        ondblclick="window.location.href='{% url 'builder:ipr_edit' ipr.pk %}'">
+                        <td>{{ ipr.user.get_full_name|default:ipr.user.username }}</td>
+                        <td style="text-align: center;">{{ ipr.get_active_modules_count }}</td>
+                        <td style="text-align: center;">{{ ipr.get_overdue_modules_count }}</td>
+                        <td style="text-align: center;">{{ ipr.get_completed_modules_count }}</td>
+                        <td style="text-align: center;">
+                            {% if ipr.get_nearest_deadline %}
+                                <span class="deadline-date">{{ ipr.get_nearest_deadline|date:"d.m.Y" }}</span> <span class="deadline-time">{{ ipr.get_nearest_deadline|date:"H:i" }}</span>
+                            {% else %}
+                                —
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if ipr.user.profile and ipr.user.profile.department %}
+                                {{ ipr.user.profile.department.name }}
+                            {% else %}
+                                —
+                            {% endif %}
+                        </td>
+                        <td class="status-{{ ipr.status }}">{{ ipr.get_status_display }}</td>
+                    </tr>
+                    {% empty %}
+                    <tr><td colspan="7" class="text-center">Нет ИПР</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+</div>
+
+<script>
+// Переменная для отслеживания таймаута одиночного клика
+let clickTimeout = null;
+
+// Функция для выделения строки
+function selectRow(row, event) {
+    // Предотвращаем выделение при двойном клике
+    if (event.detail === 2) {
+        if (clickTimeout) {
+            clearTimeout(clickTimeout);
+            clickTimeout = null;
+        }
+        return;
+    }
+    
+    // Очищаем предыдущий таймаут
+    if (clickTimeout) {
+        clearTimeout(clickTimeout);
+    }
+    
+    // Устанавливаем таймаут для обработки одиночного клика
+    clickTimeout = setTimeout(function() {
+        // Убираем выделение со всех строк
+        document.querySelectorAll('.ipr-row').forEach(r => {
+            r.classList.remove('row-selected');
+        });
+        
+        // Выделяем выбранную строку
+        row.classList.add('row-selected');
+        
+        clickTimeout = null;
+    }, 200); // Задержка 200мс для различения одиночного и двойного клика
+}
+
+// Убираем выделение при клике вне таблицы
+document.addEventListener('click', function(event) {
+    if (!event.target.closest('.ipr-row')) {
+        // Очищаем таймаут, если он есть
+        if (clickTimeout) {
+            clearTimeout(clickTimeout);
+            clickTimeout = null;
+        }
+        
+        document.querySelectorAll('.ipr-row').forEach(r => {
+            r.classList.remove('row-selected');
+        });
+    }
+});
+</script>
+
+{% endblock %}
+
