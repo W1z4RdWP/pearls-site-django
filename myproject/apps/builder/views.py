@@ -3237,18 +3237,24 @@ def api_search_users(request):
     Параметры:
         q: поисковый запрос (необязательно)
         mentor_only: если 'true', возвращает только пользователей с ролью наставника (is_mentor=True)
+        exclude_staff: если 'true', исключает пользователей с is_staff=True
     """
     if not (request.user.is_staff or request.user.is_superuser):
         return JsonResponse({'error': 'Доступ запрещен'}, status=403)
     
     search_query = request.GET.get('q', '').strip()
     mentor_only = request.GET.get('mentor_only', '').lower() == 'true'
+    exclude_staff = request.GET.get('exclude_staff', '').lower() == 'true'
     
     users = User.objects.filter(is_active=True).select_related('profile', 'profile__role')
     
     # Фильтруем только наставников, если указан параметр mentor_only
     if mentor_only:
         users = users.filter(profile__is_mentor=True)
+    
+    # Исключаем пользователей с is_staff=True, если указан параметр exclude_staff
+    if exclude_staff:
+        users = users.filter(is_staff=False)
     
     if search_query:
         users = users.filter(
@@ -3300,6 +3306,9 @@ def api_get_group_users(request, group_id):
     """
     API endpoint для получения пользователей конкретной группы.
     Возвращает JSON с данными пользователей группы.
+    
+    Параметры:
+        exclude_staff: если 'true', исключает пользователей с is_staff=True
     """
     if not (request.user.is_staff or request.user.is_superuser):
         return JsonResponse({'error': 'Доступ запрещен'}, status=403)
@@ -3309,7 +3318,13 @@ def api_get_group_users(request, group_id):
     except Group.DoesNotExist:
         return JsonResponse({'error': 'Группа не найдена'}, status=404)
     
+    exclude_staff = request.GET.get('exclude_staff', '').lower() == 'true'
+    
     users = group.user_set.filter(is_active=True).order_by('last_name', 'first_name')
+    
+    # Исключаем пользователей с is_staff=True, если указан параметр exclude_staff
+    if exclude_staff:
+        users = users.filter(is_staff=False)
     
     users_data = []
     for user in users:

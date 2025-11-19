@@ -133,6 +133,11 @@ function loadUsers(query) {
         url += '&mentor_only=true';
     }
     
+    // Для полей "Кто зафиксировал" и "Ответственный за актуальность курса" исключаем is_staff
+    if (currentActiveField === 'user' || currentActiveField === 'expert') {
+        url += '&exclude_staff=true';
+    }
+    
     fetch(url)
         .then(response => response.json())
         .then(data => {
@@ -596,7 +601,8 @@ function displayGroups(groups) {
 
 // Добавление всех пользователей группы
 function addGroupUsers(groupId) {
-    const url = getGroupUsersUrl.replace('{id}', groupId);
+    // Для поля "Кому назначен" исключаем is_staff
+    const url = getGroupUsersUrl.replace('{id}', groupId) + '?exclude_staff=true';
     
     fetch(url)
         .then(response => response.json())
@@ -658,7 +664,8 @@ function searchUsers(query) {
     searchResultsDropdown.innerHTML = '<div class="search-results-loading">Поиск...</div>';
     searchResultsDropdown.style.display = 'block';
     
-    const url = searchUsersUrl + '?q=' + encodeURIComponent(query);
+    // Для поля "Кому назначен" исключаем is_staff
+    const url = searchUsersUrl + '?q=' + encodeURIComponent(query) + '&exclude_staff=true';
     
     fetch(url)
         .then(response => response.json())
