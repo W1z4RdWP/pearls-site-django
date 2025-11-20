@@ -1063,7 +1063,15 @@ document.addEventListener('DOMContentLoaded', function() {
                 method: 'POST',
                 headers: { 'X-CSRFToken': (document.querySelector('[name=csrfmiddlewaretoken]')||{}).value || '', 'Content-Type': 'application/json' },
                 body: JSON.stringify({ target_category: targetCategory })
-            }).then(r => r.json()).then(data => {
+            }).then(r => {
+                const contentType = r.headers.get('content-type');
+                if (!contentType || !contentType.includes('application/json')) {
+                    return r.text().then(text => {
+                        throw new Error('Сервер вернул не JSON ответ. Возможно, произошла ошибка на сервере.');
+                    });
+                }
+                return r.json();
+            }).then(data => {
                 if (data.error) { alert('Ошибка: ' + data.error); return; }
                 if (data.result) {
                     if (clipboardData.action === 'cut') {

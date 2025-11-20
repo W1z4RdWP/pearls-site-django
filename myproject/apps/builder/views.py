@@ -1839,7 +1839,7 @@ def ajax_paste(request):
                 )
                 
                 # Логируем копирование урока
-                log_copy(user, lesson, new_lesson, request,
+                log_copy(request.user, lesson, new_lesson, request,
                         extra_data={'target_category_id': target_category},
                         comment="Скопирован урок через AJAX")
                 
@@ -1859,8 +1859,11 @@ def ajax_paste(request):
                 lesson.save(update_fields=['category', 'order'])
                 
                 # Логируем перемещение урока
-                new_category = CategoryName.objects.get(pk=target_category) if target_category else None
-                log_move(user, lesson, old_category, new_category, request,
+                try:
+                    new_category = CategoryName.objects.get(pk=target_category) if target_category else None
+                except CategoryName.DoesNotExist:
+                    return JsonResponse({'error': 'target category not found'}, status=404)
+                log_move(request.user, lesson, old_category, new_category, request,
                         comment="Перемещен урок через AJAX")
                 
                 result = {'id': lesson.id, 'title': lesson.title}
@@ -1869,6 +1872,8 @@ def ajax_paste(request):
                 return JsonResponse({'ok': True, 'result': result})
         except Lesson.DoesNotExist:
             return JsonResponse({'error': 'lesson not found'}, status=404)
+        except Exception as e:
+            return JsonResponse({'error': f'lesson operation failed: {str(e)}'}, status=500)
     elif item_type == 'category':
         try:
             if action == 'copy':
