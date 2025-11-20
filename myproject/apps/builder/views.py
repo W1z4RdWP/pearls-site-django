@@ -3412,16 +3412,44 @@ class IPRListView(ListView):
         queryset = super().get_queryset()
         queryset = queryset.select_related('user', 'user__profile', 'user__profile__department')
         
-        # Фильтр по статусу
-        status = self.request.GET.get('status')
-        if status:
-            queryset = queryset.filter(status=status)
+        # Фильтр по статусу (множественный выбор)
+        statuses = self.request.GET.getlist('status')
+        if statuses:
+            queryset = queryset.filter(status__in=statuses)
+        else:
+            # По умолчанию показываем только активные ИПР
+            queryset = queryset.filter(status='active')
+        
+        # Фильтр по статусу пользователя (is_active)
+        user_status = self.request.GET.get('user_status', 'active')
+        if user_status == 'active':
+            queryset = queryset.filter(user__is_active=True)
+        elif user_status == 'inactive':
+            queryset = queryset.filter(user__is_active=False)
+        # Если user_status == 'all', фильтр не применяется
         
         return queryset
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['status_choices'] = IPR.STATUS_CHOICES
+        
+        # Варианты фильтра по статусу пользователя
+        context['user_status_choices'] = [
+            ('all', 'Все'),
+            ('active', 'Активные пользователи'),
+            ('inactive', 'Неактивные пользователи'),
+        ]
+        
+        # Если нет параметров в GET запросе (первичная загрузка), устанавливаем дефолтные значения
+        if not self.request.GET:
+            context['selected_statuses'] = ['active']
+            context['selected_user_status'] = 'active'
+        else:
+            # Передаем текущие значения фильтров в контекст
+            context['selected_statuses'] = self.request.GET.getlist('status', [])
+            context['selected_user_status'] = self.request.GET.get('user_status', 'active')
+        
         return context
 
 
