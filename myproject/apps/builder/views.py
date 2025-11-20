@@ -3792,6 +3792,90 @@ class IPRModuleDetailView(DetailView):
             except IPRModuleIndicator.DoesNotExist:
                 return JsonResponse({'success': False, 'error': 'Показатель не найден'})
         
+        if request.POST.get('action') == 'update_module_fields':
+            """Обновление полей модуля из таблицы"""
+            try:
+                # Обновляем руководителя
+                supervisor_id = request.POST.get('supervisor', '').strip()
+                if supervisor_id:
+                    try:
+                        supervisor = User.objects.get(id=supervisor_id, is_active=True)
+                        self.object.supervisor = supervisor
+                    except User.DoesNotExist:
+                        pass
+                elif supervisor_id == '':
+                    self.object.supervisor = None
+                
+                # Обновляем зав отделением
+                department_head_id = request.POST.get('department_head', '').strip()
+                if department_head_id:
+                    try:
+                        department_head = User.objects.get(id=department_head_id, is_active=True)
+                        self.object.department_head = department_head
+                    except User.DoesNotExist:
+                        pass
+                elif department_head_id == '':
+                    self.object.department_head = None
+                
+                # Обновляем наставника
+                mentor_id = request.POST.get('mentor', '').strip()
+                if mentor_id:
+                    try:
+                        mentor = User.objects.get(id=mentor_id, is_active=True, profile__is_mentor=True)
+                        self.object.mentor = mentor
+                    except User.DoesNotExist:
+                        pass
+                elif mentor_id == '':
+                    self.object.mentor = None
+                
+                # Обновляем дату старта
+                start_date_str = request.POST.get('start_date', '').strip()
+                if start_date_str:
+                    try:
+                        start_date = timezone.datetime.strptime(start_date_str, '%Y-%m-%d').date()
+                        self.object.start_date = start_date
+                    except ValueError:
+                        pass
+                
+                # Обновляем дедлайн
+                deadline_str = request.POST.get('deadline', '').strip()
+                if deadline_str:
+                    try:
+                        deadline_date = timezone.datetime.strptime(deadline_str, '%Y-%m-%d').date()
+                        # Если у дедлайна уже есть время, сохраняем его, иначе устанавливаем 23:59:59
+                        if self.object.deadline:
+                            deadline = timezone.datetime.combine(deadline_date, self.object.deadline.time())
+                        else:
+                            deadline = timezone.datetime.combine(deadline_date, timezone.datetime.max.time().replace(microsecond=0))
+                        deadline = timezone.make_aware(deadline)
+                        self.object.deadline = deadline
+                    except ValueError:
+                        pass
+                else:
+                    self.object.deadline = None
+                
+                self.object.save()
+                
+                return JsonResponse({
+                    'success': True,
+                    'supervisor': {
+                        'id': self.object.supervisor.id if self.object.supervisor else None,
+                        'name': self.object.supervisor.get_full_name() if self.object.supervisor else None
+                    },
+                    'department_head': {
+                        'id': self.object.department_head.id if self.object.department_head else None,
+                        'name': self.object.department_head.get_full_name() if self.object.department_head else None
+                    },
+                    'mentor': {
+                        'id': self.object.mentor.id if self.object.mentor else None,
+                        'name': self.object.mentor.get_full_name() if self.object.mentor else None
+                    },
+                    'start_date': self.object.start_date.strftime('%Y-%m-%d') if self.object.start_date else '',
+                    'deadline': self.object.deadline.strftime('%Y-%m-%d') if self.object.deadline else ''
+                })
+            except Exception as e:
+                return JsonResponse({'success': False, 'error': str(e)})
+        
         return JsonResponse({'success': False, 'error': 'Неизвестное действие'})
 
     def get_context_data(self, **kwargs):
@@ -3805,6 +3889,19 @@ class IPRModuleDetailView(DetailView):
         
         # Добавляем показатели модуля
         context['indicators'] = module.indicators.all()
+        
+        # Добавляем списки пользователей для редактирования
+        from django.contrib.auth import get_user_model
+        User = get_user_model()
+        
+        # Все активные пользователи для руководителя и зав отделением
+        context['all_users'] = User.objects.filter(is_active=True).order_by('last_name', 'first_name')
+        
+        # Только наставники для поля наставник
+        context['mentors'] = User.objects.filter(
+            profile__is_mentor=True,
+            is_active=True
+        ).order_by('last_name', 'first_name')
         
         return context
 

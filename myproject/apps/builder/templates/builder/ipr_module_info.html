@@ -249,6 +249,25 @@
         .ipr-indicators-save-btn:hover {
             background-color: #0056b3;
         }
+        .ipr-info-table select,
+        .ipr-info-table input[type="date"] {
+            width: 100%;
+            padding: 6px;
+            border: 1px solid #e3e8f0;
+            border-radius: 4px;
+            font-size: 0.9em;
+            font-family: inherit;
+            box-sizing: border-box;
+        }
+        .ipr-info-table .edit-mode {
+            display: none;
+        }
+        .ipr-info-table.edit-active .view-mode {
+            display: none;
+        }
+        .ipr-info-table.edit-active .edit-mode {
+            display: block;
+        }
     </style>
 {% endblock %}
 
@@ -266,9 +285,13 @@
                 </form>
             </div>
         {% endif %}
+        <a href="{% url 'builder:ipr_module_list' user_id=module.user.pk %}" class="btn btn-secondary">Назад к списку модулей</a>
+        <button type="button" class="btn btn-primary" id="toggleEditModeBtn">Редактировать</button>
+        <button type="button" class="btn btn-success" id="saveTableFieldsBtn" style="display: none;">Сохранить</button>
+        <button type="button" class="btn btn-secondary" id="cancelEditModeBtn" style="display: none;">Отмена</button>
     </div>
     
-    <table class="ipr-info-table">
+    <table class="ipr-info-table" id="moduleInfoTable">
         <thead>
             <tr>
                 <th style="width: 20%;">ФИО сотрудника</th>
@@ -290,45 +313,81 @@
             <tr>
                 <td class="ipr-info-label">Руководитель</td>
                 <td class="ipr-info-value">
-                    {% if module.supervisor %}
-                        {{ module.supervisor.get_full_name|default:module.supervisor.username }}
-                    {% else %}
-                        —
-                    {% endif %}
+                    <span class="view-mode">
+                        {% if module.supervisor %}
+                            {{ module.supervisor.get_full_name|default:module.supervisor.username }}
+                        {% else %}
+                            —
+                        {% endif %}
+                    </span>
+                    <select class="edit-mode" id="supervisorSelect" name="supervisor">
+                        <option value="">—</option>
+                        {% for user in all_users %}
+                            <option value="{{ user.id }}" {% if module.supervisor and module.supervisor.id == user.id %}selected{% endif %}>
+                                {{ user.get_full_name|default:user.username }}
+                            </option>
+                        {% endfor %}
+                    </select>
                 </td>
                 <td class="ipr-info-separator" style="padding: 0;"></td>
                 <td class="ipr-info-label" colspan="2">Дата старта ИПР</td>
-                <td class="ipr-info-value" colspan="2">{{ module.start_date|date:"d.m.y" }}</td>
+                <td class="ipr-info-value" colspan="2">
+                    <span class="view-mode">{{ module.start_date|date:"d.m.y" }}</span>
+                    <input type="date" class="edit-mode" id="startDateInput" name="start_date" value="{% if module.start_date %}{{ module.start_date|date:'Y-m-d' }}{% endif %}">
+                </td>
             </tr>
             <tr>
                 <td class="ipr-info-label">Зав отделением</td>
                 <td class="ipr-info-value">
-                    {% if module.department_head %}
-                        {{ module.department_head.get_full_name|default:module.department_head.username }}
-                    {% else %}
-                        —
-                    {% endif %}
+                    <span class="view-mode">
+                        {% if module.department_head %}
+                            {{ module.department_head.get_full_name|default:module.department_head.username }}
+                        {% else %}
+                            —
+                        {% endif %}
+                    </span>
+                    <select class="edit-mode" id="departmentHeadSelect" name="department_head">
+                        <option value="">—</option>
+                        {% for user in all_users %}
+                            <option value="{{ user.id }}" {% if module.department_head and module.department_head.id == user.id %}selected{% endif %}>
+                                {{ user.get_full_name|default:user.username }}
+                            </option>
+                        {% endfor %}
+                    </select>
                 </td>
                 <td class="ipr-info-separator" style="padding: 0;"></td>
                 <td class="ipr-info-label" colspan="2">Дедлайн ИПР</td>
                 <td class="ipr-info-value" colspan="2">
-                    {% if module.deadline %}
-                        {{ module.deadline|date:"d.m.y" }}
-                    {% elif module.end_date %}
-                        {{ module.end_date|date:"d.m.y" }}
-                    {% else %}
-                        —
-                    {% endif %}
+                    <span class="view-mode">
+                        {% if module.deadline %}
+                            {{ module.deadline|date:"d.m.y" }}
+                        {% elif module.end_date %}
+                            {{ module.end_date|date:"d.m.y" }}
+                        {% else %}
+                            —
+                        {% endif %}
+                    </span>
+                    <input type="date" class="edit-mode" id="deadlineInput" name="deadline" value="{% if module.deadline %}{{ module.deadline|date:'Y-m-d' }}{% elif module.end_date %}{{ module.end_date|date:'Y-m-d' }}{% endif %}">
                 </td>
             </tr>
             <tr>
                 <td class="ipr-info-label">Наставник</td>
                 <td class="ipr-info-value">
-                    {% if module.mentor %}
-                        {{ module.mentor.get_full_name|default:module.mentor.username }}
-                    {% else %}
-                        —
-                    {% endif %}
+                    <span class="view-mode">
+                        {% if module.mentor %}
+                            {{ module.mentor.get_full_name|default:module.mentor.username }}
+                        {% else %}
+                            —
+                        {% endif %}
+                    </span>
+                    <select class="edit-mode" id="mentorSelect" name="mentor">
+                        <option value="">—</option>
+                        {% for user in mentors %}
+                            <option value="{{ user.id }}" {% if module.mentor and module.mentor.id == user.id %}selected{% endif %}>
+                                {{ user.get_full_name|default:user.username }}
+                            </option>
+                        {% endfor %}
+                    </select>
                 </td>
                 <td class="ipr-info-separator" style="padding: 0;"></td>
                 <td colspan="4"></td>
@@ -438,10 +497,6 @@
         </div>
     </div>
 
-    <div class="mt-4">
-        <a href="{% url 'builder:ipr_module_list' user_id=module.user.pk %}" class="btn btn-secondary">Назад к списку модулей</a>
-        <a href="{% url 'builder:ipr_module_edit' module.pk %}" class="btn btn-primary">Редактировать</a>
-    </div>
 </div>
 
 <div id="diagnostics-data" 
@@ -819,6 +874,193 @@ document.addEventListener('DOMContentLoaded', function() {
             alert('Ошибка при удалении показателя');
         });
     };
+
+    // Обработка редактирования полей таблицы
+    const toggleEditModeBtn = document.getElementById('toggleEditModeBtn');
+    const saveTableFieldsBtn = document.getElementById('saveTableFieldsBtn');
+    const cancelEditModeBtn = document.getElementById('cancelEditModeBtn');
+    const moduleInfoTable = document.getElementById('moduleInfoTable');
+    
+    let originalTableData = {};
+    
+    // Сохранение исходных значений
+    function saveOriginalValues() {
+        const supervisorSelect = document.getElementById('supervisorSelect');
+        const departmentHeadSelect = document.getElementById('departmentHeadSelect');
+        const mentorSelect = document.getElementById('mentorSelect');
+        const startDateInput = document.getElementById('startDateInput');
+        const deadlineInput = document.getElementById('deadlineInput');
+        
+        originalTableData = {
+            supervisor: supervisorSelect ? supervisorSelect.value : '',
+            department_head: departmentHeadSelect ? departmentHeadSelect.value : '',
+            mentor: mentorSelect ? mentorSelect.value : '',
+            start_date: startDateInput ? startDateInput.value : '',
+            deadline: deadlineInput ? deadlineInput.value : ''
+        };
+    }
+    
+    // Восстановление исходных значений
+    function restoreOriginalValues() {
+        const supervisorSelect = document.getElementById('supervisorSelect');
+        const departmentHeadSelect = document.getElementById('departmentHeadSelect');
+        const mentorSelect = document.getElementById('mentorSelect');
+        const startDateInput = document.getElementById('startDateInput');
+        const deadlineInput = document.getElementById('deadlineInput');
+        
+        if (supervisorSelect) supervisorSelect.value = originalTableData.supervisor || '';
+        if (departmentHeadSelect) departmentHeadSelect.value = originalTableData.department_head || '';
+        if (mentorSelect) mentorSelect.value = originalTableData.mentor || '';
+        if (startDateInput) startDateInput.value = originalTableData.start_date || '';
+        if (deadlineInput) deadlineInput.value = originalTableData.deadline || '';
+    }
+    
+    // Включение режима редактирования
+    if (toggleEditModeBtn) {
+        toggleEditModeBtn.addEventListener('click', function() {
+            saveOriginalValues();
+            moduleInfoTable.classList.add('edit-active');
+            toggleEditModeBtn.style.display = 'none';
+            saveTableFieldsBtn.style.display = 'inline-block';
+            cancelEditModeBtn.style.display = 'inline-block';
+        });
+    }
+    
+    // Отмена редактирования
+    if (cancelEditModeBtn) {
+        cancelEditModeBtn.addEventListener('click', function() {
+            restoreOriginalValues();
+            moduleInfoTable.classList.remove('edit-active');
+            toggleEditModeBtn.style.display = 'inline-block';
+            saveTableFieldsBtn.style.display = 'none';
+            cancelEditModeBtn.style.display = 'none';
+        });
+    }
+    
+    // Сохранение изменений
+    if (saveTableFieldsBtn) {
+        saveTableFieldsBtn.addEventListener('click', function() {
+            const supervisorSelect = document.getElementById('supervisorSelect');
+            const departmentHeadSelect = document.getElementById('departmentHeadSelect');
+            const mentorSelect = document.getElementById('mentorSelect');
+            const startDateInput = document.getElementById('startDateInput');
+            const deadlineInput = document.getElementById('deadlineInput');
+            
+            const supervisor = supervisorSelect ? supervisorSelect.value : '';
+            const departmentHead = departmentHeadSelect ? departmentHeadSelect.value : '';
+            const mentor = mentorSelect ? mentorSelect.value : '';
+            const startDate = startDateInput ? startDateInput.value : '';
+            const deadline = deadlineInput ? deadlineInput.value : '';
+            
+            const body = new URLSearchParams({
+                'action': 'update_module_fields',
+                'supervisor': supervisor,
+                'department_head': departmentHead,
+                'mentor': mentor,
+                'start_date': startDate,
+                'deadline': deadline
+            });
+            
+            fetch(saveUrl, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'X-CSRFToken': csrfToken
+                },
+                body: body.toString()
+            })
+            .then(function(response) {
+                return response.json();
+            })
+            .then(function(data) {
+                if (data.success) {
+                    // Обновляем отображение
+                    const supervisorSelect = document.getElementById('supervisorSelect');
+                    if (supervisorSelect) {
+                        const supervisorView = supervisorSelect.parentElement.querySelector('.view-mode');
+                        if (supervisorView) {
+                            if (data.supervisor && data.supervisor.name) {
+                                supervisorView.textContent = data.supervisor.name;
+                            } else {
+                                supervisorView.textContent = '—';
+                            }
+                        }
+                    }
+                    
+                    const departmentHeadSelect = document.getElementById('departmentHeadSelect');
+                    if (departmentHeadSelect) {
+                        const departmentHeadView = departmentHeadSelect.parentElement.querySelector('.view-mode');
+                        if (departmentHeadView) {
+                            if (data.department_head && data.department_head.name) {
+                                departmentHeadView.textContent = data.department_head.name;
+                            } else {
+                                departmentHeadView.textContent = '—';
+                            }
+                        }
+                    }
+                    
+                    const mentorSelect = document.getElementById('mentorSelect');
+                    if (mentorSelect) {
+                        const mentorView = mentorSelect.parentElement.querySelector('.view-mode');
+                        if (mentorView) {
+                            if (data.mentor && data.mentor.name) {
+                                mentorView.textContent = data.mentor.name;
+                            } else {
+                                mentorView.textContent = '—';
+                            }
+                        }
+                    }
+                    
+                    const startDateInput = document.getElementById('startDateInput');
+                    if (startDateInput) {
+                        const startDateView = startDateInput.parentElement.querySelector('.view-mode');
+                        if (startDateView) {
+                            if (data.start_date) {
+                                const date = new Date(data.start_date + 'T00:00:00');
+                                const day = String(date.getDate()).padStart(2, '0');
+                                const month = String(date.getMonth() + 1).padStart(2, '0');
+                                const year = String(date.getFullYear()).slice(-2);
+                                startDateView.textContent = day + '.' + month + '.' + year;
+                            } else {
+                                startDateView.textContent = '—';
+                            }
+                        }
+                    }
+                    
+                    const deadlineInput = document.getElementById('deadlineInput');
+                    if (deadlineInput) {
+                        const deadlineView = deadlineInput.parentElement.querySelector('.view-mode');
+                        if (deadlineView) {
+                            if (data.deadline) {
+                                const date = new Date(data.deadline + 'T00:00:00');
+                                const day = String(date.getDate()).padStart(2, '0');
+                                const month = String(date.getMonth() + 1).padStart(2, '0');
+                                const year = String(date.getFullYear()).slice(-2);
+                                deadlineView.textContent = day + '.' + month + '.' + year;
+                            } else {
+                                deadlineView.textContent = '—';
+                            }
+                        }
+                    }
+                    
+                    // Выходим из режима редактирования
+                    moduleInfoTable.classList.remove('edit-active');
+                    toggleEditModeBtn.style.display = 'inline-block';
+                    saveTableFieldsBtn.style.display = 'none';
+                    cancelEditModeBtn.style.display = 'none';
+                    
+                    // Обновляем сохраненные значения
+                    saveOriginalValues();
+                } else {
+                    alert('Ошибка при сохранении: ' + (data.error || 'Неизвестная ошибка'));
+                }
+            })
+            .catch(function(error) {
+                console.error('Ошибка:', error);
+                alert('Ошибка при сохранении данных');
+            });
+        });
+    }
 });
 </script>
 {% endblock %}
