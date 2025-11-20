@@ -148,47 +148,111 @@ class IPR(models.Model):
         return f"ИПР для {self.user.get_full_name() or self.user.username} ({self.get_status_display()})"
     
     def get_active_modules_count(self):
-        """Возвращает количество активных модулей (курсов)"""
-        from myapp.models import UserCourse
+        """Возвращает количество активных модулей ИПР"""
         from django.utils import timezone
         now = timezone.now()
-        return UserCourse.objects.filter(
-            user=self.user,
-            status__in=['available', 'started']
+        # Активные: модули без статуса (status пустой/null) и дедлайн либо не установлен, либо еще не прошел
+        return self.modules.filter(
+            Q(status__isnull=True) | Q(status='')
         ).filter(
             Q(deadline__isnull=True) | Q(deadline__gte=now)
         ).count()
     
     def get_overdue_modules_count(self):
-        """Возвращает количество просроченных модулей"""
-        from myapp.models import UserCourse
+        """Возвращает количество просроченных модулей ИПР"""
         from django.utils import timezone
-        return UserCourse.objects.filter(
-            user=self.user,
-            deadline__lt=timezone.now(),
-            status__in=['available', 'started']
+        # Просроченные: модули без статуса (status пустой/null) и дедлайн установлен и уже прошел
+        return self.modules.filter(
+            Q(status__isnull=True) | Q(status='')
+        ).filter(
+            deadline__isnull=False,
+            deadline__lt=timezone.now()
         ).count()
     
     def get_completed_modules_count(self):
-        """Возвращает количество завершенных модулей"""
-        from myapp.models import UserCourse
-        return UserCourse.objects.filter(
-            user=self.user,
-            status='completed'
+        """Возвращает количество завершенных модулей ИПР"""
+        # Завершенные: модули со статусом (status не пустой/null)
+        return self.modules.exclude(
+            Q(status__isnull=True) | Q(status='')
         ).count()
     
     def get_nearest_deadline(self):
-        """Возвращает ближайший дедлайн"""
-        from myapp.models import UserCourse
+        """Возвращает ближайший дедлайн из модулей ИПР"""
         from django.utils import timezone
-        nearest = UserCourse.objects.filter(
-            user=self.user,
-            deadline__gte=timezone.now(),
-            status__in=['available', 'started']
+        # Ближайший дедлайн из активных модулей (без статуса и с дедлайном в будущем)
+        nearest = self.modules.filter(
+            Q(status__isnull=True) | Q(status=''),
+            deadline__isnull=False,
+            deadline__gte=timezone.now()
         ).order_by('deadline').first()
         return nearest.deadline if nearest else None
- 
- 
+
+
+class IPRModule(models.Model):
+    """
+    Модуль ИПР (Индивидуального Плана Развития).
+    Представляет отдельный модуль обучения в рамках ИПР пользователя.
+    """
+    ipr = models.ForeignKey(IPR, on_delete=models.CASCADE, related_name='modules', verbose_name='ИПР')
+    start_date = models.DateField(verbose_name='Дата начала ИПР')
+    end_date = models.DateField(null=True, blank=True, verbose_name='Дата окончания ИПР')
+    title = models.CharField(max_length=255, verbose_name='Тема ИПР (название модуля)')
+    user = models.ForeignKey(get_user_model(), on_delete=models.CASCADE, related_name='ipr_modules', verbose_name='ФИО')
+    department = models.ForeignKey('users.Department', on_delete=models.SET_NULL, null=True, blank=True, verbose_name='Отделение (группа)')
+    supervisor = models.ForeignKey(get_user_model(), on_delete=models.SET_NULL, null=True, blank=True, related_name='supervised_ipr_modules', verbose_name='Руководитель')
+    department_head = models.ForeignKey(get_user_model(), on_delete=models.SET_NULL, null=True, blank=True, related_name='department_head_ipr_modules', verbose_name='Зав отделением')
+    mentor = models.ForeignKey(get_user_model(), on_delete=models.SET_NULL, null=True, blank=True, related_name='mentored_ipr_modules', verbose_name='Наставник')
+    diagnostics = models.TextField(blank=True, null=True, verbose_name='Диагностика / Проблема', help_text='Описание проблем и диагностики')
+    goals = models.TextField(blank=True, null=True, verbose_name='Цели', help_text='Описание целей модуля ИПР')
+    status = models.CharField(max_length=100, blank=True, null=True, verbose_name='Статус', help_text='Пока прочерк')
+    intermediate_control = models.CharField(max_length=255, blank=True, null=True, verbose_name='Промежуточный контроль', help_text='Пока прочерк')
+    deadline = models.DateTimeField(null=True, blank=True, verbose_name='Дедлайн', help_text='Пока прочерк')
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name="Дата создания")
+    updated_at = models.DateTimeField(auto_now=True, verbose_name="Дата обновления")
+    
+    class Meta:
+        verbose_name = 'Модуль ИПР'
+        verbose_name_plural = 'Модули ИПР'
+        ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['ipr'], name='iprmodule_ipr_idx'),
+            models.Index(fields=['user'], name='iprmodule_user_idx'),
+            models.Index(fields=['mentor'], name='iprmodule_mentor_idx'),
+            models.Index(fields=['supervisor'], name='iprmodule_supervisor_idx'),
+            models.Index(fields=['department_head'], name='iprmodule_dept_head_idx'),
+        ]
+    
+    def __str__(self) -> str:
+        return f"{self.title} - {self.user.get_full_name() or self.user.username}"
+
+
+class IPRModuleIndicator(models.Model):
+    """
+    Показатель модуля ИПР.
+    Хранит информацию о показателях эффективности для модуля ИПР.
+    """
+    module = models.ForeignKey(IPRModule, on_delete=models.CASCADE, related_name='indicators', verbose_name='Модуль ИПР')
+    name = models.CharField(max_length=255, verbose_name='Показатель', help_text='Название показателя')
+    point_a = models.TextField(blank=True, null=True, verbose_name='Точка А', help_text='Начальное состояние')
+    intermediate_point = models.TextField(blank=True, null=True, verbose_name='Промежуточная точка', help_text='Промежуточное состояние')
+    stage_deadline = models.DateTimeField(null=True, blank=True, verbose_name='Срок этапа', help_text='Дата и время срока этапа')
+    point_b = models.TextField(blank=True, null=True, verbose_name='Точка Б', help_text='Целевое состояние')
+    fact = models.TextField(blank=True, null=True, verbose_name='Факт', help_text='Фактическое состояние')
+    deadline = models.DateTimeField(null=True, blank=True, verbose_name='Дедлайн', help_text='Дата и время дедлайна')
+    order = models.PositiveIntegerField(default=0, verbose_name='Порядок', help_text='Порядок отображения')
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name="Дата создания")
+    updated_at = models.DateTimeField(auto_now=True, verbose_name="Дата обновления")
+    
+    class Meta:
+        verbose_name = 'Показатель модуля ИПР'
+        verbose_name_plural = 'Показатели модулей ИПР'
+        ordering = ['order', 'created_at']
+        indexes = [
+            models.Index(fields=['module'], name='iprmoduleindicator_module_idx'),
+        ]
+    
+    def __str__(self) -> str:
+        return f"{self.name} - {self.module.title}"
 
 
 class LessonVersion(models.Model):

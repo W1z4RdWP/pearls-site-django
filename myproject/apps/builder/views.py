@@ -1,4 +1,5 @@
 from django.views.generic import DetailView, TemplateView, View
+from django.views.decorators.http import require_POST
 from django.shortcuts import get_object_or_404, render, redirect
 from django.http import Http404
 from courses.models import Course, Lesson
@@ -8,9 +9,9 @@ from django.utils.decorators import method_decorator
 from django.views.generic import ListView, CreateView, UpdateView, DeleteView, FormView
 from django.urls import reverse_lazy, reverse
 from myapp.views import is_admin
-from .models import CategoryName, Document, Incident, LessonVersion, LessonCategoryMirror, DictionarySection, DictionaryTerm, IPR
+from .models import CategoryName, Document, Incident, LessonVersion, LessonCategoryMirror, DictionarySection, DictionaryTerm, IPR, IPRModule, IPRModuleIndicator
 from django.core.exceptions import PermissionDenied
-from .forms import DocumentForm, IncidentForm, IPRForm
+from .forms import DocumentForm, IncidentForm, IPRForm, IPRModuleForm
 from .utils import get_compact_fio, user_has_category_access, filter_categories_and_lessons_for_user
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
@@ -3474,3 +3475,350 @@ class IPRUpdateView(UpdateView, AuditLoggerMixin):
         # Логируем обновление ИПР
         self.log_update_action(self.object, self.old_values, "Обновлен ИПР")
         return response
+
+
+class IPRModuleListView(ListView):
+    """
+    Список модулей ИПР для конкретного пользователя.
+    """
+    model = IPRModule
+    template_name = 'builder/ipr_module_list.html'
+    context_object_name = 'modules'
+    ordering = ['-created_at']
+
+    def dispatch(self, request, *args, **kwargs):
+        # Только staff/superuser
+        if not request.user.is_authenticated or not (request.user.is_staff or request.user.is_superuser):
+            return render(request, '403.html', status=403)
+        return super().dispatch(request, *args, **kwargs)
+
+    def get_queryset(self):
+        user_id = self.kwargs.get('user_id')
+        queryset = super().get_queryset()
+        queryset = queryset.select_related('user', 'user__profile', 'user__profile__department', 'mentor', 'ipr')
+        
+        if user_id:
+            queryset = queryset.filter(user_id=user_id)
+        
+        return queryset
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        user_id = self.kwargs.get('user_id')
+        
+        if user_id:
+            from django.contrib.auth import get_user_model
+            User = get_user_model()
+            try:
+                user = User.objects.get(id=user_id)
+                context['selected_user'] = user
+                context['selected_user_fio'] = user.get_full_name() or user.username
+                # Получаем ИПР для этого пользователя
+                ipr = IPR.objects.filter(user=user).first()
+                if ipr:
+                    context['ipr'] = ipr
+            except User.DoesNotExist:
+                pass
+        
+        return context
+
+
+class IPRModuleCreateView(CreateView, AuditLoggerMixin):
+    """
+    Создание модуля ИПР.
+    """
+    model = IPRModule
+    form_class = IPRModuleForm
+    template_name = 'builder/ipr_module_form.html'
+
+    def dispatch(self, request, *args, **kwargs):
+        if not request.user.is_authenticated or not (request.user.is_staff or request.user.is_superuser):
+            return render(request, '403.html', status=403)
+        return super().dispatch(request, *args, **kwargs)
+
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        user_id = self.kwargs.get('user_id')
+        ipr_id = self.request.GET.get('ipr_id') or self.request.POST.get('ipr')
+        
+        if user_id:
+            kwargs['user_id'] = user_id
+        if ipr_id:
+            kwargs['ipr_id'] = ipr_id
+        
+        return kwargs
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        user_id = self.kwargs.get('user_id')
+        
+        if user_id:
+            from django.contrib.auth import get_user_model
+            User = get_user_model()
+            try:
+                user = User.objects.get(id=user_id)
+                context['selected_user'] = user
+                context['selected_user_fio'] = user.get_full_name() or user.username
+                # Получаем или создаем ИПР для этого пользователя
+                ipr, created = IPR.objects.get_or_create(
+                    user=user,
+                    defaults={'status': 'active'}
+                )
+                context['ipr'] = ipr
+                # Устанавливаем начальное значение для формы
+                if 'form' in context:
+                    if not context['form'].initial.get('ipr'):
+                        context['form'].initial['ipr'] = ipr.id
+            except User.DoesNotExist:
+                pass
+        
+        return context
+
+    def form_valid(self, form):
+        user_id = self.kwargs.get('user_id')
+        
+        # Если передан user_id, убеждаемся, что ИПР существует
+        if user_id:
+            from django.contrib.auth import get_user_model
+            User = get_user_model()
+            try:
+                user = User.objects.get(id=user_id)
+                ipr, created = IPR.objects.get_or_create(
+                    user=user,
+                    defaults={'status': 'active'}
+                )
+                form.instance.ipr = ipr
+                form.instance.user = user
+            except User.DoesNotExist:
+                pass
+        
+        # Автоматически заполняем department из профиля пользователя
+        if form.instance.user and hasattr(form.instance.user, 'profile') and form.instance.user.profile:
+            form.instance.department = form.instance.user.profile.department
+        
+        response = super().form_valid(form)
+        # Логируем создание модуля ИПР
+        self.log_create_action(self.object, "Создан новый модуль ИПР")
+        return response
+
+    def get_success_url(self):
+        user_id = self.kwargs.get('user_id')
+        if user_id:
+            return reverse('builder:ipr_module_list', kwargs={'user_id': user_id})
+        return reverse('builder:ipr_list')
+
+
+class IPRModuleUpdateView(UpdateView, AuditLoggerMixin):
+    """
+    Редактирование модуля ИПР.
+    """
+    model = IPRModule
+    form_class = IPRModuleForm
+    template_name = 'builder/ipr_module_form.html'
+
+    def dispatch(self, request, *args, **kwargs):
+        if not request.user.is_authenticated or not (request.user.is_staff or request.user.is_superuser):
+            return render(request, '403.html', status=403)
+        return super().dispatch(request, *args, **kwargs)
+
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        # Получаем user_id из объекта модуля
+        if self.object and self.object.user:
+            kwargs['user_id'] = self.object.user.id
+        if self.object and self.object.ipr:
+            kwargs['ipr_id'] = self.object.ipr.id
+        return kwargs
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        
+        if self.object and self.object.user:
+            context['selected_user'] = self.object.user
+            context['selected_user_fio'] = self.object.user.get_full_name() or self.object.user.username
+            if self.object.ipr:
+                context['ipr'] = self.object.ipr
+        
+        return context
+
+    def form_valid(self, form):
+        # Автоматически заполняем department из профиля пользователя
+        if form.instance.user and hasattr(form.instance.user, 'profile') and form.instance.user.profile:
+            form.instance.department = form.instance.user.profile.department
+        
+        # Сохраняем старые значения для аудита
+        self.old_values = serialize_model_data(self.object)
+        response = super().form_valid(form)
+        # Логируем обновление модуля ИПР
+        self.log_update_action(self.object, self.old_values, "Обновлен модуль ИПР")
+        return response
+
+    def get_success_url(self):
+        if self.object and self.object.user:
+            return reverse('builder:ipr_module_list', kwargs={'user_id': self.object.user.id})
+        return reverse('builder:ipr_list')
+
+
+class IPRModuleDetailView(DetailView):
+    """
+    Страница с информацией по модулю ИПР.
+    """
+    model = IPRModule
+    template_name = 'builder/ipr_module_info.html'
+    context_object_name = 'module'
+
+    def dispatch(self, request, *args, **kwargs):
+        if not request.user.is_authenticated or not (request.user.is_staff or request.user.is_superuser):
+            return render(request, '403.html', status=403)
+        return super().dispatch(request, *args, **kwargs)
+
+    def post(self, request, *args, **kwargs):
+        """Обработка AJAX запроса для сохранения диагностики и целей"""
+        self.object = self.get_object()
+        
+        if request.POST.get('action') == 'save_diagnostics':
+            diagnostics = request.POST.get('diagnostics', '').strip()
+            self.object.diagnostics = diagnostics
+            self.object.save()
+            
+            return JsonResponse({
+                'success': True,
+                'diagnostics': diagnostics
+            })
+        
+        if request.POST.get('action') == 'save_goals':
+            goals = request.POST.get('goals', '').strip()
+            self.object.goals = goals
+            self.object.save()
+            
+            return JsonResponse({
+                'success': True,
+                'goals': goals
+            })
+        
+        if request.POST.get('action') == 'add_indicator':
+            name = request.POST.get('name', '').strip()
+            if not name:
+                return JsonResponse({'success': False, 'error': 'Название показателя обязательно'})
+            
+            # Определяем порядок для нового показателя
+            max_order = IPRModuleIndicator.objects.filter(module=self.object).aggregate(Max('order'))['order__max'] or 0
+            
+            indicator = IPRModuleIndicator.objects.create(
+                module=self.object,
+                name=name,
+                order=max_order + 1
+            )
+            
+            return JsonResponse({
+                'success': True,
+                'indicator': {
+                    'id': indicator.id,
+                    'name': indicator.name,
+                    'point_a': indicator.point_a or '',
+                    'intermediate_point': indicator.intermediate_point or '',
+                    'stage_deadline': indicator.stage_deadline.strftime('%Y-%m-%dT%H:%M') if indicator.stage_deadline else '',
+                    'point_b': indicator.point_b or '',
+                    'fact': indicator.fact or '',
+                    'deadline': indicator.deadline.strftime('%Y-%m-%dT%H:%M') if indicator.deadline else '',
+                }
+            })
+        
+        if request.POST.get('action') == 'update_indicator':
+            indicator_id = request.POST.get('indicator_id')
+            try:
+                indicator = IPRModuleIndicator.objects.get(id=indicator_id, module=self.object)
+            except IPRModuleIndicator.DoesNotExist:
+                return JsonResponse({'success': False, 'error': 'Показатель не найден'})
+            
+            indicator.name = request.POST.get('name', '').strip()
+            indicator.point_a = request.POST.get('point_a', '').strip() or None
+            indicator.intermediate_point = request.POST.get('intermediate_point', '').strip() or None
+            indicator.point_b = request.POST.get('point_b', '').strip() or None
+            indicator.fact = request.POST.get('fact', '').strip() or None
+            
+            # Обработка дат
+            stage_deadline_str = request.POST.get('stage_deadline', '').strip()
+            if stage_deadline_str:
+                try:
+                    indicator.stage_deadline = timezone.datetime.strptime(stage_deadline_str, '%Y-%m-%dT%H:%M')
+                    indicator.stage_deadline = timezone.make_aware(indicator.stage_deadline)
+                except ValueError:
+                    pass
+            else:
+                indicator.stage_deadline = None
+            
+            deadline_str = request.POST.get('deadline', '').strip()
+            if deadline_str:
+                try:
+                    indicator.deadline = timezone.datetime.strptime(deadline_str, '%Y-%m-%dT%H:%M')
+                    indicator.deadline = timezone.make_aware(indicator.deadline)
+                except ValueError:
+                    pass
+            else:
+                indicator.deadline = None
+            
+            indicator.save()
+            
+            return JsonResponse({
+                'success': True,
+                'indicator': {
+                    'id': indicator.id,
+                    'name': indicator.name,
+                    'point_a': indicator.point_a or '',
+                    'intermediate_point': indicator.intermediate_point or '',
+                    'stage_deadline': indicator.stage_deadline.strftime('%Y-%m-%dT%H:%M') if indicator.stage_deadline else '',
+                    'point_b': indicator.point_b or '',
+                    'fact': indicator.fact or '',
+                    'deadline': indicator.deadline.strftime('%Y-%m-%dT%H:%M') if indicator.deadline else '',
+                }
+            })
+        
+        if request.POST.get('action') == 'delete_indicator':
+            indicator_id = request.POST.get('indicator_id')
+            try:
+                indicator = IPRModuleIndicator.objects.get(id=indicator_id, module=self.object)
+                indicator.delete()
+                return JsonResponse({'success': True})
+            except IPRModuleIndicator.DoesNotExist:
+                return JsonResponse({'success': False, 'error': 'Показатель не найден'})
+        
+        return JsonResponse({'success': False, 'error': 'Неизвестное действие'})
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        module = self.object
+        
+        # Определяем статус модуля для кнопки "Начать ИПР"
+        # Если статус пустой или null, значит модуль в статусе "Новый"
+        is_new_status = not module.status or module.status.strip() == ''
+        context['is_new_status'] = is_new_status
+        
+        # Добавляем показатели модуля
+        context['indicators'] = module.indicators.all()
+        
+        return context
+
+
+@method_decorator(require_POST, name='dispatch')
+class IPRModuleStartView(View, AuditLoggerMixin):
+    """
+    Изменение статуса модуля ИПР с "Новый" на "В работе".
+    """
+    def dispatch(self, request, *args, **kwargs):
+        if not request.user.is_authenticated or not (request.user.is_staff or request.user.is_superuser):
+            return render(request, '403.html', status=403)
+        return super().dispatch(request, *args, **kwargs)
+
+    def post(self, request, *args, **kwargs):
+        module = get_object_or_404(IPRModule, pk=kwargs['pk'])
+        
+        # Меняем статус с "нового" на "в работе"
+        if not module.status or module.status.strip() == '':
+            module.status = 'in_progress'
+            module.save()
+            
+            # Логируем изменение статуса
+            self.log_update_action(module, {}, "Модуль ИПР переведен в статус 'В работе'")
+        
+        return redirect('builder:ipr_module_info', pk=module.pk)

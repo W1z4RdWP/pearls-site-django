@@ -157,6 +157,16 @@
   background-color: inherit !important;
 }
 
+/* Выделение строки модуля ИПР при одиночном клике */
+.ipr-module-row.row-selected {
+  background-color: #e3f2fd !important;
+  border: 2px solid #2196f3 !important;
+}
+
+.ipr-module-row.row-selected td {
+  background-color: #e3f2fd !important;
+}
+
 .form-control {
   border: 1px solid #e3e8f0;
   border-radius: 6px;

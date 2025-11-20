@@ -24,6 +24,11 @@
                 </div>
             </div>
             
+            <!-- Кнопка модулей (появляется при выборе строки) -->
+            <div id="modules-button-container" class="mb-2" style="display: none;">
+                <a id="modules-button" href="#" class="btn btn-secondary">Модули "<span id="selected-user-fio"></span>"</a>
+            </div>
+            
             <div class="mb-2">
                 <div class="d-flex gap-2 ms-auto justify-content-end">
                     <button type="submit" class="btn btn-primary">Применить фильтры</button>
@@ -51,6 +56,8 @@
                     <tr class="ipr-row status-row-{{ ipr.status }}" 
                         data-ipr-id="{{ ipr.pk }}"
                         data-ipr-status="{{ ipr.status }}"
+                        data-user-id="{{ ipr.user.pk }}"
+                        data-user-fio="{{ ipr.user.get_full_name|default:ipr.user.username }}"
                         onclick="selectRow(this, event)"
                         ondblclick="window.location.href='{% url 'builder:ipr_edit' ipr.pk %}'">
                         <td>{{ ipr.user.get_full_name|default:ipr.user.username }}</td>
@@ -111,13 +118,28 @@ function selectRow(row, event) {
         // Выделяем выбранную строку
         row.classList.add('row-selected');
         
+        // Показываем кнопку модулей
+        const userId = row.getAttribute('data-user-id');
+        const userFio = row.getAttribute('data-user-fio');
+        const modulesButtonContainer = document.getElementById('modules-button-container');
+        const modulesButton = document.getElementById('modules-button');
+        const selectedUserFio = document.getElementById('selected-user-fio');
+        
+        if (userId && userFio) {
+            selectedUserFio.textContent = userFio;
+            // Генерируем URL для списка модулей пользователя
+            const moduleListUrl = '{% url "builder:ipr_module_list" user_id=999999 %}'.replace('999999', userId);
+            modulesButton.href = moduleListUrl;
+            modulesButtonContainer.style.display = 'block';
+        }
+        
         clickTimeout = null;
     }, 200); // Задержка 200мс для различения одиночного и двойного клика
 }
 
 // Убираем выделение при клике вне таблицы
 document.addEventListener('click', function(event) {
-    if (!event.target.closest('.ipr-row')) {
+    if (!event.target.closest('.ipr-row') && !event.target.closest('#modules-button-container')) {
         // Очищаем таймаут, если он есть
         if (clickTimeout) {
             clearTimeout(clickTimeout);
@@ -127,6 +149,9 @@ document.addEventListener('click', function(event) {
         document.querySelectorAll('.ipr-row').forEach(r => {
             r.classList.remove('row-selected');
         });
+        
+        // Скрываем кнопку модулей
+        document.getElementById('modules-button-container').style.display = 'none';
     }
 });
 </script>

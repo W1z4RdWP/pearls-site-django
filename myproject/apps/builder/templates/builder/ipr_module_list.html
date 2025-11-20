@@ -1,0 +1,145 @@
+{% extends 'layout.html' %}
+{% load static %}
+{% block title %}Модули ИПР{% endblock %}
+{% block specific_styles %}
+    <link rel="stylesheet" href="{% static 'builder/css/ipr.css' %}">
+{% endblock %}
+{% block content %}
+<div class="ipr-card mb-4">
+    <div class="mb-4">
+        <h2>Модули ИПР</h2>
+        {% if selected_user_fio %}
+            <p class="text-muted">Пользователь: <strong>{{ selected_user_fio }}</strong></p>
+        {% endif %}
+    </div>
+    
+    <div class="mb-3 d-flex gap-2 align-items-center">
+        {% if selected_user %}
+            <a href="{% url 'builder:ipr_module_add' user_id=selected_user.pk %}" class="btn btn-primary">+ Новый модуль</a>
+        {% endif %}
+        <a href="{% url 'builder:ipr_list' %}" class="btn btn-secondary">Назад к списку ИПР</a>
+        <!-- Кнопка инфо (появляется при выборе строки) -->
+        <a id="info-button" href="#" class="btn btn-secondary" style="display: none;">Инфо по "<span id="selected-module-title"></span>"</a>
+    </div>
+    
+    <div class="ipr-table-responsive">
+        <table class="table">
+            <thead>
+                <tr>
+                    <th style="width: 12%;" title="Дата начала ИПР">Дата начала ИПР</th>
+                    <th style="width: 20%;" title="Тема ИПР">Тема ИПР</th>
+                    <th style="width: 15%;" title="ФИО">ФИО</th>
+                    <th style="width: 15%;" title="Отделение">Отделение</th>
+                    <th style="width: 15%;" title="Наставник">Наставник</th>
+                    <th style="width: 10%;" title="Статус">Статус</th>
+                    <th style="width: 13%;" title="Промежуточный контроль">Промежуточный контроль</th>
+                    <th style="width: 10%;" title="Дедлайн">Дедлайн</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for module in modules %}
+                <tr class="ipr-module-row" 
+                    data-module-id="{{ module.pk }}"
+                    data-module-title="{{ module.title }}"
+                    onclick="selectModuleRow(this, event)"
+                    ondblclick="window.location.href='{% url 'builder:ipr_module_edit' module.pk %}'">
+                    <td>{{ module.start_date|date:"d.m.Y" }}</td>
+                    <td>{{ module.title }}</td>
+                    <td>{{ module.user.get_full_name|default:module.user.username }}</td>
+                    <td>
+                        {% if module.department %}
+                            {{ module.department.name }}
+                        {% else %}
+                            —
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if module.mentor %}
+                            {{ module.mentor.get_full_name|default:module.mentor.username }}
+                        {% else %}
+                            —
+                        {% endif %}
+                    </td>
+                    <td>—</td>
+                    <td>—</td>
+                    <td>—</td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="8" class="text-center">Нет модулей</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+// Переменная для отслеживания таймаута одиночного клика
+let clickTimeout = null;
+
+// Функция для выделения строки
+function selectModuleRow(row, event) {
+    // Предотвращаем выделение при двойном клике
+    if (event.detail === 2) {
+        if (clickTimeout) {
+            clearTimeout(clickTimeout);
+            clickTimeout = null;
+        }
+        return;
+    }
+    
+    // Очищаем предыдущий таймаут
+    if (clickTimeout) {
+        clearTimeout(clickTimeout);
+    }
+    
+    // Устанавливаем таймаут для обработки одиночного клика
+    clickTimeout = setTimeout(function() {
+        // Убираем выделение со всех строк
+        document.querySelectorAll('.ipr-module-row').forEach(r => {
+            r.classList.remove('row-selected');
+        });
+        
+        // Выделяем выбранную строку
+        row.classList.add('row-selected');
+        
+        // Показываем кнопку инфо
+        const moduleId = row.getAttribute('data-module-id');
+        const moduleTitle = row.getAttribute('data-module-title');
+        const infoButton = document.getElementById('info-button');
+        const selectedModuleTitle = document.getElementById('selected-module-title');
+        
+        if (moduleId && moduleTitle && infoButton) {
+            selectedModuleTitle.textContent = moduleTitle;
+            // Устанавливаем URL для страницы инфо
+            const infoUrl = '{% url "builder:ipr_module_info" pk=999999 %}'.replace('999999', moduleId);
+            infoButton.href = infoUrl;
+            infoButton.style.display = 'inline-block';
+        }
+        
+        clickTimeout = null;
+    }, 200); // Задержка 200мс для различения одиночного и двойного клика
+}
+
+// Убираем выделение при клике вне таблицы
+document.addEventListener('click', function(event) {
+    if (!event.target.closest('.ipr-module-row') && !event.target.closest('#info-button')) {
+        // Очищаем таймаут, если он есть
+        if (clickTimeout) {
+            clearTimeout(clickTimeout);
+            clickTimeout = null;
+        }
+        
+        document.querySelectorAll('.ipr-module-row').forEach(r => {
+            r.classList.remove('row-selected');
+        });
+        
+        // Скрываем кнопку инфо
+        const infoButton = document.getElementById('info-button');
+        if (infoButton) {
+            infoButton.style.display = 'none';
+        }
+    }
+});
+</script>
+{% endblock %}
+

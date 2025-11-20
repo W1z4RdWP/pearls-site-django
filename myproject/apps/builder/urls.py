@@ -93,4 +93,11 @@ urlpatterns = [
     path('ipr/', views.IPRListView.as_view(), name='ipr_list'),
     path('ipr/add/', views.IPRCreateView.as_view(), name='ipr_add'),
     path('ipr/<int:pk>/edit/', views.IPRUpdateView.as_view(), name='ipr_edit'),
+    
+    # Модули ИПР
+    path('ipr/modules/<int:user_id>/', views.IPRModuleListView.as_view(), name='ipr_module_list'),
+    path('ipr/modules/<int:user_id>/add/', views.IPRModuleCreateView.as_view(), name='ipr_module_add'),
+    path('ipr/modules/<int:pk>/edit/', views.IPRModuleUpdateView.as_view(), name='ipr_module_edit'),
+    path('ipr/modules/<int:pk>/info/', views.IPRModuleDetailView.as_view(), name='ipr_module_info'),
+    path('ipr/modules/<int:pk>/start/', views.IPRModuleStartView.as_view(), name='ipr_module_start'),
 ]
