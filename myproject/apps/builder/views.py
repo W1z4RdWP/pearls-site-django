@@ -3696,6 +3696,16 @@ class IPRModuleDetailView(DetailView):
                 'goals': goals
             })
         
+        if request.POST.get('action') == 'save_comment':
+            comment = request.POST.get('comment', '').strip()
+            self.object.comment = comment
+            self.object.save()
+            
+            return JsonResponse({
+                'success': True,
+                'comment': comment
+            })
+        
         if request.POST.get('action') == 'add_indicator':
             name = request.POST.get('name', '').strip()
             if not name:

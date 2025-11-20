@@ -205,6 +205,7 @@ class IPRModule(models.Model):
     diagnostics = models.TextField(blank=True, null=True, verbose_name='Диагностика / Проблема', help_text='Описание проблем и диагностики')
     goals = models.TextField(blank=True, null=True, verbose_name='Цели', help_text='Описание целей модуля ИПР')
     status = models.CharField(max_length=100, blank=True, null=True, verbose_name='Статус', help_text='Пока прочерк')
+    comment = models.TextField(blank=True, null=True, verbose_name='Комментарий', help_text='Произвоьные комментарии по факту выполненной работы')
     intermediate_control = models.CharField(max_length=255, blank=True, null=True, verbose_name='Промежуточный контроль', help_text='Пока прочерк')
     deadline = models.DateTimeField(null=True, blank=True, verbose_name='Дедлайн', help_text='Пока прочерк')
     created_at = models.DateTimeField(auto_now_add=True, verbose_name="Дата создания")

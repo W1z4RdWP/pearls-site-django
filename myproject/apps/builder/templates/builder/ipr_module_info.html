@@ -415,6 +415,29 @@
         </table>
     </div>
 
+    <div class="ipr-diagnostics-section">
+        <div class="ipr-diagnostics-header">
+            <h3>Комментарий</h3>
+            <button type="button" class="ipr-diagnostics-edit-btn" id="editCommentBtn" title="Редактировать">
+                ✏️
+            </button>
+        </div>
+        <div id="commentView" class="ipr-diagnostics-content">
+            {% if module.comment %}
+                {{ module.comment|linebreaks }}
+            {% else %}
+                <em style="color: #6c757d;">Комментарий не указан</em>
+            {% endif %}
+        </div>
+        <div id="commentEdit" style="display: none;">
+            <textarea id="commentTextarea" class="ipr-diagnostics-textarea" name="comment">{{ module.comment|default:'' }}</textarea>
+            <div class="ipr-diagnostics-actions">
+                <button type="button" class="ipr-diagnostics-save" id="saveCommentBtn">Сохранить</button>
+                <button type="button" class="ipr-diagnostics-cancel" id="cancelCommentBtn">Отмена</button>
+            </div>
+        </div>
+    </div>
+
     <div class="mt-4">
         <a href="{% url 'builder:ipr_module_list' user_id=module.user.pk %}" class="btn btn-secondary">Назад к списку модулей</a>
         <a href="{% url 'builder:ipr_module_edit' module.pk %}" class="btn btn-primary">Редактировать</a>
@@ -569,6 +592,77 @@ document.addEventListener('DOMContentLoaded', function() {
             .catch(function(error) {
                 console.error('Ошибка:', error);
                 alert('Ошибка при сохранении целей');
+            });
+        });
+    }
+
+    // Обработка редактирования комментария
+    const editCommentBtn = document.getElementById('editCommentBtn');
+    const saveCommentBtn = document.getElementById('saveCommentBtn');
+    const cancelCommentBtn = document.getElementById('cancelCommentBtn');
+    const commentView = document.getElementById('commentView');
+    const commentEdit = document.getElementById('commentEdit');
+    const commentTextarea = document.getElementById('commentTextarea');
+    
+    let originalCommentValue = commentTextarea ? commentTextarea.value : '';
+    
+    // Показываем форму редактирования
+    if (editCommentBtn) {
+        editCommentBtn.addEventListener('click', function() {
+            originalCommentValue = commentTextarea.value;
+            commentView.style.display = 'none';
+            commentEdit.style.display = 'block';
+            editCommentBtn.style.display = 'none';
+            commentTextarea.focus();
+        });
+    }
+    
+    // Отмена редактирования
+    if (cancelCommentBtn) {
+        cancelCommentBtn.addEventListener('click', function() {
+            commentTextarea.value = originalCommentValue;
+            commentView.style.display = 'block';
+            commentEdit.style.display = 'none';
+            if (editCommentBtn) editCommentBtn.style.display = 'block';
+        });
+    }
+    
+    // Сохранение комментария
+    if (saveCommentBtn) {
+        saveCommentBtn.addEventListener('click', function() {
+            const comment = commentTextarea.value.trim();
+            
+            // Отправляем AJAX запрос для сохранения
+            fetch(saveUrl, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'X-CSRFToken': csrfToken
+                },
+                body: 'comment=' + encodeURIComponent(comment) + '&action=save_comment'
+            })
+            .then(function(response) {
+                return response.json();
+            })
+            .then(function(data) {
+                if (data.success) {
+                    // Обновляем отображение
+                    if (comment) {
+                        commentView.innerHTML = comment.replace(/\n/g, '<br>');
+                    } else {
+                        commentView.innerHTML = '<em style="color: #6c757d;">Комментарий не указан</em>';
+                    }
+                    originalCommentValue = comment;
+                    commentView.style.display = 'block';
+                    commentEdit.style.display = 'none';
+                    if (editCommentBtn) editCommentBtn.style.display = 'block';
+                } else {
+                    alert('Ошибка при сохранении: ' + (data.error || 'Неизвестная ошибка'));
+                }
+            })
+            .catch(function(error) {
+                console.error('Ошибка:', error);
+                alert('Ошибка при сохранении комментария');
             });
         });
     }
