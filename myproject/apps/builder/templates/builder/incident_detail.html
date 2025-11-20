@@ -78,7 +78,7 @@
                     <th style="width: 10%;">Нарушитель</th>
                     <!-- <th style="width: 10%;">Дедлайн</th> -->
                     <th style="width: 10%;">Ответственный</th>
-                    <th style="width: 10%;">Прогресс</th>
+                    <th style="width: 10%;">Дедлайн</th>
                     <th style="width: 10%;">Статус</th>
                 </tr>
             </thead>
@@ -112,8 +112,12 @@
                             {% endif %}
                         </td>
                         <td style="text-align: center;">
-                            {% if item.progress_percent is not None %}
-                                {{ item.progress_percent }}%
+                            {% if item.incident.course %}
+                                {% if item.course_deadline %}
+                                    {{ item.course_deadline|date:"d.m.Y H:i" }}
+                                {% else %}
+                                    Без срока
+                                {% endif %}
                             {% else %}
                                 —
                             {% endif %}

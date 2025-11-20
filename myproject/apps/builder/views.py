@@ -1302,8 +1302,14 @@ class IncidentDetailListView(ListView):
                 
                 # Вычисляем прогресс курса, если он есть
                 progress_percent = None
+                course_deadline = None
                 if incident.course:
                     course = incident.course
+                    
+                    # Получаем UserCourse для получения дедлайна
+                    user_course = UserCourse.objects.filter(user=user, course=course).first()
+                    if user_course:
+                        course_deadline = user_course.deadline
                     
                     # Получаем траекторию пользователя для этого курса
                     trajectory = UserLessonTrajectory.objects.filter(user=user, course=course).first()
@@ -1349,6 +1355,7 @@ class IncidentDetailListView(ListView):
                     'is_violator': is_violator,
                     'is_expert': False,
                     'progress_percent': progress_percent,
+                    'course_deadline': course_deadline,
                 })
             
             # Добавляем expert, если он существует и не находится в assigned_to
@@ -1377,8 +1384,14 @@ class IncidentDetailListView(ListView):
                     if should_add_expert:
                         # Вычисляем прогресс курса, если он есть
                         progress_percent = None
+                        course_deadline = None
                         if incident.course:
                             course = incident.course
+                            
+                            # Получаем UserCourse для получения дедлайна
+                            user_course = UserCourse.objects.filter(user=expert, course=course).first()
+                            if user_course:
+                                course_deadline = user_course.deadline
                             
                             # Получаем траекторию пользователя для этого курса
                             trajectory = UserLessonTrajectory.objects.filter(user=expert, course=course).first()
@@ -1424,6 +1437,7 @@ class IncidentDetailListView(ListView):
                             'is_violator': False,  # Expert никогда не является нарушителем
                             'is_expert': True,  # Флаг, что это expert
                             'progress_percent': progress_percent,
+                            'course_deadline': course_deadline,
                         })
         
         context['incident_user_list'] = incident_user_list
