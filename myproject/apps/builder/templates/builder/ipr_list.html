@@ -1,0 +1,191 @@
+{% extends 'layout.html' %}
+{% load static %}
+{% block title %}ИПР{% endblock %}
+{% block specific_styles %}
+    <link rel="stylesheet" href="{% static 'builder/css/ipr.css' %}">
+{% endblock %}
+{% block content %}
+<div class="ipr-card mb-4">
+        <!-- Фильтры -->
+        <form method="get" id="ipr-filter-form" class="mb-4">
+            <div class="row mb-2 g-2 align-items-center">
+                <!-- Фильтр по статусу пользователя -->
+                <div class="col-md-3 col-lg-2">
+                    <select class="form-control" id="user_status" name="user_status">
+                        {% for value, label in user_status_choices %}
+                            <option value="{{ value }}" {% if selected_user_status == value %}selected{% endif %}>{{ label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <!-- Кнопка добавления -->
+                <div class="col-md-3 col-lg-10 text-end">
+                    <a href="{% url 'builder:ipr_add' %}" class="btn btn-primary">+ Новый ИПР</a>
+                </div>
+            </div>
+            
+            <!-- Фильтр по статусу -->
+            <div class="mb-2">
+                <!-- <label class="form-label mb-1">Статус</label> -->
+                <div class="status-filters d-flex flex-wrap gap-2 align-items-center">
+                    {% for value, label in status_choices %}
+                        <div class="form-check">
+                            <input class="form-check-input status-checkbox" 
+                                   type="checkbox" 
+                                   name="status" 
+                                   value="{{ value }}" 
+                                   id="status_{{ value }}"
+                                   {% if value in selected_statuses %}checked{% endif %}>
+                            <label class="form-check-label" for="status_{{ value }}">
+                                {{ label }}
+                            </label>
+                        </div>
+                    {% endfor %}
+                    <div class="d-flex gap-2 ms-auto">
+                        <button type="submit" class="btn btn-primary">Применить фильтры</button>
+                        <a href="{% url 'builder:ipr_list' %}" class="btn btn-secondary">Сбросить</a>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Кнопка модулей (появляется при выборе строки) -->
+            <div id="modules-button-container" class="mb-2" style="display: none;">
+                <a id="modules-button" href="#" class="btn btn-secondary">Модули "<span id="selected-user-fio"></span>"</a>
+            </div>
+            
+        </form>
+        
+        <div class="ipr-table-responsive">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th style="width: 20%;" title="ФИО">ФИО</th>
+                        <th style="width: 12%;" title="Активных модулей">Активных модулей</th>
+                        <th style="width: 12%;" title="Просроченных">Просроченных</th>
+                        <th style="width: 12%;" title="Завершено">Завершено</th>
+                        <th style="width: 15%;" title="Ближайший дедлайн">Ближайший дедлайн</th>
+                        <th style="width: 15%;" title="Отделение">Отделение</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for ipr in iprs %}
+                    <tr class="ipr-row status-row-{{ ipr.status }}" 
+                        data-ipr-id="{{ ipr.pk }}"
+                        data-ipr-status="{{ ipr.status }}"
+                        data-user-id="{{ ipr.user.pk }}"
+                        data-user-fio="{{ ipr.user.get_full_name|default:ipr.user.username }}"
+                        onclick="selectRow(this, event)"
+                        ondblclick="window.location.href='{% url 'builder:ipr_edit' ipr.pk %}'">
+                        <td>{{ ipr.user.get_full_name|default:ipr.user.username }}</td>
+                        <td style="text-align: center;">{{ ipr.get_active_modules_count }}</td>
+                        <td style="text-align: center;">{{ ipr.get_overdue_modules_count }}</td>
+                        <td style="text-align: center;">{{ ipr.get_completed_modules_count }}</td>
+                        <td style="text-align: center;">
+                            {% if ipr.get_nearest_deadline %}
+                                <span class="deadline-date">{{ ipr.get_nearest_deadline|date:"d.m.Y" }}</span> <span class="deadline-time">{{ ipr.get_nearest_deadline|date:"H:i" }}</span>
+                            {% else %}
+                                —
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if ipr.user.profile and ipr.user.profile.department %}
+                                {{ ipr.user.profile.department.name }}
+                            {% else %}
+                                —
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr><td colspan="7" class="text-center">Нет ИПР</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+</div>
+
+<script>
+// Инициализация фильтров по статусу
+document.addEventListener('DOMContentLoaded', function() {
+    const statusCheckboxes = document.querySelectorAll('.status-checkbox');
+    
+    // Проверяем, есть ли хотя бы один выбранный статус
+    const hasAnyChecked = Array.from(statusCheckboxes).some(cb => cb.checked);
+    
+    // Если ни один статус не выбран, автоматически выбираем "Активен"
+    if (!hasAnyChecked) {
+        statusCheckboxes.forEach(checkbox => {
+            if (checkbox.value === 'active') {
+                checkbox.checked = true;
+            }
+        });
+    }
+});
+
+// Переменная для отслеживания таймаута одиночного клика
+let clickTimeout = null;
+
+// Функция для выделения строки
+function selectRow(row, event) {
+    // Предотвращаем выделение при двойном клике
+    if (event.detail === 2) {
+        if (clickTimeout) {
+            clearTimeout(clickTimeout);
+            clickTimeout = null;
+        }
+        return;
+    }
+    
+    // Очищаем предыдущий таймаут
+    if (clickTimeout) {
+        clearTimeout(clickTimeout);
+    }
+    
+    // Устанавливаем таймаут для обработки одиночного клика
+    clickTimeout = setTimeout(function() {
+        // Убираем выделение со всех строк
+        document.querySelectorAll('.ipr-row').forEach(r => {
+            r.classList.remove('row-selected');
+        });
+        
+        // Выделяем выбранную строку
+        row.classList.add('row-selected');
+        
+        // Показываем кнопку модулей
+        const userId = row.getAttribute('data-user-id');
+        const userFio = row.getAttribute('data-user-fio');
+        const modulesButtonContainer = document.getElementById('modules-button-container');
+        const modulesButton = document.getElementById('modules-button');
+        const selectedUserFio = document.getElementById('selected-user-fio');
+        
+        if (userId && userFio) {
+            selectedUserFio.textContent = userFio;
+            // Генерируем URL для списка модулей пользователя
+            const moduleListUrl = '{% url "builder:ipr_module_list" user_id=999999 %}'.replace('999999', userId);
+            modulesButton.href = moduleListUrl;
+            modulesButtonContainer.style.display = 'block';
+        }
+        
+        clickTimeout = null;
+    }, 200); // Задержка 200мс для различения одиночного и двойного клика
+}
+
+// Убираем выделение при клике вне таблицы
+document.addEventListener('click', function(event) {
+    if (!event.target.closest('.ipr-row') && !event.target.closest('#modules-button-container')) {
+        // Очищаем таймаут, если он есть
+        if (clickTimeout) {
+            clearTimeout(clickTimeout);
+            clickTimeout = null;
+        }
+        
+        document.querySelectorAll('.ipr-row').forEach(r => {
+            r.classList.remove('row-selected');
+        });
+        
+        // Скрываем кнопку модулей
+        document.getElementById('modules-button-container').style.display = 'none';
+    }
+});
+</script>
+
+{% endblock %}
+

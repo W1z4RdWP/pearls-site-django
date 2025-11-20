@@ -18,9 +18,14 @@
         <div class="col-12">
             <div class="d-flex justify-content-between align-items-center mb-4">
                 <h1>Панель управления тестами</h1>
-                <button type="button" class="btn-mini primary btn-create-quiz" data-bs-toggle="modal" data-bs-target="#createQuizModal">
-                    <i class="fas fa-plus"></i> Создать тест
-                </button>
+                <div class="d-flex gap-2">
+                    <button type="button" class="btn-mini primary btn-upload-quiz" data-bs-toggle="modal" data-bs-target="#uploadQuizModal">
+                        <i class="fas fa-file-upload"></i> Добавить тест из DOCX
+                    </button>
+                    <button type="button" class="btn-mini primary btn-create-quiz" data-bs-toggle="modal" data-bs-target="#createQuizModal">
+                        <i class="fas fa-plus"></i> Создать тест
+                    </button>
+                </div>
             </div>
         </div>
     </div>
@@ -173,6 +178,77 @@
                 <div class="modal-footer">
                     <button type="button" class="btn-mini secondary" data-bs-dismiss="modal">Отмена</button>
                     <button type="submit" class="btn-mini primary">Создать тест</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Модальное окно загрузки DOCX -->
+<div class="modal fade" id="uploadQuizModal" tabindex="-1" aria-labelledby="uploadQuizModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="uploadQuizModalLabel">Загрузить тест из DOCX</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Закрыть"></button>
+            </div>
+            <form id="uploadQuizForm" method="POST" action="{% url 'quizzes:quiz_upload_docx' %}" enctype="multipart/form-data">
+                <div class="modal-body">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <label for="uploadQuizName" class="form-label">Название теста</label>
+                        <input type="text" class="form-control" id="uploadQuizName" name="quiz_name" required 
+                               placeholder="Введите название теста">
+                    </div>
+                    <div class="mb-3">
+                        <label for="docxFile" class="form-label">Выберите DOCX файл с вопросами</label>
+                        <input type="file" class="form-control" id="docxFile" name="docx_file" accept=".docx" required>
+                        <div class="form-text">
+                            <strong>Формат документа:</strong><br>
+                            • <em>Курсивный текст</em> = вопрос в формате <strong>"Вопрос 1. Текст вопроса"</strong><br>
+                            &nbsp;&nbsp;&nbsp;(строго: слово "Вопрос" + пробел + номер + точка + пробел + текст)<br>
+                            • Обычный текст = варианты ответов<br>
+                            • <strong>Жирный текст</strong> или маркер (✓, +, •) = правильный ответ
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label for="uploadAttemptLimit" class="form-label">Ограничение попыток</label>
+                                <input type="number" class="form-control" id="uploadAttemptLimit" name="attempt_limit" 
+                                       value="0" min="0">
+                                <div class="form-text">0 = без ограничений</div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label for="uploadPassThreshold" class="form-label">Проходной балл (%)</label>
+                                <input type="number" class="form-control" id="uploadPassThreshold" name="pass_threshold" 
+                                       value="70" min="1" max="100" required>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label for="uploadTimeLimit" class="form-label">Время на прохождение (минуты)</label>
+                                <input type="number" class="form-control" id="uploadTimeLimit" name="time_limit" 
+                                       value="0" min="0">
+                                <div class="form-text">0 = без ограничения</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div id="uploadProgress" class="d-none">
+                        <div class="progress">
+                            <div class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" style="width: 100%">
+                                Обработка файла...
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn-mini secondary" data-bs-dismiss="modal">Отмена</button>
+                    <button type="submit" class="btn-mini primary">
+                        <i class="fas fa-upload"></i> Загрузить и обработать
+                    </button>
                 </div>
             </form>
         </div>
