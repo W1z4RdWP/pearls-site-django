@@ -56,7 +56,13 @@
         {% endif %}
 
         <div class="form-group">
-            <label for="{{ form.supervisor.id_for_label }}">{{ form.supervisor.label }}</label>
+            <label for="supervisor-display">{{ form.supervisor.label }}</label>
+            <div class="user-select-field" id="supervisorSelectField" style="flex: 1;">
+                <span id="supervisorDisplayName" class="user-display-name">
+                    {% if form.instance.supervisor %}{{ form.instance.supervisor.get_full_name }}{% else %}Выберите пользователя...{% endif %}
+                </span>
+                <span class="user-select-icon">&#9660;</span>
+            </div>
             {{ form.supervisor }}
             {% if form.supervisor.errors %}
                 <div class="text-danger mt-1">{{ form.supervisor.errors }}</div>
@@ -65,7 +71,13 @@
         </div>
 
         <div class="form-group">
-            <label for="{{ form.department_head.id_for_label }}">{{ form.department_head.label }}</label>
+            <label for="department-head-display">{{ form.department_head.label }}</label>
+            <div class="user-select-field" id="departmentHeadSelectField" style="flex: 1;">
+                <span id="departmentHeadDisplayName" class="user-display-name">
+                    {% if form.instance.department_head %}{{ form.instance.department_head.get_full_name }}{% else %}Выберите пользователя...{% endif %}
+                </span>
+                <span class="user-select-icon">&#9660;</span>
+            </div>
             {{ form.department_head }}
             {% if form.department_head.errors %}
                 <div class="text-danger mt-1">{{ form.department_head.errors }}</div>
@@ -122,11 +134,11 @@
     </form>
 </div>
 
-<!-- Модальное окно для выбора наставника -->
+<!-- Модальное окно для выбора пользователя -->
 <div id="userModal" class="user-modal">
     <div class="user-modal-content">
         <div class="user-modal-header">
-            <h3>Выберите наставника</h3>
+            <h3 id="userModalTitle">Выберите пользователя</h3>
             <span class="user-modal-close" id="userModalClose">&times;</span>
         </div>
         <div class="user-modal-body">
@@ -151,6 +163,8 @@
         const searchUsersUrl = "{% url 'builder:api_search_users' %}";
         const getUsersByIdsUrl = "{% url 'builder:api_get_users_by_ids' %}";
         const mentorInputId = "{{ form.mentor.id_for_label }}";
+        const supervisorInputId = "{{ form.supervisor.id_for_label }}";
+        const departmentHeadInputId = "{{ form.department_head.id_for_label }}";
     </script>
     <script src="{% static 'builder/js/ipr_module_form.js' %}"></script>
 

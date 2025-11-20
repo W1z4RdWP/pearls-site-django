@@ -1,27 +1,69 @@
 // API endpoints (определяются в шаблоне ipr_module_form.html)
-// searchUsersUrl, getUsersByIdsUrl, mentorInputId должны быть определены в шаблоне
+// searchUsersUrl, getUsersByIdsUrl, mentorInputId, supervisorInputId, departmentHeadInputId должны быть определены в шаблоне
 
-// Элементы DOM для выбора наставника
+// Элементы DOM для выбора пользователей
 const modal = document.getElementById('userModal');
+const userModalTitle = document.getElementById('userModalTitle');
 const mentorSelectField = document.getElementById('mentorSelectField');
+const supervisorSelectField = document.getElementById('supervisorSelectField');
+const departmentHeadSelectField = document.getElementById('departmentHeadSelectField');
 const userModalClose = document.getElementById('userModalClose');
 const userSearchInput = document.getElementById('userSearchInput');
 const userList = document.getElementById('userList');
 const mentorDisplayName = document.getElementById('mentorDisplayName');
+const supervisorDisplayName = document.getElementById('supervisorDisplayName');
+const departmentHeadDisplayName = document.getElementById('departmentHeadDisplayName');
 const mentorInput = document.getElementById(mentorInputId);
+const supervisorInput = document.getElementById(supervisorInputId);
+const departmentHeadInput = document.getElementById(departmentHeadInputId);
 
 // Переменная для отслеживания, какое поле открыто
 let currentActiveField = null;
 
-// ========== ФУНКЦИИ ДЛЯ ВЫБОРА НАСТАВНИКА ==========
+// ========== ФУНКЦИИ ДЛЯ ВЫБОРА ПОЛЬЗОВАТЕЛЕЙ ==========
 
 // Открытие модального окна для поля "Наставник"
 if (mentorSelectField) {
     mentorSelectField.addEventListener('click', function() {
         currentActiveField = 'mentor';
+        if (userModalTitle) {
+            userModalTitle.textContent = 'Выберите наставника';
+        }
         modal.style.display = 'block';
         loadUsers('');
-        userSearchInput.focus();
+        if (userSearchInput) {
+            userSearchInput.focus();
+        }
+    });
+}
+
+// Открытие модального окна для поля "Руководитель"
+if (supervisorSelectField) {
+    supervisorSelectField.addEventListener('click', function() {
+        currentActiveField = 'supervisor';
+        if (userModalTitle) {
+            userModalTitle.textContent = 'Выберите руководителя';
+        }
+        modal.style.display = 'block';
+        loadUsers('');
+        if (userSearchInput) {
+            userSearchInput.focus();
+        }
+    });
+}
+
+// Открытие модального окна для поля "Зав отделением"
+if (departmentHeadSelectField) {
+    departmentHeadSelectField.addEventListener('click', function() {
+        currentActiveField = 'department_head';
+        if (userModalTitle) {
+            userModalTitle.textContent = 'Выберите зав отделением';
+        }
+        modal.style.display = 'block';
+        loadUsers('');
+        if (userSearchInput) {
+            userSearchInput.focus();
+        }
     });
 }
 
@@ -135,25 +177,46 @@ function selectUser(userId, userName) {
             mentorDisplayName.textContent = userName;
             mentorDisplayName.classList.remove('user-display-placeholder');
         }
+    } else if (currentActiveField === 'supervisor') {
+        // Обновляем поле "Руководитель"
+        if (supervisorInput) {
+            supervisorInput.value = userId;
+        }
+        if (supervisorDisplayName) {
+            supervisorDisplayName.textContent = userName;
+            supervisorDisplayName.classList.remove('user-display-placeholder');
+        }
+    } else if (currentActiveField === 'department_head') {
+        // Обновляем поле "Зав отделением"
+        if (departmentHeadInput) {
+            departmentHeadInput.value = userId;
+        }
+        if (departmentHeadDisplayName) {
+            departmentHeadDisplayName.textContent = userName;
+            departmentHeadDisplayName.classList.remove('user-display-placeholder');
+        }
     }
     if (modal) {
         modal.style.display = 'none';
     }
+    if (userSearchInput) {
+        userSearchInput.value = '';
+    }
     currentActiveField = null;
 }
 
-// Инициализация поля наставника при загрузке страницы
-function initializeMentorField() {
+// Инициализация поля пользователя при загрузке страницы
+function initializeUserField(input, displayName, fieldName) {
     // Проверяем, что элементы существуют
-    if (!mentorInput || !mentorDisplayName) {
+    if (!input || !displayName) {
         return;
     }
     
     // Проверяем, есть ли значение в скрытом поле
-    const userId = mentorInput.value;
+    const userId = input.value;
     
     // Проверяем текст, который уже отображается из шаблона
-    const templateValue = mentorDisplayName.textContent.trim();
+    const templateValue = displayName.textContent.trim();
     
     if (userId) {
         // Если есть значение в скрытом поле, но текст placeholder - загружаем информацию
@@ -165,32 +228,50 @@ function initializeMentorField() {
                 .then(data => {
                     const user = data.users.find(u => u.id === parseInt(userId));
                     if (user) {
-                        mentorDisplayName.textContent = user.full_name;
-                        mentorDisplayName.classList.remove('user-display-placeholder');
+                        displayName.textContent = user.full_name;
+                        displayName.classList.remove('user-display-placeholder');
                     }
                 })
                 .catch(error => {
-                    console.error('Ошибка загрузки наставника:', error);
+                    console.error('Ошибка загрузки пользователя (' + fieldName + '):', error);
                 });
         } else {
             // Если текст уже отображается из шаблона, просто убираем класс placeholder
-            mentorDisplayName.classList.remove('user-display-placeholder');
+            displayName.classList.remove('user-display-placeholder');
         }
     } else {
-        // Если наставник не выбран, проверяем текст из шаблона
+        // Если пользователь не выбран, проверяем текст из шаблона
         if (templateValue && templateValue !== 'Выберите пользователя...') {
             // Если в шаблоне есть значение, но нет в скрытом поле - это странно, но оставляем как есть
-            mentorDisplayName.classList.remove('user-display-placeholder');
+            displayName.classList.remove('user-display-placeholder');
         } else {
             // Добавляем класс placeholder
-            mentorDisplayName.classList.add('user-display-placeholder');
+            displayName.classList.add('user-display-placeholder');
         }
     }
 }
 
+// Инициализация поля наставника при загрузке страницы
+function initializeMentorField() {
+    initializeUserField(mentorInput, mentorDisplayName, 'mentor');
+}
+
+// Инициализация поля руководителя при загрузке страницы
+function initializeSupervisorField() {
+    initializeUserField(supervisorInput, supervisorDisplayName, 'supervisor');
+}
+
+// Инициализация поля зав отделением при загрузке страницы
+function initializeDepartmentHeadField() {
+    initializeUserField(departmentHeadInput, departmentHeadDisplayName, 'department_head');
+}
+
 // Инициализация при загрузке страницы
 document.addEventListener('DOMContentLoaded', function() {
-    // Инициализация поля наставника при загрузке страницы
+    // Инициализация всех полей при загрузке страницы
     initializeMentorField();
+    initializeSupervisorField();
+    initializeDepartmentHeadField();
 });
+
 
