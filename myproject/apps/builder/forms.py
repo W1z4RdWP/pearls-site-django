@@ -97,16 +97,17 @@ class IPRModuleForm(forms.ModelForm):
     
     class Meta:
         model = IPRModule
-        fields = ['ipr', 'start_date', 'end_date', 'title', 'user', 'supervisor', 'department_head', 'mentor', 'diagnostics']
+        fields = ['ipr', 'start_date', 'end_date', 'title', 'user', 'supervisor', 'department_head', 'mentor', 'department', 'diagnostics']
         widgets = {
             'ipr': forms.HiddenInput(),
-            'start_date': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
-            'end_date': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
+            'start_date': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}, format='%Y-%m-%d'),
+            'end_date': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}, format='%Y-%m-%d'),
             'title': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Название модуля'}),
             'user': forms.Select(attrs={'class': 'form-control'}),
             'supervisor': forms.Select(attrs={'class': 'form-control'}),
             'department_head': forms.Select(attrs={'class': 'form-control'}),
             'mentor': forms.HiddenInput(),
+            'department': forms.Select(attrs={'class': 'form-control'}),
             'diagnostics': forms.Textarea(attrs={'class': 'form-control', 'rows': 5, 'placeholder': 'Опишите проблемы и диагностику...'}),
         }
     
@@ -119,9 +120,16 @@ class IPRModuleForm(forms.ModelForm):
         from django.utils import timezone
         User = get_user_model()
         
-        # Устанавливаем значение по умолчанию для start_date (сегодняшняя дата)
+        # Устанавливаем значение по умолчанию для start_date (сегодняшняя дата) только при создании
         if not self.instance.pk and not self.initial.get('start_date'):
             self.fields['start_date'].initial = timezone.now().date()
+        
+        # Для редактирования: форматируем даты для input type="date"
+        if self.instance.pk:
+            if self.instance.start_date:
+                self.fields['start_date'].initial = self.instance.start_date.strftime('%Y-%m-%d')
+            if self.instance.end_date:
+                self.fields['end_date'].initial = self.instance.end_date.strftime('%Y-%m-%d')
         
         # Если передан user_id, ограничиваем выбор пользователей только этим пользователем и скрываем поле
         if user_id:
@@ -145,8 +153,17 @@ class IPRModuleForm(forms.ModelForm):
         self.fields['department_head'].queryset = User.objects.filter(is_active=True).order_by('last_name', 'first_name')
         self.fields['department_head'].required = False
         
+        # Поле department (группа/отделение) - используем Django Groups
+        from django.contrib.auth.models import Group
+        self.fields['department'].queryset = Group.objects.all().order_by('name')
+        self.fields['department'].required = False
+        
         # Поле end_date необязательное
         self.fields['end_date'].required = False
+        
+        # Настраиваем форматы дат для правильного отображения в input type="date"
+        self.fields['start_date'].input_formats = ['%Y-%m-%d']
+        self.fields['end_date'].input_formats = ['%Y-%m-%d']
         
         # Поле diagnostics необязательное
         self.fields['diagnostics'].required = False

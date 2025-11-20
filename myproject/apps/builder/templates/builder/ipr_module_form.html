@@ -74,6 +74,15 @@
         </div>
 
         <div class="form-group">
+            <label for="{{ form.department.id_for_label }}">{{ form.department.label }}</label>
+            {{ form.department }}
+            {% if form.department.errors %}
+                <div class="text-danger mt-1">{{ form.department.errors }}</div>
+            {% endif %}
+            <small class="form-text text-muted">Не обязательное поле</small>
+        </div>
+
+        <div class="form-group">
             <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
                 <label for="mentor-display" style="margin: 0;">{{ form.mentor.label }}</label>
                 <span class="help-icon" tabindex="0" role="button" aria-label="Подсказка" data-tooltip="В списке отображаются сотрудники со статусом «Наставник».&#10;Этот человек отвечает за проверку и подтверждение корректности выполнения теста обучающегося.&#10;Поле обязательное для заполнения, даже если тест не требует проверки — наставник должен быть назначен в любом случае.">?</span>

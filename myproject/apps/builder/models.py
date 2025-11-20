@@ -198,7 +198,7 @@ class IPRModule(models.Model):
     end_date = models.DateField(null=True, blank=True, verbose_name='Дата окончания ИПР')
     title = models.CharField(max_length=255, verbose_name='Тема ИПР (название модуля)')
     user = models.ForeignKey(get_user_model(), on_delete=models.CASCADE, related_name='ipr_modules', verbose_name='ФИО')
-    department = models.ForeignKey('users.Department', on_delete=models.SET_NULL, null=True, blank=True, verbose_name='Отделение (группа)')
+    department = models.ForeignKey('auth.Group', on_delete=models.SET_NULL, null=True, blank=True, verbose_name='Отделение (группа)')
     supervisor = models.ForeignKey(get_user_model(), on_delete=models.SET_NULL, null=True, blank=True, related_name='supervised_ipr_modules', verbose_name='Руководитель')
     department_head = models.ForeignKey(get_user_model(), on_delete=models.SET_NULL, null=True, blank=True, related_name='department_head_ipr_modules', verbose_name='Зав отделением')
     mentor = models.ForeignKey(get_user_model(), on_delete=models.SET_NULL, null=True, blank=True, related_name='mentored_ipr_modules', verbose_name='Наставник')

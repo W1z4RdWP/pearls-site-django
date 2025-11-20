@@ -3642,9 +3642,8 @@ class IPRModuleUpdateView(UpdateView, AuditLoggerMixin):
         return context
 
     def form_valid(self, form):
-        # Автоматически заполняем department из профиля пользователя
-        if form.instance.user and hasattr(form.instance.user, 'profile') and form.instance.user.profile:
-            form.instance.department = form.instance.user.profile.department
+        # НЕ перезаписываем department из профиля - используем значение из формы
+        # Если department не был выбран в форме, оставляем как есть
         
         # Сохраняем старые значения для аудита
         self.old_values = serialize_model_data(self.object)
