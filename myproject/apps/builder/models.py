@@ -194,7 +194,7 @@ class IPRModule(models.Model):
     Представляет отдельный модуль обучения в рамках ИПР пользователя.
     """
     ipr = models.ForeignKey(IPR, on_delete=models.CASCADE, related_name='modules', verbose_name='ИПР')
-    start_date = models.DateField(verbose_name='Дата начала ИПР')
+    start_date = models.DateField(null=True, blank=True, verbose_name='Дата начала ИПР')
     end_date = models.DateField(null=True, blank=True, verbose_name='Дата окончания ИПР')
     title = models.CharField(max_length=255, verbose_name='Тема ИПР (название модуля)')
     user = models.ForeignKey(get_user_model(), on_delete=models.CASCADE, related_name='ipr_modules', verbose_name='ФИО')

@@ -3624,6 +3624,11 @@ class IPRModuleCreateView(CreateView, AuditLoggerMixin):
         if form.instance.user and hasattr(form.instance.user, 'profile') and form.instance.user.profile:
             form.instance.department = form.instance.user.profile.department
         
+        # Устанавливаем статус "Новый" при создании (пустая строка означает "Новый")
+        form.instance.status = ''
+        # start_date не устанавливаем - будет установлена при нажатии "Начать ИПР"
+        form.instance.start_date = None
+        
         response = super().form_valid(form)
         # Логируем создание модуля ИПР
         self.log_create_action(self.object, "Создан новый модуль ИПР")
@@ -3945,14 +3950,17 @@ class IPRModuleStartView(View, AuditLoggerMixin):
         return super().dispatch(request, *args, **kwargs)
 
     def post(self, request, *args, **kwargs):
+        from django.utils import timezone
+        
         module = get_object_or_404(IPRModule, pk=kwargs['pk'])
         
-        # Меняем статус с "нового" на "в работе"
+        # Меняем статус с "нового" на "Активный" и устанавливаем дату старта
         if not module.status or module.status.strip() == '':
-            module.status = 'in_progress'
+            module.status = 'active'  # Статус "Активный"
+            module.start_date = timezone.now().date()  # Устанавливаем текущую дату
             module.save()
             
             # Логируем изменение статуса
-            self.log_update_action(module, {}, "Модуль ИПР переведен в статус 'В работе'")
+            self.log_update_action(module, {}, f"Модуль ИПР переведен в статус 'Активный'. Дата старта: {module.start_date}")
         
         return redirect('builder:ipr_module_info', pk=module.pk)

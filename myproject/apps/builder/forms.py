@@ -120,9 +120,10 @@ class IPRModuleForm(forms.ModelForm):
         from django.utils import timezone
         User = get_user_model()
         
-        # Устанавливаем значение по умолчанию для start_date (сегодняшняя дата) только при создании
-        if not self.instance.pk and not self.initial.get('start_date'):
-            self.fields['start_date'].initial = timezone.now().date()
+        # При создании start_date не устанавливается - будет установлена при нажатии "Начать ИПР"
+        # Убираем обязательность поля start_date при создании
+        if not self.instance.pk:
+            self.fields['start_date'].required = False
         
         # Для редактирования: форматируем даты для input type="date"
         if self.instance.pk:

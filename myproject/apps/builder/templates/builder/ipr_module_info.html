@@ -332,7 +332,13 @@
                 <td class="ipr-info-separator" style="padding: 0;"></td>
                 <td class="ipr-info-label" colspan="2">Дата старта ИПР</td>
                 <td class="ipr-info-value" colspan="2">
-                    <span class="view-mode">{{ module.start_date|date:"d.m.y" }}</span>
+                    <span class="view-mode">
+                        {% if module.start_date %}
+                            {{ module.start_date|date:"d.m.y" }}
+                        {% else %}
+                            —
+                        {% endif %}
+                    </span>
                     <input type="date" class="edit-mode" id="startDateInput" name="start_date" value="{% if module.start_date %}{{ module.start_date|date:'Y-m-d' }}{% endif %}">
                 </td>
             </tr>
