@@ -3643,8 +3643,8 @@ class IPRModuleCreateView(CreateView, AuditLoggerMixin):
         if form.instance.user and hasattr(form.instance.user, 'profile') and form.instance.user.profile:
             form.instance.department = form.instance.user.profile.department
         
-        # Устанавливаем статус "Новый" при создании (пустая строка означает "Новый")
-        form.instance.status = ''
+        # Устанавливаем статус "Новый" при создании
+        form.instance.status = 'new'
         # start_date не устанавливаем - будет установлена при нажатии "Начать ИПР"
         form.instance.start_date = None
         
@@ -3935,8 +3935,8 @@ class IPRModuleDetailView(DetailView):
         module = self.object
         
         # Определяем статус модуля для кнопки "Начать ИПР"
-        # Если статус пустой или null, значит модуль в статусе "Новый"
-        is_new_status = not module.status or module.status.strip() == ''
+        # Если статус 'new', значит модуль в статусе "Новый"
+        is_new_status = module.status == 'new'
         context['is_new_status'] = is_new_status
         
         # Добавляем показатели модуля
@@ -3961,7 +3961,7 @@ class IPRModuleDetailView(DetailView):
 @method_decorator(require_POST, name='dispatch')
 class IPRModuleStartView(View, AuditLoggerMixin):
     """
-    Изменение статуса модуля ИПР с "Новый" на "В работе".
+    Изменение статуса модуля ИПР с "Новый" на "Активный".
     """
     def dispatch(self, request, *args, **kwargs):
         if not request.user.is_authenticated or not (request.user.is_staff or request.user.is_superuser):
@@ -3974,12 +3974,91 @@ class IPRModuleStartView(View, AuditLoggerMixin):
         module = get_object_or_404(IPRModule, pk=kwargs['pk'])
         
         # Меняем статус с "нового" на "Активный" и устанавливаем дату старта
-        if not module.status or module.status.strip() == '':
+        if module.status == 'new':
             module.status = 'active'  # Статус "Активный"
             module.start_date = timezone.now().date()  # Устанавливаем текущую дату
             module.save()
             
             # Логируем изменение статуса
             self.log_update_action(module, {}, f"Модуль ИПР переведен в статус 'Активный'. Дата старта: {module.start_date}")
+        
+        return redirect('builder:ipr_module_info', pk=module.pk)
+
+
+@method_decorator(require_POST, name='dispatch')
+class IPRModuleCompleteView(View, AuditLoggerMixin):
+    """
+    Изменение статуса модуля ИПР с "Активный" на "Завершен".
+    """
+    def dispatch(self, request, *args, **kwargs):
+        if not request.user.is_authenticated or not (request.user.is_staff or request.user.is_superuser):
+            return render(request, '403.html', status=403)
+        return super().dispatch(request, *args, **kwargs)
+
+    def post(self, request, *args, **kwargs):
+        from django.utils import timezone
+        
+        module = get_object_or_404(IPRModule, pk=kwargs['pk'])
+        
+        # Меняем статус с "Активный" на "Завершен" и устанавливаем дату окончания
+        if module.status == 'active':
+            module.status = 'completed'  # Статус "Завершен"
+            module.end_date = timezone.now().date()  # Устанавливаем текущую дату
+            module.save()
+            
+            # Логируем изменение статуса
+            self.log_update_action(module, {}, f"Модуль ИПР переведен в статус 'Завершен'. Дата окончания: {module.end_date}")
+        
+        return redirect('builder:ipr_module_info', pk=module.pk)
+
+
+@method_decorator(require_POST, name='dispatch')
+class IPRModulePauseView(View, AuditLoggerMixin):
+    """
+    Изменение статуса модуля ИПР с "Активный" на "Приостановлен".
+    """
+    def dispatch(self, request, *args, **kwargs):
+        if not request.user.is_authenticated or not (request.user.is_staff or request.user.is_superuser):
+            return render(request, '403.html', status=403)
+        return super().dispatch(request, *args, **kwargs)
+
+    def post(self, request, *args, **kwargs):
+        from django.utils import timezone
+        
+        module = get_object_or_404(IPRModule, pk=kwargs['pk'])
+        
+        # Меняем статус с "Активный" на "Приостановлен"
+        if module.status == 'active':
+            module.status = 'paused'  # Статус "Приостановлен"
+            module.save()
+            
+            # Логируем изменение статуса
+            self.log_update_action(module, {}, f"Модуль ИПР переведен в статус 'Приостановлен'")
+        
+        return redirect('builder:ipr_module_info', pk=module.pk)
+
+
+@method_decorator(require_POST, name='dispatch')
+class IPRModuleResumeView(View, AuditLoggerMixin):
+    """
+    Изменение статуса модуля ИПР с "Приостановлен" на "Активный".
+    """
+    def dispatch(self, request, *args, **kwargs):
+        if not request.user.is_authenticated or not (request.user.is_staff or request.user.is_superuser):
+            return render(request, '403.html', status=403)
+        return super().dispatch(request, *args, **kwargs)
+
+    def post(self, request, *args, **kwargs):
+        from django.utils import timezone
+        
+        module = get_object_or_404(IPRModule, pk=kwargs['pk'])
+        
+        # Меняем статус с "Приостановлен" на "Активный"
+        if module.status == 'paused':
+            module.status = 'active'  # Статус "Активный"
+            module.save()
+            
+            # Логируем изменение статуса
+            self.log_update_action(module, {}, f"Модуль ИПР переведен в статус 'Активный' (возобновлен)")
         
         return redirect('builder:ipr_module_info', pk=module.pk)

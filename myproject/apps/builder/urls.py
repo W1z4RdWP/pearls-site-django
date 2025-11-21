@@ -100,4 +100,7 @@ urlpatterns = [
     path('ipr/modules/<int:pk>/edit/', views.IPRModuleUpdateView.as_view(), name='ipr_module_edit'),
     path('ipr/modules/<int:pk>/info/', views.IPRModuleDetailView.as_view(), name='ipr_module_info'),
     path('ipr/modules/<int:pk>/start/', views.IPRModuleStartView.as_view(), name='ipr_module_start'),
+    path('ipr/modules/<int:pk>/complete/', views.IPRModuleCompleteView.as_view(), name='ipr_module_complete'),
+    path('ipr/modules/<int:pk>/pause/', views.IPRModulePauseView.as_view(), name='ipr_module_pause'),
+    path('ipr/modules/<int:pk>/resume/', views.IPRModuleResumeView.as_view(), name='ipr_module_resume'),
 ]

@@ -60,9 +60,15 @@
                             —
                         {% endif %}
                     </td>
+                    <td>{{ module.get_status_display|default:"—" }}</td>
                     <td>—</td>
-                    <td>—</td>
-                    <td>—</td>
+                    <td>
+                        {% if module.deadline %}
+                            <span class="deadline-date">{{ module.deadline|date:"d.m.Y" }}</span> <span class="deadline-time">{{ module.deadline|date:"H:i" }}</span>
+                        {% else %}
+                            —
+                        {% endif %}
+                    </td>
                 </tr>
                 {% empty %}
                 <tr><td colspan="8" class="text-center">Нет модулей</td></tr>
