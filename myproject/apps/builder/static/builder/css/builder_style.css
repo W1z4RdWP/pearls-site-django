@@ -255,8 +255,9 @@
     padding: 1px 0 1px 8px;
     border-left: 4px solid transparent;
     transition: background 0.2s, border-color 0.2s, color 0.2s;
-    font-size: 0.95em;
+    font-size: calc(0.95em - 1px);
     font-weight: 500;
+    font-style: italic;
 }
 
 .lesson-link {
@@ -268,8 +269,14 @@
     overflow-wrap: break-word;
     padding-right: 8px;
     line-height: 1.1;
-    font-size: 1em;
+    font-size: calc(1em - 1px);
     position: relative;
+}
+
+/* Стили для зеркал уроков */
+.lesson-li.mirror .lesson-link,
+.lesson-list li[data-has-mirrors="1"] .lesson-link {
+    color: #ff4d4f;
 }
 
 
@@ -802,6 +809,11 @@ label {
 .lesson-list li.selected .lesson-link {
     color: #4d7cff;
     font-weight: 600;
+}
+
+.lesson-list li.selected.mirror .lesson-link,
+.lesson-list li.selected[data-has-mirrors="1"] .lesson-link {
+    color: #ff4d4f !important;
 }
 .category-block.selected .svg-folder-path,
 .category-block.selected .svg-paper-rect,
