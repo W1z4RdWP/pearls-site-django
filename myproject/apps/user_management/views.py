@@ -1397,7 +1397,12 @@ def unlock_quiz_access(request, user_id, quiz_id):
     except Exception as e:
         messages.error(request, f'Ошибка при разблокировке: {str(e)}')
     
-    return redirect('user_management:user_quiz_attempts', pk=user_id)
+    # Проверяем, откуда пришел запрос (параметр next) и делаем редирект туда
+    next_url = request.POST.get('next')
+    if next_url == 'user_edit_detailed':
+        return redirect('user_management:user_edit_detailed', pk=user_id)
+    else:
+        return redirect('user_management:user_quiz_attempts', pk=user_id)
 
 
 
