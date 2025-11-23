@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import IPR, CategoryName, Document, Incident, LessonVersion, LessonCategoryMirror, DictionaryTerm, DictionarySection, LessonAllowedRole, AuditLog
+from .models import IPR, CategoryName, Document, IPRModule, Incident, LessonVersion, LessonCategoryMirror, DictionaryTerm, DictionarySection, LessonAllowedRole, AuditLog
 from django.utils.html import format_html
 from django.urls import reverse
 from django.utils.safestring import mark_safe
@@ -36,6 +36,8 @@ class DocumentAdmin(admin.ModelAdmin):
 admin.site.register(Incident)
 
 admin.site.register(IPR)
+
+admin.site.register(IPRModule)
 
 admin.site.register(DictionaryTerm)
 

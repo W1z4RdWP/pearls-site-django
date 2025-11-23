@@ -300,6 +300,15 @@ class Lesson(models.Model):
         verbose_name="Выберите курсы, куда добавить урок"
     )
 
+    final_quiz = models.ForeignKey(
+        Quiz,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        verbose_name="Финальный тест",
+        help_text="Связанный с уроком, обязательный тест"
+    )
+
     class Meta:
         verbose_name = 'Урок'
         verbose_name_plural = 'Уроки'

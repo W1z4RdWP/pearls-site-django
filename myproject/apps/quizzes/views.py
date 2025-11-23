@@ -10,7 +10,7 @@ from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.contrib.auth.models import User
 
 from myapp.models import QuizResult, UserCourse, UserAnswer, UserProgress
-from courses.models import Course
+from courses.models import Course, Lesson
 from .models import Quiz, Question, Answer, QuizAttempt
 from .utils import DataMixin
 from gamification.utils import award_dascoin_points, award_achievement, award_course_badge
@@ -1518,12 +1518,16 @@ class AttemptLimitExceededView(LoginRequiredMixin, DetailView):
         course_slug = self.request.session.get('course_slug')
         course = None
 
+
         if course_slug:
             course = Course.objects.filter(slug=course_slug).first()
-        
         if not course:
             # Если курс не найден в сессии, ищем через final_quiz (fallback)
             course = Course.objects.filter(final_quiz=quiz).first()
+        
+        # Проверяем, является ли тест тестом урока (а не финальным тестом курса)
+        from courses.models import Lesson
+        is_lesson_quiz = Lesson.objects.filter(final_quiz=quiz).exists()
         
         # Получаем количество неудачных попыток (как в логике блокировки)
         failed_attempts = QuizResult.objects.filter(
@@ -1554,7 +1558,10 @@ class AttemptLimitExceededView(LoginRequiredMixin, DetailView):
         context['attempts_count'] = attempts_count
         context['course'] = course
         context['course_progress_reset'] = course_progress_reset
+        context['is_lesson_quiz'] = is_lesson_quiz
         return context
+
+
 
 
 class PendingQuizzesView(LoginRequiredMixin, UserPassesTestMixin, TemplateView):

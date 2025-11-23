@@ -125,6 +125,7 @@ class IPR(models.Model):
     Связывает пользователя с его планом развития и отслеживает прогресс по курсам.
     """
     STATUS_CHOICES = [
+        ('new', 'Новый'),
         ('active', 'Активен'),
         ('completed', 'Завершен'),
         ('paused', 'Приостановлен'),
@@ -151,9 +152,9 @@ class IPR(models.Model):
         """Возвращает количество активных модулей ИПР"""
         from django.utils import timezone
         now = timezone.now()
-        # Активные: модули без статуса (status пустой/null) и дедлайн либо не установлен, либо еще не прошел
+        # Активные: модули со статусом 'active' и дедлайн либо не установлен, либо еще не прошел
         return self.modules.filter(
-            Q(status__isnull=True) | Q(status='')
+            status='active'
         ).filter(
             Q(deadline__isnull=True) | Q(deadline__gte=now)
         ).count()
@@ -161,9 +162,9 @@ class IPR(models.Model):
     def get_overdue_modules_count(self):
         """Возвращает количество просроченных модулей ИПР"""
         from django.utils import timezone
-        # Просроченные: модули без статуса (status пустой/null) и дедлайн установлен и уже прошел
+        # Просроченные: модули со статусом 'active' и дедлайн установлен и уже прошел
         return self.modules.filter(
-            Q(status__isnull=True) | Q(status='')
+            status='active'
         ).filter(
             deadline__isnull=False,
             deadline__lt=timezone.now()
@@ -171,17 +172,17 @@ class IPR(models.Model):
     
     def get_completed_modules_count(self):
         """Возвращает количество завершенных модулей ИПР"""
-        # Завершенные: модули со статусом (status не пустой/null)
-        return self.modules.exclude(
-            Q(status__isnull=True) | Q(status='')
+        # Завершенные: модули со статусом 'completed'
+        return self.modules.filter(
+            status='completed'
         ).count()
     
     def get_nearest_deadline(self):
         """Возвращает ближайший дедлайн из модулей ИПР"""
         from django.utils import timezone
-        # Ближайший дедлайн из активных модулей (без статуса и с дедлайном в будущем)
+        # Ближайший дедлайн из активных модулей (со статусом 'active' и с дедлайном в будущем)
         nearest = self.modules.filter(
-            Q(status__isnull=True) | Q(status=''),
+            status='active',
             deadline__isnull=False,
             deadline__gte=timezone.now()
         ).order_by('deadline').first()
@@ -193,6 +194,15 @@ class IPRModule(models.Model):
     Модуль ИПР (Индивидуального Плана Развития).
     Представляет отдельный модуль обучения в рамках ИПР пользователя.
     """
+    STATUS_CHOICES = [
+        ('new', 'Новый'),
+        ('active', 'Активен'),
+        ('completed', 'Завершен'),
+        ('paused', 'Приостановлен'),
+        ('cancelled', 'Отменен'),
+    ]
+
+
     ipr = models.ForeignKey(IPR, on_delete=models.CASCADE, related_name='modules', verbose_name='ИПР')
     start_date = models.DateField(null=True, blank=True, verbose_name='Дата начала ИПР')
     end_date = models.DateField(null=True, blank=True, verbose_name='Дата окончания ИПР')
@@ -204,7 +214,7 @@ class IPRModule(models.Model):
     mentor = models.ForeignKey(get_user_model(), on_delete=models.SET_NULL, null=True, blank=True, related_name='mentored_ipr_modules', verbose_name='Наставник')
     diagnostics = models.TextField(blank=True, null=True, verbose_name='Диагностика / Проблема', help_text='Описание проблем и диагностики')
     goals = models.TextField(blank=True, null=True, verbose_name='Цели', help_text='Описание целей модуля ИПР')
-    status = models.CharField(max_length=100, blank=True, null=True, verbose_name='Статус', help_text='Пока прочерк')
+    status = models.CharField(max_length=100, choices=STATUS_CHOICES, default='new', verbose_name='Статус', help_text='Пока прочерк')
     comment = models.TextField(blank=True, null=True, verbose_name='Комментарий', help_text='Произвоьные комментарии по факту выполненной работы')
     intermediate_control = models.CharField(max_length=255, blank=True, null=True, verbose_name='Промежуточный контроль', help_text='Пока прочерк')
     deadline = models.DateTimeField(null=True, blank=True, verbose_name='Дедлайн', help_text='Пока прочерк')

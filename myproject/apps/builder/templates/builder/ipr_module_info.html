@@ -72,6 +72,45 @@
         .ipr-start-button:hover {
             background-color: #218838;
         }
+        .ipr-complete-button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            margin-left: 8px;
+        }
+        .ipr-complete-button:hover {
+            background-color: #0056b3;
+        }
+        .ipr-pause-button {
+            background-color: #ffc107;
+            color: #212529;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            margin-left: 8px;
+        }
+        .ipr-pause-button:hover {
+            background-color: #e0a800;
+        }
+        .ipr-resume-button {
+            background-color: #28a745;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            margin-left: 8px;
+        }
+        .ipr-resume-button:hover {
+            background-color: #218838;
+        }
         .ipr-diagnostics-section {
             margin-top: 24px;
             padding: 20px;
@@ -282,6 +321,26 @@
                 <form method="post" action="{% url 'builder:ipr_module_start' module.pk %}" style="display: inline;">
                     {% csrf_token %}
                     <button type="submit" class="ipr-start-button">Начать ИПР</button>
+                </form>
+            </div>
+        {% endif %}
+        {% if module.status == 'active' %}
+            <div class="mb-3">
+                <form method="post" action="{% url 'builder:ipr_module_complete' module.pk %}" style="display: inline;">
+                    {% csrf_token %}
+                    <button type="submit" class="ipr-complete-button">Завершить</button>
+                </form>
+                <form method="post" action="{% url 'builder:ipr_module_pause' module.pk %}" style="display: inline;">
+                    {% csrf_token %}
+                    <button type="submit" class="ipr-pause-button">Приостановить</button>
+                </form>
+            </div>
+        {% endif %}
+        {% if module.status == 'paused' %}
+            <div class="mb-3">
+                <form method="post" action="{% url 'builder:ipr_module_resume' module.pk %}" style="display: inline;">
+                    {% csrf_token %}
+                    <button type="submit" class="ipr-resume-button">Возобновить</button>
                 </form>
             </div>
         {% endif %}

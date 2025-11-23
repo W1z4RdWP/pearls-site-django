@@ -137,7 +137,22 @@
                                                                 {{ material.title }}
                                                             {% endif %}
                                                         </div>
-                                                        <div class="material-type">Урок</div>
+                                                        <div class="material-type">
+                                                            Урок
+                                                            {% if lesson_quizzes_info|get_item:material.id %}
+                                                                {% with quiz_info=lesson_quizzes_info|get_item:material.id %}
+                                                                    <span class="ms-2" title="Связанный тест: {{ quiz_info.quiz.name }}">
+                                                                        {% if quiz_info.passed %}
+                                                                            <i class="fa fa-check-circle text-success" title="Тест завершен"></i>
+                                                                        {% elif quiz_info.status == 'pending' %}
+                                                                            <i class="fa fa-hourglass-half text-warning" title="Тест ожидает проверки"></i>
+                                                                        {% else %}
+                                                                            <i class="fa fa-graduation-cap text-info" title="Требуется пройти тест"></i>
+                                                                        {% endif %}
+                                                                    </span>
+                                                                {% endwith %}
+                                                            {% endif %}
+                                                        </div>
                                                     </div>
                                                     {% if material.id in completed_lessons_ids %}
                                                         <span class="badge bg-success">✓</span>
@@ -197,7 +212,22 @@
                                                     <span class="material-icon"><i class="fa fa-book"></i></span>
                                                     <div class="flex-grow-1">
                                                         <div class="material-title">{{ material.title }}</div>
-                                                        <div class="material-type">Урок</div>
+                                                        <div class="material-type">
+                                                            Урок
+                                                            {% if lesson_quizzes_info|get_item:material.id %}
+                                                                {% with quiz_info=lesson_quizzes_info|get_item:material.id %}
+                                                                    <span class="ms-2" title="Связанный тест: {{ quiz_info.quiz.name }}">
+                                                                        {% if quiz_info.passed %}
+                                                                            <i class="fa fa-check-circle text-success" title="Тест завершен"></i>
+                                                                        {% elif quiz_info.status == 'pending' %}
+                                                                            <i class="fa fa-hourglass-half text-warning" title="Тест ожидает проверки"></i>
+                                                                        {% else %}
+                                                                            <i class="fa fa-graduation-cap text-info" title="Требуется пройти тест"></i>
+                                                                        {% endif %}
+                                                                    </span>
+                                                                {% endwith %}
+                                                            {% endif %}
+                                                        </div>
                                                     </div>
                                                     {% if material.id in completed_lessons_ids %}
                                                         <span class="badge bg-success">✓</span>
