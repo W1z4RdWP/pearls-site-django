@@ -636,6 +636,10 @@ class UserEditDetailedView(UpdateView):
                 quizzes.add(course.final_quiz)
             for quiz in course.quizzes.all():
                 quizzes.add(quiz)
+            # Добавляем тесты, связанные с уроками курса
+            for lesson in course.lessons.all():
+                if lesson.final_quiz:
+                    quizzes.add(lesson.final_quiz)
         
         quizzes = sorted(list(quizzes), key=lambda q: q.name)
         quiz_data = {}
@@ -665,10 +669,23 @@ class UserEditDetailedView(UpdateView):
                 quiz_type = "Финальный тест"
                 related_course = final_course
             else:
-                material_course = Course.objects.filter(course_quizzes=quiz).first()
-                if material_course:
-                    quiz_type = "Тест из материалов курса"
-                    related_course = material_course
+                # Проверяем, связан ли тест с уроком
+                from courses.models import Lesson
+                lesson_with_quiz = Lesson.objects.filter(final_quiz=quiz).first()
+                if lesson_with_quiz:
+                    # Находим курс, к которому относится этот урок
+                    lesson_course = lesson_with_quiz.courses.first()
+                    if lesson_course:
+                        quiz_type = "Тест урока"
+                        related_course = lesson_course
+                    else:
+                        quiz_type = "Тест урока"
+                else:
+                    # Проверяем, входит ли тест в материалы курса
+                    material_course = Course.objects.filter(course_quizzes=quiz).first()
+                    if material_course:
+                        quiz_type = "Тест из материалов курса"
+                        related_course = material_course
             
             quiz_data[quiz] = {
                 'attempts': attempts_with_results, 'total_attempts': total_attempts,
@@ -1346,61 +1363,34 @@ def unlock_quiz_access(request, user_id, quiz_id):
         user = User.objects.get(id=user_id)
         quiz = Quiz.objects.get(id=quiz_id)
         
-        # Разблокируем тест
+        # Исключаем неудачные попытки из подсчета лимита, но сохраняем их для статистики
+        from myapp.models import QuizResult
+        QuizResult.objects.filter(
+            user=user,
+            quiz_title=quiz.name,
+            passed=False,
+            excluded_from_limit=False
+        ).update(excluded_from_limit=True)
+        
+        # Разблокируем тест - обновляем независимо от текущего состояния
         quiz_lock, created = QuizLock.objects.get_or_create(
             user=user,
             quiz=quiz,
-            defaults={'is_locked': False}
+            defaults={'is_locked': False, 'locked_at': None}
         )
         
-        if quiz_lock.is_locked:
-            quiz_lock.is_locked = False
-            quiz_lock.locked_at = None
-            quiz_lock.save()
-            
-            # Исключаем неудачные попытки из подсчета лимита, но сохраняем их для статистики
-            from myapp.models import QuizResult
-            QuizResult.objects.filter(
-                user=user,
-                quiz_title=quiz.name,
-                passed=False,
-                excluded_from_limit=False
-            ).update(excluded_from_limit=True)
-            
-            # Восстанавливаем прогресс курса, если тест связан с курсом
-            # Проверяем, является ли тест финальным для какого-либо курса
-            course = Course.objects.filter(final_quiz=quiz).first()
-            
-            # Если не финальный, проверяем, входит ли тест в материалы курса
-            if not course:
-                course = Course.objects.filter(course_quizzes=quiz).first()
-            
-            if course:
-                user_course = UserCourse.objects.filter(user=user, course=course).first()
-                if user_course:
-                    # Отмечаем все уроки курса как завершенные
-                    from myapp.models import UserProgress
-                    for lesson in course.lessons.all():
-                        UserProgress.objects.update_or_create(
-                            user=user,
-                            lesson=lesson,
-                            defaults={'course': course, 'completed': True}
-                        )
-                    
-                    # Устанавливаем статус курса как "начат" (не завершен, так как тест еще не пройден)
-                    user_course.status = 'started'
-                    user_course.save()
-            
-            messages.success(
-                request,
-                f'Тест "{quiz.name}" разблокирован для пользователя {user.get_full_name()}. '
-                f'Неудачные попытки исключены из лимита, прогресс курса восстановлен. Пользователь может пройти тест заново.'
-            )
-        else:
-            messages.info(
-                request,
-                f'Тест "{quiz.name}" уже разблокирован для пользователя {user.get_full_name()}.'
-            )
+        # Обновляем блокировку независимо от текущего состояния
+        quiz_lock.is_locked = False
+        quiz_lock.locked_at = None
+        quiz_lock.save(update_fields=['is_locked', 'locked_at'])
+        
+        # НЕ восстанавливаем прогресс курса - пользователь должен сам пройти уроки заново
+        
+        messages.success(
+            request,
+            f'Тест "{quiz.name}" разблокирован для пользователя {user.get_full_name()}. '
+            f'Пользователь сможет пройти тест еще раз.'
+        )
         
     except (User.DoesNotExist, Quiz.DoesNotExist):
         messages.error(request, 'Пользователь или тест не найден.')

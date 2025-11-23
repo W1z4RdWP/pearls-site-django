@@ -51,14 +51,15 @@ class LessonForm(forms.ModelForm):
     """Форма создания/редактирования урока."""
     class Meta:
         model = Lesson
-        fields = ['title', 'content', 'order', 'courses', 'required_time']
+        fields = ['title', 'content', 'order', 'courses', 'required_time', 'final_quiz']
         widgets = {
             'content': CKEditor5Widget(
                 attrs={'class': 'django_ckeditor_5'}, 
                 config_name='extends'
             ),
             'courses': forms.SelectMultiple(attrs={'class': 'form-select'}),
-            'required_time': forms.NumberInput(attrs={'class': 'form-control', 'min': '1', 'max': '999'})
+            'required_time': forms.NumberInput(attrs={'class': 'form-control', 'min': '1', 'max': '999'}),
+            'final_quiz': forms.HiddenInput()
         }
 
         labels = {

@@ -126,6 +126,11 @@
             class="btn btn-primary">
                 Форма метрик эффективности →
             </a>
+        {% elif lesson_quiz and not lesson_quiz_passed %}
+            <a href="{% url 'quizzes:quiz_start' quiz_id=lesson_quiz.id %}?course_slug={{ course.slug }}&lesson_id={{ lesson.id }}" 
+            class="btn btn-success" style="background-color: #28a745; border-color: #28a745;">
+                <i class="fa fa-graduation-cap"></i> Перейти к тесту: {{ lesson_quiz.name }} →
+            </a>
         {% elif next_lesson %}
             <a href="{% url 'courses:lesson_detail' course_slug=course.slug lesson_id=next_lesson.id %}" 
             class="btn btn-primary">
@@ -145,6 +150,13 @@
                 {{ lesson.title }}
             {% endif %}
         </h2>
+        
+        {% if quiz_just_completed and lesson_quiz and lesson_quiz_passed %}
+            <div class="alert alert-success alert-dismissible fade show" role="alert" style="margin-top: 20px;">
+                <i class="fa fa-check-circle"></i> <strong>Тест успешно пройден!</strong> Теперь вы можете завершить урок.
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        {% endif %}
         <div class="lesson-content ck-content">
             {% if is_metrics_lesson %}
                 <!-- Специальный контент для урока "Метрики эффективности стоматологической клиники" -->
@@ -229,7 +241,10 @@
                             <i class="fa fa-question-circle" style="font-size: 3rem; color: #007bff;"></i>
                         {% endif %}
                     </div>
-                    {% if is_last_lesson %}
+                    {% if lesson_quiz and not lesson_quiz_passed %}
+                        <p class="lead">Для завершения урока необходимо пройти связанный тест!</p>
+                        <p class="text-muted">Урок <strong>"{{ lesson.title }}"</strong> имеет обязательный тест <strong>"{{ lesson_quiz.name }}"</strong>, который необходимо пройти для завершения урока.</p>
+                    {% elif is_last_lesson %}
                         <p class="lead">Урок завершен! Это был последний урок курса.</p>
                         <p class="text-muted">Вы можете вернуться к курсу и проверить свой прогресс или отдохнуть.</p>
                     {% elif next_material and next_material.type == 'quiz' %}
@@ -247,7 +262,9 @@
                     </button>
                     {% endif %}
                     <button type="button" class="btn btn-primary" id="continueButton">
-                        {% if is_last_lesson %}
+                        {% if lesson_quiz and not lesson_quiz_passed %}
+                            <i class="fa fa-graduation-cap"></i> Перейти к тесту
+                        {% elif is_last_lesson %}
                             <i class="fa fa-check"></i> Вернуться к курсу
                         {% elif next_material and next_material.type == 'quiz' %}
                             <i class="fa fa-clipboard-check"></i> Перейти к тесту
@@ -290,8 +307,12 @@
             // Отправляем форму завершения урока
             const form = document.getElementById('completeLessonForm');
             
-            // Проверяем, следующий ли материал - тест
-            {% if next_material and next_material.type == 'quiz' %}
+            // Проверяем, есть ли у урока связанный тест
+            {% if lesson_quiz and not lesson_quiz_passed %}
+                // Если у урока есть незавершенный тест, перенаправляем на тест
+                window.location.href = '{% url "quizzes:quiz_start" quiz_id=lesson_quiz.id %}?course_slug={{ course.slug }}&lesson_id={{ lesson.id }}';
+                return;
+            {% elif next_material and next_material.type == 'quiz' %}
                 // Если следующий материал - тест, добавляем параметр для перехода к тесту
                 const input = document.createElement('input');
                 input.type = 'hidden';

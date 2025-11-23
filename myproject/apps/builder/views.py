@@ -366,7 +366,7 @@ class LessonMasterDetailView(TemplateView):
 
 class LessonCreateView(CreateView, AuditLoggerMixin):
     model = Lesson
-    fields = ['title', 'content', 'courses', 'category', 'required_time']
+    fields = ['title', 'content', 'courses', 'category', 'required_time', 'final_quiz']
     template_name = 'builder/lesson_form.html'
     success_url = reverse_lazy('builder:lesson_master')
 
@@ -450,7 +450,7 @@ class LessonCreateView(CreateView, AuditLoggerMixin):
 
 class LessonUpdateView(UpdateView, AuditLoggerMixin):
     model = Lesson
-    fields = ['title', 'content', 'order', 'courses', 'category', 'required_time']
+    fields = ['title', 'content', 'order', 'courses', 'category', 'required_time', 'final_quiz']
     template_name = 'builder/lesson_form.html'
     success_url = reverse_lazy('builder:lesson_master')
 

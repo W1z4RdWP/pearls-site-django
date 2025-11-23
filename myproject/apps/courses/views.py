@@ -531,6 +531,32 @@ class CourseDetailView(DetailView):
             from builder.models import Incident
             incident = Incident.objects.filter(course=course).first()
         
+        # Получаем информацию о связанных тестах для каждого урока
+        lesson_quizzes_info = {}
+        if user.is_authenticated:
+            for lesson in course.lessons.all():
+                if lesson.final_quiz:
+                    quiz_result = QuizResult.objects.filter(
+                        user=user,
+                        course=course,
+                        quiz_title=lesson.final_quiz.name,
+                        passed=True
+                    ).first()
+                    lesson_quizzes_info[lesson.id] = {
+                        'quiz': lesson.final_quiz,
+                        'passed': quiz_result is not None,
+                        'status': quiz_result.status if quiz_result else None
+                    }
+                    # Если нет пройденного теста, проверяем последний результат
+                    if not quiz_result:
+                        latest_result = QuizResult.objects.filter(
+                            user=user,
+                            course=course,
+                            quiz_title=lesson.final_quiz.name
+                        ).order_by('-completed_at').first()
+                        if latest_result:
+                            lesson_quizzes_info[lesson.id]['status'] = latest_result.status
+        
         # Формирование контекста
         context.update({
             'course_author': course.author.username,
@@ -562,6 +588,7 @@ class CourseDetailView(DetailView):
             'quiz_statuses': locals().get('quiz_statuses', {}),
             'is_deadline_overdue': is_deadline_overdue,
             'incident': incident,
+            'lesson_quizzes_info': lesson_quizzes_info,
         })
         
         return context
@@ -666,8 +693,17 @@ class LessonDetailView(DetailView):
             if lesson not in lessons_in_trajectory:
                 return render(request, 'courses/lesson_access_denied.html', {'course': course, 'lesson': lesson})
         
+        # Проверяем, был ли только что пройден тест (параметр из GET-запроса)
+        quiz_completed = request.GET.get('quiz_completed') == '1'
+        
         # Если все проверки пройдены, вызываем стандартный метод get
-        return super().get(request, *args, **kwargs)
+        response = super().get(request, *args, **kwargs)
+        
+        # Добавляем информацию о завершении теста в контекст
+        if quiz_completed:
+            response.context_data['quiz_just_completed'] = True
+        
+        return response
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -743,6 +779,32 @@ class LessonDetailView(DetailView):
             # Используем логику из _get_next_material для определения следующего элемента
             next_material = self._get_next_material_after_lesson(lesson, course, trajectory)
         
+        # Проверяем наличие связанного теста и его статус
+        lesson_quiz = None
+        lesson_quiz_passed = False
+        lesson_quiz_status = None
+        if lesson.final_quiz:
+            lesson_quiz = lesson.final_quiz
+            # Проверяем, завершен ли тест
+            quiz_result = QuizResult.objects.filter(
+                user=self.request.user,
+                course=course,
+                quiz_title=lesson.final_quiz.name,
+                passed=True
+            ).first()
+            if quiz_result:
+                lesson_quiz_passed = True
+                lesson_quiz_status = quiz_result.status
+            else:
+                # Проверяем, есть ли незавершенная попытка
+                latest_result = QuizResult.objects.filter(
+                    user=self.request.user,
+                    course=course,
+                    quiz_title=lesson.final_quiz.name
+                ).order_by('-completed_at').first()
+                if latest_result:
+                    lesson_quiz_status = latest_result.status
+        
         context.update({
             'course': course,
             'previous_lesson': previous_lesson,
@@ -754,6 +816,9 @@ class LessonDetailView(DetailView):
             'is_metrics_lesson': is_metrics_lesson,
             'is_metrics_kz_lesson': is_metrics_kz_lesson,
             'user_country': user_country,
+            'lesson_quiz': lesson_quiz,
+            'lesson_quiz_passed': lesson_quiz_passed,
+            'lesson_quiz_status': lesson_quiz_status,
         })
         
         return context
@@ -1327,6 +1392,34 @@ def complete_lesson(request, course_slug, lesson_id):
     if trajectory and lesson not in trajectory.lessons.all():
         return redirect('courses:course_detail', slug=course.slug)
 
+    # Проверяем, хочет ли пользователь вернуться к курсу (кнопка "Отдохну")
+    return_to_course = request.POST.get('return_to_course') == 'true'
+    
+    # Проверяем, есть ли у урока связанный тест, и если есть - завершен ли он
+    if lesson.final_quiz:
+        quiz_passed = QuizResult.objects.filter(
+            user=user,
+            course=course,
+            quiz_title=lesson.final_quiz.name,
+            passed=True
+        ).exists()
+        
+        if not quiz_passed:
+            # Тест не завершен
+            if return_to_course:
+                # Пользователь нажал "Отдохну" - возвращаемся к курсу БЕЗ засчитывания урока
+                return redirect('courses:course_detail', slug=course.slug)
+            else:
+                # Пользователь хочет завершить урок - перенаправляем на тест
+                from django.urls import reverse
+                from urllib.parse import urlencode
+                url = reverse('quizzes:quiz_start', kwargs={'quiz_id': lesson.final_quiz.id})
+                params = urlencode({'course_slug': course.slug, 'lesson_id': lesson.id})
+                return redirect(f'{url}?{params}')
+
+    # Если мы дошли сюда, значит либо теста нет, либо тест пройден
+    # Засчитываем урок как завершенный
+    
     # Проверяем, был ли урок уже завершен ранее
     progress, created = UserProgress.objects.get_or_create(
         user=user,
@@ -1435,7 +1528,10 @@ def complete_lesson(request, course_slug, lesson_id):
                 user_course.save()
     
     # Проверяем параметры из модального окна
-    if request.POST.get('go_to_quiz'):
+    # Если пользователь нажал "Отдохну" и урок засчитан (тест пройден или теста нет) - возвращаемся к курсу
+    if return_to_course:
+        return redirect('courses:course_detail', slug=course.slug)
+    elif request.POST.get('go_to_quiz'):
         # Пользователь хочет перейти к тесту после завершения урока
         quiz_id = request.POST.get('go_to_quiz')
         from django.urls import reverse
