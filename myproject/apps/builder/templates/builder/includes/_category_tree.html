@@ -9,11 +9,11 @@
         <span class="category-title" title="{{ category.name }}">{{ category.name }}</span>
         {% if is_readonly %}
             {% if category.filtered_subcategories or category.filtered_lessons %}
-                <span class="toggle-arrow">&#9654;</span>
+                <span class="toggle-arrow">+</span>
             {% endif %}
         {% else %}
             {% if category.subcategories or category.lessons %}
-                <span class="toggle-arrow" onclick="toggleSubcat(this.parentElement)">&#9654;</span>
+                <span class="toggle-arrow" onclick="toggleSubcat(this.parentElement)">+</span>
             {% endif %}
         {% endif %}
     </div>

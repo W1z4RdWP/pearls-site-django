@@ -53,7 +53,7 @@ function toggleSubcat(header) {
     }
 
     if (arrow) {
-        arrow.innerHTML = isNowOpen ? '&#9660;' : '&#9654;'; // ▼ или ▶
+        arrow.innerHTML = isNowOpen ? '−' : '+'; // минус (открыто) или плюс (закрыто)
     }
 }
 
@@ -1546,7 +1546,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         header.classList.add('open');
                         // Меняем стрелку
                         const arrow = header.querySelector('.toggle-arrow');
-                        if (arrow) arrow.innerHTML = '&#9660;';
+                        if (arrow) arrow.innerHTML = '−';
                     }
                 }
                 parent = parent.parentElement;
@@ -1597,7 +1597,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     if (header && !header.classList.contains('open')) {
                         header.classList.add('open');
                         const arrow = header.querySelector('.toggle-arrow');
-                        if (arrow) arrow.innerHTML = '&#9660;';
+                        if (arrow) arrow.innerHTML = '−';
                     }
                 }
                 parent = parent.parentElement;
@@ -1653,7 +1653,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     if (header && !header.classList.contains('open')) {
                         header.classList.add('open');
                         const arrow = header.querySelector('.toggle-arrow');
-                        if (arrow) arrow.innerHTML = '&#9660;';
+                        if (arrow) arrow.innerHTML = '−';
                     }
                 }
                 parent = parent.parentElement;
@@ -1704,7 +1704,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     if (header && !header.classList.contains('open')) {
                         header.classList.add('open');
                         const arrow = header.querySelector('.toggle-arrow');
-                        if (arrow) arrow.innerHTML = '&#9660;';
+                        if (arrow) arrow.innerHTML = '−';
                     }
                 }
                 parent = parent.parentElement;

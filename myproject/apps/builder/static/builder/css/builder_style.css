@@ -569,14 +569,21 @@ label {
 
 /* --- Анимации --- */
 .toggle-arrow {
-    transition: transform 0.2s;
+    transition: color 0.2s;
     margin-left: 8px;
     margin-top: 2px;
     flex-shrink: 0;
+    font-size: 1.1em;
+    font-weight: bold;
+    cursor: pointer;
+    user-select: none;
+    display: inline-block;
+    width: 18px;
+    text-align: center;
+    line-height: 1;
 }
 
 .category-header.open .toggle-arrow {
-    transform: rotate(90deg);
     color: #0dcaf0;
 }
 

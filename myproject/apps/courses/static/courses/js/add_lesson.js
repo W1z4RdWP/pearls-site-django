@@ -9,13 +9,19 @@ function toggleCategory(element) {
     if (subcategoryList) {
         const isVisible = subcategoryList.style.display !== 'none';
         subcategoryList.style.display = isVisible ? 'none' : 'block';
-        if (arrow) arrow.classList.toggle('expanded', !isVisible);
+        if (arrow) {
+            arrow.classList.toggle('expanded', !isVisible);
+            arrow.innerHTML = !isVisible ? '−' : '+'; // минус (открыто) или плюс (закрыто)
+        }
     }
     
     if (lessonList) {
         const isVisible = lessonList.style.display !== 'none';
         lessonList.style.display = isVisible ? 'none' : 'block';
-        if (arrow) arrow.classList.toggle('expanded', !isVisible);
+        if (arrow) {
+            arrow.classList.toggle('expanded', !isVisible);
+            arrow.innerHTML = !isVisible ? '−' : '+'; // минус (открыто) или плюс (закрыто)
+        }
     }
 }
 
@@ -397,6 +403,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const arrow = header.querySelector('.toggle-arrow');
         if (arrow) {
             arrow.classList.remove('expanded');
+            arrow.innerHTML = '+'; // плюс для закрытого состояния
         }
         
         const categoryItem = header.closest('.category-block');

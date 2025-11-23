@@ -136,20 +136,21 @@
 
 .toggle-arrow {
     margin-left: 10px;
-    font-size: 1em;
+    font-size: 1.1em;
+    font-weight: bold;
     cursor: pointer;
     user-select: none;
-    transition: transform 0.2s, color 0.2s;
+    transition: color 0.2s;
     color: #888;
     padding: 4px 8px;
     margin: -4px -8px;
     display: inline-block;
     min-width: 24px;
     text-align: center;
+    line-height: 1;
 }
 
 .toggle-arrow.expanded {
-    transform: rotate(90deg);
     color: #4d7cff;
 }
 
