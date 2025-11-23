@@ -140,20 +140,31 @@
 
 .category-header {
     display: flex;
-    align-items: center;
-    padding: 4px 16px;
-    background: var(--builder-sidebar-header-bg);
-    border-radius: 6px;
-    margin-bottom: 2px;
-    min-height: 28px;
+    align-items: flex-start;
+    padding: 3px 16px;
+    background: transparent;
+    border-bottom: none;
+    margin-bottom: 3px;
+    min-height: 22px;
     font-size: 0.98em;
-    line-height: 1.2;
+    line-height: 1.1;
     cursor: pointer;
-    transition: background-color 0.2s ease;
+    transition: border-color 0.2s ease;
 }
 
-.category-header:hover {
-    background: var(--builder-sidebar-header-hover);
+/* Разделители только для корневых категорий */
+.category-list > .category-block > .category-header {
+    border-bottom: 1px solid var(--builder-sidebar-header-bg);
+}
+
+.category-list > .category-block > .category-header:hover {
+    border-bottom-color: var(--builder-sidebar-header-hover);
+}
+
+/* Hover для подкатегорий без разделителей */
+.subcategory-list .category-header:hover {
+    background-color: rgba(77, 124, 255, 0.08);
+    border-radius: 4px;
 }
 
 .category-title {
@@ -161,10 +172,11 @@
     font-weight: 500;
     font-size: 1em;
     color: var(--builder-sidebar-title);
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+    white-space: normal;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
     padding-right: 8px;
+    line-height: 1.1;
 }
 
 .category-actions {
@@ -204,7 +216,7 @@
 .category-block > .lesson-list,
 .category-block > .subcategory-list {
     margin-left: 16px;
-    margin-top: 4px;
+    margin-top: 2px;
 }
 
 .category-block > .lesson-list{
@@ -218,12 +230,12 @@
 }
 .lesson-list li {
     display: flex;
-    align-items: center;
+    align-items: flex-start;
     justify-content: flex-start;
-    padding: 0px 12px;
+    padding: 2px 12px;
     margin-bottom: 2px;
-    background: var(--builder-lesson-bg);
-    border-radius: 5px;
+    background: transparent;
+    border-bottom: none;
     font-size: 0.97em;
     min-height: 16px;
     line-height: 1.1;
@@ -232,14 +244,15 @@
 }
 
 .lesson-list li:hover {
-    background: var(--builder-lesson-hover);
+    background-color: rgba(77, 124, 255, 0.08);
+    border-radius: 4px;
 }
 
 .lesson-link, .lesson-list a {
     display: block;
     color: var(--builder-lesson-text);
     text-decoration: none;
-    padding: 2px 0 2px 8px;
+    padding: 1px 0 1px 8px;
     border-left: 4px solid transparent;
     transition: background 0.2s, border-color 0.2s, color 0.2s;
     font-size: 0.95em;
@@ -250,62 +263,29 @@
     flex: 1;
     color: var(--builder-lesson-text);
     text-decoration: none;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+    white-space: normal;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
     padding-right: 8px;
-    line-height: 1.2;
+    line-height: 1.1;
     font-size: 1em;
     position: relative;
 }
 
-/* Стили для tooltip */
-.lesson-link[title] {
-    position: relative;
-}
-
-.lesson-link[title]:hover::after {
-    content: attr(title);
-    position: absolute;
-    bottom: 100%;
-    left: 50%;
-    transform: translateX(-50%);
-    background: var(--builder-sidebar-bg);
-    color: var(--builder-sidebar-text);
-    padding: 8px 12px;
-    border-radius: 6px;
-    font-size: 0.9em;
-    white-space: nowrap;
-    z-index: 1000;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
-    border: 1px solid var(--builder-sidebar-header-hover);
-    max-width: 300px;
-    word-wrap: break-word;
-    white-space: normal;
-    text-align: center;
-    margin-bottom: 5px;
-}
-
-.lesson-link[title]:hover::before {
-    content: '';
-    position: absolute;
-    bottom: 100%;
-    left: 50%;
-    transform: translateX(-50%);
-    border: 5px solid transparent;
-    border-top-color: var(--builder-sidebar-bg);
-    z-index: 1001;
-    margin-bottom: -5px;
-}
 
 /* Стили для уроков без категории */
 .category-block[data-id^="uncat-"] {
     cursor: pointer;
+}
+
+.category-block[data-id^="uncat-"] .category-header {
+    border-bottom: none;
     transition: background-color 0.2s ease;
 }
 
-.category-block[data-id^="uncat-"]:hover {
-    background: #3a3a3a;
+.category-block[data-id^="uncat-"]:hover .category-header {
+    background-color: rgba(77, 124, 255, 0.08);
+    border-radius: 4px;
 }
 
 
@@ -584,6 +564,8 @@ label {
 .toggle-arrow {
     transition: transform 0.2s;
     margin-left: 8px;
+    margin-top: 2px;
+    flex-shrink: 0;
 }
 
 .category-header.open .toggle-arrow {
@@ -791,31 +773,71 @@ label {
 
 /* --- Выделение выбранной категории/урока --- */
 .category-block.selected > .category-header {
-    background: #4d7cff !important;
-    color: #fff;
+    background: transparent !important;
+    color: #4d7cff;
 }
+
+/* Утолщенная линия только для выбранных корневых категорий */
+.category-list > .category-block.selected > .category-header {
+    border-bottom-color: #4d7cff !important;
+    border-bottom-width: 2px;
+}
+
 .category-block.selected > .category-header .category-title {
-    color: #fff;
+    color: #4d7cff;
+    font-weight: 600;
 }
+
+/* Выделение подкатегорий без линии */
+.subcategory-list .category-block.selected > .category-header {
+    background: rgba(77, 124, 255, 0.12) !important;
+    border-radius: 4px;
+}
+
 .lesson-list li.selected {
-    background: #4d7cff !important;
-    color: #fff;
+    background: rgba(77, 124, 255, 0.12) !important;
+    border-radius: 4px;
+    color: #4d7cff;
 }
 .lesson-list li.selected .lesson-link {
-    color: #fff;
+    color: #4d7cff;
+    font-weight: 600;
+}
+.category-block.selected .svg-folder-path,
+.category-block.selected .svg-paper-rect,
+.category-block.selected .svg-paper-line {
+    stroke: #4d7cff;
+}
+.lesson-list li.selected .svg-paper-rect,
+.lesson-list li.selected .svg-paper-line {
+    stroke: #4d7cff;
+}
+.category-block.selected .toggle-arrow {
+    color: #4d7cff;
 }
 /* выделение термина словаря */
 .category-block.selected .dict-link {
-    color: #fff !important;
+    color: #4d7cff !important;
+    font-weight: 600;
+}
+.category-block.selected .dict-section-link {
+    color: #4d7cff !important;
+    font-weight: 600;
 }
 
 /* Выделение для уроков без категории */
 .category-block[data-id^="uncat-"].selected {
-    background: #4d7cff !important;
+    background: transparent !important;
+}
+
+.category-block[data-id^="uncat-"].selected .category-header {
+    background: rgba(77, 124, 255, 0.12) !important;
+    border-radius: 4px;
 }
 
 .category-block[data-id^="uncat-"].selected .lesson-link {
-    color: #fff !important;
+    color: #4d7cff !important;
+    font-weight: 600;
 }
 
 .category-icon.folder-icon svg {
@@ -834,9 +856,13 @@ label {
 }
 .category-icon.folder-icon {
     margin-right: 8px;
+    margin-top: 2px;
+    flex-shrink: 0;
 }
 .lesson-icon {
     margin-right: 8px;
+    margin-top: 2px;
+    flex-shrink: 0;
 }
 
 .tabs-switcher {
