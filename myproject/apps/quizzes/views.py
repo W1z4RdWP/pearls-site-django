@@ -119,8 +119,19 @@ def get_questions(request, quiz_id: int = None, is_start: bool = False) -> HttpR
                     # Получаем UserCourse для проверки статуса
                     user_course = UserCourse.objects.filter(user=request.user, course=course).first()
                     if not user_course:
-                        # Создаем UserCourse если его нет
-                        user_course = UserCourse.objects.create(user=request.user, course=course, status='available')
+                        # Проверяем, не был ли курс отменен вручную
+                        from myapp.models import ManualCourseUnassignment
+                        manual_unassignment = ManualCourseUnassignment.objects.filter(
+                            user=request.user, 
+                            course=course
+                        ).first()
+                        
+                        if not manual_unassignment:
+                            # Создаем UserCourse если его нет
+                            user_course = UserCourse.objects.create(user=request.user, course=course, status='available')
+                        else:
+                            # Если курс был отменён вручную, перенаправляем на главную
+                            return redirect('home')
                     
                     # Блокируем доступ к тесту, если курс не начат - редиректим на страницу курса с подсветкой (пропускаем для админов)
                     if not (request.user.is_staff or request.user.is_superuser):
@@ -149,10 +160,21 @@ def get_questions(request, quiz_id: int = None, is_start: bool = False) -> HttpR
                         request.session['course_slug'] = course.slug
                         
                         # Проверяем статус курса для пользователя
+                        from myapp.models import ManualCourseUnassignment
                         for course in related_courses:
                             user_course = UserCourse.objects.filter(user=request.user, course=course).first()
                             if not user_course:
-                                user_course = UserCourse.objects.create(user=request.user, course=course, status='available')
+                                # Проверяем, не был ли курс отменен вручную
+                                manual_unassignment = ManualCourseUnassignment.objects.filter(
+                                    user=request.user, 
+                                    course=course
+                                ).first()
+                                
+                                if not manual_unassignment:
+                                    user_course = UserCourse.objects.create(user=request.user, course=course, status='available')
+                                else:
+                                    # Если курс был отменён вручную, пропускаем
+                                    continue
                             
                             # Блокируем доступ к тесту, если курс не начат (пропускаем для админов)
                             if not (request.user.is_staff or request.user.is_superuser):

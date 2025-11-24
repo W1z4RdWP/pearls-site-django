@@ -675,7 +675,19 @@ class LessonDetailView(DetailView):
         # Получаем UserCourse для проверки статуса
         user_course = UserCourse.objects.filter(user=request.user, course=course).first()
         if not user_course:
-            user_course = UserCourse.objects.create(user=request.user, course=course, status='available')
+            # Проверяем, не был ли курс отменен вручную
+            from myapp.models import ManualCourseUnassignment
+            manual_unassignment = ManualCourseUnassignment.objects.filter(
+                user=request.user, 
+                course=course
+            ).first()
+            
+            if not manual_unassignment:
+                user_course = UserCourse.objects.create(user=request.user, course=course, status='available')
+            else:
+                # Если курс был отменён вручную, перенаправляем на страницу курса
+                from django.urls import reverse
+                return redirect('courses:course_detail', slug=course.slug)
 
         # Блокируем доступ к уроку, если курс не начат (пропускаем для админов)
         if not (request.user.is_staff or request.user.is_superuser):
@@ -769,6 +781,9 @@ class LessonDetailView(DetailView):
         
         # Специальная логика для урока "KZ Метрики эффективности стоматологической клиники"
         is_metrics_kz_lesson = lesson.title == "KZ Метрики эффективности стоматологической клиники"
+        
+        # Проверяем, является ли пользователь внешним пользователем
+        is_external_user = self.request.user.groups.filter(name='Внешний пользователь').exists()
 
         # Проверяем, является ли урок последним
         is_last_lesson = next_lesson is None
@@ -815,6 +830,7 @@ class LessonDetailView(DetailView):
             'is_last_lesson': is_last_lesson,
             'is_metrics_lesson': is_metrics_lesson,
             'is_metrics_kz_lesson': is_metrics_kz_lesson,
+            'is_external_user': is_external_user,
             'user_country': user_country,
             'lesson_quiz': lesson_quiz,
             'lesson_quiz_passed': lesson_quiz_passed,
@@ -1383,7 +1399,18 @@ def complete_lesson(request, course_slug, lesson_id):
     # Получаем UserCourse
     user_course = UserCourse.objects.filter(user=user, course=course).first()
     if not user_course:
-        user_course = UserCourse.objects.create(user=user, course=course, status='available')
+        # Проверяем, не был ли курс отменен вручную
+        from myapp.models import ManualCourseUnassignment
+        manual_unassignment = ManualCourseUnassignment.objects.filter(
+            user=user, 
+            course=course
+        ).first()
+        
+        if not manual_unassignment:
+            user_course = UserCourse.objects.create(user=user, course=course, status='available')
+        else:
+            # Если курс был отменён вручную, перенаправляем на страницу курса
+            return redirect('courses:course_detail', slug=course.slug)
     
     # Получаем траекторию пользователя
     trajectory = UserLessonTrajectory.objects.filter(user=user, course=course).first()
@@ -1769,15 +1796,25 @@ class UserCourseTrajectoryListView(ListView):
                 filtered_courses.append(course)
         
         # Получаем UserCourse для каждого отфильтрованного курса
+        from myapp.models import ManualCourseUnassignment
+        
         user_courses = []
         for course in filtered_courses:
             user_course = UserCourse.objects.filter(user=user, course=course).first()
             if user_course:
                 user_courses.append(user_course)
             else:
-                # Создаем UserCourse если его нет (для курсов из траекторий)
-                user_course = UserCourse.objects.create(user=user, course=course, status='available')
-                user_courses.append(user_course)
+                # Проверяем, не был ли курс отменен вручную
+                manual_unassignment = ManualCourseUnassignment.objects.filter(
+                    user=user, 
+                    course=course
+                ).first()
+                
+                if not manual_unassignment:
+                    # Создаем UserCourse если его нет (для курсов из траекторий)
+                    user_course = UserCourse.objects.create(user=user, course=course, status='available')
+                    user_courses.append(user_course)
+                # Если была ручная отмена, просто пропускаем этот курс
         
         # Подготавливаем данные для каждого курса
         courses_data = []

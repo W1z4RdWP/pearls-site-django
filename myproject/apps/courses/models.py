@@ -463,6 +463,34 @@ class UserCourseTrajectory(models.Model):
         return f"{self.user.username} — {self.trajectory.name}"
 
 
+class ManualTrajectoryUnassignment(models.Model):
+    """
+    Модель для отслеживания ручных отмен назначений траекторий.
+    Используется для предотвращения автоматического переназначения траекторий,
+    которые были отменены вручную администратором.
+    """
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='manual_trajectory_unassignments')
+    trajectory = models.ForeignKey(Trajectory, on_delete=models.CASCADE)
+    unassigned_at = models.DateTimeField(auto_now_add=True, verbose_name="Дата отмены назначения")
+    unassigned_by = models.ForeignKey(
+        User, 
+        on_delete=models.SET_NULL, 
+        null=True, 
+        related_name='performed_trajectory_unassignments',
+        verbose_name="Кто отменил"
+    )
+    reason = models.TextField(blank=True, verbose_name="Причина отмены", help_text="Опционально")
+    
+    class Meta:
+        unique_together = ('user', 'trajectory')
+        verbose_name = 'Ручная отмена назначения траектории'
+        verbose_name_plural = 'Ручные отмены назначений траекторий'
+        indexes = [
+            models.Index(fields=['user', 'trajectory']),
+        ]
+    
+    def __str__(self):
+        return f"Отмена: {self.user.username} - {self.trajectory.name}"
 
 
 class Certificate(models.Model):

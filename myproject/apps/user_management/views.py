@@ -503,6 +503,8 @@ class UserEditDetailedView(UpdateView):
         context['roles'] = Role.objects.all()
         
         # Данные для вкладки прогресса (из UserProgressDashboardView)
+        from myapp.models import ManualCourseUnassignment
+        
         profile = user.profile
         available_courses = Course.objects.available_for_user(user)
         user_courses = []
@@ -511,8 +513,17 @@ class UserEditDetailedView(UpdateView):
             if user_course:
                 user_courses.append(user_course)
             else:
-                user_course = UserCourse.objects.create(user=user, course=course, status='available')
-                user_courses.append(user_course)
+                # Проверяем, не был ли курс отменен вручную
+                manual_unassignment = ManualCourseUnassignment.objects.filter(
+                    user=user, 
+                    course=course
+                ).first()
+                
+                if not manual_unassignment:
+                    # Создаём UserCourse только если не было ручной отмены
+                    user_course = UserCourse.objects.create(user=user, course=course, status='available')
+                    user_courses.append(user_course)
+                # Если была ручная отмена, просто пропускаем этот курс
         
         quiz_results = list(QuizResult.objects.filter(user=user).order_by('-completed_at'))
         courses_progress = []
@@ -777,6 +788,8 @@ class UserProgressDashboardView(DetailView):
         return super().dispatch(request, *args, **kwargs)
 
     def get_context_data(self, **kwargs):
+        from myapp.models import ManualCourseUnassignment
+        
         context = super().get_context_data(**kwargs)
         user = self.get_object()
         profile = user.profile
@@ -790,9 +803,17 @@ class UserProgressDashboardView(DetailView):
             if user_course:
                 user_courses.append(user_course)
             else:
-                # Создаем UserCourse если его нет (для курсов из траекторий)
-                user_course = UserCourse.objects.create(user=user, course=course, status='available')
-                user_courses.append(user_course)
+                # Проверяем, не был ли курс отменен вручную
+                manual_unassignment = ManualCourseUnassignment.objects.filter(
+                    user=user, 
+                    course=course
+                ).first()
+                
+                if not manual_unassignment:
+                    # Создаем UserCourse если его нет (для курсов из траекторий)
+                    user_course = UserCourse.objects.create(user=user, course=course, status='available')
+                    user_courses.append(user_course)
+                # Если была ручная отмена, просто пропускаем этот курс
         
         # Получаем все результаты тестирования пользователя ДО цикла по курсам
         quiz_results = list(QuizResult.objects.filter(user=user).order_by('-completed_at'))
@@ -2172,6 +2193,359 @@ def api_assign_courses_to_user(request, user_id):
         'assigned_courses': assigned_courses,
         'already_assigned_courses': already_assigned_courses,
         'message': f'Назначено курсов: {assigned_count}, уже были назначены: {already_assigned_count}'
+    })
+
+
+@require_POST
+@login_required
+def unassign_course_from_user(request, user_id, user_course_id):
+    """
+    Отменяет назначение курса для пользователя.
+    Удаляет запись UserCourse для указанного пользователя и курса.
+    Создает запись ManualCourseUnassignment для предотвращения автоматического переназначения.
+    """
+    # Проверка прав доступа
+    if not (request.user.is_staff or request.user.is_superuser):
+        messages.error(request, 'У вас нет прав для выполнения этого действия.')
+        return redirect('user_management:user_edit_detailed', pk=user_id)
+    
+    try:
+        from myapp.models import ManualCourseUnassignment
+        
+        # Получаем пользователя
+        target_user = get_object_or_404(User, id=user_id)
+        
+        # Получаем назначение курса
+        user_course = get_object_or_404(UserCourse, id=user_course_id, user=target_user)
+        
+        # Сохраняем ссылку на курс
+        course = user_course.course
+        course_title = course.title
+        
+        # Создаем запись о ручной отмене назначения (или обновляем существующую)
+        ManualCourseUnassignment.objects.update_or_create(
+            user=target_user,
+            course=course,
+            defaults={
+                'unassigned_by': request.user,
+                'reason': f'Ручная отмена назначения через интерфейс управления'
+            }
+        )
+        
+        # Удаляем назначение
+        user_course.delete()
+        
+        # Логируем действие
+        audit_logger.info(
+            f"Отменено назначение курса '{course_title}' для пользователя {target_user.username}. "
+            f"Создана запись о ручной отмене для предотвращения автоматического переназначения.",
+            extra={'user': request.user.username}
+        )
+        
+        messages.success(request, f'Назначение курса "{course_title}" успешно отменено.')
+        
+    except Exception as e:
+        audit_logger.error(
+            f"Ошибка при отмене назначения курса: {str(e)}",
+            extra={'user': request.user.username}
+        )
+        messages.error(request, 'Произошла ошибка при отмене назначения курса.')
+    
+    # Формируем URL с параметром tab
+    url = reverse('user_management:user_edit_detailed', kwargs={'pk': user_id})
+    return redirect(url + '?tab=assigned_training')
+
+
+@require_POST
+@login_required
+def unassign_trajectory_from_user(request, user_id, user_trajectory_id):
+    """
+    Отменяет назначение траектории для пользователя.
+    Удаляет запись UserCourseTrajectory для указанного пользователя и траектории.
+    Создает запись ManualTrajectoryUnassignment для предотвращения автоматического переназначения.
+    """
+    # Проверка прав доступа
+    if not (request.user.is_staff or request.user.is_superuser):
+        messages.error(request, 'У вас нет прав для выполнения этого действия.')
+        return redirect('user_management:user_edit_detailed', pk=user_id)
+    
+    try:
+        from courses.models import ManualTrajectoryUnassignment
+        
+        # Получаем пользователя
+        target_user = get_object_or_404(User, id=user_id)
+        
+        # Получаем назначение траектории
+        user_trajectory = get_object_or_404(UserCourseTrajectory, id=user_trajectory_id, user=target_user)
+        
+        # Сохраняем ссылку на траекторию
+        trajectory = user_trajectory.trajectory
+        trajectory_name = trajectory.name
+        
+        # Создаем запись о ручной отмене назначения (или обновляем существующую)
+        ManualTrajectoryUnassignment.objects.update_or_create(
+            user=target_user,
+            trajectory=trajectory,
+            defaults={
+                'unassigned_by': request.user,
+                'reason': f'Ручная отмена назначения через интерфейс управления'
+            }
+        )
+        
+        # Удаляем назначение
+        user_trajectory.delete()
+        
+        # Логируем действие
+        audit_logger.info(
+            f"Отменено назначение траектории '{trajectory_name}' для пользователя {target_user.username}. "
+            f"Создана запись о ручной отмене для предотвращения автоматического переназначения.",
+            extra={'user': request.user.username}
+        )
+        
+        messages.success(request, f'Назначение траектории "{trajectory_name}" успешно отменено.')
+        
+    except Exception as e:
+        audit_logger.error(
+            f"Ошибка при отмене назначения траектории: {str(e)}",
+            extra={'user': request.user.username}
+        )
+        messages.error(request, 'Произошла ошибка при отмене назначения траектории.')
+    
+    # Формируем URL с параметром tab
+    url = reverse('user_management:user_edit_detailed', kwargs={'pk': user_id})
+    return redirect(url + '?tab=assigned_training')
+
+
+# ========== API ENDPOINTS ДЛЯ ТРАЕКТОРИЙ ==========
+
+@login_required
+def api_get_groups_with_trajectories(request):
+    """
+    API endpoint для получения списка всех групп с информацией о количестве траекторий.
+    Возвращает JSON с данными групп.
+    """
+    if not (request.user.is_staff or request.user.is_superuser):
+        return JsonResponse({'error': 'Доступ запрещен'}, status=403)
+    
+    groups = Group.objects.all().order_by('name')
+    
+    groups_data = []
+    for group in groups:
+        # Получаем количество траекторий, доступных для этой группы
+        trajectories_count = Trajectory.objects.filter(groups=group).count()
+        
+        groups_data.append({
+            'id': group.id,
+            'name': group.name,
+            'user_count': group.user_set.filter(is_active=True).count(),
+            'trajectories_count': trajectories_count,
+        })
+    
+    return JsonResponse({'groups': groups_data})
+
+
+@login_required
+def api_get_group_trajectories(request, group_id):
+    """
+    API endpoint для получения списка траекторий, доступных для группы.
+    Возвращает JSON с данными траекторий.
+    """
+    if not (request.user.is_staff or request.user.is_superuser):
+        return JsonResponse({'error': 'Доступ запрещен'}, status=403)
+    
+    try:
+        group = Group.objects.get(id=group_id)
+    except Group.DoesNotExist:
+        return JsonResponse({'error': 'Группа не найдена'}, status=404)
+    
+    # Получаем траектории, доступные для этой группы
+    trajectories = Trajectory.objects.filter(groups=group).order_by('name')
+    
+    trajectories_data = []
+    for trajectory in trajectories:
+        trajectories_data.append({
+            'id': trajectory.id,
+            'name': trajectory.name,
+            'description': trajectory.description[:200] if trajectory.description else '',
+        })
+    
+    return JsonResponse({'trajectories': trajectories_data})
+
+
+@login_required
+def api_search_trajectories(request):
+    """
+    API endpoint для поиска траекторий по названию.
+    Возвращает JSON с данными траекторий.
+    """
+    if not (request.user.is_staff or request.user.is_superuser):
+        return JsonResponse({'error': 'Доступ запрещен'}, status=403)
+    
+    query = request.GET.get('q', '').strip()
+    
+    trajectories = Trajectory.objects.all()
+    
+    if query:
+        trajectories = trajectories.filter(
+            Q(name__icontains=query) | 
+            Q(description__icontains=query)
+        )
+    
+    trajectories = trajectories.order_by('name')[:50]  # Ограничиваем 50 результатами
+    
+    trajectories_data = []
+    for trajectory in trajectories:
+        trajectories_data.append({
+            'id': trajectory.id,
+            'name': trajectory.name,
+            'description': trajectory.description[:200] if trajectory.description else '',
+        })
+    
+    return JsonResponse({'trajectories': trajectories_data})
+
+
+@login_required
+@require_POST
+def api_assign_trajectories_to_user(request, user_id):
+    """
+    API endpoint для индивидуального назначения траекторий пользователю.
+    Принимает список ID траекторий и назначает их пользователю, если они еще не назначены.
+    """
+    if not (request.user.is_staff or request.user.is_superuser):
+        return JsonResponse({'error': 'Доступ запрещен'}, status=403)
+    
+    try:
+        target_user = User.objects.get(id=user_id)
+    except User.DoesNotExist:
+        return JsonResponse({'error': 'Пользователь не найден'}, status=404)
+    
+    # Получаем данные из POST запроса
+    try:
+        data = json.loads(request.body)
+    except (json.JSONDecodeError, AttributeError):
+        return JsonResponse({'error': 'Неверный формат данных'}, status=400)
+    
+    # Поддержка нового формата с индивидуальными deadline_days для каждой траектории
+    trajectories_data = data.get('trajectories', [])
+    
+    # Поддержка старого формата для обратной совместимости
+    if not trajectories_data:
+        trajectory_ids = data.get('trajectory_ids', [])
+        deadline_days = data.get('deadline_days', 30)
+        
+        if not trajectory_ids or not isinstance(trajectory_ids, list):
+            return JsonResponse({'error': 'Список траекторий не указан'}, status=400)
+        
+        # Валидация deadline_days
+        try:
+            deadline_days = int(deadline_days)
+            if deadline_days < 1:
+                return JsonResponse({'error': 'Количество дней должно быть больше 0'}, status=400)
+        except (ValueError, TypeError):
+            return JsonResponse({'error': 'Неверное значение количества дней'}, status=400)
+        
+        # Преобразуем старый формат в новый
+        trajectories_data = [{'trajectory_id': tid, 'deadline_days': deadline_days} for tid in trajectory_ids]
+    
+    if not trajectories_data or not isinstance(trajectories_data, list):
+        return JsonResponse({'error': 'Список траекторий не указан'}, status=400)
+    
+    # Валидация и извлечение данных о траекториях
+    trajectory_deadlines = {}
+    trajectory_ids = []
+    
+    for trajectory_item in trajectories_data:
+        if not isinstance(trajectory_item, dict):
+            return JsonResponse({'error': 'Неверный формат данных траектории'}, status=400)
+        
+        trajectory_id = trajectory_item.get('trajectory_id')
+        deadline_days = trajectory_item.get('deadline_days', 30)
+        
+        if not trajectory_id:
+            return JsonResponse({'error': 'ID траектории не указан'}, status=400)
+        
+        # Валидация deadline_days
+        try:
+            deadline_days = int(deadline_days)
+            if deadline_days < 1:
+                return JsonResponse({'error': 'Количество дней должно быть больше 0'}, status=400)
+        except (ValueError, TypeError):
+            return JsonResponse({'error': 'Неверное значение количества дней'}, status=400)
+        
+        trajectory_ids.append(trajectory_id)
+        trajectory_deadlines[trajectory_id] = deadline_days
+    
+    # Получаем траектории
+    trajectories = Trajectory.objects.filter(id__in=trajectory_ids)
+    
+    if trajectories.count() != len(trajectory_ids):
+        return JsonResponse({'error': 'Некоторые траектории не найдены'}, status=400)
+    
+    # Создаем словарь траекторий для быстрого доступа
+    trajectories_dict = {trajectory.id: trajectory for trajectory in trajectories}
+    
+    # Назначаем траектории пользователю
+    assigned_count = 0
+    already_assigned_count = 0
+    assigned_trajectories = []
+    already_assigned_trajectories = []
+    
+    for trajectory_id in trajectory_ids:
+        trajectory = trajectories_dict.get(trajectory_id)
+        if not trajectory:
+            continue
+        
+        # Примечание: deadline для траекторий не используется в текущей модели UserCourseTrajectory
+        # Но мы можем добавить это поле в будущем
+        
+        # Проверяем, не назначена ли уже траектория пользователю
+        user_trajectory, created = UserCourseTrajectory.objects.get_or_create(
+            user=target_user,
+            trajectory=trajectory,
+            defaults={'completed': False}
+        )
+        
+        if created:
+            assigned_count += 1
+            assigned_trajectories.append({
+                'id': trajectory.id,
+                'name': trajectory.name
+            })
+            
+            # Создаем внутреннее уведомление
+            try:
+                from notifications.models import Notification
+                Notification.create_trajectory_assignment_notification(target_user, trajectory)
+            except Exception as e:
+                audit_logger.error(f"Ошибка создания уведомления о траектории {trajectory.name}: {e}")
+            
+            # Отправляем email уведомление
+            try:
+                from .utils import send_trajectory_assignment_email
+                send_trajectory_assignment_email(target_user, trajectory)
+                audit_logger.info(f"Отправлено email уведомление о траектории {trajectory.name} пользователю {target_user.email}",
+                extra={
+                    'user': request.user.username if request.user.is_authenticated else 'Anonymous'
+                })
+            except Exception as e:
+                audit_logger.error(f"Ошибка отправки email уведомления о траектории {trajectory.name}: {e}",
+                extra={
+                    'user': request.user.username if request.user.is_authenticated else 'Anonymous'
+                })
+        else:
+            already_assigned_count += 1
+            already_assigned_trajectories.append({
+                'id': trajectory.id,
+                'name': trajectory.name
+            })
+    
+    return JsonResponse({
+        'success': True,
+        'assigned_count': assigned_count,
+        'already_assigned_count': already_assigned_count,
+        'assigned_trajectories': assigned_trajectories,
+        'already_assigned_trajectories': already_assigned_trajectories,
+        'message': f'Назначено траекторий: {assigned_count}, уже были назначены: {already_assigned_count}'
     })
 
 
