@@ -33,8 +33,8 @@ function toggleSubcat(header) {
     if (!categoryBlock) return;
 
     const categoryId = categoryBlock.dataset.id;
-    const subcatList = categoryBlock.querySelector('.subcategory-list');
-    const lessonList = categoryBlock.querySelector('.lesson-list');
+    const subcatList = categoryBlock.querySelector(':scope > .subcategory-list');
+    const lessonList = categoryBlock.querySelector(':scope > .lesson-list');
     const arrow = header.querySelector('.toggle-arrow');
 
     // Сохраняем состояние
@@ -321,7 +321,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const parentBlock = document.querySelector(`.category-block[data-id='${catId}']`);
         if (!parentBlock) return;
         // Найти или создать ul.subcategory-list
-        let subUl = parentBlock.querySelector('.subcategory-list');
+        let subUl = parentBlock.querySelector(':scope > .subcategory-list');
         if (!subUl) {
             subUl = document.createElement('ul');
             subUl.className = 'subcategory-list';
