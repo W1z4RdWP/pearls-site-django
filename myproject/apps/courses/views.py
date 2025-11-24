@@ -781,6 +781,9 @@ class LessonDetailView(DetailView):
         
         # Специальная логика для урока "KZ Метрики эффективности стоматологической клиники"
         is_metrics_kz_lesson = lesson.title == "KZ Метрики эффективности стоматологической клиники"
+        
+        # Проверяем, является ли пользователь внешним пользователем
+        is_external_user = self.request.user.groups.filter(name='Внешний пользователь').exists()
 
         # Проверяем, является ли урок последним
         is_last_lesson = next_lesson is None
@@ -827,6 +830,7 @@ class LessonDetailView(DetailView):
             'is_last_lesson': is_last_lesson,
             'is_metrics_lesson': is_metrics_lesson,
             'is_metrics_kz_lesson': is_metrics_kz_lesson,
+            'is_external_user': is_external_user,
             'user_country': user_country,
             'lesson_quiz': lesson_quiz,
             'lesson_quiz_passed': lesson_quiz_passed,
