@@ -148,12 +148,15 @@ class Course(models.Model):
         title (CharField) - заголовок курса
         description (TextField) - описание курса
         allowed_groups (ManyToMany) - группы пользователей, которым автоматически назначентся выбранный курс.
-        
+        responsible_mentor (ForeignKey) - проверяющий наставник, будет назначаться ответственным за проверку тестов в курсе.
+        mentors_time_to_check (PositiveIntegerField) - время для наставника на проверку теста, после завершения студентом 
     """
    
     title = models.CharField(max_length=200, verbose_name="Название курса")
     description = CKEditor5Field('Описание курса', config_name='noTablesImages', blank=True, null=True)
-    author = models.ForeignKey(User, on_delete=models.CASCADE, verbose_name="Автор")
+    author = models.ForeignKey(User, on_delete=models.CASCADE, verbose_name="Автор", related_name='authored_courses')
+    responsible_mentor = models.ForeignKey(User, on_delete=models.CASCADE, verbose_name='Проверяющий наставник', related_name='mentored_courses', blank=True, null=True)
+    mentors_time_to_check = models.PositiveIntegerField(default=2, verbose_name="Время на проверку (дней)", help_text="Количество дней для проверки наставником")
     created_at = models.DateTimeField(auto_now_add=True, verbose_name="Дата создания")
     image = models.ImageField(upload_to='course_images/', default='course_images/default.jpg', blank=True, null=True, verbose_name="Изображение курса")
     slug = models.SlugField(max_length=200, unique=True, blank=True)
@@ -295,6 +298,15 @@ class Lesson(models.Model):
         blank=True,
         related_name='course_lessons',
         verbose_name="Выберите курсы, куда добавить урок"
+    )
+
+    final_quiz = models.ForeignKey(
+        Quiz,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        verbose_name="Финальный тест",
+        help_text="Связанный с уроком, обязательный тест"
     )
 
     class Meta:
@@ -451,6 +463,34 @@ class UserCourseTrajectory(models.Model):
         return f"{self.user.username} — {self.trajectory.name}"
 
 
+class ManualTrajectoryUnassignment(models.Model):
+    """
+    Модель для отслеживания ручных отмен назначений траекторий.
+    Используется для предотвращения автоматического переназначения траекторий,
+    которые были отменены вручную администратором.
+    """
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='manual_trajectory_unassignments')
+    trajectory = models.ForeignKey(Trajectory, on_delete=models.CASCADE)
+    unassigned_at = models.DateTimeField(auto_now_add=True, verbose_name="Дата отмены назначения")
+    unassigned_by = models.ForeignKey(
+        User, 
+        on_delete=models.SET_NULL, 
+        null=True, 
+        related_name='performed_trajectory_unassignments',
+        verbose_name="Кто отменил"
+    )
+    reason = models.TextField(blank=True, verbose_name="Причина отмены", help_text="Опционально")
+    
+    class Meta:
+        unique_together = ('user', 'trajectory')
+        verbose_name = 'Ручная отмена назначения траектории'
+        verbose_name_plural = 'Ручные отмены назначений траекторий'
+        indexes = [
+            models.Index(fields=['user', 'trajectory']),
+        ]
+    
+    def __str__(self):
+        return f"Отмена: {self.user.username} - {self.trajectory.name}"
 
 
 class Certificate(models.Model):

@@ -196,6 +196,7 @@
                     {% if data.is_blocked %}
                     <form method="post" action="{% url 'user_management:unlock_quiz_access' target_user.pk quiz.pk %}" style="display: inline;">
                         {% csrf_token %}
+                        <input type="hidden" name="next" value="user_quiz_attempts">
                         <button type="submit" class="btn-unlock" onclick="return confirm('Разблокировать доступ к тесту? Пользователь сможет пройти еще одну попытку.')">
                             <i class="fas fa-unlock me-1"></i>Разблокировать
                         </button>

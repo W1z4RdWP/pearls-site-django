@@ -11,7 +11,7 @@ class CourseForm(forms.ModelForm):
     """Форма создания/редактирования курса."""
     class Meta:
         model = Course
-        fields = ['title', 'description', 'image', 'slug', 'final_quiz', 'allowed_groups', 'certificate', 'is_incident']
+        fields = ['title', 'description', 'image', 'slug', 'final_quiz', 'responsible_mentor', 'mentors_time_to_check', 'allowed_groups', 'certificate', 'is_incident']
         labels = {'slug': 'ЧПУ (оставьте пустым для автогенерации)'}
         required = {'slug': False}  # Поле slug не обязательно
         widgets = {
@@ -20,6 +20,8 @@ class CourseForm(forms.ModelForm):
                 config_name='extends'
             ),
             'allowed_groups': forms.SelectMultiple(attrs={'class': 'form-select'}),
+            'responsible_mentor': forms.HiddenInput(),
+            'final_quiz': forms.HiddenInput()
         }
 
 
@@ -49,14 +51,15 @@ class LessonForm(forms.ModelForm):
     """Форма создания/редактирования урока."""
     class Meta:
         model = Lesson
-        fields = ['title', 'content', 'order', 'courses', 'required_time']
+        fields = ['title', 'content', 'order', 'courses', 'required_time', 'final_quiz']
         widgets = {
             'content': CKEditor5Widget(
                 attrs={'class': 'django_ckeditor_5'}, 
                 config_name='extends'
             ),
             'courses': forms.SelectMultiple(attrs={'class': 'form-select'}),
-            'required_time': forms.NumberInput(attrs={'class': 'form-control', 'min': '1', 'max': '999'})
+            'required_time': forms.NumberInput(attrs={'class': 'form-control', 'min': '1', 'max': '999'}),
+            'final_quiz': forms.HiddenInput()
         }
 
         labels = {

@@ -249,8 +249,8 @@
   background-color: #ffcccc !important;
 } */
 
-/* Простое hover выделение для всех строк, кроме ячеек со статусом */
-.incidents-card .table tbody tr:hover td:not([class*="status-"]) {
+/* Простое hover выделение для всех строк, кроме ячеек со статусом и просроченных дедлайнов */
+.incidents-card .table tbody tr:hover td:not([class*="status-"]):not(.deadline-overdue) {
   background-color: #f5f7fa !important;
 }
 /* Цветное выделение ячеек со статусом */
@@ -296,6 +296,25 @@
 .incidents-card .table tbody tr:hover td.status-declined {
   background-color: #f5c6cb !important;
 }
+
+/* Стиль для просроченного дедлайна */
+.incidents-card .table tbody td.deadline-overdue {
+  background-color: #ffb6c1 !important;
+  color: #8b0000 !important;
+  font-weight: 600;
+}
+
+/* Стиль для времени в дедлайне - на 3px меньше даты */
+.incidents-card .table tbody td .deadline-time {
+  font-size: calc(1em - 3px);
+}
+
+/* Hover-эффект для просроченного дедлайна - сохраняем розовый цвет */
+.incidents-card .table tbody tr:hover td.deadline-overdue {
+  background-color: #ffb6c1 !important;
+  color: #8b0000 !important;
+}
+
 .responsible-list {
   margin: 0;
   padding: 0;
@@ -387,4 +406,82 @@
 .incident-row.row-selected td.status-resolved,
 .incident-row.row-selected td.status-declined {
   background-color: inherit !important;
+}
+
+#column-comments-modal {
+  display: none;
+  position: fixed;
+  z-index: 99999;
+  left: 0;
+  top: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0,0,0,0.35);
+  align-items: center;
+  justify-content: center;
+}
+
+#column-comments-modal > div {
+  background: #fff;
+  color: #232a3a;
+  padding: 32px 32px 24px 32px;
+  border-radius: 12px;
+  box-shadow: 0 2px 16px rgba(0,0,0,0.07);
+  min-width: 500px;
+  max-width: 95vw;
+  max-height: 90vh;
+  overflow-y: auto;
+  text-align: left;
+  position: relative;
+}
+
+#column-comments-modal h4 {
+  margin-top: 0;
+  margin-bottom: 24px;
+  font-size: 1.35em;
+  font-weight: 700;
+}
+
+#column-comments-modal-close {
+  position: absolute;
+  right: 12px;
+  top: 12px;
+  background: none;
+  border: none;
+  font-size: 1.5em;
+  color: #888;
+  cursor: pointer;
+  padding: 0;
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+#column-comments-modal-close:hover {
+  color: #333;
+}
+
+#column-comments-form label {
+  display: block;
+  margin-bottom: 6px;
+  font-weight: 500;
+  color: #232a3a;
+}
+
+#column-comments-form input[type="text"] {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid #c3c8d0;
+  border-radius: 6px;
+  font-size: 0.95em;
+  box-sizing: border-box;
+  transition: border 0.2s, box-shadow 0.2s;
+}
+
+#column-comments-form input[type="text"]:focus {
+  border: 1.5px solid #4d7cff;
+  box-shadow: 0 0 0 2px rgba(77, 124, 255, 0.13);
+  outline: none;
 }

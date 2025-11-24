@@ -9,15 +9,24 @@ function toggleCategory(element) {
     if (subcategoryList) {
         const isVisible = subcategoryList.style.display !== 'none';
         subcategoryList.style.display = isVisible ? 'none' : 'block';
-        if (arrow) arrow.classList.toggle('expanded', !isVisible);
+        if (arrow) {
+            arrow.classList.toggle('expanded', !isVisible);
+            arrow.innerHTML = !isVisible ? '−' : '+'; // минус (открыто) или плюс (закрыто)
+        }
     }
     
     if (lessonList) {
         const isVisible = lessonList.style.display !== 'none';
         lessonList.style.display = isVisible ? 'none' : 'block';
-        if (arrow) arrow.classList.toggle('expanded', !isVisible);
+        if (arrow) {
+            arrow.classList.toggle('expanded', !isVisible);
+            arrow.innerHTML = !isVisible ? '−' : '+'; // минус (открыто) или плюс (закрыто)
+        }
     }
 }
+
+// Переменная для хранения выбранной категории
+let selectedCategoryId = null;
 
 // Обработчик одиночного клика - только выделение
 function selectItem(element, type, id, title) {
@@ -33,6 +42,21 @@ function selectItem(element, type, id, title) {
     
     // Всегда выделяем текущий элемент
     element.classList.add('selected');
+    
+    // Показываем кнопку "Листочек" в футере для категорий
+    const createLessonBtn = document.getElementById('createLessonBtn');
+    if (type === 'category') {
+        selectedCategoryId = id;
+        if (createLessonBtn) {
+            createLessonBtn.style.display = 'inline-block';
+        }
+    } else {
+        // Скрываем кнопку при выборе урока
+        selectedCategoryId = null;
+        if (createLessonBtn) {
+            createLessonBtn.style.display = 'none';
+        }
+    }
 }
 
 // Обработчик двойного клика - добавление/удаление из выбранных
@@ -356,6 +380,21 @@ function switchTab(tabName) {
     performSearch('');
 }
 
+// Функция для создания урока в категории (доступна глобально)
+window.createLessonInCategory = function(categoryId) {
+    // Получаем текущий URL для возврата
+    const returnUrl = encodeURIComponent(window.location.href);
+    // Перенаправляем на форму создания урока с категорией и параметром возврата
+    window.location.href = `/builder/add/${categoryId}/?return_url=${returnUrl}`;
+};
+
+// Обработчик клика на кнопку создания урока в футере
+window.handleCreateLessonClick = function() {
+    if (selectedCategoryId) {
+        createLessonInCategory(selectedCategoryId);
+    }
+};
+
 // Инициализация
 document.addEventListener('DOMContentLoaded', function() {
     // Показываем все категории по умолчанию
@@ -364,6 +403,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const arrow = header.querySelector('.toggle-arrow');
         if (arrow) {
             arrow.classList.remove('expanded');
+            arrow.innerHTML = '+'; // плюс для закрытого состояния
         }
         
         const categoryItem = header.closest('.category-block');
@@ -376,6 +416,19 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Используем делегирование событий для обработки кликов
     const clickTimers = new Map();
+    
+    // Скрываем кнопку создания урока при клике вне категорий
+    document.addEventListener('click', function(e) {
+        if (!e.target.closest('.category-header') && 
+            !e.target.closest('#createLessonBtn') &&
+            !e.target.closest('.category-block')) {
+            const createLessonBtn = document.getElementById('createLessonBtn');
+            if (createLessonBtn) {
+                createLessonBtn.style.display = 'none';
+            }
+            selectedCategoryId = null;
+        }
+    });
     
     // Обработчик кликов для категорий (делегирование)
     const categoriesBlock = document.getElementById('categories-block');

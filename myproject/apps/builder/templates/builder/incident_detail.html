@@ -1,5 +1,6 @@
 {% extends 'layout.html' %}
 {% load static %}
+{% load quiz_filters %}
 {% block title %}Детали инцидентов{% endblock %}
 {% block specific_styles %}
     <link rel="stylesheet" href="{% static 'builder/css/incidents.css' %}">
@@ -13,14 +14,10 @@
     
     <!-- Фильтры -->
     <form method="get" id="incident-detail-filter-form" class="mb-4">
-        <!-- Скрытое поле для сохранения параметра search, если он был передан изначально -->
-        {% if search %}
-        <input type="hidden" name="search" value="{{ search }}" id="hidden_search">
-        {% endif %}
         <div class="row mb-2 g-2 align-items-center">
             <!-- Поиск по названию -->
             <div class="col-md-3 col-lg-3">
-                <input type="text" class="form-control" id="search" {% if not search %}name="search"{% endif %} placeholder="Поиск по названию инцидента..." value="{{ search }}" {% if search %}readonly{% endif %}>
+                <input type="text" class="form-control" id="search" name="search" placeholder="Поиск по названию инцидента..." value="{{ search }}">
             </div>
             <!-- Фильтр по дате -->
             <div class="col-md-3 col-lg-2">
@@ -42,18 +39,26 @@
             </div>
             <!-- Фильтр по нарушителям -->
             <div class="col-md-3 col-lg-2">
-                <select class="form-control" id="violator_filter" name="violator_filter">
-                    <option value="all" {% if violator_filter == 'all' %}selected{% endif %}>Все</option>
+                <select class="form-control" id="violator_filter" name="violator_filter" {% if violator_filter == 'yes' and violator_filter_locked %}disabled{% endif %}>
+                    <option value="all" {% if violator_filter == 'all' %}selected{% endif %}>Тип участника: Все</option>
                     <option value="yes" {% if violator_filter == 'yes' %}selected{% endif %}>Только нарушители</option>
                     <option value="no" {% if violator_filter == 'no' %}selected{% endif %}>Только не нарушители</option>
                 </select>
+                {% if violator_filter == 'yes' and violator_filter_locked %}
+                <input type="hidden" name="violator_filter" value="yes">
+                {% endif %}
             </div>
         </div>
         <!-- Кнопки под строкой поиска -->
-        <div class="row mb-2">
-            <div class="col-md-3 col-lg-3">
-                <button type="submit" class="btn btn-primary">Применить фильтры</button>
-                <a href="{% url 'builder:incident_detail' %}{% if search %}?search={{ search|urlencode }}{% endif %}" class="btn btn-secondary" id="reset-button">Сбросить</a>
+        <div class="row">
+            <div class="col-md-2 col-lg-2">
+                <button type="submit" class="btn btn-primary w-30">Применить фильтры</button>
+            </div>
+            <div class="col-md-1 col-lg-1">
+                <a href="{% url 'builder:incident_detail' %}{% if violator_filter_locked %}?violator_filter=yes&date_from={{ date_from }}&date_to={{ date_to }}{% elif search %}?search={{ search|urlencode }}{% endif %}" class="btn btn-secondary w-30" id="reset-button">Сбросить</a>
+            </div>
+            <div class="col-md-2 col-lg-3">
+                <button type="button" id="column-comments-button" class="btn btn-secondary w-30" title="Комментарий к столбцам">К</button>
             </div>
         </div>
     </form>
@@ -69,9 +74,9 @@
                     <th style="width: 20%;">Название инцидента</th>
                     <th style="width: 15%;">Назначено</th>
                     <th style="width: 10%;">Нарушитель</th>
-                    <th style="width: 10%;">Дедлайн</th>
+                    <!-- <th style="width: 10%;">Дедлайн</th> -->
                     <th style="width: 10%;">Ответственный</th>
-                    <th style="width: 10%;">Прогресс</th>
+                    <th style="width: 10%;">Дедлайн</th>
                     <th style="width: 10%;">Статус</th>
                 </tr>
             </thead>
@@ -90,9 +95,31 @@
                                 <span class="badge bg-secondary">Нет</span>
                             {% endif %}
                         </td>
-                        <td>{{ item.incident.deadline|date:"d.m.Y"|default:"—" }}</td>
-                        <td>—</td>
-                        <td style="text-align: center;">0%</td>
+                        <!-- <td class="{% if item.incident.deadline and item.incident.deadline|is_overdue:now %}deadline-overdue{% endif %}">
+                            {% if item.incident.deadline %}
+                                <span class="deadline-date">{{ item.incident.deadline|date:"d.m.Y" }}</span> <span class="deadline-time">{{ item.incident.deadline|date:"H:i" }}</span>
+                            {% else %}
+                                —
+                            {% endif %}
+                        </td> -->
+                        <td>
+                            {% if item.incident.responsible_mentor %}
+                                {{ item.incident.responsible_mentor.get_full_name|default:item.incident.responsible_mentor.username }}
+                            {% else %}
+                                —
+                            {% endif %}
+                        </td>
+                        <td style="text-align: center;">
+                            {% if item.incident.course %}
+                                {% if item.course_deadline %}
+                                    {{ item.course_deadline|date:"d.m.Y H:i" }}
+                                {% else %}
+                                    Без срока
+                                {% endif %}
+                            {% else %}
+                                —
+                            {% endif %}
+                        </td>
                         <td class="status-{{ item.incident.status }}" style="text-align: center;">{{ item.incident.get_status_display }}</td>
                     </tr>
                     {% endfor %}
@@ -107,78 +134,209 @@
 </div>
 
 <script>
+// Модальное окно для редактирования комментариев к столбцам
+// Ключ для localStorage
+const COLUMN_TITLES_STORAGE_KEY = 'incident_detail_table_column_titles';
+
+// Функция для получения сохраненных title из localStorage
+function getSavedColumnTitles() {
+    const saved = localStorage.getItem(COLUMN_TITLES_STORAGE_KEY);
+    return saved ? JSON.parse(saved) : {};
+}
+
+// Функция для сохранения title в localStorage
+function saveColumnTitles(titles) {
+    localStorage.setItem(COLUMN_TITLES_STORAGE_KEY, JSON.stringify(titles));
+}
+
+// Функция для применения сохраненных title к столбцам
+function applySavedColumnTitles() {
+    const savedTitles = getSavedColumnTitles();
+    const tableHeaders = document.querySelectorAll('.table thead th');
+    
+    tableHeaders.forEach((th, index) => {
+        const columnName = th.textContent.trim();
+        if (savedTitles[columnName]) {
+            th.setAttribute('title', savedTitles[columnName]);
+        }
+    });
+}
+
+// Функция для открытия модального окна
+function openColumnCommentsModal() {
+    const tableHeaders = document.querySelectorAll('.table thead th');
+    const savedTitles = getSavedColumnTitles();
+    const formBody = document.getElementById('column-comments-form-body');
+    
+    if (!formBody) return;
+    
+    // Очищаем форму
+    formBody.innerHTML = '';
+    
+    // Создаем поля для каждого столбца
+    tableHeaders.forEach((th) => {
+        const columnName = th.textContent.trim();
+        const currentTitle = savedTitles[columnName] || th.getAttribute('title') || '';
+        
+        const row = document.createElement('div');
+        row.style.marginBottom = '16px';
+        
+        const label = document.createElement('label');
+        label.style.display = 'block';
+        label.style.marginBottom = '6px';
+        label.style.fontWeight = '500';
+        label.textContent = columnName;
+        
+        const textarea = document.createElement('textarea');
+        textarea.value = currentTitle;
+        textarea.dataset.columnName = columnName;
+        textarea.style.width = '100%';
+        textarea.style.padding = '8px 12px';
+        textarea.style.border = '1px solid #c3c8d0';
+        textarea.style.borderRadius = '6px';
+        textarea.style.fontSize = '0.95em';
+        textarea.style.boxSizing = 'border-box';
+        textarea.style.minHeight = '80px';
+        textarea.style.resize = 'vertical';
+        textarea.style.fontFamily = 'inherit';
+        
+        textarea.addEventListener('focus', function() {
+            this.style.border = '1.5px solid #4d7cff';
+            this.style.boxShadow = '0 0 0 2px #4d7cff22';
+            this.style.outline = 'none';
+        });
+        
+        textarea.addEventListener('blur', function() {
+            this.style.border = '1px solid #c3c8d0';
+            this.style.boxShadow = 'none';
+        });
+        
+        row.appendChild(label);
+        row.appendChild(textarea);
+        formBody.appendChild(row);
+    });
+    
+    const columnCommentsModal = document.getElementById('column-comments-modal');
+    if (columnCommentsModal) {
+        columnCommentsModal.style.display = 'flex';
+    }
+}
+
+// Функция для закрытия модального окна
+function closeColumnCommentsModal() {
+    const columnCommentsModal = document.getElementById('column-comments-modal');
+    if (columnCommentsModal) {
+        columnCommentsModal.style.display = 'none';
+    }
+}
+
 document.addEventListener('DOMContentLoaded', function() {
-    // Проверяем наличие параметра search в URL
+    // Проверяем наличие параметров в URL
     const urlParams = new URLSearchParams(window.location.search);
     const searchParam = urlParams.get('search');
+    const violatorFilterParam = urlParams.get('violator_filter');
+    const violatorFilterLocked = violatorFilterParam === 'yes';
     
-    // Если параметр search присутствует, блокируем поля фильтрации
-    if (searchParam) {
-        const fieldsToBlock = [
-            'search',      // Поиск по названию
-            'date_from',   // Фильтр по дате начала
-            'date_to',     // Фильтр по дате конца
-            'assigned_user' // Фильтр по пользователю
-        ];
-        
-        fieldsToBlock.forEach(function(fieldId) {
-            const field = document.getElementById(fieldId);
-            if (field) {
-                field.disabled = true;
-                // Добавляем визуальный стиль для заблокированных полей
-                field.style.backgroundColor = '#e9ecef';
-                field.style.cursor = 'not-allowed';
-                // Для input полей добавляем readonly
-                if (field.tagName === 'INPUT') {
-                    field.setAttribute('readonly', 'readonly');
-                }
+    // Если фильтр по нарушителям заблокирован, добавляем визуальный стиль
+    if (violatorFilterLocked) {
+        const violatorFilterField = document.getElementById('violator_filter');
+        if (violatorFilterField && violatorFilterField.disabled) {
+            violatorFilterField.style.backgroundColor = '#e9ecef';
+            violatorFilterField.style.cursor = 'not-allowed';
+        }
+    }
+    
+    // Обработчик отправки формы - гарантируем сохранение параметра violator_filter, если он заблокирован
+    const form = document.getElementById('incident-detail-filter-form');
+    if (form && violatorFilterLocked) {
+        form.addEventListener('submit', function(e) {
+            // Убеждаемся, что параметр violator_filter будет передан через скрытое поле
+            let hiddenViolatorFilter = document.querySelector('input[name="violator_filter"][type="hidden"]');
+            if (!hiddenViolatorFilter) {
+                hiddenViolatorFilter = document.createElement('input');
+                hiddenViolatorFilter.type = 'hidden';
+                hiddenViolatorFilter.name = 'violator_filter';
+                hiddenViolatorFilter.value = 'yes';
+                form.appendChild(hiddenViolatorFilter);
             }
         });
         
-        // Убеждаемся, что скрытое поле search существует и содержит значение
-        let hiddenSearch = document.getElementById('hidden_search');
-        if (!hiddenSearch) {
-            hiddenSearch = document.createElement('input');
-            hiddenSearch.type = 'hidden';
-            hiddenSearch.name = 'search';
-            hiddenSearch.id = 'hidden_search';
-            hiddenSearch.value = searchParam;
-            document.getElementById('incident-detail-filter-form').appendChild(hiddenSearch);
-        }
-        
-        // Обновляем ссылку кнопки "Сбросить", чтобы она сохраняла параметр search
+        // Обновляем ссылку кнопки "Сбросить", чтобы она сохраняла параметры фильтра по нарушителям
         const resetButton = document.getElementById('reset-button');
         if (resetButton) {
-            const baseUrl = resetButton.getAttribute('href').split('?')[0];
-            resetButton.href = baseUrl + '?search=' + encodeURIComponent(searchParam);
+            const dateFrom = urlParams.get('date_from') || '';
+            const dateTo = urlParams.get('date_to') || '';
+            const baseUrl = "{% url 'builder:incident_detail' %}";
+            let resetUrl = baseUrl + '?violator_filter=yes';
+            if (dateFrom) {
+                resetUrl += '&date_from=' + encodeURIComponent(dateFrom);
+            }
+            if (dateTo) {
+                resetUrl += '&date_to=' + encodeURIComponent(dateTo);
+            }
+            resetButton.href = resetUrl;
         }
     }
     
-    // Обработчик отправки формы - гарантируем сохранение параметра search
-    const form = document.getElementById('incident-detail-filter-form');
-    if (form && searchParam) {
-        form.addEventListener('submit', function(e) {
-            // Убеждаемся, что параметр search будет передан через скрытое поле
-            let hiddenSearch = document.getElementById('hidden_search');
-            if (!hiddenSearch) {
-                hiddenSearch = document.createElement('input');
-                hiddenSearch.type = 'hidden';
-                hiddenSearch.name = 'search';
-                hiddenSearch.id = 'hidden_search';
-                hiddenSearch.value = searchParam;
-                form.appendChild(hiddenSearch);
-            } else {
-                // Всегда обновляем значение скрытого поля на исходное значение из URL
-                hiddenSearch.value = searchParam;
-            }
+    // Инициализация обработчиков для модального окна комментариев к столбцам
+    const columnCommentsButton = document.getElementById('column-comments-button');
+    const columnCommentsClose = document.getElementById('column-comments-modal-close');
+    const columnCommentsForm = document.getElementById('column-comments-form');
+    const columnCommentsModal = document.getElementById('column-comments-modal');
+    
+    if (columnCommentsButton) {
+        columnCommentsButton.addEventListener('click', openColumnCommentsModal);
+    }
+    
+    if (columnCommentsClose) {
+        columnCommentsClose.addEventListener('click', closeColumnCommentsModal);
+    }
+    
+    
+    // Обработчик отправки формы
+    if (columnCommentsForm) {
+        columnCommentsForm.addEventListener('submit', function(event) {
+            event.preventDefault();
             
-            // Удаляем атрибут name у видимого поля, если он есть, чтобы оно не отправлялось
-            const visibleSearchInput = document.getElementById('search');
-            if (visibleSearchInput && visibleSearchInput.hasAttribute('name')) {
-                visibleSearchInput.removeAttribute('name');
-            }
+            const formBody = document.getElementById('column-comments-form-body');
+            if (!formBody) return;
+            
+            const textareas = formBody.querySelectorAll('textarea[data-column-name]');
+            const titles = {};
+            
+            textareas.forEach(textarea => {
+                const columnName = textarea.dataset.columnName;
+                const title = textarea.value.trim();
+                titles[columnName] = title;
+            });
+            
+            // Сохраняем в localStorage
+            saveColumnTitles(titles);
+            
+            // Применяем к столбцам
+            applySavedColumnTitles();
+            
+            // Закрываем модальное окно
+            closeColumnCommentsModal();
         });
     }
+    
+    // Применяем сохраненные title к столбцам при загрузке страницы
+    applySavedColumnTitles();
 });
 </script>
+
+<!-- Модальное окно для редактирования комментариев к столбцам -->
+<div id="column-comments-modal" style="display:none; position:fixed; z-index:99999; left:0; top:0; width:100vw; height:100vh; background:rgba(0,0,0,0.35); align-items:center; justify-content:center;">
+    <div style="background:#fff; color:#232a3a; padding:32px 32px 24px 32px; border-radius:12px; box-shadow:0 2px 16px #0007; min-width:500px; max-width:95vw; max-height:90vh; overflow-y:auto; text-align:left; position:relative;">
+        <h4 style="margin-top:0; margin-bottom:24px;">Комментарий к столбцам</h4>
+        <form id="column-comments-form">
+            <div id="column-comments-form-body"></div>
+            <div style="margin-top:24px; display:flex; gap:12px; justify-content:flex-end;">
+                <button type="button" class="btn btn-secondary" onclick="closeColumnCommentsModal()">Отмена</button>
+                <button type="submit" class="btn btn-primary">Сохранить</button>
+            </div>
+        </form>
+    </div>
+</div>
 {% endblock %}

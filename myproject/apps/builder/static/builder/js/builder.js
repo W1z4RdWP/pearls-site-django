@@ -33,8 +33,8 @@ function toggleSubcat(header) {
     if (!categoryBlock) return;
 
     const categoryId = categoryBlock.dataset.id;
-    const subcatList = categoryBlock.querySelector('.subcategory-list');
-    const lessonList = categoryBlock.querySelector('.lesson-list');
+    const subcatList = categoryBlock.querySelector(':scope > .subcategory-list');
+    const lessonList = categoryBlock.querySelector(':scope > .lesson-list');
     const arrow = header.querySelector('.toggle-arrow');
 
     // Сохраняем состояние
@@ -53,7 +53,7 @@ function toggleSubcat(header) {
     }
 
     if (arrow) {
-        arrow.innerHTML = isNowOpen ? '&#9660;' : '&#9654;'; // ▼ или ▶
+        arrow.innerHTML = isNowOpen ? '−' : '+'; // минус (открыто) или плюс (закрыто)
     }
 }
 
@@ -321,7 +321,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const parentBlock = document.querySelector(`.category-block[data-id='${catId}']`);
         if (!parentBlock) return;
         // Найти или создать ul.subcategory-list
-        let subUl = parentBlock.querySelector('.subcategory-list');
+        let subUl = parentBlock.querySelector(':scope > .subcategory-list');
         if (!subUl) {
             subUl = document.createElement('ul');
             subUl.className = 'subcategory-list';
@@ -1063,7 +1063,15 @@ document.addEventListener('DOMContentLoaded', function() {
                 method: 'POST',
                 headers: { 'X-CSRFToken': (document.querySelector('[name=csrfmiddlewaretoken]')||{}).value || '', 'Content-Type': 'application/json' },
                 body: JSON.stringify({ target_category: targetCategory })
-            }).then(r => r.json()).then(data => {
+            }).then(r => {
+                const contentType = r.headers.get('content-type');
+                if (!contentType || !contentType.includes('application/json')) {
+                    return r.text().then(text => {
+                        throw new Error('Сервер вернул не JSON ответ. Возможно, произошла ошибка на сервере.');
+                    });
+                }
+                return r.json();
+            }).then(data => {
                 if (data.error) { alert('Ошибка: ' + data.error); return; }
                 if (data.result) {
                     if (clipboardData.action === 'cut') {
@@ -1538,7 +1546,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         header.classList.add('open');
                         // Меняем стрелку
                         const arrow = header.querySelector('.toggle-arrow');
-                        if (arrow) arrow.innerHTML = '&#9660;';
+                        if (arrow) arrow.innerHTML = '−';
                     }
                 }
                 parent = parent.parentElement;
@@ -1589,7 +1597,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     if (header && !header.classList.contains('open')) {
                         header.classList.add('open');
                         const arrow = header.querySelector('.toggle-arrow');
-                        if (arrow) arrow.innerHTML = '&#9660;';
+                        if (arrow) arrow.innerHTML = '−';
                     }
                 }
                 parent = parent.parentElement;
@@ -1645,7 +1653,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     if (header && !header.classList.contains('open')) {
                         header.classList.add('open');
                         const arrow = header.querySelector('.toggle-arrow');
-                        if (arrow) arrow.innerHTML = '&#9660;';
+                        if (arrow) arrow.innerHTML = '−';
                     }
                 }
                 parent = parent.parentElement;
@@ -1696,7 +1704,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     if (header && !header.classList.contains('open')) {
                         header.classList.add('open');
                         const arrow = header.querySelector('.toggle-arrow');
-                        if (arrow) arrow.innerHTML = '&#9660;';
+                        if (arrow) arrow.innerHTML = '−';
                     }
                 }
                 parent = parent.parentElement;

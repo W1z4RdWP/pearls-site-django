@@ -253,11 +253,11 @@ function deleteTrajectory(trajectoryId, trajectoryName) {
                    `• Удалению всех связей с курсами\n` +
                    `• Удалению всех назначений группам\n` +
                    `• Потере прогресса пользователей\n\n` +
-                   `Введите "УДАЛИТЬ" для подтверждения:`;
+                   `Введите "${trajectoryName}" для подтверждения:`;
     
     const confirmation = prompt(message);
     
-    if (confirmation === 'УДАЛИТЬ') {
+    if (confirmation === `${trajectoryName}`) {
         $.ajax({
             url: '/builder/trajectories/' + trajectoryId + '/delete/',
             method: 'POST',

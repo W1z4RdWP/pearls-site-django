@@ -23,10 +23,11 @@
     </header>
     <!-- Local -->
     <div class="video-instruction">
-      <video controls autoplay muted loop>
-        <source src="{% if request.user.profile.country == 'Казахстан' %}{% static 'courses/video/metrics_video_kz.mp4' %}{% else %}{% static 'courses/video/metrics_video.mp4' %}{% endif %}" type="video/mp4">
-        Ваш браузер не поддерживает воспроизведение видео.
-      </video>
+      {% if request.user.profile.country == 'Казахстан' %}
+        <div style="position: relative; padding-top: 56.25%; width: 100%"><iframe src="https://kinescope.io/embed/ijL9wXf5AebnRDtqTeL5ZX" allow="autoplay; fullscreen; picture-in-picture; encrypted-media; gyroscope; accelerometer; clipboard-write; screen-wake-lock;" frameborder="0" allowfullscreen style="position: absolute; width: 100%; height: 100%; top: 0; left: 0;"></iframe></div>
+      {% else %}
+        <div style="position: relative; padding-top: 56.25%; width: 100%"><iframe src="https://kinescope.io/embed/163rzgS8FJp8obhYsaawpe" allow="autoplay; fullscreen; picture-in-picture; encrypted-media; gyroscope; accelerometer; clipboard-write; screen-wake-lock;" frameborder="0" allowfullscreen style="position: absolute; width: 100%; height: 100%; top: 0; left: 0;"></iframe></div>
+      {% endif %}
     </div>
 
     <form id="f" class="card" novalidate>

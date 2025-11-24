@@ -3,6 +3,21 @@ from django.template.loader import render_to_string
 from django.conf import settings
 from django.urls import reverse
 
+
+
+
+def get_user_privilege_level(user):
+    if user.is_superuser:
+        return 4
+    if user.is_staff:
+        return 3
+    if user.profile.is_mentor_user:
+        return 2
+    return 1
+
+
+
+
 def send_user_credentials_email(user, password):
     """
     Отправляет email с данными для входа пользователю

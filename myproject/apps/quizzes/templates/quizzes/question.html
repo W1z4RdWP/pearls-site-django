@@ -53,7 +53,15 @@
                 {% if question.question_type == 'text' %}
                     <div class="mb-3">
                         <label for="answer_text" class="form-label">Ваш ответ:</label>
-                        <textarea class="form-control" name="answer_text" id="answer_text" rows="4" required></textarea>
+                        <textarea class="form-control" name="answer_text" id="answer_text" rows="4" required maxlength="2000"></textarea>
+                        <div class="mt-2">
+                            <small class="text-muted">
+                                Символов: <span id="char-count">0</span> / 2000
+                            </small>
+                            <div id="char-limit-warning" class="alert alert-warning mt-2 mb-0" style="display: none;">
+                                <i class="fas fa-exclamation-triangle"></i> Достигнут лимит в 2000 символов. Дальнейший ввод невозможен.
+                            </div>
+                        </div>
                     </div>
                 {% elif question.question_type == 'sequence' %}
                     <div class="mb-3">
@@ -162,6 +170,113 @@
         </div>
     </div>
 </div>
+
+{% if question.question_type == 'text' %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const textarea = document.getElementById('answer_text');
+    const charCount = document.getElementById('char-count');
+    const warningDiv = document.getElementById('char-limit-warning');
+    const MAX_LENGTH = 2000;
+    let warningShown = false;
+    
+    if (!textarea || !charCount || !warningDiv) {
+        return;
+    }
+    
+    // Функция обновления счетчика
+    function updateCharCount() {
+        const currentLength = textarea.value.length;
+        charCount.textContent = currentLength;
+        
+        // Обновляем цвет счетчика при приближении к лимиту
+        if (currentLength >= MAX_LENGTH) {
+            charCount.style.color = '#dc3545';
+            charCount.style.fontWeight = 'bold';
+            
+            // Показываем предупреждение, если еще не показывали
+            if (!warningShown) {
+                warningDiv.style.display = 'block';
+                warningShown = true;
+                // Показываем alert один раз
+                alert('Достигнут лимит в 2000 символов. Дальнейший ввод невозможен.');
+            }
+        } else if (currentLength >= MAX_LENGTH * 0.9) {
+            charCount.style.color = '#ffc107';
+            charCount.style.fontWeight = 'bold';
+            warningDiv.style.display = 'none';
+        } else {
+            charCount.style.color = '';
+            charCount.style.fontWeight = '';
+            warningDiv.style.display = 'none';
+        }
+    }
+    
+    // Обработчик ввода - ограничиваем длину
+    textarea.addEventListener('input', function(e) {
+        const currentLength = this.value.length;
+        
+        if (currentLength >= MAX_LENGTH) {
+            // Обрезаем текст до максимальной длины
+            this.value = this.value.substring(0, MAX_LENGTH);
+            // Предотвращаем дальнейший ввод
+            e.preventDefault();
+        }
+        
+        updateCharCount();
+    });
+    
+    // Обработчик вставки (Ctrl+V, правый клик -> вставить)
+    textarea.addEventListener('paste', function(e) {
+        const currentLength = this.value.length;
+        const pastedText = (e.clipboardData || window.clipboardData).getData('text');
+        const newLength = currentLength + pastedText.length;
+        
+        if (newLength > MAX_LENGTH) {
+            e.preventDefault();
+            // Вставляем только часть текста, которая помещается
+            const allowedLength = MAX_LENGTH - currentLength;
+            if (allowedLength > 0) {
+                this.value += pastedText.substring(0, allowedLength);
+            }
+            updateCharCount();
+        }
+    });
+    
+    // Обработчик клавиатуры - блокируем ввод при достижении лимита
+    textarea.addEventListener('keydown', function(e) {
+        const currentLength = this.value.length;
+        
+        // Разрешаем удаление и навигацию
+        const allowedKeys = [
+            'Backspace', 'Delete', 'ArrowLeft', 'ArrowRight', 
+            'ArrowUp', 'ArrowDown', 'Home', 'End',
+            'Tab', 'Enter'
+        ];
+        
+        if (allowedKeys.includes(e.key)) {
+            return;
+        }
+        
+        // Блокируем ввод, если достигнут лимит
+        if (currentLength >= MAX_LENGTH) {
+            // Разрешаем только комбинации клавиш (Ctrl, Alt, Shift)
+            if (!e.ctrlKey && !e.altKey && !e.metaKey) {
+                e.preventDefault();
+                if (!warningShown) {
+                    warningDiv.style.display = 'block';
+                    warningShown = true;
+                    alert('Достигнут лимит в 2000 символов. Дальнейший ввод невозможен.');
+                }
+            }
+        }
+    });
+    
+    // Инициализация счетчика при загрузке
+    updateCharCount();
+});
+</script>
+{% endif %}
 
 {% if question.question_type == 'match' %}
 <script>

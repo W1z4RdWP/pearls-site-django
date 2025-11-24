@@ -95,6 +95,71 @@ function initializeMainPageHandlers() {
     }
     // === ПОИСК ПО НАЗВАНИЮ ТЕСТА ===
     initializeQuizSearch();
+    
+    // === ОБРАБОТКА ЗАГРУЗКИ DOCX ===
+    initializeDocxUpload();
+}
+
+// === ФУНКЦИИ ДЛЯ ЗАГРУЗКИ DOCX ===
+
+function initializeDocxUpload() {
+    const uploadForm = document.getElementById('uploadQuizForm');
+    if (!uploadForm) return;
+    
+    uploadForm.addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        const formData = new FormData(this);
+        const progressDiv = document.getElementById('uploadProgress');
+        const submitBtn = this.querySelector('button[type="submit"]');
+        const originalBtnText = submitBtn.innerHTML;
+        
+        // Показываем индикатор загрузки
+        progressDiv.classList.remove('d-none');
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Обработка...';
+        
+        fetch(this.action, {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+            },
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
+            return response.json();
+        })
+        .then(data => {
+            if (data.success) {
+                // Закрываем модальное окно
+                const modal = bootstrap.Modal.getInstance(document.getElementById('uploadQuizModal'));
+                if (modal) {
+                    modal.hide();
+                }
+                
+                // Показываем сообщение об успехе
+                alert(`Тест "${data.name}" успешно создан!\nВопросов: ${data.questions_count}\nОтветов: ${data.answers_count || 'N/A'}`);
+                
+                // Перезагружаем страницу
+                location.reload();
+            } else {
+                alert('Ошибка: ' + (data.error || 'Неизвестная ошибка'));
+            }
+        })
+        .catch(error => {
+            alert('Произошла ошибка при загрузке файла: ' + error.message);
+            console.error('Error:', error);
+        })
+        .finally(() => {
+            // Восстанавливаем кнопку
+            progressDiv.classList.add('d-none');
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = originalBtnText;
+        });
+    });
 }
 
 // === ФУНКЦИИ ДЛЯ СТРАНИЦЫ РЕДАКТИРОВАНИЯ ===
@@ -188,6 +253,15 @@ function addQuestion() {
                 <option value="match">Соответствие</option>
                 <option value="sequence">Последовательность</option>
             </select>
+        </div>
+
+        <div class="mb-3 mentor-instruction-field" style="display: none;">
+            <label class="form-label">Комментарий для наставника</label>
+            <textarea class="form-control" 
+                    name="questions[${questionCounter}][mentor_instruction]" 
+                    rows="3" 
+                    placeholder="Введите комментарий, который будет отображаться наставнику при проверке этого вопроса"></textarea>
+            <div class="form-text">Этот комментарий будет показан наставнику при наведении на иконку "?" рядом с вопросом</div>
         </div>
 
         <div class="answers-container">
@@ -381,14 +455,23 @@ function removeMatchPair(button) {
 function toggleAnswers(select) {
     const questionBlock = select.closest('.question-block');
     const answersContainer = questionBlock.querySelector('.answers-container');
+    const mentorInstructionField = questionBlock.querySelector('.mentor-instruction-field');
     const questionId = questionBlock.dataset.questionId;
 
     if (select.value === 'text') {
         answersContainer.style.display = 'none';
+        // Показываем поле комментария для наставника
+        if (mentorInstructionField) {
+            mentorInstructionField.style.display = 'block';
+        }
         // Убираем required с полей ответов для текстовых вопросов
         answersContainer.querySelectorAll('input[type="text"]').forEach(input => input.required = false);
     } else if (select.value === 'sequence') {
         answersContainer.style.display = 'block';
+        // Скрываем поле комментария для наставника
+        if (mentorInstructionField) {
+            mentorInstructionField.style.display = 'none';
+        }
         // Для типа последовательность показываем специальную инструкцию
         const label = answersContainer.querySelector('label');
         if (label) {
@@ -484,6 +567,10 @@ function toggleAnswers(select) {
         }
     } else if (select.value === 'match') {
         answersContainer.style.display = 'block';
+        // Скрываем поле комментария для наставника
+        if (mentorInstructionField) {
+            mentorInstructionField.style.display = 'none';
+        }
         // Для типа соответствие показываем специальную инструкцию
         const label = answersContainer.querySelector('label');
         if (label) {
@@ -593,6 +680,10 @@ function toggleAnswers(select) {
         }
     } else {
         answersContainer.style.display = 'block';
+        // Скрываем поле комментария для наставника
+        if (mentorInstructionField) {
+            mentorInstructionField.style.display = 'none';
+        }
         // Добавляем required для полей ответов
         answersContainer.querySelectorAll('input[type="text"]').forEach(input => input.required = true);
 

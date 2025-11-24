@@ -6,13 +6,15 @@
 {% endblock %}
 
 {% block content %}
-<div class="container" style="max-width: 600px; margin-top: 48px;">
-    <h2>{% if view.object %}Редактировать категорию{% else %}Добавить категорию{% endif %}</h2>
-    <form method="post" class="bg-light p-4 rounded shadow-sm" style="color: black;">
-        {% csrf_token %}
-        {{ form|crispy }}
-        <button type="submit" class="btn btn-success">Сохранить</button>
-        <a href="{% url 'builder:lesson_master' %}" class="btn btn-secondary">Отмена</a>
-    </form>
-</div>
+
+    <div class="container" style="max-width: 600px; margin-top: 48px;">
+        <h2>{% if view.object %}Редактировать категорию{% else %}Добавить категорию{% endif %}</h2>
+        <form method="post" class="bg-light p-4 rounded shadow-sm" style="color: black;">
+            {% csrf_token %}
+            {{ form|crispy }}
+            <button type="submit" class="btn btn-success">Сохранить</button>
+            <a href="{% url 'builder:lesson_master' %}" class="btn btn-secondary">Отмена</a>
+        </form>
+    </div>
+
 {% endblock %}

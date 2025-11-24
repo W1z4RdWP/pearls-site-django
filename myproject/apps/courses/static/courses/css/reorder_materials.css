@@ -2,98 +2,63 @@
     min-height: 200px;
 }
 
-.material-item {
-    background: white;
-    border: 1px solid #dee2e6;
-    border-radius: 8px;
-    margin-bottom: 8px;
-    padding: 12px;
-    cursor: move;
-    transition: all 0.2s ease;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-}
-
-.material-item:hover {
-    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
-    transform: translateY(-1px);
-}
-
-.material-content {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-}
-
-.material-icon {
-    font-size: 24px;
-    width: 32px;
-    text-align: center;
-    flex-shrink: 0;
-}
-
-.material-info {
-    flex-grow: 1;
-}
-
-.material-title {
-    font-weight: 500;
-    font-size: 16px;
-    color: #333;
-    margin-bottom: 4px;
-}
-
-.material-meta {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-}
-
 .material-handle {
     color: #6c757d;
     cursor: grab;
-    padding: 4px;
+    padding: 4px 8px;
+    margin-left: 10px;
     flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    transition: all 0.2s ease;
+}
+
+.material-handle i {
+    font-size: 1.2rem;
+    color: #6c757d;
 }
 
 .material-handle:hover {
+    color: #495057;
+    transform: scale(1.1);
+}
+
+.material-handle:hover i {
     color: #495057;
 }
 
 .material-handle:active {
     cursor: grabbing;
+    color: #343a40;
+}
+
+.material-handle:active i {
+    color: #343a40;
 }
 
 /* Sortable.js классы */
 .sortable-ghost {
-    opacity: 0.5;
-    background: #f8f9fa;
-    border: 2px dashed #6c757d;
+    opacity: 0.4;
+    background: #f8f9fa !important;
+    border: 2px dashed #6c757d !important;
 }
 
 .sortable-chosen {
-    background: #e3f2fd;
-    border-color: #2196f3;
+    background: #e3f2fd !important;
+    border-color: #2196f3 !important;
+    box-shadow: 0 4px 12px rgba(33, 150, 243, 0.2) !important;
 }
 
 .sortable-drag {
-    background: white;
-    box-shadow: 0 5px 15px rgba(0,0,0,0.3);
-    transform: rotate(2deg);
+    background: white !important;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.3) !important;
+    transform: rotate(1deg);
 }
 
 /* Адаптивность */
 @media (max-width: 768px) {
-    .material-title {
-        font-size: 14px;
-    }
-    
-    .material-icon {
-        font-size: 20px;
-        width: 28px;
-    }
-    
-    .material-item {
-        padding: 10px;
+    .material-handle {
+        padding: 4px;
     }
 }
 
@@ -103,53 +68,8 @@
     transition: all 0.3s ease;
 }
 
-/* Стили для бейджей */
-.badge {
-    font-size: 11px;
-    padding: 4px 8px;
-}
-
-.badge.bg-primary {
-    background-color: #0d6efd !important;
-}
-
-.badge.bg-info {
-    background-color: #0dcaf0 !important;
-}
-
-/* Стили для карточек */
-.card {
-    border: none;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-}
-
-.card-header {
-    background: #f8f9fa;
-    border-bottom: 1px solid #dee2e6;
-}
-
 /* Кнопка сохранения */
 #save-order:disabled {
     opacity: 0.6;
     cursor: not-allowed;
-}
-
-/* Список инструкций */
-.list-unstyled li {
-    padding: 8px 0;
-    border-bottom: 1px solid #f1f1f1;
-}
-
-.list-unstyled li:last-child {
-    border-bottom: none;
-}
-
-.list-unstyled li i {
-    width: 20px;
-    margin-right: 8px;
-}
-
-
-.card .btn{
-    width: clamp(120px, 10vw, 180px);
 }

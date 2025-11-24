@@ -538,6 +538,7 @@
                                 {% if data.is_blocked %}
                                 <form method="post" action="{% url 'user_management:unlock_quiz_access' target_user.pk quiz.pk %}" style="display: inline;">
                                     {% csrf_token %}
+                                    <input type="hidden" name="next" value="user_edit_detailed">
                                     <button type="submit" class="btn-unlock" onclick="return confirm('Разблокировать доступ к тесту? Пользователь сможет пройти еще одну попытку.')">
                                         <i class="fas fa-unlock me-1"></i>Разблокировать
                                     </button>
@@ -562,9 +563,10 @@
         <!-- Вкладка: Назначенное обучение -->
         <div class="tab-pane fade {% if active_tab == 'assigned_training' %}show active{% endif %}" id="assigned-training" role="tabpanel" aria-labelledby="assigned-training-tab">
             <div class="assigned-training-wrapper">
-                <p class="text-muted mb-4">Информация о назначенных пользователю курсах, мероприятиях и статусе их завершения.</p>
+                
                 
                 <!-- Кнопки действий -->
+                 {% if not readonly %}
                 <div class="d-flex justify-content-end mb-3">
                     <div class="btn-group">
                         <button type="button" class="btn btn-success dropdown-toggle" id="assignTrainingBtn" data-bs-toggle="dropdown" aria-expanded="false">
@@ -572,9 +574,11 @@
                         </button>
                         <ul class="dropdown-menu" aria-labelledby="assignTrainingBtn">
                             <li><a class="dropdown-item" href="#" id="assignCourseBtn">Назначить курс</a></li>
+                            <li><a class="dropdown-item" href="#" id="assignTrajectoryBtn">Назначить траекторию</a></li>
                         </ul>
                     </div>
                 </div>
+                {% endif %}
 
                 <!-- Таблица назначенных обучений -->
                 {% if assigned_trainings %}
@@ -588,6 +592,9 @@
                                 <th>Статус</th>
                                 <th>Срок выполнения</th>
                                 <th>Тип назначения</th>
+                                {% if not readonly %}
+                                <th style="width: 80px;">Действия</th>
+                                {% endif %}
                             </tr>
                         </thead>
                         <tbody>
@@ -602,7 +609,13 @@
                                     {% endif %}
                                     {{ training.name }}
                                 </td>
-                                <td>—</td>
+                                <td>
+                                    {% if training.assignment_date %}
+                                        {{ training.assignment_date|date:"d.m.Y" }} <small style="font-size: calc(1em - 3px);">{{ training.assignment_date|date:"H:i" }}</small>
+                                    {% else %}
+                                        —
+                                    {% endif %}
+                                </td>
                                 <td>
                                     <span class="badge 
                                         {% if training.status_code == 'completed' %}bg-success
@@ -611,8 +624,27 @@
                                         {{ training.status }}
                                     </span>
                                 </td>
-                                <td>—</td>
+                                <td>
+                                    {% if training.due_date %}
+                                        {{ training.due_date|date:"d.m.Y" }} <small style="font-size: calc(1em - 3px);">{{ training.due_date|date:"H:i" }}</small>
+                                    {% else %}
+                                        —
+                                    {% endif %}
+                                </td>
                                 <td>{{ training.assignment_type }}</td>
+                                {% if not readonly %}
+                                <td>
+                                    <form method="post" 
+                                          action="{% if training.type == 'course' %}{% url 'user_management:unassign_course' target_user.pk training.id %}{% else %}{% url 'user_management:unassign_trajectory' target_user.pk training.id %}{% endif %}" 
+                                          style="display: inline;"
+                                          onsubmit="return confirm('Вы уверены, что хотите отменить назначение обучения &quot;{{ training.name }}&quot;?');">
+                                        {% csrf_token %}
+                                        <button type="submit" class="btn btn-sm btn-outline-danger" title="Отменить назначение">
+                                            <i class="fas fa-times"></i>
+                                        </button>
+                                    </form>
+                                </td>
+                                {% endif %}
                             </tr>
                             {% endfor %}
                         </tbody>
@@ -862,6 +894,13 @@ const searchCoursesUrl = "{% url 'user_management:api_search_courses' %}";
 const assignCoursesUrlTemplate = "{% url 'user_management:api_assign_courses_to_user' target_user.pk %}";
 const getGroupCoursesUrl = getGroupCoursesUrlTemplate.replace('/0/', '/{id}/');
 
+// API endpoints для траекторий
+const getGroupsWithTrajectoriesUrl = "{% url 'user_management:api_get_groups_with_trajectories' %}";
+const getGroupTrajectoriesUrlTemplate = "{% url 'user_management:api_get_group_trajectories' 0 %}";
+const searchTrajectoriesUrl = "{% url 'user_management:api_search_trajectories' %}";
+const assignTrajectoriesUrlTemplate = "{% url 'user_management:api_assign_trajectories_to_user' target_user.pk %}";
+const getGroupTrajectoriesUrl = getGroupTrajectoriesUrlTemplate.replace('/0/', '/{id}/');
+
 // Элементы DOM для назначения курсов (будут инициализированы в DOMContentLoaded)
 let courseModal, courseModalClose, courseSearchInput, courseSearchResultsDropdown;
 let groupCourseList, selectedCoursesList, confirmCourseAssignmentBtn, cancelCourseAssignmentBtn;
@@ -871,6 +910,16 @@ let selectedCourses = new Map(); // courseId -> {id, title, description, author}
 
 // Кэш последних результатов поиска
 let lastCourseSearchResults = [];
+
+// Элементы DOM для назначения траекторий (будут инициализированы в DOMContentLoaded)
+let trajectoryModal, trajectoryModalClose, trajectorySearchInput, trajectorySearchResultsDropdown;
+let groupTrajectoryList, selectedTrajectoriesList, confirmTrajectoryAssignmentBtn, cancelTrajectoryAssignmentBtn;
+
+// Хранилище выбранных траекторий
+let selectedTrajectories = new Map(); // trajectoryId -> {id, name, description}
+
+// Кэш последних результатов поиска траекторий
+let lastTrajectorySearchResults = [];
 
 // Обработчики событий будут инициализированы в DOMContentLoaded
 
@@ -1239,6 +1288,373 @@ function applyCourseAssignment() {
     });
 }
 
+// ========== ФУНКЦИИ ДЛЯ НАЗНАЧЕНИЯ ТРАЕКТОРИЙ ==========
+
+// Загрузка списка групп с траекториями
+function loadGroupsForTrajectories() {
+    if (!groupTrajectoryList) return;
+    
+    groupTrajectoryList.innerHTML = '<div class="group-list-loading">Загрузка групп...</div>';
+    
+    fetch(getGroupsWithTrajectoriesUrl)
+        .then(response => response.json())
+        .then(data => {
+            displayGroupsWithTrajectories(data.groups);
+        })
+        .catch(error => {
+            console.error('Ошибка загрузки групп:', error);
+            groupTrajectoryList.innerHTML = '<div class="group-list-error">Ошибка загрузки групп</div>';
+        });
+}
+
+// Отображение списка групп с траекториями
+function displayGroupsWithTrajectories(groups) {
+    if (!groupTrajectoryList) return;
+    
+    if (groups.length === 0) {
+        groupTrajectoryList.innerHTML = '<div class="group-list-empty">Группы не найдены</div>';
+        return;
+    }
+    
+    let html = '';
+    groups.forEach(function(group) {
+        html += `
+            <div class="group-item" data-group-id="${group.id}">
+                <div class="group-item-name">${group.name}</div>
+                <div class="group-item-count">${group.trajectories_count} траекторий, ${group.user_count} пользователей</div>
+            </div>
+        `;
+    });
+    
+    groupTrajectoryList.innerHTML = html;
+    
+    // Добавляем обработчики клика на каждую группу
+    const groupItems = groupTrajectoryList.querySelectorAll('.group-item');
+    groupItems.forEach(function(item) {
+        item.addEventListener('click', function() {
+            const groupId = this.getAttribute('data-group-id');
+            addGroupTrajectories(groupId);
+        });
+    });
+}
+
+// Получение значения по умолчанию для deadline_days траектории
+function getDefaultTrajectoryDeadlineDays() {
+    const deadlineInput = document.getElementById('trajectoryDeadlineInput');
+    return deadlineInput ? parseInt(deadlineInput.value) || 30 : 30;
+}
+
+// Добавление всех траекторий группы
+function addGroupTrajectories(groupId) {
+    const url = getGroupTrajectoriesUrl.replace('{id}', groupId);
+    const defaultDeadline = getDefaultTrajectoryDeadlineDays();
+    
+    fetch(url)
+        .then(response => response.json())
+        .then(data => {
+            data.trajectories.forEach(function(trajectory) {
+                if (!selectedTrajectories.has(trajectory.id)) {
+                    trajectory.deadline_days = defaultDeadline;
+                    trajectory.deadline_modified = false;
+                    selectedTrajectories.set(trajectory.id, trajectory);
+                }
+            });
+            displaySelectedTrajectories();
+        })
+        .catch(error => {
+            console.error('Ошибка загрузки траекторий группы:', error);
+        });
+}
+
+// Поиск траекторий для добавления
+let trajectorySearchTimeout;
+
+// Закрытие выпадающего списка траекторий при клике вне его
+document.addEventListener('click', function(event) {
+    if (trajectorySearchInput && trajectorySearchResultsDropdown) {
+        if (!trajectorySearchInput.contains(event.target) && !trajectorySearchResultsDropdown.contains(event.target)) {
+            hideTrajectorySearchResults();
+        }
+    }
+});
+
+// Поиск траекторий и отображение результатов
+function searchTrajectories(query) {
+    if (!trajectorySearchResultsDropdown) return;
+    
+    trajectorySearchResultsDropdown.innerHTML = '<div class="search-results-loading">Поиск...</div>';
+    trajectorySearchResultsDropdown.style.display = 'block';
+    
+    const url = searchTrajectoriesUrl + '?q=' + encodeURIComponent(query);
+    
+    fetch(url)
+        .then(response => response.json())
+        .then(data => {
+            lastTrajectorySearchResults = data.trajectories;
+            displayTrajectorySearchResults(data.trajectories);
+        })
+        .catch(error => {
+            console.error('Ошибка поиска траекторий:', error);
+            trajectorySearchResultsDropdown.innerHTML = '<div class="search-results-empty">Ошибка поиска</div>';
+        });
+}
+
+// Отображение результатов поиска траекторий
+function displayTrajectorySearchResults(trajectories) {
+    if (!trajectorySearchResultsDropdown) return;
+    
+    if (trajectories.length === 0) {
+        trajectorySearchResultsDropdown.innerHTML = '<div class="search-results-empty">Траектории не найдены</div>';
+        return;
+    }
+    
+    let html = '';
+    trajectories.forEach(function(trajectory) {
+        // Пропускаем уже выбранные траектории
+        if (selectedTrajectories.has(trajectory.id)) {
+            return;
+        }
+        
+        html += `
+            <div class="search-result-item" data-trajectory-id="${trajectory.id}">
+                <div class="search-result-name">${trajectory.name}</div>
+                <div class="search-result-username">${trajectory.description || ''}</div>
+            </div>
+        `;
+    });
+    
+    if (html === '') {
+        trajectorySearchResultsDropdown.innerHTML = '<div class="search-results-empty">Все найденные траектории уже выбраны</div>';
+        return;
+    }
+    
+    trajectorySearchResultsDropdown.innerHTML = html;
+    
+    // Добавляем обработчики клика на результаты
+    const resultItems = trajectorySearchResultsDropdown.querySelectorAll('.search-result-item');
+    resultItems.forEach(function(item) {
+        item.addEventListener('click', function() {
+            const trajectoryId = parseInt(this.getAttribute('data-trajectory-id'));
+            addTrajectoryFromSearch(trajectoryId);
+        });
+    });
+}
+
+// Добавление траектории из результатов поиска
+function addTrajectoryFromSearch(trajectoryId) {
+    const trajectory = lastTrajectorySearchResults.find(t => t.id === trajectoryId);
+    const defaultDeadline = getDefaultTrajectoryDeadlineDays();
+    
+    if (trajectory && !selectedTrajectories.has(trajectoryId)) {
+        trajectory.deadline_days = defaultDeadline;
+        trajectory.deadline_modified = false;
+        selectedTrajectories.set(trajectoryId, trajectory);
+        displaySelectedTrajectories();
+        if (trajectorySearchInput) {
+            trajectorySearchInput.value = '';
+        }
+        hideTrajectorySearchResults();
+    }
+}
+
+// Скрытие выпадающего списка результатов траекторий
+function hideTrajectorySearchResults() {
+    if (trajectorySearchResultsDropdown) {
+        trajectorySearchResultsDropdown.style.display = 'none';
+        trajectorySearchResultsDropdown.innerHTML = '';
+    }
+}
+
+// Отображение выбранных траекторий
+function displaySelectedTrajectories() {
+    if (!selectedTrajectoriesList) return;
+    
+    if (selectedTrajectories.size === 0) {
+        selectedTrajectoriesList.innerHTML = '<div class="selected-users-empty">Траектории не выбраны</div>';
+        return;
+    }
+    
+    let html = '';
+    selectedTrajectories.forEach(function(trajectory, trajectoryId) {
+        // Инициализируем deadline_days, если его нет
+        if (trajectory.deadline_days === undefined) {
+            trajectory.deadline_days = getDefaultTrajectoryDeadlineDays();
+        }
+        if (trajectory.deadline_modified === undefined) {
+            trajectory.deadline_modified = false;
+        }
+        
+        html += `
+            <div class="selected-user-item" data-trajectory-id="${trajectoryId}">
+                <div class="selected-user-info">
+                    <div class="selected-user-name">${trajectory.name}</div>
+                    <div class="selected-user-username">${trajectory.description || ''}</div>
+                </div>
+                <div class="selected-user-actions" style="display: flex; align-items: center; gap: 8px;">
+                    <input type="number" 
+                           class="form-control form-control-sm trajectory-deadline-input" 
+                           data-trajectory-id="${trajectoryId}"
+                           value="${trajectory.deadline_days}" 
+                           min="1" 
+                           style="width: 70px;"
+                           title="Количество дней для завершения траектории">
+                    <span class="selected-user-remove" data-trajectory-id="${trajectoryId}" title="Удалить">&times;</span>
+                </div>
+            </div>
+        `;
+    });
+    
+    selectedTrajectoriesList.innerHTML = html;
+    
+    // Добавляем обработчики для удаления траекторий
+    const removeButtons = selectedTrajectoriesList.querySelectorAll('.selected-user-remove');
+    removeButtons.forEach(function(btn) {
+        btn.addEventListener('click', function(e) {
+            e.stopPropagation();
+            const trajectoryId = parseInt(this.getAttribute('data-trajectory-id'));
+            selectedTrajectories.delete(trajectoryId);
+            displaySelectedTrajectories();
+        });
+    });
+    
+    // Добавляем обработчики для индивидуальных полей deadline
+    const deadlineInputs = selectedTrajectoriesList.querySelectorAll('.trajectory-deadline-input');
+    deadlineInputs.forEach(function(input) {
+        const trajectoryId = parseInt(input.getAttribute('data-trajectory-id'));
+        const trajectory = selectedTrajectories.get(trajectoryId);
+        
+        if (trajectory) {
+            // Обработчик изменения индивидуального поля
+            input.addEventListener('input', function() {
+                const value = parseInt(this.value);
+                if (value && value >= 1) {
+                    trajectory.deadline_days = value;
+                    trajectory.deadline_modified = true;
+                }
+            });
+            
+            // Обработчик потери фокуса для валидации
+            input.addEventListener('blur', function() {
+                const value = parseInt(this.value);
+                if (!value || value < 1) {
+                    this.value = trajectory.deadline_days || getDefaultTrajectoryDeadlineDays();
+                }
+            });
+        }
+    });
+}
+
+// Применение выбора траекторий
+function applyTrajectoryAssignment() {
+    const trajectoryIds = Array.from(selectedTrajectories.keys());
+    
+    if (trajectoryIds.length === 0) {
+        alert('Выберите хотя бы одну траекторию для назначения');
+        return;
+    }
+    
+    // Формируем массив траекторий с индивидуальными deadline_days
+    const trajectoriesData = [];
+    let hasInvalidDeadline = false;
+    
+    selectedTrajectories.forEach(function(trajectory, trajectoryId) {
+        const deadlineDays = trajectory.deadline_days || getDefaultTrajectoryDeadlineDays();
+        
+        if (!deadlineDays || deadlineDays < 1) {
+            hasInvalidDeadline = true;
+            return;
+        }
+        
+        trajectoriesData.push({
+            trajectory_id: trajectoryId,
+            deadline_days: deadlineDays
+        });
+    });
+    
+    if (hasInvalidDeadline || trajectoriesData.length === 0) {
+        alert('Введите корректное количество дней для завершения траектории (минимум 1 день) для всех траекторий');
+        return;
+    }
+    
+    // Отключаем кнопку на время выполнения запроса
+    if (confirmTrajectoryAssignmentBtn) {
+        confirmTrajectoryAssignmentBtn.disabled = true;
+        confirmTrajectoryAssignmentBtn.textContent = 'Назначение...';
+    }
+    
+    // Получаем CSRF токен
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+    const csrfToken = getCookie('csrftoken');
+    
+    // Отправляем запрос на сервер
+    fetch(assignTrajectoriesUrlTemplate, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': csrfToken
+        },
+        body: JSON.stringify({
+            trajectories: trajectoriesData
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.error) {
+            alert('Ошибка: ' + data.error);
+        } else {
+            // Формируем сообщение о результате
+            let message = `Назначено траекторий: ${data.assigned_count}`;
+            if (data.already_assigned_count > 0) {
+                message += `\nУже были назначены: ${data.already_assigned_count}`;
+            }
+            
+            if (data.assigned_count > 0) {
+                // Очищаем выбранные траектории
+                selectedTrajectories.clear();
+                displaySelectedTrajectories();
+                
+                // Закрываем модальное окно
+                if (trajectoryModal) {
+                    trajectoryModal.style.display = 'none';
+                }
+                hideTrajectorySearchResults();
+                
+                // Показываем сообщение об успехе
+                alert(message);
+                
+                // Перезагружаем страницу для обновления данных
+                window.location.reload();
+            } else {
+                alert('Все выбранные траектории уже были назначены пользователю');
+            }
+        }
+    })
+    .catch(error => {
+        console.error('Ошибка:', error);
+        alert('Произошла ошибка при назначении траекторий');
+    })
+    .finally(() => {
+        // Включаем кнопку обратно
+        if (confirmTrajectoryAssignmentBtn) {
+            confirmTrajectoryAssignmentBtn.disabled = false;
+            confirmTrajectoryAssignmentBtn.textContent = 'Применить';
+        }
+    });
+}
+
 // Инициализация элементов DOM и обработчиков
 document.addEventListener('DOMContentLoaded', function() {
     // Инициализация элементов DOM
@@ -1292,12 +1708,21 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Поиск курсов для добавления
     if (courseSearchInput) {
+        // Загрузка всех курсов при фокусе на поле поиска
+        courseSearchInput.addEventListener('focus', function() {
+            // Если поле пустое, загружаем все курсы
+            if (this.value.trim().length === 0) {
+                searchCourses('');
+            }
+        });
+        
         courseSearchInput.addEventListener('input', function() {
             clearTimeout(courseSearchTimeout);
             const query = this.value.trim();
             
             if (query.length === 0) {
-                hideCourseSearchResults();
+                // При пустом запросе показываем все курсы
+                searchCourses('');
                 return;
             }
             
@@ -1342,6 +1767,117 @@ document.addEventListener('DOMContentLoaded', function() {
     if (confirmCourseAssignmentBtn) {
         confirmCourseAssignmentBtn.addEventListener('click', function() {
             applyCourseAssignment();
+        });
+    }
+    
+    // ========== ИНИЦИАЛИЗАЦИЯ ДЛЯ ТРАЕКТОРИЙ ==========
+    
+    // Инициализация элементов DOM для траекторий
+    trajectoryModal = document.getElementById('trajectoryAssignmentModal');
+    trajectoryModalClose = document.getElementById('trajectoryModalClose');
+    trajectorySearchInput = document.getElementById('trajectorySearchInput');
+    trajectorySearchResultsDropdown = document.getElementById('trajectorySearchResultsDropdown');
+    groupTrajectoryList = document.getElementById('groupTrajectoryList');
+    selectedTrajectoriesList = document.getElementById('selectedTrajectoriesList');
+    confirmTrajectoryAssignmentBtn = document.getElementById('confirmTrajectoryAssignmentBtn');
+    cancelTrajectoryAssignmentBtn = document.getElementById('cancelTrajectoryAssignmentBtn');
+    
+    // Обработчик кнопки "Назначить траекторию"
+    const assignTrajectoryBtn = document.getElementById('assignTrajectoryBtn');
+    if (assignTrajectoryBtn) {
+        assignTrajectoryBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            if (trajectoryModal) {
+                trajectoryModal.style.display = 'block';
+                loadGroupsForTrajectories();
+            }
+        });
+    }
+    
+    // Закрытие модального окна траекторий
+    if (trajectoryModalClose) {
+        trajectoryModalClose.addEventListener('click', function() {
+            if (trajectoryModal) {
+                trajectoryModal.style.display = 'none';
+            }
+            hideTrajectorySearchResults();
+        });
+    }
+    
+    if (cancelTrajectoryAssignmentBtn) {
+        cancelTrajectoryAssignmentBtn.addEventListener('click', function() {
+            if (trajectoryModal) {
+                trajectoryModal.style.display = 'none';
+            }
+            hideTrajectorySearchResults();
+        });
+    }
+    
+    // Закрытие при клике вне модального окна траекторий
+    window.addEventListener('click', function(event) {
+        if (event.target == trajectoryModal) {
+            trajectoryModal.style.display = 'none';
+            hideTrajectorySearchResults();
+        }
+    });
+    
+    // Поиск траекторий для добавления
+    if (trajectorySearchInput) {
+        // Загрузка всех траекторий при фокусе на поле поиска
+        trajectorySearchInput.addEventListener('focus', function() {
+            if (this.value.trim().length === 0) {
+                searchTrajectories('');
+            }
+        });
+        
+        trajectorySearchInput.addEventListener('input', function() {
+            clearTimeout(trajectorySearchTimeout);
+            const query = this.value.trim();
+            
+            if (query.length === 0) {
+                searchTrajectories('');
+                return;
+            }
+            
+            trajectorySearchTimeout = setTimeout(function() {
+                searchTrajectories(query);
+            }, 300);
+        });
+    }
+    
+    // Обработчик изменения общего поля deadline для траекторий
+    const trajectoryDeadlineInput = document.getElementById('trajectoryDeadlineInput');
+    if (trajectoryDeadlineInput) {
+        trajectoryDeadlineInput.addEventListener('input', function() {
+            const newValue = parseInt(this.value);
+            if (newValue && newValue >= 1) {
+                selectedTrajectories.forEach(function(trajectory, trajectoryId) {
+                    if (!trajectory.deadline_modified) {
+                        trajectory.deadline_days = newValue;
+                        const input = selectedTrajectoriesList ? selectedTrajectoriesList.querySelector(`.trajectory-deadline-input[data-trajectory-id="${trajectoryId}"]`) : null;
+                        if (input) {
+                            input.value = newValue;
+                        }
+                    }
+                });
+            }
+        });
+    }
+    
+    // Обработка клавиши Escape для закрытия выпадающего списка траекторий
+    if (trajectorySearchInput) {
+        trajectorySearchInput.addEventListener('keydown', function(event) {
+            if (event.key === 'Escape') {
+                hideTrajectorySearchResults();
+                this.blur();
+            }
+        });
+    }
+    
+    // Применение выбора траекторий
+    if (confirmTrajectoryAssignmentBtn) {
+        confirmTrajectoryAssignmentBtn.addEventListener('click', function() {
+            applyTrajectoryAssignment();
         });
     }
 });
@@ -1389,6 +1925,53 @@ document.addEventListener('DOMContentLoaded', function() {
             <div class="responsible-modal-footer">
                 <button type="button" class="btn btn-primary" id="confirmCourseAssignmentBtn">Применить</button>
                 <button type="button" class="btn btn-secondary" id="cancelCourseAssignmentBtn">Отмена</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Модальное окно для назначения траекторий -->
+<div id="trajectoryAssignmentModal" class="responsible-modal">
+    <div class="responsible-modal-content">
+        <div class="responsible-modal-header">
+            <h3>Назначить траектории</h3>
+            <span class="responsible-modal-close" id="trajectoryModalClose">&times;</span>
+        </div>
+        <div class="responsible-modal-body">
+            <div class="responsible-columns">
+                <!-- Левая колонка - Группы и траектории -->
+                <div class="responsible-left-column">
+                    <h4>Группы и траектории</h4>
+                    <div id="groupTrajectoryList" class="group-list">
+                        <div class="group-list-loading">Загрузка групп...</div>
+                    </div>
+                </div>
+                
+                <!-- Разделитель -->
+                <div class="responsible-divider"></div>
+                
+                <!-- Правая колонка - Выбранные траектории -->
+                <div class="responsible-right-column">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h4 class="mb-0">Выбранные траектории</h4>
+                        <div class="d-flex align-items-center gap-2">
+                            <label for="trajectoryDeadlineInput" class="mb-0 small text-muted">Срок завершения (дней):</label>
+                            <input type="number" id="trajectoryDeadlineInput" class="form-control form-control-sm" 
+                                   value="30" min="1" style="width: 80px;" title="Количество дней для завершения траектории со дня назначения">
+                        </div>
+                    </div>
+                    <div class="responsible-search-box">
+                        <input type="text" id="trajectorySearchInput" class="form-control" placeholder="Поиск траектории для добавления...">
+                        <div id="trajectorySearchResultsDropdown" class="search-results-dropdown" style="display: none;"></div>
+                    </div>
+                    <div id="selectedTrajectoriesList" class="selected-users-list">
+                        <div class="selected-users-empty">Траектории не выбраны</div>
+                    </div>
+                </div>
+            </div>
+            <div class="responsible-modal-footer">
+                <button type="button" class="btn btn-primary" id="confirmTrajectoryAssignmentBtn">Применить</button>
+                <button type="button" class="btn btn-secondary" id="cancelTrajectoryAssignmentBtn">Отмена</button>
             </div>
         </div>
     </div>

@@ -36,6 +36,8 @@ urlpatterns = [
     path('incidents/', views.IncidentListView.as_view(), name='incidents'),
     path('incidents/add/', views.IncidentCreateView.as_view(), name='incident_add'),
     path('incidents/<int:pk>/edit/', views.IncidentUpdateView.as_view(), name='incident_edit'),
+    path('incidents/<int:pk>/decline/', views.IncidentDeclineView.as_view(), name='incident_decline'),
+    path('incidents/<int:pk>/create-course/', views.CreateCourseFromIncidentView.as_view(), name='incident_create_course'),
     path('incidents/detail/', views.IncidentDetailListView.as_view(), name='incident_detail'),
 
     # Поиск/реордеры/клипборд
@@ -86,4 +88,19 @@ urlpatterns = [
     # Groups API
     path('api/groups/', views.api_get_groups, name='api_get_groups'),
     path('api/groups/<int:group_id>/users/', views.api_get_group_users, name='api_get_group_users'),
+    
+    # ИПР
+    path('ipr/', views.IPRListView.as_view(), name='ipr_list'),
+    path('ipr/add/', views.IPRCreateView.as_view(), name='ipr_add'),
+    path('ipr/<int:pk>/edit/', views.IPRUpdateView.as_view(), name='ipr_edit'),
+    
+    # Модули ИПР
+    path('ipr/modules/<int:user_id>/', views.IPRModuleListView.as_view(), name='ipr_module_list'),
+    path('ipr/modules/<int:user_id>/add/', views.IPRModuleCreateView.as_view(), name='ipr_module_add'),
+    path('ipr/modules/<int:pk>/edit/', views.IPRModuleUpdateView.as_view(), name='ipr_module_edit'),
+    path('ipr/modules/<int:pk>/info/', views.IPRModuleDetailView.as_view(), name='ipr_module_info'),
+    path('ipr/modules/<int:pk>/start/', views.IPRModuleStartView.as_view(), name='ipr_module_start'),
+    path('ipr/modules/<int:pk>/complete/', views.IPRModuleCompleteView.as_view(), name='ipr_module_complete'),
+    path('ipr/modules/<int:pk>/pause/', views.IPRModulePauseView.as_view(), name='ipr_module_pause'),
+    path('ipr/modules/<int:pk>/resume/', views.IPRModuleResumeView.as_view(), name='ipr_module_resume'),
 ]

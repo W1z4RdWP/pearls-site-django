@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import UserCourse, QuizResult, UserAnswer, ChangeLog
+from .models import UserCourse, QuizResult, UserAnswer, ChangeLog, ManualCourseUnassignment
 
 admin.site.site_header = "Kupryazha"
 admin.site.site_title = "Администрирование сайта"
@@ -59,3 +59,17 @@ class UserAnswerAdmin(admin.ModelAdmin):
             return obj.answer_text[:50] + '...' if len(obj.answer_text) > 50 else obj.answer_text
         return '-'
     answer_text_preview.short_description = 'Текстовый ответ'
+
+@admin.register(ManualCourseUnassignment)
+class ManualCourseUnassignmentAdmin(admin.ModelAdmin):
+    list_display = ('user', 'course', 'unassigned_at', 'unassigned_by', 'reason_preview')
+    list_filter = ('unassigned_at', 'unassigned_by')
+    search_fields = ('user__username', 'course__title', 'reason')
+    readonly_fields = ('unassigned_at',)
+    date_hierarchy = 'unassigned_at'
+    
+    def reason_preview(self, obj):
+        if obj.reason:
+            return obj.reason[:50] + '...' if len(obj.reason) > 50 else obj.reason
+        return '-'
+    reason_preview.short_description = 'Причина'

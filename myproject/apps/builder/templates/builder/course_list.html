@@ -1,5 +1,6 @@
 {% extends 'layout.html' %}
 {% load static %}
+{% load url_replace %}
 {% block title %}Все курсы{% endblock %}
 
 {% block specific_styles %}
@@ -172,7 +173,7 @@
                                                         <i class="fas fa-edit"></i> Редактировать
                                                     </a></li>
                                                     <li><a class="dropdown-item" href="{% url 'courses:add_lesson' course.slug %}">
-                                                        <i class="fas fa-plus"></i> Добавить урок
+                                                        <i class="fas fa-plus"></i> Добавить материал
                                                     </a></li>
                                                     <li><hr class="dropdown-divider"></li>
                                                     <li><a class="dropdown-item text-danger" href="#" onclick="deleteCourse('{{ course.slug }}', '{{ course.title }}')">
@@ -202,6 +203,7 @@
             </div>
         </div>
     </div>
+    
      <!-- Пагинация -->
      {% if is_paginated %}
      <div class="row mt-3 mt-md-4">
@@ -210,10 +212,10 @@
                  <ul class="pagination pagination-sm justify-content-center flex-wrap">
                      {% if page_obj.has_previous %}
                          <li class="page-item">
-                             <a class="page-link" href="?page=1"><span class="d-none d-sm-inline">&laquo; Первая</span><span class="d-sm-none">&laquo;</span></a>
+                             <a class="page-link" href="?{% url_replace request 'page' 1 %}"><span class="d-none d-sm-inline">&laquo; Первая</span><span class="d-sm-none">&laquo;</span></a>
                          </li>
                          <li class="page-item">
-                             <a class="page-link" href="?page={{ page_obj.previous_page_number }}"><span class="d-none d-sm-inline">Предыдущая</span><span class="d-sm-none">Пред</span></a>
+                             <a class="page-link" href="?{% url_replace request 'page' page_obj.previous_page_number %}"><span class="d-none d-sm-inline">Предыдущая</span><span class="d-sm-none">Пред</span></a>
                          </li>
                      {% endif %}
                      
@@ -226,10 +228,10 @@
                      
                      {% if page_obj.has_next %}
                          <li class="page-item">
-                             <a class="page-link" href="?page={{ page_obj.next_page_number }}"><span class="d-none d-sm-inline">Следующая</span><span class="d-sm-none">След</span></a>
+                             <a class="page-link" href="?{% url_replace request 'page' page_obj.next_page_number %}"><span class="d-none d-sm-inline">Следующая</span><span class="d-sm-none">След</span></a>
                          </li>
                          <li class="page-item">
-                             <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}"><span class="d-none d-sm-inline">Последняя &raquo;</span><span class="d-sm-none">&raquo;</span></a>
+                             <a class="page-link" href="?{% url_replace request 'page' page_obj.paginator.num_pages %}"><span class="d-none d-sm-inline">Последняя &raquo;</span><span class="d-sm-none">&raquo;</span></a>
                          </li>
                      {% endif %}
                  </ul>

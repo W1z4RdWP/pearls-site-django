@@ -279,7 +279,7 @@
 }
 
 .user-list-item {
-    padding: 14px 16px;
+    padding: 6px 12px;
     cursor: pointer;
     border-bottom: 1px solid #e3e8f0;
     background: #fff;
@@ -586,10 +586,11 @@
 }
 
 .search-result-item {
-    padding: 12px 16px;
+    padding: 6px 12px;
     cursor: pointer;
     border-bottom: 1px solid #e3e8f0;
     transition: background 0.2s;
+    line-height: 1.4;
 }
 
 .search-result-item:last-child {
@@ -603,7 +604,7 @@
 .search-result-name {
     font-weight: 600;
     color: #232a3a;
-    margin-bottom: 4px;
+    font-size: 0.95em;
 }
 
 .search-result-username {
@@ -796,4 +797,196 @@
         min-height: 0;
         flex: 1;
     }
+}
+
+/* Стили для счетчика времени проверки */
+.time-counter-wrapper {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    flex-shrink: 0;
+    vertical-align: middle;
+}
+
+.time-counter-btn {
+    width: 32px;
+    height: 38px;
+    min-height: 38px;
+    border: 1px solid #e3e8f0;
+    border-radius: 6px;
+    background: #fff;
+    color: #232a3a;
+    font-size: 1.2em;
+    font-weight: 600;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+    padding: 0;
+    margin: 0;
+    line-height: 1;
+    vertical-align: middle;
+    box-sizing: border-box;
+    flex-shrink: 0;
+}
+
+.time-counter-btn:hover {
+    background: #f7f8fa;
+    border-color: #4d7cff;
+    color: #4d7cff;
+}
+
+.time-counter-btn:active {
+    background: #e3e8f0;
+    transform: scale(0.95);
+}
+
+.time-counter-input {
+    width: 35px !important;
+    min-width: 35px !important;
+    max-width: 35px !important;
+    height: 38px !important;
+    border: 1px solid #e3e8f0;
+    border-radius: 6px;
+    text-align: center;
+    font-size: 1em !important;
+    font-weight: 600;
+    color: #232a3a !important;
+    background: #fff !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    cursor: default;
+    box-sizing: border-box;
+    flex-shrink: 0;
+    -moz-appearance: textfield;
+    line-height: 38px;
+    vertical-align: middle;
+}
+
+.time-counter-input::-webkit-outer-spin-button,
+.time-counter-input::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+.time-counter-input:focus {
+    outline: none;
+    border-color: #4d7cff;
+}
+
+/* Стили для иконки вопроса и подсказки */
+.help-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background-color: #6c757d;
+    color: #fff;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    position: relative;
+    transition: background-color 0.2s;
+    flex-shrink: 0;
+    line-height: 1;
+}
+
+.help-icon:hover {
+    background-color: #4d7cff;
+}
+
+.help-icon::after {
+    content: attr(data-tooltip);
+    position: absolute;
+    bottom: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    margin-bottom: 8px;
+    padding: 10px 14px;
+    background-color: #232a3a;
+    color: #fff;
+    font-size: 0.875rem;
+    line-height: 1.5;
+    white-space: pre-line;
+    border-radius: 6px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transition: opacity 0.2s, visibility 0.2s;
+    min-width: 400px;
+    max-width: 600px;
+    z-index: 10001;
+    text-align: left;
+}
+
+.help-icon::before {
+    content: '';
+    position: absolute;
+    bottom: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    margin-bottom: 2px;
+    border: 6px solid transparent;
+    border-top-color: #232a3a;
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transition: opacity 0.2s, visibility 0.2s;
+    z-index: 10002;
+}
+
+.help-icon:hover::after,
+.help-icon:focus::after,
+.help-icon.active::after {
+    opacity: 1;
+    visibility: visible;
+}
+
+.help-icon:hover::before,
+.help-icon:focus::before,
+.help-icon.active::before {
+    opacity: 1;
+    visibility: visible;
+}
+
+.help-icon:focus {
+    outline: 2px solid #4d7cff;
+    outline-offset: 2px;
+}
+
+/* Адаптивное позиционирование для мобильных устройств */
+@media (max-width: 768px) {
+    .help-icon::after {
+        left: auto;
+        right: 0;
+        transform: none;
+        min-width: 300px;
+        max-width: calc(100vw - 40px);
+    }
+
+    .help-icon::before {
+        left: auto;
+        right: 20px;
+        transform: none;
+    }
+}
+
+/* Стили для disabled полей */
+.incident-form-card .form-control:disabled,
+.incident-form-card select.form-control:disabled {
+    background-color: #e9ecef !important;
+    color: #6c757d !important;
+    cursor: not-allowed;
+    opacity: 0.7;
+}
+
+/* Стили для readonly полей */
+.incident-form-card .form-control[readonly] {
+    background-color: #e9ecef !important;
+    color: #6c757d !important;
+    cursor: default;
 }

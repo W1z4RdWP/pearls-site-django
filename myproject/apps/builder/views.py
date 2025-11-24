@@ -1,4 +1,5 @@
 from django.views.generic import DetailView, TemplateView, View
+from django.views.decorators.http import require_POST
 from django.shortcuts import get_object_or_404, render, redirect
 from django.http import Http404
 from courses.models import Course, Lesson
@@ -7,13 +8,14 @@ from django.contrib.auth.decorators import login_required, permission_required
 from django.utils.decorators import method_decorator
 from django.views.generic import ListView, CreateView, UpdateView, DeleteView, FormView
 from django.urls import reverse_lazy, reverse
-from .models import CategoryName, Document, Incident, LessonVersion, LessonCategoryMirror, DictionarySection, DictionaryTerm
+from myapp.views import is_admin
+from .models import CategoryName, Document, Incident, LessonVersion, LessonCategoryMirror, DictionarySection, DictionaryTerm, IPR, IPRModule, IPRModuleIndicator
 from django.core.exceptions import PermissionDenied
-from .forms import DocumentForm, IncidentForm
+from .forms import DocumentForm, IncidentForm, IPRForm, IPRModuleForm
 from .utils import get_compact_fio, user_has_category_access, filter_categories_and_lessons_for_user
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
-from django.db.models import Max, Q
+from django.db.models import Max, Q, Count, F
 from django.db import transaction
 from django.views.decorators.http import require_POST
 import json
@@ -32,6 +34,10 @@ from .audit_logger import (
     log_reorder, log_mirror, log_actualize, serialize_model_data,
     AuditLoggerMixin
 )
+from user_management.utils import send_course_assignment_email
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 
@@ -360,7 +366,7 @@ class LessonMasterDetailView(TemplateView):
 
 class LessonCreateView(CreateView, AuditLoggerMixin):
     model = Lesson
-    fields = ['title', 'content', 'courses', 'category', 'required_time']
+    fields = ['title', 'content', 'courses', 'category', 'required_time', 'final_quiz']
     template_name = 'builder/lesson_form.html'
     success_url = reverse_lazy('builder:lesson_master')
 
@@ -382,6 +388,10 @@ class LessonCreateView(CreateView, AuditLoggerMixin):
         category_id = self.kwargs.get('category_id')
         if category_id:
             context['preselected_category'] = get_object_or_404(CategoryName, pk=category_id)
+        # Сохраняем URL возврата в контексте для использования в шаблоне
+        return_url = self.request.GET.get('return_url')
+        if return_url:
+            context['return_url'] = return_url
         return context
 
     def form_valid(self, form):
@@ -425,6 +435,14 @@ class LessonCreateView(CreateView, AuditLoggerMixin):
 
 
     def get_success_url(self):
+        # Проверяем наличие параметра возврата
+        return_url = self.request.GET.get('return_url')
+        if return_url:
+            # Декодируем URL и возвращаемся обратно
+            from urllib.parse import unquote
+            decoded_url = unquote(return_url)
+            return decoded_url
+        # Если параметра нет, возвращаемся в мастер уроков
         return f"{reverse('builder:lesson_master')}?new_lesson={self.object.id}"
 
 
@@ -432,7 +450,7 @@ class LessonCreateView(CreateView, AuditLoggerMixin):
 
 class LessonUpdateView(UpdateView, AuditLoggerMixin):
     model = Lesson
-    fields = ['title', 'content', 'order', 'courses', 'category', 'required_time']
+    fields = ['title', 'content', 'order', 'courses', 'category', 'required_time', 'final_quiz']
     template_name = 'builder/lesson_form.html'
     success_url = reverse_lazy('builder:lesson_master')
 
@@ -716,37 +734,97 @@ class DashboardView(TemplateView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         
-        # Получаем неоцененные TEXT ответы
-        from myapp.models import UserAnswer
-        from quizzes.models import Question
+        # Проверяем, является ли пользователь наставником (но не staff/superuser)
+        is_mentor_only = (hasattr(self.request.user, 'profile') and 
+                         self.request.user.profile.is_mentor_user and 
+                         not self.request.user.is_staff and 
+                         not self.request.user.is_superuser)
         
-        # Сначала подсчитываем общее количество неоцененных ответов
-        unrated_answers_queryset = UserAnswer.objects.filter(
-            question__question_type='text',
-            is_correct__isnull=True,  # Не оценено
-            answer_text__isnull=False,  # Есть текстовый ответ
-            answer_text__gt=''  # Не пустой ответ
-        )
+        # Для наставников не показываем неоцененные ответы
+        if not is_mentor_only:
+            # Получаем неоцененные TEXT ответы
+            from myapp.models import UserAnswer, QuizResult
+            from quizzes.models import Question
+            
+            # Получаем все неоцененные ответы
+            unrated_answers_queryset = UserAnswer.objects.filter(
+                question__question_type='text',
+                is_correct__isnull=True,  # Не оценено
+                answer_text__isnull=False,  # Есть текстовый ответ
+                answer_text__gt=''  # Не пустой ответ
+            ).select_related('user', 'question', 'quiz_result', 'quiz_result__course')
+            
+            # Получаем все уникальные quiz_result из неоцененных ответов
+            quiz_result_ids = unrated_answers_queryset.values_list('quiz_result_id', flat=True).distinct()
+            quiz_results = QuizResult.objects.filter(id__in=quiz_result_ids).select_related('user', 'course').order_by(
+                'user_id', 'quiz_title', 'course_id', '-percent', '-completed_at'
+            )
+            
+            # Группируем результаты по (user, quiz_title, course) и находим лучшие попытки
+            # Лучшая попытка = максимальный percent, при равенстве - последняя по дате
+            # Благодаря сортировке первая попытка в каждой группе будет лучшей
+            seen = set()
+            best_result_ids = []
+            for result in quiz_results:
+                # Используем None для course_id, если курс не указан
+                course_id = result.course_id if result.course_id else None
+                key = (result.user_id, result.quiz_title, course_id)
+                
+                if key not in seen:
+                    seen.add(key)
+                    best_result_ids.append(result.id)
+            
+            # Преобразуем в set для более быстрого поиска
+            best_result_ids = set(best_result_ids)
+            
+            # Фильтруем только ответы из лучших попыток
+            unrated_answers_best = unrated_answers_queryset.filter(quiz_result_id__in=best_result_ids)
+            
+            # Общее количество неоцененных ответов из лучших попыток
+            context['total_unrated_count'] = unrated_answers_best.count()
+            
+            # Для отображения ограничиваем до 20 записей для производительности
+            unrated_text_answers = unrated_answers_best.order_by('-quiz_result__completed_at')[:20]
+            
+            # Группируем по пользователям и тестам для удобства
+            grouped_answers = {}
+            for answer in unrated_text_answers:
+                key = f"{answer.user.username}_{answer.quiz_result.id}"
+                if key not in grouped_answers:
+                    grouped_answers[key] = {
+                        'user': answer.user,
+                        'quiz_result': answer.quiz_result,
+                        'answers': []
+                    }
+                grouped_answers[key]['answers'].append(answer)
+            
+            context['unrated_text_answers'] = list(grouped_answers.values())
+        else:
+            # Для наставников - пустые значения
+            context['total_unrated_count'] = 0
+            context['unrated_text_answers'] = []
         
-        # Общее количество неоцененных ответов
-        context['total_unrated_count'] = unrated_answers_queryset.count()
-        
-        # Для отображения ограничиваем до 20 записей для производительности
-        unrated_text_answers = unrated_answers_queryset.select_related('user', 'question', 'quiz_result').order_by('-quiz_result__completed_at')[:20]
-        
-        # Группируем по пользователям и тестам для удобства
-        grouped_answers = {}
-        for answer in unrated_text_answers:
-            key = f"{answer.user.username}_{answer.quiz_result.id}"
-            if key not in grouped_answers:
-                grouped_answers[key] = {
-                    'user': answer.user,
-                    'quiz_result': answer.quiz_result,
-                    'answers': []
-                }
-            grouped_answers[key]['answers'].append(answer)
-        
-        context['unrated_text_answers'] = list(grouped_answers.values())
+        # Топ-5 пользователей по DASCOIN из группы наставника
+        if is_mentor_only:
+            from django.contrib.auth.models import User
+            # Получаем группы наставника
+            mentor_groups = self.request.user.groups.all()
+            if mentor_groups.exists():
+                # Получаем топ-5 пользователей по DASCOIN из групп наставника
+                top_users = User.objects.filter(
+                    groups__in=mentor_groups,
+                    profile__is_approved=True
+                ).exclude(
+                    Q(is_superuser=True) | Q(is_staff=True)
+                ).select_related('profile').order_by(
+                    '-profile__dascoin_points', 'email'
+                ).distinct()[:5]
+                
+                context['top_users_dascoin'] = top_users
+            else:
+                context['top_users_dascoin'] = []
+        else:
+            context['top_users_dascoin'] = []
         
         return context
 
@@ -809,6 +887,8 @@ class IncidentListView(ListView):
         # Фильтр по дате создания
         date_from = self.request.GET.get('date_from')
         date_to = self.request.GET.get('date_to')
+        date_from_datetime = None
+        date_to_datetime = None
         
         # Если нет параметров в GET запросе (первичная загрузка), устанавливаем дефолтные значения
         if not self.request.GET:
@@ -830,7 +910,7 @@ class IncidentListView(ListView):
         
         # Если нет параметров в GET запросе (первичная загрузка), устанавливаем дефолтные статусы
         if not self.request.GET:
-            statuses = ['new', 'accepted', 'assigned']
+            statuses = ['new', 'accepted', 'assigned', 'studies_completed']
         
         if statuses:
             queryset = queryset.filter(status__in=statuses)
@@ -840,6 +920,60 @@ class IncidentListView(ListView):
         if incident_type:
             queryset = queryset.filter(incident_type=incident_type)
         
+        # Добавляем аннотации для подсчета назначенных и завершивших курс пользователей
+        # Считаем только пользователей из assigned_to (сигнал синхронизирует доступ к курсу)
+        # Исключаем админов, суперпользователей и авторов курса
+        queryset = queryset.annotate(
+            assigned_users_count=Count(
+                'assigned_to',
+                distinct=True,
+                filter=Q(
+                    course__isnull=False,
+                    assigned_to__is_staff=False,
+                    assigned_to__is_superuser=False
+                ) & ~Q(assigned_to=F('course__author'))
+            ),
+            completed_users_count=Count(
+                'assigned_to',
+                distinct=True,
+                filter=Q(
+                    course__isnull=False,
+                    course__usercourse__status='completed',
+                    course__usercourse__user=F('assigned_to'),
+                    assigned_to__is_staff=False,
+                    assigned_to__is_superuser=False
+                ) & ~Q(assigned_to=F('course__author'))
+            )
+        )
+        
+        # Обновляем статусы инцидентов с неоцененными открытыми ответами
+        # Делаем это только для инцидентов с курсами, чтобы не делать лишних запросов
+        # Проверяем до применения фильтров по статусу, чтобы не пропустить инциденты
+        from builder.signals import check_and_update_incident_studies_completed_status
+        from builder.models import Incident
+        
+        # Получаем все инциденты с курсами, которые могут иметь неоцененные ответы
+        # Проверяем только те, которые могут быть в текущем queryset (по датам)
+        incidents_to_check = Incident.objects.filter(
+            course__isnull=False,
+            status__in=['new', 'accepted', 'assigned', 'studies_completed']
+        )
+        
+        # Применяем фильтры по дате, если они есть
+        if date_from_datetime:
+            incidents_to_check = incidents_to_check.filter(created_at__gte=date_from_datetime)
+        if date_to_datetime:
+            incidents_to_check = incidents_to_check.filter(created_at__lte=date_to_datetime)
+        
+        # Обновляем статусы
+        for incident in incidents_to_check:
+            try:
+                check_and_update_incident_studies_completed_status(incident)
+            except Exception as e:
+                import logging
+                logger = logging.getLogger(__name__)
+                logger.error(f"Ошибка при проверке статуса инцидента {incident.id}: {e}")
+        
         return queryset
 
     def get_context_data(self, **kwargs):
@@ -848,10 +982,11 @@ class IncidentListView(ListView):
         context = super().get_context_data(**kwargs)
         context['status_choices'] = Incident.STATUS_CHOICES
         context['incident_type_choices'] = Incident.INCIDENT_TYPE_CHOICES
+        context['now'] = timezone.now()  # Текущая дата и время для проверки просроченных дедлайнов
         
         # Если нет параметров в GET запросе (первичная загрузка), устанавливаем дефолтные значения
         if not self.request.GET:
-            context['selected_statuses'] = ['new', 'accepted', 'assigned']
+            context['selected_statuses'] = ['new', 'accepted', 'assigned', 'studies_completed']
             context['selected_incident_type'] = ''
             context['date_from'] = '2025-01-01'
             context['date_to'] = timezone.now().date().strftime('%Y-%m-%d')
@@ -873,15 +1008,24 @@ class IncidentCreateView(CreateView, AuditLoggerMixin):
     model = Incident
     form_class = IncidentForm
     template_name = 'builder/incident_form.html'
-    success_url = reverse_lazy('builder:incidents')
 
     def dispatch(self, request, *args, **kwargs):
         if not request.user.is_authenticated or not (request.user.is_staff or request.user.is_superuser):
             return render(request, '403.html', status=403)
         return super().dispatch(request, *args, **kwargs)
 
-    
+
+    def get_success_url(self):
+        """
+        Возвращает URL для редиректа после успешного создания инцидента.
+        Перенаправляет на страницу редактирования созданного инцидента.
+        """
+        return reverse('builder:incident_edit', kwargs={'pk': self.object.pk})
+
+
     def form_valid(self, form):
+        # Устанавливаем статус "Принят" для нового инцидента
+        form.instance.status = 'accepted'
         response = super().form_valid(form)
         # Логируем создание инцидента
         self.log_create_action(self.object, "Создан новый инцидент")
@@ -903,10 +1047,136 @@ class IncidentUpdateView(UpdateView, AuditLoggerMixin):
         return super().dispatch(request, *args, **kwargs)
     
     def form_valid(self, form):
+        # Сохраняем старый список назначенных пользователей до сохранения формы
+        old_assigned_users = set(self.object.assigned_to.all())
+        
+        # Получаем новый список назначенных пользователей из формы (до сохранения)
+        new_assigned_users = set(form.cleaned_data.get('assigned_to', []))
+        
+        # Определяем, какие пользователи были удалены и добавлены
+        removed_users = old_assigned_users - new_assigned_users
+        added_users = new_assigned_users - old_assigned_users
+        
+        # Сохраняем форму
         response = super().form_valid(form)
+        
+        # Если у инцидента есть связанный курс, обновляем назначения курса
+        if self.object.course:
+            course = self.object.course
+            
+            # Удаляем назначение курса для пользователей, которые были удалены из списка назначенных
+            for user in removed_users:
+                UserCourse.objects.filter(user=user, course=course).delete()
+            
+            # Назначаем курс новым пользователям
+            for user in added_users:
+                UserCourse.objects.get_or_create(
+                    user=user,
+                    course=course,
+                    defaults={'status': 'available', 'deadline': self.object.deadline}
+                )
+        
         # Логируем обновление инцидента
         self.log_update_action(self.object, "Инцидент обновлён")
         return response
+
+
+@method_decorator(login_required, name='dispatch')
+class IncidentDeclineView(View, AuditLoggerMixin):
+    """
+    Отклонение или возобновление инцидента.
+    """
+    def dispatch(self, request, *args, **kwargs):
+        if not request.user.is_authenticated or not (request.user.is_staff or request.user.is_superuser):
+            return render(request, '403.html', status=403)
+        return super().dispatch(request, *args, **kwargs)
+    
+    def post(self, request, *args, **kwargs):
+        incident_id = kwargs.get('pk')
+        incident = get_object_or_404(Incident, pk=incident_id)
+        
+        # Сохраняем старые значения для аудита
+        old_values = serialize_model_data(incident)
+        
+        if incident.status == 'declined':
+            # Возобновляем инцидент - возвращаем предыдущий статус
+            if incident.previous_status:
+                incident.status = incident.previous_status
+                incident.previous_status = None
+                comment = f"Инцидент возобновлён. Статус изменён на '{incident.get_status_display()}'"
+            else:
+                # Если предыдущий статус не сохранён, устанавливаем 'new'
+                incident.status = 'new'
+                incident.previous_status = None
+                comment = "Инцидент возобновлён. Статус изменён на 'Новый'"
+        else:
+            # Отклоняем инцидент - сохраняем текущий статус и устанавливаем 'declined'
+            previous_status_display = dict(Incident.STATUS_CHOICES).get(incident.status, incident.status)
+            incident.previous_status = incident.status
+            incident.status = 'declined'
+            comment = f"Инцидент отклонён. Предыдущий статус: '{previous_status_display}'"
+        
+        incident.save(update_fields=['status', 'previous_status', 'updated_at'])
+        
+        # Логируем действие
+        self.log_update_action(incident, old_values, comment)
+        
+        return redirect('builder:incidents')
+
+
+@method_decorator(login_required, name='dispatch')
+class CreateCourseFromIncidentView(View):
+    """
+    Создание курса-инцидента из инцидента.
+    """
+    def dispatch(self, request, *args, **kwargs):
+        if not request.user.is_authenticated or not (request.user.is_staff or request.user.is_superuser):
+            return render(request, '403.html', status=403)
+        return super().dispatch(request, *args, **kwargs)
+    
+    def post(self, request, *args, **kwargs):
+        incident_id = kwargs.get('pk')
+        try:
+            incident = get_object_or_404(Incident, pk=incident_id)
+            
+            # Проверяем, не создан ли уже курс для этого инцидента
+            if incident.course:
+                return redirect('courses:course_detail', slug=incident.course.slug)
+            
+            # Создаем курс с названием инцидента
+            course = Course.objects.create(
+                title=incident.title,
+                description=incident.description or '',
+                author=request.user,
+                is_incident=True,
+                responsible_mentor=incident.responsible_mentor,
+                mentors_time_to_check=incident.mentors_time_to_check or 2
+            )
+            
+            # Связываем инцидент с курсом и обновляем статус
+            incident.course = course
+            incident.status = 'assigned'
+            incident.save(update_fields=['course', 'status', 'updated_at'])
+
+            if incident.course and not incident.status == 'assigned':
+                incident.status = 'assigned'
+                incident.save(update_fields=['course', 'status', 'updated_at'])
+            
+            # Автоназначение курса отключено - назначение происходит вручную через кнопки в деталке курса
+            
+            # Перенаправляем на страницу курса
+            return redirect('courses:course_detail', slug=course.slug)
+        except Exception as e:
+            # В случае ошибки перенаправляем обратно на форму инцидента с сообщением об ошибке
+            from django.contrib import messages
+            import traceback
+            messages.error(request, f'Ошибка при создании курса: {str(e)}')
+            if incident_id:
+                return redirect('builder:incident_edit', pk=incident_id)
+            return redirect('builder:incidents')
+
+
+
 
 
 
@@ -929,8 +1199,8 @@ class IncidentDetailListView(ListView):
         import datetime
         
         queryset = super().get_queryset()
-        # Оптимизация: предзагрузка ManyToMany полей
-        queryset = queryset.prefetch_related('assigned_to', 'violators').select_related('user')
+        # Оптимизация: предзагрузка ManyToMany полей и связанных объектов
+        queryset = queryset.prefetch_related('assigned_to', 'violators').select_related('user', 'responsible_mentor', 'expert', 'course')
         
         # Фильтр по названию инцидента (поиск)
         search = self.request.GET.get('search', '').strip()
@@ -961,8 +1231,10 @@ class IncidentDetailListView(ListView):
     def get_context_data(self, **kwargs):
         from django.utils import timezone
         from django.contrib.auth import get_user_model
+        from myapp.models import QuizResult
         
         context = super().get_context_data(**kwargs)
+        context['now'] = timezone.now()  # Текущая дата и время для проверки просроченных дедлайнов
         
         # Получаем список всех активных пользователей для фильтра
         User = get_user_model()
@@ -980,15 +1252,28 @@ class IncidentDetailListView(ListView):
             context['search'] = ''
             context['selected_user_id'] = None
             context['violator_filter'] = 'all'
+            context['violator_filter_locked'] = False
         else:
-            context['date_from'] = self.request.GET.get('date_from', '')
-            context['date_to'] = self.request.GET.get('date_to', '')
+            date_from = self.request.GET.get('date_from', '')
+            date_to = self.request.GET.get('date_to', '')
+            
+            # Если violator_filter=yes и даты не указаны, устанавливаем последние 30 дней
+            if violator_filter == 'yes' and not date_from and not date_to:
+                import datetime
+                today = timezone.now().date()
+                date_from = (today - datetime.timedelta(days=30)).strftime('%Y-%m-%d')
+                date_to = today.strftime('%Y-%m-%d')
+            
+            context['date_from'] = date_from
+            context['date_to'] = date_to
             context['search'] = search
             try:
                 context['selected_user_id'] = int(selected_user_id) if selected_user_id else None
             except (ValueError, TypeError):
                 context['selected_user_id'] = None
             context['violator_filter'] = violator_filter
+            # Блокируем фильтр по нарушителям, если он установлен в 'yes' (переход с кнопки "Нарушители")
+            context['violator_filter_locked'] = (violator_filter == 'yes')
         
         # Создаем список всех назначенных пользователей со всех инцидентов
         incident_user_list = []
@@ -1012,11 +1297,151 @@ class IncidentDetailListView(ListView):
                 if violator_filter == 'no' and is_violator:
                     continue
                 
+                # Проверяем, назначен ли курс пользователю (если у инцидента есть курс)
+                if incident.course:
+                    # Если курс не назначен пользователю, пропускаем этого пользователя
+                    if not UserCourse.objects.filter(user=user, course=incident.course).exists():
+                        continue
+                
+                # Вычисляем прогресс курса, если он есть
+                progress_percent = None
+                course_deadline = None
+                if incident.course:
+                    course = incident.course
+                    
+                    # Получаем UserCourse для получения дедлайна
+                    user_course = UserCourse.objects.filter(user=user, course=course).first()
+                    if user_course:
+                        course_deadline = user_course.deadline
+                    
+                    # Получаем траекторию пользователя для этого курса
+                    trajectory = UserLessonTrajectory.objects.filter(user=user, course=course).first()
+                    
+                    if trajectory:
+                        # Используем уроки из траектории
+                        lessons = trajectory.lessons.all().order_by('order')
+                        total_lessons = lessons.count()
+                        lesson_ids = lessons.values_list('id', flat=True)
+                        completed_lessons = UserProgress.objects.filter(
+                            user=user,
+                            course=course,
+                            completed=True,
+                            lesson_id__in=lesson_ids
+                        ).count()
+                    else:
+                        # Используем все уроки курса
+                        lessons = course.lessons.all().order_by('order')
+                        total_lessons = lessons.count()
+                        completed_lessons = UserProgress.objects.filter(
+                            user=user,
+                            course=course,
+                            completed=True
+                        ).count()
+                    
+                    # Подсчитываем завершенные тесты в рамках этого курса (только уникальные по quiz_title)
+                    completed_quizzes = QuizResult.objects.filter(
+                        user=user,
+                        course=course,
+                        quiz_title__in=[quiz.name for quiz in course.quizzes.all()],
+                        passed=True
+                    ).values('quiz_title').distinct().count()
+                    total_quizzes = course.quizzes.count()
+                    
+                    # Вычисляем процент прогресса с учетом уроков и тестов
+                    total_materials = total_lessons + total_quizzes
+                    completed_materials = completed_lessons + completed_quizzes
+                    progress_percent = int((completed_materials / total_materials) * 100) if total_materials > 0 else 0
+                
                 incident_user_list.append({
                     'incident': incident,
                     'user': user,
                     'is_violator': is_violator,
+                    'is_expert': False,
+                    'progress_percent': progress_percent,
+                    'course_deadline': course_deadline,
                 })
+            
+            # Добавляем expert, если он существует и не находится в assigned_to
+            if incident.expert:
+                expert = incident.expert
+                # Проверяем, что expert не входит в assigned_to, чтобы не дублировать
+                if expert not in assigned_users:
+                    # Проверяем фильтры: если они не пропускают expert, добавляем его в список
+                    should_add_expert = True
+                    
+                    # Фильтр по назначенному пользователю
+                    if selected_user_id and expert.id != selected_user_id:
+                        should_add_expert = False
+                    
+                    # Expert не является нарушителем (violator_filter не применяется к expert)
+                    # Но если фильтр установлен на 'yes' (только нарушители), пропускаем expert
+                    if violator_filter == 'yes':
+                        should_add_expert = False
+                    
+                    # Проверяем, назначен ли курс expert (если у инцидента есть курс)
+                    if incident.course:
+                        # Если курс не назначен expert, пропускаем его
+                        if not UserCourse.objects.filter(user=expert, course=incident.course).exists():
+                            should_add_expert = False
+                    
+                    if should_add_expert:
+                        # Вычисляем прогресс курса, если он есть
+                        progress_percent = None
+                        course_deadline = None
+                        if incident.course:
+                            course = incident.course
+                            
+                            # Получаем UserCourse для получения дедлайна
+                            user_course = UserCourse.objects.filter(user=expert, course=course).first()
+                            if user_course:
+                                course_deadline = user_course.deadline
+                            
+                            # Получаем траекторию пользователя для этого курса
+                            trajectory = UserLessonTrajectory.objects.filter(user=expert, course=course).first()
+                            
+                            if trajectory:
+                                # Используем уроки из траектории
+                                lessons = trajectory.lessons.all().order_by('order')
+                                total_lessons = lessons.count()
+                                lesson_ids = lessons.values_list('id', flat=True)
+                                completed_lessons = UserProgress.objects.filter(
+                                    user=expert,
+                                    course=course,
+                                    completed=True,
+                                    lesson_id__in=lesson_ids
+                                ).count()
+                            else:
+                                # Используем все уроки курса
+                                lessons = course.lessons.all().order_by('order')
+                                total_lessons = lessons.count()
+                                completed_lessons = UserProgress.objects.filter(
+                                    user=expert,
+                                    course=course,
+                                    completed=True
+                                ).count()
+                            
+                            # Подсчитываем завершенные тесты в рамках этого курса (только уникальные по quiz_title)
+                            completed_quizzes = QuizResult.objects.filter(
+                                user=expert,
+                                course=course,
+                                quiz_title__in=[quiz.name for quiz in course.quizzes.all()],
+                                passed=True
+                            ).values('quiz_title').distinct().count()
+                            total_quizzes = course.quizzes.count()
+                            
+                            # Вычисляем процент прогресса с учетом уроков и тестов
+                            total_materials = total_lessons + total_quizzes
+                            completed_materials = completed_lessons + completed_quizzes
+                            progress_percent = int((completed_materials / total_materials) * 100) if total_materials > 0 else 0
+                        
+                        incident_user_list.append({
+                            'incident': incident,
+                            'user': expert,
+                            'is_violator': False,  # Expert никогда не является нарушителем
+                            'is_expert': True,  # Флаг, что это expert
+                            'progress_percent': progress_percent,
+                            'course_deadline': course_deadline,
+                        })
         
         context['incident_user_list'] = incident_user_list
         return context
@@ -1417,7 +1842,7 @@ def ajax_paste(request):
                 )
                 
                 # Логируем копирование урока
-                log_copy(user, lesson, new_lesson, request,
+                log_copy(request.user, lesson, new_lesson, request,
                         extra_data={'target_category_id': target_category},
                         comment="Скопирован урок через AJAX")
                 
@@ -1437,8 +1862,11 @@ def ajax_paste(request):
                 lesson.save(update_fields=['category', 'order'])
                 
                 # Логируем перемещение урока
-                new_category = CategoryName.objects.get(pk=target_category) if target_category else None
-                log_move(user, lesson, old_category, new_category, request,
+                try:
+                    new_category = CategoryName.objects.get(pk=target_category) if target_category else None
+                except CategoryName.DoesNotExist:
+                    return JsonResponse({'error': 'target category not found'}, status=404)
+                log_move(request.user, lesson, old_category, new_category, request,
                         comment="Перемещен урок через AJAX")
                 
                 result = {'id': lesson.id, 'title': lesson.title}
@@ -1447,6 +1875,8 @@ def ajax_paste(request):
                 return JsonResponse({'ok': True, 'result': result})
         except Lesson.DoesNotExist:
             return JsonResponse({'error': 'lesson not found'}, status=404)
+        except Exception as e:
+            return JsonResponse({'error': f'lesson operation failed: {str(e)}'}, status=500)
     elif item_type == 'category':
         try:
             if action == 'copy':
@@ -2460,7 +2890,7 @@ class CourseListView(ListView):
     """
     template_name = 'builder/course_list.html'
     context_object_name = 'courses'
-    paginate_by = 12
+    paginate_by = 15
     
     def dispatch(self, request, *args, **kwargs):
         if not request.user.is_authenticated or not (request.user.is_staff or request.user.is_superuser):
@@ -2517,10 +2947,10 @@ class CourseListView(ListView):
         context['total_courses'] = Course.objects.exclude(is_incident=True).count()
         context['active_courses'] = Course.objects.exclude(is_incident=True).count()  # Все курсы считаются активными
         context['total_lessons'] = sum(course.lessons.count() for course in Course.objects.exclude(is_incident=True))
-        context['total_authors'] = User.objects.filter(course__isnull=False).distinct().count()
+        context['total_authors'] = User.objects.filter(authored_courses__isnull=False).distinct().count()
         
         # Список авторов для фильтра
-        context['authors'] = User.objects.filter(course__isnull=False).distinct().order_by('first_name', 'last_name', 'username')
+        context['authors'] = User.objects.filter(authored_courses__isnull=False).distinct().order_by('first_name', 'last_name', 'username')
         
         # Список групп для фильтра
         from django.contrib.auth.models import Group
@@ -2537,7 +2967,7 @@ class IncidentCourseListView(ListView):
     """
     template_name = 'builder/incident_course_list.html'
     context_object_name = 'courses'
-    paginate_by = 12
+    paginate_by = 15
 
     def dispatch(self, request, *args, **kwargs):
         if not request.user.is_authenticated or not (request.user.is_staff or request.user.is_superuser):
@@ -2591,10 +3021,10 @@ class IncidentCourseListView(ListView):
         context['total_courses'] = Course.objects.filter(is_incident=True).count()
         context['active_courses'] = Course.objects.filter(is_incident=True).count()  # Все курсы считаются активными
         context['total_lessons'] = sum(course.lessons.count() for course in Course.objects.filter(is_incident=True))
-        context['total_authors'] = User.objects.filter(course__isnull=False).distinct().count()
+        context['total_authors'] = User.objects.filter(authored_courses__isnull=False).distinct().count()
         
         # Список авторов для фильтра
-        context['authors'] = User.objects.filter(course__isnull=False).distinct().order_by('first_name', 'last_name', 'username')
+        context['authors'] = User.objects.filter(authored_courses__isnull=False).distinct().order_by('first_name', 'last_name', 'username')
         
         # Список групп для фильтра
         from django.contrib.auth.models import Group
@@ -2826,13 +3256,35 @@ def api_search_users(request):
     """
     API endpoint для поиска пользователей по имени/фамилии.
     Возвращает JSON с данными пользователей.
+    
+    Параметры:
+        q: поисковый запрос (необязательно)
+        mentor_only: если 'true', возвращает только пользователей с ролью наставника (is_mentor=True)
+        exclude_staff: если 'true', исключает пользователей с is_staff=True
+        exclude_existing_ipr: если 'true', исключает пользователей, у которых уже есть ИПР
     """
     if not (request.user.is_staff or request.user.is_superuser):
         return JsonResponse({'error': 'Доступ запрещен'}, status=403)
     
     search_query = request.GET.get('q', '').strip()
+    mentor_only = request.GET.get('mentor_only', '').lower() == 'true'
+    exclude_staff = request.GET.get('exclude_staff', '').lower() == 'true'
+    exclude_existing_ipr = request.GET.get('exclude_existing_ipr', '').lower() == 'true'
     
-    users = User.objects.filter(is_active=True)
+    users = User.objects.filter(is_active=True).select_related('profile', 'profile__role')
+    
+    # Фильтруем только наставников, если указан параметр mentor_only
+    if mentor_only:
+        users = users.filter(profile__is_mentor=True)
+    
+    # Исключаем пользователей с is_staff=True, если указан параметр exclude_staff
+    if exclude_staff:
+        users = users.filter(is_staff=False)
+    
+    # Исключаем пользователей с существующими ИПР, если указан параметр exclude_existing_ipr
+    if exclude_existing_ipr:
+        users_with_ipr = IPR.objects.values_list('user_id', flat=True).distinct()
+        users = users.exclude(id__in=users_with_ipr)
     
     if search_query:
         users = users.filter(
@@ -2846,10 +3298,12 @@ def api_search_users(request):
     users_data = []
     for user in users:
         full_name = user.get_full_name() or user.username
+        role_name = user.profile.role.name if user.profile and user.profile.role else None
         users_data.append({
             'id': user.id,
             'full_name': full_name,
             'username': user.username,
+            'role': role_name,  # Название должности
         })
     
     return JsonResponse({'users': users_data})
@@ -2882,6 +3336,9 @@ def api_get_group_users(request, group_id):
     """
     API endpoint для получения пользователей конкретной группы.
     Возвращает JSON с данными пользователей группы.
+    
+    Параметры:
+        exclude_staff: если 'true', исключает пользователей с is_staff=True
     """
     if not (request.user.is_staff or request.user.is_superuser):
         return JsonResponse({'error': 'Доступ запрещен'}, status=403)
@@ -2891,7 +3348,13 @@ def api_get_group_users(request, group_id):
     except Group.DoesNotExist:
         return JsonResponse({'error': 'Группа не найдена'}, status=404)
     
+    exclude_staff = request.GET.get('exclude_staff', '').lower() == 'true'
+    
     users = group.user_set.filter(is_active=True).order_by('last_name', 'first_name')
+    
+    # Исключаем пользователей с is_staff=True, если указан параметр exclude_staff
+    if exclude_staff:
+        users = users.filter(is_staff=False)
     
     users_data = []
     for user in users:
@@ -2950,3 +3413,655 @@ def api_get_users_by_ids(request):
         })
     
     return JsonResponse({'users': users_data})
+
+
+class IPRListView(ListView):
+    """
+    Список ИПР с информацией о пользователях и их курсах.
+    """
+    model = IPR
+    template_name = 'builder/ipr_list.html'
+    context_object_name = 'iprs'
+    ordering = ['-created_at']
+
+    def dispatch(self, request, *args, **kwargs):
+        # Только staff/superuser
+        if not request.user.is_authenticated or not (request.user.is_staff or request.user.is_superuser):
+            return render(request, '403.html', status=403)
+        return super().dispatch(request, *args, **kwargs)
+
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        queryset = queryset.select_related('user', 'user__profile', 'user__profile__department')
+        
+        # Фильтр по статусу (множественный выбор)
+        statuses = self.request.GET.getlist('status')
+        if statuses:
+            queryset = queryset.filter(status__in=statuses)
+        else:
+            # По умолчанию показываем только активные ИПР
+            queryset = queryset.filter(status='active')
+        
+        # Фильтр по статусу пользователя (is_active)
+        user_status = self.request.GET.get('user_status', 'active')
+        if user_status == 'active':
+            queryset = queryset.filter(user__is_active=True)
+        elif user_status == 'inactive':
+            queryset = queryset.filter(user__is_active=False)
+        # Если user_status == 'all', фильтр не применяется
+        
+        return queryset
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['status_choices'] = IPR.STATUS_CHOICES
+        
+        # Варианты фильтра по статусу пользователя
+        context['user_status_choices'] = [
+            ('all', 'Все'),
+            ('active', 'Активные пользователи'),
+            ('inactive', 'Неактивные пользователи'),
+        ]
+        
+        # Если нет параметров в GET запросе (первичная загрузка), устанавливаем дефолтные значения
+        if not self.request.GET:
+            context['selected_statuses'] = ['active']
+            context['selected_user_status'] = 'active'
+        else:
+            # Передаем текущие значения фильтров в контекст
+            context['selected_statuses'] = self.request.GET.getlist('status', [])
+            context['selected_user_status'] = self.request.GET.get('user_status', 'active')
+        
+        return context
+
+
+class IPRCreateView(CreateView, AuditLoggerMixin):
+    """
+    Создание ИПР.
+    """
+    model = IPR
+    form_class = IPRForm
+    template_name = 'builder/ipr_form.html'
+
+    def dispatch(self, request, *args, **kwargs):
+        if not request.user.is_authenticated or not (request.user.is_staff or request.user.is_superuser):
+            return render(request, '403.html', status=403)
+        return super().dispatch(request, *args, **kwargs)
+
+    def get_success_url(self):
+        """
+        Возвращает URL для редиректа после успешного создания ИПР.
+        Перенаправляет на страницу списка ИПР.
+        """
+        return reverse('builder:ipr_list')
+
+    def form_valid(self, form):
+        # Устанавливаем статус "Активен" для нового ИПР
+        form.instance.status = 'active'
+        response = super().form_valid(form)
+        # Логируем создание ИПР
+        self.log_create_action(self.object, "Создан новый ИПР")
+        return response
+
+
+class IPRUpdateView(UpdateView, AuditLoggerMixin):
+    """
+    Редактирование ИПР.
+    """
+    model = IPR
+    form_class = IPRForm
+    template_name = 'builder/ipr_form.html'
+    success_url = reverse_lazy('builder:ipr_list')
+
+    def dispatch(self, request, *args, **kwargs):
+        if not request.user.is_authenticated or not (request.user.is_staff or request.user.is_superuser):
+            return render(request, '403.html', status=403)
+        return super().dispatch(request, *args, **kwargs)
+    
+    def form_valid(self, form):
+        # Сохраняем старые значения для аудита
+        self.old_values = serialize_model_data(self.object)
+        response = super().form_valid(form)
+        # Логируем обновление ИПР
+        self.log_update_action(self.object, self.old_values, "Обновлен ИПР")
+        return response
+
+
+class IPRModuleListView(ListView):
+    """
+    Список модулей ИПР для конкретного пользователя.
+    """
+    model = IPRModule
+    template_name = 'builder/ipr_module_list.html'
+    context_object_name = 'modules'
+    ordering = ['-created_at']
+
+    def dispatch(self, request, *args, **kwargs):
+        # Только staff/superuser
+        if not request.user.is_authenticated or not (request.user.is_staff or request.user.is_superuser):
+            return render(request, '403.html', status=403)
+        return super().dispatch(request, *args, **kwargs)
+
+    def get_queryset(self):
+        user_id = self.kwargs.get('user_id')
+        queryset = super().get_queryset()
+        queryset = queryset.select_related('user', 'user__profile', 'user__profile__department', 'mentor', 'ipr')
+        
+        if user_id:
+            queryset = queryset.filter(user_id=user_id)
+        
+        return queryset
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        user_id = self.kwargs.get('user_id')
+        
+        if user_id:
+            from django.contrib.auth import get_user_model
+            User = get_user_model()
+            try:
+                user = User.objects.get(id=user_id)
+                context['selected_user'] = user
+                context['selected_user_fio'] = user.get_full_name() or user.username
+                # Получаем ИПР для этого пользователя
+                ipr = IPR.objects.filter(user=user).first()
+                if ipr:
+                    context['ipr'] = ipr
+            except User.DoesNotExist:
+                pass
+        
+        return context
+
+
+class IPRModuleCreateView(CreateView, AuditLoggerMixin):
+    """
+    Создание модуля ИПР.
+    """
+    model = IPRModule
+    form_class = IPRModuleForm
+    template_name = 'builder/ipr_module_form.html'
+
+    def dispatch(self, request, *args, **kwargs):
+        if not request.user.is_authenticated or not (request.user.is_staff or request.user.is_superuser):
+            return render(request, '403.html', status=403)
+        return super().dispatch(request, *args, **kwargs)
+
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        user_id = self.kwargs.get('user_id')
+        ipr_id = self.request.GET.get('ipr_id') or self.request.POST.get('ipr')
+        
+        if user_id:
+            kwargs['user_id'] = user_id
+        if ipr_id:
+            kwargs['ipr_id'] = ipr_id
+        
+        return kwargs
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        user_id = self.kwargs.get('user_id')
+        
+        if user_id:
+            from django.contrib.auth import get_user_model
+            User = get_user_model()
+            try:
+                user = User.objects.get(id=user_id)
+                context['selected_user'] = user
+                context['selected_user_fio'] = user.get_full_name() or user.username
+                # Получаем или создаем ИПР для этого пользователя
+                ipr, created = IPR.objects.get_or_create(
+                    user=user,
+                    defaults={'status': 'active'}
+                )
+                context['ipr'] = ipr
+                # Устанавливаем начальное значение для формы
+                if 'form' in context:
+                    if not context['form'].initial.get('ipr'):
+                        context['form'].initial['ipr'] = ipr.id
+            except User.DoesNotExist:
+                pass
+        
+        return context
+
+    def form_valid(self, form):
+        user_id = self.kwargs.get('user_id')
+        
+        # Если передан user_id, убеждаемся, что ИПР существует
+        if user_id:
+            from django.contrib.auth import get_user_model
+            User = get_user_model()
+            try:
+                user = User.objects.get(id=user_id)
+                ipr, created = IPR.objects.get_or_create(
+                    user=user,
+                    defaults={'status': 'active'}
+                )
+                form.instance.ipr = ipr
+                form.instance.user = user
+            except User.DoesNotExist:
+                pass
+        
+        # Автоматически заполняем department из профиля пользователя
+        if form.instance.user and hasattr(form.instance.user, 'profile') and form.instance.user.profile:
+            form.instance.department = form.instance.user.profile.department
+        
+        # Устанавливаем статус "Новый" при создании
+        form.instance.status = 'new'
+        # start_date не устанавливаем - будет установлена при нажатии "Начать ИПР"
+        form.instance.start_date = None
+        
+        response = super().form_valid(form)
+        # Логируем создание модуля ИПР
+        self.log_create_action(self.object, "Создан новый модуль ИПР")
+        return response
+
+    def get_success_url(self):
+        user_id = self.kwargs.get('user_id')
+        if user_id:
+            return reverse('builder:ipr_module_list', kwargs={'user_id': user_id})
+        return reverse('builder:ipr_list')
+
+
+class IPRModuleUpdateView(UpdateView, AuditLoggerMixin):
+    """
+    Редактирование модуля ИПР.
+    """
+    model = IPRModule
+    form_class = IPRModuleForm
+    template_name = 'builder/ipr_module_form.html'
+
+    def dispatch(self, request, *args, **kwargs):
+        if not request.user.is_authenticated or not (request.user.is_staff or request.user.is_superuser):
+            return render(request, '403.html', status=403)
+        return super().dispatch(request, *args, **kwargs)
+
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        # Получаем user_id из объекта модуля
+        if self.object and self.object.user:
+            kwargs['user_id'] = self.object.user.id
+        if self.object and self.object.ipr:
+            kwargs['ipr_id'] = self.object.ipr.id
+        return kwargs
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        
+        if self.object and self.object.user:
+            context['selected_user'] = self.object.user
+            context['selected_user_fio'] = self.object.user.get_full_name() or self.object.user.username
+            if self.object.ipr:
+                context['ipr'] = self.object.ipr
+        
+        return context
+
+    def form_valid(self, form):
+        # НЕ перезаписываем department из профиля - используем значение из формы
+        # Если department не был выбран в форме, оставляем как есть
+        
+        # Сохраняем старые значения для аудита
+        self.old_values = serialize_model_data(self.object)
+        response = super().form_valid(form)
+        # Логируем обновление модуля ИПР
+        self.log_update_action(self.object, self.old_values, "Обновлен модуль ИПР")
+        return response
+
+    def get_success_url(self):
+        if self.object and self.object.user:
+            return reverse('builder:ipr_module_list', kwargs={'user_id': self.object.user.id})
+        return reverse('builder:ipr_list')
+
+
+class IPRModuleDetailView(DetailView):
+    """
+    Страница с информацией по модулю ИПР.
+    """
+    model = IPRModule
+    template_name = 'builder/ipr_module_info.html'
+    context_object_name = 'module'
+
+    def dispatch(self, request, *args, **kwargs):
+        if not request.user.is_authenticated or not (request.user.is_staff or request.user.is_superuser):
+            return render(request, '403.html', status=403)
+        return super().dispatch(request, *args, **kwargs)
+
+    def post(self, request, *args, **kwargs):
+        """Обработка AJAX запроса для сохранения диагностики и целей"""
+        self.object = self.get_object()
+        
+        if request.POST.get('action') == 'save_diagnostics':
+            diagnostics = request.POST.get('diagnostics', '').strip()
+            self.object.diagnostics = diagnostics
+            self.object.save()
+            
+            return JsonResponse({
+                'success': True,
+                'diagnostics': diagnostics
+            })
+        
+        if request.POST.get('action') == 'save_goals':
+            goals = request.POST.get('goals', '').strip()
+            self.object.goals = goals
+            self.object.save()
+            
+            return JsonResponse({
+                'success': True,
+                'goals': goals
+            })
+        
+        if request.POST.get('action') == 'save_comment':
+            comment = request.POST.get('comment', '').strip()
+            self.object.comment = comment
+            self.object.save()
+            
+            return JsonResponse({
+                'success': True,
+                'comment': comment
+            })
+        
+        if request.POST.get('action') == 'add_indicator':
+            name = request.POST.get('name', '').strip()
+            if not name:
+                return JsonResponse({'success': False, 'error': 'Название показателя обязательно'})
+            
+            # Определяем порядок для нового показателя
+            max_order = IPRModuleIndicator.objects.filter(module=self.object).aggregate(Max('order'))['order__max'] or 0
+            
+            indicator = IPRModuleIndicator.objects.create(
+                module=self.object,
+                name=name,
+                order=max_order + 1
+            )
+            
+            return JsonResponse({
+                'success': True,
+                'indicator': {
+                    'id': indicator.id,
+                    'name': indicator.name,
+                    'point_a': indicator.point_a or '',
+                    'intermediate_point': indicator.intermediate_point or '',
+                    'stage_deadline': indicator.stage_deadline.strftime('%Y-%m-%dT%H:%M') if indicator.stage_deadline else '',
+                    'point_b': indicator.point_b or '',
+                    'fact': indicator.fact or '',
+                    'deadline': indicator.deadline.strftime('%Y-%m-%dT%H:%M') if indicator.deadline else '',
+                }
+            })
+        
+        if request.POST.get('action') == 'update_indicator':
+            indicator_id = request.POST.get('indicator_id')
+            try:
+                indicator = IPRModuleIndicator.objects.get(id=indicator_id, module=self.object)
+            except IPRModuleIndicator.DoesNotExist:
+                return JsonResponse({'success': False, 'error': 'Показатель не найден'})
+            
+            indicator.name = request.POST.get('name', '').strip()
+            indicator.point_a = request.POST.get('point_a', '').strip() or None
+            indicator.intermediate_point = request.POST.get('intermediate_point', '').strip() or None
+            indicator.point_b = request.POST.get('point_b', '').strip() or None
+            indicator.fact = request.POST.get('fact', '').strip() or None
+            
+            # Обработка дат
+            stage_deadline_str = request.POST.get('stage_deadline', '').strip()
+            if stage_deadline_str:
+                try:
+                    indicator.stage_deadline = timezone.datetime.strptime(stage_deadline_str, '%Y-%m-%dT%H:%M')
+                    indicator.stage_deadline = timezone.make_aware(indicator.stage_deadline)
+                except ValueError:
+                    pass
+            else:
+                indicator.stage_deadline = None
+            
+            deadline_str = request.POST.get('deadline', '').strip()
+            if deadline_str:
+                try:
+                    indicator.deadline = timezone.datetime.strptime(deadline_str, '%Y-%m-%dT%H:%M')
+                    indicator.deadline = timezone.make_aware(indicator.deadline)
+                except ValueError:
+                    pass
+            else:
+                indicator.deadline = None
+            
+            indicator.save()
+            
+            return JsonResponse({
+                'success': True,
+                'indicator': {
+                    'id': indicator.id,
+                    'name': indicator.name,
+                    'point_a': indicator.point_a or '',
+                    'intermediate_point': indicator.intermediate_point or '',
+                    'stage_deadline': indicator.stage_deadline.strftime('%Y-%m-%dT%H:%M') if indicator.stage_deadline else '',
+                    'point_b': indicator.point_b or '',
+                    'fact': indicator.fact or '',
+                    'deadline': indicator.deadline.strftime('%Y-%m-%dT%H:%M') if indicator.deadline else '',
+                }
+            })
+        
+        if request.POST.get('action') == 'delete_indicator':
+            indicator_id = request.POST.get('indicator_id')
+            try:
+                indicator = IPRModuleIndicator.objects.get(id=indicator_id, module=self.object)
+                indicator.delete()
+                return JsonResponse({'success': True})
+            except IPRModuleIndicator.DoesNotExist:
+                return JsonResponse({'success': False, 'error': 'Показатель не найден'})
+        
+        if request.POST.get('action') == 'update_module_fields':
+            """Обновление полей модуля из таблицы"""
+            try:
+                # Обновляем руководителя
+                supervisor_id = request.POST.get('supervisor', '').strip()
+                if supervisor_id:
+                    try:
+                        supervisor = User.objects.get(id=supervisor_id, is_active=True)
+                        self.object.supervisor = supervisor
+                    except User.DoesNotExist:
+                        pass
+                elif supervisor_id == '':
+                    self.object.supervisor = None
+                
+                # Обновляем зав отделением
+                department_head_id = request.POST.get('department_head', '').strip()
+                if department_head_id:
+                    try:
+                        department_head = User.objects.get(id=department_head_id, is_active=True)
+                        self.object.department_head = department_head
+                    except User.DoesNotExist:
+                        pass
+                elif department_head_id == '':
+                    self.object.department_head = None
+                
+                # Обновляем наставника
+                mentor_id = request.POST.get('mentor', '').strip()
+                if mentor_id:
+                    try:
+                        mentor = User.objects.get(id=mentor_id, is_active=True, profile__is_mentor=True)
+                        self.object.mentor = mentor
+                    except User.DoesNotExist:
+                        pass
+                elif mentor_id == '':
+                    self.object.mentor = None
+                
+                # Обновляем дату старта
+                start_date_str = request.POST.get('start_date', '').strip()
+                if start_date_str:
+                    try:
+                        start_date = timezone.datetime.strptime(start_date_str, '%Y-%m-%d').date()
+                        self.object.start_date = start_date
+                    except ValueError:
+                        pass
+                
+                # Обновляем дедлайн
+                deadline_str = request.POST.get('deadline', '').strip()
+                if deadline_str:
+                    try:
+                        deadline_date = timezone.datetime.strptime(deadline_str, '%Y-%m-%d').date()
+                        # Если у дедлайна уже есть время, сохраняем его, иначе устанавливаем 23:59:59
+                        if self.object.deadline:
+                            deadline = timezone.datetime.combine(deadline_date, self.object.deadline.time())
+                        else:
+                            deadline = timezone.datetime.combine(deadline_date, timezone.datetime.max.time().replace(microsecond=0))
+                        deadline = timezone.make_aware(deadline)
+                        self.object.deadline = deadline
+                    except ValueError:
+                        pass
+                else:
+                    self.object.deadline = None
+                
+                self.object.save()
+                
+                return JsonResponse({
+                    'success': True,
+                    'supervisor': {
+                        'id': self.object.supervisor.id if self.object.supervisor else None,
+                        'name': self.object.supervisor.get_full_name() if self.object.supervisor else None
+                    },
+                    'department_head': {
+                        'id': self.object.department_head.id if self.object.department_head else None,
+                        'name': self.object.department_head.get_full_name() if self.object.department_head else None
+                    },
+                    'mentor': {
+                        'id': self.object.mentor.id if self.object.mentor else None,
+                        'name': self.object.mentor.get_full_name() if self.object.mentor else None
+                    },
+                    'start_date': self.object.start_date.strftime('%Y-%m-%d') if self.object.start_date else '',
+                    'deadline': self.object.deadline.strftime('%Y-%m-%d') if self.object.deadline else ''
+                })
+            except Exception as e:
+                return JsonResponse({'success': False, 'error': str(e)})
+        
+        return JsonResponse({'success': False, 'error': 'Неизвестное действие'})
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        module = self.object
+        
+        # Определяем статус модуля для кнопки "Начать ИПР"
+        # Если статус 'new', значит модуль в статусе "Новый"
+        is_new_status = module.status == 'new'
+        context['is_new_status'] = is_new_status
+        
+        # Добавляем показатели модуля
+        context['indicators'] = module.indicators.all()
+        
+        # Добавляем списки пользователей для редактирования
+        from django.contrib.auth import get_user_model
+        User = get_user_model()
+        
+        # Все активные пользователи для руководителя и зав отделением
+        context['all_users'] = User.objects.filter(is_active=True).order_by('last_name', 'first_name')
+        
+        # Только наставники для поля наставник
+        context['mentors'] = User.objects.filter(
+            profile__is_mentor=True,
+            is_active=True
+        ).order_by('last_name', 'first_name')
+        
+        return context
+
+
+@method_decorator(require_POST, name='dispatch')
+class IPRModuleStartView(View, AuditLoggerMixin):
+    """
+    Изменение статуса модуля ИПР с "Новый" на "Активный".
+    """
+    def dispatch(self, request, *args, **kwargs):
+        if not request.user.is_authenticated or not (request.user.is_staff or request.user.is_superuser):
+            return render(request, '403.html', status=403)
+        return super().dispatch(request, *args, **kwargs)
+
+    def post(self, request, *args, **kwargs):
+        from django.utils import timezone
+        
+        module = get_object_or_404(IPRModule, pk=kwargs['pk'])
+        
+        # Меняем статус с "нового" на "Активный" и устанавливаем дату старта
+        if module.status == 'new':
+            module.status = 'active'  # Статус "Активный"
+            module.start_date = timezone.now().date()  # Устанавливаем текущую дату
+            module.save()
+            
+            # Логируем изменение статуса
+            self.log_update_action(module, {}, f"Модуль ИПР переведен в статус 'Активный'. Дата старта: {module.start_date}")
+        
+        return redirect('builder:ipr_module_info', pk=module.pk)
+
+
+@method_decorator(require_POST, name='dispatch')
+class IPRModuleCompleteView(View, AuditLoggerMixin):
+    """
+    Изменение статуса модуля ИПР с "Активный" на "Завершен".
+    """
+    def dispatch(self, request, *args, **kwargs):
+        if not request.user.is_authenticated or not (request.user.is_staff or request.user.is_superuser):
+            return render(request, '403.html', status=403)
+        return super().dispatch(request, *args, **kwargs)
+
+    def post(self, request, *args, **kwargs):
+        from django.utils import timezone
+        
+        module = get_object_or_404(IPRModule, pk=kwargs['pk'])
+        
+        # Меняем статус с "Активный" на "Завершен" и устанавливаем дату окончания
+        if module.status == 'active':
+            module.status = 'completed'  # Статус "Завершен"
+            module.end_date = timezone.now().date()  # Устанавливаем текущую дату
+            module.save()
+            
+            # Логируем изменение статуса
+            self.log_update_action(module, {}, f"Модуль ИПР переведен в статус 'Завершен'. Дата окончания: {module.end_date}")
+        
+        return redirect('builder:ipr_module_info', pk=module.pk)
+
+
+@method_decorator(require_POST, name='dispatch')
+class IPRModulePauseView(View, AuditLoggerMixin):
+    """
+    Изменение статуса модуля ИПР с "Активный" на "Приостановлен".
+    """
+    def dispatch(self, request, *args, **kwargs):
+        if not request.user.is_authenticated or not (request.user.is_staff or request.user.is_superuser):
+            return render(request, '403.html', status=403)
+        return super().dispatch(request, *args, **kwargs)
+
+    def post(self, request, *args, **kwargs):
+        from django.utils import timezone
+        
+        module = get_object_or_404(IPRModule, pk=kwargs['pk'])
+        
+        # Меняем статус с "Активный" на "Приостановлен"
+        if module.status == 'active':
+            module.status = 'paused'  # Статус "Приостановлен"
+            module.save()
+            
+            # Логируем изменение статуса
+            self.log_update_action(module, {}, f"Модуль ИПР переведен в статус 'Приостановлен'")
+        
+        return redirect('builder:ipr_module_info', pk=module.pk)
+
+
+@method_decorator(require_POST, name='dispatch')
+class IPRModuleResumeView(View, AuditLoggerMixin):
+    """
+    Изменение статуса модуля ИПР с "Приостановлен" на "Активный".
+    """
+    def dispatch(self, request, *args, **kwargs):
+        if not request.user.is_authenticated or not (request.user.is_staff or request.user.is_superuser):
+            return render(request, '403.html', status=403)
+        return super().dispatch(request, *args, **kwargs)
+
+    def post(self, request, *args, **kwargs):
+        from django.utils import timezone
+        
+        module = get_object_or_404(IPRModule, pk=kwargs['pk'])
+        
+        # Меняем статус с "Приостановлен" на "Активный"
+        if module.status == 'paused':
+            module.status = 'active'  # Статус "Активный"
+            module.save()
+            
+            # Логируем изменение статуса
+            self.log_update_action(module, {}, f"Модуль ИПР переведен в статус 'Активный' (возобновлен)")
+        
+        return redirect('builder:ipr_module_info', pk=module.pk)

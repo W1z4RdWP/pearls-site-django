@@ -17,7 +17,7 @@ from .models import Course, Lesson, UserLessonTrajectory, Trajectory, UserCourse
 from myapp.models import UserProgress, UserCourse, QuizResult
 from myapp.views import is_admin, is_author_or_admin
 import logging
-from builder.models import CategoryName
+from builder.models import CategoryName, Incident
 from django.contrib.auth import get_user_model
 from django.utils.decorators import method_decorator
 from gamification.utils import award_dascoin_points, award_course_badge, award_trajectory_badge, award_first_lesson_badge
@@ -374,11 +374,12 @@ class CourseDetailView(DetailView):
                                 user_course.status = 'completed'
                                 user_course.save()
                                 
-                                # Начисляем очки только если курс только что завершен
-                                award_dascoin_points(user, course.points, f"Завершение курса {course.title}")
-                                award_course_badge(user, course)
-                                # Выдаем сертификат за курс (если настроено)
-                                issue_certificate(user, course=course)
+                                # Начисляем очки только если курс только что завершен И курс не является инцидентом
+                                if not course.is_incident:
+                                    award_dascoin_points(user, course.points, f"Завершение курса {course.title}")
+                                    award_course_badge(user, course)
+                                    # Выдаем сертификат за курс (если настроено)
+                                    issue_certificate(user, course=course)
                             else:
                                 # Курс уже был завершен, просто обновляем статус
                                 user_course.status = 'completed'
@@ -394,9 +395,10 @@ class CourseDetailView(DetailView):
                             user_course.status = 'completed'
                             user_course.save()
                             
-                            # Начисляем очки только если курс только что завершен
-                            award_dascoin_points(user, course.points, f"Завершение курса {course.title}")
-                            award_course_badge(user, course)
+                            # Начисляем очки только если курс только что завершен И курс не является инцидентом
+                            if not course.is_incident:
+                                award_dascoin_points(user, course.points, f"Завершение курса {course.title}")
+                                award_course_badge(user, course)
                         else:
                             # Курс уже был завершен, просто обновляем статус
                             user_course.status = 'completed'
@@ -404,6 +406,7 @@ class CourseDetailView(DetailView):
 
                 # Проверка для отображения финального теста
                 final_quiz_status = None
+                final_quiz_passed = False
                 if course.final_quiz:
                     final_quiz_passed = QuizResult.objects.filter(
                         user=user,
@@ -411,6 +414,13 @@ class CourseDetailView(DetailView):
                         quiz_title=course.final_quiz.name,
                         passed=True
                     ).exists()
+                    
+                    # Если курс помечен как завершенный, но финальный тест не пройден - сбрасываем статус
+                    if user_course.status == 'completed' and not final_quiz_passed:
+                        user_course.status = 'started'
+                        user_course.save(update_fields=['status'])
+                        # Перезагружаем объект из базы данных для обновления в памяти
+                        user_course.refresh_from_db()
                     if final_quiz_passed:
                         show_final_quiz = True
                     
@@ -515,6 +525,38 @@ class CourseDetailView(DetailView):
                 user_course.save(update_fields=['status'])
             is_deadline_overdue = timezone.now() > user_course.deadline
         
+        # Получаем инцидент, связанный с курсом (если курс-инцидент)
+        incident = None
+        if course.is_incident:
+            from builder.models import Incident
+            incident = Incident.objects.filter(course=course).first()
+        
+        # Получаем информацию о связанных тестах для каждого урока
+        lesson_quizzes_info = {}
+        if user.is_authenticated:
+            for lesson in course.lessons.all():
+                if lesson.final_quiz:
+                    quiz_result = QuizResult.objects.filter(
+                        user=user,
+                        course=course,
+                        quiz_title=lesson.final_quiz.name,
+                        passed=True
+                    ).first()
+                    lesson_quizzes_info[lesson.id] = {
+                        'quiz': lesson.final_quiz,
+                        'passed': quiz_result is not None,
+                        'status': quiz_result.status if quiz_result else None
+                    }
+                    # Если нет пройденного теста, проверяем последний результат
+                    if not quiz_result:
+                        latest_result = QuizResult.objects.filter(
+                            user=user,
+                            course=course,
+                            quiz_title=lesson.final_quiz.name
+                        ).order_by('-completed_at').first()
+                        if latest_result:
+                            lesson_quizzes_info[lesson.id]['status'] = latest_result.status
+        
         # Формирование контекста
         context.update({
             'course_author': course.author.username,
@@ -545,6 +587,8 @@ class CourseDetailView(DetailView):
             'quiz_blocked_id': quiz_blocked_id,
             'quiz_statuses': locals().get('quiz_statuses', {}),
             'is_deadline_overdue': is_deadline_overdue,
+            'incident': incident,
+            'lesson_quizzes_info': lesson_quizzes_info,
         })
         
         return context
@@ -612,13 +656,66 @@ class LessonDetailView(DetailView):
         course = get_object_or_404(Course, slug=course_slug)
         lesson = get_object_or_404(Lesson, id=lesson_id, courses=course)
         
-        # Проверка доступа к курсу через менеджер
-        available_courses = Course.objects.available_for_user(self.request.user)
-        if course not in available_courses:
-            return redirect('courses:course_detail', slug=course.slug)
+        # Проверка доступа к курсу через менеджер (пропускаем для админов)
+        if not (self.request.user.is_staff or self.request.user.is_superuser):
+            available_courses = Course.objects.available_for_user(self.request.user)
+            if course not in available_courses:
+                return redirect('courses:course_detail', slug=course.slug)
         
         return lesson
 
+
+    def get(self, request, *args, **kwargs):
+        """Переопределяем get для проверки доступа перед рендерингом"""
+        self.object = self.get_object()
+        lesson = self.object
+        course_slug = self.kwargs.get('course_slug')
+        course = get_object_or_404(Course, slug=course_slug)
+        
+        # Получаем UserCourse для проверки статуса
+        user_course = UserCourse.objects.filter(user=request.user, course=course).first()
+        if not user_course:
+            # Проверяем, не был ли курс отменен вручную
+            from myapp.models import ManualCourseUnassignment
+            manual_unassignment = ManualCourseUnassignment.objects.filter(
+                user=request.user, 
+                course=course
+            ).first()
+            
+            if not manual_unassignment:
+                user_course = UserCourse.objects.create(user=request.user, course=course, status='available')
+            else:
+                # Если курс был отменён вручную, перенаправляем на страницу курса
+                from django.urls import reverse
+                return redirect('courses:course_detail', slug=course.slug)
+
+        # Блокируем доступ к уроку, если курс не начат (пропускаем для админов)
+        if not (request.user.is_staff or request.user.is_superuser):
+            if user_course.status not in ['started', 'completed']:
+                from django.urls import reverse
+                from urllib.parse import urlencode
+                url = reverse('courses:course_detail', kwargs={'slug': course.slug})
+                params = urlencode({'highlight_start': '1', 'lesson_blocked': lesson.id})
+                return redirect(f'{url}?{params}')
+
+        # Проверка траектории (пропускаем для админов)
+        trajectory = UserLessonTrajectory.objects.filter(user=request.user, course=course).first()
+        if trajectory and not (request.user.is_staff or request.user.is_superuser):
+            lessons_in_trajectory = trajectory.lessons.all()
+            if lesson not in lessons_in_trajectory:
+                return render(request, 'courses/lesson_access_denied.html', {'course': course, 'lesson': lesson})
+        
+        # Проверяем, был ли только что пройден тест (параметр из GET-запроса)
+        quiz_completed = request.GET.get('quiz_completed') == '1'
+        
+        # Если все проверки пройдены, вызываем стандартный метод get
+        response = super().get(request, *args, **kwargs)
+        
+        # Добавляем информацию о завершении теста в контекст
+        if quiz_completed:
+            response.context_data['quiz_just_completed'] = True
+        
+        return response
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -626,25 +723,8 @@ class LessonDetailView(DetailView):
         course_slug = self.kwargs.get('course_slug')
         course = get_object_or_404(Course, slug=course_slug)
         
-        # Получаем UserCourse для проверки статуса
-        user_course = UserCourse.objects.filter(user=self.request.user, course=course).first()
-        if not user_course:
-            user_course = UserCourse.objects.create(user=self.request.user, course=course, status='available')
-
-        # Блокируем доступ к уроку, если курс не начат
-        if user_course.status not in ['started', 'completed']:
-            from django.urls import reverse
-            from urllib.parse import urlencode
-            url = reverse('courses:course_detail', kwargs={'slug': course.slug})
-            params = urlencode({'highlight_start': '1', 'lesson_blocked': lesson.id})
-            return redirect(f'{url}?{params}')
-
-        # Проверка траектории
+        # Получаем траекторию для определения предыдущего и следующего уроков
         trajectory = UserLessonTrajectory.objects.filter(user=self.request.user, course=course).first()
-        if trajectory:
-            lessons_in_trajectory = trajectory.lessons.all()
-            if lesson not in lessons_in_trajectory:
-                return render(self.request, 'courses/lesson_access_denied.html', {'course': course, 'lesson': lesson})
         
         # Определяем страну пользователя (нужна для фильтрации уроков метрик)
         user_country = ''
@@ -701,6 +781,9 @@ class LessonDetailView(DetailView):
         
         # Специальная логика для урока "KZ Метрики эффективности стоматологической клиники"
         is_metrics_kz_lesson = lesson.title == "KZ Метрики эффективности стоматологической клиники"
+        
+        # Проверяем, является ли пользователь внешним пользователем
+        is_external_user = self.request.user.groups.filter(name='Внешний пользователь').exists()
 
         # Проверяем, является ли урок последним
         is_last_lesson = next_lesson is None
@@ -710,6 +793,32 @@ class LessonDetailView(DetailView):
         if not is_last_lesson:
             # Используем логику из _get_next_material для определения следующего элемента
             next_material = self._get_next_material_after_lesson(lesson, course, trajectory)
+        
+        # Проверяем наличие связанного теста и его статус
+        lesson_quiz = None
+        lesson_quiz_passed = False
+        lesson_quiz_status = None
+        if lesson.final_quiz:
+            lesson_quiz = lesson.final_quiz
+            # Проверяем, завершен ли тест
+            quiz_result = QuizResult.objects.filter(
+                user=self.request.user,
+                course=course,
+                quiz_title=lesson.final_quiz.name,
+                passed=True
+            ).first()
+            if quiz_result:
+                lesson_quiz_passed = True
+                lesson_quiz_status = quiz_result.status
+            else:
+                # Проверяем, есть ли незавершенная попытка
+                latest_result = QuizResult.objects.filter(
+                    user=self.request.user,
+                    course=course,
+                    quiz_title=lesson.final_quiz.name
+                ).order_by('-completed_at').first()
+                if latest_result:
+                    lesson_quiz_status = latest_result.status
         
         context.update({
             'course': course,
@@ -721,7 +830,11 @@ class LessonDetailView(DetailView):
             'is_last_lesson': is_last_lesson,
             'is_metrics_lesson': is_metrics_lesson,
             'is_metrics_kz_lesson': is_metrics_kz_lesson,
+            'is_external_user': is_external_user,
             'user_country': user_country,
+            'lesson_quiz': lesson_quiz,
+            'lesson_quiz_passed': lesson_quiz_passed,
+            'lesson_quiz_status': lesson_quiz_status,
         })
         
         return context
@@ -1254,7 +1367,11 @@ def redir_to_quiz(request, course_slug):
         action = request.POST.get('action')
         if action == 'start_quiz':
             request.session['course_slug'] = course.slug
-            return redirect('quizzes:quiz_start', quiz_id=course.final_quiz.id)
+            from django.urls import reverse
+            from urllib.parse import urlencode
+            url = reverse('quizzes:quiz_start', kwargs={'quiz_id': course.final_quiz.id})
+            params = urlencode({'course_slug': course.slug})
+            return redirect(f'{url}?{params}')
         else:
             return redirect('courses:course_detail', slug=course.slug)
 
@@ -1282,7 +1399,18 @@ def complete_lesson(request, course_slug, lesson_id):
     # Получаем UserCourse
     user_course = UserCourse.objects.filter(user=user, course=course).first()
     if not user_course:
-        user_course = UserCourse.objects.create(user=user, course=course, status='available')
+        # Проверяем, не был ли курс отменен вручную
+        from myapp.models import ManualCourseUnassignment
+        manual_unassignment = ManualCourseUnassignment.objects.filter(
+            user=user, 
+            course=course
+        ).first()
+        
+        if not manual_unassignment:
+            user_course = UserCourse.objects.create(user=user, course=course, status='available')
+        else:
+            # Если курс был отменён вручную, перенаправляем на страницу курса
+            return redirect('courses:course_detail', slug=course.slug)
     
     # Получаем траекторию пользователя
     trajectory = UserLessonTrajectory.objects.filter(user=user, course=course).first()
@@ -1291,6 +1419,34 @@ def complete_lesson(request, course_slug, lesson_id):
     if trajectory and lesson not in trajectory.lessons.all():
         return redirect('courses:course_detail', slug=course.slug)
 
+    # Проверяем, хочет ли пользователь вернуться к курсу (кнопка "Отдохну")
+    return_to_course = request.POST.get('return_to_course') == 'true'
+    
+    # Проверяем, есть ли у урока связанный тест, и если есть - завершен ли он
+    if lesson.final_quiz:
+        quiz_passed = QuizResult.objects.filter(
+            user=user,
+            course=course,
+            quiz_title=lesson.final_quiz.name,
+            passed=True
+        ).exists()
+        
+        if not quiz_passed:
+            # Тест не завершен
+            if return_to_course:
+                # Пользователь нажал "Отдохну" - возвращаемся к курсу БЕЗ засчитывания урока
+                return redirect('courses:course_detail', slug=course.slug)
+            else:
+                # Пользователь хочет завершить урок - перенаправляем на тест
+                from django.urls import reverse
+                from urllib.parse import urlencode
+                url = reverse('quizzes:quiz_start', kwargs={'quiz_id': lesson.final_quiz.id})
+                params = urlencode({'course_slug': course.slug, 'lesson_id': lesson.id})
+                return redirect(f'{url}?{params}')
+
+    # Если мы дошли сюда, значит либо теста нет, либо тест пройден
+    # Засчитываем урок как завершенный
+    
     # Проверяем, был ли урок уже завершен ранее
     progress, created = UserProgress.objects.get_or_create(
         user=user,
@@ -1307,8 +1463,8 @@ def complete_lesson(request, course_slug, lesson_id):
         transaction_type='award'
     ).exists()
     
-    # Начисляем очки только если урок завершается впервые И баллы не были начислены ранее
-    if not progress.completed and not already_rewarded:
+    # Начисляем очки только если урок завершается впервые И баллы не были начислены ранее И курс не является инцидентом
+    if not progress.completed and not already_rewarded and not course.is_incident:
         award_dascoin_points(user, lesson.points, lesson_reward_reason)
     
     # Создаем или обновляем прогресс
@@ -1371,10 +1527,12 @@ def complete_lesson(request, course_slug, lesson_id):
                 if not was_completed_before:
                     user_course.status = 'completed'
                     user_course.save()
-                    award_dascoin_points(user, course.points, f"Завершение курса {course.title}")
-                    award_course_badge(user, course)
-                    # Выдаем сертификат за курс (если настроено)
-                    issue_certificate(user, course=course)
+                    # Начисляем баллы только если курс не является инцидентом
+                    if not course.is_incident:
+                        award_dascoin_points(user, course.points, f"Завершение курса {course.title}")
+                        award_course_badge(user, course)
+                        # Выдаем сертификат за курс (если настроено)
+                        issue_certificate(user, course=course)
                 else:
                     # Курс уже был завершен, просто обновляем статус
                     user_course.status = 'completed'
@@ -1385,17 +1543,22 @@ def complete_lesson(request, course_slug, lesson_id):
             if not was_completed_before:
                 user_course.status = 'completed'
                 user_course.save()
-                award_dascoin_points(user, course.points, f"Завершение курса {course.title}")
-                award_course_badge(user, course)
-                # Выдаем сертификат за курс (если настроено)
-                issue_certificate(user, course=course)
+                # Начисляем баллы только если курс не является инцидентом
+                if not course.is_incident:
+                    award_dascoin_points(user, course.points, f"Завершение курса {course.title}")
+                    award_course_badge(user, course)
+                    # Выдаем сертификат за курс (если настроено)
+                    issue_certificate(user, course=course)
             else:
                 # Курс уже был завершен, просто обновляем статус
                 user_course.status = 'completed'
                 user_course.save()
     
     # Проверяем параметры из модального окна
-    if request.POST.get('go_to_quiz'):
+    # Если пользователь нажал "Отдохну" и урок засчитан (тест пройден или теста нет) - возвращаемся к курсу
+    if return_to_course:
+        return redirect('courses:course_detail', slug=course.slug)
+    elif request.POST.get('go_to_quiz'):
         # Пользователь хочет перейти к тесту после завершения урока
         quiz_id = request.POST.get('go_to_quiz')
         from django.urls import reverse
@@ -1446,27 +1609,35 @@ def complete_course(request, course_id):
             if not was_completed_before:
                 user_course.status = 'completed'
                 user_course.save()
-                award_dascoin_points(user, course.points, f"Завершение курса {course.title}") 
-                award_course_badge(user, course)
-                # Выдаем сертификат за курс (если настроено)
-                issue_certificate(user, course=course)
+                # Начисляем очки только если курс не является инцидентом
+                if not course.is_incident:
+                    award_dascoin_points(user, course.points, f"Завершение курса {course.title}") 
+                    award_course_badge(user, course)
+                    # Выдаем сертификат за курс (если настроено)
+                    issue_certificate(user, course=course)
             else:
                 # Курс уже был завершен, просто обновляем статус
                 user_course.status = 'completed'
                 user_course.save()
             return redirect('courses:course_detail', slug=course.slug)
         else:
-            return redirect('quizzes:quiz_start', quiz_id=course.final_quiz.id)
+            from django.urls import reverse
+            from urllib.parse import urlencode
+            url = reverse('quizzes:quiz_start', kwargs={'quiz_id': course.final_quiz.id})
+            params = urlencode({'course_slug': course.slug})
+            return redirect(f'{url}?{params}')
     else:
         # Проверяем, был ли курс уже завершен ранее
         was_completed_before = user_course.status == 'completed'
         if not was_completed_before:
             user_course.status = 'completed'
             user_course.save()
-            award_dascoin_points(user, course.points, f"Завершение курса {course.title}") 
-            award_course_badge(user, course)
-            # Выдаем сертификат за курс (если настроено)
-            issue_certificate(user, course=course)
+            # Начисляем очки только если курс не является инцидентом
+            if not course.is_incident:
+                award_dascoin_points(user, course.points, f"Завершение курса {course.title}") 
+                award_course_badge(user, course)
+                # Выдаем сертификат за курс (если настроено)
+                issue_certificate(user, course=course)
         else:
             # Курс уже был завершен, просто обновляем статус
             user_course.status = 'completed'
@@ -1604,8 +1775,11 @@ class UserCourseTrajectoryListView(ListView):
         filtered_courses = []
         for course in available_courses:
             # Исключаем курсы-инциденты
-            if course.is_incident:
-                continue
+            # if course.is_incident:
+            #     continue
+            
+            # Проверяем, доступен ли курс через группы пользователя напрямую (не через траекторию)
+            course_available_via_groups = course.allowed_groups.filter(id__in=user.groups.all()).exists()
             
             # Проверяем, есть ли курс в траекториях пользователя
             course_in_trajectories = TrajectoryCourse.objects.filter(
@@ -1613,24 +1787,37 @@ class UserCourseTrajectoryListView(ListView):
                 course=course
             ).exists()
             
-            if course_in_trajectories:
+            if course_available_via_groups:
+                # Если курс доступен через группы напрямую, он всегда отображается
+                filtered_courses.append(course)
+            elif course_in_trajectories:
                 # Если курс в траектории, проверяем его доступность
                 if self._is_course_available_in_trajectory(user, course):
                     filtered_courses.append(course)
             else:
-                # Если курс не в траектории, он доступен
+                # Если курс не в траектории и не через группы, он доступен (назначен напрямую пользователю)
                 filtered_courses.append(course)
         
         # Получаем UserCourse для каждого отфильтрованного курса
+        from myapp.models import ManualCourseUnassignment
+        
         user_courses = []
         for course in filtered_courses:
             user_course = UserCourse.objects.filter(user=user, course=course).first()
             if user_course:
                 user_courses.append(user_course)
             else:
-                # Создаем UserCourse если его нет (для курсов из траекторий)
-                user_course = UserCourse.objects.create(user=user, course=course, status='available')
-                user_courses.append(user_course)
+                # Проверяем, не был ли курс отменен вручную
+                manual_unassignment = ManualCourseUnassignment.objects.filter(
+                    user=user, 
+                    course=course
+                ).first()
+                
+                if not manual_unassignment:
+                    # Создаем UserCourse если его нет (для курсов из траекторий)
+                    user_course = UserCourse.objects.create(user=user, course=course, status='available')
+                    user_courses.append(user_course)
+                # Если была ручная отмена, просто пропускаем этот курс
         
         # Подготавливаем данные для каждого курса
         courses_data = []
@@ -1684,8 +1871,7 @@ class UserCourseTrajectoryListView(ListView):
                 quiz_passed = False
             else:
                 final_quiz_status = None
-                quiz_passed = False
-                
+                quiz_passed = None
                 if course.final_quiz:
                     quiz_passed = QuizResult.objects.filter(
                         user=user,
@@ -1714,13 +1900,13 @@ class UserCourseTrajectoryListView(ListView):
                     if latest_final_quiz_result:
                         final_quiz_status = latest_final_quiz_result.status
                 
-                        # Курс считается завершенным только если все материалы пройдены И финальный тест пройден
-                        if total_materials > 0 and completed_materials >= total_materials and quiz_passed:
-                            status = 'completed'
-                        elif completed_materials > 0 or user_course.status in ['started', 'in_progress']:
-                            status = 'in_progress'
-                        else:
-                            status = 'available'
+                    # Курс считается завершенным только если все материалы пройдены И финальный тест пройден
+                    if total_materials > 0 and completed_materials >= total_materials and quiz_passed:
+                        status = 'completed'
+                    elif completed_materials > 0 or user_course.status in ['started', 'in_progress']:
+                        status = 'in_progress'
+                    else:
+                        status = 'available'
                 else:
                     # Если нет финального теста, курс завершен когда все материалы пройдены
                     if total_materials > 0 and completed_materials >= total_materials:
@@ -1729,31 +1915,33 @@ class UserCourseTrajectoryListView(ListView):
                         status = 'in_progress'
                     else:
                         status = 'available'
-                    
-                    course_data = {
-                        'course': course,
-                        'user_course': user_course,
-                        'completed_lessons': completed_lessons,
-                        'completed_quizzes': completed_quizzes,
-                        'total_lessons': total_lessons,
-                        'total_quizzes': total_quizzes,
-                        'completed_materials': completed_materials,
-                        'total_materials': total_materials,
-                        'percent': percent,
-                        'status': status,
-                        'quiz_passed': quiz_passed if course.final_quiz else None,
-                        'final_quiz_status': final_quiz_status,
-                        'deadline': deadline,
-                        'is_deadline_overdue': is_deadline_overdue
-                    }
-                    
-                    courses_data.append(course_data)
+                
+                # Создаем course_data для всех курсов (и с финальным тестом, и без)
+                course_data = {
+                    'course': course,
+                    'user_course': user_course,
+                    'completed_lessons': completed_lessons,
+                    'completed_quizzes': completed_quizzes,
+                    'total_lessons': total_lessons,
+                    'total_quizzes': total_quizzes,
+                    'completed_materials': completed_materials,
+                    'total_materials': total_materials,
+                    'percent': percent,
+                    'status': status,
+                    'quiz_passed': quiz_passed if course.final_quiz else None,
+                    'final_quiz_status': final_quiz_status,
+                    'deadline': deadline,
+                    'is_deadline_overdue': is_deadline_overdue
+                }
+                
+                courses_data.append(course_data)
         
         # Сохраняем общие значения ДО фильтрации
         total_courses_all = len(courses_data)
         completed_courses_all = len([c for c in courses_data if c['status'] == 'completed'])
         in_progress_courses_all = len([c for c in courses_data if c['status'] == 'in_progress'])
         available_courses_all = len([c for c in courses_data if c['status'] == 'available'])
+        incident_courses_all = len([c for c in courses_data if c['course'].is_incident])
         
         # Поиск по названию курса
         search_query = self.request.GET.get('search', '').strip()
@@ -1766,10 +1954,18 @@ class UserCourseTrajectoryListView(ListView):
         if status_filter != 'all':
             courses_data = [course for course in courses_data if course['status'] == status_filter]
         
+        # Фильтрация по инцидентам
+        incident_filter = self.request.GET.get('incident', 'all')
+        if incident_filter == 'true':
+            courses_data = [course for course in courses_data if course['course'].is_incident]
+        elif incident_filter == 'false':
+            courses_data = [course for course in courses_data if not course['course'].is_incident]
+        
         # Добавляем данные о курсах в контекст
         context.update({
             'courses_data': courses_data,
             'status_filter': status_filter,
+            'incident_filter': incident_filter,
             'search_query': search_query,
             'total_courses': len(courses_data),
             'completed_courses': len([c for c in courses_data if c['status'] == 'completed']),
@@ -1780,6 +1976,7 @@ class UserCourseTrajectoryListView(ListView):
             'completed_courses_all': completed_courses_all,
             'in_progress_courses_all': in_progress_courses_all,
             'available_courses_all': available_courses_all,
+            'incident_courses_all': incident_courses_all,
         })
         
         return context
@@ -2702,3 +2899,114 @@ class ExternalUsersActivityControlView(ListView):
         context['recent_activities'] = self.get_queryset()[:10]
         
         return context
+
+
+@method_decorator(login_required, name='dispatch')
+class AssignCourseToExpertView(View):
+    """
+    Назначение курса-инцидента руководителю (expert) из связанного инцидента.
+    """
+    def dispatch(self, request, *args, **kwargs):
+        if not request.user.is_authenticated or not (request.user.is_staff or request.user.is_superuser):
+            return render(request, '403.html', status=403)
+        return super().dispatch(request, *args, **kwargs)
+    
+    def post(self, request, *args, **kwargs):
+        course_slug = kwargs.get('slug')
+        try:
+            course = get_object_or_404(Course, slug=course_slug, is_incident=True)
+            incident = Incident.objects.filter(course=course).first()
+            
+            if not incident:
+                return JsonResponse({'success': False, 'error': 'Инцидент не найден'}, status=404)
+            
+            if not incident.expert:
+                return JsonResponse({'success': False, 'error': 'Руководитель не назначен в инциденте'}, status=400)
+            
+            # Назначаем курс руководителю
+            user_course, created = UserCourse.objects.get_or_create(
+                user=incident.expert,
+                course=course,
+                defaults={'status': 'available'}
+            )
+            
+            if created:
+                # Создаем внутреннее уведомление
+                try:
+                    from notifications.models import Notification
+                    Notification.create_course_assignment_notification(incident.expert, course)
+                except Exception as e:
+                    logger.error(f"Ошибка создания внутреннего уведомления о курсе-инциденте {course.title}: {e}")
+                
+                # Отправляем email уведомление
+                try:
+                    from user_management.utils import send_course_assignment_email
+                    send_course_assignment_email(incident.expert, course)
+                    logger.info(f"Отправлено email уведомление о курсе-инциденте {course.title} руководителю {incident.expert.email}")
+                except Exception as e:
+                    logger.error(f"Ошибка отправки email уведомления о курсе-инциденте {course.title}: {e}")
+            
+            return JsonResponse({
+                'success': True, 
+                'message': f'Курс назначен руководителю {incident.expert.get_full_name()}'
+            })
+        except Exception as e:
+            logger.error(f"Ошибка назначения курса руководителю: {e}")
+            return JsonResponse({'success': False, 'error': str(e)}, status=500)
+
+
+@method_decorator(login_required, name='dispatch')
+class AssignCourseToAssignedView(View):
+    """
+    Назначение курса-инцидента назначенным пользователям (assigned_to) из связанного инцидента.
+    """
+    def dispatch(self, request, *args, **kwargs):
+        if not request.user.is_authenticated or not (request.user.is_staff or request.user.is_superuser):
+            return render(request, '403.html', status=403)
+        return super().dispatch(request, *args, **kwargs)
+    
+    def post(self, request, *args, **kwargs):
+        course_slug = kwargs.get('slug')
+        try:
+            course = get_object_or_404(Course, slug=course_slug, is_incident=True)
+            incident = Incident.objects.filter(course=course).first()
+            
+            if not incident:
+                return JsonResponse({'success': False, 'error': 'Инцидент не найден'}, status=404)
+            
+            if not incident.assigned_to.exists():
+                return JsonResponse({'success': False, 'error': 'Нет назначенных пользователей в инциденте'}, status=400)
+            
+            assigned_count = 0
+            # Назначаем курс всем назначенным пользователям
+            for user in incident.assigned_to.all():
+                user_course, created = UserCourse.objects.get_or_create(
+                    user=user,
+                    course=course,
+                    defaults={'status': 'available', 'deadline': incident.deadline}
+                )
+                
+                if created:
+                    assigned_count += 1
+                    # Создаем внутреннее уведомление
+                    try:
+                        from notifications.models import Notification
+                        Notification.create_course_assignment_notification(user, course)
+                    except Exception as e:
+                        logger.error(f"Ошибка создания внутреннего уведомления о курсе-инциденте {course.title}: {e}")
+                    
+                    # Отправляем email уведомление
+                    try:
+                        from user_management.utils import send_course_assignment_email
+                        send_course_assignment_email(user, course)
+                        logger.info(f"Отправлено email уведомление о курсе-инциденте {course.title} пользователю {user.email}")
+                    except Exception as e:
+                        logger.error(f"Ошибка отправки email уведомления о курсе-инциденте {course.title}: {e}")
+            
+            return JsonResponse({
+                'success': True, 
+                'message': f'Курс назначен {assigned_count} пользователям'
+            })
+        except Exception as e:
+            logger.error(f"Ошибка назначения курса назначенным пользователям: {e}")
+            return JsonResponse({'success': False, 'error': str(e)}, status=500)
