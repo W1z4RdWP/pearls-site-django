@@ -254,6 +254,8 @@ class CustomLoginView(LoginView):
         return redirect(self.get_success_url())
 
 
+
+
 class TransactionsListView(LoginRequiredMixin, ListView):
     """CBV для отображения истории транзакций DASCOIN пользователя"""
     model = DascoinTransaction
