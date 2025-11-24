@@ -3,8 +3,8 @@ from django.dispatch import receiver
 from django.contrib.auth.models import User,Group
 from django.utils import timezone
 from datetime import timedelta
-from courses.models import Course, Trajectory, UserCourseTrajectory, TrajectoryCourse
-from myapp.models import UserCourse
+from courses.models import Course, Trajectory, UserCourseTrajectory, TrajectoryCourse, ManualTrajectoryUnassignment
+from myapp.models import UserCourse, ManualCourseUnassignment
 from user_management.utils import send_course_assignment_email, send_trajectory_assignment_email
 import logging
 
@@ -29,6 +29,20 @@ def assign_courses_on_group_add(sender, instance, action, pk_set, **kwargs):
         
         # Создать UserCourse для каждого подходящего курса
         for course in courses:
+            # Проверяем, не был ли курс отменен вручную
+            manual_unassignment = ManualCourseUnassignment.objects.filter(
+                user=instance, 
+                course=course
+            ).first()
+            
+            if manual_unassignment:
+                logger.info(
+                    f"Пропуск автоматического назначения курса {course.title} пользователю {instance.username}: "
+                    f"курс был отменен вручную {manual_unassignment.unassigned_at.strftime('%d.%m.%Y')} "
+                    f"пользователем {manual_unassignment.unassigned_by.username if manual_unassignment.unassigned_by else 'неизвестно'}"
+                )
+                continue
+            
             user_course, created = UserCourse.objects.get_or_create(user=instance, course=course)
             if created:
                 logger.info(f"Назначен курс {course.title} пользователю {instance.username}")
@@ -77,6 +91,20 @@ def assign_courses_on_course_update(sender, instance, action, pk_set, **kwargs):
         
         # Назначить курс пользователям
         for user in users:
+            # Проверяем, не был ли курс отменен вручную
+            manual_unassignment = ManualCourseUnassignment.objects.filter(
+                user=user, 
+                course=instance
+            ).first()
+            
+            if manual_unassignment:
+                logger.info(
+                    f"Пропуск автоматического назначения курса {instance.title} пользователю {user.username}: "
+                    f"курс был отменен вручную {manual_unassignment.unassigned_at.strftime('%d.%m.%Y')} "
+                    f"пользователем {manual_unassignment.unassigned_by.username if manual_unassignment.unassigned_by else 'неизвестно'}"
+                )
+                continue
+            
             user_course, created = UserCourse.objects.get_or_create(user=user, course=instance)
             if created:
                 logger.info(f"Назначен курс {instance.title} пользователю {user.username}")
@@ -105,6 +133,20 @@ def assign_trajectories_on_group_add(sender, instance, action, pk_set, **kwargs)
         user_groups = instance.groups.filter(pk__in=pk_set)
         trajectories = Trajectory.objects.filter(groups__in=user_groups).distinct()
         for trajectory in trajectories:
+            # Проверяем, не была ли траектория отменена вручную
+            manual_unassignment = ManualTrajectoryUnassignment.objects.filter(
+                user=instance, 
+                trajectory=trajectory
+            ).first()
+            
+            if manual_unassignment:
+                logger.info(
+                    f"Пропуск автоматического назначения траектории {trajectory.name} пользователю {instance.username}: "
+                    f"траектория была отменена вручную {manual_unassignment.unassigned_at.strftime('%d.%m.%Y')} "
+                    f"пользователем {manual_unassignment.unassigned_by.username if manual_unassignment.unassigned_by else 'неизвестно'}"
+                )
+                continue
+            
             user_trajectory, created = UserCourseTrajectory.objects.get_or_create(user=instance, trajectory=trajectory)
             # Если траектория только что создана, назначаем курсы из неё
             if created:
@@ -165,6 +207,20 @@ def assign_trajectories_on_trajectory_update(sender, instance, action, pk_set, *
         
         # Назначить траекторию пользователям
         for user in users:
+            # Проверяем, не была ли траектория отменена вручную
+            manual_unassignment = ManualTrajectoryUnassignment.objects.filter(
+                user=user, 
+                trajectory=instance
+            ).first()
+            
+            if manual_unassignment:
+                logger.info(
+                    f"Пропуск автоматического назначения траектории {instance.name} пользователю {user.username}: "
+                    f"траектория была отменена вручную {manual_unassignment.unassigned_at.strftime('%d.%m.%Y')} "
+                    f"пользователем {manual_unassignment.unassigned_by.username if manual_unassignment.unassigned_by else 'неизвестно'}"
+                )
+                continue
+            
             user_trajectory, created = UserCourseTrajectory.objects.get_or_create(user=user, trajectory=instance)
             # Если траектория только что создана, назначаем курсы из неё
             if created:
@@ -202,6 +258,20 @@ def assign_course_to_trajectory_users(sender, instance, created, **kwargs):
         user_trajectories = UserCourseTrajectory.objects.filter(trajectory=instance.trajectory)
         
         for user_trajectory in user_trajectories:
+            # Проверяем, не был ли курс отменен вручную
+            manual_unassignment = ManualCourseUnassignment.objects.filter(
+                user=user_trajectory.user, 
+                course=instance.course
+            ).first()
+            
+            if manual_unassignment:
+                logger.info(
+                    f"Пропуск автоматического назначения курса {instance.course.title} пользователю {user_trajectory.user.username}: "
+                    f"курс был отменен вручную {manual_unassignment.unassigned_at.strftime('%d.%m.%Y')} "
+                    f"пользователем {manual_unassignment.unassigned_by.username if manual_unassignment.unassigned_by else 'неизвестно'}"
+                )
+                continue
+            
             user_course, course_created = UserCourse.objects.get_or_create(
                 user=user_trajectory.user,
                 course=instance.course,
@@ -231,6 +301,20 @@ def assign_courses_from_trajectory(user, trajectory, send_email_notifications=Fa
     trajectory_courses = TrajectoryCourse.objects.filter(trajectory=trajectory).order_by('order')
     
     for tc in trajectory_courses:
+        # Проверяем, не был ли курс отменен вручную
+        manual_unassignment = ManualCourseUnassignment.objects.filter(
+            user=user, 
+            course=tc.course
+        ).first()
+        
+        if manual_unassignment:
+            logger.info(
+                f"Пропуск автоматического назначения курса {tc.course.title} пользователю {user.username}: "
+                f"курс был отменен вручную {manual_unassignment.unassigned_at.strftime('%d.%m.%Y')} "
+                f"пользователем {manual_unassignment.unassigned_by.username if manual_unassignment.unassigned_by else 'неизвестно'}"
+            )
+            continue
+        
         user_course, created = UserCourse.objects.get_or_create(
             user=user,
             course=tc.course,
@@ -305,6 +389,20 @@ def auto_assign_specialized_courses_on_completion(sender, instance, created, **k
                 
                 # Назначаем курсы
                 for course in specialized_courses:
+                    # Проверяем, не был ли курс отменен вручную
+                    manual_unassignment = ManualCourseUnassignment.objects.filter(
+                        user=user, 
+                        course=course
+                    ).first()
+                    
+                    if manual_unassignment:
+                        logger.info(
+                            f"Пропуск автоматического назначения специализированного курса {course.title} пользователю {user.username}: "
+                            f"курс был отменен вручную {manual_unassignment.unassigned_at.strftime('%d.%m.%Y')} "
+                            f"пользователем {manual_unassignment.unassigned_by.username if manual_unassignment.unassigned_by else 'неизвестно'}"
+                        )
+                        continue
+                    
                     user_course, created = UserCourse.objects.get_or_create(
                         user=user,
                         course=course,
@@ -329,6 +427,20 @@ def auto_assign_specialized_courses_on_completion(sender, instance, created, **k
                 
                 # Назначаем траектории
                 for trajectory in specialized_trajectories:
+                    # Проверяем, не была ли траектория отменена вручную
+                    manual_unassignment = ManualTrajectoryUnassignment.objects.filter(
+                        user=user, 
+                        trajectory=trajectory
+                    ).first()
+                    
+                    if manual_unassignment:
+                        logger.info(
+                            f"Пропуск автоматического назначения специализированной траектории {trajectory.name} пользователю {user.username}: "
+                            f"траектория была отменена вручную {manual_unassignment.unassigned_at.strftime('%d.%m.%Y')} "
+                            f"пользователем {manual_unassignment.unassigned_by.username if manual_unassignment.unassigned_by else 'неизвестно'}"
+                        )
+                        continue
+                    
                     user_trajectory, created = UserCourseTrajectory.objects.get_or_create(
                         user=user,
                         trajectory=trajectory
@@ -415,6 +527,20 @@ def check_incident_completion_on_course_completion(sender, instance, created, **
                                 
                                 assigned_count = 0
                                 for assigned_user in assigned_users:
+                                    # Проверяем, не был ли курс отменен вручную
+                                    manual_unassignment = ManualCourseUnassignment.objects.filter(
+                                        user=assigned_user, 
+                                        course=course
+                                    ).first()
+                                    
+                                    if manual_unassignment:
+                                        logger.info(
+                                            f"Пропуск автоматического назначения курса-инцидента {course.title} пользователю {assigned_user.username}: "
+                                            f"курс был отменен вручную {manual_unassignment.unassigned_at.strftime('%d.%m.%Y')} "
+                                            f"пользователем {manual_unassignment.unassigned_by.username if manual_unassignment.unassigned_by else 'неизвестно'}"
+                                        )
+                                        continue
+                                    
                                     # Проверяем, не назначен ли уже курс пользователю
                                     user_course, created = UserCourse.objects.get_or_create(
                                         user=assigned_user,

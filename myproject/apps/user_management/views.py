@@ -503,6 +503,8 @@ class UserEditDetailedView(UpdateView):
         context['roles'] = Role.objects.all()
         
         # Данные для вкладки прогресса (из UserProgressDashboardView)
+        from myapp.models import ManualCourseUnassignment
+        
         profile = user.profile
         available_courses = Course.objects.available_for_user(user)
         user_courses = []
@@ -511,8 +513,17 @@ class UserEditDetailedView(UpdateView):
             if user_course:
                 user_courses.append(user_course)
             else:
-                user_course = UserCourse.objects.create(user=user, course=course, status='available')
-                user_courses.append(user_course)
+                # Проверяем, не был ли курс отменен вручную
+                manual_unassignment = ManualCourseUnassignment.objects.filter(
+                    user=user, 
+                    course=course
+                ).first()
+                
+                if not manual_unassignment:
+                    # Создаём UserCourse только если не было ручной отмены
+                    user_course = UserCourse.objects.create(user=user, course=course, status='available')
+                    user_courses.append(user_course)
+                # Если была ручная отмена, просто пропускаем этот курс
         
         quiz_results = list(QuizResult.objects.filter(user=user).order_by('-completed_at'))
         courses_progress = []
@@ -777,6 +788,8 @@ class UserProgressDashboardView(DetailView):
         return super().dispatch(request, *args, **kwargs)
 
     def get_context_data(self, **kwargs):
+        from myapp.models import ManualCourseUnassignment
+        
         context = super().get_context_data(**kwargs)
         user = self.get_object()
         profile = user.profile
@@ -790,9 +803,17 @@ class UserProgressDashboardView(DetailView):
             if user_course:
                 user_courses.append(user_course)
             else:
-                # Создаем UserCourse если его нет (для курсов из траекторий)
-                user_course = UserCourse.objects.create(user=user, course=course, status='available')
-                user_courses.append(user_course)
+                # Проверяем, не был ли курс отменен вручную
+                manual_unassignment = ManualCourseUnassignment.objects.filter(
+                    user=user, 
+                    course=course
+                ).first()
+                
+                if not manual_unassignment:
+                    # Создаем UserCourse если его нет (для курсов из траекторий)
+                    user_course = UserCourse.objects.create(user=user, course=course, status='available')
+                    user_courses.append(user_course)
+                # Если была ручная отмена, просто пропускаем этот курс
         
         # Получаем все результаты тестирования пользователя ДО цикла по курсам
         quiz_results = list(QuizResult.objects.filter(user=user).order_by('-completed_at'))
@@ -2173,5 +2194,125 @@ def api_assign_courses_to_user(request, user_id):
         'already_assigned_courses': already_assigned_courses,
         'message': f'Назначено курсов: {assigned_count}, уже были назначены: {already_assigned_count}'
     })
+
+
+@require_POST
+@login_required
+def unassign_course_from_user(request, user_id, user_course_id):
+    """
+    Отменяет назначение курса для пользователя.
+    Удаляет запись UserCourse для указанного пользователя и курса.
+    Создает запись ManualCourseUnassignment для предотвращения автоматического переназначения.
+    """
+    # Проверка прав доступа
+    if not (request.user.is_staff or request.user.is_superuser):
+        messages.error(request, 'У вас нет прав для выполнения этого действия.')
+        return redirect('user_management:user_edit_detailed', pk=user_id)
+    
+    try:
+        from myapp.models import ManualCourseUnassignment
+        
+        # Получаем пользователя
+        target_user = get_object_or_404(User, id=user_id)
+        
+        # Получаем назначение курса
+        user_course = get_object_or_404(UserCourse, id=user_course_id, user=target_user)
+        
+        # Сохраняем ссылку на курс
+        course = user_course.course
+        course_title = course.title
+        
+        # Создаем запись о ручной отмене назначения (или обновляем существующую)
+        ManualCourseUnassignment.objects.update_or_create(
+            user=target_user,
+            course=course,
+            defaults={
+                'unassigned_by': request.user,
+                'reason': f'Ручная отмена назначения через интерфейс управления'
+            }
+        )
+        
+        # Удаляем назначение
+        user_course.delete()
+        
+        # Логируем действие
+        audit_logger.info(
+            f"Отменено назначение курса '{course_title}' для пользователя {target_user.username}. "
+            f"Создана запись о ручной отмене для предотвращения автоматического переназначения.",
+            extra={'user': request.user.username}
+        )
+        
+        messages.success(request, f'Назначение курса "{course_title}" успешно отменено.')
+        
+    except Exception as e:
+        audit_logger.error(
+            f"Ошибка при отмене назначения курса: {str(e)}",
+            extra={'user': request.user.username}
+        )
+        messages.error(request, 'Произошла ошибка при отмене назначения курса.')
+    
+    # Формируем URL с параметром tab
+    url = reverse('user_management:user_edit_detailed', kwargs={'pk': user_id})
+    return redirect(url + '?tab=assigned_training')
+
+
+@require_POST
+@login_required
+def unassign_trajectory_from_user(request, user_id, user_trajectory_id):
+    """
+    Отменяет назначение траектории для пользователя.
+    Удаляет запись UserCourseTrajectory для указанного пользователя и траектории.
+    Создает запись ManualTrajectoryUnassignment для предотвращения автоматического переназначения.
+    """
+    # Проверка прав доступа
+    if not (request.user.is_staff or request.user.is_superuser):
+        messages.error(request, 'У вас нет прав для выполнения этого действия.')
+        return redirect('user_management:user_edit_detailed', pk=user_id)
+    
+    try:
+        from courses.models import ManualTrajectoryUnassignment
+        
+        # Получаем пользователя
+        target_user = get_object_or_404(User, id=user_id)
+        
+        # Получаем назначение траектории
+        user_trajectory = get_object_or_404(UserCourseTrajectory, id=user_trajectory_id, user=target_user)
+        
+        # Сохраняем ссылку на траекторию
+        trajectory = user_trajectory.trajectory
+        trajectory_name = trajectory.name
+        
+        # Создаем запись о ручной отмене назначения (или обновляем существующую)
+        ManualTrajectoryUnassignment.objects.update_or_create(
+            user=target_user,
+            trajectory=trajectory,
+            defaults={
+                'unassigned_by': request.user,
+                'reason': f'Ручная отмена назначения через интерфейс управления'
+            }
+        )
+        
+        # Удаляем назначение
+        user_trajectory.delete()
+        
+        # Логируем действие
+        audit_logger.info(
+            f"Отменено назначение траектории '{trajectory_name}' для пользователя {target_user.username}. "
+            f"Создана запись о ручной отмене для предотвращения автоматического переназначения.",
+            extra={'user': request.user.username}
+        )
+        
+        messages.success(request, f'Назначение траектории "{trajectory_name}" успешно отменено.')
+        
+    except Exception as e:
+        audit_logger.error(
+            f"Ошибка при отмене назначения траектории: {str(e)}",
+            extra={'user': request.user.username}
+        )
+        messages.error(request, 'Произошла ошибка при отмене назначения траектории.')
+    
+    # Формируем URL с параметром tab
+    url = reverse('user_management:user_edit_detailed', kwargs={'pk': user_id})
+    return redirect(url + '?tab=assigned_training')
 
 

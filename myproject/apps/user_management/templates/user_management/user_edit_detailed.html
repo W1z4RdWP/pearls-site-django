@@ -591,6 +591,9 @@
                                 <th>Статус</th>
                                 <th>Срок выполнения</th>
                                 <th>Тип назначения</th>
+                                {% if not readonly %}
+                                <th style="width: 80px;">Действия</th>
+                                {% endif %}
                             </tr>
                         </thead>
                         <tbody>
@@ -628,6 +631,19 @@
                                     {% endif %}
                                 </td>
                                 <td>{{ training.assignment_type }}</td>
+                                {% if not readonly %}
+                                <td>
+                                    <form method="post" 
+                                          action="{% if training.type == 'course' %}{% url 'user_management:unassign_course' target_user.pk training.id %}{% else %}{% url 'user_management:unassign_trajectory' target_user.pk training.id %}{% endif %}" 
+                                          style="display: inline;"
+                                          onsubmit="return confirm('Вы уверены, что хотите отменить назначение обучения &quot;{{ training.name }}&quot;?');">
+                                        {% csrf_token %}
+                                        <button type="submit" class="btn btn-sm btn-outline-danger" title="Отменить назначение">
+                                            <i class="fas fa-times"></i>
+                                        </button>
+                                    </form>
+                                </td>
+                                {% endif %}
                             </tr>
                             {% endfor %}
                         </tbody>

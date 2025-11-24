@@ -2,7 +2,7 @@ from django.contrib import admin
 from django import forms
 from .models import Course, Lesson, UserLessonTrajectory, \
         Trajectory, TrajectoryCourse, UserCourseTrajectory, \
-        Certificate, MetricsSubmission
+        Certificate, MetricsSubmission, ManualTrajectoryUnassignment
 
 
 
@@ -190,3 +190,17 @@ class MetricsSubmissionAdmin(admin.ModelAdmin):
     def has_add_permission(self, request):
         # Формы заполняются пользователями через сайт
         return False
+
+@admin.register(ManualTrajectoryUnassignment)
+class ManualTrajectoryUnassignmentAdmin(admin.ModelAdmin):
+    list_display = ('user', 'trajectory', 'unassigned_at', 'unassigned_by', 'reason_preview')
+    list_filter = ('unassigned_at', 'unassigned_by')
+    search_fields = ('user__username', 'trajectory__name', 'reason')
+    readonly_fields = ('unassigned_at',)
+    date_hierarchy = 'unassigned_at'
+    
+    def reason_preview(self, obj):
+        if obj.reason:
+            return obj.reason[:50] + '...' if len(obj.reason) > 50 else obj.reason
+        return '-'
+    reason_preview.short_description = 'Причина'
