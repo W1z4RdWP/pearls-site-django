@@ -593,7 +593,7 @@
                                 <th>Срок выполнения</th>
                                 <th>Тип назначения</th>
                                 {% if not readonly %}
-                                <th style="width: 80px;">Действия</th>
+                                <th style="width: 130px;">Действия</th>
                                 {% endif %}
                             </tr>
                         </thead>
@@ -620,6 +620,7 @@
                                     <span class="badge 
                                         {% if training.status_code == 'completed' %}bg-success
                                         {% elif training.status_code == 'started' %}bg-warning text-dark
+                                        {% elif training.status_code == 'blocked' %}bg-danger
                                         {% else %}bg-secondary{% endif %}">
                                         {{ training.status }}
                                     </span>
@@ -634,15 +635,34 @@
                                 <td>{{ training.assignment_type }}</td>
                                 {% if not readonly %}
                                 <td>
-                                    <form method="post" 
-                                          action="{% if training.type == 'course' %}{% url 'user_management:unassign_course' target_user.pk training.id %}{% else %}{% url 'user_management:unassign_trajectory' target_user.pk training.id %}{% endif %}" 
-                                          style="display: inline;"
-                                          onsubmit="return confirm('Вы уверены, что хотите отменить назначение обучения &quot;{{ training.name }}&quot;?');">
-                                        {% csrf_token %}
-                                        <button type="submit" class="btn btn-sm btn-outline-danger" title="Отменить назначение">
-                                            <i class="fas fa-times"></i>
-                                        </button>
-                                    </form>
+                                    <div class="d-flex gap-1">
+                                        {% if training.type == 'course' %}
+                                            <form method="post" 
+                                                  action="{% url 'user_management:toggle_course_block' target_user.pk training.id %}" 
+                                                  style="display: inline;"
+                                                  onsubmit="return confirm('{% if training.status_code == 'blocked' %}Вы уверены, что хотите разблокировать курс &quot;{{ training.name }}&quot;?{% else %}Вы уверены, что хотите заблокировать курс &quot;{{ training.name }}&quot;?{% endif %}');">
+                                                {% csrf_token %}
+                                                <button type="submit" 
+                                                        class="btn btn-sm {% if training.status_code == 'blocked' %}btn-outline-success{% else %}btn-outline-warning{% endif %}" 
+                                                        title="{% if training.status_code == 'blocked' %}Разблокировать курс{% else %}Заблокировать курс{% endif %}">
+                                                    {% if training.status_code == 'blocked' %}
+                                                        <i class="fas fa-unlock"></i>
+                                                    {% else %}
+                                                        <i class="fas fa-lock"></i>
+                                                    {% endif %}
+                                                </button>
+                                            </form>
+                                        {% endif %}
+                                        <form method="post" 
+                                              action="{% if training.type == 'course' %}{% url 'user_management:unassign_course' target_user.pk training.id %}{% else %}{% url 'user_management:unassign_trajectory' target_user.pk training.id %}{% endif %}" 
+                                              style="display: inline;"
+                                              onsubmit="return confirm('Вы уверены, что хотите отменить назначение обучения &quot;{{ training.name }}&quot;?');">
+                                            {% csrf_token %}
+                                            <button type="submit" class="btn btn-sm btn-outline-danger" title="Отменить назначение">
+                                                <i class="fas fa-times"></i>
+                                            </button>
+                                        </form>
+                                    </div>
                                 </td>
                                 {% endif %}
                             </tr>

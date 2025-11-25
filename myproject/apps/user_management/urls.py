@@ -51,5 +51,8 @@ urlpatterns = [
     # Отмена назначения обучения
     path('users/<int:user_id>/unassign-course/<int:user_course_id>/', views.unassign_course_from_user, name='unassign_course'),
     path('users/<int:user_id>/unassign-trajectory/<int:user_trajectory_id>/', views.unassign_trajectory_from_user, name='unassign_trajectory'),
+    
+    # Блокировка/разблокировка курса
+    path('users/<int:user_id>/toggle-course-block/<int:user_course_id>/', views.toggle_course_block, name='toggle_course_block'),
 
 ]

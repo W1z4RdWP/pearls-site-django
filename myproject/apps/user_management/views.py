@@ -722,6 +722,8 @@ class UserEditDetailedView(UpdateView):
                 status_display = 'В процессе'
             elif user_course.status == 'available':
                 status_display = 'Не начат'
+            elif user_course.status == 'blocked':
+                status_display = 'Заблокирован'
             
             # Определяем тип назначения: если курс-инцидент, то "Курс-инцидент", иначе "Курс"
             assignment_type = 'Курс-инцидент' if user_course.course.is_incident else 'Курс'
@@ -2310,6 +2312,77 @@ def unassign_trajectory_from_user(request, user_id, user_trajectory_id):
             extra={'user': request.user.username}
         )
         messages.error(request, 'Произошла ошибка при отмене назначения траектории.')
+    
+    # Формируем URL с параметром tab
+    url = reverse('user_management:user_edit_detailed', kwargs={'pk': user_id})
+    return redirect(url + '?tab=assigned_training')
+
+
+@require_POST
+@login_required
+def toggle_course_block(request, user_id, user_course_id):
+    """
+    Блокирует или разблокирует курс для пользователя.
+    Изменяет статус UserCourse на 'blocked' или 'available'/'started' в зависимости от текущего статуса.
+    """
+    # Проверка прав доступа
+    if not (request.user.is_staff or request.user.is_superuser):
+        messages.error(request, 'У вас нет прав для выполнения этого действия.')
+        return redirect('user_management:user_edit_detailed', pk=user_id)
+    
+    try:
+        # Получаем пользователя
+        target_user = get_object_or_404(User, id=user_id)
+        
+        # Получаем назначение курса
+        user_course = get_object_or_404(UserCourse, id=user_course_id, user=target_user)
+        
+        # Сохраняем ссылку на курс
+        course = user_course.course
+        course_title = course.title
+        
+        # Определяем действие: блокировка или разблокировка
+        if user_course.status == 'blocked':
+            # Разблокируем курс
+            # Если курс был завершен, оставляем статус 'completed'
+            # Иначе устанавливаем 'available' или 'started' в зависимости от прогресса
+            if user_course.end_date:
+                # Курс был завершен, оставляем completed
+                new_status = 'completed'
+            else:
+                # Проверяем, есть ли прогресс
+                has_progress = UserProgress.objects.filter(
+                    user=target_user, 
+                    course=course, 
+                    completed=True
+                ).exists()
+                new_status = 'started' if has_progress else 'available'
+            
+            user_course.status = new_status
+            action_text = 'разблокирован'
+            log_action = 'разблокирован'
+        else:
+            # Блокируем курс
+            user_course.status = 'blocked'
+            action_text = 'заблокирован'
+            log_action = 'заблокирован'
+        
+        user_course.save(update_fields=['status'])
+        
+        # Логируем действие
+        audit_logger.info(
+            f"Курс '{course_title}' для пользователя {target_user.username} {log_action}.",
+            extra={'user': request.user.username}
+        )
+        
+        messages.success(request, f'Курс "{course_title}" успешно {action_text}.')
+        
+    except Exception as e:
+        audit_logger.error(
+            f"Ошибка при изменении статуса блокировки курса: {str(e)}",
+            extra={'user': request.user.username}
+        )
+        messages.error(request, 'Произошла ошибка при изменении статуса блокировки курса.')
     
     # Формируем URL с параметром tab
     url = reverse('user_management:user_edit_detailed', kwargs={'pk': user_id})
