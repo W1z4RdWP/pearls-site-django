@@ -12,6 +12,7 @@ urlpatterns = [
     path('users/<int:pk>/detailed/', views.UserEditDetailedView.as_view(), name='user_edit_detailed'),
     path('user/<int:pk>/password/', views.UserPasswordChangeView.as_view(), name='user_password_change'),
     path('users/<int:pk>/progress/', views.UserProgressDashboardView.as_view(), name='user_progress'),
+    path('users/<int:pk>/progress/export_excel/', views.export_user_progress_excel, name='user_progress_export_excel'),
     path('users/<int:pk>/quiz-attempts/', views.UserQuizAttemptsView.as_view(), name='user_quiz_attempts'),
     path('users/<int:user_id>/quiz/<int:quiz_id>/unlock/', views.unlock_quiz_access, name='unlock_quiz_access'),
     path('users/quiz_report/<int:quiz_id>/', views.UserQuizReportView.as_view(), name='user_quiz_report'),

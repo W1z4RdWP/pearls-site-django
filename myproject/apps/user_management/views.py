@@ -1,5 +1,5 @@
 from django.shortcuts import render, redirect, get_object_or_404
-from django.http import HttpResponse, JsonResponse
+from django.http import HttpResponse, JsonResponse, HttpResponseForbidden
 from django.views.generic import ListView, CreateView, UpdateView, DetailView, FormView, TemplateView
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.contrib.auth.decorators import login_required
@@ -22,14 +22,15 @@ from django.contrib.auth.forms import SetPasswordForm
 from django.views.decorators.http import require_POST
 from django.urls import reverse
 from django.contrib import messages
-from .utils import send_user_credentials_email, get_user_privilege_level
+from .utils import send_user_credentials_email, get_user_privilege_level, format_timedelta
 from gamification.models import DascoinTransaction, Badge
 import logging
 from datetime import datetime, timedelta
 from django.utils import timezone
 from django.template.loader import render_to_string
 from openpyxl import Workbook
-from openpyxl.styles import Font, PatternFill
+from openpyxl.styles import Fill, Font, PatternFill, Alignment, Border, Side
+from openpyxl.utils import get_column_letter
 from urllib.parse import urlencode
 from weasyprint import HTML
 import json
@@ -1068,6 +1069,155 @@ class UserProgressDashboardView(DetailView):
         })
         
         return context
+
+
+
+
+@login_required
+def export_user_progress_excel(request, pk):
+    """
+    Экспорт прогресса пользователя в Excel 
+    """
+    from myapp.views import is_admin
+    if not is_admin:
+        try:
+            if not request.user.profile.is_mentor_user:
+                return HttpResponseForbidden("Доступ запрещен")
+        except:
+            return HttpResponseForbidden("Доступ запрещен")
+
+    target_user = get_object_or_404(User, pk=pk)
+
+    wb = Workbook()
+    sheet = wb.active
+    sheet.title = f"Прогресс пользователя {target_user.first_name}"
+
+    sheet.merge_cells('A1:I1')
+    header_cell = sheet['A1']
+    header_cell.value = f"Отчёт по прогрессу пользователя: {target_user.first_name} {target_user.last_name}"
+    header_cell.font = Font(bold=True, size=14)
+    header_cell.alignment = Alignment(horizontal='center', vertical='center')
+
+    sheet.merge_cells('A2:I2')
+    date_cell = sheet['A2']
+    date_cell.value = f"Дата создания отчёта: {timezone.now().strftime('%Y-%m-%d')}"
+    date_cell.font = Font(size=10)
+    date_cell.alignment = Alignment(horizontal='center', vertical='center')
+
+    # Пустая строка
+    sheet.append([])
+    sheet.append([])
+
+    # Заголовки столбцов
+    headers = [
+        'Название курса',
+        'Дата назначения курса',
+        'Дата начала курса',
+        'Дата завершения курса',
+        'Дедлайн',
+        'Статус',
+        'Прогресс (%)',
+        'Общее установленное время',
+        'Общее затраченное время'
+    ]
+    sheet.append(headers)
+
+    # Стили для заголовков
+    header_fill = PatternFill(start_color="366092", end_color="366092", fill_type="solid")
+    header_font = Font(bold=True, color="FFFFFF", size=11)
+    border = Border(
+        left=Side(border_style="thin"),
+        right=Side(border_style="thin"),
+        top=Side(border_style="thin"),
+        bottom=Side(border_style="thin")
+    )
+
+    for cell in sheet[5]:
+        cell.fill = header_fill
+        cell.font = header_font
+        cell.alignment = Alignment(horizontal='center', vertical='center', wrap_text=True)
+        cell.border = border
+
+    # Текущее время для расчётов
+    now = timezone.now()
+    STATUSES = {
+        'available': 'Доступен',
+        'started': 'Начат',
+        'completed': 'Завершен',
+        'blocked': 'Заблокирован'
+    }
+
+
+
+    user_courses = UserCourse.objects.all().filter(user=target_user)
+    for user_course in user_courses:
+        course = user_course.course
+        assignment_time = user_course.start_date - timedelta(days=7) # TODO: динамически определять время назначения, а не -7 дней от дедлайна
+        
+        if user_course.deadline:
+            user_course_deadline = user_course.deadline.strftime("%d-%m-%Yг.")
+        else:
+            user_course_deadline = "Без дедлайна"
+        
+        if user_course.end_date:
+            user_course_end_date = user_course.end_date.strftime("%d-%m-%Yг.")
+            actual_time_to_complete = format_timedelta(user_course.end_date - user_course.start_date)
+        else:
+            user_course_end_date = "---"
+            actual_time_to_complete = "---"
+        course_lessons_all = user_course.course.lessons.count()
+        completed_count = UserProgress.objects.filter(
+            user=target_user,
+            course=user_course.course,
+            completed=True
+        ).count()
+        if course_lessons_all == 0:
+            progress = 'нет уроков'
+        else:
+            progress = completed_count / course_lessons_all * 100
+            if round(progress, 2) == 100.0 or round(progress, 2) == 0.0:
+                progress = round(progress)
+            progress = round(progress, 2)
+        
+
+        row = [
+            str(course.title),
+            str(assignment_time.strftime("%d-%m-%Yг.")),
+            str(user_course.start_date.strftime("%d-%m-%Yг.")),
+            str(user_course_end_date),
+            str(user_course_deadline),
+            str(STATUSES[user_course.status]),
+            progress,
+            '7 дней',
+            str(actual_time_to_complete),
+        ]
+        sheet.append(row)
+
+
+    # Автоматическая ширина колонок
+    for col in sheet.columns:
+        max_length = 0
+        column_letter = get_column_letter(col[0].column)
+        for cell in col:
+            try:
+                if len(str(cell.value)) > max_length:
+                    max_length = len(str(cell.value))
+            except:
+                pass
+        
+        adjusted_width = min(max_length + 2, 50)
+        sheet.column_dimensions[column_letter].width = adjusted_width
+
+
+    response = HttpResponse(
+        content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    )
+    filename = f"user_progress_{target_user.id}_{timezone.now().strftime('%Y%m%d_%H%M%S')}.xlsx"
+    response['Content-Disposition'] = f'attachment; filename="{filename}"'
+    wb.save(response)
+    return response
+
+
 
 
 class UserQuizReportView(MentorRequiredMixin, DetailView):
