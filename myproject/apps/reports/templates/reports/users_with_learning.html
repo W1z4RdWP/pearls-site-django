@@ -21,6 +21,9 @@
                     {% endif %}
                 </div>
                 <div class="btn-group" role="group">
+                    <a href="{% url 'reports:export_users_learning_excel' %}{% if search_query %}?search={{ search_query }}{% endif %}{% if selected_group %}{% if search_query %}&{% else %}?{% endif %}group={{ selected_group }}{% endif %}" class="btn btn-success">
+                        <i class="fas fa-file-excel"></i> Экспорт в Excel
+                    </a>
                     <a href="{% url 'reports:homework_check_dashboard' %}" class="btn btn-outline-secondary">
                         <i class="fas fa-arrow-left"></i> Назад к панели
                     </a>

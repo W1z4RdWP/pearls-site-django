@@ -1,10 +1,13 @@
-from datetime import timezone, datetime
+from datetime import datetime, timedelta
 
 from django.shortcuts import get_object_or_404
 from django.views.generic import TemplateView, ListView
 from django.contrib.auth.models import User, Group
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.db.models import Q
+from django.contrib.auth.decorators import login_required
+from django.http import HttpResponse, HttpResponseForbidden
+from django.utils import timezone
 
 
 
@@ -361,6 +364,242 @@ class UsersWithLearningView(LoginRequiredMixin, UserPassesTestMixin, ListView):
         return context
 
 
+@login_required
+def export_users_learning_excel(request):
+    """
+    Экспорт пользователей с обучением в Excel
+    """
+    # Проверяем права доступа
+    if not request.user.is_authenticated:
+        return HttpResponseForbidden("Доступ запрещен")
+    
+    is_admin = request.user.is_superuser or request.user.is_staff
+    if not is_admin:
+        try:
+            if not request.user.profile.is_mentor_user:
+                return HttpResponseForbidden("Доступ запрещен")
+        except:
+            return HttpResponseForbidden("Доступ запрещен")
+    
+    try:
+        from openpyxl import Workbook
+        from openpyxl.styles import Font, Alignment, PatternFill, Border, Side
+        from openpyxl.utils import get_column_letter
+        from myapp.models import UserCourse
+        
+        # Получаем queryset с теми же фильтрами, что и в UsersWithLearningView
+        if is_admin:
+            queryset = User.objects.filter(
+                started_courses__isnull=False,
+                profile__is_approved=True
+            ).exclude(
+                Q(is_superuser=True) | Q(is_staff=True)
+            ).distinct().select_related('profile').prefetch_related('groups', 'started_courses')
+        else:
+            mentor_groups = request.user.groups.all()
+            if mentor_groups.exists():
+                queryset = User.objects.filter(
+                    groups__in=mentor_groups,
+                    started_courses__isnull=False,
+                    profile__is_approved=True
+                ).exclude(
+                    Q(is_superuser=True) | Q(is_staff=True)
+                ).distinct().select_related('profile').prefetch_related('groups', 'started_courses')
+            else:
+                queryset = User.objects.none()
+        
+        # Поиск по ФИО
+        search_query = request.GET.get('search')
+        if search_query:
+            queryset = queryset.filter(
+                Q(first_name__icontains=search_query) |
+                Q(last_name__icontains=search_query) |
+                Q(profile__middle_name__icontains=search_query)
+            )
+        
+        # Фильтр по группе
+        group_filter = request.GET.get('group')
+        if group_filter:
+            queryset = queryset.filter(groups__id=group_filter)
+        
+        queryset = queryset.order_by('last_name', 'first_name')
+        
+        # Создаем workbook
+        wb = Workbook()
+        ws = wb.active
+        ws.title = "Прогресс учащихся"
+        
+        # Заголовок отчета
+        ws.merge_cells('A1:K1')
+        header_cell = ws['A1']
+        header_cell.value = "Отчёт Прогресс учащихся"
+        header_cell.font = Font(bold=True, size=14)
+        header_cell.alignment = Alignment(horizontal='center', vertical='center')
+        
+        ws.merge_cells('A2:K2')
+        date_cell = ws['A2']
+        date_cell.value = f"Дата создания отчёта: {timezone.now().strftime('%Y-%m-%d')}"
+        date_cell.font = Font(size=10)
+        date_cell.alignment = Alignment(horizontal='center', vertical='center')
+        
+        # Пустая строка
+        ws.append([])
+        ws.append([])
+        
+        # Заголовки столбцов
+        headers = [
+            'Имя пользователя',
+            'Подразделение',
+            'Обученность (%)',
+            'Назначений',
+            'Завершено',
+            'Заблокированно',
+            'В процессе',
+            'Не начато',
+            'Просрочено',
+            'Общее установленное время',
+            'Общее затраченное время'
+        ]
+        ws.append(headers)
+        
+        # Стили для заголовков
+        header_fill = PatternFill(start_color="366092", end_color="366092", fill_type="solid")
+        header_font = Font(bold=True, color="FFFFFF", size=11)
+        border = Border(
+            left=Side(border_style="thin"),
+            right=Side(border_style="thin"),
+            top=Side(border_style="thin"),
+            bottom=Side(border_style="thin")
+        )
+        
+        for cell in ws[5]:  # Заголовки в строке 5
+            cell.fill = header_fill
+            cell.font = header_font
+            cell.alignment = Alignment(horizontal='center', vertical='center', wrap_text=True)
+            cell.border = border
+        
+        # Текущее время для расчетов
+        now = timezone.now()
+        
+        # Заполняем данные
+        for user in queryset:
+            user_courses = user.started_courses.all()
+            
+            # Подсчитываем курсы по статусам
+            total_courses = user_courses.count()
+            completed = user_courses.filter(status='completed').count()
+            blocked = user_courses.filter(status='blocked').count()
+            in_progress = user_courses.filter(status='started').count()
+            not_started = user_courses.filter(status='available').count()
+            
+            # Просроченные курсы (deadline < now и status != 'completed')
+            overdue = user_courses.filter(
+                deadline__lt=now
+            ).exclude(status='completed').count()
+            
+            # Обученность (%)
+            learning_percentage = round((completed / total_courses * 100), 2) if total_courses > 0 else 0
+            
+            # Общее установленное время (сумма времени из deadline для всех курсов с deadline)
+            total_allocated_time = timedelta(0)
+            for uc in user_courses.filter(deadline__isnull=False):
+                if uc.deadline:
+                    # Извлекаем только время из deadline (часы, минуты, секунды)
+                    deadline_time = uc.deadline.time()
+                    total_allocated_time += timedelta(
+                        hours=deadline_time.hour,
+                        minutes=deadline_time.minute,
+                        seconds=deadline_time.second
+                    )
+            
+            # Общее затраченное время
+            # Сумма времени курсов с момента начала до текущего момента (если не завершен) или до завершения
+            # Но только для курсов С deadline (если deadline не задан, то +0:00:00)
+            total_spent_time = timedelta(0)
+            for uc in user_courses:
+                # Если для курса НЕ задан deadline, не учитываем (добавляем 0:00:00)
+                if not uc.deadline:
+                    continue  # Пропускаем курсы без deadline
+                
+                # Для курсов с deadline считаем время
+                if uc.status == 'completed' and uc.end_date and uc.start_date:
+                    total_spent_time += (uc.end_date - uc.start_date)
+                elif uc.status != 'completed' and uc.start_date:
+                    total_spent_time += (now - uc.start_date)
+            
+            # Форматируем время
+            def format_timedelta(td):
+                """Форматирует timedelta в читаемый формат"""
+                total_seconds = int(td.total_seconds())
+                if total_seconds == 0:
+                    return "0:00:00"
+                days = td.days
+                hours, remainder = divmod(total_seconds, 3600)
+                minutes, seconds = divmod(remainder, 60)
+                if days > 0:
+                    return f"{days}д {hours:02d}:{minutes:02d}:{seconds:02d}"
+                else:
+                    return f"{hours:02d}:{minutes:02d}:{seconds:02d}"
+            
+            # Группы пользователя
+            groups = ', '.join([group.name for group in user.groups.all()]) if user.groups.exists() else ''
+            
+            # Имя пользователя
+            user_name = user.get_full_name() or user.email
+            
+            # Добавляем строку данных
+            row = [
+                user_name,
+                groups,
+                learning_percentage,
+                total_courses,
+                completed,
+                blocked,
+                in_progress,
+                not_started,
+                overdue,
+                format_timedelta(total_allocated_time),
+                format_timedelta(total_spent_time)
+            ]
+            ws.append(row)
+            
+            # Применяем стили к строке данных
+            for cell in ws[ws.max_row]:
+                cell.border = border
+                if cell.column == 3:  # Обученность (%)
+                    cell.alignment = Alignment(horizontal='right', vertical='center')
+                elif cell.column >= 4 and cell.column <= 9:  # Числовые столбцы
+                    cell.alignment = Alignment(horizontal='right', vertical='center')
+                else:
+                    cell.alignment = Alignment(horizontal='left', vertical='center')
+        
+        # Автоматическая ширина колонок
+        for column in ws.columns:
+            max_length = 0
+            column_letter = get_column_letter(column[0].column)
+            for cell in column:
+                try:
+                    if len(str(cell.value)) > max_length:
+                        max_length = len(str(cell.value))
+                except:
+                    pass
+            adjusted_width = min(max_length + 2, 50)
+            ws.column_dimensions[column_letter].width = adjusted_width
+        
+        # Создаем ответ
+        response = HttpResponse(
+            content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        )
+        filename = f"progress_report_{timezone.now().strftime('%Y%m%d_%H%M%S')}.xlsx"
+        response['Content-Disposition'] = f'attachment; filename="{filename}"'
+        
+        wb.save(response)
+        return response
+        
+    except ImportError:
+        return HttpResponse("Библиотека openpyxl не установлена. Установите её командой: pip install openpyxl", status=500)
+    except Exception as e:
+        return HttpResponse(f"Ошибка при создании Excel файла: {str(e)}", status=500)
 
 
 class GroupsProgressView(LoginRequiredMixin, UserPassesTestMixin, ListView):
