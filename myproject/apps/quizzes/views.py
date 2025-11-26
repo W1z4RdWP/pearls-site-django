@@ -1835,6 +1835,7 @@ class ReviewQuizView(LoginRequiredMixin, UserPassesTestMixin, DetailView):
         context['text_answers'] = text_answers
         context['all_answers'] = all_answers
         context['grouped_answers'] = grouped_answers
+        context['user_id'] = quiz_result.user.id
         
         return context
     
@@ -2009,7 +2010,7 @@ class ReviewQuizView(LoginRequiredMixin, UserPassesTestMixin, DetailView):
                         award_achievement(quiz_result.user, 'perfect_score', 'Идеальный результат', 'Получили 100% за прохождение теста')
         
         messages.success(request, f'Оценка теста "{quiz_result.quiz_title}" для пользователя {quiz_result.user.username} сохранена.')
-        return redirect('quizzes:pending_quizzes')
+        return redirect('quizzes:review_quiz', result_id=quiz_result.id)
 
 
 @require_http_methods(["POST"])

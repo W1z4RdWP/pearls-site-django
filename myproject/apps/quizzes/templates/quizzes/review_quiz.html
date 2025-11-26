@@ -9,11 +9,14 @@
 {% block content %}
 <div class="review-container">
     <div class="review-header">
-        <h2>Оценка теста: {{ quiz_result.quiz_title }}</h2>
+        <h2 class="h3 mb-0">
+            <a href="{% url 'quizzes:pending_quizzes' %}" class="text-decoration-none me-2">←</a>
+            Оценка теста: {{ quiz_result.quiz_title }}
+        </h2>
         <div class="review-info">
             <div class="review-info-item">
                 <span class="review-info-label">Студент</span>
-                <span class="review-info-value">{{ quiz_result.user.get_full_name|default:quiz_result.user.username }}</span>
+                <a href="{% url 'user_management:user_edit_detailed' pk=user_id %}"><span class="review-info-value">{{ quiz_result.user.get_full_name|default:quiz_result.user.username }}</span></a>
             </div>
             <div class="review-info-item">
                 <span class="review-info-label">Курс</span>
