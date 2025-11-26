@@ -23,7 +23,7 @@ from django.views.decorators.http import require_POST
 from django.urls import reverse
 from django.contrib import messages
 from .utils import send_user_credentials_email, get_user_privilege_level
-from gamification.models import DascoinTransaction
+from gamification.models import DascoinTransaction, Badge
 import logging
 from datetime import datetime, timedelta
 from django.utils import timezone
@@ -759,6 +759,24 @@ class UserEditDetailedView(UpdateView):
         
         context['assigned_trainings'] = assigned_trainings
         
+        # Данные для вкладки "Достижения"
+        user_badges = profile.get_badges()
+        user_achievements = profile.get_achievements()
+        dascoin_points = profile.dascoin_points
+        
+        # Получаем общее количество доступных бейджей для расчета прогресса
+        total_badges_available = Badge.objects.filter(is_active=True).count()
+        badges_progress = int((user_badges.count() / total_badges_available * 100)) if total_badges_available > 0 else 0
+        
+        context.update({
+            'user_badges': user_badges,
+            'user_achievements': user_achievements,
+            'dascoin_points': dascoin_points,
+            'total_badges_available': total_badges_available,
+            'badges_progress': badges_progress,
+            'user_id': self.object.pk,
+        })
+        
         # Определяем активную вкладку
         context['active_tab'] = self.request.GET.get('tab', 'personal')
         
@@ -778,6 +796,9 @@ class UserEditDetailedView(UpdateView):
 
     def get_success_url(self):
         return reverse('user_management:user_edit_detailed', kwargs={'pk': self.object.pk}) + '?tab=personal'
+
+
+
 
 class UserProgressDashboardView(DetailView):
     model = User
