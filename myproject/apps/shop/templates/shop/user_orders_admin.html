@@ -1,24 +1,43 @@
 {% extends 'layout.html' %}
 {% load static %}
 
-{% block title %}История покупок{% endblock %}
+{% block title %}История покупок пользователя{% endblock %}
 
 {% block specific_styles %}
 <style>
-    .order-history-container {
+    .user-orders-container {
         padding: 2rem 0;
         min-height: 70vh;
     }
     
-    .order-history-header {
+    .user-orders-header {
         margin-bottom: 2rem;
     }
     
-    .order-history-header h1 {
+    .user-orders-header h1 {
         font-size: 2rem;
         font-weight: 600;
         margin-bottom: 1rem;
         color: #333;
+    }
+    
+    .user-info-box {
+        background: #f8f9fa;
+        border: 1px solid #e0e0e0;
+        border-radius: 8px;
+        padding: 1.5rem;
+        margin-bottom: 2rem;
+    }
+    
+    .user-info-box h3 {
+        font-size: 1.5rem;
+        margin-bottom: 0.5rem;
+        color: #333;
+    }
+    
+    .user-info-box p {
+        margin: 0.25rem 0;
+        color: #666;
     }
     
     .stats-cards {
@@ -194,27 +213,29 @@
 {% endblock %}
 
 {% block content %}
-<div class="container order-history-container">
-    <a href="{% url 'shop:shop' %}" class="back-link">
-        <i class="fas fa-arrow-left me-2"></i> Вернуться в магазин
+<div class="container user-orders-container">
+    <a href="{% url 'shop:users_with_orders' %}" class="back-link">
+        <i class="fas fa-arrow-left me-2"></i> Вернуться к списку пользователей
     </a>
     
-    <div class="order-history-header">
-        <div class="d-flex justify-content-between align-items-center">
-            <h1>
-                <i class="fas fa-shopping-bag me-2"></i>
-                История покупок
-            </h1>
-            {% if user.is_staff or user.is_superuser %}
-            <a href="{% url 'shop:users_with_orders' %}" class="btn btn-primary">
-                <i class="fas fa-users me-2"></i>
-                Пользователи с покупками
-            </a>
-            {% endif %}
-        </div>
+    <!-- Информация о пользователе -->
+    <div class="user-info-box">
+        <h3>
+            <i class="fas fa-user me-2"></i>
+            {{ target_user.get_full_name|default:target_user.username }}
+        </h3>
+        <p><i class="fas fa-envelope me-1"></i> {{ target_user.email }}</p>
+        <p><i class="fas fa-user-tag me-1"></i> @{{ target_user.username }}</p>
     </div>
     
-    {% if stats.total > 0 %}
+    <div class="user-orders-header">
+        <h1>
+            <i class="fas fa-shopping-bag me-2"></i>
+            История покупок
+        </h1>
+    </div>
+    
+    {% if orders %}
         <!-- Статистика -->
         <div class="stats-cards">
             <div class="stat-card">
@@ -309,8 +330,7 @@
     {% else %}
         <div class="no-orders">
             <i class="fas fa-shopping-bag"></i>
-            <h3>У вас пока нет заказов</h3>
-            <p>Начните делать покупки в <a href="{% url 'shop:shop' %}">магазине</a>!</p>
+            <h3>У пользователя нет заказов</h3>
         </div>
     {% endif %}
 </div>
