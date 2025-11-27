@@ -18,6 +18,7 @@ class Notification(models.Model):
         ('ticket_status', 'Изменение статуса тикета'),
         ('ticket_comment', 'Новое сообщение по тикету'),
         ('quiz_reviewed', 'Оценка теста наставником'),
+        ('order_status', 'Изменение статуса заказа'),
     ]
     
     user = models.ForeignKey(User, on_delete=models.CASCADE, verbose_name="Пользователь")
@@ -62,6 +63,13 @@ class Notification(models.Model):
         null=True,
         blank=True,
         verbose_name="Связанный результат теста"
+    )
+    related_order = models.ForeignKey(
+        'shop.ProductOrder',
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        verbose_name="Связанный заказ"
     )
     points_change = models.IntegerField(
         null=True, 
@@ -114,6 +122,9 @@ class Notification(models.Model):
             quiz = Quiz.objects.filter(name=self.related_quiz_result.quiz_title).first()
             if quiz and self.related_quiz_result.course:
                 return reverse('quizzes:quiz_best_result', kwargs={'quiz_id': quiz.id}) + f'?course_slug={self.related_quiz_result.course.slug}'
+        elif self.notification_type == 'order_status' and self.related_order:
+            # Уведомления о заказах ведут на страницу магазина
+            return reverse('shop:shop')
         return '#'
     
     @classmethod
@@ -249,4 +260,51 @@ class Notification(models.Model):
             title=title,
             message=message,
             related_quiz_result=quiz_result,
+        )
+    
+    @classmethod
+    def create_order_status_notification(cls, order, old_status, new_status):
+        """Создает уведомление об изменении статуса заказа"""
+        status_messages = {
+            'pending': 'ожидает подтверждения',
+            'approved': 'одобрен',
+            'rejected': 'отклонен',
+            'completed': 'выполнен',
+            'cancelled': 'отменен',
+        }
+        
+        old_status_display = status_messages.get(old_status, old_status) if old_status else 'новый'
+        new_status_display = status_messages.get(new_status, new_status)
+        
+        # Формируем заголовок и сообщение в зависимости от статуса
+        if old_status is None and new_status == 'pending':
+            # Заказ только что создан
+            title = "Заказ оформлен"
+            message = f"Ваш заказ товара «{order.product.name}» успешно оформлен. Списано {order.points_spent} баллов. HR проверяет соответствие политике в течение 2 рабочих дней."
+        elif new_status == 'approved':
+            title = "Заказ одобрен"
+            message = f"Ваш заказ товара «{order.product.name}» был одобрен. Вы сможете получить товар в ближайшее время."
+        elif new_status == 'rejected':
+            title = "Заказ отклонен"
+            message = f"Ваш заказ товара «{order.product.name}» был отклонен. Потраченные {order.points_spent} баллов возвращены на ваш счет."
+            if order.admin_comment:
+                message += f"\n\nКомментарий администратора: {order.admin_comment}"
+        elif new_status == 'cancelled':
+            title = "Заказ отменен"
+            message = f"Ваш заказ товара «{order.product.name}» был отменен. Потраченные {order.points_spent} баллов возвращены на ваш счет."
+            if order.admin_comment:
+                message += f"\n\nКомментарий администратора: {order.admin_comment}"
+        elif new_status == 'completed':
+            title = "Заказ выполнен"
+            message = f"Ваш заказ товара «{order.product.name}» выполнен. Вы можете получить товар."
+        else:
+            title = "Статус заказа изменен"
+            message = f"Статус вашего заказа товара «{order.product.name}» изменен с «{old_status_display}» на «{new_status_display}»."
+        
+        return cls.objects.create(
+            user=order.user,
+            notification_type='order_status',
+            title=title,
+            message=message,
+            related_order=order,
         )

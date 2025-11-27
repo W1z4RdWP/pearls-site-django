@@ -128,6 +128,48 @@
         margin-bottom: 1rem;
     }
     
+    /* Иконка корзины */
+    .cart-icon-link {
+        position: relative;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 50px;
+        height: 50px;
+        background: #007bff;
+        color: white;
+        border-radius: 50%;
+        text-decoration: none;
+        font-size: 1.5rem;
+        transition: all 0.3s ease;
+        box-shadow: 0 2px 8px rgba(0, 123, 255, 0.3);
+    }
+    
+    .cart-icon-link:hover {
+        background: #0056b3;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0, 123, 255, 0.4);
+        color: white;
+        text-decoration: none;
+    }
+    
+    .cart-badge {
+        position: absolute;
+        top: -5px;
+        right: -5px;
+        background: #dc3545;
+        color: white;
+        border-radius: 50%;
+        width: 24px;
+        height: 24px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.75rem;
+        font-weight: 600;
+        border: 2px solid white;
+    }
+    
     /* Адаптивность для мобильных устройств */
     @media (max-width: 1400px) {
         .products-grid {
@@ -163,14 +205,99 @@
             grid-template-columns: 1fr;
         }
     }
+    
+    /* Модальное окно товара */
+    .product-modal .modal-body {
+        padding: 1.5rem;
+    }
+    
+    .product-modal-image {
+        width: 100%;
+        max-height: 300px;
+        object-fit: cover;
+        border-radius: 8px;
+        margin-bottom: 1.5rem;
+    }
+    
+    .product-modal-title {
+        font-size: 1.5rem;
+        font-weight: 600;
+        margin-bottom: 1rem;
+        color: #333;
+    }
+    
+    .product-modal-price {
+        font-size: 1.75rem;
+        font-weight: 700;
+        color: #007bff;
+        margin-bottom: 1rem;
+    }
+    
+    .product-modal-description {
+        color: #666;
+        margin-bottom: 1rem;
+        line-height: 1.6;
+    }
+    
+    .product-modal-restrictions {
+        background: #fff3cd;
+        border: 1px solid #ffc107;
+        border-radius: 6px;
+        padding: 1rem;
+        margin-bottom: 1.5rem;
+    }
+    
+    .product-modal-restrictions h6 {
+        color: #856404;
+        margin-bottom: 0.5rem;
+        font-weight: 600;
+    }
+    
+    .product-modal-restrictions p {
+        color: #856404;
+        margin: 0;
+        font-size: 0.9rem;
+    }
+    
+    .btn-order {
+        background: #007bff;
+        color: white;
+        font-weight: 600;
+        padding: 0.75rem 2rem;
+        border-radius: 6px;
+        border: none;
+        transition: all 0.3s ease;
+    }
+    
+    .btn-order:hover {
+        background: #0056b3;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0, 123, 255, 0.3);
+    }
+    
+    .btn-order:disabled {
+        background: #6c757d;
+        cursor: not-allowed;
+        transform: none;
+    }
 </style>
 {% endblock %}
 
 {% block content %}
 <div class="container shop-container">
     <div class="shop-header">
-        <h1>Магазин</h1>
-        <p>Потратьте свои баллы DASCOIN на товары и услуги</p>
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <div>
+                <h1>Магазин</h1>
+                <p>Потратьте свои баллы DASCOIN на товары и услуги</p>
+            </div>
+            {% if user.is_authenticated %}
+            <a href="{% url 'shop:order_history' %}" class="cart-icon-link" title="История покупок">
+                <i class="fas fa-shopping-cart"></i>
+                <span class="cart-badge" id="cart-badge" style="display: none;">0</span>
+            </a>
+            {% endif %}
+        </div>
     </div>
     
     {% if products %}
@@ -208,4 +335,198 @@
         </div>
     {% endif %}
 </div>
+
+<!-- Модальное окно товара -->
+<div class="modal fade product-modal" id="productModal" tabindex="-1" aria-labelledby="productModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="productModalLabel">Информация о товаре</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <img id="modalProductImage" src="" alt="" class="product-modal-image">
+                <h4 class="product-modal-title" id="modalProductName"></h4>
+                <div class="product-modal-price" id="modalProductPrice"></div>
+                <div class="product-modal-description" id="modalProductDescription"></div>
+                <div class="product-modal-restrictions" id="modalProductRestrictions" style="display: none;">
+                    <h6><i class="fas fa-info-circle"></i> Ограничения:</h6>
+                    <p id="modalProductRestrictionsText"></p>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Закрыть</button>
+                <button type="button" class="btn btn-order" id="btnOrderProduct">
+                    <i class="fas fa-shopping-cart"></i> Заказать
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Модальное окно успешного заказа -->
+<div class="modal fade" id="orderSuccessModal" tabindex="-1" aria-labelledby="orderSuccessModalLabel" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title" id="orderSuccessModalLabel">
+                    <i class="fas fa-check-circle"></i> Заказ оформлен
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p id="orderSuccessMessage"></p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-primary" data-bs-dismiss="modal">Понятно</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block specific_scripts %}
+<script>
+$(document).ready(function() {
+    let currentProductId = null;
+    let currentProductPrice = null;
+    
+    // Загружаем количество заказов для отображения в корзине
+    function updateCartBadge() {
+        $.ajax({
+            url: '{% url "shop:orders_count" %}',
+            method: 'GET',
+            success: function(data) {
+                const count = data.count || 0;
+                const badge = $('#cart-badge');
+                if (count > 0) {
+                    badge.text(count).show();
+                } else {
+                    badge.hide();
+                }
+            },
+            error: function() {
+                // В случае ошибки просто скрываем бейдж
+                $('#cart-badge').hide();
+            }
+        });
+    }
+    
+    // Обновляем счетчик при загрузке страницы
+    updateCartBadge();
+    
+    // Обработчик клика на карточку товара
+    $('.product-card').on('click', function(e) {
+        e.preventDefault();
+        const productId = $(this).data('product-id');
+        
+        // Загружаем данные товара через AJAX
+        $.ajax({
+            url: '{% url "shop:product_details" %}',
+            method: 'GET',
+            data: {
+                'product_id': productId
+            },
+            success: function(response) {
+                const product = response.product;
+                
+                // Заполняем модальное окно
+                $('#modalProductImage').attr('src', product.image_url);
+                $('#modalProductName').text(product.name);
+                $('#modalProductPrice').html(product.points_price + ' <span>баллов</span>');
+                
+                // Описание
+                if (product.description) {
+                    $('#modalProductDescription').text(product.description).show();
+                } else {
+                    $('#modalProductDescription').hide();
+                }
+                
+                // Ограничения
+                const restrictionsText = product.restrictions_text || (product.constraints_display || '');
+                if (restrictionsText) {
+                    $('#modalProductRestrictionsText').text(restrictionsText);
+                    $('#modalProductRestrictions').show();
+                } else {
+                    $('#modalProductRestrictions').hide();
+                }
+                
+                // Сохраняем ID и цену товара
+                currentProductId = product.id;
+                currentProductPrice = product.points_price;
+                
+                // Показываем модальное окно
+                $('#productModal').modal('show');
+            },
+            error: function() {
+                alert('Ошибка загрузки информации о товаре');
+            }
+        });
+    });
+    
+    // Обработчик кнопки "Заказать"
+    $('#btnOrderProduct').on('click', function() {
+        if (!currentProductId) return;
+        
+        const btn = $(this);
+        btn.prop('disabled', true);
+        btn.html('<i class="fas fa-spinner fa-spin"></i> Оформление...');
+        
+        // Отправляем запрос на сервер
+        $.ajax({
+            url: '{% url "shop:order_product" %}',
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': $('meta[name=csrf-token]').attr('content') || $('[name=csrfmiddlewaretoken]').val()
+            },
+            data: {
+                'product_id': currentProductId
+            },
+            success: function(response) {
+                // Закрываем модальное окно товара
+                $('#productModal').modal('hide');
+                
+                // Показываем сообщение об успехе
+                const message = `Списано ${currentProductPrice} баллов. HR проверяет соответствие политике в течение 2 рабочих дней, затем Вы сможете получить свой товар или Вам вернутся баллы обратно.`;
+                $('#orderSuccessMessage').text(message);
+                $('#orderSuccessModal').modal('show');
+                
+                // Обновляем баланс баллов (если есть элемент на странице)
+                if (typeof updateBalance === 'function') {
+                    updateBalance();
+                }
+                
+                // Обновляем счетчик заказов в корзине
+                updateCartBadge();
+            },
+            error: function(xhr) {
+                let errorMessage = 'Произошла ошибка при оформлении заказа.';
+                
+                if (xhr.responseJSON && xhr.responseJSON.error) {
+                    errorMessage = xhr.responseJSON.error;
+                } else if (xhr.responseText) {
+                    try {
+                        const response = JSON.parse(xhr.responseText);
+                        errorMessage = response.error || errorMessage;
+                    } catch(e) {
+                        errorMessage = xhr.responseText;
+                    }
+                }
+                
+                alert(errorMessage);
+                btn.prop('disabled', false);
+                btn.html('<i class="fas fa-shopping-cart"></i> Заказать');
+            }
+        });
+    });
+    
+    // При закрытии модального окна сбрасываем состояние
+    $('#productModal').on('hidden.bs.modal', function() {
+        currentProductId = null;
+        currentProductPrice = null;
+        $('#btnOrderProduct').prop('disabled', false);
+        $('#btnOrderProduct').html('<i class="fas fa-shopping-cart"></i> Заказать');
+    });
+});
+</script>
 {% endblock %}
