@@ -1,5 +1,5 @@
-from django.shortcuts import get_object_or_404
-from django.views.generic import TemplateView, ListView
+from django.shortcuts import get_object_or_404, redirect
+from django.views.generic import TemplateView, ListView, CreateView
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.http import JsonResponse
@@ -7,7 +7,10 @@ from django.views.decorators.http import require_http_methods
 from django.db import transaction
 from django.db.models import Sum, Count, Max, Q
 from django.contrib.auth.models import User
+from django.urls import reverse_lazy
+from django.contrib import messages
 from .models import InternalProduct, ProductOrder
+from .forms import InternalProductForm
 from gamification.utils import deduct_dascoin_points
 
 
@@ -241,4 +244,26 @@ class UserOrdersAdminView(LoginRequiredMixin, UserPassesTestMixin, ListView):
         # Информация о пользователе
         context['target_user'] = self.target_user
         
+        return context
+
+
+class CreateProductView(LoginRequiredMixin, UserPassesTestMixin, CreateView):
+    """Класс представление для создания нового товара"""
+    model = InternalProduct
+    form_class = InternalProductForm
+    template_name = 'shop/create_product.html'
+    success_url = reverse_lazy('shop:shop')
+    
+    def test_func(self):
+        """Проверяет, что пользователь является staff или superuser"""
+        return self.request.user.is_staff or self.request.user.is_superuser
+    
+    def form_valid(self, form):
+        """Обработка успешной валидации формы"""
+        messages.success(self.request, f'Товар "{form.cleaned_data["name"]}" успешно создан!')
+        return super().form_valid(form)
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['title'] = 'Создание нового товара'
         return context

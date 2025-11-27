@@ -170,6 +170,34 @@
         border: 2px solid white;
     }
     
+    /* Кнопка добавления товара */
+    .add-product-icon-link {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 50px;
+        height: 50px;
+        background: #28a745;
+        color: white;
+        border-radius: 50%;
+        text-decoration: none;
+        font-size: 1.5rem;
+        transition: all 0.3s ease;
+        box-shadow: 0 2px 8px rgba(40, 167, 69, 0.3);
+    }
+    
+    .add-product-icon-link:hover {
+        background: #218838;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(40, 167, 69, 0.4);
+        color: white;
+        text-decoration: none;
+    }
+    
+    .gap-2 {
+        gap: 0.5rem;
+    }
+    
     /* Адаптивность для мобильных устройств */
     @media (max-width: 1400px) {
         .products-grid {
@@ -286,17 +314,24 @@
 {% block content %}
 <div class="container shop-container">
     <div class="shop-header">
-        <div class="d-flex justify-content-between align-items-center mb-3">
+            <div class="d-flex justify-content-between align-items-center mb-3">
             <div>
                 <h1>Магазин</h1>
                 <p>Потратьте свои баллы DASCOIN на товары и услуги</p>
             </div>
-            {% if user.is_authenticated %}
-            <a href="{% url 'shop:order_history' %}" class="cart-icon-link" title="История покупок">
-                <i class="fas fa-shopping-cart"></i>
-                <span class="cart-badge" id="cart-badge" style="display: none;">0</span>
-            </a>
-            {% endif %}
+            <div class="d-flex align-items-center gap-2">
+                {% if user.is_authenticated %}
+                <a href="{% url 'shop:order_history' %}" class="cart-icon-link" title="История покупок">
+                    <i class="fas fa-shopping-cart"></i>
+                    <span class="cart-badge" id="cart-badge" style="display: none;">0</span>
+                </a>
+                {% endif %}
+                {% if user.is_staff or user.is_superuser %}
+                <a href="{% url 'shop:create_product' %}" class="add-product-icon-link" title="Добавить товар">
+                    <i class="fas fa-plus"></i>
+                </a>
+                {% endif %}
+            </div>
         </div>
     </div>
     
