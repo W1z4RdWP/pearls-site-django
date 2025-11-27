@@ -1147,8 +1147,7 @@ def export_user_progress_excel(request, pk):
         'blocked': 'Заблокирован'
     }
 
-
-
+    # Формируем данные в ячейки
     user_courses = UserCourse.objects.all().filter(user=target_user)
     for user_course in user_courses:
         course = user_course.course
@@ -1209,6 +1208,7 @@ def export_user_progress_excel(request, pk):
         sheet.column_dimensions[column_letter].width = adjusted_width
 
 
+    # Формируем ответ
     response = HttpResponse(
         content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
     )
