@@ -16,6 +16,7 @@
         {% if user_trajectories %}
             <div class="row">
                 {% for ut in user_trajectories %}
+                {% if ut.trajectory %}
                 <div class="col-md-6 col-lg-4 mb-4">
                     <div class="card trajectory-card">
                         <div class="card-body">
@@ -29,6 +30,7 @@
                         </div>
                     </div>
                 </div>
+                {% endif %}
                 {% endfor %}
             </div>
         {% else %}
