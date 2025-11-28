@@ -568,6 +568,9 @@ class MetricsSubmission(models.Model):
     # Данные врачей и их метрики сохраняются в JSON
     doctors_data = models.JSONField(verbose_name="Данные врачей", help_text="JSON с данными врачей и их метриками")
     
+    # Валюта
+    currency = models.CharField(max_length=3, verbose_name="Валюта", choices=[('rub', 'Рубли (₽)'), ('kzt', 'Тенге (₸)')])
+    
     submitted_at = models.DateTimeField(auto_now_add=True, verbose_name="Дата отправки")
     
     class Meta:

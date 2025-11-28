@@ -1,5 +1,5 @@
 from django.shortcuts import render, redirect, get_object_or_404
-from django.http import HttpResponse, JsonResponse
+from django.http import HttpResponse, JsonResponse, HttpResponseForbidden
 from django.views.generic import ListView, CreateView, UpdateView, DetailView, FormView, TemplateView
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.contrib.auth.decorators import login_required
@@ -22,14 +22,15 @@ from django.contrib.auth.forms import SetPasswordForm
 from django.views.decorators.http import require_POST
 from django.urls import reverse
 from django.contrib import messages
-from .utils import send_user_credentials_email, get_user_privilege_level
-from gamification.models import DascoinTransaction
+from .utils import send_user_credentials_email, get_user_privilege_level, format_timedelta
+from gamification.models import DascoinTransaction, Badge
 import logging
 from datetime import datetime, timedelta
 from django.utils import timezone
 from django.template.loader import render_to_string
 from openpyxl import Workbook
-from openpyxl.styles import Font, PatternFill
+from openpyxl.styles import Fill, Font, PatternFill, Alignment, Border, Side
+from openpyxl.utils import get_column_letter
 from urllib.parse import urlencode
 from weasyprint import HTML
 import json
@@ -722,6 +723,8 @@ class UserEditDetailedView(UpdateView):
                 status_display = 'В процессе'
             elif user_course.status == 'available':
                 status_display = 'Не начат'
+            elif user_course.status == 'blocked':
+                status_display = 'Заблокирован'
             
             # Определяем тип назначения: если курс-инцидент, то "Курс-инцидент", иначе "Курс"
             assignment_type = 'Курс-инцидент' if user_course.course.is_incident else 'Курс'
@@ -757,6 +760,24 @@ class UserEditDetailedView(UpdateView):
         
         context['assigned_trainings'] = assigned_trainings
         
+        # Данные для вкладки "Достижения"
+        user_badges = profile.get_badges()
+        user_achievements = profile.get_achievements()
+        dascoin_points = profile.dascoin_points
+        
+        # Получаем общее количество доступных бейджей для расчета прогресса
+        total_badges_available = Badge.objects.filter(is_active=True).count()
+        badges_progress = int((user_badges.count() / total_badges_available * 100)) if total_badges_available > 0 else 0
+        
+        context.update({
+            'user_badges': user_badges,
+            'user_achievements': user_achievements,
+            'dascoin_points': dascoin_points,
+            'total_badges_available': total_badges_available,
+            'badges_progress': badges_progress,
+            'user_id': self.object.pk,
+        })
+        
         # Определяем активную вкладку
         context['active_tab'] = self.request.GET.get('tab', 'personal')
         
@@ -776,6 +797,9 @@ class UserEditDetailedView(UpdateView):
 
     def get_success_url(self):
         return reverse('user_management:user_edit_detailed', kwargs={'pk': self.object.pk}) + '?tab=personal'
+
+
+
 
 class UserProgressDashboardView(DetailView):
     model = User
@@ -1045,6 +1069,155 @@ class UserProgressDashboardView(DetailView):
         })
         
         return context
+
+
+
+
+@login_required
+def export_user_progress_excel(request, pk):
+    """
+    Экспорт прогресса пользователя в Excel 
+    """
+    from myapp.views import is_admin
+    if not is_admin:
+        try:
+            if not request.user.profile.is_mentor_user:
+                return HttpResponseForbidden("Доступ запрещен")
+        except:
+            return HttpResponseForbidden("Доступ запрещен")
+
+    target_user = get_object_or_404(User, pk=pk)
+
+    wb = Workbook()
+    sheet = wb.active
+    sheet.title = f"Прогресс пользователя {target_user.first_name}"
+
+    sheet.merge_cells('A1:I1')
+    header_cell = sheet['A1']
+    header_cell.value = f"Отчёт по прогрессу пользователя: {target_user.first_name} {target_user.last_name}"
+    header_cell.font = Font(bold=True, size=14)
+    header_cell.alignment = Alignment(horizontal='center', vertical='center')
+
+    sheet.merge_cells('A2:I2')
+    date_cell = sheet['A2']
+    date_cell.value = f"Дата создания отчёта: {timezone.now().strftime('%Y-%m-%d')}"
+    date_cell.font = Font(size=10)
+    date_cell.alignment = Alignment(horizontal='center', vertical='center')
+
+    # Пустая строка
+    sheet.append([])
+    sheet.append([])
+
+    # Заголовки столбцов
+    headers = [
+        'Название курса',
+        'Дата назначения курса',
+        'Дата начала курса',
+        'Дата завершения курса',
+        'Дедлайн',
+        'Статус',
+        'Прогресс (%)',
+        'Общее установленное время',
+        'Общее затраченное время'
+    ]
+    sheet.append(headers)
+
+    # Стили для заголовков
+    header_fill = PatternFill(start_color="366092", end_color="366092", fill_type="solid")
+    header_font = Font(bold=True, color="FFFFFF", size=11)
+    border = Border(
+        left=Side(border_style="thin"),
+        right=Side(border_style="thin"),
+        top=Side(border_style="thin"),
+        bottom=Side(border_style="thin")
+    )
+
+    for cell in sheet[5]:
+        cell.fill = header_fill
+        cell.font = header_font
+        cell.alignment = Alignment(horizontal='center', vertical='center', wrap_text=True)
+        cell.border = border
+
+    # Текущее время для расчётов
+    now = timezone.now()
+    STATUSES = {
+        'available': 'Доступен',
+        'started': 'Начат',
+        'completed': 'Завершен',
+        'blocked': 'Заблокирован'
+    }
+
+    # Формируем данные в ячейки
+    user_courses = UserCourse.objects.all().filter(user=target_user)
+    for user_course in user_courses:
+        course = user_course.course
+        assignment_time = user_course.start_date - timedelta(days=7) # TODO: динамически определять время назначения, а не -7 дней от дедлайна
+        
+        if user_course.deadline:
+            user_course_deadline = user_course.deadline.strftime("%d-%m-%Yг.")
+        else:
+            user_course_deadline = "Без дедлайна"
+        
+        if user_course.end_date:
+            user_course_end_date = user_course.end_date.strftime("%d-%m-%Yг.")
+            actual_time_to_complete = format_timedelta(user_course.end_date - user_course.start_date)
+        else:
+            user_course_end_date = "---"
+            actual_time_to_complete = "---"
+        course_lessons_all = user_course.course.lessons.count()
+        completed_count = UserProgress.objects.filter(
+            user=target_user,
+            course=user_course.course,
+            completed=True
+        ).count()
+        if course_lessons_all == 0:
+            progress = 'нет уроков'
+        else:
+            progress = completed_count / course_lessons_all * 100
+            if round(progress, 2) == 100.0 or round(progress, 2) == 0.0:
+                progress = round(progress)
+            progress = round(progress, 2)
+        
+
+        row = [
+            str(course.title),
+            str(assignment_time.strftime("%d-%m-%Yг.")),
+            str(user_course.start_date.strftime("%d-%m-%Yг.")),
+            str(user_course_end_date),
+            str(user_course_deadline),
+            str(STATUSES[user_course.status]),
+            progress,
+            '7 дней',
+            str(actual_time_to_complete),
+        ]
+        sheet.append(row)
+
+
+    # Автоматическая ширина колонок
+    for col in sheet.columns:
+        max_length = 0
+        column_letter = get_column_letter(col[0].column)
+        for cell in col:
+            try:
+                if len(str(cell.value)) > max_length:
+                    max_length = len(str(cell.value))
+            except:
+                pass
+        
+        adjusted_width = min(max_length + 2, 50)
+        sheet.column_dimensions[column_letter].width = adjusted_width
+
+
+    # Формируем ответ
+    response = HttpResponse(
+        content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    )
+    filename = f"user_progress_{target_user.id}_{timezone.now().strftime('%Y%m%d_%H%M%S')}.xlsx"
+    response['Content-Disposition'] = f'attachment; filename="{filename}"'
+    wb.save(response)
+    return response
+
+
 
 
 class UserQuizReportView(MentorRequiredMixin, DetailView):
@@ -2310,6 +2483,77 @@ def unassign_trajectory_from_user(request, user_id, user_trajectory_id):
             extra={'user': request.user.username}
         )
         messages.error(request, 'Произошла ошибка при отмене назначения траектории.')
+    
+    # Формируем URL с параметром tab
+    url = reverse('user_management:user_edit_detailed', kwargs={'pk': user_id})
+    return redirect(url + '?tab=assigned_training')
+
+
+@require_POST
+@login_required
+def toggle_course_block(request, user_id, user_course_id):
+    """
+    Блокирует или разблокирует курс для пользователя.
+    Изменяет статус UserCourse на 'blocked' или 'available'/'started' в зависимости от текущего статуса.
+    """
+    # Проверка прав доступа
+    if not (request.user.is_staff or request.user.is_superuser):
+        messages.error(request, 'У вас нет прав для выполнения этого действия.')
+        return redirect('user_management:user_edit_detailed', pk=user_id)
+    
+    try:
+        # Получаем пользователя
+        target_user = get_object_or_404(User, id=user_id)
+        
+        # Получаем назначение курса
+        user_course = get_object_or_404(UserCourse, id=user_course_id, user=target_user)
+        
+        # Сохраняем ссылку на курс
+        course = user_course.course
+        course_title = course.title
+        
+        # Определяем действие: блокировка или разблокировка
+        if user_course.status == 'blocked':
+            # Разблокируем курс
+            # Если курс был завершен, оставляем статус 'completed'
+            # Иначе устанавливаем 'available' или 'started' в зависимости от прогресса
+            if user_course.end_date:
+                # Курс был завершен, оставляем completed
+                new_status = 'completed'
+            else:
+                # Проверяем, есть ли прогресс
+                has_progress = UserProgress.objects.filter(
+                    user=target_user, 
+                    course=course, 
+                    completed=True
+                ).exists()
+                new_status = 'started' if has_progress else 'available'
+            
+            user_course.status = new_status
+            action_text = 'разблокирован'
+            log_action = 'разблокирован'
+        else:
+            # Блокируем курс
+            user_course.status = 'blocked'
+            action_text = 'заблокирован'
+            log_action = 'заблокирован'
+        
+        user_course.save(update_fields=['status'])
+        
+        # Логируем действие
+        audit_logger.info(
+            f"Курс '{course_title}' для пользователя {target_user.username} {log_action}.",
+            extra={'user': request.user.username}
+        )
+        
+        messages.success(request, f'Курс "{course_title}" успешно {action_text}.')
+        
+    except Exception as e:
+        audit_logger.error(
+            f"Ошибка при изменении статуса блокировки курса: {str(e)}",
+            extra={'user': request.user.username}
+        )
+        messages.error(request, 'Произошла ошибка при изменении статуса блокировки курса.')
     
     # Формируем URL с параметром tab
     url = reverse('user_management:user_edit_detailed', kwargs={'pk': user_id})

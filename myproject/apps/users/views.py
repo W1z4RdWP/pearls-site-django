@@ -185,8 +185,8 @@ class CustomLoginView(LoginView):
     def get_form(self, form_class=None):
         form = super().get_form(form_class)
         # Заменяем label для поля username на email
-        form.fields['username'].label = 'Email'
-        form.fields['username'].help_text = 'Введите ваш email'
+        form.fields['username'].label = 'Логин'
+        form.fields['username'].help_text = 'Введите ваш логин'
         return form
 
     def dispatch(self, request, *args, **kwargs):

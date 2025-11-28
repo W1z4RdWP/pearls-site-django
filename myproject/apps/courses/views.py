@@ -2155,49 +2155,102 @@ class MetricsFormView(LoginRequiredMixin, UserPassesTestMixin, View):
         try:
             data = json.loads(request.body)
         except json.JSONDecodeError:
-            return JsonResponse({'success': False, 'error': 'Invalid JSON'})
+            logger.error('Invalid JSON in metrics form submission')
+            return JsonResponse({'success': False, 'error': 'Invalid JSON'}, status=400)
         
-        # Сохраняем данные в базу
-        from .models import MetricsSubmission
-        
-        # Извлекаем основные данные
-        clinic_name = data.get('clinicName', '')
-        initial_month = data.get('startMonth', '')
-        doctors_count = int(data.get('docCount', 1))
-        chairs_count = int(data.get('chairs', 0))
-        hours_weekdays = float(data.get('hoursWeekdays', 0))
-        hours_saturday = float(data.get('hoursSaturday', 0))
-        hours_sunday = float(data.get('hoursSunday', 0))
-        
-        # Дни в месяце
-        days = data.get('days', [])
-        
-        # Данные врачей
-        doctors_data = {
-            'doctors': data.get('doctors', []),
-            'months': data.get('months', [])
-        }
-        
-        # Создаем запись
-        submission = MetricsSubmission.objects.create(
-            user=request.user,
-            clinic_name=clinic_name,
-            initial_month=initial_month,
-            doctors_count=doctors_count,
-            chairs_count=chairs_count,
-            hours_weekdays=hours_weekdays,
-            hours_saturday=hours_saturday,
-            hours_sunday=hours_sunday,
-            days_month_1=days[0] if len(days) > 0 else 0,
-            days_month_2=days[1] if len(days) > 1 else 0,
-            days_month_3=days[2] if len(days) > 2 else 0,
-            days_month_4=days[3] if len(days) > 3 else 0,
-            days_month_5=days[4] if len(days) > 4 else 0,
-            days_month_6=days[5] if len(days) > 5 else 0,
-            doctors_data=doctors_data
-        )
-        
-        return JsonResponse({'success': True})
+        try:
+            # Сохраняем данные в базу
+            from .models import MetricsSubmission
+            
+            # Извлекаем основные данные с безопасным преобразованием типов
+            clinic_name = data.get('clinicName', '').strip()
+            if not clinic_name:
+                return JsonResponse({'success': False, 'error': 'Название клиники обязательно'}, status=400)
+            
+            initial_month = data.get('startMonth', '').strip()
+            if not initial_month:
+                return JsonResponse({'success': False, 'error': 'Начальный месяц обязателен'}, status=400)
+            
+            try:
+                doctors_count = int(data.get('docCount', 1))
+                if doctors_count < 1:
+                    doctors_count = 1
+            except (ValueError, TypeError):
+                doctors_count = 1
+            
+            try:
+                chairs_count = int(data.get('chairs', 0))
+                if chairs_count < 0:
+                    chairs_count = 0
+            except (ValueError, TypeError):
+                chairs_count = 0
+            
+            try:
+                hours_weekdays = float(data.get('hoursWeekdays', 0))
+                if hours_weekdays < 0:
+                    hours_weekdays = 0
+            except (ValueError, TypeError):
+                hours_weekdays = 0
+            
+            try:
+                hours_saturday = float(data.get('hoursSaturday', 0))
+                if hours_saturday < 0:
+                    hours_saturday = 0
+            except (ValueError, TypeError):
+                hours_saturday = 0
+            
+            try:
+                hours_sunday = float(data.get('hoursSunday', 0))
+                if hours_sunday < 0:
+                    hours_sunday = 0
+            except (ValueError, TypeError):
+                hours_sunday = 0
+            
+            # Дни в месяце
+            days = data.get('days', [])
+            if not isinstance(days, list):
+                days = []
+            
+            # Валюта
+            currency = data.get('currency', 'rub').strip()
+            if currency not in ['rub', 'kzt']:
+                currency = 'rub'
+            
+            # Данные врачей
+            doctors_data = {
+                'doctors': data.get('doctors', []),
+                'months': data.get('months', [])
+            }
+            
+            # Создаем запись
+            submission = MetricsSubmission.objects.create(
+                user=request.user,
+                clinic_name=clinic_name,
+                initial_month=initial_month,
+                doctors_count=doctors_count,
+                chairs_count=chairs_count,
+                hours_weekdays=hours_weekdays,
+                hours_saturday=hours_saturday,
+                hours_sunday=hours_sunday,
+                days_month_1=days[0] if len(days) > 0 else 0,
+                days_month_2=days[1] if len(days) > 1 else 0,
+                days_month_3=days[2] if len(days) > 2 else 0,
+                days_month_4=days[3] if len(days) > 3 else 0,
+                days_month_5=days[4] if len(days) > 4 else 0,
+                days_month_6=days[5] if len(days) > 5 else 0,
+                currency=currency,
+                doctors_data=doctors_data
+            )
+            
+            logger.info(f'Metrics submission created successfully: ID {submission.id}, user {request.user.username}')
+            return JsonResponse({'success': True})
+            
+        except Exception as e:
+            logger.error(f'Error processing metrics form submission: {str(e)}', exc_info=True)
+            return JsonResponse({
+                'success': False, 
+                'error': f'Ошибка при сохранении данных: {str(e)}'
+            }, status=500)
 
 
 

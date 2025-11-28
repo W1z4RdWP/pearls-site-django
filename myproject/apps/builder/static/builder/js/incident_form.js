@@ -786,6 +786,8 @@ function displaySelectedUsers() {
             selectedAssignedUsers.delete(userId);
             violatorsSet.delete(userId); // Также удаляем из нарушителей
             displaySelectedUsers();
+            // Обновляем скрытые поля сразу после удаления
+            updateHiddenFields();
         });
     });
 }
@@ -899,13 +901,15 @@ function updateHiddenFields() {
     const container = assignedToContainer || form;
     
     // Удаляем все существующие скрытые поля для assigned_to
-    const oldAssignedInputs = form.querySelectorAll('input[name="assigned_to"]');
+    // Ищем в форме и в контейнере, так как поля могут быть в любом месте
+    const oldAssignedInputs = document.querySelectorAll('input[name="assigned_to"]');
     oldAssignedInputs.forEach(function(input) {
         input.remove();
     });
     
     // Удаляем все существующие скрытые поля для violators
-    const oldViolatorInputs = form.querySelectorAll('input[name="violators"]');
+    // Ищем в форме и в контейнере, так как поля могут быть в любом месте
+    const oldViolatorInputs = document.querySelectorAll('input[name="violators"]');
     oldViolatorInputs.forEach(function(input) {
         input.remove();
     });
@@ -922,11 +926,14 @@ function updateHiddenFields() {
     
     // Добавляем скрытые поля для нарушителей
     violatorsSet.forEach(function(userId) {
-        const hiddenInput = document.createElement('input');
-        hiddenInput.type = 'hidden';
-        hiddenInput.name = 'violators';
-        hiddenInput.value = String(userId); // Убеждаемся, что значение - строка
-        container.appendChild(hiddenInput);
+        // Проверяем, что пользователь все еще в списке назначенных
+        if (selectedAssignedUsers.has(userId)) {
+            const hiddenInput = document.createElement('input');
+            hiddenInput.type = 'hidden';
+            hiddenInput.name = 'violators';
+            hiddenInput.value = String(userId); // Убеждаемся, что значение - строка
+            container.appendChild(hiddenInput);
+        }
     });
     
 }

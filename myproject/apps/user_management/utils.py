@@ -1,3 +1,4 @@
+from math import remainder
 from django.core.mail import send_mail
 from django.template.loader import render_to_string
 from django.conf import settings
@@ -172,3 +173,17 @@ def send_trajectory_assignment_email(user, trajectory):
     except Exception as e:
         print(f"Ошибка отправки email: {e}")
         return False
+
+
+def format_timedelta(td):
+    """Форматирует timedelta в читаемый формат"""
+    total_seconds = int(td.total_seconds())
+    if total_seconds == 0:
+        return "0:00:00"
+    days = td.days
+    hours, remainder = divmod(total_seconds, 3600)
+    minutes, seconds = divmod(remainder, 60)
+    if days > 0:
+        return f"{days}д {hours:02d}:{minutes:02d}:{seconds:02d}"
+    else:
+        return f"{hours:02d}:{minutes:02d}:{seconds:02d}"

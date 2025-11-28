@@ -81,7 +81,8 @@ INSTALLED_APPS = [
     'notifications.apps.NotificationsConfig',
     'tech_support.apps.TechSupportConfig',
     'reports.apps.ReportsConfig',
-    'delegation.apps.DelegationConfig'
+    'delegation.apps.DelegationConfig',
+    'shop.apps.ShopConfig'
 ]
 
 X_FRAME_OPTIONS = "SAMEORIGIN"              # allows you to use modals insated of popups

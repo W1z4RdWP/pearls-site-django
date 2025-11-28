@@ -72,6 +72,12 @@
                 Назначенное обучение
             </button>
         </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link {% if active_tab == 'achievements' %}active{% endif %}" id="achievements-tab" data-bs-toggle="tab" 
+                    data-bs-target="#achievements" type="button" role="tab" aria-controls="achievements" aria-selected="{% if active_tab == 'achievements' %}true{% else %}false{% endif %}">
+                Достижения
+            </button>
+        </li>
     </ul>
 
     <div class="tab-content" id="userTabsContent">
@@ -593,7 +599,7 @@
                                 <th>Срок выполнения</th>
                                 <th>Тип назначения</th>
                                 {% if not readonly %}
-                                <th style="width: 80px;">Действия</th>
+                                <th style="width: 130px;">Действия</th>
                                 {% endif %}
                             </tr>
                         </thead>
@@ -620,6 +626,7 @@
                                     <span class="badge 
                                         {% if training.status_code == 'completed' %}bg-success
                                         {% elif training.status_code == 'started' %}bg-warning text-dark
+                                        {% elif training.status_code == 'blocked' %}bg-danger
                                         {% else %}bg-secondary{% endif %}">
                                         {{ training.status }}
                                     </span>
@@ -634,15 +641,34 @@
                                 <td>{{ training.assignment_type }}</td>
                                 {% if not readonly %}
                                 <td>
-                                    <form method="post" 
-                                          action="{% if training.type == 'course' %}{% url 'user_management:unassign_course' target_user.pk training.id %}{% else %}{% url 'user_management:unassign_trajectory' target_user.pk training.id %}{% endif %}" 
-                                          style="display: inline;"
-                                          onsubmit="return confirm('Вы уверены, что хотите отменить назначение обучения &quot;{{ training.name }}&quot;?');">
-                                        {% csrf_token %}
-                                        <button type="submit" class="btn btn-sm btn-outline-danger" title="Отменить назначение">
-                                            <i class="fas fa-times"></i>
-                                        </button>
-                                    </form>
+                                    <div class="d-flex gap-1">
+                                        {% if training.type == 'course' %}
+                                            <form method="post" 
+                                                  action="{% url 'user_management:toggle_course_block' target_user.pk training.id %}" 
+                                                  style="display: inline;"
+                                                  onsubmit="return confirm('{% if training.status_code == 'blocked' %}Вы уверены, что хотите разблокировать курс &quot;{{ training.name }}&quot;?{% else %}Вы уверены, что хотите заблокировать курс &quot;{{ training.name }}&quot;?{% endif %}');">
+                                                {% csrf_token %}
+                                                <button type="submit" 
+                                                        class="btn btn-sm {% if training.status_code == 'blocked' %}btn-outline-success{% else %}btn-outline-warning{% endif %}" 
+                                                        title="{% if training.status_code == 'blocked' %}Разблокировать курс{% else %}Заблокировать курс{% endif %}">
+                                                    {% if training.status_code == 'blocked' %}
+                                                        <i class="fas fa-unlock"></i>
+                                                    {% else %}
+                                                        <i class="fas fa-lock"></i>
+                                                    {% endif %}
+                                                </button>
+                                            </form>
+                                        {% endif %}
+                                        <form method="post" 
+                                              action="{% if training.type == 'course' %}{% url 'user_management:unassign_course' target_user.pk training.id %}{% else %}{% url 'user_management:unassign_trajectory' target_user.pk training.id %}{% endif %}" 
+                                              style="display: inline;"
+                                              onsubmit="return confirm('Вы уверены, что хотите отменить назначение обучения &quot;{{ training.name }}&quot;?');">
+                                            {% csrf_token %}
+                                            <button type="submit" class="btn btn-sm btn-outline-danger" title="Отменить назначение">
+                                                <i class="fas fa-times"></i>
+                                            </button>
+                                        </form>
+                                    </div>
                                 </td>
                                 {% endif %}
                             </tr>
@@ -656,6 +682,162 @@
                     У пользователя нет назначенных курсов или траекторий.
                 </div>
                 {% endif %}
+            </div>
+        </div>
+
+        <!-- Вкладка: Достижения -->
+        <div class="tab-pane fade {% if active_tab == 'achievements' %}show active{% endif %}" id="achievements" role="tabpanel" aria-labelledby="achievements-tab">
+            <div class="achievements-wrapper">
+                <!-- Статистика по баллам -->
+                <a href="{% url 'user_management:admin_user_transactions' user_id=user_id %}" style="text-decoration: none;">
+                    <div class="achievements-stats-section mb-4">
+                        <div class="card">
+                            <div class="card-body">
+                                <h3 class="card-title mb-4">
+                                    <i class="fas fa-coins me-2 text-warning"></i>Баллы DASCOIN
+                                </h3>
+                                <div class="d-flex align-items-center justify-content-center">
+                                    <div class="text-center">
+                                        <div class="display-4 fw-bold text-warning mb-2">{{ dascoin_points }}</div>
+                                        <p class="text-muted mb-0">Всего накоплено баллов</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </a>
+
+                <!-- Бейджи -->
+                <div class="achievements-badges-section mb-4">
+                    <div class="card">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <h3 class="mb-0">
+                                <i class="fas fa-medal me-2 text-primary"></i>Бейджи
+                            </h3>
+                            {% if user_badges %}
+                            <span class="badge bg-primary">{{ user_badges.count }} / {{ total_badges_available }}</span>
+                            {% endif %}
+                        </div>
+                        <div class="card-body">
+                            {% if user_badges %}
+                                <div class="mb-3">
+                                    <div class="progress" style="height: 25px;">
+                                        <div class="progress-bar bg-primary" role="progressbar" 
+                                             style="width: {{ badges_progress }}%" 
+                                             aria-valuenow="{{ badges_progress }}" 
+                                             aria-valuemin="0" 
+                                             aria-valuemax="100">
+                                            {{ badges_progress }}%
+                                        </div>
+                                    </div>
+                                    <small class="text-muted">Прогресс получения бейджей</small>
+                                </div>
+                                <div class="row g-3">
+                                    {% for user_badge in user_badges %}
+                                    <div class="col-md-6 col-lg-4">
+                                        <div class="card h-100 border">
+                                            <div class="card-body d-flex align-items-start">
+                                                <div class="me-3">
+                                                    {% if user_badge.badge.icon %}
+                                                        <img src="{{ user_badge.badge.icon.url }}" 
+                                                             alt="{{ user_badge.badge.name }}" 
+                                                             class="rounded" 
+                                                             style="width: 64px; height: 64px; object-fit: cover;">
+                                                    {% else %}
+                                                        <div class="d-flex align-items-center justify-content-center bg-light rounded" 
+                                                             style="width: 64px; height: 64px;">
+                                                            <i class="fas fa-medal fa-2x text-primary"></i>
+                                                        </div>
+                                                    {% endif %}
+                                                </div>
+                                                <div class="flex-grow-1">
+                                                    <h5 class="card-title mb-1">{{ user_badge.badge.name }}</h5>
+                                                    <p class="card-text text-muted small mb-2">{{ user_badge.badge.description }}</p>
+                                                    {% if user_badge.badge.badge_type == 'points' %}
+                                                        <small class="text-muted">
+                                                            <i class="fas fa-coins me-1"></i>
+                                                            Требуется: {{ user_badge.badge.points_required }} DASCOIN
+                                                        </small>
+                                                    {% endif %}
+                                                    <div class="mt-2">
+                                                        <small class="text-muted">
+                                                            <i class="fas fa-calendar me-1"></i>
+                                                            Получен: {{ user_badge.earned_at|date:"d.m.Y" }}
+                                                        </small>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                            {% else %}
+                                <div class="text-center py-5">
+                                    <i class="fas fa-medal fa-3x text-muted mb-3"></i>
+                                    <h5 class="text-muted">У пользователя пока нет бейджей</h5>
+                                    <p class="text-muted">Бейджи выдаются за выполнение заданий и прохождение курсов</p>
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Достижения -->
+                <div class="achievements-achievements-section">
+                    <div class="card">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <h3 class="mb-0">
+                                <i class="fas fa-trophy me-2 text-warning"></i>Достижения
+                            </h3>
+                            {% if user_achievements %}
+                            <span class="badge bg-warning text-dark">{{ user_achievements.count }}</span>
+                            {% endif %}
+                        </div>
+                        <div class="card-body">
+                            {% if user_achievements %}
+                                <div class="row g-3">
+                                    {% for user_achievement in user_achievements %}
+                                    <div class="col-md-6 col-lg-4">
+                                        <div class="card h-100 border">
+                                            <div class="card-body d-flex align-items-start">
+                                                <div class="me-3">
+                                                    {% if user_achievement.achievement.icon %}
+                                                        <img src="{{ user_achievement.achievement.icon.url }}" 
+                                                             alt="{{ user_achievement.achievement.name }}" 
+                                                             class="rounded" 
+                                                             style="width: 64px; height: 64px; object-fit: cover;">
+                                                    {% else %}
+                                                        <div class="d-flex align-items-center justify-content-center bg-light rounded" 
+                                                             style="width: 64px; height: 64px;">
+                                                            <i class="fas fa-trophy fa-2x text-warning"></i>
+                                                        </div>
+                                                    {% endif %}
+                                                </div>
+                                                <div class="flex-grow-1">
+                                                    <h5 class="card-title mb-1">{{ user_achievement.achievement.name }}</h5>
+                                                    <p class="card-text text-muted small mb-2">{{ user_achievement.achievement.description }}</p>
+                                                    <div class="mt-2">
+                                                        <small class="text-muted">
+                                                            <i class="fas fa-calendar me-1"></i>
+                                                            Получено: {{ user_achievement.earned_at|date:"d.m.Y" }}
+                                                        </small>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                            {% else %}
+                                <div class="text-center py-5">
+                                    <i class="fas fa-trophy fa-3x text-muted mb-3"></i>
+                                    <h5 class="text-muted">У пользователя пока нет достижений</h5>
+                                    <p class="text-muted">Достижения выдаются за особые успехи в обучении</p>
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>

@@ -941,7 +941,19 @@ document.getElementById('f').onsubmit = function(e){
     },
     body: JSON.stringify(data)
   })
-  .then(response => response.json())
+  .then(response => {
+    // Проверяем статус ответа перед парсингом JSON
+    if (!response.ok) {
+      // Если статус не OK, пытаемся получить JSON с ошибкой
+      return response.json().then(err => {
+        throw new Error(err.error || `Ошибка сервера: ${response.status}`);
+      }).catch(() => {
+        // Если не удалось распарсить JSON, возвращаем общую ошибку
+        throw new Error(`Ошибка сервера: ${response.status} ${response.statusText}`);
+      });
+    }
+    return response.json();
+  })
   .then(result => {
     if (result.success) {
       // Редирект на страницу успеха
@@ -953,7 +965,7 @@ document.getElementById('f').onsubmit = function(e){
   })
   .catch(error => {
     console.error('Ошибка:', error);
-    document.getElementById('err').textContent = 'Произошла ошибка при отправке данных';
+    document.getElementById('err').textContent = error.message || 'Произошла ошибка при отправке данных';
     document.getElementById('err').style.display = 'block';
   });
 }

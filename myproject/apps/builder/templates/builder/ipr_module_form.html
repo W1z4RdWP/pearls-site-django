@@ -14,7 +14,7 @@
         <p class="text-muted mb-3">Пользователь: <strong>{{ selected_user_fio }}</strong></p>
     {% endif %}
     
-    <form method="post">
+    <form method="post" autocomplete="off">
         {% csrf_token %}
         
         {{ form.ipr }}
@@ -143,7 +143,7 @@
         </div>
         <div class="user-modal-body">
             <div class="user-search-box">
-                <input type="text" id="userSearchInput" class="form-control" placeholder="Поиск по имени или фамилии...">
+                <input type="text" id="userSearchInput" class="form-control" placeholder="Поиск по имени или фамилии..." autocomplete="off">
             </div>
             <div class="user-list-container">
                 <div id="userList" class="user-list">

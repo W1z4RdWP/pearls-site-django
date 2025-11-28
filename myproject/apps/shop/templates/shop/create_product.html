@@ -1,0 +1,213 @@
+{% extends 'layout.html' %}
+{% load static %}
+{% load crispy_forms_tags %}
+
+{% block title %}Создание товара{% endblock %}
+
+{% block specific_styles %}
+<style>
+    .create-product-container {
+        padding: 2rem 0;
+        min-height: 70vh;
+    }
+    
+    .create-product-header {
+        margin-bottom: 2rem;
+    }
+    
+    .create-product-header h1 {
+        font-size: 2rem;
+        font-weight: 600;
+        margin-bottom: 1rem;
+        color: #333;
+    }
+    
+    .product-form-card {
+        background: #fff;
+        border: 1px solid #e0e0e0;
+        border-radius: 8px;
+        padding: 2rem;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+    }
+    
+    .form-group {
+        margin-bottom: 1.5rem;
+    }
+    
+    .form-group label {
+        font-weight: 600;
+        color: #333;
+        margin-bottom: 0.5rem;
+    }
+    
+    .form-group .help-text {
+        font-size: 0.85rem;
+        color: #666;
+        margin-top: 0.25rem;
+    }
+    
+    .form-actions {
+        display: flex;
+        gap: 1rem;
+        justify-content: flex-end;
+        margin-top: 2rem;
+        padding-top: 1.5rem;
+        border-top: 1px solid #e0e0e0;
+    }
+    
+    .btn-cancel {
+        background: #6c757d;
+        color: white;
+        border: none;
+    }
+    
+    .btn-cancel:hover {
+        background: #5a6268;
+        color: white;
+    }
+    
+    .image-preview {
+        margin-top: 1rem;
+        max-width: 300px;
+        border-radius: 8px;
+        border: 1px solid #e0e0e0;
+        display: none;
+    }
+    
+    .image-preview.show {
+        display: block;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container create-product-container">
+    <a href="{% url 'shop:shop' %}" class="back-link">
+        <i class="fas fa-arrow-left me-2"></i> Вернуться в магазин
+    </a>
+    
+    <div class="create-product-header">
+        <h1>
+            <i class="fas fa-plus-circle me-2"></i>
+            Создание нового товара
+        </h1>
+    </div>
+    
+    <div class="product-form-card">
+        <form method="post" enctype="multipart/form-data">
+            {% csrf_token %}
+            
+            <div class="form-group">
+                <label for="{{ form.name.id_for_label }}">{{ form.name.label }}</label>
+                {{ form.name }}
+                {% if form.name.errors %}
+                <div class="text-danger small mt-1">
+                    {{ form.name.errors }}
+                </div>
+                {% endif %}
+            </div>
+            
+            <div class="form-group">
+                <label for="{{ form.description.id_for_label }}">{{ form.description.label }}</label>
+                {{ form.description }}
+                {% if form.description.errors %}
+                <div class="text-danger small mt-1">
+                    {{ form.description.errors }}
+                </div>
+                {% endif %}
+            </div>
+            
+            <div class="form-group">
+                <label for="{{ form.points_price.id_for_label }}">{{ form.points_price.label }} *</label>
+                {{ form.points_price }}
+                {% if form.points_price.errors %}
+                <div class="text-danger small mt-1">
+                    {{ form.points_price.errors }}
+                </div>
+                {% endif %}
+            </div>
+            
+            <div class="form-group">
+                <label for="{{ form.constraints.id_for_label }}">{{ form.constraints.label }}</label>
+                {{ form.constraints }}
+                {% if form.constraints.errors %}
+                <div class="text-danger small mt-1">
+                    {{ form.constraints.errors }}
+                </div>
+                {% endif %}
+            </div>
+            
+            <div class="form-group">
+                <label for="{{ form.restrictions_text.id_for_label }}">{{ form.restrictions_text.label }}</label>
+                {{ form.restrictions_text }}
+                {% if form.restrictions_text.help_text %}
+                <div class="help-text">{{ form.restrictions_text.help_text }}</div>
+                {% endif %}
+                {% if form.restrictions_text.errors %}
+                <div class="text-danger small mt-1">
+                    {{ form.restrictions_text.errors }}
+                </div>
+                {% endif %}
+            </div>
+            
+            <div class="form-group">
+                <label for="{{ form.image.id_for_label }}">{{ form.image.label }}</label>
+                {{ form.image }}
+                {% if form.image.help_text %}
+                <div class="help-text">{{ form.image.help_text }}</div>
+                {% endif %}
+                <img id="imagePreview" class="image-preview" alt="Предпросмотр">
+                {% if form.image.errors %}
+                <div class="text-danger small mt-1">
+                    {{ form.image.errors }}
+                </div>
+                {% endif %}
+            </div>
+            
+            <div class="form-group">
+                <div class="form-check">
+                    {{ form.is_active }}
+                    <label class="form-check-label" for="{{ form.is_active.id_for_label }}">
+                        {{ form.is_active.label }}
+                    </label>
+                </div>
+                {% if form.is_active.errors %}
+                <div class="text-danger small mt-1">
+                    {{ form.is_active.errors }}
+                </div>
+                {% endif %}
+            </div>
+            
+            <div class="form-actions">
+                <a href="{% url 'shop:shop' %}" class="btn btn-cancel">
+                    <i class="fas fa-times me-1"></i> Отмена
+                </a>
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-save me-1"></i> Создать товар
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block specific_scripts %}
+<script>
+$(document).ready(function() {
+    // Предпросмотр изображения
+    $('#{{ form.image.id_for_label }}').on('change', function(e) {
+        const file = e.target.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                $('#imagePreview').attr('src', e.target.result).addClass('show');
+            };
+            reader.readAsDataURL(file);
+        } else {
+            $('#imagePreview').removeClass('show');
+        }
+    });
+});
+</script>
+{% endblock %}
+
