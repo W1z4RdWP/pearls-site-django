@@ -255,10 +255,20 @@ $(document).ready(function() {
     });
     
     // При закрытии модального окна сбрасываем состояние
-    $('#productModal').on('hidden.bs.modal', function() {
+    // $('#productModal').on('hidden.bs.modal', function() {
+    //     currentProductId = null;
+    //     currentProductPrice = null;
+    //     // Кнопка остается отключенной
+    //     $('#btnOrderProduct').html('<i class="fas fa-shopping-cart"></i> Заказать');
+    // });
+    $('#productModal').on('hide.bs.modal', function(){
+        $(this).find(':focus').blur();
+    });
+
+    // При закрытии модального окна сбрасываем состояние
+    $('#productModal').on('hidden.bs.modal', function(){
         currentProductId = null;
         currentProductPrice = null;
-        // Кнопка остается отключенной
         $('#btnOrderProduct').html('<i class="fas fa-shopping-cart"></i> Заказать');
     });
 });
