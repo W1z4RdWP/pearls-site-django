@@ -237,6 +237,8 @@ class IPRModule(models.Model):
         return f"{self.title} - {self.user.get_full_name() or self.user.username}"
 
 
+
+
 class IPRModuleIndicator(models.Model):
     """
     Показатель модуля ИПР.
@@ -264,6 +266,8 @@ class IPRModuleIndicator(models.Model):
     
     def __str__(self) -> str:
         return f"{self.name} - {self.module.title}"
+
+
 
 
 class LessonVersion(models.Model):
@@ -294,8 +298,6 @@ class LessonVersion(models.Model):
     def __str__(self) -> str:
         return f"{self.lesson.title} v{self.version} ({self.updated_at:%d.%m.%Y})"
 
-
- 
  
  
  
@@ -320,6 +322,8 @@ class LessonCategoryMirror(models.Model):
         return f"Зеркало: {self.lesson.title} в {self.category}"
 
 
+
+
 class DictionarySection(models.Model):
     """Раздел словаря терминов (верхний уровень группировки терминов)."""
     name = models.CharField(max_length=200, verbose_name="Название отдела")
@@ -333,6 +337,9 @@ class DictionarySection(models.Model):
 
     def __str__(self):
         return self.name
+
+
+
 
 class DictionaryTerm(models.Model):
     """Элемент словаря: термин, сленг, определение, опциональное фото и автор."""
@@ -354,7 +361,6 @@ class DictionaryTerm(models.Model):
     def __str__(self):
         return self.term
 
- 
  
  
  
