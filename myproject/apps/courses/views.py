@@ -1658,7 +1658,10 @@ class UserCourseTrajectoryListView(ListView):
 
     def get_queryset(self):
         user = self.request.user
-        user_trajectories = UserCourseTrajectory.objects.filter(user=user).select_related('trajectory')
+        user_trajectories = UserCourseTrajectory.objects.filter(
+            user=user,
+            trajectory__isnull=False
+        ).select_related('trajectory')
         
         # Проверяем, нужно ли скрывать специализированные траектории
         if self._should_hide_specialized_trajectories(user):
@@ -1865,6 +1868,7 @@ class UserCourseTrajectoryListView(ListView):
             if user_course.status == 'blocked':
                 status = 'blocked'
                 final_quiz_status = None
+                quiz_passed = False
             else:
                 final_quiz_status = None
                 quiz_passed = None
@@ -1875,6 +1879,16 @@ class UserCourseTrajectoryListView(ListView):
                         quiz_title=course.final_quiz.name,
                         passed=True
                     ).exists()
+                    
+                    # Получаем статус финального теста (pending/reviewed/completed)
+                    latest_final_quiz_result = QuizResult.objects.filter(
+                        user=user,
+                        course=course,
+                        quiz_title=course.final_quiz.name
+                    ).order_by('-completed_at').first()
+                    
+                    if latest_final_quiz_result:
+                        final_quiz_status = latest_final_quiz_result.status
                 
                     # Получаем статус финального теста (pending/reviewed/completed)
                     latest_final_quiz_result = QuizResult.objects.filter(

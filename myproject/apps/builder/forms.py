@@ -19,7 +19,7 @@ class IncidentForm(forms.ModelForm):
     assigned_to = forms.ModelMultipleChoiceField(
         queryset=None,
         required=False,
-        widget=forms.MultipleHiddenInput(),
+        widget=forms.SelectMultiple(attrs={'class': 'form-control', 'size': 6}),
         label='Кому назначен'
     )
     
