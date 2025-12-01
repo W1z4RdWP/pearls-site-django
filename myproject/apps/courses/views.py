@@ -2089,6 +2089,9 @@ def download_certificate_pdf(request, certificate_id):
     """
     Скачивание сертификата в формате PDF.
     """
+    # import os
+    # BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(file)))
+    # STATIC_ROOT = os.path.join(BASE_DIR, 'static')
     # Получаем сертификат и проверяем права доступа
     certificate = get_object_or_404(Certificate, certificate_id=certificate_id, user=request.user)
     
@@ -2097,9 +2100,24 @@ def download_certificate_pdf(request, certificate_id):
         'certificate': certificate,
         'generated_at': datetime.now(),
     })
-    
+    from myproject.settings import base as base_settings
+    # import os
     # Создаем PDF с помощью WeasyPrint
-    html = HTML(string=html_string)
+    # static_dir = os.path.join(base_settings.BASE_DIR, 'static')
+    # bg_path = os.path.join(static_dir, 'courses', 'imgs', 'cert_srcs', 'background.png')
+    from django.conf import settings
+    import os
+
+    from django.contrib.staticfiles import finders
+    static_path = 'courses/imgs/cert_srcs/background.png'
+    found_path = finders.find(static_path)
+
+    if found_path:
+        base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(found_path))))
+    else:
+        base_dir = base_settings.STATIC_ROOT
+
+    html = HTML(string=html_string, base_url=base_dir)
     pdf = html.write_pdf()
     
     # Формируем имя файла
