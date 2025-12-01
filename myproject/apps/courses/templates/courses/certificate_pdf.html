@@ -6,11 +6,16 @@
     <title>Сертификат - {{ certificate.certificate_id }}</title>
     <link rel="shortcut icon" href="favicon.ico" type="image/x-icon">
     <style>
-@import url('https://fonts.googleapis.com/css2?family=Onest:wght@400;500;600;800;900&display=swap');
+@font-face {
+    font-family: 'Onest';
+    src: url('https://fonts.gstatic.com/s/onest/v6/92zJtBJpK5XrAtA.woff2') format('woff2');
+    font-weight: 400 900;
+    font-style: normal;
+}
 
 @font-face {
     font-family: 'CustomHandwriting';
-    src: url('{% static "courses/fonts/brushscriptstd.ttf" %}') format('truetype');
+    src: url('file:///opt/pearls-site-django/myproject/apps/courses/static/courses/fonts/brushscriptstd.ttf') format('truetype');
     font-weight: normal;
     font-style: normal;
 }
@@ -927,6 +932,7 @@ body {
             <div class="logo-section">
                 <div>
                     <div class="logo">
+                        <!-- /opt/pearls-site-django/myproject/apps/courses/static/courses/imgs/cert_srcs/logo_white_horiz.png -->
                         <img src="{% static 'courses/imgs/cert_srcs/logo_white_horiz.png' %}" alt="logo" class="logo-img">
                     </div>
                 </div>

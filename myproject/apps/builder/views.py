@@ -15,7 +15,8 @@ from .forms import DocumentForm, IncidentForm, IPRForm, IPRModuleForm
 from .utils import get_compact_fio, user_has_category_access, filter_categories_and_lessons_for_user
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
-from django.db.models import Max, Q, Count, F
+from django.db.models import Max, Q, Count, F, Case, When, Value, IntegerField
+from django.db.models.functions import Substr
 from django.db import transaction
 from django.views.decorators.http import require_POST
 import json
@@ -3273,6 +3274,9 @@ def api_search_users(request):
     
     users = User.objects.filter(is_active=True).select_related('profile', 'profile__role')
     
+    # Исключаем пользователей из группы "Внешний пользователь"
+    users = users.exclude(groups__name='Внешний пользователь')
+    
     # Фильтруем только наставников, если указан параметр mentor_only
     if mentor_only:
         users = users.filter(profile__is_mentor=True)
@@ -3293,7 +3297,22 @@ def api_search_users(request):
             Q(username__icontains=search_query)
         )
     
-    users = users.order_by('last_name', 'first_name')[:50]  # Ограничиваем до 50 результатов
+    # Создаем аннотацию для определения приоритета сортировки
+    # Кириллические имена (начинающиеся с А-Я, а-я) получают приоритет 0
+    # Латиница и другие символы получают приоритет 1
+    users = users.annotate(
+        name_priority=Case(
+            When(
+                last_name__regex=r'^[А-Яа-яЁё]',
+                then=Value(0)
+            ),
+            default=Value(1),
+            output_field=IntegerField()
+        )
+    )
+    
+    # Сортируем: сначала по приоритету (0 - кириллица, 1 - латиница), затем по фамилии и имени
+    users = users.order_by('name_priority', 'last_name', 'first_name')[:50]  # Ограничиваем до 50 результатов
     
     users_data = []
     for user in users:
