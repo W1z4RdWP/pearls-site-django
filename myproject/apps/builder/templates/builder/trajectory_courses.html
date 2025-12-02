@@ -266,7 +266,7 @@ function reorderCourses(courseOrders) {
                             <div class="timeline-header">
                                 <div class="timeline-col">Курс / Этап</div>
                                 <div class="timeline-col">Срок выполнения</div>
-                                <!-- <div class="timeline-col">Действия</div> -->
+                                <div class="timeline-col">Действия</div>
                             </div>
                             
                             <div class="timeline-body" id="coursesTimeline">
@@ -303,7 +303,7 @@ function reorderCourses(courseOrders) {
                                             <span class="text-muted">Без срока</span>
                                         </div>
                                     </div>
-                                    <!-- <div class="timeline-col">
+                                    <div class="timeline-col">
                                         <div class="course-actions">
                                             <div class="dropdown">
                                                 <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
@@ -322,14 +322,14 @@ function reorderCourses(courseOrders) {
                                                     </li>
                                                     <li><hr class="dropdown-divider"></li>
                                                     <li>
-                                                        <a class="dropdown-item text-danger" href="#" onclick="removeCourse({{ tc.course.id }}, '{{ tc.course.title }}')">
+                                                        <a class="dropdown-item text-danger" href="#" onclick="removeCourse({{ tc.course.id }}, '{{ tc.course.title|escapejs }}')">
                                                             <i class="fas fa-trash"></i> Удалить из траектории
                                                         </a>
                                                     </li>
                                                 </ul>
                                             </div>
                                         </div>
-                                    </div> -->
+                                    </div>
                                 </div>
                                 </div>
                                 {% endfor %}
@@ -845,6 +845,23 @@ document.addEventListener('DOMContentLoaded', function() {
 
 function removeCourse(courseId, courseTitle) {
     if (confirm('Вы уверены, что хотите удалить курс "' + courseTitle + '" из траектории?\n\nЭто действие нельзя отменить.')) {
+        // Получаем CSRF токен
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+        const csrfToken = getCookie('csrftoken') || $('input[name=csrfmiddlewaretoken]').val();
+        
         $.ajax({
             url: '/builder/trajectories/{{ trajectory.id }}/courses/remove/',
             method: 'POST',
@@ -852,24 +869,28 @@ function removeCourse(courseId, courseTitle) {
             contentType: 'application/json',
             headers: {
                 'X-Requested-With': 'XMLHttpRequest',
-                'X-CSRFToken': $('input[name=csrfmiddlewaretoken]').val()
+                'X-CSRFToken': csrfToken
             },
-                    success: function(data) {
-            if (data.success) {
-                if (typeof showNotification === 'function') {
-                    showNotification('Курс успешно удален из траектории', 'success');
+            success: function(data) {
+                if (data.success) {
+                    if (typeof showNotification === 'function') {
+                        showNotification('Курс успешно удален из траектории', 'success');
+                    }
+                    setTimeout(function() {
+                        location.reload();
+                    }, 1000);
+                } else {
+                    if (typeof showNotification === 'function') {
+                        showNotification('Ошибка при удалении курса', 'error');
+                    }
                 }
-                setTimeout(function() {
-                    location.reload();
-                }, 1000);
-            } else {
-                if (typeof showNotification === 'function') {
-                    showNotification('Ошибка при удалении курса', 'error');
-                }
-            }
-        },
+            },
             error: function(xhr, status, error) {
-                showNotification('Ошибка при удалении курса: ' + error, 'error');
+                if (typeof showNotification === 'function') {
+                    showNotification('Ошибка при удалении курса: ' + error, 'error');
+                } else {
+                    alert('Ошибка при удалении курса: ' + error);
+                }
             }
         });
     }

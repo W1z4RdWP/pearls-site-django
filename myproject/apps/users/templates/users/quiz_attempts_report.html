@@ -1,0 +1,208 @@
+{% extends 'layout.html' %}
+{% load static %}
+
+{% block title %}Ваши попытки тестов{% endblock %}
+
+{% block specific_styles %}
+    <link rel="stylesheet" href="{% static 'builder/css/incidents.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="incidents-card mb-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="mb-0">
+            <i class="fas fa-clipboard-list text-primary me-2"></i>
+            Ваши попытки тестов
+        </h2>
+        <div class="d-flex align-items-center gap-2">
+            <span class="badge bg-primary fs-6">
+                {{ report_data|length }}
+            </span>
+            <a href="{% url 'users:profile' %}" class="btn btn-outline-secondary btn-sm">
+                <i class="fas fa-arrow-left me-1"></i>Назад
+            </a>
+        </div>
+    </div>
+    
+    {% if report_data %}
+        <div class="incidents-table-responsive">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th style="width: 3%;" title="Номер строки">#</th>
+                        <th style="width: 20%;" title="Название теста">Название теста</th>
+                        <th style="width: 20%;" title="Название курса">Название курса</th>
+                        <th style="width: 18%; text-align: center;" title="Тип">Тип</th>
+                        <th style="width: 13%; text-align: center;" title="Правильные ответы">Правильные ответы</th>
+                        <th style="width: 13%; text-align: center;" title="Процент">Процент</th>
+                        <th style="width: 13%; text-align: center;" title="Статус">Статус</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in report_data %}
+                    <tr class="quiz-row status-row-{{ item.status|slugify }}" 
+                        {% if item.quiz_id and item.course_slug %}
+                        data-quiz-id="{{ item.quiz_id }}" 
+                        data-course-slug="{{ item.course_slug }}"
+                        data-url="{% url 'quizzes:quiz_best_result' quiz_id=item.quiz_id %}?course_slug={{ item.course_slug }}"
+                        onclick="selectQuizRow(this, event)"
+                        ondblclick="handleQuizRowDoubleClick(this)"
+                        {% endif %}>
+                        <td style="text-align: center;">{{ forloop.counter }}</td>
+                        <td>{{ item.quiz_name }}</td>
+                        <td>{{ item.course_name }}</td>
+                        <td style="text-align: center;">{{ item.quiz_type }}</td>
+                        <td style="text-align: center;">{{ item.correct_count }}/{{ item.total_count }}</td>
+                        <td style="text-align: center;"><strong>{{ item.percent }}%</strong></td>
+                        <td class="status-{{ item.status|slugify }}" style="text-align: center;">
+                            {% if item.status == 'Пройден' %}
+                                Пройден
+                            {% elif item.status == 'Не пройден' %}
+                                Не пройден
+                            {% elif item.status == 'На проверке' %}
+                                На проверке
+                            {% else %}
+                                {{ item.status }}
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% else %}
+        <div class="text-center py-5">
+            <i class="fas fa-clipboard-list fa-3x text-muted mb-3"></i>
+            <h4 class="text-muted">Попытки тестов не найдены</h4>
+            <p class="text-muted">
+                У вас пока нет завершённых попыток тестов
+            </p>
+        </div>
+    {% endif %}
+</div>
+
+<style>
+/* Стили для таблицы попыток тестов в стиле incidents */
+.incidents-card .table {
+    min-width: 1000px;
+}
+
+/* Цветное выделение ячеек со статусом */
+.incidents-card .table tbody td.status-projden {
+    background-color: #d4edda !important;
+    color: #155724 !important;
+    font-weight: 600;
+}
+
+.incidents-card .table tbody td.status-ne-projden {
+    background-color: #f8d7da !important;
+    color: #721c24 !important;
+    font-weight: 600;
+}
+
+.incidents-card .table tbody td.status-na-proverke {
+    background-color: #fff3cd !important;
+    color: #856404 !important;
+    font-weight: 600;
+}
+
+/* Hover-эффекты для ячеек со статусом */
+.incidents-card .table tbody tr:hover td.status-projden {
+    background-color: #c3e6cb !important;
+}
+
+.incidents-card .table tbody tr:hover td.status-ne-projden {
+    background-color: #f5c6cb !important;
+}
+
+.incidents-card .table tbody tr:hover td.status-na-proverke {
+    background-color: #ffeaa7 !important;
+}
+
+/* Выделение строки при одиночном клике */
+.quiz-row.row-selected {
+    background-color: #e3f2fd !important;
+    border: 2px solid #2196f3 !important;
+}
+
+.quiz-row.row-selected td {
+    background-color: #e3f2fd !important;
+}
+
+.quiz-row.row-selected td.status-projden,
+.quiz-row.row-selected td.status-ne-projden,
+.quiz-row.row-selected td.status-na-proverke {
+    background-color: inherit !important;
+}
+
+@media (max-width: 1200px) {
+    .incidents-card .table {
+        min-width: 900px;
+    }
+    .incidents-card .table thead th,
+    .incidents-card .table tbody td {
+        padding: 8px 4px;
+        font-size: 0.85em;
+    }
+}
+</style>
+
+<script>
+// Переменная для отслеживания таймаута одиночного клика
+let quizClickTimeout = null;
+
+// Функция для обработки двойного клика
+function handleQuizRowDoubleClick(row) {
+    const url = row.getAttribute('data-url');
+    if (url) {
+        window.location.href = url;
+    }
+}
+
+// Функция для выделения строки при одиночном клике
+function selectQuizRow(row, event) {
+    // Предотвращаем выделение при двойном клике
+    if (event.detail === 2) {
+        if (quizClickTimeout) {
+            clearTimeout(quizClickTimeout);
+            quizClickTimeout = null;
+        }
+        return;
+    }
+    
+    // Очищаем предыдущий таймаут
+    if (quizClickTimeout) {
+        clearTimeout(quizClickTimeout);
+    }
+    
+    // Устанавливаем таймаут для обработки одиночного клика
+    quizClickTimeout = setTimeout(function() {
+        // Убираем выделение со всех строк
+        document.querySelectorAll('.quiz-row').forEach(r => {
+            r.classList.remove('row-selected');
+        });
+        
+        // Выделяем выбранную строку
+        row.classList.add('row-selected');
+        
+        quizClickTimeout = null;
+    }, 200); // Задержка 200мс для различения одиночного и двойного клика
+}
+
+// Убираем выделение при клике вне таблицы
+document.addEventListener('click', function(event) {
+    if (!event.target.closest('.quiz-row')) {
+        // Очищаем таймаут, если он есть
+        if (quizClickTimeout) {
+            clearTimeout(quizClickTimeout);
+            quizClickTimeout = null;
+        }
+        
+        document.querySelectorAll('.quiz-row').forEach(r => {
+            r.classList.remove('row-selected');
+        });
+    }
+});
+</script>
+{% endblock %}
+
