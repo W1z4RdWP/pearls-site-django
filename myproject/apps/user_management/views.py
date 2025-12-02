@@ -2528,6 +2528,9 @@ def toggle_course_block(request, user_id, user_course_id):
                     completed=True
                 ).exists()
                 new_status = 'started' if has_progress else 'available'
+                # Отключаем дедлайн для выбранного курса
+                user_course.deadline = None
+                user_course.save(update_fields=['deadline'])
             
             user_course.status = new_status
             action_text = 'разблокирован'
@@ -2537,6 +2540,7 @@ def toggle_course_block(request, user_id, user_course_id):
             user_course.status = 'blocked'
             action_text = 'заблокирован'
             log_action = 'заблокирован'
+
         
         user_course.save(update_fields=['status'])
         
