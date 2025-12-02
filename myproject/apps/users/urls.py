@@ -10,6 +10,7 @@ urlpatterns = [
     path('profile/all-badges/', views.all_badges, name='all_badges'),
     path('profile/all-achievements/', views.all_achievements, name='all_achievements'),
     path('profile/quiz-report/<int:quiz_id>/', views.quiz_report, name='quiz_report'),
+    path('profile/quiz-attempts-report/', views.quiz_attempts_report, name='quiz_attempts_report'),
     path('profile/transactions/', views.TransactionsListView.as_view(), name='transactions'),
     path('profile/transactions/export/excel/', views.export_transactions_excel, name='export_transactions_excel'),
     path('profile/transactions/export/pdf/', views.export_transactions_pdf, name='export_transactions_pdf'),

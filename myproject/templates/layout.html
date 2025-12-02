@@ -85,6 +85,9 @@
                               <li><a class="dropdown-item" href="{% url 'courses:user_certificates' %}">
                                 Ваши сертификаты
                               </a></li>
+                              <li><a class="dropdown-item" href="{% url 'users:quiz_attempts_report' %}">
+                                Ваши попытки тестов
+                              </a></li>
                               <li><hr class="dropdown-divider"></li>
                               <li>
                                 <form action="{% url 'users:logout' %}" method="post" style="display: inline;">
@@ -177,6 +180,9 @@
                           </a></li>
                           <li><a class="dropdown-item" href="{% url 'courses:user_certificates' %}">
                             Ваши сертификаты
+                          </a></li>
+                          <li><a class="dropdown-item" href="{% url 'users:quiz_attempts_report' %}">
+                            Ваши попытки тестов
                           </a></li>
                           <li><hr class="dropdown-divider"></li>
                           <li>
