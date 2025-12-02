@@ -449,6 +449,19 @@ def quiz_attempts_report(request: HttpRequest) -> HttpResponse:
         course_name = result.course.title if result.course else 'Не указан'
         course_slug = result.course.slug if result.course else None
         
+        # Определяем тип теста
+        quiz_type = 'Тест'  # По умолчанию - тест в материалах курса
+        if result.course:
+            # Проверяем, является ли тест финальным тестом курса
+            if result.course.final_quiz and result.course.final_quiz.id == quiz.id:
+                quiz_type = 'Финальный тест курса'
+            else:
+                # Проверяем, является ли тест финальным тестом урока
+                from courses.models import Lesson
+                lesson_with_quiz = Lesson.objects.filter(final_quiz=quiz).first()
+                if lesson_with_quiz:
+                    quiz_type = 'Финальный тест урока'
+        
         # Подсчитываем правильные ответы
         # score может быть дробным из-за частичных баллов за открытые вопросы
         # Округляем до ближайшего целого для отображения
@@ -460,6 +473,7 @@ def quiz_attempts_report(request: HttpRequest) -> HttpResponse:
             'quiz_id': quiz.id,
             'course_name': course_name,
             'course_slug': course_slug,
+            'quiz_type': quiz_type,
             'correct_count': correct_count,
             'total_count': total_count,
             'percent': round(result.percent, 1),
