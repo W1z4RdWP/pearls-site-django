@@ -12,7 +12,7 @@ from django.urls import reverse_lazy
 from django.core.exceptions import PermissionDenied
 from myapp.models import UserProgress, UserCourse, QuizResult, UserAnswer
 from quizzes.models import Quiz, QuizLock
-from courses.models import Course, Lesson, UserLessonTrajectory, UserCourseTrajectory, Trajectory
+from courses.models import Course, Lesson, UserLessonTrajectory, UserCourseTrajectory, Trajectory, UserLesson
 from django.core.paginator import Paginator, PageNotAnInteger, EmptyPage
 from django.utils.decorators import method_decorator
 from django.contrib.admin.views.decorators import staff_member_required
@@ -2794,6 +2794,158 @@ def api_assign_trajectories_to_user(request, user_id):
         'assigned_trajectories': assigned_trajectories,
         'already_assigned_trajectories': already_assigned_trajectories,
         'message': f'Назначено траекторий: {assigned_count}, уже были назначены: {already_assigned_count}'
+    })
+
+
+@login_required
+def api_get_lessons_for_assignment(request):
+    """
+    API endpoint для получения всех уроков из базы знаний для назначения пользователю.
+    Возвращает структуру категорий с уроками, аналогично AddLessonView.
+    """
+    if not (request.user.is_staff or request.user.is_superuser):
+        return JsonResponse({'error': 'Доступ запрещен'}, status=403)
+    
+    from builder.models import CategoryName
+    from quizzes.models import Quiz
+    
+    def process_category(cat):
+        """Рекурсивная обработка категории"""
+        # Получаем все уроки категории (включая зеркала)
+        lessons = list(cat.lessons.all())
+        for mirror in cat.mirrored_lessons.all():
+            if mirror.lesson not in lessons:
+                lessons.append(mirror.lesson)
+        
+        # Обрабатываем подкатегории
+        subcategories = []
+        for subcat in cat.subcategories.all().order_by('order', 'name'):
+            subcategories.append(process_category(subcat))
+        
+        return {
+            'id': cat.id,
+            'name': cat.name,
+            'lessons': [{
+                'id': lesson.id,
+                'title': lesson.title,
+            } for lesson in lessons],
+            'subcategories': subcategories
+        }
+    
+    # Получаем все категории
+    categories = CategoryName.objects.filter(parent=None).prefetch_related(
+        'subcategories', 'lessons', 'mirrored_lessons__lesson'
+    ).order_by('order', 'name')
+    
+    categories_data = [process_category(cat) for cat in categories]
+    
+    # Получаем уроки без категории
+    uncategorized_lessons = Lesson.objects.filter(category__isnull=True).order_by('order', 'title')
+    uncategorized_data = [{
+        'id': lesson.id,
+        'title': lesson.title,
+    } for lesson in uncategorized_lessons]
+    
+    return JsonResponse({
+        'categories': categories_data,
+        'uncategorized_lessons': uncategorized_data,
+    })
+
+
+@login_required
+def api_search_lessons(request):
+    """
+    API endpoint для поиска уроков по названию.
+    Возвращает JSON с данными уроков.
+    """
+    if not (request.user.is_staff or request.user.is_superuser):
+        return JsonResponse({'error': 'Доступ запрещен'}, status=403)
+    
+    query = request.GET.get('q', '').strip()
+    
+    lessons = Lesson.objects.all()
+    
+    if query:
+        lessons = lessons.filter(title__icontains=query)
+    
+    lessons = lessons.order_by('title')[:50]  # Ограничиваем 50 результатами
+    
+    lessons_data = []
+    for lesson in lessons:
+        lessons_data.append({
+            'id': lesson.id,
+            'title': lesson.title,
+            'category': lesson.category.name if lesson.category else None,
+        })
+    
+    return JsonResponse({'lessons': lessons_data})
+
+
+@login_required
+@require_POST
+def api_assign_lessons_to_user(request, user_id):
+    """
+    API endpoint для назначения уроков пользователю отдельно от курсов.
+    Принимает список ID уроков и назначает их пользователю.
+    """
+    if not (request.user.is_staff or request.user.is_superuser):
+        return JsonResponse({'error': 'Доступ запрещен'}, status=403)
+    
+    try:
+        target_user = User.objects.get(id=user_id)
+    except User.DoesNotExist:
+        return JsonResponse({'error': 'Пользователь не найден'}, status=404)
+    
+    # Получаем данные из POST запроса
+    try:
+        data = json.loads(request.body)
+    except (json.JSONDecodeError, AttributeError):
+        return JsonResponse({'error': 'Неверный формат данных'}, status=400)
+    
+    lesson_ids = data.get('lesson_ids', [])
+    
+    if not lesson_ids or not isinstance(lesson_ids, list):
+        return JsonResponse({'error': 'Список уроков не указан'}, status=400)
+    
+    # Получаем уроки
+    lessons = Lesson.objects.filter(id__in=lesson_ids)
+    
+    if lessons.count() != len(lesson_ids):
+        return JsonResponse({'error': 'Некоторые уроки не найдены'}, status=400)
+    
+    # Назначаем уроки пользователю
+    assigned_count = 0
+    already_assigned_count = 0
+    assigned_lessons = []
+    already_assigned_lessons = []
+    
+    for lesson in lessons:
+        user_lesson, created = UserLesson.objects.get_or_create(
+            user=target_user,
+            lesson=lesson,
+            defaults={'assigned_by': request.user}
+        )
+        
+        if created:
+            assigned_count += 1
+            assigned_lessons.append({
+                'id': lesson.id,
+                'title': lesson.title
+            })
+        else:
+            already_assigned_count += 1
+            already_assigned_lessons.append({
+                'id': lesson.id,
+                'title': lesson.title
+            })
+    
+    return JsonResponse({
+        'success': True,
+        'assigned_count': assigned_count,
+        'already_assigned_count': already_assigned_count,
+        'assigned_lessons': assigned_lessons,
+        'already_assigned_lessons': already_assigned_lessons,
+        'message': f'Назначено уроков: {assigned_count}, уже были назначены: {already_assigned_count}'
     })
 
 

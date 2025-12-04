@@ -378,6 +378,27 @@ class UserLessonTrajectory(models.Model):
         return f"Траектория {self.user.username} для {self.course.title}"
 
 
+class UserLesson(models.Model):
+    """
+    Модель для хранения назначенных уроков пользователям отдельно от курсов.
+    Позволяет назначать уроки пользователям напрямую из базы знаний.
+    """
+    user = models.ForeignKey(User, on_delete=models.CASCADE, verbose_name="Пользователь", related_name='assigned_lessons')
+    lesson = models.ForeignKey(Lesson, on_delete=models.CASCADE, verbose_name="Урок", related_name='assigned_users')
+    assigned_at = models.DateTimeField(auto_now_add=True, verbose_name="Дата назначения")
+    assigned_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, verbose_name="Назначено пользователем", related_name='lesson_assignments')
+    
+    class Meta:
+        verbose_name = 'Назначенный урок пользователю'
+        verbose_name_plural = 'Назначенные уроки пользователям'
+        unique_together = ('user', 'lesson')
+        indexes = [
+            models.Index(fields=['user'], name='userlesson_user_idx'),
+            models.Index(fields=['lesson'], name='userlesson_lesson_idx'),
+        ]
+    
+    def __str__(self):
+        return f"{self.user.username} - {self.lesson.title}"
 
 
 class Trajectory(models.Model):

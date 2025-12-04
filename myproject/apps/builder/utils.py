@@ -1,5 +1,5 @@
 from .models import CategoryName
-from courses.models import Course, UserLessonTrajectory
+from courses.models import Course, UserLessonTrajectory, UserLesson
 
 def get_compact_fio(user):
     """
@@ -52,7 +52,8 @@ def filter_categories_and_lessons_for_user(user, categories, uncategorized_lesso
     """
     Фильтрует дерево категорий и список уроков без категории для read-only пользователя,
     чтобы показывать только те уроки, которые входят в доступные для пользователя курсы
-    ИЛИ доступны через группы в allowed_groups (категории и все вложенные).
+    ИЛИ доступны через группы в allowed_groups (категории и все вложенные)
+    ИЛИ назначены пользователю напрямую через UserLesson.
     """
     # Получаем все курсы, доступные пользователю через менеджер
     available_courses = Course.objects.available_for_user(user)
@@ -67,6 +68,9 @@ def filter_categories_and_lessons_for_user(user, categories, uncategorized_lesso
         else:
             allowed_lesson_ids.update(course.lessons.values_list('id', flat=True))
 
+    # --- ДОБАВЛЯЕМ уроки, назначенные пользователю напрямую ---
+    assigned_lesson_ids = UserLesson.objects.filter(user=user).values_list('lesson_id', flat=True)
+    allowed_lesson_ids.update(assigned_lesson_ids)
 
     # --- ДОБАВЛЯЕМ доступ через группы (категории и все вложенные) ---
     def collect_group_accessible_lessons(cat_data, parent_access=False):

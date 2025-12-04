@@ -9,6 +9,7 @@
 <link rel="stylesheet" href="{% static 'user_management/css/user_quiz_attempts.css' %}">
 <link rel="stylesheet" href="{% static 'builder/css/incident_form.css' %}">
 <link rel="stylesheet" href="{% static 'user_management/css/user_edit_detailed.css' %}">
+<link rel="stylesheet" href="{% static 'courses/css/add_lesson.css' %}">
 {% endblock %}
 
 {% block content %}
@@ -579,6 +580,7 @@
                             Назначить обучение
                         </button>
                         <ul class="dropdown-menu" aria-labelledby="assignTrainingBtn">
+                            <li><a class="dropdown-item" href="#" id="assignLessonBtn">Назначить урок</a></li>
                             <li><a class="dropdown-item" href="#" id="assignCourseBtn">Назначить курс</a></li>
                             <li><a class="dropdown-item" href="#" id="assignTrajectoryBtn">Назначить траекторию</a></li>
                         </ul>
@@ -2062,6 +2064,499 @@ document.addEventListener('DOMContentLoaded', function() {
             applyTrajectoryAssignment();
         });
     }
+    
+    // ========== ИНИЦИАЛИЗАЦИЯ ДЛЯ НАЗНАЧЕНИЯ УРОКОВ ==========
+    
+    // Элементы DOM для назначения уроков
+    let lessonModal, lessonModalClose, lessonSearchInput;
+    let selectedLessonsList, confirmLessonAssignmentBtn, cancelLessonAssignmentBtn;
+    let lessonCategoriesBlock, lessonUncategorizedBlock;
+    let lessonTabCategories, lessonTabUncategorized;
+    
+    // Хранилище выбранных уроков
+    let selectedLessons = new Set(); // lessonId -> true
+    
+    // API endpoints для уроков
+    const getLessonsForAssignmentUrl = "{% url 'user_management:api_get_lessons_for_assignment' %}";
+    const searchLessonsUrl = "{% url 'user_management:api_search_lessons' %}";
+    const assignLessonsUrlTemplate = "{% url 'user_management:api_assign_lessons_to_user' target_user.pk %}";
+    
+    // Инициализация элементов DOM для уроков
+    lessonModal = document.getElementById('lessonAssignmentModal');
+    lessonModalClose = document.getElementById('lessonModalClose');
+    lessonSearchInput = document.getElementById('lessonSearchInput');
+    selectedLessonsList = document.getElementById('selectedLessonsList');
+    confirmLessonAssignmentBtn = document.getElementById('confirmLessonAssignmentBtn');
+    cancelLessonAssignmentBtn = document.getElementById('cancelLessonAssignmentBtn');
+    lessonCategoriesBlock = document.getElementById('lesson-categories-block');
+    lessonUncategorizedBlock = document.getElementById('lesson-uncategorized-block');
+    lessonTabCategories = document.getElementById('lesson-tab-categories');
+    lessonTabUncategorized = document.getElementById('lesson-tab-uncat');
+    
+    // Обработчик кнопки "Назначить урок"
+    const assignLessonBtn = document.getElementById('assignLessonBtn');
+    if (assignLessonBtn) {
+        assignLessonBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            if (lessonModal) {
+                lessonModal.style.display = 'flex';
+                loadLessonsForAssignment();
+            }
+        });
+    }
+    
+    // Закрытие модального окна уроков
+    if (lessonModalClose) {
+        lessonModalClose.addEventListener('click', function() {
+            if (lessonModal) {
+                lessonModal.style.display = 'none';
+            }
+        });
+    }
+    
+    if (cancelLessonAssignmentBtn) {
+        cancelLessonAssignmentBtn.addEventListener('click', function() {
+            if (lessonModal) {
+                lessonModal.style.display = 'none';
+            }
+        });
+    }
+    
+    // Закрытие при клике вне модального окна уроков
+    window.addEventListener('click', function(event) {
+        if (event.target == lessonModal) {
+            lessonModal.style.display = 'none';
+        }
+    });
+    
+    // Загрузка уроков для назначения
+    function loadLessonsForAssignment() {
+        fetch(getLessonsForAssignmentUrl)
+            .then(response => response.json())
+            .then(data => {
+                displayLessonCategories(data.categories);
+                displayUncategorizedLessons(data.uncategorized_lessons);
+            })
+            .catch(error => {
+                console.error('Ошибка загрузки уроков:', error);
+                lessonCategoriesBlock.innerHTML = '<div class="group-list-error">Ошибка загрузки уроков</div>';
+            });
+    }
+    
+    // Отображение категорий с уроками
+    function displayLessonCategories(categories) {
+        if (!lessonCategoriesBlock) return;
+        
+        function renderCategory(category) {
+            let html = '';
+            const hasChildren = (category.subcategories && category.subcategories.length > 0) || 
+                               (category.lessons && category.lessons.length > 0);
+            
+            html += `<li class="category-block" data-category-id="${category.id}">`;
+            html += `<div class="category-header">`;
+            html += `<span class="category-icon folder-icon svg-folder">`;
+            html += `<svg width="18" height="18" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">`;
+            html += `<path class="svg-folder-path" d="M2 5.5A1.5 1.5 0 0 1 3.5 4h3.672a1.5 1.5 0 0 1 1.06.44l1.414 1.414A1.5 1.5 0 0 0 10.707 6H16.5A1.5 1.5 0 0 1 18 7.5v7A1.5 1.5 0 0 1 16.5 16h-13A1.5 1.5 0 0 1 2 14.5v-9z"/>`;
+            html += `</svg>`;
+            html += `</span>`;
+            html += `<span class="category-title" title="${category.name}">${category.name}</span>`;
+            if (hasChildren) {
+                html += `<span class="toggle-arrow" onclick="event.stopPropagation(); toggleLessonCategory(this.parentElement.parentElement)">+</span>`;
+            }
+            html += `</div>`;
+            
+            if (category.lessons && category.lessons.length > 0) {
+                html += `<ul class="lesson-list" style="display: none;">`;
+                category.lessons.forEach(lesson => {
+                    html += `<li class="lesson-li" data-lesson-id="${lesson.id}">`;
+                    html += `<span class="lesson-icon svg-paper">`;
+                    html += `<svg width="16" height="16" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">`;
+                    html += `<rect class="svg-paper-rect" x="4" y="3" width="12" height="14" rx="2"/>`;
+                    html += `<line class="svg-paper-line" x1="6.5" y1="7.5" x2="13.5" y2="7.5"/>`;
+                    html += `<line class="svg-paper-line" x1="6.5" y1="10.5" x2="13.5" y2="10.5"/>`;
+                    html += `<line class="svg-paper-line" x1="6.5" y1="13.5" x2="11.5" y2="13.5"/>`;
+                    html += `</svg>`;
+                    html += `</span>`;
+                    html += `<a class="lesson-link" title="${lesson.title}">${lesson.title}</a>`;
+                    html += `</li>`;
+                });
+                html += `</ul>`;
+            }
+            
+            if (category.subcategories && category.subcategories.length > 0) {
+                html += `<ul class="subcategory-list category-tree" style="display: none;">`;
+                category.subcategories.forEach(subcat => {
+                    html += renderCategory(subcat);
+                });
+                html += `</ul>`;
+            }
+            
+            html += `</li>`;
+            return html;
+        }
+        
+        let html = '';
+        categories.forEach(category => {
+            html += renderCategory(category);
+        });
+        
+        const tree = lessonCategoriesBlock.querySelector('#lessonCategoryTree');
+        if (tree) {
+            tree.innerHTML = html;
+        }
+        
+        // Добавляем обработчики клика на уроки (используя делегирование событий)
+        const leftPanel = lessonCategoriesBlock.closest('.left-panel');
+        if (leftPanel) {
+            const clickTimers = new Map();
+            leftPanel.addEventListener('click', function(e) {
+                const lessonItem = e.target.closest('.lesson-li');
+                if (!lessonItem) return;
+                
+                const lessonId = lessonItem.dataset.lessonId;
+                if (!lessonId) return;
+                
+                const lessonTitle = lessonItem.querySelector('.lesson-link').textContent;
+                
+                const timerKey = `lesson_${lessonId}`;
+                const existingTimer = clickTimers.get(timerKey);
+                
+                if (existingTimer) {
+                    clearTimeout(existingTimer);
+                    clickTimers.delete(timerKey);
+                    // Двойной клик - добавление/удаление
+                    toggleLessonSelection(parseInt(lessonId), lessonTitle);
+                } else {
+                    const timer = setTimeout(() => {
+                        clickTimers.delete(timerKey);
+                        // Одиночный клик - только выделение (можно пропустить)
+                    }, 300);
+                    clickTimers.set(timerKey, timer);
+                }
+            });
+        }
+    }
+    
+    // Отображение уроков без категории
+    function displayUncategorizedLessons(lessons) {
+        if (!lessonUncategorizedBlock) return;
+        
+        const list = lessonUncategorizedBlock.querySelector('#lessonUncategorizedList');
+        if (!list) return;
+        
+        let html = '';
+        lessons.forEach(lesson => {
+            html += `<li class="lesson-li" data-lesson-id="${lesson.id}">`;
+            html += `<span class="lesson-icon svg-paper">`;
+            html += `<svg width="16" height="16" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">`;
+            html += `<rect class="svg-paper-rect" x="4" y="3" width="12" height="14" rx="2"/>`;
+            html += `<line class="svg-paper-line" x1="6.5" y1="7.5" x2="13.5" y2="7.5"/>`;
+            html += `<line class="svg-paper-line" x1="6.5" y1="10.5" x2="13.5" y2="10.5"/>`;
+            html += `<line class="svg-paper-line" x1="6.5" y1="13.5" x2="11.5" y2="13.5"/>`;
+            html += `</svg>`;
+            html += `</span>`;
+            html += `<a class="lesson-link" title="${lesson.title}">${lesson.title}</a>`;
+            html += `</li>`;
+        });
+        
+        list.innerHTML = html;
+        
+        // Добавляем обработчики клика (используя делегирование событий)
+        const leftPanel = lessonUncategorizedBlock.closest('.left-panel');
+        if (leftPanel) {
+            const clickTimers = new Map();
+            leftPanel.addEventListener('click', function(e) {
+                const lessonItem = e.target.closest('.lesson-li');
+                if (!lessonItem || !lessonItem.closest('#lesson-uncategorized-block')) return;
+                
+                const lessonId = lessonItem.dataset.lessonId;
+                if (!lessonId) return;
+                
+                const lessonTitle = lessonItem.querySelector('.lesson-link').textContent;
+                
+                const timerKey = `uncategorized_${lessonId}`;
+                const existingTimer = clickTimers.get(timerKey);
+                
+                if (existingTimer) {
+                    clearTimeout(existingTimer);
+                    clickTimers.delete(timerKey);
+                    // Двойной клик - добавление/удаление
+                    toggleLessonSelection(parseInt(lessonId), lessonTitle);
+                } else {
+                    const timer = setTimeout(() => {
+                        clickTimers.delete(timerKey);
+                        // Одиночный клик - только выделение (можно пропустить)
+                    }, 300);
+                    clickTimers.set(timerKey, timer);
+                }
+            });
+        }
+    }
+    
+    // Переключение категорий уроков
+    window.toggleLessonCategory = function(element) {
+        const categoryItem = element.closest('.category-block');
+        const subcategoryList = categoryItem.querySelector('.subcategory-list');
+        const lessonList = categoryItem.querySelector('.lesson-list');
+        const arrow = categoryItem.querySelector('.toggle-arrow');
+        
+        if (subcategoryList) {
+            const isVisible = subcategoryList.style.display !== 'none';
+            subcategoryList.style.display = isVisible ? 'none' : 'block';
+            if (arrow) {
+                arrow.classList.toggle('expanded', !isVisible);
+                arrow.innerHTML = !isVisible ? '−' : '+';
+            }
+        }
+        
+        if (lessonList) {
+            const isVisible = lessonList.style.display !== 'none';
+            lessonList.style.display = isVisible ? 'none' : 'block';
+            if (arrow) {
+                arrow.classList.toggle('expanded', !isVisible);
+                arrow.innerHTML = !isVisible ? '−' : '+';
+            }
+        }
+    }
+    
+    // Переключение выбора урока
+    function toggleLessonSelection(lessonId, lessonTitle) {
+        const itemId = `lesson_${lessonId}`;
+        
+        if (selectedLessons.has(lessonId)) {
+            // Удаляем из выбранных
+            selectedLessons.delete(lessonId);
+            removeSelectedLesson(itemId);
+        } else {
+            // Добавляем в выбранные
+            selectedLessons.add(lessonId);
+            addSelectedLesson(itemId, lessonTitle);
+        }
+        
+        updateLessonForm();
+    }
+    
+    // Добавление урока в список выбранных
+    function addSelectedLesson(itemId, title) {
+        const selectedItemsList = document.getElementById('selectedLessonsList');
+        const emptyState = selectedItemsList.querySelector('.empty-state');
+        
+        if (emptyState) {
+            emptyState.remove();
+        }
+        
+        const item = document.createElement('li');
+        item.className = 'selected-item';
+        item.dataset.itemId = itemId;
+        
+        item.innerHTML = `
+            <span class="selected-item-icon">📄</span>
+            <div class="selected-item-content">
+                <div class="selected-item-title">${title}</div>
+                <div class="selected-item-type">Урок</div>
+            </div>
+            <button type="button" class="remove-item" onclick="removeSelectedLesson('${itemId}')">&times;</button>
+        `;
+        
+        selectedItemsList.appendChild(item);
+    }
+    
+    // Удаление урока из списка выбранных
+    window.removeSelectedLesson = function(itemId) {
+        const item = document.querySelector(`[data-item-id="${itemId}"]`);
+        if (item) {
+            item.remove();
+        }
+        
+        // Если больше нет выбранных элементов, показываем пустое состояние
+        const selectedItemsList = document.getElementById('selectedLessonsList');
+        if (selectedItemsList.children.length === 0) {
+            const emptyState = document.createElement('li');
+            emptyState.className = 'empty-state';
+            emptyState.innerHTML = `
+                <div class="empty-state-icon">📁</div>
+                <div>Выберите уроки для назначения пользователю</div>
+            `;
+            selectedItemsList.appendChild(emptyState);
+        }
+        
+        // Убираем выделение с элемента в левой панели
+        const [type, id] = itemId.split('_');
+        const lessonId = parseInt(id);
+        selectedLessons.delete(lessonId);
+        
+        const leftPanelItem = document.querySelector(`[data-lesson-id="${id}"]`);
+        if (leftPanelItem) {
+            leftPanelItem.classList.remove('selected');
+        }
+        
+        updateLessonForm();
+    }
+    
+    // Обновление формы
+    function updateLessonForm() {
+        const button = document.getElementById('confirmLessonAssignmentBtn');
+        if (button) {
+            button.disabled = selectedLessons.size === 0;
+        }
+    }
+    
+    // Применение выбора уроков
+    function applyLessonAssignment() {
+        const lessonIds = Array.from(selectedLessons);
+        
+        if (lessonIds.length === 0) {
+            alert('Выберите хотя бы один урок для назначения');
+            return;
+        }
+        
+        // Отключаем кнопку на время выполнения запроса
+        if (confirmLessonAssignmentBtn) {
+            confirmLessonAssignmentBtn.disabled = true;
+            confirmLessonAssignmentBtn.textContent = 'Назначение...';
+        }
+        
+        // Получаем CSRF токен
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+        const csrfToken = getCookie('csrftoken');
+        
+        // Отправляем запрос на сервер
+        fetch(assignLessonsUrlTemplate, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrfToken
+            },
+            body: JSON.stringify({
+                lesson_ids: lessonIds
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.error) {
+                alert('Ошибка: ' + data.error);
+            } else {
+                let message = `Назначено уроков: ${data.assigned_count}`;
+                if (data.already_assigned_count > 0) {
+                    message += `\nУже были назначены: ${data.already_assigned_count}`;
+                }
+                
+                if (data.assigned_count > 0) {
+                    // Очищаем выбранные уроки
+                    selectedLessons.clear();
+                    const selectedItemsList = document.getElementById('selectedLessonsList');
+                    if (selectedItemsList) {
+                        selectedItemsList.innerHTML = `
+                            <li class="empty-state">
+                                <div class="empty-state-icon">📁</div>
+                                <div>Выберите уроки для назначения пользователю</div>
+                            </li>
+                        `;
+                    }
+                    updateLessonForm();
+                    
+                    // Закрываем модальное окно
+                    if (lessonModal) {
+                        lessonModal.style.display = 'none';
+                    }
+                    
+                    // Показываем сообщение об успехе
+                    alert(message);
+                    
+                    // Перезагружаем страницу для обновления данных
+                    window.location.reload();
+                } else {
+                    alert('Все выбранные уроки уже были назначены пользователю');
+                }
+            }
+        })
+        .catch(error => {
+            console.error('Ошибка:', error);
+            alert('Произошла ошибка при назначении уроков');
+        })
+        .finally(() => {
+            // Включаем кнопку обратно
+            if (confirmLessonAssignmentBtn) {
+                confirmLessonAssignmentBtn.disabled = false;
+                confirmLessonAssignmentBtn.textContent = 'Применить';
+            }
+        });
+    }
+    
+    // Применение выбора уроков
+    if (confirmLessonAssignmentBtn) {
+        confirmLessonAssignmentBtn.addEventListener('click', function() {
+            applyLessonAssignment();
+        });
+    }
+    
+    // Переключение вкладок для уроков
+    if (lessonTabCategories) {
+        lessonTabCategories.addEventListener('click', function() {
+            lessonTabCategories.classList.add('active');
+            lessonTabUncategorized.classList.remove('active');
+            lessonCategoriesBlock.style.display = 'block';
+            lessonUncategorizedBlock.style.display = 'none';
+            document.getElementById('lesson-panel-title').textContent = 'Категории';
+        });
+    }
+    
+    if (lessonTabUncategorized) {
+        lessonTabUncategorized.addEventListener('click', function() {
+            lessonTabUncategorized.classList.add('active');
+            lessonTabCategories.classList.remove('active');
+            lessonUncategorizedBlock.style.display = 'block';
+            lessonCategoriesBlock.style.display = 'none';
+            document.getElementById('lesson-panel-title').textContent = 'Без категории';
+        });
+    }
+    
+    // Поиск уроков
+    if (lessonSearchInput) {
+        let lessonSearchTimeout;
+        lessonSearchInput.addEventListener('input', function() {
+            clearTimeout(lessonSearchTimeout);
+            const query = this.value.trim();
+            
+            lessonSearchTimeout = setTimeout(function() {
+                if (query.length === 0) {
+                    loadLessonsForAssignment();
+                    return;
+                }
+                
+                fetch(searchLessonsUrl + '?q=' + encodeURIComponent(query))
+                    .then(response => response.json())
+                    .then(data => {
+                        // Отображаем результаты поиска
+                        const searchResults = data.lessons.map(lesson => ({
+                            id: lesson.id,
+                            title: lesson.title
+                        }));
+                        displayUncategorizedLessons(searchResults);
+                        // Переключаемся на вкладку "Без категории" для отображения результатов
+                        if (lessonTabUncategorized) {
+                            lessonTabUncategorized.click();
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Ошибка поиска уроков:', error);
+                    });
+            }, 300);
+        });
+    }
 });
 </script>
 
@@ -2155,6 +2650,71 @@ document.addEventListener('DOMContentLoaded', function() {
                 <button type="button" class="btn btn-primary" id="confirmTrajectoryAssignmentBtn">Применить</button>
                 <button type="button" class="btn btn-secondary" id="cancelTrajectoryAssignmentBtn">Отмена</button>
             </div>
+        </div>
+    </div>
+</div>
+
+<!-- Модальное окно для назначения уроков -->
+<div id="lessonAssignmentModal" class="modal-overlay" style="display: none;">
+    <div class="modal-content">
+        
+        <div class="modal-header">
+            <h3 class="modal-title">Выбрать уроки для назначения</h3>
+            <button class="modal-close" id="lessonModalClose">&times;</button>
+        </div>
+        
+        <div class="modal-body">
+            <!-- Левая панель -->
+            <div class="left-panel">
+                <div class="panel-header">
+                    <div class="tabs-switcher" style="display: flex; gap: 2px; margin: 0 0 16px 0;">
+                        <button id="lesson-tab-categories" class="tab-btn active" type="button">Категории</button>
+                        <button id="lesson-tab-uncat" class="tab-btn" type="button">Без категории</button>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <span id="lesson-panel-title">Категории</span>
+                        <div style="margin-left: auto; position: relative;">
+                            <input type="text" id="lessonSearchInput" placeholder="Поиск" style="padding: 4px 8px 4px 28px; border: 1px solid #ddd; border-radius: 4px; font-size: 12px; width: 150px;">
+                            <span style="position: absolute; left: 8px; top: 50%; transform: translateY(-50%); color: #666; font-size: 12px;">🔍</span>
+                        </div>
+                    </div>
+                    <div id="lessonSearchResults" style="font-size: 12px; color: #666; margin-top: 5px; display: none;">
+                        Найдено: <span id="lessonResultsCount">0</span>
+                    </div>
+                </div>
+                <div class="panel-content">
+                    <div id="lesson-categories-block">
+                        <ul class="category-tree" id="lessonCategoryTree">
+                            <!-- Категории будут загружены через JavaScript -->
+                        </ul>
+                    </div>
+                    <div id="lesson-uncategorized-block" style="display:none;">
+                        <ul class="category-tree" id="lessonUncategorizedList">
+                            <!-- Уроки без категории будут загружены через JavaScript -->
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Правая панель -->
+            <div class="right-panel">
+                <div class="panel-header">
+                    Выбранные уроки
+                </div>
+                <div class="panel-content">
+                    <ul class="selected-items" id="selectedLessonsList">
+                        <li class="empty-state">
+                            <div class="empty-state-icon">📁</div>
+                            <div>Выберите уроки для назначения пользователю</div>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+        
+        <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" id="cancelLessonAssignmentBtn">Отмена</button>
+            <button type="button" class="btn btn-primary" id="confirmLessonAssignmentBtn" disabled>Применить</button>
         </div>
     </div>
 </div>
