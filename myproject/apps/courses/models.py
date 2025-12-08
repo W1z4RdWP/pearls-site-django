@@ -176,6 +176,7 @@ class Course(models.Model):
     points = models.PositiveIntegerField(default=30, verbose_name="Количество DASCOIN за прохождение курса")
     certificate = models.BooleanField(default=False, verbose_name="Выдавать сертификат", help_text="Выдавать сертификат пользователю при завершении курса")
     is_incident = models.BooleanField(default=False, verbose_name="Инцидент", help_text="Курс-инцидент не попадает в общую статистику")
+    default_deadline_days = models.PositiveIntegerField(default=7, verbose_name="Срок завершения курса (дней)", help_text="Количество дней, которое дается на завершение курса назначенным пользователям. По умолчанию используется при назначении курса, если не указано другое значение.")
     objects = CourseManager()
     
 
@@ -605,5 +606,4 @@ class MetricsSubmission(models.Model):
     
     def __str__(self):
         return f"Метрики {self.clinic_name} от {self.user.username} ({self.submitted_at.strftime('%d.%m.%Y')})"
-
 

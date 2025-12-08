@@ -94,7 +94,16 @@
                 {% if form.mentors_time_to_check.errors %}
                     <div class="text-danger mt-1">{{ form.mentors_time_to_check.errors }}</div>
                 {% endif %}
+                <br>
+                {{ form.default_deadline_days.label_tag }}{{ form.default_deadline_days }}
+                <!-- {% if form.default_deadline_days.help_text %}
+                    <small class="form-help-text">{{ form.default_deadline_days.help_text }}</small>
+                {% endif %} -->
+                {% if form.default_deadline_days.errors %}
+                    <div class="field-errors">{{ form.default_deadline_days.errors }}</div>
+                {% endif %}
             </div>
+            
             
             <label for="id_allowed_groups">{{ form.allowed_groups.label }}</label>
             <div class="um-user-groups-checkboxes">
