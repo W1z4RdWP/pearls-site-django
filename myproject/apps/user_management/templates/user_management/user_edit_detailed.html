@@ -2104,10 +2104,20 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
     
+    // Функция очистки визуального выделения уроков
+    function clearLessonSelectionVisuals() {
+        // Убираем класс 'selected' со всех элементов уроков в левой панели
+        const selectedItems = document.querySelectorAll('#lessonAssignmentModal .lesson-li.selected');
+        selectedItems.forEach(item => {
+            item.classList.remove('selected');
+        });
+    }
+    
     // Закрытие модального окна уроков
     if (lessonModalClose) {
         lessonModalClose.addEventListener('click', function() {
             if (lessonModal) {
+                clearLessonSelectionVisuals();
                 lessonModal.style.display = 'none';
             }
         });
@@ -2116,6 +2126,7 @@ document.addEventListener('DOMContentLoaded', function() {
     if (cancelLessonAssignmentBtn) {
         cancelLessonAssignmentBtn.addEventListener('click', function() {
             if (lessonModal) {
+                clearLessonSelectionVisuals();
                 lessonModal.style.display = 'none';
             }
         });
@@ -2124,6 +2135,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // Закрытие при клике вне модального окна уроков
     window.addEventListener('click', function(event) {
         if (event.target == lessonModal) {
+            clearLessonSelectionVisuals();
             lessonModal.style.display = 'none';
         }
     });
@@ -2135,11 +2147,54 @@ document.addEventListener('DOMContentLoaded', function() {
             .then(data => {
                 displayLessonCategories(data.categories);
                 displayUncategorizedLessons(data.uncategorized_lessons);
+                // Регистрируем обработчик кликов только один раз после загрузки данных
+                setupLessonClickHandlers();
             })
             .catch(error => {
                 console.error('Ошибка загрузки уроков:', error);
                 lessonCategoriesBlock.innerHTML = '<div class="group-list-error">Ошибка загрузки уроков</div>';
             });
+    }
+    
+    // Флаг для предотвращения множественной регистрации обработчиков
+    let lessonClickHandlersInitialized = false;
+    
+    // Настройка обработчиков кликов для уроков (только один раз)
+    function setupLessonClickHandlers() {
+        if (lessonClickHandlersInitialized) return;
+        
+        const leftPanel = document.querySelector('#lessonAssignmentModal .left-panel');
+        if (!leftPanel) return;
+        
+        const clickTimers = new Map();
+        
+        leftPanel.addEventListener('click', function(e) {
+            const lessonItem = e.target.closest('.lesson-li');
+            if (!lessonItem) return;
+            
+            const lessonId = lessonItem.dataset.lessonId;
+            if (!lessonId) return;
+            
+            const lessonTitle = lessonItem.querySelector('.lesson-link').textContent;
+            
+            const timerKey = `lesson_${lessonId}`;
+            const existingTimer = clickTimers.get(timerKey);
+            
+            if (existingTimer) {
+                clearTimeout(existingTimer);
+                clickTimers.delete(timerKey);
+                // Двойной клик - добавление/удаление
+                toggleLessonSelection(parseInt(lessonId), lessonTitle);
+            } else {
+                const timer = setTimeout(() => {
+                    clickTimers.delete(timerKey);
+                    // Одиночный клик - только выделение (можно пропустить)
+                }, 300);
+                clickTimers.set(timerKey, timer);
+            }
+        });
+        
+        lessonClickHandlersInitialized = true;
     }
     
     // Отображение категорий с уроками
@@ -2203,37 +2258,6 @@ document.addEventListener('DOMContentLoaded', function() {
         if (tree) {
             tree.innerHTML = html;
         }
-        
-        // Добавляем обработчики клика на уроки (используя делегирование событий)
-        const leftPanel = lessonCategoriesBlock.closest('.left-panel');
-        if (leftPanel) {
-            const clickTimers = new Map();
-            leftPanel.addEventListener('click', function(e) {
-                const lessonItem = e.target.closest('.lesson-li');
-                if (!lessonItem) return;
-                
-                const lessonId = lessonItem.dataset.lessonId;
-                if (!lessonId) return;
-                
-                const lessonTitle = lessonItem.querySelector('.lesson-link').textContent;
-                
-                const timerKey = `lesson_${lessonId}`;
-                const existingTimer = clickTimers.get(timerKey);
-                
-                if (existingTimer) {
-                    clearTimeout(existingTimer);
-                    clickTimers.delete(timerKey);
-                    // Двойной клик - добавление/удаление
-                    toggleLessonSelection(parseInt(lessonId), lessonTitle);
-                } else {
-                    const timer = setTimeout(() => {
-                        clickTimers.delete(timerKey);
-                        // Одиночный клик - только выделение (можно пропустить)
-                    }, 300);
-                    clickTimers.set(timerKey, timer);
-                }
-            });
-        }
     }
     
     // Отображение уроков без категории
@@ -2259,37 +2283,6 @@ document.addEventListener('DOMContentLoaded', function() {
         });
         
         list.innerHTML = html;
-        
-        // Добавляем обработчики клика (используя делегирование событий)
-        const leftPanel = lessonUncategorizedBlock.closest('.left-panel');
-        if (leftPanel) {
-            const clickTimers = new Map();
-            leftPanel.addEventListener('click', function(e) {
-                const lessonItem = e.target.closest('.lesson-li');
-                if (!lessonItem || !lessonItem.closest('#lesson-uncategorized-block')) return;
-                
-                const lessonId = lessonItem.dataset.lessonId;
-                if (!lessonId) return;
-                
-                const lessonTitle = lessonItem.querySelector('.lesson-link').textContent;
-                
-                const timerKey = `uncategorized_${lessonId}`;
-                const existingTimer = clickTimers.get(timerKey);
-                
-                if (existingTimer) {
-                    clearTimeout(existingTimer);
-                    clickTimers.delete(timerKey);
-                    // Двойной клик - добавление/удаление
-                    toggleLessonSelection(parseInt(lessonId), lessonTitle);
-                } else {
-                    const timer = setTimeout(() => {
-                        clickTimers.delete(timerKey);
-                        // Одиночный клик - только выделение (можно пропустить)
-                    }, 300);
-                    clickTimers.set(timerKey, timer);
-                }
-            });
-        }
     }
     
     // Переключение категорий уроков
@@ -2330,6 +2323,12 @@ document.addEventListener('DOMContentLoaded', function() {
             // Добавляем в выбранные
             selectedLessons.add(lessonId);
             addSelectedLesson(itemId, lessonTitle);
+            
+            // Добавляем визуальное выделение в левой панели
+            const leftPanelItem = document.querySelector(`[data-lesson-id="${lessonId}"]`);
+            if (leftPanelItem) {
+                leftPanelItem.classList.add('selected');
+            }
         }
         
         updateLessonForm();
@@ -2466,6 +2465,9 @@ document.addEventListener('DOMContentLoaded', function() {
                         `;
                     }
                     updateLessonForm();
+                    
+                    // Убираем визуальное выделение
+                    clearLessonSelectionVisuals();
                     
                     // Закрываем модальное окно
                     if (lessonModal) {
