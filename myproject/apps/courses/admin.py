@@ -2,7 +2,7 @@ from django.contrib import admin
 from django import forms
 from .models import Course, Lesson, UserLessonTrajectory, \
         Trajectory, TrajectoryCourse, UserCourseTrajectory, \
-        Certificate, MetricsSubmission, ManualTrajectoryUnassignment
+        Certificate, MetricsSubmission, ManualTrajectoryUnassignment, UserLesson
 
 
 
@@ -204,3 +204,14 @@ class ManualTrajectoryUnassignmentAdmin(admin.ModelAdmin):
             return obj.reason[:50] + '...' if len(obj.reason) > 50 else obj.reason
         return '-'
     reason_preview.short_description = 'Причина'
+
+
+@admin.register(UserLesson)
+class UserLessonAdmin(admin.ModelAdmin):
+    """Админка назначенных уроков пользователям."""
+    list_display = ('user', 'lesson', 'assigned_at', 'assigned_by')
+    list_filter = ('assigned_at', 'assigned_by')
+    search_fields = ('user__username', 'lesson__title')
+    readonly_fields = ('assigned_at',)
+    autocomplete_fields = ['user', 'lesson', 'assigned_by']
+    date_hierarchy = 'assigned_at'

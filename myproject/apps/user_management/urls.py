@@ -49,6 +49,11 @@ urlpatterns = [
     path('api/trajectories/search/', views.api_search_trajectories, name='api_search_trajectories'),
     path('api/users/<int:user_id>/assign-trajectories/', views.api_assign_trajectories_to_user, name='api_assign_trajectories_to_user'),
 
+    # API endpoints для назначения уроков
+    path('api/lessons/for-assignment/', views.api_get_lessons_for_assignment, name='api_get_lessons_for_assignment'),
+    path('api/lessons/search/', views.api_search_lessons, name='api_search_lessons'),
+    path('api/users/<int:user_id>/assign-lessons/', views.api_assign_lessons_to_user, name='api_assign_lessons_to_user'),
+
     # Отмена назначения обучения
     path('users/<int:user_id>/unassign-course/<int:user_course_id>/', views.unassign_course_from_user, name='unassign_course'),
     path('users/<int:user_id>/unassign-trajectory/<int:user_trajectory_id>/', views.unassign_trajectory_from_user, name='unassign_trajectory'),

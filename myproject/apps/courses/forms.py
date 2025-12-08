@@ -11,7 +11,7 @@ class CourseForm(forms.ModelForm):
     """Форма создания/редактирования курса."""
     class Meta:
         model = Course
-        fields = ['title', 'description', 'image', 'slug', 'final_quiz', 'responsible_mentor', 'mentors_time_to_check', 'allowed_groups', 'certificate', 'is_incident']
+        fields = ['title', 'description', 'image', 'slug', 'final_quiz', 'responsible_mentor', 'mentors_time_to_check', 'allowed_groups', 'certificate', 'is_incident', 'default_deadline_days']
         labels = {'slug': 'ЧПУ (оставьте пустым для автогенерации)'}
         required = {'slug': False}  # Поле slug не обязательно
         widgets = {
@@ -21,7 +21,8 @@ class CourseForm(forms.ModelForm):
             ),
             'allowed_groups': forms.SelectMultiple(attrs={'class': 'form-select'}),
             'responsible_mentor': forms.HiddenInput(),
-            'final_quiz': forms.HiddenInput()
+            'final_quiz': forms.HiddenInput(),
+            'default_deadline_days': forms.NumberInput(attrs={'class': 'form-control', 'min': '1'})
         }
 
 

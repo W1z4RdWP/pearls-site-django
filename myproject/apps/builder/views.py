@@ -266,6 +266,12 @@ class LessonMasterDetailView(TemplateView):
                             allowed_lesson_ids.update(trajectory.lessons.values_list('id', flat=True))
                         else:
                             allowed_lesson_ids.update(course.lessons.values_list('id', flat=True))
+                    
+                    # --- ДОБАВЛЯЕМ уроки, назначенные пользователю напрямую ---
+                    from courses.models import UserLesson
+                    assigned_lesson_ids = UserLesson.objects.filter(user=user).values_list('lesson_id', flat=True)
+                    allowed_lesson_ids.update(assigned_lesson_ids)
+                    
                     # --- ДОБАВЛЯЕМ доступ через группы (категория и все родители) ---
                     group_access = False
                     cat = selected_lesson.category
@@ -1570,6 +1576,11 @@ def ajax_search_tree(request):
                 allowed_lesson_ids.update(trajectory.lessons.values_list('id', flat=True))
             else:
                 allowed_lesson_ids.update(course.lessons.values_list('id', flat=True))
+        
+        # ДОБАВЛЯЕМ уроки, назначенные пользователю напрямую
+        from courses.models import UserLesson
+        assigned_lesson_ids = UserLesson.objects.filter(user=user).values_list('lesson_id', flat=True)
+        allowed_lesson_ids.update(assigned_lesson_ids)
         
         # ДОБАВЛЯЕМ доступ через группы (как в filter_categories_and_lessons_for_user)
         def collect_group_accessible_lessons():
