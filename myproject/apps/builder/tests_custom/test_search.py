@@ -48,7 +48,7 @@ class SearchTreeAjaxTest(TestCase):
         self.assertEqual(data['lessons'], [])
     
     def test_search_regular_user(self):
-        """Тест что обычные пользователи (не staff) могут использовать поиск"""
+        """Обычный пользователь без назначенных курсов не видит результатов"""
         # Создаем обычного пользователя
         User = get_user_model()
         regular_user = User.objects.create_user(username='user', password='123', is_staff=False)
@@ -58,7 +58,7 @@ class SearchTreeAjaxTest(TestCase):
         resp = self.client.get('/builder/search/', {'query': 'back'})
         self.assertEqual(resp.status_code, 200)
         data = resp.json()
-        self.assertIn(self.cat1.id, data['categories'])
+        self.assertEqual(data['categories'], [])
     
     def test_search_unauthenticated_user(self):
         """Тест что неаутентифицированные пользователи не могут использовать поиск"""
