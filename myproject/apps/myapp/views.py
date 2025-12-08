@@ -158,7 +158,32 @@ def custom_error_500(request):
     return render(request, '500.html', status=500)
 
 def csrf_failure_view(request, reason=""):
-    """Кастомная страница ошибки CSRF"""
+    """
+    Кастомная страница ошибки CSRF.
+    
+    Если пользователь уже авторизован, перенаправляем его на главную страницу.
+    Это решает проблему на мобильных устройствах, где CSRF ошибка 
+    может возникать после успешной авторизации.
+    """
+    import logging
+    logger = logging.getLogger('django')
+    
+    if request.user.is_authenticated:
+        # Логируем для мониторинга проблем с CSRF на мобильных устройствах
+        logger.warning(
+            f"CSRF error for authenticated user {request.user.email}. "
+            f"Redirecting to home. Reason: {reason}. "
+            f"User-Agent: {request.META.get('HTTP_USER_AGENT', 'Unknown')[:100]}"
+        )
+        # Перенаправляем авторизованного пользователя на главную страницу
+        return redirect('home')
+    
+    # Для неавторизованных пользователей показываем страницу ошибки
+    logger.warning(
+        f"CSRF error for anonymous user. Reason: {reason}. "
+        f"Path: {request.path}. "
+        f"User-Agent: {request.META.get('HTTP_USER_AGENT', 'Unknown')[:100]}"
+    )
     return render(request, '403_csrf.html', status=403)
 
 def csrf_debug_view(request):
