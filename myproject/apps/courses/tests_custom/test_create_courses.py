@@ -31,6 +31,7 @@ class CourseCreateAccessTest(TestCase):
             'description': '<p>desc</p>',
             'slug': slug,
             'mentors_time_to_check': 2,
+            'default_deadline_days': 7,
             'certificate': False,
             'is_incident': False,
         }
@@ -68,6 +69,7 @@ class CourseCreateAccessTest(TestCase):
             author=author,
             slug=slug,
             mentors_time_to_check=2,
+            default_deadline_days=7,
             certificate=False,
             is_incident=False
         )

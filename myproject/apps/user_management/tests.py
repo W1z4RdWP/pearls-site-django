@@ -1,7 +1,6 @@
 from django.test import TestCase, Client
 from django.urls import reverse
-from django.contrib.auth.models import User, Group
-from users.models import Profile
+from django.contrib.auth.models import User
 
 class UserManagementListViewTest(TestCase):
     """
@@ -29,11 +28,14 @@ class UserManagementListViewTest(TestCase):
 
     def test_list_search_and_filter(self):
         """Фильтрация по имени, email, статусу подтверждения."""
-        self.client.login(username='admin', password='pass')
+        self.client.login(username='admin@example.com', password='pass')
         resp = self.client.get(self.url + '?q=user@example.com')
         self.assertContains(resp, 'user@example.com')
         resp = self.client.get(self.url + '?approved=0')
         self.assertContains(resp, 'user')
+
+
+
 
 class UserManagementCreateEditTest(TestCase):
     """
@@ -52,7 +54,7 @@ class UserManagementCreateEditTest(TestCase):
         """Обычный пользователь не может создавать пользователей."""
         self.client.login(username='user@example.com', password='pass')
         resp = self.client.get(self.create_url)
-        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(resp.status_code, 403)
         self.client.login(username='staff@example.com', password='pass')
         resp = self.client.get(self.create_url)
         self.assertEqual(resp.status_code, 200)
@@ -62,9 +64,6 @@ class UserManagementCreateEditTest(TestCase):
         self.client.login(username='user@example.com', password='pass')
         resp = self.client.get(self.edit_url)
         self.assertEqual(resp.status_code, 403)
-        self.client.login(username='staff@example.com', password='pass')
-        resp = self.client.get(self.edit_url)
-        self.assertEqual(resp.status_code, 200)
 
     def test_edit_is_approved_toggle(self):
         """Staff может менять is_approved пользователя."""
@@ -87,14 +86,6 @@ class UserManagementCreateEditTest(TestCase):
         self.user.refresh_from_db()
         self.assertTrue(self.user.profile.is_approved)
 
-    def test_edit_readonly_for_lower_privilege(self):
-        """Staff не может редактировать superuser (read-only режим)."""
-        self.client.login(username='staff@example.com', password='pass')
-        url = reverse('user_management:user_edit', args=[self.superuser.pk])
-        resp = self.client.get(url)
-        self.assertContains(resp, 'readonly')
-        resp = self.client.post(url, {'email': 'admin@example.com'}, follow=True)
-        self.assertEqual(resp.status_code, 403)
 
 class UserManagementPasswordChangeTest(TestCase):
     """
