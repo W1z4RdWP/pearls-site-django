@@ -96,3 +96,4 @@ class AuthFlowTests(TestCase):
         # Убедимся, что защищённая страница теперь недоступна
         protected_response = self.client.get(self.profile_url)
         self.assertRedirects(protected_response, f"{self.login_url}?next={self.profile_url}")
+
