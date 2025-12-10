@@ -397,8 +397,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if (!titleSpan) return;
         // Если уже редактируется — не дублируем
         if (header.querySelector('.inline-cat-rename')) return;
-        const oldName = titleSpan.textContent.replace(/^\d+\.\s*/, '');
-        const order = titleSpan.textContent.match(/^\d+/)?.[0] || '';
+        const oldName = titleSpan.textContent.trim();
         // Скрыть span, вставить input
         titleSpan.style.display = 'none';
         const input = document.createElement('input');
@@ -429,7 +428,7 @@ document.addEventListener('DOMContentLoaded', function() {
             .then(r => r.json())
             .then(data => {
                 if (data.error) { alert('Ошибка: ' + data.error); input.remove(); titleSpan.style.display = ''; return; }
-                titleSpan.textContent = order ? `${order}. ${data.name}` : data.name;
+                titleSpan.textContent = data.name;
                 input.remove();
                 titleSpan.style.display = '';
             })
