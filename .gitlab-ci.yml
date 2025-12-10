@@ -9,10 +9,9 @@ test:
     - main
   script:
     - pwd
-    - echo "Test 1 passed"
+    - source .venv/bin/activate && cd myproject
     - sleep 2
-    - ls
-    - whoami
+    - python manage.py test users
     - echo "Test 2 passed"
     - sleep 1
     - echo "Tests completed"
