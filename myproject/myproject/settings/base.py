@@ -320,7 +320,7 @@ CKEDITOR_5_CONFIGS = {
                 '|', 'blockQuote',
                 '|', 'fontSize', 'fontFamily', 'fontColor', 'fontBackgroundColor', 'removeFormat',
                 'insertTable', 
-                '|', 'htmlEmbed', 'link', 
+                '|', 'htmlEmbed', 'link', 'undo', 'redo'
             ],
             'shouldNotGroupWhenFull': True
         },

@@ -126,6 +126,14 @@
     overflow: hidden;
 }
 
+#categories-block,
+#uncategorized-block,
+#dict-block {
+    flex: 1 1 0;
+    min-height: 0;
+    display: flex;
+}
+
 .sidebar h3 {
     margin: 0 0 24px 32px;
     font-size: 1.3rem;
@@ -933,7 +941,7 @@ label {
 }
 
 .category-scroll {
-    flex: 1;
+    flex: 1 1 0;
     min-height: 0;
     max-height: none;
     overflow-y: auto;
