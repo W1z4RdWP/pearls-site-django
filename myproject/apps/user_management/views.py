@@ -124,6 +124,11 @@ class UserCreateStep1View(CreateView):
     form_class = UserRegisterNoCaptchaForm
     success_url = reverse_lazy('user_management:user_create_step2')
 
+    def dispatch(self, request, *args, **kwargs):
+        if not request.user.is_authenticated or not (request.user.is_staff or request.user.is_superuser):
+            raise PermissionDenied("У вас нет доступа к управлению пользователями.")
+        return super().dispatch(request, *args, **kwargs)
+
     def form_valid(self, form):
         user = form.save()
         self.request.session['user_create_step1_user_id'] = user.id
@@ -140,6 +145,8 @@ class UserCreateStep2View(CreateView):
 
 
     def dispatch(self, request, *args, **kwargs):
+        if not request.user.is_authenticated or not (request.user.is_staff or request.user.is_superuser):
+            raise PermissionDenied("У вас нет доступа к управлению пользователями.")
         if 'user_create_step1_user_id' not in request.session:
             return redirect('user_management:user_create_step1')
         return super().dispatch(request, *args, **kwargs)

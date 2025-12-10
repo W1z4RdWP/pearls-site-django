@@ -1,27 +1,25 @@
 let selectedItems = new Set();
 
-function toggleCategory(element) {
-    const categoryItem = element.closest('.category-block');
-    const subcategoryList = categoryItem.querySelector('.subcategory-list');
-    const lessonList = categoryItem.querySelector('.lesson-list');
-    const arrow = element.querySelector('.toggle-arrow');
-    
-    if (subcategoryList) {
-        const isVisible = subcategoryList.style.display !== 'none';
-        subcategoryList.style.display = isVisible ? 'none' : 'block';
-        if (arrow) {
-            arrow.classList.toggle('expanded', !isVisible);
-            arrow.innerHTML = !isVisible ? '−' : '+'; // минус (открыто) или плюс (закрыто)
-        }
-    }
-    
-    if (lessonList) {
-        const isVisible = lessonList.style.display !== 'none';
-        lessonList.style.display = isVisible ? 'none' : 'block';
-        if (arrow) {
-            arrow.classList.toggle('expanded', !isVisible);
-            arrow.innerHTML = !isVisible ? '−' : '+'; // минус (открыто) или плюс (закрыто)
-        }
+// Разворачивает/сворачивает подкатегории и уроки как в дереве БЗ
+function toggleSubcat(headerElement) {
+    const categoryItem = headerElement.closest('.category-block');
+    if (!categoryItem) return;
+
+    const subcategoryList = categoryItem.querySelector(':scope > .subcategory-list');
+    const lessonList = categoryItem.querySelector(':scope > .lesson-list');
+    const arrow = headerElement.querySelector('.toggle-arrow');
+    const lists = [subcategoryList, lessonList].filter(Boolean);
+
+    if (!lists.length) return;
+
+    const isVisible = lists.some(list => list.style.display !== 'none');
+    lists.forEach(list => {
+        list.style.display = isVisible ? 'none' : 'block';
+    });
+
+    if (arrow) {
+        arrow.classList.toggle('expanded', !isVisible);
+        arrow.textContent = !isVisible ? '−' : '+';
     }
 }
 
@@ -126,7 +124,8 @@ function removeSelectedItem(itemId) {
     // Убираем выделение с элемента в левой панели
     const [type, id] = itemId.split('_');
     if (type === 'category') {
-        const leftPanelItem = document.querySelector(`[data-category-id="${id}"] .category-header`);
+        const leftPanelItem = document.querySelector(`[data-category-id="${id}"] .category-header`) ||
+            document.querySelector(`[data-id="${id}"] .category-header`);
         if (leftPanelItem) {
             leftPanelItem.classList.remove('selected');
         }
@@ -443,7 +442,8 @@ document.addEventListener('DOMContentLoaded', function() {
             }
             
             const categoryItem = categoryHeader.closest('.category-block');
-            const categoryId = categoryItem.dataset.categoryId;
+            const categoryId = categoryItem.dataset.categoryId || categoryItem.dataset.id;
+            if (!categoryId) return;
             const categoryTitle = categoryHeader.querySelector('.category-title').textContent;
             
             const timerKey = `category_${categoryId}`;

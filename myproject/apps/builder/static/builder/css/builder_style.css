@@ -30,6 +30,7 @@
     --builder-scrollbar-track: #e3e8f0;
     --builder-btn-active-bg: #4d7cff;
     --builder-btn-bg: #cfe2ff;  
+    --builder-sticky-offset: 100px;
 }
 
 /* --- Основные контейнеры --- */
@@ -49,6 +50,7 @@
     box-shadow: var(--builder-shadow);
     transition: all 0.3s;
     margin-left: -14vw;
+    align-items: flex-start;
 }
 
 @media (min-width: 2600px) {
@@ -117,6 +119,19 @@
     padding: 0 0 32px 0;
     display: flex;
     flex-direction: column;
+    position: sticky;
+    top: var(--builder-sticky-offset);
+    height: calc(100vh - var(--builder-sticky-offset));
+    align-self: flex-start;
+    overflow: hidden;
+}
+
+#categories-block,
+#uncategorized-block,
+#dict-block {
+    flex: 1 1 0;
+    min-height: 0;
+    display: flex;
 }
 
 .sidebar h3 {
@@ -926,7 +941,9 @@ label {
 }
 
 .category-scroll {
-    max-height: 60vh;
+    flex: 1 1 0;
+    min-height: 0;
+    max-height: none;
     overflow-y: auto;
     overflow-x: hidden;
     scrollbar-gutter: stable overlay;

@@ -144,6 +144,11 @@
                             {% for course in courses %}
                             <div class="list-group-item course-item">
                                 <div class="course-row-grid">
+                                    <div class="course-index">
+                                        {% with row_number=page_obj.start_index|add:forloop.counter0 %}
+                                            {{ row_number }}.
+                                        {% endwith %}
+                                    </div>
                                     <div class="course-info">
                                         <h6 class="mb-0 course-title">{{ course.title }}</h6>
                                     </div>
@@ -366,6 +371,14 @@ function deleteCourse(slug, title) {
     width: 100%;
     min-height: 24px;
     max-height: 36px;
+}
+
+.course-index {
+    width: 32px;
+    flex-shrink: 0;
+    text-align: right;
+    font-weight: 600;
+    color: #6c757d;
 }
 
 .course-item .course-info {

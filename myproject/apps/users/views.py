@@ -223,10 +223,6 @@ class CustomLoginView(LoginView):
             )
             auth_login(self.request, user)
             
-            # Проверяем, нужно ли показать специальное видео для пользователя kupryazhkina_yv@smileterritory.ru 10 декабря
-            today = date.today()
-            if user.username == "kupryazhkina_yv@smileterritory.ru" and today.month == 12 and today.day == 10:
-                self.request.session['show_december_video'] = True
             
             # Редирект после авторизации для внешних пользователей
             return redirect('homepage')
@@ -239,10 +235,6 @@ class CustomLoginView(LoginView):
         )
         auth_login(self.request, user)
         
-        # Проверяем, нужно ли показать специальное видео для пользователя kupryazhkina_yv@smileterritory.ru 10 декабря
-        today = date.today()
-        if user.username == "kupryazhkina_yv@smileterritory.ru" and today.month == 12 and today.day == 10:
-            self.request.session['show_december_video'] = True
         
         # Проверяем, нужно ли показать модальное окно при первом входе
         if not profile.first_login_shown:
