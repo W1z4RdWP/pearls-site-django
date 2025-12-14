@@ -229,6 +229,28 @@
     color: #232a3a;
 }
 
+/* Выделение категории при одиночном клике */
+.category-header.highlighted {
+    background: rgba(77, 124, 255, 0.15) !important;
+    border: 2px solid #4d7cff;
+    border-radius: 6px;
+}
+
+.category-header.highlighted .category-title {
+    color: #4d7cff;
+    font-weight: 600;
+}
+
+/* selected имеет приоритет над highlighted для категорий */
+.category-header.selected.highlighted {
+    background: rgba(77, 124, 255, 0.12) !important;
+    border: none;
+}
+
+.category-header.selected.highlighted .category-title {
+    color: #232a3a !important;
+}
+
 .category-title {
     flex: 1;
     font-weight: 500;
@@ -307,6 +329,32 @@
 .lesson-list li.selected .lesson-link,
 .lesson-li.selected .lesson-link {
     color: #fff;
+}
+
+/* Выделение урока при одиночном клике */
+.lesson-list li.highlighted,
+.lesson-li.highlighted {
+    background: rgba(77, 124, 255, 0.15) !important;
+    border: 2px solid #4d7cff;
+    border-radius: 4px;
+}
+
+.lesson-list li.highlighted .lesson-link,
+.lesson-li.highlighted .lesson-link {
+    color: #4d7cff;
+    font-weight: 600;
+}
+
+/* selected имеет приоритет над highlighted */
+.lesson-list li.selected.highlighted,
+.lesson-li.selected.highlighted {
+    background: #4d7cff !important;
+    border: none;
+}
+
+.lesson-list li.selected.highlighted .lesson-link,
+.lesson-li.selected.highlighted .lesson-link {
+    color: #fff !important;
 }
 
 .lesson-link, .lesson-list a {

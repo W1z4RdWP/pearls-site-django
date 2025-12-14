@@ -2159,7 +2159,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // Флаг для предотвращения множественной регистрации обработчиков
     let lessonClickHandlersInitialized = false;
     
-    // Настройка обработчиков кликов для уроков (только один раз)
+    // Настройка обработчиков кликов для уроков и категорий (только один раз)
     function setupLessonClickHandlers() {
         if (lessonClickHandlersInitialized) return;
         
@@ -2169,32 +2169,174 @@ document.addEventListener('DOMContentLoaded', function() {
         const clickTimers = new Map();
         
         leftPanel.addEventListener('click', function(e) {
+            // Обработка кликов по урокам
             const lessonItem = e.target.closest('.lesson-li');
-            if (!lessonItem) return;
-            
-            const lessonId = lessonItem.dataset.lessonId;
-            if (!lessonId) return;
-            
-            const lessonTitle = lessonItem.querySelector('.lesson-link').textContent;
-            
-            const timerKey = `lesson_${lessonId}`;
-            const existingTimer = clickTimers.get(timerKey);
-            
-            if (existingTimer) {
-                clearTimeout(existingTimer);
-                clickTimers.delete(timerKey);
-                // Двойной клик - добавление/удаление
-                toggleLessonSelection(parseInt(lessonId), lessonTitle);
-            } else {
-                const timer = setTimeout(() => {
+            if (lessonItem) {
+                const lessonId = lessonItem.dataset.lessonId;
+                if (!lessonId) return;
+                
+                // Предотвращаем срабатывание при клике на стрелку или другие элементы
+                if (e.target.closest('.toggle-arrow')) return;
+                
+                const lessonTitle = lessonItem.querySelector('.lesson-link').textContent.trim();
+                
+                const timerKey = `lesson_${lessonId}`;
+                const existingTimer = clickTimers.get(timerKey);
+                
+                if (existingTimer) {
+                    clearTimeout(existingTimer);
                     clickTimers.delete(timerKey);
-                    // Одиночный клик - только выделение (можно пропустить)
-                }, 300);
-                clickTimers.set(timerKey, timer);
+                    // Двойной клик - добавление/удаление
+                    toggleLessonSelection(parseInt(lessonId), lessonTitle);
+                } else {
+                    // Одиночный клик - выделение
+                    toggleLessonHighlight(lessonItem, true);
+                    
+                    const timer = setTimeout(() => {
+                        clickTimers.delete(timerKey);
+                    }, 300);
+                    clickTimers.set(timerKey, timer);
+                }
+                return;
+            }
+            
+            // Обработка кликов по категориям
+            const categoryHeader = e.target.closest('.category-header');
+            if (categoryHeader) {
+                // Предотвращаем срабатывание при клике на стрелку
+                if (e.target.closest('.toggle-arrow')) return;
+                
+                const categoryBlock = categoryHeader.closest('.category-block');
+                if (!categoryBlock) return;
+                
+                const categoryId = categoryBlock.dataset.id;
+                if (!categoryId) return;
+                
+                const timerKey = `category_${categoryId}`;
+                const existingTimer = clickTimers.get(timerKey);
+                
+                if (existingTimer) {
+                    clearTimeout(existingTimer);
+                    clickTimers.delete(timerKey);
+                    // Двойной клик - добавление всех уроков из категории и подкатегорий
+                    addAllLessonsFromCategory(categoryBlock);
+                } else {
+                    // Одиночный клик - выделение
+                    toggleCategoryHighlight(categoryHeader, true);
+                    
+                    const timer = setTimeout(() => {
+                        clickTimers.delete(timerKey);
+                    }, 300);
+                    clickTimers.set(timerKey, timer);
+                }
+                return;
+            }
+            
+            // Клик вне элементов - снимаем выделение
+            if (!e.target.closest('.lesson-li') && !e.target.closest('.category-header')) {
+                toggleLessonHighlight(null, false);
+                toggleCategoryHighlight(null, false);
             }
         });
         
         lessonClickHandlersInitialized = true;
+    }
+    
+    // Выделение/снятие выделения урока
+    function toggleLessonHighlight(lessonItem, isSelected) {
+        // Убираем выделение со всех уроков
+        const allLessons = document.querySelectorAll('#lessonAssignmentModal .lesson-li');
+        allLessons.forEach(lesson => {
+            lesson.classList.remove('highlighted');
+        });
+        
+        // Убираем выделение со всех категорий
+        const allCategories = document.querySelectorAll('#lessonAssignmentModal .category-header');
+        allCategories.forEach(category => {
+            category.classList.remove('highlighted');
+        });
+        
+        if (isSelected && lessonItem) {
+            lessonItem.classList.add('highlighted');
+        }
+    }
+    
+    // Выделение/снятие выделения категории
+    function toggleCategoryHighlight(categoryHeader, isSelected) {
+        // Убираем выделение со всех категорий
+        const allCategories = document.querySelectorAll('#lessonAssignmentModal .category-header');
+        allCategories.forEach(category => {
+            category.classList.remove('highlighted');
+        });
+        
+        // Убираем выделение со всех уроков
+        const allLessons = document.querySelectorAll('#lessonAssignmentModal .lesson-li');
+        allLessons.forEach(lesson => {
+            lesson.classList.remove('highlighted');
+        });
+        
+        if (isSelected && categoryHeader) {
+            categoryHeader.classList.add('highlighted');
+        }
+    }
+    
+    // Рекурсивный сбор всех уроков из категории и её подкатегорий
+    function collectAllLessonsFromCategory(categoryBlock) {
+        const lessons = [];
+        
+        // Собираем уроки из текущей категории
+        const lessonList = categoryBlock.querySelector(':scope > .lesson-list');
+        if (lessonList) {
+            const lessonItems = lessonList.querySelectorAll(':scope > .lesson-li');
+            lessonItems.forEach(lessonItem => {
+                const lessonId = lessonItem.dataset.lessonId;
+                const lessonLink = lessonItem.querySelector('.lesson-link');
+                if (lessonId && lessonLink) {
+                    let lessonTitle = lessonLink.textContent.trim();
+                    // Убираем метку зеркала, если есть
+                    const mirrorLabel = lessonLink.querySelector('.mirror-label');
+                    if (mirrorLabel) {
+                        lessonTitle = lessonTitle.replace(mirrorLabel.textContent, '').trim();
+                    }
+                    lessons.push({
+                        id: parseInt(lessonId),
+                        title: lessonTitle
+                    });
+                }
+            });
+        }
+        
+        // Рекурсивно обрабатываем подкатегории
+        const subcategoryList = categoryBlock.querySelector(':scope > .subcategory-list');
+        if (subcategoryList) {
+            const subcategories = subcategoryList.querySelectorAll(':scope > .category-block');
+            subcategories.forEach(subcategory => {
+                const subcategoryLessons = collectAllLessonsFromCategory(subcategory);
+                lessons.push(...subcategoryLessons);
+            });
+        }
+        
+        return lessons;
+    }
+    
+    // Добавление всех уроков из категории и подкатегорий в выбранные
+    function addAllLessonsFromCategory(categoryBlock) {
+        const lessons = collectAllLessonsFromCategory(categoryBlock);
+        
+        if (lessons.length === 0) {
+            // Можно показать сообщение, что в категории нет уроков
+            return;
+        }
+        
+        // Добавляем все уроки в выбранные (без визуального выделения)
+        lessons.forEach(lesson => {
+            if (!selectedLessons.has(lesson.id)) {
+                selectedLessons.add(lesson.id);
+                addSelectedLesson(`lesson_${lesson.id}`, lesson.title);
+            }
+        });
+        
+        updateLessonForm();
     }
     
     // Отображение категорий с уроками
@@ -2351,6 +2493,7 @@ document.addEventListener('DOMContentLoaded', function() {
             // Добавляем визуальное выделение в левой панели
             const leftPanelItem = document.querySelector(`[data-lesson-id="${lessonId}"]`);
             if (leftPanelItem) {
+                leftPanelItem.classList.remove('highlighted');
                 leftPanelItem.classList.add('selected');
             }
         }
@@ -2410,6 +2553,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const leftPanelItem = document.querySelector(`[data-lesson-id="${id}"]`);
         if (leftPanelItem) {
             leftPanelItem.classList.remove('selected');
+            leftPanelItem.classList.remove('highlighted');
         }
         
         updateLessonForm();
