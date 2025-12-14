@@ -11,7 +11,7 @@ from django.views.decorators.http import require_POST, require_http_methods
 from django.http import JsonResponse, HttpResponse, HttpRequest, HttpResponseForbidden
 from django.template.loader import render_to_string
 from weasyprint import HTML
-from datetime import datetime
+from datetime import datetime, timedelta
 from .forms import CourseForm,  LessonForm
 from .models import Course, Lesson, UserLessonTrajectory, Trajectory, UserCourseTrajectory, TrajectoryCourse, Certificate
 from myapp.models import UserProgress, UserCourse, QuizResult
@@ -3049,12 +3049,18 @@ class AssignCourseToAssignedView(View):
                 return JsonResponse({'success': False, 'error': 'Нет назначенных пользователей в инциденте'}, status=400)
             
             assigned_count = 0
+            # Определяем дедлайн: приоритет у course.default_deadline_days, иначе используем incident.deadline
+            if course.default_deadline_days and course.default_deadline_days > 0:
+                deadline = timezone.now() + timedelta(days=course.default_deadline_days)
+            else:
+                deadline = incident.deadline
+            
             # Назначаем курс всем назначенным пользователям
             for user in incident.assigned_to.all():
                 user_course, created = UserCourse.objects.get_or_create(
                     user=user,
                     course=course,
-                    defaults={'status': 'available', 'deadline': incident.deadline}
+                    defaults={'status': 'available', 'deadline': deadline}
                 )
                 
                 if created:
