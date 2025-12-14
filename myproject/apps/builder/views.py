@@ -1153,7 +1153,7 @@ class CreateCourseFromIncidentView(View):
             # Создаем курс с названием инцидента
             course = Course.objects.create(
                 title=incident.title,
-                description=incident.description or '',
+                description='', # Не выводить описание инцидента в описание курса-инцидента
                 author=request.user,
                 is_incident=True,
                 responsible_mentor=incident.responsible_mentor,
