@@ -2206,23 +2206,39 @@ document.addEventListener('DOMContentLoaded', function() {
             const hasChildren = (category.subcategories && category.subcategories.length > 0) || 
                                (category.lessons && category.lessons.length > 0);
             
-            html += `<li class="category-block" data-category-id="${category.id}">`;
+            html += `<li class="category-block" data-id="${category.id}">`;
             html += `<div class="category-header">`;
-            html += `<span class="category-icon folder-icon svg-folder">`;
-            html += `<svg width="18" height="18" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">`;
-            html += `<path class="svg-folder-path" d="M2 5.5A1.5 1.5 0 0 1 3.5 4h3.672a1.5 1.5 0 0 1 1.06.44l1.414 1.414A1.5 1.5 0 0 0 10.707 6H16.5A1.5 1.5 0 0 1 18 7.5v7A1.5 1.5 0 0 1 16.5 16h-13A1.5 1.5 0 0 1 2 14.5v-9z"/>`;
-            html += `</svg>`;
-            html += `</span>`;
+            html += `<input type="radio" class="category-select" value="${category.id}" style="display: none;">`;
+            // Иконка папки закомментирована, как в образце
+            // html += `<span class="category-icon folder-icon svg-folder">`;
+            // html += `<svg width="18" height="18" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">`;
+            // html += `<path class="svg-folder-path" d="M2 5.5A1.5 1.5 0 0 1 3.5 4h3.672a1.5 1.5 0 0 1 1.06.44l1.414 1.414A1.5 1.5 0 0 0 10.707 6H16.5A1.5 1.5 0 0 1 18 7.5v7A1.5 1.5 0 0 1 16.5 16h-13A1.5 1.5 0 0 1 2 14.5v-9z"/>`;
+            // html += `</svg>`;
+            // html += `</span>`;
             html += `<span class="category-title" title="${category.name}">${category.name}</span>`;
             if (hasChildren) {
-                html += `<span class="toggle-arrow" onclick="event.stopPropagation(); toggleLessonCategory(this.parentElement.parentElement)">+</span>`;
+                html += `<span class="toggle-arrow" onclick="toggleLessonCategory(this.parentElement)">+</span>`;
             }
             html += `</div>`;
             
             if (category.lessons && category.lessons.length > 0) {
                 html += `<ul class="lesson-list" style="display: none;">`;
                 category.lessons.forEach(lesson => {
-                    html += `<li class="lesson-li" data-lesson-id="${lesson.id}">`;
+                    const isMirror = lesson.is_mirror || false;
+                    const mirrorId = lesson.mirror_id || null;
+                    const hasMirrors = lesson.has_mirrors || false;
+                    const mirrorClass = isMirror ? ' mirror' : '';
+                    
+                    html += `<li class="lesson-li${mirrorClass}" data-lesson-id="${lesson.id}"`;
+                    if (isMirror && mirrorId) {
+                        html += ` data-mirror-id="${mirrorId}"`;
+                    }
+                    html += ` data-category-id="${category.id}"`;
+                    if (hasMirrors) {
+                        html += ` data-has-mirrors="1"`;
+                    }
+                    html += `>`;
+                    html += `<input type="radio" class="lesson-select" value="${lesson.id}" style="display: none;">`;
                     html += `<span class="lesson-icon svg-paper">`;
                     html += `<svg width="16" height="16" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">`;
                     html += `<rect class="svg-paper-rect" x="4" y="3" width="12" height="14" rx="2"/>`;
@@ -2231,14 +2247,19 @@ document.addEventListener('DOMContentLoaded', function() {
                     html += `<line class="svg-paper-line" x1="6.5" y1="13.5" x2="11.5" y2="13.5"/>`;
                     html += `</svg>`;
                     html += `</span>`;
-                    html += `<a class="lesson-link" title="${lesson.title}">${lesson.title}</a>`;
+                    html += `<a class="lesson-link" title="${lesson.title}">`;
+                    html += `${lesson.title}`;
+                    if (isMirror || hasMirrors) {
+                        html += `<span class="mirror-label" title="Зеркало урока">🔗 (зеркало)</span>`;
+                    }
+                    html += `</a>`;
                     html += `</li>`;
                 });
                 html += `</ul>`;
             }
             
             if (category.subcategories && category.subcategories.length > 0) {
-                html += `<ul class="subcategory-list category-tree" style="display: none;">`;
+                html += `<ul class="subcategory-list category-list" style="display: none;">`;
                 category.subcategories.forEach(subcat => {
                     html += renderCategory(subcat);
                 });
@@ -2286,28 +2307,31 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     // Переключение категорий уроков
-    window.toggleLessonCategory = function(element) {
-        const categoryItem = element.closest('.category-block');
-        const subcategoryList = categoryItem.querySelector('.subcategory-list');
-        const lessonList = categoryItem.querySelector('.lesson-list');
-        const arrow = categoryItem.querySelector('.toggle-arrow');
+    window.toggleLessonCategory = function(header) {
+        header.classList.toggle('open');
+        const categoryBlock = header.closest('.category-block');
         
-        if (subcategoryList) {
-            const isVisible = subcategoryList.style.display !== 'none';
-            subcategoryList.style.display = isVisible ? 'none' : 'block';
-            if (arrow) {
-                arrow.classList.toggle('expanded', !isVisible);
-                arrow.innerHTML = !isVisible ? '−' : '+';
-            }
+        if (!categoryBlock) return;
+        
+        const subcategoryList = categoryBlock.querySelector(':scope > .subcategory-list');
+        const lessonList = categoryBlock.querySelector(':scope > .lesson-list');
+        const arrow = header.querySelector('.toggle-arrow');
+        
+        const isNowOpen = header.classList.contains('open');
+        
+        // Показываем/скрываем содержимое категории
+        if (isNowOpen) {
+            // Категория раскрыта - показываем всё содержимое
+            if (subcategoryList) subcategoryList.style.display = 'block';
+            if (lessonList) lessonList.style.display = 'block';
+        } else {
+            // Категория закрыта - скрываем всё содержимое
+            if (subcategoryList) subcategoryList.style.display = 'none';
+            if (lessonList) lessonList.style.display = 'none';
         }
         
-        if (lessonList) {
-            const isVisible = lessonList.style.display !== 'none';
-            lessonList.style.display = isVisible ? 'none' : 'block';
-            if (arrow) {
-                arrow.classList.toggle('expanded', !isVisible);
-                arrow.innerHTML = !isVisible ? '−' : '+';
-            }
+        if (arrow) {
+            arrow.innerHTML = isNowOpen ? '−' : '+'; // минус (открыто) или плюс (закрыто)
         }
     }
     
