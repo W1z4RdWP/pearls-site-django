@@ -1095,6 +1095,495 @@ document.addEventListener('DOMContentLoaded', function() {
             });
         }
     });
+
+    // Назначить
+    let currentLessonIdsForAssignment = []; // Массив ID уроков для назначения
+    let currentAssignmentType = null; // 'lesson' или 'category'
+    let selectedUsersForAssignment = new Map(); // userId -> {id, full_name, username}
+    let lastSearchResultsForAssignment = [];
+    
+    // Элементы DOM для модального окна назначения
+    const lessonAssignmentModal = document.getElementById('lessonAssignmentModal');
+    const lessonAssignmentModalClose = document.getElementById('lessonAssignmentModalClose');
+    const lessonAssignmentGroupList = document.getElementById('lessonAssignmentGroupList');
+    const lessonAssignmentSearchInput = document.getElementById('lessonAssignmentSearchInput');
+    const lessonAssignmentSearchResultsDropdown = document.getElementById('lessonAssignmentSearchResultsDropdown');
+    const lessonAssignmentSelectedUsersList = document.getElementById('lessonAssignmentSelectedUsersList');
+    const confirmLessonAssignmentBtn = document.getElementById('confirmLessonAssignmentBtn');
+    const cancelLessonAssignmentBtn = document.getElementById('cancelLessonAssignmentBtn');
+    const lessonAssignmentModalTitle = lessonAssignmentModal ? lessonAssignmentModal.querySelector('.responsible-modal-header h3') : null;
+    
+    // Получаем URL из глобальных переменных, определенных в шаблоне
+    const getGroupUsersUrlForAssignment = typeof lessonAssignmentGetGroupUsersUrlTemplate !== 'undefined' 
+        ? lessonAssignmentGetGroupUsersUrlTemplate.replace('/0/', '/{id}/') 
+        : '';
+    
+    const assignmentMenuItem = document.getElementById('assignment-menu-item');
+    if (assignmentMenuItem) {
+        assignmentMenuItem.addEventListener('click', function() {
+            if (!contextTarget) return;
+            let itemId, itemType;
+            
+            // Определяем тип элемента: урок или категория
+            if (contextTarget.dataset.id && contextTarget.dataset.id.startsWith('uncat-')) {
+                // Урок без категории
+                itemType = 'lesson';
+                itemId = contextTarget.dataset.id.replace('uncat-', '');
+            } else if (contextTarget.classList.contains('category-block')) {
+                // Категория
+                itemType = 'category';
+                itemId = contextTarget.dataset.id;
+            } else if (contextTarget.querySelector('.lesson-link')) {
+                // Обычный урок
+                itemType = 'lesson';
+                itemId = contextTarget.querySelector('.lesson-select')?.value;
+            }
+            
+            if (!itemId || !itemType) {
+                alert('Выберите урок или категорию для назначения');
+                return;
+            }
+            
+            // Сохраняем тип назначения
+            currentAssignmentType = itemType;
+            
+            // Очищаем выбранных пользователей
+            selectedUsersForAssignment.clear();
+            
+            // Если это категория, загружаем все уроки из неё
+            if (itemType === 'category') {
+                if (typeof lessonAssignmentGetCategoryLessonsUrlTemplate === 'undefined') {
+                    alert('Ошибка: URL для получения уроков категории не определен');
+                    return;
+                }
+                
+                const url = lessonAssignmentGetCategoryLessonsUrlTemplate.replace('/0/', '/' + itemId + '/');
+                
+                // Показываем загрузку
+                if (lessonAssignmentModal) {
+                    lessonAssignmentModal.style.display = 'block';
+                    if (lessonAssignmentModalTitle) {
+                        lessonAssignmentModalTitle.textContent = 'Загрузка уроков категории...';
+                    }
+                }
+                
+                fetch(url)
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.error) {
+                            alert('Ошибка: ' + data.error);
+                            if (lessonAssignmentModal) {
+                                lessonAssignmentModal.style.display = 'none';
+                            }
+                            return;
+                        }
+                        
+                        if (data.lesson_ids.length === 0) {
+                            alert('В выбранной категории нет уроков');
+                            if (lessonAssignmentModal) {
+                                lessonAssignmentModal.style.display = 'none';
+                            }
+                            return;
+                        }
+                        
+                        // Сохраняем ID всех уроков
+                        currentLessonIdsForAssignment = data.lesson_ids;
+                        
+                        // Обновляем заголовок модального окна
+                        if (lessonAssignmentModalTitle) {
+                            lessonAssignmentModalTitle.textContent = 
+                                `Выберите пользователей для назначения уроков категории "${data.category_name}" (${data.count} уроков)`;
+                        }
+                        
+                        // Загружаем группы и отображаем выбранных пользователей
+                        loadGroupsForAssignment();
+                        displaySelectedUsersForAssignment();
+                        if (lessonAssignmentSearchInput) {
+                            lessonAssignmentSearchInput.value = '';
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Ошибка загрузки уроков категории:', error);
+                        alert('Ошибка загрузки уроков категории: ' + error.message);
+                        if (lessonAssignmentModal) {
+                            lessonAssignmentModal.style.display = 'none';
+                        }
+                    });
+            } else {
+                // Это урок - сохраняем один ID
+                currentLessonIdsForAssignment = [parseInt(itemId)];
+                
+                // Обновляем заголовок модального окна
+                if (lessonAssignmentModalTitle) {
+                    lessonAssignmentModalTitle.textContent = 'Выберите пользователей для назначения урока';
+                }
+                
+                // Открываем модальное окно
+                if (lessonAssignmentModal) {
+                    lessonAssignmentModal.style.display = 'block';
+                    loadGroupsForAssignment();
+                    displaySelectedUsersForAssignment();
+                    if (lessonAssignmentSearchInput) {
+                        lessonAssignmentSearchInput.value = '';
+                    }
+                } else {
+                    alert('Ошибка: модальное окно не найдено');
+                }
+            }
+            
+            // Скрываем контекстное меню
+            const contextMenu = document.getElementById('custom-context-menu');
+            if (contextMenu) {
+                contextMenu.style.display = 'none';
+            }
+        });
+    }
+    
+    // Функция закрытия модального окна с очисткой данных
+    function closeAssignmentModal() {
+        if (lessonAssignmentModal) {
+            lessonAssignmentModal.style.display = 'none';
+        }
+        hideSearchResultsForAssignment();
+        // Очищаем данные при закрытии
+        selectedUsersForAssignment.clear();
+        currentLessonIdsForAssignment = [];
+        currentAssignmentType = null;
+        displaySelectedUsersForAssignment();
+    }
+    
+    // Закрытие модального окна
+    if (lessonAssignmentModalClose) {
+        lessonAssignmentModalClose.addEventListener('click', closeAssignmentModal);
+    }
+    
+    if (cancelLessonAssignmentBtn) {
+        cancelLessonAssignmentBtn.addEventListener('click', closeAssignmentModal);
+    }
+    
+    // Закрытие модального окна при клике вне его
+    if (lessonAssignmentModal) {
+        lessonAssignmentModal.addEventListener('click', function(e) {
+            if (e.target === lessonAssignmentModal) {
+                closeAssignmentModal();
+            }
+        });
+    }
+    
+    // Загрузка списка групп
+    function loadGroupsForAssignment() {
+        if (!lessonAssignmentGroupList || typeof lessonAssignmentGetGroupsUrl === 'undefined') return;
+        
+        lessonAssignmentGroupList.innerHTML = '<div class="group-list-loading">Загрузка групп...</div>';
+        
+        fetch(lessonAssignmentGetGroupsUrl)
+            .then(response => response.json())
+            .then(data => {
+                displayGroupsForAssignment(data.groups);
+            })
+            .catch(error => {
+                console.error('Ошибка загрузки групп:', error);
+                if (lessonAssignmentGroupList) {
+                    lessonAssignmentGroupList.innerHTML = '<div class="group-list-error">Ошибка загрузки групп</div>';
+                }
+            });
+    }
+    
+    // Отображение списка групп
+    function displayGroupsForAssignment(groups) {
+        if (!lessonAssignmentGroupList) return;
+        
+        if (groups.length === 0) {
+            lessonAssignmentGroupList.innerHTML = '<div class="group-list-empty">Группы не найдены</div>';
+            return;
+        }
+        
+        let html = '';
+        groups.forEach(function(group) {
+            html += `
+                <div class="group-item" data-group-id="${group.id}">
+                    <div class="group-item-name">${group.name}</div>
+                    <div class="group-item-count">${group.user_count} пользователей</div>
+                </div>
+            `;
+        });
+        
+        lessonAssignmentGroupList.innerHTML = html;
+        
+        // Добавляем обработчики клика на каждую группу
+        const groupItems = lessonAssignmentGroupList.querySelectorAll('.group-item');
+        groupItems.forEach(function(item) {
+            item.addEventListener('click', function() {
+                const groupId = this.getAttribute('data-group-id');
+                addGroupUsersForAssignment(groupId);
+            });
+        });
+    }
+    
+    // Добавление всех пользователей группы
+    function addGroupUsersForAssignment(groupId) {
+        if (!getGroupUsersUrlForAssignment || typeof lessonAssignmentGetGroupUsersUrlTemplate === 'undefined') return;
+        
+        const url = lessonAssignmentGetGroupUsersUrlTemplate.replace('/0/', '/' + groupId + '/') + '?exclude_staff=true';
+        
+        fetch(url)
+            .then(response => response.json())
+            .then(data => {
+                data.users.forEach(function(user) {
+                    if (!selectedUsersForAssignment.has(user.id)) {
+                        selectedUsersForAssignment.set(user.id, user);
+                    }
+                });
+                displaySelectedUsersForAssignment();
+            })
+            .catch(error => {
+                console.error('Ошибка загрузки пользователей группы:', error);
+            });
+    }
+    
+    // Поиск пользователей для добавления в назначенные
+    let assignmentSearchTimeout;
+    
+    if (lessonAssignmentSearchInput) {
+        // Загрузка всех пользователей при фокусе на поле поиска
+        lessonAssignmentSearchInput.addEventListener('focus', function() {
+            if (this.value.trim().length === 0) {
+                searchUsersForAssignment('');
+            }
+        });
+        
+        lessonAssignmentSearchInput.addEventListener('input', function() {
+            clearTimeout(assignmentSearchTimeout);
+            const query = this.value.trim();
+            
+            if (query.length === 0) {
+                searchUsersForAssignment('');
+                return;
+            }
+            
+            assignmentSearchTimeout = setTimeout(function() {
+                searchUsersForAssignment(query);
+            }, 300);
+        });
+        
+        // Обработка клавиши Escape для закрытия выпадающего списка
+        lessonAssignmentSearchInput.addEventListener('keydown', function(event) {
+            if (event.key === 'Escape') {
+                hideSearchResultsForAssignment();
+                this.blur();
+            }
+        });
+    }
+    
+    // Закрытие выпадающего списка при клике вне его
+    document.addEventListener('click', function(event) {
+        if (lessonAssignmentSearchInput && lessonAssignmentSearchResultsDropdown) {
+            if (!lessonAssignmentSearchInput.contains(event.target) && !lessonAssignmentSearchResultsDropdown.contains(event.target)) {
+                hideSearchResultsForAssignment();
+            }
+        }
+    });
+    
+    // Поиск пользователей и отображение результатов
+    function searchUsersForAssignment(query) {
+        if (!lessonAssignmentSearchResultsDropdown || typeof lessonAssignmentSearchUsersUrl === 'undefined') return;
+        
+        lessonAssignmentSearchResultsDropdown.innerHTML = '<div class="search-results-loading">Поиск...</div>';
+        lessonAssignmentSearchResultsDropdown.style.display = 'block';
+        
+        const url = lessonAssignmentSearchUsersUrl + '?q=' + encodeURIComponent(query) + '&exclude_staff=true';
+        
+        fetch(url)
+            .then(response => response.json())
+            .then(data => {
+                lastSearchResultsForAssignment = data.users;
+                displaySearchResultsForAssignment(data.users);
+            })
+            .catch(error => {
+                console.error('Ошибка поиска пользователей:', error);
+                if (lessonAssignmentSearchResultsDropdown) {
+                    lessonAssignmentSearchResultsDropdown.innerHTML = '<div class="search-results-empty">Ошибка поиска</div>';
+                }
+            });
+    }
+    
+    // Отображение результатов поиска
+    function displaySearchResultsForAssignment(users) {
+        if (!lessonAssignmentSearchResultsDropdown) return;
+        
+        if (users.length === 0) {
+            lessonAssignmentSearchResultsDropdown.innerHTML = '<div class="search-results-empty">Пользователи не найдены</div>';
+            return;
+        }
+        
+        let html = '';
+        users.forEach(function(user) {
+            // Пропускаем уже выбранных пользователей
+            if (selectedUsersForAssignment.has(user.id)) {
+                return;
+            }
+            
+            html += `
+                <div class="search-result-item" data-user-id="${user.id}">
+                    <div class="search-result-name">${user.full_name}${user.role ? ' (' + user.role + ')' : ''}</div>
+                </div>
+            `;
+        });
+        
+        if (html === '') {
+            lessonAssignmentSearchResultsDropdown.innerHTML = '<div class="search-results-empty">Все найденные пользователи уже выбраны</div>';
+            return;
+        }
+        
+        lessonAssignmentSearchResultsDropdown.innerHTML = html;
+        
+        // Добавляем обработчики клика на результаты
+        const resultItems = lessonAssignmentSearchResultsDropdown.querySelectorAll('.search-result-item');
+        resultItems.forEach(function(item) {
+            item.addEventListener('click', function() {
+                const userId = parseInt(this.getAttribute('data-user-id'));
+                addUserFromSearchForAssignment(userId);
+            });
+        });
+    }
+    
+    // Добавление пользователя из результатов поиска
+    function addUserFromSearchForAssignment(userId) {
+        const user = lastSearchResultsForAssignment.find(u => u.id === userId);
+        
+        if (user && !selectedUsersForAssignment.has(userId)) {
+            selectedUsersForAssignment.set(userId, user);
+            displaySelectedUsersForAssignment();
+            if (lessonAssignmentSearchInput) {
+                lessonAssignmentSearchInput.value = '';
+            }
+            hideSearchResultsForAssignment();
+        }
+    }
+    
+    // Скрытие выпадающего списка результатов
+    function hideSearchResultsForAssignment() {
+        if (lessonAssignmentSearchResultsDropdown) {
+            lessonAssignmentSearchResultsDropdown.style.display = 'none';
+            lessonAssignmentSearchResultsDropdown.innerHTML = '';
+        }
+    }
+    
+    // Отображение выбранных пользователей
+    function displaySelectedUsersForAssignment() {
+        if (!lessonAssignmentSelectedUsersList) return;
+        
+        if (selectedUsersForAssignment.size === 0) {
+            lessonAssignmentSelectedUsersList.innerHTML = '<div class="selected-users-empty">Пользователи не выбраны</div>';
+            return;
+        }
+        
+        let html = '';
+        selectedUsersForAssignment.forEach(function(user, userId) {
+            html += `
+                <div class="selected-user-item" data-user-id="${userId}">
+                    <div class="selected-user-info">
+                        <div class="selected-user-name">${user.full_name}</div>
+                    </div>
+                    <div class="selected-user-actions">
+                        <span class="selected-user-remove" data-user-id="${userId}" title="Удалить">&times;</span>
+                    </div>
+                </div>
+            `;
+        });
+        
+        lessonAssignmentSelectedUsersList.innerHTML = html;
+        
+        // Добавляем обработчики для удаления пользователей
+        const removeButtons = lessonAssignmentSelectedUsersList.querySelectorAll('.selected-user-remove');
+        removeButtons.forEach(function(btn) {
+            btn.addEventListener('click', function(e) {
+                e.stopPropagation();
+                const userId = parseInt(this.getAttribute('data-user-id'));
+                selectedUsersForAssignment.delete(userId);
+                displaySelectedUsersForAssignment();
+            });
+        });
+    }
+    
+    // Применение назначения урока/уроков
+    if (confirmLessonAssignmentBtn) {
+        confirmLessonAssignmentBtn.addEventListener('click', function() {
+            if (currentLessonIdsForAssignment.length === 0 || selectedUsersForAssignment.size === 0) {
+                alert('Выберите пользователей для назначения');
+                return;
+            }
+            
+            if (typeof lessonAssignmentAssignLessonsUrlTemplate === 'undefined') {
+                alert('Ошибка: URL для назначения не определен');
+                return;
+            }
+            
+            // Отключаем кнопку на время выполнения
+            confirmLessonAssignmentBtn.disabled = true;
+            const lessonCount = currentLessonIdsForAssignment.length;
+            const userCount = selectedUsersForAssignment.size;
+            confirmLessonAssignmentBtn.textContent = `Назначение ${lessonCount} уроков ${userCount} пользователям...`;
+            
+            const userIds = Array.from(selectedUsersForAssignment.keys());
+            let completedRequests = 0;
+            let successCount = 0;
+            let errorCount = 0;
+            const errors = [];
+            
+            // Назначаем все уроки каждому пользователю
+            userIds.forEach(function(userId) {
+                const url = lessonAssignmentAssignLessonsUrlTemplate.replace('/0/', '/' + userId + '/');
+                
+                fetch(url, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': (document.querySelector('[name=csrfmiddlewaretoken]') || {}).value || ''
+                    },
+                    body: JSON.stringify({
+                        lesson_ids: currentLessonIdsForAssignment.map(id => parseInt(id))
+                    })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    completedRequests++;
+                    if (data.success) {
+                        successCount++;
+                    } else {
+                        errorCount++;
+                        errors.push(data.error || 'Неизвестная ошибка');
+                    }
+                    
+                    // Когда все запросы завершены
+                    if (completedRequests === userIds.length) {
+                        confirmLessonAssignmentBtn.disabled = false;
+                        confirmLessonAssignmentBtn.textContent = 'Применить';
+                        
+                        if (errorCount === 0) {
+                            const lessonText = lessonCount === 1 ? 'урок' : (lessonCount < 5 ? 'урока' : 'уроков');
+                            const userText = successCount === 1 ? 'пользователю' : (successCount < 5 ? 'пользователям' : 'пользователям');
+                            alert(`Успешно назначено ${lessonCount} ${lessonText} ${successCount} ${userText}`);
+                            closeAssignmentModal();
+                        } else {
+                            alert(`Назначено: ${successCount}, ошибок: ${errorCount}. ${errors.join(', ')}`);
+                        }
+                    }
+                })
+                .catch(error => {
+                    completedRequests++;
+                    errorCount++;
+                    errors.push('Ошибка сети: ' + error.message);
+                    
+                    if (completedRequests === userIds.length) {
+                        confirmLessonAssignmentBtn.disabled = false;
+                        confirmLessonAssignmentBtn.textContent = 'Применить';
+                        alert(`Ошибки при назначении: ${errors.join(', ')}`);
+                    }
+                });
+            });
+        });
+    }
     
     // Инициализация буфера обмена
     checkClipboard();

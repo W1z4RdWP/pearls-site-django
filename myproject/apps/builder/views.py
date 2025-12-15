@@ -3445,6 +3445,50 @@ def api_get_users_by_ids(request):
     return JsonResponse({'users': users_data})
 
 
+@login_required
+def api_get_category_lessons(request, category_id):
+    """
+    API endpoint для получения всех уроков категории (включая подкатегории).
+    Возвращает список ID всех уроков в категории и её подкатегориях.
+    """
+    if not (request.user.is_staff or request.user.is_superuser):
+        return JsonResponse({'error': 'Доступ запрещен'}, status=403)
+    
+    from courses.models import Lesson
+    
+    try:
+        category = CategoryName.objects.get(id=category_id)
+    except CategoryName.DoesNotExist:
+        return JsonResponse({'error': 'Категория не найдена'}, status=404)
+    
+    def get_all_lessons_in_category(cat):
+        """Рекурсивное получение всех уроков категории"""
+        lesson_ids = set()
+        
+        # Добавляем уроки текущей категории
+        lesson_ids.update(cat.lessons.values_list('id', flat=True))
+        
+        # Добавляем зеркала
+        lesson_ids.update(
+            cat.mirrored_lessons.values_list('lesson_id', flat=True)
+        )
+        
+        # Рекурсивно обрабатываем подкатегории
+        for subcat in cat.subcategories.all():
+            lesson_ids.update(get_all_lessons_in_category(subcat))
+        
+        return lesson_ids
+    
+    lesson_ids = list(get_all_lessons_in_category(category))
+    
+    return JsonResponse({
+        'category_id': category_id,
+        'category_name': category.name,
+        'lesson_ids': lesson_ids,
+        'count': len(lesson_ids)
+    })
+
+
 class IPRListView(ListView):
     """
     Список ИПР с информацией о пользователях и их курсах.
