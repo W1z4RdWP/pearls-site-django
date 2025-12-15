@@ -198,13 +198,14 @@ def get_questions(request, quiz_id: int = None, is_start: bool = False) -> HttpR
                 if quiz_lock.is_locked:
                     return redirect('quizzes:attempt_limit_exceeded', quiz_id=quiz.id)
                 
-            # Создаем новую попытку
-            attempts_count = QuizAttempt.objects.filter(user=request.user, quiz=quiz).count()
-            QuizAttempt.objects.create(
-                user=request.user,
-                quiz=quiz,
-                attempt_number=attempts_count + 1
-            )
+            # Создаем новую попытку, но не для запуска из панели управления
+            if not from_control_panel:
+                attempts_count = QuizAttempt.objects.filter(user=request.user, quiz=quiz).count()
+                QuizAttempt.objects.create(
+                    user=request.user,
+                    quiz=quiz,
+                    attempt_number=attempts_count + 1
+                )
         
         # Если не стартовая страница, получаем quiz_id из сессии
         if not is_start:
@@ -777,6 +778,10 @@ def get_finish(request) -> HttpResponse:
         passed=passed,
         status=quiz_status
     )
+    # Запуски из панели управления не идут в лимит попыток
+    if from_control_panel:
+        quiz_result.excluded_from_limit = True
+        quiz_result.save(update_fields=['excluded_from_limit'])
     
     # Отмечаем текущую попытку как завершенную
     if request.user.is_authenticated:
