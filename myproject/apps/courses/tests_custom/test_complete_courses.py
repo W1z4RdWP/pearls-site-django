@@ -3,7 +3,7 @@ from django.test import Client, TestCase, override_settings
 from django.urls import reverse
 
 from courses.models import Course, Lesson
-
+from quizzes.models import Quiz
 
 @override_settings(STATICFILES_STORAGE='django.contrib.staticfiles.storage.StaticFilesStorage')
 class LessonCompletionFlowTest(TestCase):
@@ -76,6 +76,7 @@ class LessonCompletionFlowTest(TestCase):
             msg_prefix='Возврат должен вести к текущему курсу, даже если урок есть в других курсах.',
         )
 
+
     def test_continue_button_uses_next_lesson_of_current_course(self):
         """«Да, продолжаем» ведёт на следующий урок именно текущего курса, а не другого."""
         resp = self.client.post(
@@ -100,6 +101,7 @@ class LessonCompletionFlowTest(TestCase):
             ),
             msg_prefix='Продолжение должно учитывать порядок уроков в выбранном курсе.',
         )
+
 
     def test_last_lesson_returns_to_same_course(self):
         """
@@ -139,4 +141,30 @@ class LessonCompletionFlowTest(TestCase):
             reverse('courses:course_detail', kwargs={'slug': course_final.slug}),
             msg_prefix='Последний урок должен возвращать в тот курс, из которого его завершили.',
         )
-
+        
+# TODO: Разобраться как сформировать resp для завершения теста в материалах курса
+    # def test_quiz_completed_and_return_to_same_course(self):
+    #     """
+    #     После завершения урока, пользователь должен быть возвращен обратно к тому же курсу
+    #     """
+    #     quiz = Quiz.objects.create(name='my_quiz')
+    #     main_course = Course.objects.create(
+    #         title='Основной курс',
+    #         description='Описание курса',
+    #         author=self.user
+    #     )
+    #     other_course = Course.objects.create(
+    #         title='Другой курс',
+    #         description='Описание другого курса',
+    #         author=self.user
+    #     )
+    #     quiz.courses.add(main_course, other_course)
+        
+    #     resp = self.client.post(
+    #         reverse(
+    #             'quizzes:get-finish',
+    #             kwargs={
+    #                 'quiz_id': 
+    #             }
+    #         )
+    #     )
