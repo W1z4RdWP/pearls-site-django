@@ -559,7 +559,10 @@ confirmAssignedBtn.addEventListener('click', function() {
 function loadGroups() {
     groupList.innerHTML = '<div class="group-list-loading">Загрузка групп...</div>';
     
-    fetch(getGroupsUrl)
+    // Исключаем staff и superuser из подсчёта пользователей (для согласованности с addGroupUsers)
+    const url = getGroupsUrl + '?exclude_staff=true';
+    
+    fetch(url)
         .then(response => response.json())
         .then(data => {
             displayGroups(data.groups);

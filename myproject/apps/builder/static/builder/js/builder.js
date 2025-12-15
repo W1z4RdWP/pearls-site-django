@@ -1276,7 +1276,10 @@ document.addEventListener('DOMContentLoaded', function() {
         
         lessonAssignmentGroupList.innerHTML = '<div class="group-list-loading">Загрузка групп...</div>';
         
-        fetch(lessonAssignmentGetGroupsUrl)
+        // Исключаем staff и superuser из подсчёта пользователей
+        const url = lessonAssignmentGetGroupsUrl + '?exclude_staff=true';
+        
+        fetch(url)
             .then(response => response.json())
             .then(data => {
                 displayGroupsForAssignment(data.groups);

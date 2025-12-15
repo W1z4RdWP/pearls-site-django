@@ -3344,18 +3344,29 @@ def api_get_groups(request):
     """
     API endpoint для получения списка всех групп.
     Возвращает JSON с данными групп.
+    
+    Параметры:
+        exclude_staff: если 'true', исключает пользователей с is_staff=True и is_superuser=True из подсчёта
     """
     if not (request.user.is_staff or request.user.is_superuser):
         return JsonResponse({'error': 'Доступ запрещен'}, status=403)
+    
+    exclude_staff = request.GET.get('exclude_staff', 'true').lower() == 'true'
     
     groups = Group.objects.all().order_by('name')
     
     groups_data = []
     for group in groups:
+        user_query = group.user_set.filter(is_active=True)
+        
+        # Исключаем пользователей с is_staff=True и is_superuser=True, если указан параметр exclude_staff
+        if exclude_staff:
+            user_query = user_query.filter(is_staff=False, is_superuser=False)
+        
         groups_data.append({
             'id': group.id,
             'name': group.name,
-            'user_count': group.user_set.filter(is_active=True).count(),
+            'user_count': user_query.count(),
         })
     
     return JsonResponse({'groups': groups_data})
