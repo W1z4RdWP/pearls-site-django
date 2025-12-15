@@ -4,6 +4,7 @@
 {% block title %}Содержание базы знаний{% endblock %}
 {% block specific_styles %}
     <link rel="stylesheet" href="{% static 'builder/css/builder_style.css' %}">
+    <link rel="stylesheet" href="{% static 'builder/css/incident_form.css' %}">
     <script src="{% static 'builder/js/builder.js' %}" defer></script>
     <script src="{% static 'builder/js/search.js' %}" defer></script>
     <script src="{% static 'builder/js/dictTable.js' %}" defer></script>
@@ -124,8 +125,49 @@
     <div id="paste-menu-item" class="builder-context-menu-item">Вставить</div>
     <div id="mirror-menu-item" class="builder-context-menu-item">Зеркало</div>
     <div id="mirror-here-menu-item" class="builder-context-menu-item">Вставить зеркало</div>
+    <div id="assignment-menu-item" class="builder-context-menu-item">Назначить</div>
     <div id="show-all-mirrors-menu-item" class="builder-context-menu-item">Показать все зеркала</div>
     <div id="hide-mirrors-menu-item" class="builder-context-menu-item" style="display:none;">Скрыть</div>
+</div>
+
+<!-- Модальное окно для выбора назначенных -->
+<div id="lessonAssignmentModal" class="responsible-modal">
+    <div class="responsible-modal-content">
+        <div class="responsible-modal-header">
+            <h3>Выберите пользователей для назначения урока</h3>
+            <span class="responsible-modal-close" id="lessonAssignmentModalClose">&times;</span>
+        </div>
+        <div class="responsible-modal-body">
+            <div class="responsible-columns">
+                <!-- Левая колонка - Группы -->
+                <div class="responsible-left-column">
+                    <h4>Группы</h4>
+                    <div id="lessonAssignmentGroupList" class="group-list">
+                        <div class="group-list-loading">Загрузка групп...</div>
+                    </div>
+                </div>
+                
+                <!-- Разделитель -->
+                <div class="responsible-divider"></div>
+                
+                <!-- Правая колонка - Выбранные пользователи -->
+                <div class="responsible-right-column">
+                    <h4>Выбранные пользователи</h4>
+                    <div class="responsible-search-box">
+                        <input type="text" id="lessonAssignmentSearchInput" class="form-control" placeholder="Поиск пользователя для добавления..." autocomplete="off">
+                        <div id="lessonAssignmentSearchResultsDropdown" class="search-results-dropdown" style="display: none;"></div>
+                    </div>
+                    <div id="lessonAssignmentSelectedUsersList" class="selected-users-list">
+                        <div class="selected-users-empty">Пользователи не выбраны</div>
+                    </div>
+                </div>
+            </div>
+            <div class="responsible-modal-footer">
+                <button type="button" class="btn btn-primary" id="confirmLessonAssignmentBtn">Применить</button>
+                <button type="button" class="btn btn-secondary" id="cancelLessonAssignmentBtn">Отмена</button>
+            </div>
+        </div>
+    </div>
 </div>
 
 <script>
@@ -156,6 +198,15 @@
             sessionStorage.setItem('selected_lesson_id', lessonId);
         }
     })();
+</script>
+
+<script>
+    // API endpoints для назначения урока
+    const lessonAssignmentSearchUsersUrl = "{% url 'builder:api_search_users' %}";
+    const lessonAssignmentGetGroupsUrl = "{% url 'builder:api_get_groups' %}";
+    const lessonAssignmentGetGroupUsersUrlTemplate = "{% url 'builder:api_get_group_users' 0 %}";
+    const lessonAssignmentAssignLessonsUrlTemplate = "{% url 'user_management:api_assign_lessons_to_user' 0 %}";
+    const lessonAssignmentGetCategoryLessonsUrlTemplate = "{% url 'builder:api_get_category_lessons' 0 %}";
 </script>
 
 {% endblock %}

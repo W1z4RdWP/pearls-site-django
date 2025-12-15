@@ -1153,7 +1153,7 @@ class CreateCourseFromIncidentView(View):
             # Создаем курс с названием инцидента
             course = Course.objects.create(
                 title=incident.title,
-                description=incident.description or '',
+                description='', # Не выводить описание инцидента в описание курса-инцидента
                 author=request.user,
                 is_incident=True,
                 responsible_mentor=incident.responsible_mentor,
@@ -3344,18 +3344,29 @@ def api_get_groups(request):
     """
     API endpoint для получения списка всех групп.
     Возвращает JSON с данными групп.
+    
+    Параметры:
+        exclude_staff: если 'true', исключает пользователей с is_staff=True и is_superuser=True из подсчёта
     """
     if not (request.user.is_staff or request.user.is_superuser):
         return JsonResponse({'error': 'Доступ запрещен'}, status=403)
+    
+    exclude_staff = request.GET.get('exclude_staff', 'true').lower() == 'true'
     
     groups = Group.objects.all().order_by('name')
     
     groups_data = []
     for group in groups:
+        user_query = group.user_set.filter(is_active=True)
+        
+        # Исключаем пользователей с is_staff=True и is_superuser=True, если указан параметр exclude_staff
+        if exclude_staff:
+            user_query = user_query.filter(is_staff=False, is_superuser=False)
+        
         groups_data.append({
             'id': group.id,
             'name': group.name,
-            'user_count': group.user_set.filter(is_active=True).count(),
+            'user_count': user_query.count(),
         })
     
     return JsonResponse({'groups': groups_data})
@@ -3443,6 +3454,50 @@ def api_get_users_by_ids(request):
         })
     
     return JsonResponse({'users': users_data})
+
+
+@login_required
+def api_get_category_lessons(request, category_id):
+    """
+    API endpoint для получения всех уроков категории (включая подкатегории).
+    Возвращает список ID всех уроков в категории и её подкатегориях.
+    """
+    if not (request.user.is_staff or request.user.is_superuser):
+        return JsonResponse({'error': 'Доступ запрещен'}, status=403)
+    
+    from courses.models import Lesson
+    
+    try:
+        category = CategoryName.objects.get(id=category_id)
+    except CategoryName.DoesNotExist:
+        return JsonResponse({'error': 'Категория не найдена'}, status=404)
+    
+    def get_all_lessons_in_category(cat):
+        """Рекурсивное получение всех уроков категории"""
+        lesson_ids = set()
+        
+        # Добавляем уроки текущей категории
+        lesson_ids.update(cat.lessons.values_list('id', flat=True))
+        
+        # Добавляем зеркала
+        lesson_ids.update(
+            cat.mirrored_lessons.values_list('lesson_id', flat=True)
+        )
+        
+        # Рекурсивно обрабатываем подкатегории
+        for subcat in cat.subcategories.all():
+            lesson_ids.update(get_all_lessons_in_category(subcat))
+        
+        return lesson_ids
+    
+    lesson_ids = list(get_all_lessons_in_category(category))
+    
+    return JsonResponse({
+        'category_id': category_id,
+        'category_name': category.name,
+        'lesson_ids': lesson_ids,
+        'count': len(lesson_ids)
+    })
 
 
 class IPRListView(ListView):

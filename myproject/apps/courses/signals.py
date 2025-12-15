@@ -485,6 +485,26 @@ def store_old_user_course_status(sender, instance, **kwargs):
 
 
 @receiver(post_save, sender=UserCourse)
+def set_default_deadline_for_usercourse(sender, instance, created, **kwargs):
+    """
+    Автоматически устанавливает deadline на основе course.default_deadline_days,
+    если deadline не установлен и у курса есть default_deadline_days.
+    Этот сигнал работает как резервный механизм, если deadline не был установлен в методе save().
+    """
+    # Устанавливаем deadline только если он не установлен и курс имеет default_deadline_days
+    if not instance.deadline and instance.course_id:
+        # Перезагружаем курс, чтобы получить актуальное значение default_deadline_days
+        try:
+            course = Course.objects.get(pk=instance.course_id)
+            if course.default_deadline_days and course.default_deadline_days > 0:
+                deadline = timezone.now() + timedelta(days=course.default_deadline_days)
+                # Используем update() чтобы избежать повторного вызова save() и сигналов
+                UserCourse.objects.filter(pk=instance.pk, deadline__isnull=True).update(deadline=deadline)
+        except Course.DoesNotExist:
+            pass
+
+
+@receiver(post_save, sender=UserCourse)
 def check_incident_completion_on_course_completion(sender, instance, created, **kwargs):
     """
     Проверяет, все ли назначенные пользователи завершили курс-инцидент,
@@ -521,9 +541,13 @@ def check_incident_completion_on_course_completion(sender, instance, created, **
                         if incident.expert and incident.expert == user:
                             # Expert завершил курс - назначаем курс всем пользователям из assigned_to
                             if assigned_users.exists():
-                                # Получаем время на завершение из инцидента (по умолчанию 3 дня)
-                                time_to_complete = incident.assigned_to_time_to_complete or 3
-                                deadline = timezone.now() + timedelta(days=time_to_complete)
+                                # Определяем дедлайн: приоритет у course.default_deadline_days, иначе используем incident.assigned_to_time_to_complete
+                                if course.default_deadline_days and course.default_deadline_days > 0:
+                                    deadline = timezone.now() + timedelta(days=course.default_deadline_days)
+                                else:
+                                    # Получаем время на завершение из инцидента (по умолчанию 3 дня)
+                                    time_to_complete = incident.assigned_to_time_to_complete or 3
+                                    deadline = timezone.now() + timedelta(days=time_to_complete)
                                 
                                 assigned_count = 0
                                 for assigned_user in assigned_users:

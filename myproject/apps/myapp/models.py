@@ -5,6 +5,7 @@ from django_ckeditor_5.fields import CKEditor5Field
 from django.utils import timezone
 from django.db.models.signals import post_save, post_delete
 from django.dispatch import receiver
+from datetime import timedelta
 
 
 from courses.models import Course, Lesson
@@ -65,6 +66,15 @@ class UserCourse(models.Model):
 
     def save(self, *args, **kwargs):
         """Устанавливаем end_date только при первом завершении курса и проверяем deadline"""
+        # Автоматически устанавливаем deadline на основе course.default_deadline_days, если deadline не установлен
+        if not self.deadline:
+            # Получаем курс (может быть передан как объект или как ID)
+            course = self.course
+            if course and hasattr(course, 'default_deadline_days'):
+                # Если у курса установлен default_deadline_days, используем его для расчета deadline
+                if course.default_deadline_days and course.default_deadline_days > 0:
+                    self.deadline = timezone.now() + timedelta(days=course.default_deadline_days)
+        
         # Проверяем deadline и блокируем курс, если срок истек
         if self.deadline and self.status not in ['completed', 'blocked']:
             if timezone.now() > self.deadline:

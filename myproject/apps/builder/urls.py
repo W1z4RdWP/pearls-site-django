@@ -89,6 +89,9 @@ urlpatterns = [
     path('api/groups/', views.api_get_groups, name='api_get_groups'),
     path('api/groups/<int:group_id>/users/', views.api_get_group_users, name='api_get_group_users'),
     
+    # Category lessons API
+    path('api/categories/<int:category_id>/lessons/', views.api_get_category_lessons, name='api_get_category_lessons'),
+    
     # ИПР
     path('ipr/', views.IPRListView.as_view(), name='ipr_list'),
     path('ipr/add/', views.IPRCreateView.as_view(), name='ipr_add'),
