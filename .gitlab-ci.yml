@@ -11,7 +11,8 @@ test:
     - python -m venv .venv
     - source .venv/bin/activate && cd myproject
     - pip install -r requirements.txt
-    - mkdir -p /tmp/django_logs
+    - mkdir -p myproject/staticfiles /tmp/django_logs
+    - python manage.py collectstatic --noinput --dry-run || true
     - export DJANGO_LOG_DIR=/tmp/django_logs
     - sleep 2
     - python manage.py test users --settings=myproject.settings.test
