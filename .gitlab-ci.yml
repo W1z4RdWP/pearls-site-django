@@ -7,6 +7,12 @@ test:
   stage: test
   only:
     - main
+  services:
+    - postgres:15
+  variables:
+    POSTGRES_DB: test_db
+    POSTGRES_USER: postgres
+    POSTGRES_PASSWORD: postgres
   script:
     - python -m venv .venv
     - source .venv/bin/activate && cd myproject
