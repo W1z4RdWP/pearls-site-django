@@ -8,8 +8,7 @@ test:
   only:
     - main
   script:
-    - ip a
-    - sleep 4
+    - whoami
     - python -m venv .venv
     - source .venv/bin/activate && cd myproject
     - pip install -r requirements.txt
