@@ -5,6 +5,8 @@ from django.urls import reverse
 from courses.models import Course, Lesson
 from quizzes.models import Quiz
 
+from urllib.parse import urlencode
+
 @override_settings(STATICFILES_STORAGE='django.contrib.staticfiles.storage.StaticFilesStorage')
 class LessonCompletionFlowTest(TestCase):
     """
@@ -149,22 +151,41 @@ class LessonCompletionFlowTest(TestCase):
     #     """
     #     quiz = Quiz.objects.create(name='my_quiz')
     #     main_course = Course.objects.create(
-    #         title='Основной курс',
+    #         title='Основной курс123',
     #         description='Описание курса',
     #         author=self.user
     #     )
     #     other_course = Course.objects.create(
-    #         title='Другой курс',
+    #         title='Другой курс123',
     #         description='Описание другого курса',
     #         author=self.user
     #     )
     #     quiz.courses.add(main_course, other_course)
         
-    #     resp = self.client.post(
-    #         reverse(
-    #             'quizzes:get-finish',
-    #             kwargs={
-    #                 'quiz_id': 
-    #             }
-    #         )
-    #     )
+    #     # Старт теста с course_slug
+    #     url = f"{reverse('quizzes:quiz_start', kwargs={'quiz_id': quiz.id})}?course_slug={main_course.slug}"
+
+    #     # POST - завершаем тест
+    #     resp = self.client.post(url, data={}, follow=False)
+    #     self.assertEqual(resp.status_code, 302)
+    #     self.assertEqual(resp.url, reverse('quizzes:get-finish'))
+
+    #     # Переходим на /quizzes/get-finish
+    #     finish_url = reverse('quizzes:get-finish')
+    #     resp = self.client.get(finish_url)
+
+    #     # Должна быть 200, если сессия сохранена
+    #     self.assertEqual(resp.status_code, 200, "Страница завершения должна открыться")
+
+    #     # Проверяем наличие кнопки возврата
+    #     expected_url = reverse('courses:course_detail', kwargs={'slug': main_course.slug})
+    #     self.assertContains(resp, expected_url)
+    #     self.assertContains(resp, 'Вернуться к курсу')
+        
+    #     # self.assertEqual(resp.url, expected_url)
+
+    #     # 4. (Опционально) Проверяем, что по клику на кнопку - действительно ведёт на курс
+    #     # resp = self.client.get(expected_url)
+    #     # self.assertEqual(resp.status_code, 200)
+
+
