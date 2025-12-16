@@ -15,7 +15,7 @@ test:
     - pip install -r requirements.txt
     - mkdir -p /tmp/django_logs
     - export DJANGO_LOG_DIR=/tmp/django_logs
-    - ll /var/log/django
+    - ls -la /var/log/django
     - sleep 2
     - python manage.py test users --settings=myproject.settings.prod
     - echo "Test 2 passed"
