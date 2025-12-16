@@ -16,7 +16,7 @@ test:
     - export DJANGO_LOG_DIR=/tmp/django_logs
     - ls -la /var/log/django
     - sleep 2
-    - python manage.py test users --settings=myproject.settings.prod
+    - python manage.py test users --settings=myproject.settings.test
     - echo "Test 2 passed"
     - sleep 1
     - echo "Tests completed"
