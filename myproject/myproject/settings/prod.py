@@ -13,7 +13,7 @@ ALLOWED_HOSTS = ["*"]
 DATABASES = {
     'default': {
             'ENGINE': 'django.db.backends.postgresql',
-            'NAME': os.getenv('DJANGO_DB_NAME'), # DJANGO_DB_NAME /
+            'NAME': os.getenv('DJANGO_DB_NAME', 'default'), # DJANGO_DB_NAME /
             'USER': os.getenv('DJANGO_DB_USER'), # DJANGO_DB_USER /
             'PASSWORD': os.getenv('DJANGO_DB_PASSWD'), # DJANGO_DB_PASSWD /
             'HOST': os.getenv('DJANGO_DB_HOST'), # DJANGO_DB_HOST / 
