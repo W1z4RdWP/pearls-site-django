@@ -18,7 +18,7 @@ test:
     - ls -la /var/log/django
     - sleep 2
     - mkdir -p /home/gitlab-runner/builds/j-W-LOU0c/0/root/pearls-site-django/myproject/staticfiles/
-    - python manage.py test users --settings=myproject.settings.test
+    - python manage.py test courses --settings=myproject.settings.test
     - echo "Test 2 passed"
     - sleep 1
     - echo "Tests completed"
