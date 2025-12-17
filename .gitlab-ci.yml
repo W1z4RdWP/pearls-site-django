@@ -8,14 +8,17 @@ test:
   only:
     - main
   script:
+    - whoami
     - python -m venv .venv
     - source .venv/bin/activate && cd myproject
     - pip install -r requirements.txt
     - mkdir -p myproject/staticfiles /tmp/django_logs
     - python manage.py collectstatic --noinput --dry-run || true
     - export DJANGO_LOG_DIR=/tmp/django_logs
+    - ls -la /var/log/django
     - sleep 2
-    - python manage.py test users --settings=myproject.settings.test
+    - mkdir -p /home/gitlab-runner/builds/j-W-LOU0c/0/root/pearls-site-django/myproject/staticfiles/
+    - python manage.py test courses --settings=myproject.settings.test
     - echo "Test 2 passed"
     - sleep 1
     - echo "Tests completed"
