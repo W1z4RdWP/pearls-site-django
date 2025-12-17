@@ -1,6 +1,8 @@
 from .base import *
 import os
 
+SECRET_KEY = os.getenv("SECRET_DJANGO", 'default')
+
 DEBUG = False
 
 DATABASES = {
