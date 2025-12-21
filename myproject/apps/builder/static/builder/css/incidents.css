@@ -71,6 +71,7 @@
   padding: var(--incidents-table-th-padding);
 }
 
+/* Статусы инцидентов */
 .status-new {
   color: var(--incidents-status-new);
   font-weight: var(--incidents-status-font-weight);
@@ -83,6 +84,21 @@
   color: var(--incidents-status-resolved);
   font-weight: var(--incidents-status-font-weight);
 }
+
+/* Статусы курсов */
+.status-available {
+  color: var(--incidents-status-new);
+  font-weight: var(--incidents-status-font-weight);
+}
+.status-started {
+  color: var(--incidents-status-in-progress);
+  font-weight: var(--incidents-status-font-weight);
+}
+.status-completed {
+  color: var(--incidents-status-resolved);
+  font-weight: var(--incidents-status-font-weight);
+}
+
 
 .table thead th {
   background: var(--incidents-table-header-bg);
@@ -400,11 +416,19 @@
   background-color: #e3f2fd !important;
 }
 
+/* Статусы инцидентов */
 .incident-row.row-selected td.status-new,
 .incident-row.row-selected td.status-accepted,
 .incident-row.row-selected td.status-assigned,
 .incident-row.row-selected td.status-resolved,
 .incident-row.row-selected td.status-declined {
+  background-color: inherit !important;
+}
+
+/* Статусы курсов */
+.incident-row.row-selected td.status-started,
+.incident-row.row-selected td.status-available,
+.incident-row.row-selected td.status-completed{
   background-color: inherit !important;
 }
 
