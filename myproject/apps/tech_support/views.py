@@ -9,10 +9,9 @@ from django.http import JsonResponse
 from django.contrib.auth.decorators import login_required
 from django.db.models import Count, Avg, Q
 from datetime import timedelta, datetime
-from django.utils.dateparse import parse_date
 
 from .forms import TicketCreateForm, TicketCommentForm, TicketStaffUpdateForm, TicketRatingForm
-from .models import Ticket, TicketStatus, TicketComment, TicketCategory, TicketPriority, TicketAttachment
+from .models import Ticket, TicketStatus, TicketComment, TicketCategory, TicketPriority
 
 
 class StaffRequiredMixin(UserPassesTestMixin):
@@ -44,40 +43,36 @@ class TicketCreateView(CreateView):
             return self.form_invalid(form)
         ticket.status = default_status
         
-        # Автоматическая установка категории "Не распределено"
-        unassigned_category = TicketCategory.objects.filter(name='Не распределено').first()
-        if unassigned_category:
-            ticket.category = unassigned_category
+        # Автоматическая установка категории по типу тикета
+        ticket_type = ticket.ticket_type
+        type_to_category_name = {
+            'academic': 'Учебные вопросы',
+            'technical': 'Технические проблемы', 
+            'administrative': 'Административные запросы',
+            'suggestions': 'Предложения/замечания',
+            'consultation': 'Консультации'
+        }
+        
+        category_name = type_to_category_name.get(ticket_type)
+        if category_name:
+            category = TicketCategory.objects.filter(name=category_name).first()
+            if category:
+                ticket.category = category
+            else:
+                # Если категория не найдена, используем первую доступную
+                ticket.category = TicketCategory.objects.first()
         else:
-            # Если категория "Не распределено" не найдена, используем первую доступную
             ticket.category = TicketCategory.objects.first()
             
         # Автоматическая установка высокого приоритета
-        high_priority = TicketPriority.objects.filter(name='Высокий').first()
-        if not high_priority:
-            # Если приоритет "Высокий" не найден, берем самый высокий по уровню
-            high_priority = TicketPriority.objects.order_by('-level').first()
-        
+        high_priority = TicketPriority.objects.order_by('-level').first()  # Самый высокий приоритет
         if high_priority:
             ticket.priority = high_priority
         else:
             # Если приоритеты не настроены, используем первый доступный
             ticket.priority = TicketPriority.objects.first()
             
-        # Устанавливаем тип тикета по умолчанию
-        ticket.ticket_type = 'technical'  # По умолчанию техническая проблема
-            
         ticket.save()
-        
-        # Обрабатываем вложение
-        if 'attachments' in self.request.FILES:
-            file = self.request.FILES['attachments']
-            TicketAttachment.objects.create(
-                ticket=ticket,
-                file=file,
-                filename=file.name
-            )
-        
         messages.success(self.request, 'Тикет создан')
         return redirect('tech_support:ticket_detail', pk=ticket.pk)
 
@@ -150,14 +145,14 @@ class TicketListView(ListView):
         date_from = self.request.GET.get('date_from')
         date_to = self.request.GET.get('date_to')
         start_dt = end_dt = None
-        if date_from:
-            d = parse_date(date_from)
+        if date_from: # TODO: Что такое parse_date???
+            d = parse_date(date_from) 
             if d:
-                start_dt = timezone.make_aware(datetime.datetime.combine(d, datetime.time.min))
+                start_dt = timezone.make_aware(datetime.combine(d, datetime.time.min))
         if date_to:
             d = parse_date(date_to)
             if d:
-                end_dt = timezone.make_aware(datetime.datetime.combine(d, datetime.time.max))
+                end_dt = timezone.make_aware(datetime.combine(d, datetime.time.max))
         if start_dt:
             qs = qs.filter(created_at__gte=start_dt)
         if end_dt:
@@ -214,7 +209,6 @@ class TicketDetailView(DetailView):
         if (user == ticket.created_by) and is_closed and not ticket.rating:
             context['rating_form'] = TicketRatingForm(instance=ticket)
         context['comments'] = TicketComment.objects.filter(ticket=ticket).order_by('created_at')
-        context['attachments'] = TicketAttachment.objects.filter(ticket=ticket).order_by('uploaded_at')
         return context
 
 

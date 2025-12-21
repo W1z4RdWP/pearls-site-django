@@ -1318,8 +1318,10 @@ class IncidentDetailListView(ListView):
                     
                     # Получаем UserCourse для получения дедлайна
                     user_course = UserCourse.objects.filter(user=user, course=course).first()
+                    course_status = None
                     if user_course:
                         course_deadline = user_course.deadline
+                        course_status = user_course.status
                     
                     # Получаем траекторию пользователя для этого курса
                     trajectory = UserLessonTrajectory.objects.filter(user=user, course=course).first()
@@ -1366,6 +1368,8 @@ class IncidentDetailListView(ListView):
                     'is_expert': False,
                     'progress_percent': progress_percent,
                     'course_deadline': course_deadline,
+                    'course_status': course_status,
+                    'course_status_display': user_course.get_status_display() if user_course else None
                 })
             
             # Добавляем expert, если он существует и не находится в assigned_to
@@ -1400,8 +1404,10 @@ class IncidentDetailListView(ListView):
                             
                             # Получаем UserCourse для получения дедлайна
                             user_course = UserCourse.objects.filter(user=expert, course=course).first()
+                            course_status = None
                             if user_course:
                                 course_deadline = user_course.deadline
+                                course_status = user_course.status
                             
                             # Получаем траекторию пользователя для этого курса
                             trajectory = UserLessonTrajectory.objects.filter(user=expert, course=course).first()
@@ -1448,6 +1454,8 @@ class IncidentDetailListView(ListView):
                             'is_expert': True,  # Флаг, что это expert
                             'progress_percent': progress_percent,
                             'course_deadline': course_deadline,
+                            'course_status': course_status,
+                            'course_status_display': user_course.get_status_display() if user_course else None
                         })
         
         context['incident_user_list'] = incident_user_list

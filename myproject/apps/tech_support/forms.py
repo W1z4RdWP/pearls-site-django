@@ -4,20 +4,12 @@ from .models import Ticket, TicketComment, TicketAttachment, TicketStatus, Ticke
 
 
 class TicketCreateForm(forms.ModelForm):
-    attachments = forms.FileField(
-        widget=forms.FileInput(attrs={
-            'class': 'form-control',
-            'accept': '.jpg,.jpeg,.png,.gif,.pdf,.doLc,.docx,.txt,.log'
-        }),
-        required=False,
-        help_text='Можно прикрепить файл (максимум 10MB). Для загрузки нескольких файлов отправьте тикет и добавьте остальные файлы в комментариях.'
-    )
-    
     class Meta:
         model = Ticket
         fields = [
             'title',
             'description',
+            'ticket_type',
         ]
         widgets = {
             'title': forms.TextInput(attrs={
@@ -29,6 +21,7 @@ class TicketCreateForm(forms.ModelForm):
                 'rows': 6,
                 'placeholder': 'Подробно опишите проблему, шаги воспроизведения, ожидаемый результат и т.п.',
             }),
+            'ticket_type': forms.Select(attrs={'class': 'form-select'}),
         }
 
     def clean_title(self):
@@ -42,24 +35,6 @@ class TicketCreateForm(forms.ModelForm):
         if len(description) < 10:
             raise forms.ValidationError('Опишите проблему чуть подробнее (минимум 10 символов).')
         return description
-
-    def clean_attachments(self):
-        file = self.cleaned_data.get('attachments')
-        if not file:
-            return file
-            
-        # Проверяем размер файла (максимум 10MB)
-        if file.size > 10 * 1024 * 1024:
-            raise forms.ValidationError(f'Файл "{file.name}" слишком большой (максимум 10MB)')
-        
-        # Проверяем расширение файла
-        allowed_extensions = ['.jpg', '.jpeg', '.png', '.gif', '.pdf', '.doc', '.docx', '.txt', '.log']
-        import os
-        ext = os.path.splitext(file.name)[1].lower()
-        if ext not in allowed_extensions:
-            raise forms.ValidationError(f'Файл "{file.name}" имеет недопустимое расширение. Разрешены: {", ".join(allowed_extensions)}')
-        
-        return file
 
 
 class TicketCommentForm(forms.ModelForm):

@@ -66,8 +66,10 @@ class UserCourse(models.Model):
 
     def save(self, *args, **kwargs):
         """Устанавливаем end_date только при первом завершении курса и проверяем deadline"""
+        is_new = self.pk is None # Проверка является ли объект новым
+        
         # Автоматически устанавливаем deadline на основе course.default_deadline_days, если deadline не установлен
-        if not self.deadline:
+        if is_new and not self.deadline:
             # Получаем курс (может быть передан как объект или как ID)
             course = self.course
             if course and hasattr(course, 'default_deadline_days'):
