@@ -106,7 +106,7 @@ def profile(request: HttpRequest) -> HttpResponse:
         'dascoin_points': profile.dascoin_points,
         'recent_badges': profile.get_recent_badges(),
         'recent_achievements': profile.get_recent_achievements(),
-        'total_badges': profile.get_badges().count(),
+        'total_badges': profile.get_available_badges_count(),
         'total_achievements': profile.get_achievements().count(),
     })
 
@@ -118,13 +118,14 @@ def all_badges(request: HttpRequest) -> HttpResponse:
     profile = user.profile
     
     user_badges = profile.get_badges()
-    total_badges = user_badges.count()
-    all_badges_count = Badge.objects.filter(is_active=True).count()
-    progress_percent = int((total_badges / all_badges_count * 100)) if all_badges_count > 0 else 0
+    total_badges_received = user_badges.count()
+    all_badges_count = Badge.objects.filter(is_active=True).count() # Всего активных бейджей (не используется)
+    total_badges_available = profile.get_available_badges_count()
+    progress_percent = int((total_badges_received / all_badges_count * 100)) if all_badges_count > 0 else 0
     
     context = {
         'user_badges': user_badges,
-        'total_badges': all_badges_count,
+        'total_badges': total_badges_available,
         'progress_percent': progress_percent,
     }
     

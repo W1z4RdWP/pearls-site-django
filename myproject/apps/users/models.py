@@ -4,6 +4,9 @@ from django.db.models.signals import post_save
 from django.dispatch import receiver
 from typing import Any
 
+from gamification.models import Badge
+from myapp.models import UserCourse
+
 
 class Role(models.Model):
     """
@@ -173,6 +176,35 @@ class Profile(models.Model):
         self.dascoin_points += points
         self.save()
     
+    def get_available_badges_count(self):
+        """
+        Возвращает количество доступных бейджей, которые пользователь может получить.
+        Доступные бейджи - это бейджи за курсы, которые назначены пользователю,
+        но еще не завершены.
+        """
+        # Получаем все курсы, назначенные пользователю
+        assigned_courses = UserCourse.objects.filter(user=self.user)
+        
+        assigned_courses_count = assigned_courses.count()
+
+        # Получаем курсы, которые пользователь уже завершил
+        completed_course_ids = assigned_courses.filter(status='completed').values_list('course_id', flat=True)
+
+        # Получаем курсы, которые еще не завершены
+        uncompleted_courses_count = assigned_courses.exclude(course_id__in=completed_course_ids).count()
+
+        # Получаем бейджи, которые пользователь уже получил
+        earned_badge_names = self.get_badges().values_list('badge__name', flat=True)
+
+        # Получаем общие бейджи (не связанные с курсами)
+        general_badges_count = Badge.objects.filter(
+            is_active=True,
+            badge_type__in=['points', 'skill', 'trajectory']
+        ).count()
+
+        # Общее количество доступных бейджей = бейджи за незавершенные курсы + общие бейджи
+        return assigned_courses_count + general_badges_count
+
     def get_badges(self):
         """Возвращает все бейджи пользователя"""
         from gamification.models import UserBadge
