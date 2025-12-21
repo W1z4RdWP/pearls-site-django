@@ -161,5 +161,55 @@ class TicketComment(models.Model):
         return f"{self.ticket.ticket_number} - {self.author.username}"
 
 
+class TicketHistory(models.Model):
+    """История изменений тикета"""
+    ticket = models.ForeignKey(Ticket, on_delete=models.CASCADE, related_name='history', verbose_name="Тикет")
+    user = models.ForeignKey(User, on_delete=models.CASCADE, verbose_name="Пользователь")
+    action = models.CharField(max_length=100, verbose_name="Действие")
+    old_value = models.TextField(blank=True, verbose_name="Старое значение")
+    new_value = models.TextField(blank=True, verbose_name="Новое значение")
+    timestamp = models.DateTimeField(auto_now_add=True, verbose_name="Время изменения")
+    
+    class Meta:
+        verbose_name = "История тикета"
+        verbose_name_plural = "История тикетов"
+        ordering = ['-timestamp']
+    
+    def __str__(self):
+        return f"{self.ticket.ticket_number} - {self.action}"
 
 
+class SupportChat(models.Model):
+    """Чат поддержки"""
+    user = models.ForeignKey(User, on_delete=models.CASCADE, verbose_name="Пользователь")
+    assigned_to = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, 
+                                   related_name='assigned_chats', verbose_name='Ответственный')
+    is_active = models.BooleanField(default=True, verbose_name="Активный чат")
+    is_taken = models.BooleanField(default=False, verbose_name="Принят в работу")
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name="Дата создания")
+    updated_at = models.DateTimeField(auto_now=True, verbose_name="Дата обновления")
+    closed_at = models.DateTimeField(null=True, blank=True, verbose_name="Дата закрытия")
+    
+    class Meta:
+        verbose_name = "Чат поддержки"
+        verbose_name_plural = "Чаты поддержки"
+    
+    def __str__(self):
+        return f"Чат с {self.user.get_full_name() or self.user.username}"
+
+
+class ChatMessage(models.Model):
+    """Сообщения в чате поддержки"""
+    chat = models.ForeignKey(SupportChat, on_delete=models.CASCADE, related_name='messages', verbose_name="Чат")
+    sender = models.ForeignKey(User, on_delete=models.CASCADE, verbose_name="Отправитель")
+    content = models.TextField(verbose_name="Сообщение")
+    is_from_support = models.BooleanField(default=False, verbose_name="От службы поддержки")
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name="Время отправки")
+    
+    class Meta:
+        verbose_name = "Сообщение чата"
+        verbose_name_plural = "Сообщения чата"
+        ordering = ['created_at']
+    
+    def __str__(self):
+        return f"Сообщение от {self.sender.get_full_name() or self.sender.username}"
