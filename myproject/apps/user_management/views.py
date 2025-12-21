@@ -773,7 +773,7 @@ class UserEditDetailedView(UpdateView):
         dascoin_points = profile.dascoin_points
         
         # Получаем общее количество доступных бейджей для расчета прогресса
-        total_badges_available = Badge.objects.filter(is_active=True).count()
+        total_badges_available = profile.get_available_badges_count()
         badges_progress = int((user_badges.count() / total_badges_available * 100)) if total_badges_available > 0 else 0
         
         context.update({
