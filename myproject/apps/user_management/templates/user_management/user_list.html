@@ -1,140 +1,140 @@
 {% extends 'layout.html' %}
 {% load static %}
 {% block specific_styles %}
-<link rel="stylesheet" href="{% static 'user_management/css/user_list.css' %}">
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
-<style>
-.um-btn-wide { display: none; }
-.um-user-list-table th, .um-user-list-table td { padding: 6px 4px; font-size: 0.97rem; }
-.um-user-avatar { width: 28px; height: 28px; min-width: 28px; min-height: 28px; }
-.um-user-avatar-name { gap: 6px; }
-.um-user-list-table td { vertical-align: middle; }
-.um-user-list-table th { font-size: 0.98rem; }
-.um-user-list-table { font-size: 0.97rem; }
-.um-user-list-table .um-user-name-email { line-height: 1.1; }
-.um-user-list-table .um-user-email { font-size: 0.92em; }
-.um-action-btns { display: flex; gap: 8px; }
-.um-action-btn { border: none; background: none; padding: 0 4px; color: #5b3cc4; font-size: 1.2em; cursor: pointer; transition: color 0.15s; }
-.um-action-btn:hover { color: #2dabc4; }
-.um-user-list-combined-filter[name="group"] { 
-    max-width: 200px; 
-    white-space: normal; 
-    word-wrap: break-word; 
-    overflow-wrap: break-word; 
-}
-.um-user-list-combined-filter[name="group"] option { 
-    white-space: normal; 
-    word-wrap: break-word; 
-    overflow-wrap: break-word; 
-    padding: 4px 8px; 
-    line-height: 1.3; 
-}
-</style>
+    <link rel="stylesheet" href="{% static 'user_management/css/user_list.css' %}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+    <style>
+        .um-btn-wide { display: none; }
+        .um-user-list-table th, .um-user-list-table td { padding: 6px 4px; font-size: 0.97rem; }
+        .um-user-avatar { width: 28px; height: 28px; min-width: 28px; min-height: 28px; }
+        .um-user-avatar-name { gap: 6px; }
+        .um-user-list-table td { vertical-align: middle; }
+        .um-user-list-table th { font-size: 0.98rem; }
+        .um-user-list-table { font-size: 0.97rem; }
+        .um-user-list-table .um-user-name-email { line-height: 1.1; }
+        .um-user-list-table .um-user-email { font-size: 0.92em; }
+        .um-action-btns { display: flex; gap: 8px; }
+        .um-action-btn { border: none; background: none; padding: 0 4px; color: #5b3cc4; font-size: 1.2em; cursor: pointer; transition: color 0.15s; }
+        .um-action-btn:hover { color: #2dabc4; }
+        .um-user-list-combined-filter[name="group"] { 
+            max-width: 200px; 
+            white-space: normal; 
+            word-wrap: break-word; 
+            overflow-wrap: break-word; 
+        }
+        .um-user-list-combined-filter[name="group"] option { 
+            white-space: normal; 
+            word-wrap: break-word; 
+            overflow-wrap: break-word; 
+            padding: 4px 8px; 
+            line-height: 1.3; 
+        }
+    </style>
 {% endblock %}
 
 {% block content %}
-<a href="{% url 'builder:dashboard' %}" class="btn btn-outline-primary mb-3">← Вернуться в панель управления</a>
-<div class="um-user-list-wrapper">
-    <div class="um-user-list-header">
-        <h1 class="um-user-list-title">
-            {% if request.user.profile.is_mentor_user and not request.user.is_superuser and not request.user.is_staff %}
-                Моя группа
-            {% else %}
-                Пользователи
+    <a href="{% url 'builder:dashboard' %}" class="btn btn-outline-primary mb-3">← Вернуться в панель управления</a>
+    <div class="um-user-list-wrapper">
+        <div class="um-user-list-header">
+            <h1 class="um-user-list-title">
+                {% if request.user.profile.is_mentor_user and not request.user.is_superuser and not request.user.is_staff %}
+                    Моя группа
+                {% else %}
+                    Пользователи
+                {% endif %}
+            </h1>
+            {% if not request.user.profile.is_mentor_user or request.user.is_superuser or request.user.is_staff %}
+                <a href="{% url 'user_management:user_create_step1' %}" class="um-btn">Добавить пользователя</a>
             {% endif %}
-        </h1>
-        {% if not request.user.profile.is_mentor_user or request.user.is_superuser or request.user.is_staff %}
-            <a href="{% url 'user_management:user_create_step1' %}" class="um-btn">Добавить пользователя</a>
+        </div>
+        <form method="get" class="um-user-list-filter">
+            <input type="text" name="q" placeholder="Поиск по имени или email" value="{{ request.GET.q }}">
+            <select name="filter" class="um-user-list-combined-filter">
+                <option value="" {% if request.GET.filter == "" %}selected{% endif %}>Все</option>
+                <option value="approved" {% if request.GET.filter == "approved"  %}selected{% endif %}>Только подтверждённые</option>
+                <option value="not_approved" {% if request.GET.filter == "not_approved" %}selected{% endif %}>Только не подтверждённые</option>
+                <option value="responsible" {% if request.GET.filter == "responsible" %}selected{% endif %}>Только ответственные</option>
+                <option value="not_responsible" {% if request.GET.filter == "not_responsible" %}selected{% endif %}>Только не ответственные</option>
+            </select>
+            {% if not request.user.profile.is_mentor_user or request.user.is_superuser or request.user.is_staff %}
+                <select name="group" class="um-user-list-combined-filter">
+                    <option value="" {% if request.GET.group == "" %}selected{% endif %}>Все группы</option>
+                    {% for group in groups %}
+                        <option value="{{ group.id }}" {% if request.GET.group == group.id|stringformat:"s" %}selected{% endif %}>{{ group.name }}</option>
+                    {% endfor %}
+                </select>
+            {% endif %}
+
+            <button type="submit" class="um-btn um-btn-secondary">Фильтровать</button>
+        </form>
+        <table class="um-user-list-table">
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Имя пользователя</th>
+                    <th>Дата рождения</th>
+                    <th>Группы</th>
+                    <th>Статус</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for user in users %}
+                <tr style="cursor: pointer;" onclick="window.location.href='{% url 'user_management:user_edit_detailed' user.pk %}'">
+                    <td>{{ forloop.counter|add:page_obj.start_index|add:"-1" }}</td>
+                    <td>
+                        <div class="um-user-avatar-name">
+                            <img src="{{ user.profile.image.url }}" alt="avatar" class="um-user-avatar">
+                            <div class="um-user-name-email">
+                                {{ user.get_full_name|default:user.username }}<br>
+                                <span class="um-user-email">{{ user.email }}</span>
+                            </div>
+                        </div>
+                    </td>
+                    <td>{{ user.profile.date_of_birth|date:'d.m.Y' }}</td>
+                    <td>{% for group in user.groups.all %}{{ group.name }}{% if not forloop.last %}, {% endif %}{% endfor %}</td>
+                    <td>
+                        {% if user.profile.is_approved %}
+                            <span class="um-status um-status-approved" title="Подтверждён">✔️ Подтверждён</span>
+                        {% else %}
+                            <span class="um-status um-status-unapproved" title="Не подтверждён">⏳ Не подтверждён</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="5">Нет пользователей</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% if is_paginated %}
+        <nav aria-label="Page navigation" class="mt-4">
+            <ul class="pagination justify-content-center">
+                {% if page_obj.has_previous %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page=1{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}{% if request.GET.filter %}&filter={{ request.GET.filter }}{% endif %}{% if request.GET.group %}&group={{ request.GET.group }}{% endif %}">Первая</a>
+                    </li>
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}{% if request.GET.filter %}&filter={{ request.GET.filter }}{% endif %}{% if request.GET.group %}&group={{ request.GET.group }}{% endif %}">Назад</a>
+                    </li>
+                {% endif %}
+                {% for num in page_obj.paginator.page_range %}
+                    {% if num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                        {% if page_obj.number == num %}
+                            <li class="page-item active"><span class="page-link">{{ num }}</span></li>
+                        {% else %}
+                            <li class="page-item"><a class="page-link" href="?page={{ num }}{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}{% if request.GET.filter %}&filter={{ request.GET.filter }}{% endif %}{% if request.GET.group %}&group={{ request.GET.group }}{% endif %}">{{ num }}</a></li>
+                        {% endif %}
+                    {% endif %}
+                {% endfor %}
+                {% if page_obj.has_next %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}{% if request.GET.filter %}&filter={{ request.GET.filter }}{% endif %}{% if request.GET.group %}&group={{ request.GET.group }}{% endif %}">Вперед</a>
+                    </li>
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}{% if request.GET.filter %}&filter={{ request.GET.filter }}{% endif %}{% if request.GET.group %}&group={{ request.GET.group }}{% endif %}">Последняя</a>
+                    </li>
+                {% endif %}
+            </ul>
+        </nav>
         {% endif %}
     </div>
-    <form method="get" class="um-user-list-filter">
-        <input type="text" name="q" placeholder="Поиск по имени или email" value="{{ request.GET.q }}">
-        <select name="filter" class="um-user-list-combined-filter">
-            <option value="" {% if request.GET.filter == "" %}selected{% endif %}>Все</option>
-            <option value="approved" {% if request.GET.filter == "approved"  %}selected{% endif %}>Только подтверждённые</option>
-            <option value="not_approved" {% if request.GET.filter == "not_approved" %}selected{% endif %}>Только не подтверждённые</option>
-            <option value="responsible" {% if request.GET.filter == "responsible" %}selected{% endif %}>Только ответственные</option>
-            <option value="not_responsible" {% if request.GET.filter == "not_responsible" %}selected{% endif %}>Только не ответственные</option>
-        </select>
-        {% if not request.user.profile.is_mentor_user or request.user.is_superuser or request.user.is_staff %}
-        <select name="group" class="um-user-list-combined-filter">
-            <option value="" {% if request.GET.group == "" %}selected{% endif %}>Все группы</option>
-            {% for group in groups %}
-                <option value="{{ group.id }}" {% if request.GET.group == group.id|stringformat:"s" %}selected{% endif %}>{{ group.name }}</option>
-            {% endfor %}
-        </select>
-        {% endif %}
-
-        <button type="submit" class="um-btn um-btn-secondary">Фильтровать</button>
-    </form>
-    <table class="um-user-list-table">
-        <thead>
-            <tr>
-                <th>#</th>
-                <th>Имя пользователя</th>
-                <th>Дата рождения</th>
-                <th>Группы</th>
-                <th>Статус</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for user in users %}
-            <tr style="cursor: pointer;" onclick="window.location.href='{% url 'user_management:user_edit_detailed' user.pk %}'">
-                <td>{{ forloop.counter|add:page_obj.start_index|add:"-1" }}</td>
-                <td>
-                    <div class="um-user-avatar-name">
-                        <img src="{{ user.profile.image.url }}" alt="avatar" class="um-user-avatar">
-                        <div class="um-user-name-email">
-                            {{ user.get_full_name|default:user.username }}<br>
-                            <span class="um-user-email">{{ user.email }}</span>
-                        </div>
-                    </div>
-                </td>
-                <td>{{ user.profile.date_of_birth|date:'d.m.Y' }}</td>
-                <td>{% for group in user.groups.all %}{{ group.name }}{% if not forloop.last %}, {% endif %}{% endfor %}</td>
-                <td>
-                    {% if user.profile.is_approved %}
-                        <span class="um-status um-status-approved" title="Подтверждён">✔️ Подтверждён</span>
-                    {% else %}
-                        <span class="um-status um-status-unapproved" title="Не подтверждён">⏳ Не подтверждён</span>
-                    {% endif %}
-                </td>
-            </tr>
-            {% empty %}
-            <tr><td colspan="5">Нет пользователей</td></tr>
-            {% endfor %}
-        </tbody>
-    </table>
-    {% if is_paginated %}
-    <nav aria-label="Page navigation" class="mt-4">
-        <ul class="pagination justify-content-center">
-            {% if page_obj.has_previous %}
-                <li class="page-item">
-                    <a class="page-link" href="?page=1{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}{% if request.GET.filter %}&filter={{ request.GET.filter }}{% endif %}{% if request.GET.group %}&group={{ request.GET.group }}{% endif %}">Первая</a>
-                </li>
-                <li class="page-item">
-                    <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}{% if request.GET.filter %}&filter={{ request.GET.filter }}{% endif %}{% if request.GET.group %}&group={{ request.GET.group }}{% endif %}">Назад</a>
-                </li>
-            {% endif %}
-            {% for num in page_obj.paginator.page_range %}
-                {% if num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
-                    {% if page_obj.number == num %}
-                        <li class="page-item active"><span class="page-link">{{ num }}</span></li>
-                    {% else %}
-                        <li class="page-item"><a class="page-link" href="?page={{ num }}{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}{% if request.GET.filter %}&filter={{ request.GET.filter }}{% endif %}{% if request.GET.group %}&group={{ request.GET.group }}{% endif %}">{{ num }}</a></li>
-                    {% endif %}
-                {% endif %}
-            {% endfor %}
-            {% if page_obj.has_next %}
-                <li class="page-item">
-                    <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}{% if request.GET.filter %}&filter={{ request.GET.filter }}{% endif %}{% if request.GET.group %}&group={{ request.GET.group }}{% endif %}">Вперед</a>
-                </li>
-                <li class="page-item">
-                    <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}{% if request.GET.filter %}&filter={{ request.GET.filter }}{% endif %}{% if request.GET.group %}&group={{ request.GET.group }}{% endif %}">Последняя</a>
-                </li>
-            {% endif %}
-        </ul>
-    </nav>
-    {% endif %}
-</div>
 {% endblock %}
