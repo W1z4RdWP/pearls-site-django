@@ -50,18 +50,20 @@
             <!-- Основная статистика -->
             <div class="row mb-4">
                 <div class="col-md-3 mb-3">
-                    <div class="card text-center">
-                        <div class="card-body">
-                            <i class="fas fa-file-alt fa-3x text-primary mb-3"></i>
-                            <h3 class="card-title">{{ total_materials }}</h3>
-                            <p class="card-text text-muted">
-                                {% if is_admin %}материала{% else %}материала в ваших группах{% endif %}
-                            </p>
-                            <small class="text-muted">
-                                {{ total_lessons }} уроков + {{ total_quizzes }} тестов
-                            </small>
+                    <a href="{% url 'reports:courses_progress' %}" class="text-decoration-none">
+                        <div class="card text-center">
+                            <div class="card-body">
+                                <i class="fas fa-file-alt fa-3x text-primary mb-3"></i>
+                                <h3 class="card-title">{{ total_materials }}</h3>
+                                <p class="card-text text-muted">
+                                    {% if is_admin %}материала{% else %}материала в ваших группах{% endif %}
+                                </p>
+                                <small class="text-muted">
+                                    {{ total_lessons }} уроков + {{ total_quizzes }} тестов
+                                </small>
+                            </div>
                         </div>
-                    </div>
+                    </a>
                 </div>
                 <div class="col-md-3 mb-3">
                     <a href="{% url 'reports:users_with_learning' %}" class="text-decoration-none">

@@ -4,11 +4,13 @@ from django.shortcuts import get_object_or_404
 from django.views.generic import TemplateView, ListView
 from django.contrib.auth.models import User, Group
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
-from django.db.models import Q
+from django.db.models import Q, Count, Case, When, FloatField, F
 from django.contrib.auth.decorators import login_required
 from django.http import HttpResponse, HttpResponseForbidden
 from django.utils import timezone
 
+from courses.models import Course
+from myapp.models import UserCourse, UserProgress
 
 
 
@@ -819,4 +821,166 @@ class GroupStudentsProgressView(LoginRequiredMixin, UserPassesTestMixin, ListVie
         context['group'] = self.group
         
         # Данные уже рассчитаны в queryset, дополнительная обработка не нужна
+        return context
+
+
+
+class CoursesProgressView(LoginRequiredMixin, UserPassesTestMixin, ListView):
+    """
+    Страница с отчётом по прогрессу курсов. Отображается % завершений пользователями назначенного курса
+    """
+    model = Course
+    template_name = 'reports/courses_progess.html'
+    context_object_name = 'courses'
+    paginate_by = 20
+
+    def test_func(self):
+        """Проверяет права доступа"""
+        if not self.request.user.is_authenticated:
+            return False
+
+        if self.request.user.is_superuser or self.request.user.is_staff:
+            return True
+
+        try:
+            return self.request.user.profile.is_mentor_user
+        except Exception:
+            return False
+
+    def get_queryset(self):
+        """Возвращает курсы с рассчитанной статистикой по завершениям"""
+        # Учитываем только одобренных пользователей, исключая админов/стаф
+        assignments_filter = (
+            Q(usercourse__user__profile__is_approved=True)
+            & ~Q(usercourse__user__is_superuser=True)
+            & ~Q(usercourse__user__is_staff=True)
+        )
+
+        queryset = (
+            Course.objects.annotate(
+                total_assignments=Count('usercourse', filter=assignments_filter),
+                completed_assignments=Count(
+                    'usercourse',
+                    filter=assignments_filter & Q(usercourse__status='completed')
+                ),
+                in_progress_assignments=Count(
+                    'usercourse',
+                    filter=assignments_filter & Q(usercourse__status='started')
+                ),
+                available_assignments=Count(
+                    'usercourse',
+                    filter=assignments_filter & Q(usercourse__status='available')
+                ),
+                assigned_users=Count(
+                    'usercourse__user',
+                    filter=assignments_filter,
+                    distinct=True
+                ),
+            )
+            .annotate(
+                learning_percentage=Case(
+                    When(total_assignments=0, then=0.0),
+                    default=F('completed_assignments') * 100.0 / F('total_assignments'),
+                    output_field=FloatField()
+                )
+            )
+            .filter(total_assignments__gt=0)
+            .order_by('-learning_percentage', 'title')
+        )
+
+        return queryset
+
+    def get_context_data(self, **kwargs):
+        """Добавляет агрегированную статистику по всем отображаемым курсам"""
+        context = super().get_context_data(**kwargs)
+        courses = list(context.get('courses', []))
+
+        total_assignments = sum(getattr(course, 'total_assignments', 0) for course in courses)
+        completed = sum(getattr(course, 'completed_assignments', 0) for course in courses)
+        in_progress = sum(getattr(course, 'in_progress_assignments', 0) for course in courses)
+        available = sum(getattr(course, 'available_assignments', 0) for course in courses)
+
+        overall_learning_percentage = round((completed / total_assignments) * 100, 1) if total_assignments else 0
+
+        context.update({
+            'total_courses': len(courses),
+            'overall_learning_percentage': overall_learning_percentage,
+            'completed_assignments_total': completed,
+            'in_progress_assignments_total': in_progress,
+            'available_assignments_total': available,
+        })
+
+        return context
+
+
+class CourseAssignmentsDetailView(LoginRequiredMixin, UserPassesTestMixin, ListView):
+    """
+    Детальная страница по одному курсу: список пользователей и статусы назначений
+    """
+    model = UserCourse
+    template_name = 'reports/course_assignments_detail.html'
+    context_object_name = 'assignments'
+    paginate_by = 25
+
+    def test_func(self):
+        """Проверяет права доступа"""
+        if not self.request.user.is_authenticated:
+            return False
+
+        if self.request.user.is_superuser or self.request.user.is_staff:
+            return True
+
+        try:
+            return self.request.user.profile.is_mentor_user
+        except Exception:
+            return False
+
+    def get_queryset(self):
+        """Список назначений по выбранному курсу"""
+        self.course = get_object_or_404(Course, id=self.kwargs.get('course_id'))
+
+        status_order = Case(
+            When(status='completed', then=0),
+            When(status='started', then=1),
+            When(status='available', then=2),
+            When(status='blocked', then=3),
+            default=4,
+        )
+
+        queryset = (
+            UserCourse.objects.select_related('user', 'course')
+            .filter(
+                course=self.course,
+                user__profile__is_approved=True,
+            )
+            .exclude(
+                Q(user__is_superuser=True) | Q(user__is_staff=True)
+            )
+            .order_by(status_order, 'user__last_name', 'user__first_name', 'user__username')
+        )
+        return queryset
+
+    def get_context_data(self, **kwargs):
+        """Агрегированная статистика по выбранному курсу"""
+        context = super().get_context_data(**kwargs)
+        # Используем несрезанный QuerySet для агрегации, чтобы избежать ошибки "Cannot filter after slice"
+        base_qs = self.get_queryset()
+
+        total = base_qs.count()
+        completed = base_qs.filter(status='completed').count()
+        started = base_qs.filter(status='started').count()
+        available = base_qs.filter(status='available').count()
+        blocked = base_qs.filter(status='blocked').count()
+
+        learning_percentage = round((completed / total) * 100, 1) if total else 0
+
+        context.update({
+            'course': self.course,
+            'total_assignments': total,
+            'completed_assignments': completed,
+            'in_progress_assignments': started,
+            'available_assignments': available,
+            'blocked_assignments': blocked,
+            'learning_percentage': learning_percentage,
+        })
         return context

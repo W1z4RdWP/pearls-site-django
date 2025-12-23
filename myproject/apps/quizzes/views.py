@@ -2048,8 +2048,8 @@ def quiz_upload_docx(request):
     if not docx_file.name.endswith('.docx'):
         return JsonResponse({'success': False, 'error': 'Поддерживаются только файлы .docx'})
     
-    # Проверка размера файла (максимум 10MB)
-    if docx_file.size > 10 * 1024 * 1024:
+    # Проверка размера файла (максимум 20MB)
+    if docx_file.size > 20 * 1024 * 1024:
         return JsonResponse({'success': False, 'error': 'Размер файла не должен превышать 10MB'})
     
     # Сохраняем файл во временную директорию
