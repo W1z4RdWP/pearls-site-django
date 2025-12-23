@@ -9,8 +9,8 @@ admin.site.index_title = "Панель управления"
 
 @admin.register(UserCourse)
 class UserCourseAdmin(admin.ModelAdmin):
-    list_display = ('user', 'course',)
-    list_filter = ('course',)
+    list_display = ('user', 'course', 'status')
+    list_filter = ('course', 'status')
     search_fields = ('user__username', 'course__title')
 
 @admin.register(ChangeLog)
