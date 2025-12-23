@@ -6,6 +6,7 @@ from django.urls import reverse
 from users.models import Profile
 from courses.models import Course, Lesson, MetricsSubmission
 from myapp.models import UserCourse
+
 import json
 
 
