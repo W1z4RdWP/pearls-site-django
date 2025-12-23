@@ -10,5 +10,7 @@ urlpatterns = [
     path('users-with-learning/export-excel/', views.export_users_learning_excel, name='export_users_learning_excel'),
     path('groups-progress/', views.GroupsProgressView.as_view(), name='groups_progress'),
     path('groups/<int:group_id>/students-progress/', views.GroupStudentsProgressView.as_view(), name='group_students_progress'),
+    path('courses-progress/', views.CoursesProgressView.as_view(), name='courses_progress'),
+    path('courses-progress/<int:course_id>/', views.CourseAssignmentsDetailView.as_view(), name='courses_progress_detail'),
 
 ]

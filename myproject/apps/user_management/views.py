@@ -101,6 +101,12 @@ class UserListView(ListView):
             group_filter = self.request.GET.get('group')
             if group_filter:
                 queryset = queryset.filter(groups__id=group_filter)
+            
+            # Исключаем внешних пользователей по умолчанию, можно отключить чекбоксом
+            exclude_external_vals = self.request.GET.getlist('exclude_external')
+            exclude_external = ('1' in exclude_external_vals) or (not exclude_external_vals)
+            if exclude_external:
+                queryset = queryset.exclude(groups__name="Внешний пользователь")
         
         return queryset
 
@@ -116,6 +122,8 @@ class UserListView(ListView):
         else:
             # Для наставников показываем только их группы
             context['groups'] = self.request.user.groups.all().order_by('name')
+        exclude_external_vals = self.request.GET.getlist('exclude_external')
+        context['exclude_external_checked'] = ('1' in exclude_external_vals) or (not exclude_external_vals)
         return context
 
 
