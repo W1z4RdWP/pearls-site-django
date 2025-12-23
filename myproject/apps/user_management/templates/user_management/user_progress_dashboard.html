@@ -232,7 +232,7 @@
                 </div>
 
                 <!-- Информация о наградах -->
-                {% if course_progress.user_course.status == 'completed' %}
+                {% if course_progress.user_course.status == 'completed' and not course_progress.user_course.course.is_incident %}
                 <div class="um-progress-rewards">
                     <h4>Награды за курс</h4>
                     <div class="um-progress-rewards-grid">
