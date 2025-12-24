@@ -1,0 +1,177 @@
+{% extends 'layout.html' %}
+{% load static %}
+
+{% block title %}Комнаты чата - УЦ «Территория Улыбки»{% endblock %}
+
+{% block specific_styles %}
+<style>
+    .rooms-container {
+        max-width: 1200px;
+        margin: 2rem auto;
+        padding: 0 1rem;
+    }
+    
+    .rooms-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 2rem;
+    }
+    
+    .rooms-header h1 {
+        margin: 0;
+        font-size: 2rem;
+    }
+    
+    .create-room-form {
+        background: #fff;
+        border-radius: 12px;
+        padding: 1.5rem;
+        margin-bottom: 2rem;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+    
+    .create-room-form h2 {
+        margin-top: 0;
+        margin-bottom: 1rem;
+        font-size: 1.5rem;
+    }
+    
+    .form-group {
+        margin-bottom: 1rem;
+    }
+    
+    .form-group label {
+        display: block;
+        margin-bottom: 0.5rem;
+        font-weight: 600;
+    }
+    
+    .form-group input {
+        width: 100%;
+        padding: 0.75rem;
+        border: 2px solid #e9ecef;
+        border-radius: 8px;
+        font-size: 1rem;
+    }
+    
+    .form-group input:focus {
+        outline: none;
+        border-color: #0d6efd;
+    }
+    
+    .rooms-list {
+        display: grid;
+        gap: 1rem;
+    }
+    
+    .room-card {
+        background: #fff;
+        border-radius: 12px;
+        padding: 1.5rem;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        transition: transform 0.2s, box-shadow 0.2s;
+    }
+    
+    .room-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 15px rgba(0,0,0,0.15);
+    }
+    
+    .room-card-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: start;
+        margin-bottom: 1rem;
+    }
+    
+    .room-card-title {
+        font-size: 1.25rem;
+        font-weight: 600;
+        margin: 0;
+        color: #212529;
+    }
+    
+    .room-card-id {
+        font-size: 0.85rem;
+        color: #6c757d;
+        font-family: monospace;
+        margin-top: 0.25rem;
+    }
+    
+    .room-card-meta {
+        display: flex;
+        gap: 1rem;
+        font-size: 0.9rem;
+        color: #6c757d;
+        margin-bottom: 1rem;
+    }
+    
+    .room-card-footer {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    
+    .btn-join {
+        padding: 0.5rem 1.5rem;
+        background: #0d6efd;
+        color: #fff;
+        border: none;
+        border-radius: 8px;
+        text-decoration: none;
+        font-weight: 600;
+        transition: background 0.2s;
+    }
+    
+    .btn-join:hover {
+        background: #0b5ed7;
+        color: #fff;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="rooms-container">
+    <div class="rooms-header">
+        <h1>Комнаты чата</h1>
+    </div>
+    
+    <div class="create-room-form">
+        <h2>Создать новую комнату</h2>
+        <form method="post" action="{% url 'tech_support:chat_room_create' %}">
+            {% csrf_token %}
+            <div class="form-group">
+                <label for="room-name">Название комнаты (необязательно)</label>
+                <input type="text" id="room-name" name="name" placeholder="Введите название комнаты">
+            </div>
+            <button type="submit" class="btn btn-primary">Создать комнату</button>
+        </form>
+    </div>
+    
+    <div class="rooms-list">
+        {% for room in rooms %}
+        <div class="room-card">
+            <div class="room-card-header">
+                <div>
+                    <h3 class="room-card-title">{{ room.name|default:"Комната без названия" }}</h3>
+                    <div class="room-card-id">ID: {{ room.room_id }}</div>
+                </div>
+            </div>
+            <div class="room-card-meta">
+                <span>Создатель: {{ room.created_by.get_full_name|default:room.created_by.username }}</span>
+                <span>Создана: {{ room.created_at|date:"d.m.Y H:i" }}</span>
+            </div>
+            <div class="room-card-footer">
+                <a href="{% url 'tech_support:chat_room' room_id=room.room_id %}" class="btn-join">Присоединиться</a>
+            </div>
+        </div>
+        {% empty %}
+        <div class="room-card">
+            <p>Пока нет созданных комнат. Создайте первую комнату выше.</p>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}
+

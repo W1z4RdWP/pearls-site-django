@@ -1,0 +1,305 @@
+{% extends 'layout.html' %}
+{% load static %}
+
+{% block title %}Чат - {{ room.name|default:room.room_id }} - УЦ «Территория Улыбки»{% endblock %}
+
+{% block specific_styles %}
+<style>
+    .chat-container {
+        max-width: 1200px;
+        margin: 2rem auto;
+        padding: 0 1rem;
+    }
+    
+    .chat-header {
+        background: #fff;
+        border-radius: 12px 12px 0 0;
+        padding: 1.5rem;
+        border-bottom: 2px solid #e9ecef;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    
+    .chat-header h2 {
+        margin: 0;
+        font-size: 1.5rem;
+        color: #212529;
+    }
+    
+    .chat-header .room-id {
+        font-size: 0.9rem;
+        color: #6c757d;
+        font-family: monospace;
+    }
+    
+    .chat-messages {
+        background: #fff;
+        height: 500px;
+        overflow-y: auto;
+        padding: 1.5rem;
+        border-left: 1px solid #e9ecef;
+        border-right: 1px solid #e9ecef;
+    }
+    
+    .message {
+        margin-bottom: 1rem;
+        padding: 0.75rem 1rem;
+        border-radius: 12px;
+        max-width: 70%;
+        word-wrap: break-word;
+    }
+    
+    .message.own {
+        background: #0d6efd;
+        color: #fff;
+        margin-left: auto;
+        text-align: right;
+    }
+    
+    .message.other {
+        background: #f8f9fa;
+        color: #212529;
+        margin-right: auto;
+    }
+    
+    .message-header {
+        font-size: 0.85rem;
+        margin-bottom: 0.5rem;
+        opacity: 0.8;
+    }
+    
+    .message-content {
+        font-size: 1rem;
+        line-height: 1.5;
+    }
+    
+    .message-time {
+        font-size: 0.75rem;
+        margin-top: 0.25rem;
+        opacity: 0.7;
+    }
+    
+    .chat-input-container {
+        background: #fff;
+        border-radius: 0 0 12px 12px;
+        padding: 1.5rem;
+        border-top: 2px solid #e9ecef;
+    }
+    
+    .chat-input-form {
+        display: flex;
+        gap: 1rem;
+    }
+    
+    .chat-input {
+        flex: 1;
+        padding: 0.75rem 1rem;
+        border: 2px solid #e9ecef;
+        border-radius: 8px;
+        font-size: 1rem;
+        resize: none;
+    }
+    
+    .chat-input:focus {
+        outline: none;
+        border-color: #0d6efd;
+    }
+    
+    .chat-send-btn {
+        padding: 0.75rem 2rem;
+        background: #0d6efd;
+        color: #fff;
+        border: none;
+        border-radius: 8px;
+        font-size: 1rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: background 0.2s;
+    }
+    
+    .chat-send-btn:hover {
+        background: #0b5ed7;
+    }
+    
+    .chat-send-btn:disabled {
+        background: #6c757d;
+        cursor: not-allowed;
+    }
+    
+    .connection-status {
+        padding: 0.5rem 1rem;
+        border-radius: 8px;
+        margin-bottom: 1rem;
+        font-size: 0.9rem;
+    }
+    
+    .connection-status.connected {
+        background: #d1e7dd;
+        color: #0f5132;
+    }
+    
+    .connection-status.disconnected {
+        background: #f8d7da;
+        color: #842029;
+    }
+    
+    .connection-status.connecting {
+        background: #fff3cd;
+        color: #856404;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="chat-container">
+    <div class="chat-header">
+        <div>
+            <h2>{{ room.name|default:"Чат" }}</h2>
+            <div class="room-id">ID комнаты: {{ room.room_id }}</div>
+        </div>
+        <a href="{% url 'tech_support:chat_room_list' %}" class="btn btn-secondary">Список комнат</a>
+    </div>
+    
+    <div id="connection-status" class="connection-status connecting">Подключение...</div>
+    
+    <div class="chat-messages" id="chat-messages">
+        {% for message in room_messages %}
+        <div class="message {% if message.sender == user %}own{% else %}other{% endif %}">
+            <div class="message-header">
+                {{ message.sender.get_full_name|default:message.sender.username }}
+            </div>
+            <div class="message-content">{{ message.content }}</div>
+            <div class="message-time">{{ message.created_at|date:"H:i" }}</div>
+        </div>
+        {% endfor %}
+    </div>
+    
+    <div class="chat-input-container">
+        <form id="chat-form" class="chat-input-form">
+            <textarea 
+                id="chat-message-input" 
+                class="chat-input" 
+                rows="2" 
+                placeholder="Введите сообщение..."
+                required
+            ></textarea>
+            <button type="submit" id="chat-send-btn" class="chat-send-btn">Отправить</button>
+        </form>
+    </div>
+</div>
+
+<script>
+    const roomId = '{{ room.room_id }}';
+    const currentUserId = {{ user.id }};
+    const currentUserName = '{{ user.get_full_name|default:user.username|escapejs }}';
+    
+    // Определяем WebSocket URL
+    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    const wsUrl = `${protocol}//${window.location.host}/ws/chat/${roomId}/`;
+    
+    let chatSocket = null;
+    let reconnectAttempts = 0;
+    const maxReconnectAttempts = 5;
+    
+    const chatMessages = document.getElementById('chat-messages');
+    const chatForm = document.getElementById('chat-form');
+    const messageInput = document.getElementById('chat-message-input');
+    const sendButton = document.getElementById('chat-send-btn');
+    const connectionStatus = document.getElementById('connection-status');
+    
+    function updateConnectionStatus(status, message) {
+        connectionStatus.className = `connection-status ${status}`;
+        connectionStatus.textContent = message;
+    }
+    
+    function connect() {
+        updateConnectionStatus('connecting', 'Подключение...');
+        
+        chatSocket = new WebSocket(wsUrl);
+        
+        chatSocket.onopen = function(e) {
+            updateConnectionStatus('connected', 'Подключено');
+            reconnectAttempts = 0;
+        };
+        
+        chatSocket.onmessage = function(e) {
+            const data = JSON.parse(e.data);
+            
+            if (data.type === 'connection_established') {
+                updateConnectionStatus('connected', 'Подключено');
+            } else if (data.type === 'chat_message') {
+                addMessage(data);
+            } else if (data.type === 'error') {
+                alert('Ошибка: ' + data.message);
+            }
+        };
+        
+        chatSocket.onclose = function(e) {
+            updateConnectionStatus('disconnected', 'Отключено');
+            
+            if (reconnectAttempts < maxReconnectAttempts) {
+                reconnectAttempts++;
+                setTimeout(connect, 2000 * reconnectAttempts);
+            } else {
+                updateConnectionStatus('disconnected', 'Не удалось подключиться. Обновите страницу.');
+            }
+        };
+        
+        chatSocket.onerror = function(e) {
+            console.error('WebSocket error:', e);
+            updateConnectionStatus('disconnected', 'Ошибка подключения');
+        };
+    }
+    
+    function addMessage(data) {
+        const isOwn = data.sender_id === currentUserId;
+        const messageDiv = document.createElement('div');
+        messageDiv.className = `message ${isOwn ? 'own' : 'other'}`;
+        
+        const time = new Date(data.timestamp).toLocaleTimeString('ru-RU', {
+            hour: '2-digit',
+            minute: '2-digit'
+        });
+        
+        messageDiv.innerHTML = `
+            <div class="message-header">${data.sender_full_name}</div>
+            <div class="message-content">${escapeHtml(data.message)}</div>
+            <div class="message-time">${time}</div>
+        `;
+        
+        chatMessages.appendChild(messageDiv);
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+    }
+    
+    function escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+    
+    chatForm.addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        const message = messageInput.value.trim();
+        if (!message || !chatSocket || chatSocket.readyState !== WebSocket.OPEN) {
+            return;
+        }
+        
+        chatSocket.send(JSON.stringify({
+            'message': message
+        }));
+        
+        messageInput.value = '';
+    });
+    
+    // Автопрокрутка при загрузке страницы
+    window.addEventListener('load', function() {
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+    });
+    
+    // Подключаемся при загрузке страницы
+    connect();
+</script>
+{% endblock %}
+

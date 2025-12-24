@@ -68,7 +68,8 @@ INSTALLED_APPS = [
     'qsessions',
     'rangefilter',
     'rest_framework',
-    'widget_tweaks',    
+    'widget_tweaks',
+    'channels',
 
     'myapp.apps.MyappConfig',
     'api.apps.ApiConfig',
@@ -140,6 +141,7 @@ STORAGES = {
 }
 
 WSGI_APPLICATION = 'myproject.wsgi.application'
+ASGI_APPLICATION = 'myproject.asgi.application'
 
 
 # Database
@@ -195,6 +197,13 @@ CACHES = {
         'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
         'LOCATION': 'unique-snowflake',
     }
+}
+
+# Channels configuration
+CHANNEL_LAYERS = {
+    'default': {
+        'BACKEND': 'channels.layers.InMemoryChannelLayer',
+    },
 }
 
 # Password validation

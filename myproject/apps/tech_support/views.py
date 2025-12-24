@@ -11,7 +11,7 @@ from django.db.models import Count, Avg, Q
 from datetime import timedelta, datetime
 
 from .forms import TicketCreateForm, TicketCommentForm, TicketStaffUpdateForm, TicketRatingForm
-from .models import Ticket, TicketStatus, TicketComment, TicketCategory, TicketPriority
+from .models import Ticket, TicketStatus, TicketComment, TicketCategory, TicketPriority, ChatRoom, RoomMessage
 
 
 class StaffRequiredMixin(UserPassesTestMixin):
@@ -500,3 +500,45 @@ def new_tickets_count(request):
         return JsonResponse({'detail': 'forbidden'}, status=403)
     count = Ticket.objects.filter(assigned_to__isnull=True, status__is_active=True).count()
     return JsonResponse({'count': count, 'has_new': count > 0})
+
+
+# WebSocket Chat Views
+class ChatRoomCreateView(LoginRequiredMixin, View):
+    """Создание новой комнаты чата"""
+    
+    def post(self, request):
+        name = request.POST.get('name', '')
+        room = ChatRoom.objects.create(
+            created_by=request.user,
+            name=name
+        )
+        return redirect('tech_support:chat_room', room_id=room.room_id)
+
+
+class ChatRoomView(LoginRequiredMixin, DetailView):
+    """Отображение комнаты чата"""
+    model = ChatRoom
+    template_name = 'tech_support/chat_room.html'
+    context_object_name = 'room'
+    slug_field = 'room_id'
+    slug_url_kwarg = 'room_id'
+    
+    def get_queryset(self):
+        return ChatRoom.objects.filter(is_active=True)
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        room = context['room']
+        # Получаем последние сообщения
+        context['room_messages'] = RoomMessage.objects.filter(room=room).order_by('created_at')[:50]
+        return context
+
+
+class ChatRoomListView(LoginRequiredMixin, ListView):
+    """Список комнат чата"""
+    model = ChatRoom
+    template_name = 'tech_support/chat_room_list.html'
+    context_object_name = 'rooms'
+    
+    def get_queryset(self):
+        return ChatRoom.objects.filter(is_active=True).order_by('-created_at')

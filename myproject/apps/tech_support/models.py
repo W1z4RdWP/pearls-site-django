@@ -213,3 +213,42 @@ class ChatMessage(models.Model):
     
     def __str__(self):
         return f"Сообщение от {self.sender.get_full_name() or self.sender.username}"
+
+
+class ChatRoom(models.Model):
+    """Комната для WebSocket чата"""
+    room_id = models.CharField(max_length=100, unique=True, verbose_name="ID комнаты")
+    name = models.CharField(max_length=200, blank=True, verbose_name="Название комнаты")
+    created_by = models.ForeignKey(User, on_delete=models.CASCADE, related_name='created_chat_rooms', verbose_name="Создатель")
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name="Дата создания")
+    updated_at = models.DateTimeField(auto_now=True, verbose_name="Дата обновления")
+    is_active = models.BooleanField(default=True, verbose_name="Активна")
+    
+    class Meta:
+        verbose_name = "Комната чата"
+        verbose_name_plural = "Комнаты чата"
+        ordering = ['-created_at']
+    
+    def __str__(self):
+        return f"Комната {self.room_id} ({self.name or 'Без названия'})"
+    
+    def save(self, *args, **kwargs):
+        if not self.room_id:
+            self.room_id = uuid.uuid4().hex[:16]
+        super().save(*args, **kwargs)
+
+
+class RoomMessage(models.Model):
+    """Сообщения в комнате чата"""
+    room = models.ForeignKey(ChatRoom, on_delete=models.CASCADE, related_name='messages', verbose_name="Комната")
+    sender = models.ForeignKey(User, on_delete=models.CASCADE, verbose_name="Отправитель")
+    content = models.TextField(verbose_name="Сообщение")
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name="Время отправки")
+    
+    class Meta:
+        verbose_name = "Сообщение в комнате"
+        verbose_name_plural = "Сообщения в комнатах"
+        ordering = ['created_at']
+    
+    def __str__(self):
+        return f"Сообщение от {self.sender.get_full_name() or self.sender.username} в {self.room.room_id}"
