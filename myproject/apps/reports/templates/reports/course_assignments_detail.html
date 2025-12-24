@@ -157,7 +157,7 @@
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     document.querySelectorAll('.clickable-row').forEach(function(row) {
-        row.addEventListener('click', function() {
+        row.addEventListener('dblclick', function() {
             const href = this.dataset.href;
             if (href) {
                 window.location.href = href;
