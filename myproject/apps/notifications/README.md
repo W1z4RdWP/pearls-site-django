@@ -18,6 +18,7 @@
 4. **platform_update** - Обновление платформы
 5. **course_reminder** - Напоминание о курсе
 6. **lesson_actualization** - Напоминание об актуализации урока
+7. **course_materials_updated** - Обновление материалов в завершенном курсе
 
 ## Структура проекта
 
@@ -40,7 +41,8 @@ notifications/
 │           └── notifications.css
 └── management/            # Management команды
     └── commands/
-        └── create_test_notifications.py
+        ├── create_test_notifications.py
+        └── send_lesson_actualization_reminders.py
 ```
 
 ## Установка и настройка
@@ -77,6 +79,45 @@ python manage.py create_test_notifications --all
 python manage.py create_test_notifications --user username
 ```
 
+### Отправка напоминаний об актуализации уроков
+
+Команда `send_lesson_actualization_reminders` отправляет уведомления ответственным пользователям о необходимости актуализации уроков, когда подходит дата "След. обновление" (`next_update` в `LessonVersion`).
+
+**Параметры:**
+- `--days-before` (по умолчанию: 7) - за сколько дней до даты актуализации отправлять уведомление
+- `--days-after` (по умолчанию: 0) - сколько дней после даты актуализации продолжать отправлять уведомления
+- `--dry-run` - показать, какие уведомления будут отправлены, без фактической отправки
+
+**Примеры использования:**
+
+```bash
+# Отправить уведомления за 7 дней до даты актуализации (по умолчанию)
+python manage.py send_lesson_actualization_reminders
+
+# Отправить уведомления за 14 дней до даты актуализации
+python manage.py send_lesson_actualization_reminders --days-before 14
+
+# Проверить, какие уведомления будут отправлены, без фактической отправки
+python manage.py send_lesson_actualization_reminders --dry-run
+
+# Отправить уведомления для уроков с датой актуализации от 3 дней назад до 7 дней вперед
+python manage.py send_lesson_actualization_reminders --days-before 7 --days-after 3
+```
+
+**Как определяется ответственный пользователь:**
+1. Если у пользователя, который редактировал урок, есть роль с назначенным ответственным — уведомление отправляется ответственному
+2. Иначе уведомление отправляется тому, кто редактировал урок
+
+**Защита от дубликатов:**
+- Команда не отправляет уведомления, если уже было отправлено уведомление для этого урока и пользователя в последние 30 дней
+
+**Рекомендация:** Настроить периодический запуск команды (например, через cron или Celery) для автоматической отправки уведомлений:
+
+```bash
+# Пример cron задачи (запуск каждый день в 9:00)
+0 9 * * * cd /path/to/project && python manage.py send_lesson_actualization_reminders
+```
+
 ### API endpoints
 
 - `GET /notifications/` - список всех уведомлений
@@ -92,6 +133,9 @@ python manage.py create_test_notifications --user username
 
 1. **Изменении баллов DASCOIN** - через сигнал `post_save` для модели `Profile`
 2. **Назначении траектории** - через сигнал `post_save` для модели `UserCourseTrajectory`
+3. **Добавлении урока к курсу** - через сигнал `m2m_changed` для связи `Lesson.courses`
+4. **Добавлении теста к курсу** - через сигнал `m2m_changed` для связи `Quiz.courses`
+5. **Обновлении материалов в завершенном курсе** - уведомления отправляются пользователям, которые уже завершили курс
 
 ## Кастомизация
 
