@@ -885,8 +885,14 @@ class CoursesProgressView(LoginRequiredMixin, UserPassesTestMixin, ListView):
                 )
             )
             .filter(total_assignments__gt=0)
-            .order_by('-learning_percentage', 'title')
         )
+
+        # Фильтрация по поисковому запросу
+        search_query = self.request.GET.get('search', '').strip()
+        if search_query:
+            queryset = queryset.filter(title__icontains=search_query)
+
+        queryset = queryset.order_by('-learning_percentage', 'title')
 
         return queryset
 
@@ -906,12 +912,16 @@ class CoursesProgressView(LoginRequiredMixin, UserPassesTestMixin, ListView):
 
         overall_learning_percentage = round((completed / total_assignments) * 100, 1) if total_assignments else 0
 
+        # Получаем поисковый запрос для сохранения в форме
+        search_query = self.request.GET.get('search', '').strip()
+
         context.update({
             'total_courses': len(all_courses),  # Общее количество всех курсов
             'overall_learning_percentage': overall_learning_percentage,
             'completed_assignments_total': completed,
             'in_progress_assignments_total': in_progress,
             'available_assignments_total': available,
+            'search_query': search_query,  # Для сохранения значения в поле поиска
         })
 
         return context
