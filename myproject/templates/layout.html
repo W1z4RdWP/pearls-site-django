@@ -37,6 +37,7 @@
     
     <header class='header'>
         <nav class="navbar navbar-expand-lg navbar-dark bg-dark custom-navbar">
+            <div class="gir_1" id="gir"></div><!-- Гирлянда (убрать после НГ)  -->
             <div class="container-fluid">
               {% if not request.user.groups.all.0.name == 'Внешний пользователь' %}
                 <a class="navbar-brand" href="{% url 'home' %}" id="logolink">

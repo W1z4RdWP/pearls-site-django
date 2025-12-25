@@ -91,12 +91,43 @@ header{
     display: flex;
     place-content: center;
     width: 100%;
+    position: relative;
 }
+
+/* Стили для гирлянды */
+#gir {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    background-image: url('../imgs/gir.png');
+    background-repeat: repeat-x;
+    background-size: auto 123px;
+    height: 41px;
+    width: 100%;
+    overflow: hidden;
+    z-index: 101;
+    pointer-events: none;
+}
+
+.gir_1 {
+    background-position-y: 0;
+}
+
+.gir_2 {
+    background-position-y: -41px;
+}
+
+.gir_3 {
+    background-position-y: -82px;
+}
+/* Конец стилей для гирлянды */
 
 .navbar {
     background-color: var(--color-navbar-bg) !important; /* Переопределяем фон */
     width: 100%;
     padding: 0.5rem 1rem;
+    position: relative;
 }
 
 .navbar #logopng{
