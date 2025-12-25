@@ -19,6 +19,7 @@ class Notification(models.Model):
         ('ticket_comment', 'Новое сообщение по тикету'),
         ('quiz_reviewed', 'Оценка теста наставником'),
         ('order_status', 'Изменение статуса заказа'),
+        ('course_materials_updated', 'Обновление материалов в завершенном курсе'),
     ]
     
     user = models.ForeignKey(User, on_delete=models.CASCADE, verbose_name="Пользователь")
@@ -125,6 +126,8 @@ class Notification(models.Model):
         elif self.notification_type == 'order_status' and self.related_order:
             # Уведомления о заказах ведут на страницу магазина
             return reverse('shop:shop')
+        elif self.notification_type == 'course_materials_updated' and self.related_course:
+            return reverse('courses:course_detail', kwargs={'slug': self.related_course.slug})
         return '#'
     
     @classmethod
@@ -307,4 +310,36 @@ class Notification(models.Model):
             title=title,
             message=message,
             related_order=order,
+        )
+    
+    @classmethod
+    def create_course_materials_updated_notification(cls, user, course, material_type, material_name):
+        """
+        Создает уведомление об обновлении материалов в завершенном курсе
+        
+        Args:
+            user: Пользователь, которому отправляется уведомление
+            course: Курс, в котором обновились материалы
+            material_type: Тип материала ('lesson' или 'quiz')
+            material_name: Название добавленного/обновленного материала
+        """
+        if material_type == 'lesson':
+            title = "Новый урок в завершенном курсе"
+            message = f"В курсе «{course.title}» добавлен новый урок «{material_name}»"
+        elif material_type == 'quiz':
+            title = "Новый тест в завершенном курсе"
+            message = f"В курсе «{course.title}» добавлен новый тест «{material_name}»"
+        elif material_type == 'lesson_updated':
+            title = "Обновлен урок в завершенном курсе"
+            message = f"В курсе «{course.title}» обновлен урок «{material_name}»"
+        else:
+            title = "Обновлены материалы в завершенном курсе"
+            message = f"В курсе «{course.title}» обновлены материалы"
+        
+        return cls.objects.create(
+            user=user,
+            notification_type='course_materials_updated',
+            title=title,
+            message=message,
+            related_course=course
         )

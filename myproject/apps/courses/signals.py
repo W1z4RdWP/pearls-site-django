@@ -3,7 +3,8 @@ from django.dispatch import receiver
 from django.contrib.auth.models import User,Group
 from django.utils import timezone
 from datetime import timedelta
-from courses.models import Course, Trajectory, UserCourseTrajectory, TrajectoryCourse, ManualTrajectoryUnassignment
+from courses.models import Course, Trajectory, UserCourseTrajectory, TrajectoryCourse, ManualTrajectoryUnassignment, Lesson
+from quizzes.models import Quiz
 from myapp.models import UserCourse, ManualCourseUnassignment
 from user_management.utils import send_course_assignment_email, send_trajectory_assignment_email
 import logging
@@ -624,3 +625,130 @@ def check_incident_completion_on_course_completion(sender, instance, created, **
                     pass
                 except Exception as e:
                     logger.error(f"Ошибка при проверке завершения инцидента для курса {course.title}: {e}")
+
+
+def notify_completed_course_users_about_material_update(course, material_type, material_name):
+    """
+    Отправляет уведомления всем пользователям, которые уже завершили курс,
+    о добавлении нового материала (урока или теста) или обновлении урока.
+    
+    Args:
+        course: Курс, в котором обновились материалы
+        material_type: Тип материала ('lesson', 'quiz', или 'lesson_updated')
+        material_name: Название добавленного/обновленного материала
+    """
+    try:
+        from notifications.models import Notification
+        from django.utils import timezone
+        from datetime import timedelta
+        
+        # Находим всех пользователей, которые завершили этот курс
+        completed_user_courses = UserCourse.objects.filter(
+            course=course,
+            status='completed'
+        ).select_related('user')
+        
+        # Время для проверки дубликатов (последние 5 минут)
+        time_threshold = timezone.now() - timedelta(minutes=5)
+        
+        notification_count = 0
+        for user_course in completed_user_courses:
+            try:
+                # Проверяем, не было ли уже отправлено похожее уведомление в последние 5 минут
+                # Это защита от дубликатов при одновременных операциях
+                recent_notification = Notification.objects.filter(
+                    user=user_course.user,
+                    related_course=course,
+                    notification_type='course_materials_updated',
+                    created_at__gte=time_threshold
+                ).first()
+                
+                # Если есть недавнее уведомление для этого курса, пропускаем
+                if recent_notification:
+                    logger.debug(
+                        f"Пропуск дубликата уведомления для пользователя {user_course.user.username} "
+                        f"о курсе {course.title} (уже есть уведомление от {recent_notification.created_at})"
+                    )
+                    continue
+                
+                Notification.create_course_materials_updated_notification(
+                    user=user_course.user,
+                    course=course,
+                    material_type=material_type,
+                    material_name=material_name
+                )
+                notification_count += 1
+            except Exception as e:
+                logger.error(
+                    f"Ошибка создания уведомления для пользователя {user_course.user.username} "
+                    f"о обновлении материалов в курсе {course.title}: {e}"
+                )
+        
+        if notification_count > 0:
+            logger.info(
+                f"Отправлено {notification_count} уведомлений пользователям с завершенным курсом "
+                f"«{course.title}» о добавлении/обновлении материала: {material_name}"
+            )
+    except Exception as e:
+        logger.error(f"Ошибка при отправке уведомлений о обновлении материалов курса {course.title}: {e}")
+
+
+@receiver(m2m_changed, sender=Lesson.courses.through)
+def notify_on_lesson_added_to_course(sender, instance, action, pk_set, **kwargs):
+    """
+    Отслеживает добавление урока к курсу и отправляет уведомления
+    пользователям, которые уже завершили этот курс.
+    
+    Важно: сигнал срабатывает только при реальном добавлении урока к новому курсу.
+    pk_set содержит только ID курсов, которые были добавлены в этой операции.
+    """
+    if action == "post_add" and pk_set:
+        # Получаем курсы, к которым был добавлен урок (только те, что в pk_set)
+        courses = Course.objects.filter(pk__in=pk_set)
+        
+        for course in courses:
+            # Дополнительная проверка: убеждаемся, что курс действительно в списке курсов урока
+            # Это защита от возможных race conditions
+            if course in instance.courses.all():
+                logger.info(
+                    f"Урок «{instance.title}» добавлен к курсу «{course.title}»"
+                )
+                # Отправляем уведомления пользователям с завершенным курсом
+                notify_completed_course_users_about_material_update(
+                    course=course,
+                    material_type='lesson',
+                    material_name=instance.title
+                )
+
+
+@receiver(m2m_changed, sender=Quiz.courses.through)
+def notify_on_quiz_added_to_course(sender, instance, action, pk_set, **kwargs):
+    """
+    Отслеживает добавление теста к курсу и отправляет уведомления
+    пользователям, которые уже завершили этот курс.
+    
+    Важно: сигнал срабатывает только при реальном добавлении теста к новому курсу.
+    pk_set содержит только ID курсов, которые были добавлены в этой операции.
+    """
+    if action == "post_add" and pk_set:
+        # Получаем курсы, к которым был добавлен тест (только те, что в pk_set)
+        courses = Course.objects.filter(pk__in=pk_set)
+        
+        for course in courses:
+            # Дополнительная проверка: убеждаемся, что курс действительно в списке курсов теста
+            # Это защита от возможных race conditions
+            if course in instance.courses.all():
+                logger.info(
+                    f"Тест «{instance.name}» добавлен к курсу «{course.title}»"
+                )
+                # Отправляем уведомления пользователям с завершенным курсом
+                notify_completed_course_users_about_material_update(
+                    course=course,
+                    material_type='quiz',
+                    material_name=instance.name
+                )
+
+
+# Удален сигнал post_save для Lesson, так как обновление урока само по себе
+# не должно вызывать уведомления. Уведомления отправляются только при добавлении
+# нового материала (урока или теста) к курсу через сигналы m2m_changed.
