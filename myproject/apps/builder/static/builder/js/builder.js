@@ -658,6 +658,12 @@ document.addEventListener('DOMContentLoaded', function() {
                     
                     initVersionHistoryDropdown();
                     if (typeof initActualizationHistoryDropdown === 'function') initActualizationHistoryDropdown();
+                    
+                    // Показываем кнопку прокрутки в начало
+                    const scrollTopContainer = document.getElementById('scroll-to-top-container');
+                    if (scrollTopContainer) {
+                        scrollTopContainer.style.display = 'flex';
+                    }
                 })
                 .catch(e => {
                     alert('Ошибка загрузки урока: ' + e.message);
@@ -714,6 +720,12 @@ document.addEventListener('DOMContentLoaded', function() {
                 
                 initVersionHistoryDropdown();
                 if (typeof initActualizationHistoryDropdown === 'function') initActualizationHistoryDropdown();
+                
+                // Показываем кнопку прокрутки в начало
+                const scrollTopContainer = document.getElementById('scroll-to-top-container');
+                if (scrollTopContainer) {
+                    scrollTopContainer.style.display = 'flex';
+                }
             })
             .catch(e => {
                 alert('Ошибка загрузки урока: ' + e.message);
@@ -2203,6 +2215,33 @@ document.addEventListener('DOMContentLoaded', function() {
             sessionStorage.removeItem('selected_lesson_id');
             if (li) li.scrollIntoView({ behavior: 'smooth', block: 'center' });
         }, 100);
+    }
+
+    // === Кнопка прокрутки в начало страницы ===
+    const scrollToTopBtn = document.getElementById('scroll-to-top-btn');
+    if (scrollToTopBtn) {
+        scrollToTopBtn.addEventListener('click', function() {
+            window.scrollTo({
+                top: 0,
+                behavior: 'smooth'
+            });
+        });
+        
+        // Функция для позиционирования кнопки относительно sidebar
+        function positionScrollTopButton() {
+            const sidebar = document.getElementById('sidebar');
+            if (sidebar && scrollToTopBtn) {
+                const sidebarRect = sidebar.getBoundingClientRect();
+                const sidebarCenter = sidebarRect.left + sidebarRect.width / 2;
+                const buttonWidth = scrollToTopBtn.offsetWidth || 120;
+                scrollToTopBtn.style.left = (sidebarCenter - buttonWidth / 2) + 'px';
+            }
+        }
+        
+        // Позиционируем кнопку при загрузке и изменении размера окна
+        positionScrollTopButton();
+        window.addEventListener('resize', positionScrollTopButton);
+        window.addEventListener('scroll', positionScrollTopButton);
     }
 });
 
