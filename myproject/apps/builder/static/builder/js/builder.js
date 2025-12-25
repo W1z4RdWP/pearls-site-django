@@ -2228,13 +2228,46 @@ document.addEventListener('DOMContentLoaded', function() {
         });
         
         // Функция для позиционирования кнопки относительно sidebar
+        // Кнопка изначально в потоке документа, при скролле становится fixed,
+        // но не опускается ниже bottom границы sidebar (или не ниже bottom: 43%)
         function positionScrollTopButton() {
             const sidebar = document.getElementById('sidebar');
-            if (sidebar && scrollToTopBtn) {
-                const sidebarRect = sidebar.getBoundingClientRect();
+            const scrollTopContainer = document.getElementById('scroll-to-top-container');
+            if (!sidebar || !scrollToTopBtn || !scrollTopContainer) return;
+            
+            const sidebarRect = sidebar.getBoundingClientRect();
+            const containerRect = scrollTopContainer.getBoundingClientRect();
+            const buttonHeight = scrollToTopBtn.offsetHeight || 38;
+            const viewportHeight = window.innerHeight;
+            
+            // Целевая позиция bottom: 43% от viewport
+            const targetBottomPercent = 0.43;
+            const targetBottom = viewportHeight * targetBottomPercent;
+            const targetTop = viewportHeight - targetBottom - buttonHeight;
+            
+            // Проверяем, ушла ли кнопка в исходной позиции за пределы видимой области
+            const containerTop = containerRect.top;
+            
+            // Минимальная bottom позиция - не ниже низа sidebar
+            const minBottom = viewportHeight - sidebarRect.bottom + 10;
+            
+            // Если контейнер виден в верхней части экрана - кнопка в потоке
+            if (containerTop >= targetTop) {
+                scrollToTopBtn.classList.remove('fixed-scroll-btn');
+                scrollToTopBtn.style.left = '';
+                scrollToTopBtn.style.bottom = '';
+            } else {
+                // Кнопка должна быть fixed
+                scrollToTopBtn.classList.add('fixed-scroll-btn');
+                
+                // Центрируем по горизонтали относительно sidebar
                 const sidebarCenter = sidebarRect.left + sidebarRect.width / 2;
                 const buttonWidth = scrollToTopBtn.offsetWidth || 120;
                 scrollToTopBtn.style.left = (sidebarCenter - buttonWidth / 2) + 'px';
+                
+                // Ограничиваем bottom: не ниже границы sidebar и не выше 43%
+                const effectiveBottom = Math.max(minBottom, targetBottom);
+                scrollToTopBtn.style.bottom = effectiveBottom + 'px';
             }
         }
         

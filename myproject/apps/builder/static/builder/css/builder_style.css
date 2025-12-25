@@ -1157,11 +1157,16 @@ label {
 }
 
 #scroll-to-top-btn {
-    position: fixed;
-    bottom: 10px;
+    position: relative;
     width: auto;
     min-width: 120px;
     max-width: 200px;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
     z-index: 1000;
+    transition: box-shadow 0.2s ease;
+}
+
+#scroll-to-top-btn.fixed-scroll-btn {
+    position: fixed;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
 }
