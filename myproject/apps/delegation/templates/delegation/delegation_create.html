@@ -35,6 +35,33 @@
         </div>
 
         <div class="form-group">
+            <label for="{{ form.project.id_for_label }}">{{ form.project.label }}</label>
+            {{ form.project }}
+            <small class="text-muted">Опционально</small>
+            {% if form.project.errors %}
+                <div class="text-danger mt-1">{{ form.project.errors }}</div>
+            {% endif %}
+        </div>
+
+        <div class="form-group">
+            <label for="{{ form.closing_section.id_for_label }}">{{ form.closing_section.label }}</label>
+            {{ form.closing_section }}
+            <small class="text-muted">Опционально</small>
+            {% if form.closing_section.errors %}
+                <div class="text-danger mt-1">{{ form.closing_section.errors }}</div>
+            {% endif %}
+        </div>
+
+        <div class="form-group">
+            <label for="{{ form.restrictions.id_for_label }}">{{ form.restrictions.label }}</label>
+            {{ form.restrictions }}
+            <small class="text-muted">Опционально</small>
+            {% if form.restrictions.errors %}
+                <div class="text-danger mt-1">{{ form.restrictions.errors }}</div>
+            {% endif %}
+        </div>
+
+        <div class="form-group">
             <label for="{{ form.delegated_permissions.id_for_label }}">{{ form.delegated_permissions.label }} </label>
             {{ form.delegated_permissions }}
             <small class="text-muted">Опционально</small>

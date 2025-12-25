@@ -47,6 +47,21 @@ class Delegation(models.Model):
         related_name='delegations_received',
         verbose_name='Принимающий'
     )
+    project = models.TextField(
+        verbose_name='Проект',
+        blank=True,
+        null=True
+    )
+    closing_section = models.TextField(
+        verbose_name='Какой участок закрывается',
+        blank=True,
+        null=True
+    )
+    restrictions = models.TextField(
+        verbose_name='Ограничения',
+        blank=True,
+        null=True
+    )
     delegated_permissions = models.TextField(
         verbose_name='Делегируемые права',
         help_text='Описание делегируемых прав и полномочий',
