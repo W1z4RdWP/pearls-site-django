@@ -184,15 +184,15 @@
 .lesson-list li,
 .lesson-li {
     display: flex;
-    align-items: flex-start;
+    align-items: center;
     justify-content: flex-start;
-    padding: 2px 12px;
+    padding: 4px 12px;
     margin-bottom: 2px;
     background: transparent;
     border-bottom: none;
     font-size: 0.97em;
-    min-height: 16px;
-    line-height: 1.1;
+    min-height: 24px;
+    line-height: 1.2;
     cursor: pointer;
     transition: background-color 0.2s ease;
 }
