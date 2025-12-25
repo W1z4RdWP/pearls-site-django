@@ -35,9 +35,9 @@
         </div>
 
         <div class="form-group">
-            <label for="{{ form.delegated_permissions.id_for_label }}">{{ form.delegated_permissions.label }} <span class="text-danger">*</span></label>
+            <label for="{{ form.delegated_permissions.id_for_label }}">{{ form.delegated_permissions.label }} </label>
             {{ form.delegated_permissions }}
-            <small class="text-muted">Опишите, какие права и полномочия вы делегируете</small>
+            <small class="text-muted">Опционально</small>
             {% if form.delegated_permissions.errors %}
                 <div class="text-danger mt-1">{{ form.delegated_permissions.errors }}</div>
             {% endif %}

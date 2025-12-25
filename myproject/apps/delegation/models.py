@@ -49,7 +49,9 @@ class Delegation(models.Model):
     )
     delegated_permissions = models.TextField(
         verbose_name='Делегируемые права',
-        help_text='Описание делегируемых прав и полномочий'
+        help_text='Описание делегируемых прав и полномочий',
+        blank=True,
+        null=True
     )
     start_datetime = models.DateTimeField(
         verbose_name='Дата и время начала',
