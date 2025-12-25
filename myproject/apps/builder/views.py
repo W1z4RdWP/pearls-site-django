@@ -1313,12 +1313,14 @@ class IncidentDetailListView(ListView):
                 # Вычисляем прогресс курса, если он есть
                 progress_percent = None
                 course_deadline = None
+                course_status = None
+                user_course = None
+
                 if incident.course:
                     course = incident.course
                     
                     # Получаем UserCourse для получения дедлайна
                     user_course = UserCourse.objects.filter(user=user, course=course).first()
-                    course_status = None
                     if user_course:
                         course_deadline = user_course.deadline
                         course_status = user_course.status
@@ -1399,12 +1401,13 @@ class IncidentDetailListView(ListView):
                         # Вычисляем прогресс курса, если он есть
                         progress_percent = None
                         course_deadline = None
+                        course_status = None
+                        user_course = None
                         if incident.course:
                             course = incident.course
                             
                             # Получаем UserCourse для получения дедлайна
                             user_course = UserCourse.objects.filter(user=expert, course=course).first()
-                            course_status = None
                             if user_course:
                                 course_deadline = user_course.deadline
                                 course_status = user_course.status

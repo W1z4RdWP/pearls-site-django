@@ -8,11 +8,26 @@ class DelegationCreateForm(forms.ModelForm):
     
     class Meta:
         model = Delegation
-        fields = ['delegate', 'delegated_permissions', 'start_datetime', 'end_datetime', 'comment']
+        fields = ['delegate', 'project', 'closing_section', 'restrictions', 'delegated_permissions', 'start_datetime', 'end_datetime', 'comment']
         widgets = {
             'delegate': forms.Select(attrs={
                 'class': 'form-control',
                 'required': True
+            }),
+            'project': forms.Textarea(attrs={
+                'class': 'form-control',
+                'rows': 3,
+                'placeholder': 'Укажите проект'
+            }),
+            'closing_section': forms.Textarea(attrs={
+                'class': 'form-control',
+                'rows': 3,
+                'placeholder': 'Укажите какой участок закрывается'
+            }),
+            'restrictions': forms.Textarea(attrs={
+                'class': 'form-control',
+                'rows': 3,
+                'placeholder': 'Укажите ограничения'
             }),
             'delegated_permissions': forms.Textarea(attrs={
                 'class': 'form-control',
@@ -36,6 +51,9 @@ class DelegationCreateForm(forms.ModelForm):
         }
         labels = {
             'delegate': 'Принимающий',
+            'project': 'Проект',
+            'closing_section': 'Какой участок закрывается',
+            'restrictions': 'Ограничения',
             'delegated_permissions': 'Делегируемые права',
             'start_datetime': 'Дата и время начала',
             'end_datetime': 'Дата и время окончания',

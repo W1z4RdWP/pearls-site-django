@@ -91,6 +91,9 @@
                 </div>
                 <div class="sidebar-buttons" style="margin: 18px 32px 0 32px;">
                     <a href="/builder/update_control/" id="update-control-btn" class="btn btn-outline-primary" style="width:100%;margin-top:8px;">Контроль обновлений</a>
+                    <div class="sidebar-scroll-top-container" id="scroll-to-top-container" style="display: none;">
+                        <button id="scroll-to-top-btn" class="btn btn-outline-primary" title="Вернуться к началу страницы">↑ В начало</button>
+                    </div>
                 </div>
             {% endif %}
         </div>
@@ -172,6 +175,15 @@
 
 <script>
     window.IS_READONLY = {{ is_readonly|yesno:"true,false" }};
+    // Показываем кнопку прокрутки в начало, если урок загружен при первоначальной загрузке страницы
+    document.addEventListener('DOMContentLoaded', function() {
+        {% if selected_lesson %}
+        const scrollTopContainer = document.getElementById('scroll-to-top-container');
+        if (scrollTopContainer) {
+            scrollTopContainer.style.display = 'flex';
+        }
+        {% endif %}
+    });
 </script>
 <script>
     // Если есть ?new_lesson=... в query string, кладём в sessionStorage

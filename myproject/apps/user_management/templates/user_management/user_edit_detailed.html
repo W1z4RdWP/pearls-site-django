@@ -855,34 +855,35 @@
       <div class="modal-body">
         <form method="post" action="{% url 'user_management:role_manage' %}" id="role-manage-form">
           {% csrf_token %}
-          <div class="mb-3">
-            <label for="id_new_role" class="form-label">Добавить новую должность</label>
-            <input type="text" class="form-control" id="id_new_role" name="new_role" maxlength="200">
+          <label for="id_new_role" class="form-label">Добавить новую должность</label>
+          <div class="role-form-input-group">
+            <input type="text" class="form-control" id="id_new_role" name="new_role" maxlength="200" placeholder="Введите название должности">
+            <button type="submit" class="btn btn-primary">Добавить</button>
           </div>
-          <button type="submit" class="btn btn-primary mb-3">Добавить</button>
         </form>
         <hr>
-        <h6>Существующие должности:</h6>
-        <ul class="list-group">
-          {% for role in roles %}
-          <li class="list-group-item d-flex justify-content-between align-items-center" id="role-item-{{ role.id }}">
-            <span class="role-name" id="role-name-{{ role.id }}">{{ role.name }}</span>
-            <div class="role-action-btns" style="display:flex; gap:6px; align-items:center; margin-left:10px;">
-              <button type="button" class="btn btn-sm btn-secondary" onclick="editRole({{ role.id }}, '{{ role.name|escapejs }}')">
-                <i class="fa fa-pencil"></i>
-              </button>
-              <form method="post" action="{% url 'user_management:role_delete' role.id %}" style="display:inline; margin:0;">
-                {% csrf_token %}
-                <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Удалить должность?')">
-                  <i class="fa fa-trash"></i>
+        <div class="roles-list-wrapper">
+          <ul class="list-group">
+            {% for role in roles %}
+            <li class="list-group-item d-flex justify-content-between align-items-center" id="role-item-{{ role.id }}">
+              <span class="role-name" id="role-name-{{ role.id }}">{{ role.name }}</span>
+              <div class="role-action-btns">
+                <button type="button" class="btn btn-sm btn-secondary" onclick="editRole({{ role.id }}, '{{ role.name|escapejs }}')" title="Редактировать">
+                  <i class="fa fa-pencil"></i>
                 </button>
-              </form>
-            </div>
-          </li>
-          {% empty %}
-          <li class="list-group-item">Нет должностей</li>
-          {% endfor %}
-        </ul>
+                <form method="post" action="{% url 'user_management:role_delete' role.id %}" style="display:inline; margin:0;">
+                  {% csrf_token %}
+                  <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Удалить должность?')" title="Удалить">
+                    <i class="fa fa-trash"></i>
+                  </button>
+                </form>
+              </div>
+            </li>
+            {% empty %}
+            <li class="list-group-item">Нет должностей</li>
+            {% endfor %}
+          </ul>
+        </div>
       </div>
     </div>
   </div>
@@ -928,12 +929,11 @@ function editRole(roleId, roleName) {
   form.method = 'post';
   form.action = `/user_management/roles/${roleId}/edit/`;
   form.className = 'role-edit-form';
-  form.style.display = 'inline';
   form.innerHTML = `
     <input type="hidden" name="csrfmiddlewaretoken" value="${csrfToken}">
-    <input type="text" name="new_name" value="${roleName}" class="form-control form-control-sm d-inline" style="width:120px;display:inline-block;">
-    <button type="submit" class="btn btn-sm btn-success ms-1"><i class="fa fa-save"></i></button>
-    <button type="button" class="btn btn-sm btn-secondary ms-1" onclick="cancelEditRole(${roleId}, '${roleName}')"><i class="fa fa-times"></i></button>
+    <input type="text" name="new_name" value="${roleName}" class="form-control" placeholder="Введите название должности" autocomplete="off">
+    <button type="submit" class="btn btn-sm btn-success" title="Сохранить"><i class="fa fa-save"></i></button>
+    <button type="button" class="btn btn-sm btn-secondary" onclick="cancelEditRole(${roleId}, '${roleName}')" title="Отмена"><i class="fa fa-times"></i></button>
   `;
   nameSpan.after(form);
 }

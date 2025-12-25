@@ -885,29 +885,43 @@ class CoursesProgressView(LoginRequiredMixin, UserPassesTestMixin, ListView):
                 )
             )
             .filter(total_assignments__gt=0)
-            .order_by('-learning_percentage', 'title')
         )
+
+        # Фильтрация по поисковому запросу
+        search_query = self.request.GET.get('search', '').strip()
+        if search_query:
+            queryset = queryset.filter(title__icontains=search_query)
+
+        queryset = queryset.order_by('-learning_percentage', 'title')
 
         return queryset
 
     def get_context_data(self, **kwargs):
-        """Добавляет агрегированную статистику по всем отображаемым курсам"""
+        """Добавляет агрегированную статистику по всем курсам (не только на текущей странице)"""
         context = super().get_context_data(**kwargs)
-        courses = list(context.get('courses', []))
+        
+        # Получаем полный queryset до пагинации для расчета суммарной статистики
+        all_courses = list(self.get_queryset())
+        paginated_courses = list(context.get('courses', []))
 
-        total_assignments = sum(getattr(course, 'total_assignments', 0) for course in courses)
-        completed = sum(getattr(course, 'completed_assignments', 0) for course in courses)
-        in_progress = sum(getattr(course, 'in_progress_assignments', 0) for course in courses)
-        available = sum(getattr(course, 'available_assignments', 0) for course in courses)
+        # Считаем статистику по всем курсам, а не только по текущей странице
+        total_assignments = sum(getattr(course, 'total_assignments', 0) for course in all_courses)
+        completed = sum(getattr(course, 'completed_assignments', 0) for course in all_courses)
+        in_progress = sum(getattr(course, 'in_progress_assignments', 0) for course in all_courses)
+        available = sum(getattr(course, 'available_assignments', 0) for course in all_courses)
 
         overall_learning_percentage = round((completed / total_assignments) * 100, 1) if total_assignments else 0
 
+        # Получаем поисковый запрос для сохранения в форме
+        search_query = self.request.GET.get('search', '').strip()
+
         context.update({
-            'total_courses': len(courses),
+            'total_courses': len(all_courses),  # Общее количество всех курсов
             'overall_learning_percentage': overall_learning_percentage,
             'completed_assignments_total': completed,
             'in_progress_assignments_total': in_progress,
             'available_assignments_total': available,
+            'search_query': search_query,  # Для сохранения значения в поле поиска
         })
 
         return context

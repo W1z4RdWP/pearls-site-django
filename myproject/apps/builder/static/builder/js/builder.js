@@ -658,6 +658,12 @@ document.addEventListener('DOMContentLoaded', function() {
                     
                     initVersionHistoryDropdown();
                     if (typeof initActualizationHistoryDropdown === 'function') initActualizationHistoryDropdown();
+                    
+                    // Показываем кнопку прокрутки в начало
+                    const scrollTopContainer = document.getElementById('scroll-to-top-container');
+                    if (scrollTopContainer) {
+                        scrollTopContainer.style.display = 'flex';
+                    }
                 })
                 .catch(e => {
                     alert('Ошибка загрузки урока: ' + e.message);
@@ -714,6 +720,12 @@ document.addEventListener('DOMContentLoaded', function() {
                 
                 initVersionHistoryDropdown();
                 if (typeof initActualizationHistoryDropdown === 'function') initActualizationHistoryDropdown();
+                
+                // Показываем кнопку прокрутки в начало
+                const scrollTopContainer = document.getElementById('scroll-to-top-container');
+                if (scrollTopContainer) {
+                    scrollTopContainer.style.display = 'flex';
+                }
             })
             .catch(e => {
                 alert('Ошибка загрузки урока: ' + e.message);
@@ -2203,6 +2215,66 @@ document.addEventListener('DOMContentLoaded', function() {
             sessionStorage.removeItem('selected_lesson_id');
             if (li) li.scrollIntoView({ behavior: 'smooth', block: 'center' });
         }, 100);
+    }
+
+    // === Кнопка прокрутки в начало страницы ===
+    const scrollToTopBtn = document.getElementById('scroll-to-top-btn');
+    if (scrollToTopBtn) {
+        scrollToTopBtn.addEventListener('click', function() {
+            window.scrollTo({
+                top: 0,
+                behavior: 'smooth'
+            });
+        });
+        
+        // Функция для позиционирования кнопки относительно sidebar
+        // Кнопка изначально в потоке документа, при скролле становится fixed,
+        // но не опускается ниже bottom границы sidebar (или не ниже bottom: 43%)
+        function positionScrollTopButton() {
+            const sidebar = document.getElementById('sidebar');
+            const scrollTopContainer = document.getElementById('scroll-to-top-container');
+            if (!sidebar || !scrollToTopBtn || !scrollTopContainer) return;
+            
+            const sidebarRect = sidebar.getBoundingClientRect();
+            const containerRect = scrollTopContainer.getBoundingClientRect();
+            const buttonHeight = scrollToTopBtn.offsetHeight || 38;
+            const viewportHeight = window.innerHeight;
+            
+            // Целевая позиция bottom: 43% от viewport
+            const targetBottomPercent = 0.43;
+            const targetBottom = viewportHeight * targetBottomPercent;
+            const targetTop = viewportHeight - targetBottom - buttonHeight;
+            
+            // Проверяем, ушла ли кнопка в исходной позиции за пределы видимой области
+            const containerTop = containerRect.top;
+            
+            // Минимальная bottom позиция - не ниже низа sidebar
+            const minBottom = viewportHeight - sidebarRect.bottom + 10;
+            
+            // Если контейнер виден в верхней части экрана - кнопка в потоке
+            if (containerTop >= targetTop) {
+                scrollToTopBtn.classList.remove('fixed-scroll-btn');
+                scrollToTopBtn.style.left = '';
+                scrollToTopBtn.style.bottom = '';
+            } else {
+                // Кнопка должна быть fixed
+                scrollToTopBtn.classList.add('fixed-scroll-btn');
+                
+                // Центрируем по горизонтали относительно sidebar
+                const sidebarCenter = sidebarRect.left + sidebarRect.width / 2;
+                const buttonWidth = scrollToTopBtn.offsetWidth || 120;
+                scrollToTopBtn.style.left = (sidebarCenter - buttonWidth / 2) + 'px';
+                
+                // Ограничиваем bottom: не ниже границы sidebar и не выше 43%
+                const effectiveBottom = Math.max(minBottom, targetBottom);
+                scrollToTopBtn.style.bottom = effectiveBottom + 'px';
+            }
+        }
+        
+        // Позиционируем кнопку при загрузке и изменении размера окна
+        positionScrollTopButton();
+        window.addEventListener('resize', positionScrollTopButton);
+        window.addEventListener('scroll', positionScrollTopButton);
     }
 });
 
