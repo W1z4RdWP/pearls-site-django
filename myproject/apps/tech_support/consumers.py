@@ -61,6 +61,9 @@ class ChatRoomConsumer(AsyncWebsocketConsumer):
                 message_id = text_data_json.get('message_id')
                 attachments = text_data_json.get('attachments', [])
                 
+                # Получаем информацию об аватаре пользователя
+                avatar_url, initials = await self.get_user_avatar_info(user)
+                
                 # Отправляем уведомление в группу комнаты (кроме отправителя)
                 await self.channel_layer.group_send(
                     self.room_group_name,
@@ -71,6 +74,8 @@ class ChatRoomConsumer(AsyncWebsocketConsumer):
                         'sender': user.username,
                         'sender_full_name': user.get_full_name() or user.username,
                         'sender_id': user.id,
+                        'sender_avatar': avatar_url,
+                        'sender_initials': initials,
                         'attachments': attachments,
                         'exclude_sender': self.channel_name,
                     }
@@ -88,6 +93,9 @@ class ChatRoomConsumer(AsyncWebsocketConsumer):
                 message
             )
             
+            # Получаем информацию об аватаре пользователя
+            avatar_url, initials = await self.get_user_avatar_info(user)
+            
             # Отправляем сообщение в группу комнаты
             await self.channel_layer.group_send(
                 self.room_group_name,
@@ -97,6 +105,8 @@ class ChatRoomConsumer(AsyncWebsocketConsumer):
                     'sender': user.username,
                     'sender_full_name': user.get_full_name() or user.username,
                     'sender_id': user.id,
+                    'sender_avatar': avatar_url,
+                    'sender_initials': initials,
                     'timestamp': room_message.created_at.isoformat(),
                 }
             )
@@ -119,6 +129,8 @@ class ChatRoomConsumer(AsyncWebsocketConsumer):
             'sender': event['sender'],
             'sender_full_name': event['sender_full_name'],
             'sender_id': event['sender_id'],
+            'sender_avatar': event.get('sender_avatar', ''),
+            'sender_initials': event.get('sender_initials', ''),
             'timestamp': event['timestamp'],
         }))
     
@@ -135,9 +147,36 @@ class ChatRoomConsumer(AsyncWebsocketConsumer):
             'sender': event['sender'],
             'sender_full_name': event['sender_full_name'],
             'sender_id': event['sender_id'],
+            'sender_avatar': event.get('sender_avatar', ''),
+            'sender_initials': event.get('sender_initials', ''),
             'attachments': event.get('attachments', []),
             'timestamp': event.get('timestamp', ''),
         }))
+    
+    @database_sync_to_async
+    def get_user_avatar_info(self, user):
+        """Получение информации об аватаре пользователя"""
+        try:
+            profile = user.profile
+            avatar_url = ''
+            
+            # Проверяем, есть ли кастомный аватар (не дефолтный)
+            if profile.image and profile.image.url != '/media/profile_pics/default.jpg':
+                avatar_url = profile.image.url
+            
+            # Формируем инициалы
+            initials = ''
+            if user.first_name and user.last_name:
+                initials = f"{user.first_name[0]}{user.last_name[0]}".upper()
+            elif user.first_name:
+                initials = user.first_name[0].upper()
+            elif user.username:
+                initials = user.username[:2].upper()
+            
+            return avatar_url, initials
+        except Exception:
+            # Если профиль не существует, возвращаем инициалы из username
+            return '', user.username[:2].upper() if user.username else 'U'
     
     @database_sync_to_async
     def get_room(self, room_id):
