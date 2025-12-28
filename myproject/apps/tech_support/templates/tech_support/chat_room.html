@@ -190,6 +190,33 @@
         text-align: right;
     }
     
+    /* Разделитель даты */
+    .date-separator {
+        text-align: center;
+        margin: 1.5rem 0 1rem 0;
+        position: relative;
+        clear: both;
+    }
+    
+    .date-separator-line {
+        height: 1px;
+        background: #dee2e6;
+        position: relative;
+    }
+    
+    .date-separator-text {
+        display: inline-block;
+        background: #f5f7fa;
+        padding: 0.375rem 1rem;
+        border-radius: 12px;
+        font-size: 0.813rem;
+        color: #6c757d;
+        font-weight: 500;
+        position: relative;
+        top: -0.625rem;
+        box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+    }
+    
     /* Инициалы вместо фото */
     .message-avatar-initials {
         width: 36px;
@@ -668,6 +695,15 @@
             font-size: 0.625rem;
         }
         
+        .date-separator {
+            margin: 1rem 0 0.75rem 0;
+        }
+        
+        .date-separator-text {
+            font-size: 0.75rem;
+            padding: 0.25rem 0.75rem;
+        }
+        
         .chat-input-container {
             padding: 0.625rem 0.75rem 0.75rem 0.75rem;
         }
@@ -812,55 +848,85 @@
     <div id="connection-status" class="connection-status connecting">Подключение...</div>
     
     <div class="chat-messages" id="chat-messages">
-        {% for message in room_messages %}
-        <div class="message {% if message.sender == user %}own{% else %}other{% endif %}">
-            <div class="message-avatar">
-                {% if message.sender.profile.image and message.sender.profile.image.url != '/media/profile_pics/default.jpg' %}
-                    <img src="{{ message.sender.profile.image.url }}" alt="{{ message.sender.get_full_name|default:message.sender.username }}">
-                {% else %}
-                    <div class="message-avatar-initials">
-                        {{ message.sender.first_name|first|default:message.sender.username|first|upper }}{{ message.sender.last_name|first|upper }}
+        {% load tz %}
+        {% regroup room_messages by created_at|date:"Y-m-d" as messages_by_date %}
+        
+        {% for date_group in messages_by_date %}
+            <!-- Разделитель даты -->
+            <div class="date-separator">
+                <div class="date-separator-line">
+                    <span class="date-separator-text" data-date="{{ date_group.grouper }}">
+                        {% with date_group.list.0.created_at|date:"Y-m-d" as msg_date_str %}
+                            {% now "Y-m-d" as today %}
+                            {% now "Y-m-d" as now_date %}
+                            {% if msg_date_str == today %}
+                                Сегодня
+                            {% else %}
+                                <!-- Вычисляем вчерашнюю дату -->
+                                {% now "U" as now_timestamp %}
+                                {% with now_timestamp|add:"-86400"|date:"Y-m-d" as yesterday %}
+                                    {% if msg_date_str == yesterday %}
+                                        Вчера
+                                    {% else %}
+                                        {{ date_group.list.0.created_at|date:"d E Y" }}
+                                    {% endif %}
+                                {% endwith %}
+                            {% endif %}
+                        {% endwith %}
+                    </span>
+                </div>
+            </div>
+            
+            {% for message in date_group.list %}
+            <div class="message {% if message.sender == user %}own{% else %}other{% endif %}" data-message-date="{{ message.created_at|date:'Y-m-d' }}">
+                <div class="message-avatar">
+                    {% if message.sender.profile.image and message.sender.profile.image.url != '/media/profile_pics/default.jpg' %}
+                        <img src="{{ message.sender.profile.image.url }}" alt="{{ message.sender.get_full_name|default:message.sender.username }}">
+                    {% else %}
+                        <div class="message-avatar-initials">
+                            {{ message.sender.first_name|first|default:message.sender.username|first|upper }}{{ message.sender.last_name|first|upper }}
+                        </div>
+                    {% endif %}
+                </div>
+                <div class="message-body">
+                    <div class="message-header">
+                        {{ message.sender.get_full_name|default:message.sender.username }}
                     </div>
-                {% endif %}
-            </div>
-            <div class="message-body">
-                <div class="message-header">
-                    {{ message.sender.get_full_name|default:message.sender.username }}
+                    {% if message.content %}<div class="message-content">{{ message.content }}</div>{% endif %}
+                    {% if message.attachments.exists %}
+                    <div class="message-attachments">
+                        {% for attachment in message.attachments.all %}
+                            {% if attachment.is_image %}
+                            <div class="attachment-item image-attachment">
+                                <a href="{{ attachment.file.url }}" target="_blank">
+                                    <img src="{{ attachment.file.url }}" alt="{{ attachment.filename }}" loading="lazy">
+                                </a>
+                            </div>
+                            {% elif attachment.is_video %}
+                            <div class="attachment-item video-attachment">
+                                <video controls preload="metadata">
+                                    <source src="{{ attachment.file.url }}" type="video/mp4">
+                                    Ваш браузер не поддерживает видео
+                                </video>
+                            </div>
+                            {% else %}
+                            <div class="attachment-item document-attachment">
+                                <a href="{{ attachment.file.url }}" target="_blank" download>
+                                    <span class="doc-icon">📄</span>
+                                    <div class="doc-info">
+                                        <div class="doc-name">{{ attachment.filename }}</div>
+                                        <div class="doc-size">{{ attachment.file_size_display }}</div>
+                                    </div>
+                                </a>
+                            </div>
+                            {% endif %}
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                    <div class="message-time">{{ message.created_at|date:"H:i" }}</div>
                 </div>
-                {% if message.content %}<div class="message-content">{{ message.content }}</div>{% endif %}
-                {% if message.attachments.exists %}
-                <div class="message-attachments">
-                    {% for attachment in message.attachments.all %}
-                        {% if attachment.is_image %}
-                        <div class="attachment-item image-attachment">
-                            <a href="{{ attachment.file.url }}" target="_blank">
-                                <img src="{{ attachment.file.url }}" alt="{{ attachment.filename }}" loading="lazy">
-                            </a>
-                        </div>
-                        {% elif attachment.is_video %}
-                        <div class="attachment-item video-attachment">
-                            <video controls preload="metadata">
-                                <source src="{{ attachment.file.url }}" type="video/mp4">
-                                Ваш браузер не поддерживает видео
-                            </video>
-                        </div>
-                        {% else %}
-                        <div class="attachment-item document-attachment">
-                            <a href="{{ attachment.file.url }}" target="_blank" download>
-                                <span class="doc-icon">📄</span>
-                                <div class="doc-info">
-                                    <div class="doc-name">{{ attachment.filename }}</div>
-                                    <div class="doc-size">{{ attachment.file_size_display }}</div>
-                                </div>
-                            </a>
-                        </div>
-                        {% endif %}
-                    {% endfor %}
-                </div>
-                {% endif %}
-                <div class="message-time">{{ message.created_at|date:"H:i" }}</div>
             </div>
-        </div>
+            {% endfor %}
         {% endfor %}
     </div>
     
@@ -1099,10 +1165,16 @@
     
     function addMessage(data) {
         const isOwn = data.sender_id === currentUserId;
+        const messageDate = new Date(data.timestamp);
+        
+        // Проверяем и добавляем разделитель даты если нужно
+        checkAndAddDateSeparator(messageDate);
+        
         const messageDiv = document.createElement('div');
         messageDiv.className = `message ${isOwn ? 'own' : 'other'}`;
+        messageDiv.setAttribute('data-message-date', getDateString(messageDate));
         
-        const time = new Date(data.timestamp).toLocaleTimeString('ru-RU', {
+        const time = messageDate.toLocaleTimeString('ru-RU', {
             hour: '2-digit',
             minute: '2-digit'
         });
@@ -1131,10 +1203,16 @@
     
     function addMessageWithAttachments(data) {
         const isOwn = data.sender_id === currentUserId;
+        const messageDate = new Date(data.timestamp);
+        
+        // Проверяем и добавляем разделитель даты если нужно
+        checkAndAddDateSeparator(messageDate);
+        
         const messageDiv = document.createElement('div');
         messageDiv.className = `message ${isOwn ? 'own' : 'other'}`;
+        messageDiv.setAttribute('data-message-date', getDateString(messageDate));
         
-        const time = new Date(data.timestamp).toLocaleTimeString('ru-RU', {
+        const time = messageDate.toLocaleTimeString('ru-RU', {
             hour: '2-digit',
             minute: '2-digit'
         });
@@ -1220,6 +1298,61 @@
                 </div>
             `;
         }
+    }
+    
+    // Функция для получения текста даты
+    function getDateText(date) {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        
+        const msgDate = new Date(date);
+        msgDate.setHours(0, 0, 0, 0);
+        
+        const diffTime = today - msgDate;
+        const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+        
+        if (diffDays === 0) {
+            return 'Сегодня';
+        } else if (diffDays === 1) {
+            return 'Вчера';
+        } else {
+            const months = ['января', 'февраля', 'марта', 'апреля', 'мая', 'июня', 
+                          'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря'];
+            return `${msgDate.getDate()} ${months[msgDate.getMonth()]} ${msgDate.getFullYear()}`;
+        }
+    }
+    
+    // Функция для получения даты в формате YYYY-MM-DD
+    function getDateString(date) {
+        const d = new Date(date);
+        const year = d.getFullYear();
+        const month = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+    }
+    
+    // Функция для проверки необходимости разделителя
+    function checkAndAddDateSeparator(messageDate) {
+        const dateStr = getDateString(messageDate);
+        
+        // Проверяем, есть ли уже разделитель с этой датой
+        const existingSeparator = document.querySelector(`.date-separator-text[data-date="${dateStr}"]`);
+        if (existingSeparator) {
+            return; // Разделитель уже существует
+        }
+        
+        // Создаем новый разделитель
+        const separatorDiv = document.createElement('div');
+        separatorDiv.className = 'date-separator';
+        separatorDiv.innerHTML = `
+            <div class="date-separator-line">
+                <span class="date-separator-text" data-date="${dateStr}">
+                    ${getDateText(messageDate)}
+                </span>
+            </div>
+        `;
+        
+        chatMessages.appendChild(separatorDiv);
     }
     
     // === Отправка сообщений ===
