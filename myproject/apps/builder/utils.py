@@ -292,3 +292,22 @@ def get_category_descendants(category_id):
     
     collect_descendants(category_id)
     return descendants
+
+
+
+
+def get_responsible_user_for_lesson(lesson_version):
+    """
+    Определяет ответственного пользователя для урока.
+    Если у пользователя, который редактировал урок, есть роль с назначенным ответственным —
+    возвращает ответственного. Иначе возвращает того, кто редактировал.
+    """
+    if not lesson_version or not lesson_version.updated_by:
+        return None
+    try:
+        user_role = lesson_version.updated_by.profile.role
+        if user_role and user_role.responsible_user:
+            return user_role.responsible_user
+    except Exception:
+        pass
+    return lesson_version.updated_by
