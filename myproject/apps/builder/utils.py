@@ -1,5 +1,8 @@
 from .models import CategoryName
 from courses.models import Course, UserLessonTrajectory, UserLesson
+from django.db import transaction
+from django.db.models import Max
+from courses.models import Lesson
 
 def get_compact_fio(user):
     """
@@ -119,3 +122,173 @@ def filter_categories_and_lessons_for_user(user, categories, uncategorized_lesso
             if filtered:
                 filtered_categories.append(filtered)
     return filtered_categories, filtered_uncat
+
+
+
+
+def get_category_tree_data(category_id):
+    """Получить полное дерево категории со всеми подкатегориями, уроками и зеркалами"""
+    try:
+        category = CategoryName.objects.get(pk=category_id)
+    except CategoryName.DoesNotExist:
+        return None
+    
+    def collect_category_data(cat):
+        """Рекурсивно собираем данные категории"""
+        data = {
+            'id': cat.id,
+            'name': cat.name,
+            'order': cat.order,
+            'subcategories': [],
+            'lessons': []
+        }
+        
+        # Собираем подкатегории
+        for subcat in cat.subcategories.all().order_by('order'):
+            data['subcategories'].append(collect_category_data(subcat))
+        
+        # Собираем обычные уроки
+        for lesson in cat.lessons.all().order_by('order'):
+            mirrors_count = lesson.mirrors.count()
+            has_mirrors = mirrors_count > 0
+            data['lessons'].append({
+                'id': lesson.id,
+                'title': lesson.title,
+                'content': lesson.content,
+                'video_id': lesson.video_id,
+                'order': lesson.order,
+                'is_mirror': False,
+                'original_category': None,
+                'has_mirrors': has_mirrors,
+            })
+        # Собираем зеркала
+        for mirror in cat.mirrored_lessons.select_related('lesson').order_by('order'):
+            lesson = mirror.lesson
+            mirrors_count = lesson.mirrors.count()
+            # Если у урока нет категории и только один mirror (этот), то это всё ещё зеркало
+            if lesson.category is None and mirrors_count == 1:
+                data['lessons'].append({
+                    'id': lesson.id,
+                    'title': lesson.title,
+                    'content': lesson.content,
+                    'video_id': lesson.video_id,
+                    'order': mirror.order,
+                    'is_mirror': True,
+                    'original_category': None,
+                    'mirror_id': mirror.id,
+                    'has_mirrors': False,
+                })
+            # Если вообще нет ни одной привязки (lesson.category is None и mirrors_count == 0) — обычный урок
+            elif lesson.category is None and mirrors_count == 0:
+                data['lessons'].append({
+                    'id': lesson.id,
+                    'title': lesson.title,
+                    'content': lesson.content,
+                    'video_id': lesson.video_id,
+                    'order': mirror.order,
+                    'is_mirror': False,
+                    'original_category': None,
+                    'has_mirrors': False,
+                })
+            else:
+                data['lessons'].append({
+                    'id': lesson.id,
+                    'title': lesson.title,
+                    'content': lesson.content,
+                    'video_id': lesson.video_id,
+                    'order': mirror.order,
+                    'is_mirror': True,
+                    'original_category': lesson.category.id if lesson.category else None,
+                    'mirror_id': mirror.id,
+                    'has_mirrors': False,
+                })
+        # Сортируем по order (зеркала и обычные уроки вместе)
+        data['lessons'].sort(key=lambda l: l['order'])
+        return data
+    
+    return collect_category_data(category)
+
+
+
+
+def copy_category_tree(category_data, target_parent_id=None):
+    """Рекурсивно копирует дерево категории"""
+    with transaction.atomic():
+        # Определяем порядок для новой категории
+        if target_parent_id:
+            max_order = CategoryName.objects.filter(parent_id=target_parent_id).aggregate(Max('order'))['order__max'] or 0
+        else:
+            max_order = CategoryName.objects.filter(parent__isnull=True).aggregate(Max('order'))['order__max'] or 0
+        
+        # Создаем новую категорию
+        new_category = CategoryName.objects.create(
+            name=category_data['name'] + ' (копия)',
+            parent_id=target_parent_id,
+            order=max_order + 1
+        )
+        
+        # Копируем уроки с правильным порядком
+        for i, lesson_data in enumerate(category_data['lessons']):
+            Lesson.objects.create(
+                title=lesson_data['title'] + ' (копия)',
+                content=lesson_data['content'],
+                video_id=lesson_data['video_id'],
+                category=new_category,
+                order=i + 1
+            )
+        
+        # Рекурсивно копируем подкатегории
+        for i, subcat_data in enumerate(category_data['subcategories']):
+            copy_category_tree(subcat_data, new_category.id)
+        
+        return new_category
+
+
+
+
+def move_category_tree(category_id, target_parent_id=None):
+    """Перемещает дерево категории"""
+    with transaction.atomic():
+        try:
+            category = CategoryName.objects.get(pk=category_id)
+        except CategoryName.DoesNotExist:
+            return None
+        
+        # Проверяем, что не перемещаем в саму себя
+        if target_parent_id and str(category.id) == str(target_parent_id):
+            return None
+        
+        # Проверяем, что не перемещаем в дочернюю категорию
+        if target_parent_id:
+            descendants = get_category_descendants(category_id)
+            if target_parent_id in descendants:
+                return None
+        
+        # Определяем порядок для перемещаемой категории
+        if target_parent_id:
+            max_order = CategoryName.objects.filter(parent_id=target_parent_id).aggregate(Max('order'))['order__max'] or 0
+        else:
+            max_order = CategoryName.objects.filter(parent__isnull=True).aggregate(Max('order'))['order__max'] or 0
+        
+        # Перемещаем категорию
+        category.parent_id = target_parent_id
+        category.order = max_order + 1
+        category.save(update_fields=['parent', 'order'])
+        
+        return category
+
+
+
+
+def get_category_descendants(category_id):
+    """Получить список ID всех потомков категории"""
+    descendants = set()
+    
+    def collect_descendants(cat_id):
+        subcategories = CategoryName.objects.filter(parent_id=cat_id)
+        for subcat in subcategories:
+            descendants.add(subcat.id)
+            collect_descendants(subcat.id)
+    
+    collect_descendants(category_id)
+    return descendants
