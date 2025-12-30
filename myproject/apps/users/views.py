@@ -2,9 +2,8 @@ from openpyxl import Workbook
 from openpyxl.styles import Font, PatternFill
 from weasyprint import HTML
 from django.template.loader import render_to_string
-from datetime import datetime, date
+from datetime import datetime
 
-from collections import defaultdict
 import logging
 
 
@@ -13,24 +12,14 @@ from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.http import HttpRequest, HttpResponse, JsonResponse
 from django.contrib.auth import login as auth_login
-from django.contrib.auth.models import User
 from django.contrib.auth.views import LoginView
-from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
-from django.core.paginator import Paginator, PageNotAnInteger, EmptyPage
+from django.contrib.auth.mixins import LoginRequiredMixin
 from django.views.generic import FormView, ListView
-from django.views.decorators.cache import cache_page
 from django.urls import reverse, reverse_lazy
-from django.utils.encoding import smart_str
-from django.contrib.auth.models import Group
-from django.db.models import Q, Avg, Count, Sum
-from django.utils.http import urlencode
-from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_http_methods
 
 
-from myapp.models import UserCourse, UserProgress, QuizResult, UserAnswer
-from quizzes.models import Answer
-from courses.models import UserLessonTrajectory, Course
+from myapp.models import QuizResult
 from gamification.models import Badge, Achievement, DascoinTransaction
 from .forms import UserRegisterForm, UserUpdateForm, ProfileUpdateForm
 from .models import Profile, Role
