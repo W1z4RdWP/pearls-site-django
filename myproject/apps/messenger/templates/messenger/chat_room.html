@@ -1456,6 +1456,38 @@
     
     clearFilesBtn.addEventListener('click', clearAllFiles);
     
+    // Функция для автоматического изменения высоты textarea
+    function autoResizeTextarea() {
+        const maxRows = 10;
+        
+        // Сбрасываем высоту для правильного расчета scrollHeight
+        messageInput.style.height = 'auto';
+        
+        // Получаем стили для расчета
+        const styles = getComputedStyle(messageInput);
+        const lineHeight = parseFloat(styles.lineHeight) || 20;
+        const paddingTop = parseFloat(styles.paddingTop) || 10;
+        const paddingBottom = parseFloat(styles.paddingBottom) || 10;
+        const borderTop = parseFloat(styles.borderTopWidth) || 1;
+        const borderBottom = parseFloat(styles.borderBottomWidth) || 1;
+        
+        // Вычисляем максимальную высоту для 10 строк
+        // Высота = (lineHeight * количество строк) + padding + border
+        const maxHeight = (lineHeight * maxRows) + paddingTop + paddingBottom + borderTop + borderBottom;
+        
+        // Получаем текущую высоту контента
+        const scrollHeight = messageInput.scrollHeight;
+        
+        // Устанавливаем высоту, но не больше максимальной
+        if (scrollHeight <= maxHeight) {
+            messageInput.style.height = scrollHeight + 'px';
+            messageInput.style.overflowY = 'hidden';
+        } else {
+            messageInput.style.height = maxHeight + 'px';
+            messageInput.style.overflowY = 'auto';
+        }
+    }
+
     chatForm.addEventListener('submit', function(e) {
         e.preventDefault();
         
@@ -1474,6 +1506,30 @@
         
         uploadFilesAndSendMessage(message);
         messageInput.value = '';
+        // Сбрасываем высоту после отправки
+        autoResizeTextarea();
+    });
+
+    // Обработчик нажатия клавиш
+    messageInput.addEventListener('keydown', function(e) {
+        // Если нажат Enter без Shift - отправка сообщения
+        if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault(); // Предотвращаем создание новой строки
+            chatForm.dispatchEvent(new Event('submit'));
+        }
+        // Если Shift+Enter - разрешаем стандартное поведение (новая строка)
+        // Высота изменится автоматически через обработчик input
+    });
+    
+    // Автоматическое изменение высоты при вводе текста
+    messageInput.addEventListener('input', function() {
+        autoResizeTextarea();
+    });
+    
+    // Также обновляем высоту при вставке текста
+    messageInput.addEventListener('paste', function() {
+        // Используем setTimeout чтобы дождаться вставки текста
+        setTimeout(autoResizeTextarea, 0);
     });
     
     // Drag & Drop для файлов
