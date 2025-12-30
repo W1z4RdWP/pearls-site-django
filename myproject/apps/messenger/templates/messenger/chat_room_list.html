@@ -139,7 +139,7 @@
     
     <div class="create-room-form">
         <h2>Создать новую комнату</h2>
-        <form method="post" action="{% url 'tech_support:chat_room_create' %}">
+        <form method="post" action="{% url 'messenger:chat_room_create' %}">
             {% csrf_token %}
             <div class="form-group">
                 <label for="room-name">Название комнаты (необязательно)</label>
@@ -163,7 +163,7 @@
                 <span>Создана: {{ room.created_at|date:"d.m.Y H:i" }}</span>
             </div>
             <div class="room-card-footer">
-                <a href="{% url 'tech_support:chat_room' room_id=room.room_id %}" class="btn-join">Присоединиться</a>
+                <a href="{% url 'messenger:chat_room' room_id=room.room_id %}" class="btn-join">Присоединиться</a>
             </div>
         </div>
         {% empty %}

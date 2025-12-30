@@ -83,7 +83,8 @@ INSTALLED_APPS = [
     'tech_support.apps.TechSupportConfig',
     'reports.apps.ReportsConfig',
     'delegation.apps.DelegationConfig',
-    'shop.apps.ShopConfig'
+    'shop.apps.ShopConfig',
+    'messenger.apps.MessengerConfig'
 ]
 
 X_FRAME_OPTIONS = "SAMEORIGIN"              # allows you to use modals insated of popups

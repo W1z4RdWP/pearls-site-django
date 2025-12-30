@@ -842,7 +842,7 @@
             <h2>{{ room.name|default:"Чат" }}</h2>
             <div class="room-id">ID комнаты: {{ room.room_id }}</div>
         </div>
-        <a href="{% url 'tech_support:chat_room_list' %}" class="btn btn-secondary">Список комнат</a>
+        <a href="{% url 'messenger:chat_room_list' %}" class="btn btn-secondary">Список комнат</a>
     </div>
     
     <div id="connection-status" class="connection-status connecting">Подключение...</div>
@@ -982,7 +982,7 @@
     const currentUserName = '{{ user.get_full_name|default:user.username|escapejs }}';
     const currentUserAvatar = '{% if user.profile.image %}{% if user.profile.image.url != "/media/profile_pics/default.jpg" %}{{ user.profile.image.url }}{% endif %}{% endif %}';
     const currentUserInitials = '{{ user.first_name|first|default:user.username|first|upper }}{{ user.last_name|first|upper }}';
-    const uploadUrl = '{% url "tech_support:chat_upload_attachment" room.room_id %}';
+    const uploadUrl = '{% url "messenger:chat_upload_attachment" room.room_id %}';
     const csrfToken = '{{ csrf_token }}';
     
     // Определяем WebSocket URL
