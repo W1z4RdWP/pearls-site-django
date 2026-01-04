@@ -69,6 +69,7 @@ urlpatterns = [
     path('delegation/', include('delegation.urls'), name='delegation'),
     path('user_management/', include('user_management.urls'), name='user_management'),
     path('notifications/', include('notifications.urls')),
+    path('messenger/', include('messenger.urls'), name='messenger'),
     path('i18n/', include('django.conf.urls.i18n')),
     path('ckeditor5/', include('django_ckeditor_5.urls')),
     path('changelog/', views.ChangelogListView.as_view(), name='changelog'),

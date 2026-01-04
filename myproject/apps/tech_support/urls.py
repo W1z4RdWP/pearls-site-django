@@ -27,4 +27,5 @@ urlpatterns = [
     # API: новые тикеты (для staff)
     path('api/new-tickets-count/', views.new_tickets_count, name='new_tickets_count'),
     path('reports/', views.TicketReportsView.as_view(), name='ticket_reports'),
+    
 ]

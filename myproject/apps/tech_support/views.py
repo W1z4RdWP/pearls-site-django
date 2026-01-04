@@ -4,6 +4,7 @@ from django.http import HttpResponseForbidden
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils import timezone
+from django.utils.dateparse import parse_date
 from django.views.generic import CreateView, DetailView, ListView, View
 from django.http import JsonResponse
 from django.contrib.auth.decorators import login_required
@@ -145,7 +146,7 @@ class TicketListView(ListView):
         date_from = self.request.GET.get('date_from')
         date_to = self.request.GET.get('date_to')
         start_dt = end_dt = None
-        if date_from: # TODO: Что такое parse_date???
+        if date_from: 
             d = parse_date(date_from) 
             if d:
                 start_dt = timezone.make_aware(datetime.combine(d, datetime.time.min))
