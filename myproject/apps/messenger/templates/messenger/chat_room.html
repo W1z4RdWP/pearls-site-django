@@ -1,0 +1,753 @@
+{% extends 'layout.html' %}
+{% load static %}
+
+{% block title %}Чат - {{ room.name|default:room.room_id }} - УЦ «Территория Улыбки»{% endblock %}
+
+{% block specific_styles %}
+    <link rel="stylesheet" href="{% static 'messenger/css/chat_room.css' %}">
+{% endblock %}
+
+
+{% block content %}
+    <div class="chat-container">
+        <div class="chat-header">
+            <div>
+                <h2>{{ room.name|default:"Чат" }}</h2>
+                <div class="room-id">ID комнаты: {{ room.room_id }}</div>
+            </div>
+            <a href="{% url 'messenger:chat_room_list' %}" class="btn btn-secondary">Список комнат</a>
+        </div>
+        
+        <div id="connection-status" class="connection-status connecting">Подключение...</div>
+        
+        <div class="chat-messages" id="chat-messages">
+            {% load tz %}
+            {% regroup room_messages by created_at|date:"Y-m-d" as messages_by_date %}
+            
+            {% for date_group in messages_by_date %}
+                <!-- Разделитель даты -->
+                <div class="date-separator">
+                    <div class="date-separator-line">
+                        <span class="date-separator-text" data-date="{{ date_group.grouper }}">
+                            {% with date_group.list.0.created_at|date:"Y-m-d" as msg_date_str %}
+                                {% now "Y-m-d" as today %}
+                                {% now "Y-m-d" as now_date %}
+                                {% if msg_date_str == today %}
+                                    Сегодня
+                                {% else %}
+                                    <!-- Вычисляем вчерашнюю дату -->
+                                    {% now "U" as now_timestamp %}
+                                    {% with now_timestamp|add:"-86400"|date:"Y-m-d" as yesterday %}
+                                        {% if msg_date_str == yesterday %}
+                                            Вчера
+                                        {% else %}
+                                            {{ date_group.list.0.created_at|date:"d E Y" }}
+                                        {% endif %}
+                                    {% endwith %}
+                                {% endif %}
+                            {% endwith %}
+                        </span>
+                    </div>
+                </div>
+                
+                {% for message in date_group.list %}
+                <div class="message {% if message.sender == user %}own{% else %}other{% endif %}" data-message-date="{{ message.created_at|date:'Y-m-d' }}">
+                    <div class="message-avatar">
+                        {% if message.sender.profile.image and message.sender.profile.image.url != '/media/profile_pics/default.jpg' %}
+                            <img src="{{ message.sender.profile.image.url }}" alt="{{ message.sender.get_full_name|default:message.sender.username }}">
+                        {% else %}
+                            <div class="message-avatar-initials">
+                                {{ message.sender.first_name|first|default:message.sender.username|first|upper }}{{ message.sender.last_name|first|upper }}
+                            </div>
+                        {% endif %}
+                    </div>
+                    <div class="message-body">
+                        <div class="message-header">
+                            {{ message.sender.get_full_name|default:message.sender.username }}
+                        </div>
+                        {% if message.content %}<div class="message-content">{{ message.content }}</div>{% endif %}
+                        {% if message.attachments.exists %}
+                        <div class="message-attachments">
+                            {% for attachment in message.attachments.all %}
+                                {% if attachment.is_image %}
+                                <div class="attachment-item image-attachment">
+                                    <a href="{{ attachment.file.url }}" target="_blank">
+                                        <img src="{{ attachment.file.url }}" alt="{{ attachment.filename }}" loading="lazy">
+                                    </a>
+                                </div>
+                                {% elif attachment.is_video %}
+                                <div class="attachment-item video-attachment">
+                                    <video controls preload="metadata">
+                                        <source src="{{ attachment.file.url }}" type="video/mp4">
+                                        Ваш браузер не поддерживает видео
+                                    </video>
+                                </div>
+                                {% else %}
+                                <div class="attachment-item document-attachment">
+                                    <a href="{{ attachment.file.url }}" target="_blank" download>
+                                        <span class="doc-icon">📄</span>
+                                        <div class="doc-info">
+                                            <div class="doc-name">{{ attachment.filename }}</div>
+                                            <div class="doc-size">{{ attachment.file_size_display }}</div>
+                                        </div>
+                                    </a>
+                                </div>
+                                {% endif %}
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+                        <div class="message-time">{{ message.created_at|date:"H:i" }}</div>
+                    </div>
+                </div>
+                {% endfor %}
+            {% endfor %}
+        </div>
+        
+        <div class="chat-input-container">
+            <!-- Превью выбранных файлов -->
+            <div id="file-preview-container" class="file-preview-container">
+                <div class="file-preview-header">
+                    <h4>Выбранные файлы (<span id="file-count">0</span>)</h4>
+                    <button type="button" id="clear-files-btn" class="file-preview-clear">Очистить всё</button>
+                </div>
+                <div id="file-preview-list" class="file-preview-list"></div>
+            </div>
+            
+            <!-- Индикатор загрузки -->
+            <div id="upload-progress" class="upload-progress">
+                <div class="upload-progress-bar">
+                    <div id="upload-progress-fill" class="upload-progress-fill"></div>
+                </div>
+                <div id="upload-progress-text" class="upload-progress-text">Загрузка файлов...</div>
+            </div>
+            
+            <form id="chat-form" class="chat-input-form">
+                <div class="chat-input-wrapper">
+                    <!-- Скрытый input для файлов -->
+                    <input type="file" id="file-input" multiple accept="image/*,video/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.rtf,.odt,.zip,.rar" style="display: none;">
+                    
+                    <!-- Кнопка скрепки -->
+                    <button type="button" id="attachment-btn" class="attachment-btn" title="Прикрепить файл">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M18.375 12.739l-7.693 7.693a4.5 4.5 0 01-6.364-6.364l10.94-10.94A3 3 0 1119.5 7.372L8.552 18.32m.009-.01l-.01.01m5.699-9.941l-7.81 7.81a1.5 1.5 0 002.112 2.13" />
+                        </svg>
+                    </button>
+                    
+                    <textarea 
+                        id="chat-message-input" 
+                        class="chat-input" 
+                        rows="1" 
+                        placeholder="Введите сообщение..."
+                    ></textarea>
+                </div>
+                <button type="submit" id="chat-send-btn" class="chat-send-btn" title="Отправить">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" viewBox="0 0 24 24">
+                        <path fill="currentColor" fill-rule="evenodd" d="M21.4716 4.41683C21.6818 4.58678 21.7843 4.85669 21.7398 5.12331L19.2398 20.1233C19.1977 20.3759 19.0296 20.5896 18.794 20.69C18.5584 20.7904 18.2879 20.7636 18.0765 20.619L12.3413 16.6949L9.53266 19.528C9.31867 19.7439 8.99558 19.8092 8.71452 19.6935C8.43347 19.5778 8.25003 19.3039 8.25003 19V14.1505L1.89397 13.2425C1.55713 13.1944 1.29489 12.9255 1.25516 12.5876C1.21543 12.2497 1.40817 11.9273 1.72466 11.8024L20.7247 4.30239C20.9761 4.20315 21.2614 4.24687 21.4716 4.41683ZM9.75003 14.9219L11.0828 15.8338L9.75003 17.1782V14.9219ZM12.6832 15.1113C12.6756 15.1059 12.6679 15.1006 12.6601 15.0955L10.3126 13.4893L19.9642 6.6528L17.9535 18.7173L12.6832 15.1113ZM15.498 7.97817L4.90916 12.158L8.81033 12.7153L15.498 7.97817Z" clip-rule="evenodd"></path>
+                    </svg>
+                </button>
+            </form>
+        </div>
+    </div>
+{% endblock %}
+
+
+{% block specific_scripts %}
+    <script>
+        const roomId = '{{ room.room_id }}';
+        const currentUserId = {{ user.id }};
+        const currentUserName = '{{ user.get_full_name|default:user.username|escapejs }}';
+        const currentUserAvatar = '{% if user.profile.image %}{% if user.profile.image.url != "/media/profile_pics/default.jpg" %}{{ user.profile.image.url }}{% endif %}{% endif %}';
+        const currentUserInitials = '{{ user.first_name|first|default:user.username|first|upper }}{{ user.last_name|first|upper }}';
+        const uploadUrl = '{% url "messenger:chat_upload_attachment" room.room_id %}';
+        const csrfToken = '{{ csrf_token }}';
+        
+        // Определяем WebSocket URL
+        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+        const wsUrl = `${protocol}//${window.location.host}/ws/chat/${roomId}/`;
+        
+        let chatSocket = null;
+        let reconnectAttempts = 0;
+        const maxReconnectAttempts = 5;
+        let selectedFiles = [];
+        
+        // DOM элементы
+        const chatMessages = document.getElementById('chat-messages');
+        const chatForm = document.getElementById('chat-form');
+        const messageInput = document.getElementById('chat-message-input');
+        const sendButton = document.getElementById('chat-send-btn');
+        const connectionStatus = document.getElementById('connection-status');
+        const fileInput = document.getElementById('file-input');
+        const attachmentBtn = document.getElementById('attachment-btn');
+        const filePreviewContainer = document.getElementById('file-preview-container');
+        const filePreviewList = document.getElementById('file-preview-list');
+        const fileCountSpan = document.getElementById('file-count');
+        const clearFilesBtn = document.getElementById('clear-files-btn');
+        const uploadProgress = document.getElementById('upload-progress');
+        const uploadProgressFill = document.getElementById('upload-progress-fill');
+        const uploadProgressText = document.getElementById('upload-progress-text');
+        
+        // === Функции для работы с файлами ===
+        
+        function formatFileSize(bytes) {
+            if (bytes === 0) return '0 Б';
+            const k = 1024;
+            const sizes = ['Б', 'КБ', 'МБ', 'ГБ'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+        }
+        
+        function getFileIcon(filename) {
+            const ext = filename.toLowerCase().split('.').pop();
+            const icons = {
+                pdf: '📕', doc: '📘', docx: '📘', 
+                xls: '📗', xlsx: '📗', 
+                ppt: '📙', pptx: '📙',
+                txt: '📄', rtf: '📄', odt: '📄',
+                zip: '📦', rar: '📦',
+                mp4: '🎬', avi: '🎬', mov: '🎬', mkv: '🎬', webm: '🎬',
+            };
+            return icons[ext] || '📄';
+        }
+        
+        function isImageFile(file) {
+            return file.type.startsWith('image/');
+        }
+        
+        function updateFilePreview() {
+            filePreviewList.innerHTML = '';
+            fileCountSpan.textContent = selectedFiles.length;
+            
+            if (selectedFiles.length === 0) {
+                filePreviewContainer.classList.remove('show');
+                attachmentBtn.classList.remove('has-files');
+                return;
+            }
+            
+            filePreviewContainer.classList.add('show');
+            attachmentBtn.classList.add('has-files');
+            
+            selectedFiles.forEach((file, index) => {
+                const item = document.createElement('div');
+                item.className = 'file-preview-item';
+                
+                if (isImageFile(file)) {
+                    const img = document.createElement('img');
+                    img.src = URL.createObjectURL(file);
+                    img.onload = () => URL.revokeObjectURL(img.src);
+                    item.appendChild(img);
+                } else {
+                    const iconDiv = document.createElement('div');
+                    iconDiv.className = 'file-icon';
+                    iconDiv.textContent = getFileIcon(file.name);
+                    item.appendChild(iconDiv);
+                }
+                
+                const info = document.createElement('div');
+                info.className = 'file-preview-info';
+                info.innerHTML = `
+                    <div class="file-preview-name" title="${escapeHtml(file.name)}">${escapeHtml(file.name)}</div>
+                    <div class="file-preview-size">${formatFileSize(file.size)}</div>
+                `;
+                item.appendChild(info);
+                
+                const removeBtn = document.createElement('button');
+                removeBtn.type = 'button';
+                removeBtn.className = 'file-preview-remove';
+                removeBtn.innerHTML = '×';
+                removeBtn.title = 'Удалить';
+                removeBtn.onclick = () => removeFile(index);
+                item.appendChild(removeBtn);
+                
+                filePreviewList.appendChild(item);
+            });
+        }
+        
+        function removeFile(index) {
+            selectedFiles.splice(index, 1);
+            updateFilePreview();
+        }
+        
+        function clearAllFiles() {
+            selectedFiles = [];
+            fileInput.value = '';
+            updateFilePreview();
+        }
+        
+        function handleFileSelect(e) {
+            const files = Array.from(e.target.files);
+            const maxSize = 10 * 1024 * 1024; // 10 МБ
+            
+            files.forEach(file => {
+                if (file.size > maxSize) {
+                    alert(`Файл "${file.name}" превышает максимальный размер 10 МБ`);
+                    return;
+                }
+                // Избегаем дубликатов
+                if (!selectedFiles.some(f => f.name === file.name && f.size === file.size)) {
+                    selectedFiles.push(file);
+                }
+            });
+            
+            updateFilePreview();
+        }
+        
+        // === Функции WebSocket ===
+        
+        function updateConnectionStatus(status, message) {
+            connectionStatus.className = `connection-status ${status}`;
+            connectionStatus.textContent = message;
+        }
+        
+        function connect() {
+            updateConnectionStatus('connecting', 'Подключение...');
+            
+            chatSocket = new WebSocket(wsUrl);
+            
+            chatSocket.onopen = function(e) {
+                updateConnectionStatus('connected', 'Подключено');
+                reconnectAttempts = 0;
+            };
+            
+            chatSocket.onmessage = function(e) {
+                const data = JSON.parse(e.data);
+                
+                if (data.type === 'connection_established') {
+                    updateConnectionStatus('connected', 'Подключено');
+                } else if (data.type === 'chat_message') {
+                    addMessage(data);
+                } else if (data.type === 'chat_message_with_attachments') {
+                    addMessageWithAttachments(data);
+                } else if (data.type === 'error') {
+                    alert('Ошибка: ' + data.message);
+                }
+            };
+            
+            chatSocket.onclose = function(e) {
+                updateConnectionStatus('disconnected', 'Отключено');
+                
+                if (reconnectAttempts < maxReconnectAttempts) {
+                    reconnectAttempts++;
+                    setTimeout(connect, 2000 * reconnectAttempts);
+                } else {
+                    updateConnectionStatus('disconnected', 'Не удалось подключиться. Обновите страницу.');
+                }
+            };
+            
+            chatSocket.onerror = function(e) {
+                console.error('WebSocket error:', e);
+                updateConnectionStatus('disconnected', 'Ошибка подключения');
+            };
+        }
+        
+        function addMessage(data) {
+            const isOwn = data.sender_id === currentUserId;
+            const messageDate = new Date(data.timestamp);
+            
+            // Проверяем и добавляем разделитель даты если нужно
+            checkAndAddDateSeparator(messageDate);
+            
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${isOwn ? 'own' : 'other'}`;
+            messageDiv.setAttribute('data-message-date', getDateString(messageDate));
+            
+            const time = messageDate.toLocaleTimeString('ru-RU', {
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+            
+            let contentHtml = '';
+            if (data.message) {
+                contentHtml = `<div class="message-content">${escapeHtml(data.message)}</div>`;
+            }
+            
+            // Определяем аватар и инициалы
+            const avatarUrl = isOwn ? currentUserAvatar : (data.sender_avatar || '');
+            const initials = isOwn ? currentUserInitials : (data.sender_initials || data.sender_full_name.substring(0, 2).toUpperCase());
+            
+            messageDiv.innerHTML = `
+                ${createAvatarHtml(avatarUrl, initials)}
+                <div class="message-body">
+                    <div class="message-header">${escapeHtml(data.sender_full_name)}</div>
+                    ${contentHtml}
+                    <div class="message-time">${time}</div>
+                </div>
+            `;
+            
+            chatMessages.appendChild(messageDiv);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+        
+        function addMessageWithAttachments(data) {
+            const isOwn = data.sender_id === currentUserId;
+            const messageDate = new Date(data.timestamp);
+            
+            // Проверяем и добавляем разделитель даты если нужно
+            checkAndAddDateSeparator(messageDate);
+            
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${isOwn ? 'own' : 'other'}`;
+            messageDiv.setAttribute('data-message-date', getDateString(messageDate));
+            
+            const time = messageDate.toLocaleTimeString('ru-RU', {
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+            
+            let contentHtml = '';
+            if (data.message) {
+                contentHtml = `<div class="message-content">${escapeHtml(data.message)}</div>`;
+            }
+            
+            let attachmentsHtml = '';
+            if (data.attachments && data.attachments.length > 0) {
+                attachmentsHtml = '<div class="message-attachments">';
+                data.attachments.forEach(att => {
+                    if (att.is_image) {
+                        attachmentsHtml += `
+                            <div class="attachment-item image-attachment">
+                                <a href="${att.file_url}" target="_blank">
+                                    <img src="${att.file_url}" alt="${escapeHtml(att.filename)}" loading="lazy">
+                                </a>
+                            </div>
+                        `;
+                    } else if (att.is_video) {
+                        attachmentsHtml += `
+                            <div class="attachment-item video-attachment">
+                                <video controls preload="metadata">
+                                    <source src="${att.file_url}" type="video/mp4">
+                                </video>
+                            </div>
+                        `;
+                    } else {
+                        attachmentsHtml += `
+                            <div class="attachment-item document-attachment">
+                                <a href="${att.file_url}" target="_blank" download>
+                                    <span class="doc-icon">${getFileIcon(att.filename)}</span>
+                                    <div class="doc-info">
+                                        <div class="doc-name">${escapeHtml(att.filename)}</div>
+                                        <div class="doc-size">${att.file_size_display}</div>
+                                    </div>
+                                </a>
+                            </div>
+                        `;
+                    }
+                });
+                attachmentsHtml += '</div>';
+            }
+            
+            // Определяем аватар и инициалы
+            const avatarUrl = isOwn ? currentUserAvatar : (data.sender_avatar || '');
+            const initials = isOwn ? currentUserInitials : (data.sender_initials || data.sender_full_name.substring(0, 2).toUpperCase());
+            
+            messageDiv.innerHTML = `
+                ${createAvatarHtml(avatarUrl, initials)}
+                <div class="message-body">
+                    <div class="message-header">${escapeHtml(data.sender_full_name)}</div>
+                    ${contentHtml}
+                    ${attachmentsHtml}
+                    <div class="message-time">${time}</div>
+                </div>
+            `;
+            
+            chatMessages.appendChild(messageDiv);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+        
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+        
+        // Функция для создания аватарки
+        function createAvatarHtml(avatarUrl, initials) {
+            if (avatarUrl) {
+                return `
+                    <div class="message-avatar">
+                        <img src="${avatarUrl}" alt="Avatar">
+                    </div>
+                `;
+            } else {
+                return `
+                    <div class="message-avatar">
+                        <div class="message-avatar-initials">${escapeHtml(initials)}</div>
+                    </div>
+                `;
+            }
+        }
+        
+        // Функция для получения текста даты
+        function getDateText(date) {
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            
+            const msgDate = new Date(date);
+            msgDate.setHours(0, 0, 0, 0);
+            
+            const diffTime = today - msgDate;
+            const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+            
+            if (diffDays === 0) {
+                return 'Сегодня';
+            } else if (diffDays === 1) {
+                return 'Вчера';
+            } else {
+                const months = ['января', 'февраля', 'марта', 'апреля', 'мая', 'июня', 
+                            'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря'];
+                return `${msgDate.getDate()} ${months[msgDate.getMonth()]} ${msgDate.getFullYear()}`;
+            }
+        }
+        
+        // Функция для получения даты в формате YYYY-MM-DD
+        function getDateString(date) {
+            const d = new Date(date);
+            const year = d.getFullYear();
+            const month = String(d.getMonth() + 1).padStart(2, '0');
+            const day = String(d.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        }
+        
+        // Функция для проверки необходимости разделителя
+        function checkAndAddDateSeparator(messageDate) {
+            const dateStr = getDateString(messageDate);
+            
+            // Проверяем, есть ли уже разделитель с этой датой
+            const existingSeparator = document.querySelector(`.date-separator-text[data-date="${dateStr}"]`);
+            if (existingSeparator) {
+                return; // Разделитель уже существует
+            }
+            
+            // Создаем новый разделитель
+            const separatorDiv = document.createElement('div');
+            separatorDiv.className = 'date-separator';
+            separatorDiv.innerHTML = `
+                <div class="date-separator-line">
+                    <span class="date-separator-text" data-date="${dateStr}">
+                        ${getDateText(messageDate)}
+                    </span>
+                </div>
+            `;
+            
+            chatMessages.appendChild(separatorDiv);
+        }
+        
+        // === Отправка сообщений ===
+        
+        async function uploadFilesAndSendMessage(message) {
+            if (selectedFiles.length === 0) {
+                // Только текстовое сообщение - отправляем через WebSocket
+                if (message && chatSocket && chatSocket.readyState === WebSocket.OPEN) {
+                    chatSocket.send(JSON.stringify({ message: message }));
+                }
+                return;
+            }
+            
+            // Есть файлы - загружаем через HTTP
+            const formData = new FormData();
+            formData.append('message', message);
+            selectedFiles.forEach(file => {
+                formData.append('files', file);
+            });
+            
+            // Показываем индикатор загрузки
+            uploadProgress.classList.add('show');
+            sendButton.disabled = true;
+            
+            try {
+                const xhr = new XMLHttpRequest();
+                
+                xhr.upload.addEventListener('progress', (e) => {
+                    if (e.lengthComputable) {
+                        const percent = Math.round((e.loaded / e.total) * 100);
+                        uploadProgressFill.style.width = percent + '%';
+                        uploadProgressText.textContent = `Загрузка файлов: ${percent}%`;
+                    }
+                });
+                
+                xhr.onload = function() {
+                    uploadProgress.classList.remove('show');
+                    uploadProgressFill.style.width = '0%';
+                    sendButton.disabled = false;
+                    
+                    if (xhr.status === 200) {
+                        const response = JSON.parse(xhr.responseText);
+                        
+                        // Уведомляем других участников через WebSocket
+                        if (chatSocket && chatSocket.readyState === WebSocket.OPEN) {
+                            chatSocket.send(JSON.stringify({
+                                type: 'message_with_attachments',
+                                message_id: response.message_id,
+                                message: response.message,
+                                attachments: response.attachments
+                            }));
+                        }
+                        
+                        // Добавляем сообщение локально
+                        addMessageWithAttachments({
+                            sender_id: currentUserId,
+                            sender_full_name: currentUserName,
+                            message: response.message,
+                            attachments: response.attachments,
+                            timestamp: response.timestamp
+                        });
+                        
+                        // Очищаем выбранные файлы
+                        clearAllFiles();
+                        
+                        if (response.warnings && response.warnings.length > 0) {
+                            alert('Предупреждения:\n' + response.warnings.join('\n'));
+                        }
+                    } else {
+                        const error = JSON.parse(xhr.responseText);
+                        alert('Ошибка загрузки: ' + (error.error || 'Неизвестная ошибка'));
+                    }
+                };
+                
+                xhr.onerror = function() {
+                    uploadProgress.classList.remove('show');
+                    uploadProgressFill.style.width = '0%';
+                    sendButton.disabled = false;
+                    alert('Ошибка сети при загрузке файлов');
+                };
+                
+                xhr.open('POST', uploadUrl);
+                xhr.setRequestHeader('X-CSRFToken', csrfToken);
+                xhr.send(formData);
+                
+            } catch (error) {
+                uploadProgress.classList.remove('show');
+                uploadProgressFill.style.width = '0%';
+                sendButton.disabled = false;
+                alert('Ошибка: ' + error.message);
+            }
+        }
+        
+        // === Обработчики событий ===
+        
+        attachmentBtn.addEventListener('click', () => {
+            fileInput.click();
+        });
+        
+        fileInput.addEventListener('change', handleFileSelect);
+        
+        clearFilesBtn.addEventListener('click', clearAllFiles);
+        
+        // Функция для автоматического изменения высоты textarea
+        function autoResizeTextarea() {
+            const maxRows = 10;
+            
+            // Сбрасываем высоту для правильного расчета scrollHeight
+            messageInput.style.height = 'auto';
+            
+            // Получаем стили для расчета
+            const styles = getComputedStyle(messageInput);
+            const lineHeight = parseFloat(styles.lineHeight) || 20;
+            const paddingTop = parseFloat(styles.paddingTop) || 10;
+            const paddingBottom = parseFloat(styles.paddingBottom) || 10;
+            const borderTop = parseFloat(styles.borderTopWidth) || 1;
+            const borderBottom = parseFloat(styles.borderBottomWidth) || 1;
+            
+            // Вычисляем максимальную высоту для 10 строк
+            // Высота = (lineHeight * количество строк) + padding + border
+            const maxHeight = (lineHeight * maxRows) + paddingTop + paddingBottom + borderTop + borderBottom;
+            
+            // Получаем текущую высоту контента
+            const scrollHeight = messageInput.scrollHeight;
+            
+            // Устанавливаем высоту, но не больше максимальной
+            if (scrollHeight <= maxHeight) {
+                messageInput.style.height = scrollHeight + 'px';
+                messageInput.style.overflowY = 'hidden';
+            } else {
+                messageInput.style.height = maxHeight + 'px';
+                messageInput.style.overflowY = 'auto';
+            }
+        }
+
+        chatForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const message = messageInput.value.trim();
+            
+            // Проверяем, что есть текст или файлы
+            if (!message && selectedFiles.length === 0) {
+                return;
+            }
+            
+            // Проверяем подключение для текстовых сообщений без файлов
+            if (selectedFiles.length === 0 && (!chatSocket || chatSocket.readyState !== WebSocket.OPEN)) {
+                alert('Нет подключения к чату');
+                return;
+            }
+            
+            uploadFilesAndSendMessage(message);
+            messageInput.value = '';
+            // Сбрасываем высоту после отправки
+            autoResizeTextarea();
+        });
+
+        // Обработчик нажатия клавиш
+        messageInput.addEventListener('keydown', function(e) {
+            // Если нажат Enter без Shift - отправка сообщения
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault(); // Предотвращаем создание новой строки
+                chatForm.dispatchEvent(new Event('submit'));
+            }
+            // Если Shift+Enter - разрешаем стандартное поведение (новая строка)
+            // Высота изменится автоматически через обработчик input
+        });
+        
+        // Автоматическое изменение высоты при вводе текста
+        messageInput.addEventListener('input', function() {
+            autoResizeTextarea();
+        });
+        
+        // Также обновляем высоту при вставке текста
+        messageInput.addEventListener('paste', function() {
+            // Используем setTimeout чтобы дождаться вставки текста
+            setTimeout(autoResizeTextarea, 0);
+        });
+        
+        // Drag & Drop для файлов
+        const chatInputContainer = document.querySelector('.chat-input-container');
+        
+        chatInputContainer.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            chatInputContainer.style.background = '#e3f2fd';
+        });
+        
+        chatInputContainer.addEventListener('dragleave', (e) => {
+            e.preventDefault();
+            chatInputContainer.style.background = '';
+        });
+        
+        chatInputContainer.addEventListener('drop', (e) => {
+            e.preventDefault();
+            chatInputContainer.style.background = '';
+            
+            const files = Array.from(e.dataTransfer.files);
+            const maxSize = 10 * 1024 * 1024;
+            
+            files.forEach(file => {
+                if (file.size > maxSize) {
+                    alert(`Файл "${file.name}" превышает максимальный размер 10 МБ`);
+                    return;
+                }
+                if (!selectedFiles.some(f => f.name === file.name && f.size === file.size)) {
+                    selectedFiles.push(file);
+                }
+            });
+            
+            updateFilePreview();
+        });
+        
+        // Автопрокрутка при загрузке страницы
+        window.addEventListener('load', function() {
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        });
+        
+        // Подключаемся при загрузке страницы
+        connect();
+    </script>
+{% endblock %}
+

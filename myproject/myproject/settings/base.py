@@ -68,7 +68,8 @@ INSTALLED_APPS = [
     'qsessions',
     'rangefilter',
     'rest_framework',
-    'widget_tweaks',    
+    'widget_tweaks',
+    'channels',
 
     'myapp.apps.MyappConfig',
     'api.apps.ApiConfig',
@@ -82,7 +83,8 @@ INSTALLED_APPS = [
     'tech_support.apps.TechSupportConfig',
     'reports.apps.ReportsConfig',
     'delegation.apps.DelegationConfig',
-    'shop.apps.ShopConfig'
+    'shop.apps.ShopConfig',
+    'messenger.apps.MessengerConfig'
 ]
 
 X_FRAME_OPTIONS = "SAMEORIGIN"              # allows you to use modals insated of popups
@@ -140,6 +142,7 @@ STORAGES = {
 }
 
 WSGI_APPLICATION = 'myproject.wsgi.application'
+ASGI_APPLICATION = 'myproject.asgi.application'
 
 
 # Database
@@ -195,6 +198,13 @@ CACHES = {
         'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
         'LOCATION': 'unique-snowflake',
     }
+}
+
+# Channels configuration
+CHANNEL_LAYERS = {
+    'default': {
+        'BACKEND': 'channels.layers.InMemoryChannelLayer',
+    },
 }
 
 # Password validation

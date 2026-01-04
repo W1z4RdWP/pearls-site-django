@@ -1,3 +1,4 @@
 source .venv/bin/activate
 cd myproject
-python manage.py runserver 0.0.0.0:8005
+daphne -b 0.0.0.0 -p 8005 myproject.asgi:application
+# python manage.py runserver 0.0.0.0:8005

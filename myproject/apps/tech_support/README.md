@@ -599,14 +599,3 @@ class TicketTag(models.Model):
     color = models.CharField(max_length=7)
     tickets = models.ManyToManyField(Ticket, related_name='tags')
 ```
-
-## Поддержка и документация
-
-### Дополнительные ресурсы
-- [Django документация](https://docs.djangoproject.com/)
-- [Django File Upload](https://docs.djangoproject.com/en/stable/topics/http/file-uploads/)
-- [Bootstrap документация](https://getbootstrap.com/docs/)
-
-### Контакты
-- Вопросы по разработке: [Владислав Кузнецов](https://t.me/w1z4rdWP)
-- Issues и feature requests: GitHub repository
