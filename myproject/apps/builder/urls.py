@@ -35,8 +35,7 @@ from builder.views.courses_trajectories_views import (
                     trajectory_course_remove, trajectory_course_reorder, trajectory_delete, trajectory_detail_ajax
 )
 from builder.views.dashboard_views import DashboardView
-# from .views import *
-# from .views import DashboardView
+
 
 app_name = 'builder'
 
