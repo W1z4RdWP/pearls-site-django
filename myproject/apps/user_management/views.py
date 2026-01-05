@@ -581,7 +581,7 @@ class UserEditDetailedView(UpdateView):
             
             materials_detail = []
             for lesson in lessons:
-                progress = UserProgress.objects.filter(user=user, lesson=lesson, completed=True).first()
+                progress = UserProgress.objects.filter(user=user, course=course, lesson=lesson, completed=True).first()
                 materials_detail.append({
                     'type': 'lesson', 'lesson': lesson, 'completed': progress is not None,
                     'completed_at': progress.completed_at if progress else None,
@@ -919,6 +919,7 @@ class UserProgressDashboardView(DetailView):
             for lesson in lessons:
                 progress = UserProgress.objects.filter(
                     user=user,
+                    course=course,
                     lesson=lesson,
                     completed=True
                 ).first()
