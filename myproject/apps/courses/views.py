@@ -683,7 +683,11 @@ class LessonDetailView(DetailView):
             ).first()
             
             if not manual_unassignment:
-                user_course = UserCourse.objects.create(user=request.user, course=course, status='available')
+                user_course, created = UserCourse.objects.get_or_create(
+                    user=request.user, 
+                    course=course, 
+                    defaults={'status': 'available'}
+                )
             else:
                 # Если курс был отменён вручную, перенаправляем на страницу курса
                 from django.urls import reverse
@@ -765,8 +769,9 @@ class LessonDetailView(DetailView):
         # Помечаем урок как просмотренный
         UserProgress.objects.get_or_create(
             user=self.request.user,
+            course=course,
             lesson=lesson,
-            defaults={'course': course}
+            defaults={'completed': False}
         )
         
         is_first_lesson = False
@@ -1407,7 +1412,11 @@ def complete_lesson(request, course_slug, lesson_id):
         ).first()
         
         if not manual_unassignment:
-            user_course = UserCourse.objects.create(user=user, course=course, status='available')
+            user_course, created = UserCourse.objects.get_or_create(
+                user=user, 
+                course=course, 
+                defaults={'status': 'available'}
+            )
         else:
             # Если курс был отменён вручную, перенаправляем на страницу курса
             return redirect('courses:course_detail', slug=course.slug)
@@ -1450,8 +1459,9 @@ def complete_lesson(request, course_slug, lesson_id):
     # Проверяем, был ли урок уже завершен ранее
     progress, created = UserProgress.objects.get_or_create(
         user=user,
+        course=course,
         lesson=lesson,
-        defaults={'completed': False, 'course': course}
+        defaults={'completed': False}
     )
     
     # Проверяем, получал ли пользователь уже баллы за этот урок в рамках данного курса
@@ -1470,8 +1480,9 @@ def complete_lesson(request, course_slug, lesson_id):
     # Создаем или обновляем прогресс
     UserProgress.objects.update_or_create(
         user=user,
+        course=course,
         lesson=lesson,
-        defaults={'completed': True, 'course': course}
+        defaults={'completed': True}
     )
     
     # Проверяем и выдаем бейдж "Первый шаг" за первый урок после регистрации
@@ -1803,21 +1814,21 @@ class UserCourseTrajectoryListView(ListView):
         
         user_courses = []
         for course in filtered_courses:
-            user_course = UserCourse.objects.filter(user=user, course=course).first()
-            if user_course:
-                user_courses.append(user_course)
-            else:
-                # Проверяем, не был ли курс отменен вручную
-                manual_unassignment = ManualCourseUnassignment.objects.filter(
+            # Проверяем, не был ли курс отменен вручную
+            manual_unassignment = ManualCourseUnassignment.objects.filter(
+                user=user, 
+                course=course
+            ).first()
+            
+            if not manual_unassignment:
+                # Создаем или получаем UserCourse если его нет (для курсов из траекторий)
+                user_course, created = UserCourse.objects.get_or_create(
                     user=user, 
-                    course=course
-                ).first()
-                
-                if not manual_unassignment:
-                    # Создаем UserCourse если его нет (для курсов из траекторий)
-                    user_course = UserCourse.objects.create(user=user, course=course, status='available')
-                    user_courses.append(user_course)
-                # Если была ручная отмена, просто пропускаем этот курс
+                    course=course, 
+                    defaults={'status': 'available'}
+                )
+                user_courses.append(user_course)
+            # Если была ручная отмена, просто пропускаем этот курс
         
         # Подготавливаем данные для каждого курса
         courses_data = []

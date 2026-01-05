@@ -11,10 +11,6 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        migrations.RemoveField(
-            model_name='ticket',
-            name='is_anonymous',
-        ),
         migrations.AlterField(
             model_name='roommessage',
             name='content',

@@ -20,9 +20,10 @@ class UserProgress(models.Model):
     completed_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
-        unique_together = ('user', 'lesson')
+        unique_together = ('user', 'course', 'lesson')
         indexes = [
             models.Index(fields=['user'], name='userprogress_user_idx'),
+            models.Index(fields=['user', 'course'], name='userprogress_user_course_idx'),
         ]
 
     def save(self, *args, **kwargs):
