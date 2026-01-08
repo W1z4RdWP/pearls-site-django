@@ -586,6 +586,7 @@ class CourseDetailView(DetailView):
             'lesson_blocked_id': lesson_blocked_id,
             'quiz_blocked_id': quiz_blocked_id,
             'quiz_statuses': locals().get('quiz_statuses', {}),
+            'homework_statuses': self._get_homework_statuses(user, course) if user.is_authenticated else {},
             'is_deadline_overdue': is_deadline_overdue,
             'incident': incident,
             'lesson_quizzes_info': lesson_quizzes_info,
@@ -593,6 +594,26 @@ class CourseDetailView(DetailView):
         
         return context
 
+    def _get_homework_statuses(self, user, course):
+        """
+        Получает статусы заданий для пользователя в курсе.
+        Возвращает словарь {homework_id: status}
+        """
+        from quizzes.models import HomeworkSubmission
+        
+        homework_statuses = {}
+        for homework in course.homeworks:
+            submission = HomeworkSubmission.objects.filter(
+                user=user,
+                homework=homework,
+                course=course
+            ).order_by('-submitted_at').first()
+            if submission:
+                homework_statuses[homework.id] = submission.status
+            else:
+                homework_statuses[homework.id] = None
+        return homework_statuses
+    
     def _get_next_material(self, user, course, trajectory, max_completed_order):
         """
         Находит следующий материал (урок или тест) для продолжения обучения
@@ -1067,6 +1088,8 @@ class AddLessonView(LoginRequiredMixin, UserPassesTestMixin, View):
                 current_order = self._add_uncategorized_lesson(item_id, current_order)
             elif item_id.startswith('quiz_'):
                 current_order = self._add_quiz(item_id, current_order)
+            elif item_id.startswith('homework_'):
+                current_order = self._add_homework(item_id, current_order)
         
         return redirect('courses:course_detail', slug=self.course.slug)
     
@@ -1116,6 +1139,19 @@ class AddLessonView(LoginRequiredMixin, UserPassesTestMixin, View):
             quiz.courses.add(self.course)
             quiz.order = current_order
             quiz.save()
+            return current_order + 1
+        return current_order
+    
+    def _add_homework(self, item_id, current_order):
+        """Добавление задания"""
+        from quizzes.models import Homework
+        homework_id = item_id.replace('homework_', '')
+        homework = get_object_or_404(Homework, id=homework_id)
+        
+        if self.course not in homework.courses.all():
+            homework.courses.add(self.course)
+            homework.order = current_order
+            homework.save()
             return current_order + 1
         return current_order
     
@@ -1169,11 +1205,13 @@ class AddLessonView(LoginRequiredMixin, UserPassesTestMixin, View):
     
     def get_context_data(self):
         """Формирование контекста для шаблона"""
+        from quizzes.models import Homework
         return {
             'course': self.course,
             'categories_data': self._get_categories_with_lessons(),
             'uncategorized_lessons': Lesson.objects.filter(category__isnull=True).order_by('order', 'title'),
             'all_quizzes': Quiz.objects.all().order_by('name'),
+            'all_homeworks': Homework.objects.all().order_by('name'),
         }
 
 
@@ -1303,12 +1341,29 @@ def remove_quiz_from_course(request, course_slug, quiz_id):
     """Удаление теста из курса"""
     course = get_object_or_404(Course, slug=course_slug)
     quiz = get_object_or_404(Quiz, id=quiz_id)
-    
+
     if request.method == 'POST':
         # Удаляем связь между тестом и курсом
         course.course_quizzes.remove(quiz)
         return redirect('courses:course_detail', slug=course.slug)
-    
+
+    # GET запрос - редирект на страницу курса
+    return redirect('courses:course_detail', slug=course.slug)
+
+
+@login_required
+@user_passes_test(is_admin, login_url='/')
+def remove_homework_from_course(request, course_slug, homework_id):
+    """Удаление задания из курса"""
+    from quizzes.models import Homework
+    course = get_object_or_404(Course, slug=course_slug)
+    homework = get_object_or_404(Homework, id=homework_id)
+
+    if request.method == 'POST':
+        # Удаляем связь между заданием и курсом
+        course.course_homeworks.remove(homework)
+        return redirect('courses:course_detail', slug=course.slug)
+
     # GET запрос - редирект на страницу курса
     return redirect('courses:course_detail', slug=course.slug)
 

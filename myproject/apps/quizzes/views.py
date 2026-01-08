@@ -4,14 +4,14 @@ from django.views.decorators.http import require_http_methods
 from django.db.models import Count, Exists, OuterRef, Max, Q
 from datetime import timedelta
 from django.contrib import messages
-from django.views.generic import DetailView, TemplateView
+from django.views.generic import DetailView, TemplateView, View, CreateView, UpdateView, DeleteView
 from django.core.paginator import Paginator
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.contrib.auth.models import User
 
 from myapp.models import QuizResult, UserCourse, UserAnswer, UserProgress
 from courses.models import Course, Lesson
-from .models import Quiz, Question, Answer, QuizAttempt
+from .models import Quiz, Question, Answer, QuizAttempt, Homework, HomeworkSubmission
 from .utils import DataMixin
 from gamification.utils import award_dascoin_points, award_achievement, award_course_badge
 from courses.utils import issue_certificate
@@ -43,12 +43,21 @@ class StartQuizView(LoginRequiredMixin, UserPassesTestMixin, DataMixin, Template
     def get_context_data(self, **kwargs):        
         context = super().get_context_data(**kwargs)
         quizzes = Quiz.objects.annotate(questions_count=Count('question')).order_by('-id')
-        paginator = Paginator(quizzes, 5)  # Показывать 10 тестов на странице
+        paginator = Paginator(quizzes, 5)  # Показывать 5 тестов на странице
         page_number = self.request.GET.get('page', 1)
         page_obj = paginator.get_page(page_number)
         context = self.get_mixin_context(context, topics=page_obj)
         context['page_obj'] = page_obj  # Для управления пагинацией в шаблоне
         context = self.get_mixin_context(context)
+        
+        # Добавляем задания (homeworks)
+        homeworks = Homework.objects.all().order_by('-id')
+        homeworks_paginator = Paginator(homeworks, 5)
+        homeworks_page_number = self.request.GET.get('hw_page', 1)
+        homeworks_page_obj = homeworks_paginator.get_page(homeworks_page_number)
+        context['homeworks'] = homeworks_page_obj
+        context['homeworks_page_obj'] = homeworks_page_obj
+        
         return context
 
 
@@ -1766,6 +1775,50 @@ class PendingQuizzesView(LoginRequiredMixin, UserPassesTestMixin, TemplateView):
         context['selected_mentor_id'] = mentor_id if mentor_id else ''
         context['is_overdue_filter'] = bool(is_overdue_filter)
         
+        # Добавляем задания (HomeworkSubmission) на проверку
+        homework_status_filter = 'pending' if status_filter == 'pending' else 'correct'
+        if status_filter == 'reviewed':
+            # Для проверенных показываем и correct, и incorrect
+            homework_base_query = HomeworkSubmission.objects.filter(
+                status__in=['correct', 'incorrect']
+            )
+        else:
+            homework_base_query = HomeworkSubmission.objects.filter(
+                status='pending'
+            )
+        
+        # Фильтрация по группам для наставников
+        if (hasattr(self.request.user, 'profile') and 
+            self.request.user.profile.is_mentor_user and 
+            not self.request.user.is_staff and 
+            not self.request.user.is_superuser):
+            mentor_groups = self.request.user.groups.all()
+            if mentor_groups.exists():
+                homework_base_query = homework_base_query.filter(user__groups__in=mentor_groups).distinct()
+            else:
+                homework_base_query = homework_base_query.none()
+        
+        # Фильтр по дате
+        if date_from:
+            homework_base_query = homework_base_query.filter(submitted_at__gte=date_from_datetime)
+        if date_to:
+            homework_base_query = homework_base_query.filter(submitted_at__lte=date_to_datetime)
+        
+        # Фильтр по наставнику (через курс)
+        if mentor_id:
+            homework_base_query = homework_base_query.filter(course__responsible_mentor_id=mentor_id)
+        
+        pending_homeworks = homework_base_query.select_related(
+            'user', 'homework', 'course', 'course__responsible_mentor'
+        ).order_by('-submitted_at')
+        
+        hw_paginator = Paginator(pending_homeworks, 20)
+        hw_page_number = self.request.GET.get('hw_page', 1)
+        hw_page_obj = hw_paginator.get_page(hw_page_number)
+        
+        context['pending_homeworks'] = hw_page_obj
+        context['hw_page_obj'] = hw_page_obj
+        
         return context
 
 
@@ -2175,3 +2228,331 @@ def quiz_upload_docx(request):
                 os.unlink(tmp_path)
             except Exception:
                 pass
+
+
+# ============================================
+# Views для заданий (Homework)
+# ============================================
+
+class HomeworkCreateView(LoginRequiredMixin, UserPassesTestMixin, CreateView):
+    """Создание нового задания"""
+    model = Homework
+    template_name = 'quizzes/homework_form.html'
+    login_url = 'users:login'
+    
+    def test_func(self):
+        """Только администраторы"""
+        return self.request.user.is_staff or self.request.user.is_superuser
+    
+    def get_form_class(self):
+        from .forms import HomeworkForm
+        return HomeworkForm
+    
+    def get_success_url(self):
+        from django.urls import reverse
+        return reverse('quizzes:quizzes')
+    
+    def form_valid(self, form):
+        from django.contrib import messages
+        response = super().form_valid(form)
+        messages.success(self.request, f'Задание "{form.instance.title}" успешно создано!')
+        return response
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['action'] = 'Создать'
+        return context
+
+
+class HomeworkEditView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
+    """Редактирование задания"""
+    template_name = 'quizzes/homework_form.html'
+    login_url = 'users:login'
+    pk_url_kwarg = 'homework_id'
+    
+    def test_func(self):
+        """Только администраторы"""
+        return self.request.user.is_staff or self.request.user.is_superuser
+    
+    def get_queryset(self):
+        from .models import Homework
+        return Homework.objects.all()
+    
+    def get_form_class(self):
+        from .forms import HomeworkForm
+        return HomeworkForm
+    
+    def get_success_url(self):
+        from django.urls import reverse
+        return reverse('quizzes:quizzes')
+    
+    def form_valid(self, form):
+        from django.contrib import messages
+        response = super().form_valid(form)
+        messages.success(self.request, f'Задание "{form.instance.title}" успешно обновлено!')
+        return response
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['action'] = 'Редактировать'
+        return context
+
+
+class HomeworkDeleteView(LoginRequiredMixin, UserPassesTestMixin, DeleteView):
+    """Удаление задания"""
+    template_name = 'quizzes/homework_confirm_delete.html'
+    login_url = 'users:login'
+    pk_url_kwarg = 'homework_id'
+    
+    def test_func(self):
+        """Только администраторы"""
+        return self.request.user.is_staff or self.request.user.is_superuser
+    
+    def get_queryset(self):
+        from .models import Homework
+        return Homework.objects.all()
+    
+    def get_success_url(self):
+        from django.urls import reverse
+        return reverse('quizzes:quizzes')
+    
+    def delete(self, request, *args, **kwargs):
+        from django.contrib import messages
+        homework = self.get_object()
+        messages.success(request, f'Задание "{homework.title}" успешно удалено!')
+        return super().delete(request, *args, **kwargs)
+
+
+class HomeworkSubmitView(LoginRequiredMixin, View):
+    """Выполнение задания пользователем"""
+    template_name = 'quizzes/homework_submit.html'
+    
+    def dispatch(self, request, *args, **kwargs):
+        from .models import Homework
+        self.homework = get_object_or_404(Homework, id=kwargs['homework_id'])
+        return super().dispatch(request, *args, **kwargs)
+    
+    def get(self, request, *args, **kwargs):
+        from .forms import HomeworkSubmissionForm
+        from .models import HomeworkSubmission
+        
+        course_slug = request.GET.get('course_slug')
+        course = None
+        if course_slug:
+            course = get_object_or_404(Course, slug=course_slug)
+        
+        # Проверяем, есть ли уже отправленный ответ
+        existing_submission = HomeworkSubmission.objects.filter(
+            user=request.user,
+            homework=self.homework,
+            course=course
+        ).first()
+        
+        form = HomeworkSubmissionForm()
+        
+        context = {
+            'homework': self.homework,
+            'form': form,
+            'course': course,
+            'existing_submission': existing_submission,
+        }
+        return render(request, self.template_name, context)
+    
+    def post(self, request, *args, **kwargs):
+        from .forms import HomeworkSubmissionForm
+        from .models import HomeworkSubmission, HomeworkSubmissionImage
+        from django.contrib import messages
+        
+        course_slug = request.POST.get('course_slug') or request.GET.get('course_slug')
+        course = None
+        if course_slug:
+            course = get_object_or_404(Course, slug=course_slug)
+        
+        form = HomeworkSubmissionForm(request.POST, request.FILES)
+        images = request.FILES.getlist('images')
+        
+        # Проверяем, что есть хотя бы текст или изображения
+        answer_text = request.POST.get('answer_text', '').strip()
+        if not answer_text and not images:
+            form.add_error(None, 'Введите текст ответа или прикрепите хотя бы одно фото.')
+            context = {
+                'homework': self.homework,
+                'form': form,
+                'course': course,
+            }
+            return render(request, self.template_name, context)
+        
+        if form.is_valid():
+            # Проверяем, есть ли уже отправленный ответ
+            existing = HomeworkSubmission.objects.filter(
+                user=request.user,
+                homework=self.homework,
+                course=course
+            ).first()
+            
+            if existing:
+                # Обновляем существующий ответ
+                existing.answer_text = form.cleaned_data['answer_text'] or ''
+                existing.status = 'pending'
+                existing.reviewed_by = None
+                existing.reviewed_at = None
+                existing.mentor_feedback = None
+                existing.save()
+                
+                # Удаляем старые изображения и добавляем новые
+                if images:
+                    existing.images.all().delete()
+                    for image in images:
+                        HomeworkSubmissionImage.objects.create(
+                            submission=existing,
+                            image=image
+                        )
+                
+                submission = existing
+                messages.info(request, 'Ваш ответ обновлен и отправлен на проверку!')
+            else:
+                # Создаем новый ответ
+                submission = form.save(commit=False)
+                submission.user = request.user
+                submission.homework = self.homework
+                submission.course = course
+                submission.status = 'pending'
+                submission.answer_text = submission.answer_text or ''
+                submission.save()
+                
+                # Сохраняем изображения
+                for image in images:
+                    HomeworkSubmissionImage.objects.create(
+                        submission=submission,
+                        image=image
+                    )
+                
+                messages.success(request, 'Ваш ответ отправлен на проверку!')
+            
+            # Перенаправляем обратно на страницу курса или на главную
+            if course:
+                return redirect('courses:course_detail', slug=course.slug)
+            return redirect('home')
+        
+        context = {
+            'homework': self.homework,
+            'form': form,
+            'course': course,
+        }
+        return render(request, self.template_name, context)
+
+
+class HomeworkReviewView(LoginRequiredMixin, UserPassesTestMixin, View):
+    """Проверка задания наставником"""
+    template_name = 'quizzes/homework_review.html'
+    
+    def test_func(self):
+        """Проверка прав доступа"""
+        if not self.request.user.is_authenticated:
+            return False
+        
+        # Доступ для staff/superuser
+        if self.request.user.is_staff or self.request.user.is_superuser:
+            return True
+        
+        # Доступ для наставников
+        if hasattr(self.request.user, 'profile') and self.request.user.profile.is_mentor_user:
+            return True
+        
+        return False
+    
+    def dispatch(self, request, *args, **kwargs):
+        from .models import HomeworkSubmission
+        self.submission = get_object_or_404(HomeworkSubmission, id=kwargs['submission_id'])
+        return super().dispatch(request, *args, **kwargs)
+    
+    def get(self, request, *args, **kwargs):
+        context = {
+            'submission': self.submission,
+            'homework': self.submission.homework,
+        }
+        return render(request, self.template_name, context)
+    
+    def post(self, request, *args, **kwargs):
+        from django.contrib import messages
+        from notifications.models import Notification
+        from gamification.utils import award_dascoin_points
+        
+        status = request.POST.get('status')  # 'correct' или 'incorrect'
+        mentor_feedback = request.POST.get('mentor_feedback', '')
+        
+        if status not in ['correct', 'incorrect']:
+            messages.error(request, 'Неверный статус оценки!')
+            return redirect('quizzes:homework_review', submission_id=self.submission.id)
+        
+        self.submission.status = status
+        self.submission.mentor_feedback = mentor_feedback
+        self.submission.reviewed_by = request.user
+        self.submission.reviewed_at = timezone.now()
+        self.submission.save()
+        
+        # Создаем уведомление для пользователя
+        if status == 'correct':
+            title = "Задание проверено: Правильно!"
+            message = f"Ваше задание «{self.submission.homework.title}» проверено наставником и засчитано!"
+            if mentor_feedback:
+                message += f"\n\nКомментарий наставника: {mentor_feedback}"
+            
+            # Начисляем DASCOIN за правильно выполненное задание
+            if self.submission.homework.points > 0:
+                award_dascoin_points(
+                    self.submission.user, 
+                    self.submission.homework.points, 
+                    f"Выполнение задания: {self.submission.homework.title}"
+                )
+        else:
+            title = "Задание проверено: Не засчитано"
+            message = f"Ваше задание «{self.submission.homework.title}» проверено наставником."
+            if mentor_feedback:
+                message += f"\n\nКомментарий наставника: {mentor_feedback}"
+            else:
+                message += "\n\nПопробуйте выполнить задание заново."
+        
+        # Создаем уведомление
+        Notification.objects.create(
+            user=self.submission.user,
+            notification_type='homework_reviewed',
+            title=title,
+            message=message,
+            related_course=self.submission.course
+        )
+        
+        messages.success(request, f'Задание оценено: {self.submission.get_status_display()}')
+        
+        # Логируем действие
+        audit_logger.info(
+            f"Задание {self.submission.homework.title} пользователя {self.submission.user.username} "
+            f"проверено наставником {request.user.username}. Статус: {status}"
+        )
+        
+        return redirect('quizzes:pending_quizzes')
+
+
+def search_homeworks_ajax(request):
+    """
+    AJAX endpoint для поиска заданий по названию
+    """
+    from .models import Homework
+    
+    search_term = request.GET.get('q', '').strip()
+    
+    if search_term:
+        homeworks = Homework.objects.filter(
+            name__icontains=search_term
+        ).order_by('-id').values('id', 'name', 'points')
+    else:
+        homeworks = Homework.objects.all().order_by('-id').values('id', 'name', 'points')[:100]
+    
+    # Преобразуем 'name' в 'title' для совместимости с фронтендом
+    results = [{'id': h['id'], 'title': h['name'], 'points': h['points']} for h in homeworks]
+    
+    return JsonResponse({
+        'success': True,
+        'results': results,
+        'count': len(results)
+    })

@@ -17,7 +17,7 @@
     <div class="row">
         <div class="col-12">
             <div class="d-flex justify-content-between align-items-center mb-4">
-                <h1>Панель управления тестами</h1>
+                <h1>Панель управления тестами и заданиями</h1>
                 <div class="d-flex gap-2">
                     <button type="button" class="btn-mini primary btn-upload-quiz" data-bs-toggle="modal" data-bs-target="#uploadQuizModal">
                         <i class="fas fa-file-upload"></i> Добавить тест из DOCX
@@ -25,6 +25,9 @@
                     <button type="button" class="btn-mini primary btn-create-quiz" data-bs-toggle="modal" data-bs-target="#createQuizModal">
                         <i class="fas fa-plus"></i> Создать тест
                     </button>
+                    <a href="{% url 'quizzes:homework_create' %}" class="btn-mini success">
+                        <i class="fas fa-tasks"></i> Создать задание
+                    </a>
                 </div>
             </div>
         </div>
@@ -40,55 +43,158 @@
     </div>
     {% endif %}
 
-    <div class="row">
-        {% for topic in topics %}
-        <div class="col-12 mb-3">
-            <div class="card quiz-card shadow-sm h-100" data-quiz-name="{{ topic.name|lower }}">
-                <div class="card-body d-flex align-items-center">
-                    <div class="quiz-info">
-                        <h5 class="card-title mb-1">{{ topic.name }}</h5>
-                        <p class="text-muted mb-2">{{ topic.questions_count }} вопросов</p>
-                        <p class="text-muted mb-1">
-                            <i class="fas fa-redo-alt"></i> 
-                            Лимит попыток: {% if topic.attempt_limit > 0 %}{{ topic.attempt_limit }}{% else %}∞{% endif %}
-                        </p>
-                        <p class="text-muted mb-1">
-                            <i class="fas fa-percentage"></i> 
-                            Проходной балл: {{ topic.pass_threshold }}%
-                        </p>
-                        <p class="text-muted mb-2">
-                            <i class="fas fa-clock"></i> 
-                            Время: {% if topic.time_limit > 0 %}{{ topic.time_limit }} мин{% else %}∞{% endif %}
-                        </p>
-                        <small class="text-secondary">ID: {{ topic.id }}</small>
-                    </div>
-                    <div class="quiz-actions">
-                        <a href="{% url 'quizzes:quiz_start' quiz_id=topic.id %}?from_control_panel=1" 
-                           class="btn-mini success btn-sm">
-                            <i class="fas fa-play"></i> Запустить
-                        </a>
-                        <a href="{% url 'quizzes:quiz_edit' quiz_id=topic.id %}" 
-                           class="btn-mini edit btn-sm">
-                            <i class="fas fa-edit"></i> Редактировать
-                        </a>
-                        <button type="button" 
-                                class="btn-mini delete btn-sm btn-delete-quiz"
-                                data-quiz-id="{{ topic.id }}"
-                                data-quiz-name="{{ topic.name }}">
-                            <i class="fas fa-trash"></i> Удалить
-                        </button>
+    <!-- Вкладки для переключения между тестами и заданиями -->
+    <ul class="nav nav-tabs mb-4" id="controlPanelTabs" role="tablist">
+        <li class="nav-item" role="presentation">
+            <button class="nav-link active" id="quizzes-tab" data-bs-toggle="tab" data-bs-target="#quizzes-content" type="button" role="tab">
+                <i class="fas fa-question-circle"></i> Тесты ({{ page_obj.paginator.count }})
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="homeworks-tab" data-bs-toggle="tab" data-bs-target="#homeworks-content" type="button" role="tab">
+                <i class="fas fa-tasks"></i> Задания ({{ homeworks_page_obj.paginator.count }})
+            </button>
+        </li>
+    </ul>
+
+    <div class="tab-content" id="controlPanelTabsContent">
+        <!-- Вкладка с тестами -->
+        <div class="tab-pane fade show active" id="quizzes-content" role="tabpanel">
+            <div class="row">
+                {% for topic in topics %}
+                <div class="col-12 mb-3">
+                    <div class="card quiz-card shadow-sm h-100" data-quiz-name="{{ topic.name|lower }}">
+                        <div class="card-body d-flex align-items-center">
+                            <div class="quiz-info">
+                                <h5 class="card-title mb-1">{{ topic.name }}</h5>
+                                <p class="text-muted mb-2">{{ topic.questions_count }} вопросов</p>
+                                <p class="text-muted mb-1">
+                                    <i class="fas fa-redo-alt"></i> 
+                                    Лимит попыток: {% if topic.attempt_limit > 0 %}{{ topic.attempt_limit }}{% else %}∞{% endif %}
+                                </p>
+                                <p class="text-muted mb-1">
+                                    <i class="fas fa-percentage"></i> 
+                                    Проходной балл: {{ topic.pass_threshold }}%
+                                </p>
+                                <p class="text-muted mb-2">
+                                    <i class="fas fa-clock"></i> 
+                                    Время: {% if topic.time_limit > 0 %}{{ topic.time_limit }} мин{% else %}∞{% endif %}
+                                </p>
+                                <small class="text-secondary">ID: {{ topic.id }}</small>
+                            </div>
+                            <div class="quiz-actions">
+                                <a href="{% url 'quizzes:quiz_start' quiz_id=topic.id %}?from_control_panel=1" 
+                                   class="btn-mini success btn-sm">
+                                    <i class="fas fa-play"></i> Запустить
+                                </a>
+                                <a href="{% url 'quizzes:quiz_edit' quiz_id=topic.id %}" 
+                                   class="btn-mini edit btn-sm">
+                                    <i class="fas fa-edit"></i> Редактировать
+                                </a>
+                                <button type="button" 
+                                        class="btn-mini delete btn-sm btn-delete-quiz"
+                                        data-quiz-id="{{ topic.id }}"
+                                        data-quiz-name="{{ topic.name }}">
+                                    <i class="fas fa-trash"></i> Удалить
+                                </button>
+                            </div>
+                        </div>
                     </div>
                 </div>
+                {% empty %}
+                <div class="col-12">
+                    <div class="alert alert-info text-center">
+                        <h4>Нет доступных тестов</h4>
+                        <p>Создайте первый тест, нажав на кнопку "Создать тест"</p>
+                    </div>
+                </div>
+                {% endfor %}
             </div>
         </div>
-        {% empty %}
-        <div class="col-12">
-            <div class="alert alert-info text-center">
-                <h4>Нет доступных тестов</h4>
-                <p>Создайте первый тест, нажав на кнопку "Создать тест"</p>
+        
+        <!-- Вкладка с заданиями -->
+        <div class="tab-pane fade" id="homeworks-content" role="tabpanel">
+            <div class="row">
+                {% for homework in homeworks %}
+                <div class="col-12 mb-3">
+                    <div class="card quiz-card shadow-sm h-100" style="border-left: 4px solid #9b59b6;">
+                        <div class="card-body d-flex align-items-center">
+                            <div class="quiz-info">
+                                <h5 class="card-title mb-1">
+                                    <i class="fas fa-tasks" style="color: #9b59b6;"></i>
+                                    {{ homework.title }}
+                                </h5>
+                                <p class="text-muted mb-2">
+                                    <i class="fas fa-coins"></i> {{ homework.points }} DASCOIN
+                                </p>
+                                {% if homework.mentor_comment %}
+                                <p class="text-muted mb-1" style="font-size: 0.85rem;">
+                                    <i class="fas fa-comment-dots"></i> 
+                                    Комментарий для наставника: {{ homework.mentor_comment|truncatewords:10 }}
+                                </p>
+                                {% endif %}
+                                <small class="text-secondary">ID: {{ homework.id }}</small>
+                            </div>
+                            <div class="quiz-actions">
+                                <a href="{% url 'quizzes:homework_edit' homework_id=homework.id %}" 
+                                   class="btn-mini edit btn-sm">
+                                    <i class="fas fa-edit"></i> Редактировать
+                                </a>
+                                <button type="button" 
+                                        class="btn-mini delete btn-sm btn-delete-homework"
+                                        data-homework-id="{{ homework.id }}"
+                                        data-homework-title="{{ homework.title }}">
+                                    <i class="fas fa-trash"></i> Удалить
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% empty %}
+                <div class="col-12">
+                    <div class="alert alert-info text-center">
+                        <h4>Нет доступных заданий</h4>
+                        <p>Создайте первое задание, нажав на кнопку "Создать задание"</p>
+                    </div>
+                </div>
+                {% endfor %}
             </div>
+            
+            <!-- Пагинация для заданий -->
+            {% if homeworks_page_obj.has_other_pages %}
+            <nav aria-label="Homework page navigation" class="mt-4">
+                <ul class="pagination justify-content-center">
+                    {% if homeworks_page_obj.has_previous %}
+                        <li class="page-item">
+                            <a class="page-link" href="?hw_page=1{% if page_obj.number != 1 %}&page={{ page_obj.number }}{% endif %}">Первая</a>
+                        </li>
+                        <li class="page-item">
+                            <a class="page-link" href="?hw_page={{ homeworks_page_obj.previous_page_number }}{% if page_obj.number != 1 %}&page={{ page_obj.number }}{% endif %}">Назад</a>
+                        </li>
+                    {% endif %}
+
+                    {% for num in homeworks_page_obj.paginator.page_range %}
+                        {% if num > homeworks_page_obj.number|add:'-3' and num < homeworks_page_obj.number|add:'3' %}
+                            {% if homeworks_page_obj.number == num %}
+                                <li class="page-item active"><span class="page-link">{{ num }}</span></li>
+                            {% else %}
+                                <li class="page-item"><a class="page-link" href="?hw_page={{ num }}{% if page_obj.number != 1 %}&page={{ page_obj.number }}{% endif %}">{{ num }}</a></li>
+                            {% endif %}
+                        {% endif %}
+                    {% endfor %}
+
+                    {% if homeworks_page_obj.has_next %}
+                        <li class="page-item">
+                            <a class="page-link" href="?hw_page={{ homeworks_page_obj.next_page_number }}{% if page_obj.number != 1 %}&page={{ page_obj.number }}{% endif %}">Вперед</a>
+                        </li>
+                        <li class="page-item">
+                            <a class="page-link" href="?hw_page={{ homeworks_page_obj.paginator.num_pages }}{% if page_obj.number != 1 %}&page={{ page_obj.number }}{% endif %}">Последняя</a>
+                        </li>
+                    {% endif %}
+                </ul>
+            </nav>
+            {% endif %}
         </div>
-        {% endfor %}
     </div>
 </div>
 
@@ -255,7 +361,7 @@
     </div>
 </div>
 
-<!-- Модальное окно подтверждения удаления -->
+<!-- Модальное окно подтверждения удаления теста -->
 <div class="modal fade" id="deleteQuizModal" tabindex="-1" aria-labelledby="deleteQuizModalLabel" aria-hidden="true">
     <div class="modal-dialog">
         <div class="modal-content">
@@ -277,5 +383,46 @@
         </div>
     </div>
 </div>
+
+<!-- Модальное окно подтверждения удаления задания -->
+<div class="modal fade" id="deleteHomeworkModal" tabindex="-1" aria-labelledby="deleteHomeworkModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="deleteHomeworkModalLabel">Подтверждение удаления задания</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Закрыть"></button>
+            </div>
+            <div class="modal-body">
+                <p>Вы уверены, что хотите удалить задание <strong id="homeworkTitleToDelete"></strong>?</p>
+                <p class="text-danger"><small>Это действие нельзя отменить. Все ответы пользователей будут удалены.</small></p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn-mini secondary" data-bs-dismiss="modal">Отмена</button>
+                <form id="deleteHomeworkForm" method="POST" style="display: inline;">
+                    {% csrf_token %}
+                    <button type="submit" class="btn-mini delete">Удалить</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Обработчик удаления заданий
+document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('.btn-delete-homework').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+            const homeworkId = this.dataset.homeworkId;
+            const homeworkTitle = this.dataset.homeworkTitle;
+            
+            document.getElementById('homeworkTitleToDelete').textContent = homeworkTitle;
+            document.getElementById('deleteHomeworkForm').action = "{% url 'quizzes:homework_delete' homework_id=0 %}".replace('/0/', '/' + homeworkId + '/');
+            
+            const modal = new bootstrap.Modal(document.getElementById('deleteHomeworkModal'));
+            modal.show();
+        });
+    });
+});
+</script>
 
 {% endblock %}

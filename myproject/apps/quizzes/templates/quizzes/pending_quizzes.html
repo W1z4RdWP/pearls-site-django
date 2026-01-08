@@ -10,9 +10,23 @@
 {% block content %}
 <div class="pending-container">
     <div class="pending-header">
-        <h2>Тесты на проверку</h2>
-        <p>Список тестов с открытыми вопросами, ожидающих оценки наставником</p>
+        <h2>На проверку</h2>
+        <p>Тесты с открытыми вопросами и задания, ожидающие оценки наставником</p>
     </div>
+    
+    <!-- Вкладки для тестов и заданий -->
+    <ul class="nav nav-tabs mb-3" id="pendingTabs" role="tablist">
+        <li class="nav-item" role="presentation">
+            <button class="nav-link active" id="quizzes-tab" data-bs-toggle="tab" data-bs-target="#quizzes-content" type="button" role="tab">
+                Тесты ({{ page_obj.paginator.count }})
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="homeworks-tab" data-bs-toggle="tab" data-bs-target="#homeworks-content" type="button" role="tab">
+                Задания ({{ hw_page_obj.paginator.count }})
+            </button>
+        </li>
+    </ul>
     
     <!-- Фильтры -->
     <form method="get" id="pending-quizzes-filter-form" class="mb-4">
@@ -61,6 +75,9 @@
     </form>
 
     
+    <div class="tab-content" id="pendingTabsContent">
+    <!-- Вкладка с тестами -->
+    <div class="tab-pane fade show active" id="quizzes-content" role="tabpanel">
     {% if pending_results %}
     <div class="pending-table-responsive">
         <table class="table">
@@ -169,6 +186,125 @@
         <p>Нет тестов, ожидающих проверки</p>
     </div>
     {% endif %}
+    </div><!-- Конец вкладки тестов -->
+    
+    <!-- Вкладка с заданиями -->
+    <div class="tab-pane fade" id="homeworks-content" role="tabpanel">
+    {% if pending_homeworks %}
+    <div class="pending-table-responsive">
+        <table class="table">
+            <thead>
+                <tr>
+                    <th style="width: 5%;" title="№">№</th>
+                    <th style="width: 10%;" title="Дата отправки">Дата отправки</th>
+                    <th style="width: 15%;" title="Студент">Студент</th>
+                    <th style="width: 20%;" title="Задание">Задание</th>
+                    <th style="width: 15%;" title="Курс">Курс</th>
+                    <th style="width: 10%;" title="Дедлайн">Дедлайн</th>
+                    <th style="width: 12%;" title="Наставник">Наставник</th>
+                    <th style="width: 10%;" title="Статус">Статус</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for submission in pending_homeworks %}
+                {% if submission.course and submission.course.mentors_time_to_check %}
+                    {% with deadline=submission.submitted_at|add_days:submission.course.mentors_time_to_check %}
+                    <tr class="pending-row homework-row" 
+                        data-submission-id="{{ submission.id }}"
+                        onclick="selectPendingRow(this, event)"
+                        ondblclick="window.location.href='{% url 'quizzes:homework_review' submission_id=submission.id %}'">
+                        <td style="text-align: center; color: #7f8c8d;">{{ forloop.counter|add:hw_page_obj.start_index|add:"-1" }}</td>
+                        <td><span class="deadline-date">{{ submission.submitted_at|date:"d.m.Y" }}</span> <span class="deadline-time">{{ submission.submitted_at|date:"H:i"}}</span></td>
+                        <td>{{ submission.user.get_full_name|default:submission.user.username }}</td>
+                        <td><span style="color: #9b59b6;">📝</span> {{ submission.homework.title|truncatewords:8 }}</td>
+                        <td>{{ submission.course.title|default:"—" }}</td>
+                        <td class="{% if deadline and submission.status == 'pending' and deadline|is_overdue:now %}deadline-overdue{% endif %}">
+                            {% if deadline %}
+                                <span class="deadline-date">{{ deadline|date:"d.m.Y" }}</span> <span class="deadline-time">{{ deadline|date:"H:i" }}</span>
+                            {% else %}
+                                —
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if submission.course.responsible_mentor %}
+                                {{ submission.course.responsible_mentor.get_full_name|default:submission.course.responsible_mentor.username }}
+                            {% else %}
+                                —
+                            {% endif %}
+                        </td>
+                        <td class="status-{{ submission.status }}">
+                            {% if submission.status == 'pending' %}
+                                ⏳ Ожидает проверки
+                            {% elif submission.status == 'correct' %}
+                                ✅ Правильно
+                            {% elif submission.status == 'incorrect' %}
+                                ❌ Не засчитано
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endwith %}
+                {% else %}
+                    <tr class="pending-row homework-row" 
+                        data-submission-id="{{ submission.id }}"
+                        onclick="selectPendingRow(this, event)"
+                        ondblclick="window.location.href='{% url 'quizzes:homework_review' submission_id=submission.id %}'">
+                        <td style="text-align: center; color: #7f8c8d;">{{ forloop.counter|add:hw_page_obj.start_index|add:"-1" }}</td>
+                        <td><span class="deadline-date">{{ submission.submitted_at|date:"d.m.Y" }}</span> <span class="deadline-time">{{ submission.submitted_at|date:"H:i"}}</span></td>
+                        <td>{{ submission.user.get_full_name|default:submission.user.username }}</td>
+                        <td><span style="color: #9b59b6;">📝</span> {{ submission.homework.title|truncatewords:8 }}</td>
+                        <td>{{ submission.course.title|default:"—" }}</td>
+                        <td>—</td>
+                        <td>
+                            {% if submission.course and submission.course.responsible_mentor %}
+                                {{ submission.course.responsible_mentor.get_full_name|default:submission.course.responsible_mentor.username }}
+                            {% else %}
+                                —
+                            {% endif %}
+                        </td>
+                        <td class="status-{{ submission.status }}">
+                            {% if submission.status == 'pending' %}
+                                ⏳ Ожидает проверки
+                            {% elif submission.status == 'correct' %}
+                                ✅ Правильно
+                            {% elif submission.status == 'incorrect' %}
+                                ❌ Не засчитано
+                            {% endif %}
+                        </td>
+                    </tr>
+                {% endif %}
+                {% empty %}
+                <tr><td colspan="8" class="text-center">Нет заданий, ожидающих проверки</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    
+    {% if hw_page_obj.has_other_pages %}
+    <div class="pagination">
+        {% if hw_page_obj.has_previous %}
+        <a href="?status={{ status_filter }}&date_from={{ date_from }}&date_to={{ date_to }}{% if selected_mentor_id %}&mentor={{ selected_mentor_id }}{% endif %}{% if is_overdue_filter %}&is_overdue_filter=1{% endif %}&hw_page=1">« Первая</a>
+        <a href="?status={{ status_filter }}&date_from={{ date_from }}&date_to={{ date_to }}{% if selected_mentor_id %}&mentor={{ selected_mentor_id }}{% endif %}{% if is_overdue_filter %}&is_overdue_filter=1{% endif %}&hw_page={{ hw_page_obj.previous_page_number }}">Назад</a>
+        {% endif %}
+        
+        <span class="current">
+            Страница {{ hw_page_obj.number }} из {{ hw_page_obj.paginator.num_pages }}
+        </span>
+        
+        {% if hw_page_obj.has_next %}
+        <a href="?status={{ status_filter }}&date_from={{ date_from }}&date_to={{ date_to }}{% if selected_mentor_id %}&mentor={{ selected_mentor_id }}{% endif %}{% if is_overdue_filter %}&is_overdue_filter=1{% endif %}&hw_page={{ hw_page_obj.next_page_number }}">Вперед</a>
+        <a href="?status={{ status_filter }}&date_from={{ date_from }}&date_to={{ date_to }}{% if selected_mentor_id %}&mentor={{ selected_mentor_id }}{% endif %}{% if is_overdue_filter %}&is_overdue_filter=1{% endif %}&hw_page={{ hw_page_obj.paginator.num_pages }}">Последняя »</a>
+        {% endif %}
+    </div>
+    {% endif %}
+    
+    {% else %}
+    <div class="no-results">
+        <p>Нет заданий, ожидающих проверки</p>
+    </div>
+    {% endif %}
+    </div><!-- Конец вкладки заданий -->
+    
+    </div><!-- Конец tab-content -->
 </div>
 
 <script>

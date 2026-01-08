@@ -20,4 +20,12 @@ urlpatterns = [
     path('limit-exceeded/<int:quiz_id>/', views.AttemptLimitExceededView.as_view(), name='attempt_limit_exceeded'),
     path('pending/', views.PendingQuizzesView.as_view(), name='pending_quizzes'),
     path('review/<int:result_id>/', views.ReviewQuizView.as_view(), name='review_quiz'),
+    
+    # Задания (Homework)
+    path('homework/create/', views.HomeworkCreateView.as_view(), name='homework_create'),
+    path('homework/<int:homework_id>/edit/', views.HomeworkEditView.as_view(), name='homework_edit'),
+    path('homework/<int:homework_id>/delete/', views.HomeworkDeleteView.as_view(), name='homework_delete'),
+    path('homework/<int:homework_id>/submit/', views.HomeworkSubmitView.as_view(), name='homework_submit'),
+    path('homework/submission/<int:submission_id>/review/', views.HomeworkReviewView.as_view(), name='homework_review'),
+    path('homework/search/', views.search_homeworks_ajax, name='homework_search_ajax'),
 ]

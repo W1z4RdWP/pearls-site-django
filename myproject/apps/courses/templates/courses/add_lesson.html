@@ -22,7 +22,7 @@
                     <div class="tabs-switcher" style="display: flex; gap: 2px; margin: 0 0 16px 0;">
                         <button id="tab-categories" class="tab-btn active" type="button">Категории</button>
                         <button id="tab-uncat" class="tab-btn" type="button">Без категории</button>
-                        <button id="tab-tests" class="tab-btn" type="button">Тесты</button>
+                        <button id="tab-tests" class="tab-btn" type="button">Тесты/Задания</button>
                     </div>
                     <div style="display: flex; align-items: center; gap: 10px;">
                         <span id="panel-title">Категории</span>
@@ -61,21 +61,46 @@
                         </ul>
                     </div>
                     <div id="tests-block" style="display:none;">
-                        <ul class="category-tree">
-                            {% for quiz in all_quizzes %}
-                            <li class="lesson-li" data-quiz-id="{{ quiz.id }}">
-                                <span class="lesson-icon svg-paper">
-                                    <svg width="16" height="16" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
-                                        <rect class="svg-paper-rect" x="4" y="3" width="12" height="14" rx="2"/>
-                                        <line class="svg-paper-line" x1="6.5" y1="7.5" x2="13.5" y2="7.5"/>
-                                        <line class="svg-paper-line" x1="6.5" y1="10.5" x2="13.5" y2="10.5"/>
-                                        <line class="svg-paper-line" x1="6.5" y1="13.5" x2="11.5" y2="13.5"/>
-                                    </svg>
-                                </span>
-                                <a class="lesson-link" title="{{ quiz.name }}">{{ quiz.name }}</a>
-                            </li>
-                            {% endfor %}
-                        </ul>
+                        <div style="margin-bottom: 15px;">
+                            <h5 style="font-size: 0.9rem; color: #666; margin: 0 0 10px 0; border-bottom: 1px solid #eee; padding-bottom: 5px;">
+                                <i class="fas fa-question-circle"></i> Тесты
+                            </h5>
+                            <ul class="category-tree">
+                                {% for quiz in all_quizzes %}
+                                <li class="lesson-li" data-quiz-id="{{ quiz.id }}">
+                                    <span class="lesson-icon svg-paper">
+                                        <svg width="16" height="16" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                                            <rect class="svg-paper-rect" x="4" y="3" width="12" height="14" rx="2"/>
+                                            <line class="svg-paper-line" x1="6.5" y1="7.5" x2="13.5" y2="7.5"/>
+                                            <line class="svg-paper-line" x1="6.5" y1="10.5" x2="13.5" y2="10.5"/>
+                                            <line class="svg-paper-line" x1="6.5" y1="13.5" x2="11.5" y2="13.5"/>
+                                        </svg>
+                                    </span>
+                                    <a class="lesson-link" title="{{ quiz.name }}">{{ quiz.name }}</a>
+                                </li>
+                                {% empty %}
+                                <li class="text-muted" style="padding: 5px 10px; font-size: 0.9rem;">Нет доступных тестов</li>
+                                {% endfor %}
+                            </ul>
+                        </div>
+                        
+                        <div>
+                            <h5 style="font-size: 0.9rem; color: #666; margin: 0 0 10px 0; border-bottom: 1px solid #eee; padding-bottom: 5px;">
+                                <i class="fas fa-tasks"></i> Задания
+                            </h5>
+                            <ul class="category-tree">
+                                {% for homework in all_homeworks %}
+                                <li class="lesson-li" data-homework-id="{{ homework.id }}">
+                                    <span class="lesson-icon" style="color: #9b59b6;">
+                                        <i class="fas fa-tasks"></i>
+                                    </span>
+                                    <a class="lesson-link" title="{{ homework.title }}" style="color: #9b59b6;">{{ homework.title }}</a>
+                                </li>
+                                {% empty %}
+                                <li class="text-muted" style="padding: 5px 10px; font-size: 0.9rem;">Нет доступных заданий</li>
+                                {% endfor %}
+                            </ul>
+                        </div>
                     </div>
                 </div>
             </div>

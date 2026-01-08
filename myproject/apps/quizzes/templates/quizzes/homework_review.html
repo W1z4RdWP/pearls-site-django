@@ -1,0 +1,455 @@
+{% extends "layout.html" %}
+{% load static %}
+
+{% block title %}Проверка задания{% endblock %}
+
+{% block specific_styles %}
+<link rel="stylesheet" href="{% static 'quizzes/css/quiz_styles.css' %}">
+<link rel="stylesheet" href="{% static 'quizzes/css/review_quiz.css' %}">
+<style>
+.review-container {
+    max-width: 900px;
+    margin: 40px auto;
+    padding: 0 20px;
+}
+
+.review-card {
+    background: #fff;
+    border-radius: 12px;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.1);
+    overflow: hidden;
+}
+
+.review-header {
+    background: linear-gradient(135deg, #9b59b6 0%, #8e44ad 100%);
+    color: #fff;
+    padding: 25px 30px;
+}
+
+.review-header h2 {
+    margin: 0 0 15px 0;
+    font-size: 1.4rem;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.review-header h2 a {
+    color: #fff;
+    text-decoration: none;
+}
+
+.review-info {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 20px;
+}
+
+.review-info-item {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.review-info-label {
+    font-size: 0.8rem;
+    opacity: 0.8;
+}
+
+.review-info-value {
+    font-weight: 500;
+}
+
+.review-info-value a {
+    color: #fff;
+    text-decoration: underline;
+}
+
+.review-body {
+    padding: 30px;
+}
+
+.task-section {
+    margin-bottom: 25px;
+}
+
+.task-section h3 {
+    color: #2c3e50;
+    font-size: 1.1rem;
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.task-text {
+    background: #f8f9fa;
+    padding: 18px;
+    border-radius: 8px;
+    color: #34495e;
+    font-size: 1rem;
+    line-height: 1.6;
+    border-left: 4px solid #9b59b6;
+}
+
+.mentor-hint {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 22px;
+    height: 22px;
+    background: #3498db;
+    color: #fff;
+    border-radius: 50%;
+    font-size: 0.8rem;
+    font-weight: bold;
+    cursor: help;
+    margin-left: 10px;
+    position: relative;
+}
+
+.mentor-hint:hover::after {
+    content: attr(data-tooltip);
+    position: absolute;
+    bottom: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #2c3e50;
+    color: #fff;
+    padding: 10px 15px;
+    border-radius: 6px;
+    font-size: 0.85rem;
+    font-weight: normal;
+    white-space: pre-wrap;
+    max-width: 300px;
+    z-index: 100;
+    margin-bottom: 8px;
+}
+
+.answer-section {
+    margin-bottom: 25px;
+}
+
+.answer-section h3 {
+    color: #2c3e50;
+    font-size: 1.1rem;
+    margin-bottom: 12px;
+}
+
+.student-answer {
+    background: #fff;
+    padding: 20px;
+    border-radius: 8px;
+    border: 2px solid #eee;
+    line-height: 1.6;
+}
+
+.student-answer img {
+    max-width: 100%;
+    height: auto;
+    border-radius: 6px;
+    margin: 10px 0;
+}
+
+.score-section {
+    background: #f8f9fa;
+    padding: 25px;
+    border-radius: 8px;
+    margin-bottom: 25px;
+}
+
+.score-section h3 {
+    color: #2c3e50;
+    font-size: 1.1rem;
+    margin-bottom: 15px;
+}
+
+.score-buttons {
+    display: flex;
+    gap: 15px;
+    flex-wrap: wrap;
+}
+
+.score-btn {
+    padding: 15px 30px;
+    border: 2px solid #ddd;
+    border-radius: 8px;
+    font-size: 1rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+    background: #fff;
+}
+
+.score-btn:hover {
+    border-color: #999;
+}
+
+.score-btn.selected {
+    border-width: 3px;
+}
+
+.score-btn.correct {
+    color: #155724;
+}
+
+.score-btn.correct:hover,
+.score-btn.correct.selected {
+    background: #d4edda;
+    border-color: #27ae60;
+}
+
+.score-btn.incorrect {
+    color: #721c24;
+}
+
+.score-btn.incorrect:hover,
+.score-btn.incorrect.selected {
+    background: #f8d7da;
+    border-color: #e74c3c;
+}
+
+.feedback-section {
+    margin-bottom: 25px;
+}
+
+.feedback-section h3 {
+    color: #2c3e50;
+    font-size: 1.1rem;
+    margin-bottom: 12px;
+}
+
+.feedback-section textarea {
+    width: 100%;
+    min-height: 120px;
+    padding: 15px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    font-size: 1rem;
+    resize: vertical;
+    font-family: inherit;
+}
+
+.feedback-section textarea:focus {
+    border-color: #9b59b6;
+    box-shadow: 0 0 0 3px rgba(155, 89, 182, 0.1);
+    outline: none;
+}
+
+.form-actions {
+    display: flex;
+    gap: 15px;
+    padding-top: 20px;
+    border-top: 1px solid #eee;
+}
+
+.btn-submit {
+    background: #9b59b6;
+    color: #fff;
+    border: none;
+    padding: 14px 35px;
+    border-radius: 8px;
+    font-size: 1rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.btn-submit:hover {
+    background: #8e44ad;
+}
+
+.btn-cancel {
+    background: #ecf0f1;
+    color: #7f8c8d;
+    border: none;
+    padding: 14px 30px;
+    border-radius: 8px;
+    font-size: 1rem;
+    font-weight: 500;
+    cursor: pointer;
+    text-decoration: none;
+    transition: background 0.2s;
+}
+
+.btn-cancel:hover {
+    background: #bdc3c7;
+    color: #2c3e50;
+}
+
+.already-reviewed {
+    background: #e7f3ff;
+    border-left: 4px solid #3498db;
+    padding: 20px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+}
+
+.already-reviewed h4 {
+    color: #1976D2;
+    margin: 0 0 10px 0;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="review-container">
+    <div class="review-card">
+        <div class="review-header">
+            <h2>
+                <a href="{% url 'quizzes:pending_quizzes' %}">←</a>
+                Проверка задания
+            </h2>
+            <div class="review-info">
+                <div class="review-info-item">
+                    <span class="review-info-label">Студент</span>
+                    <span class="review-info-value">
+                        <a href="{% url 'user_management:user_edit_detailed' pk=submission.user.id %}">
+                            {{ submission.user.get_full_name|default:submission.user.username }}
+                        </a>
+                    </span>
+                </div>
+                {% if submission.course %}
+                <div class="review-info-item">
+                    <span class="review-info-label">Курс</span>
+                    <span class="review-info-value">{{ submission.course.title }}</span>
+                </div>
+                {% endif %}
+                <div class="review-info-item">
+                    <span class="review-info-label">Дата отправки</span>
+                    <span class="review-info-value">{{ submission.submitted_at|date:"d.m.Y H:i" }}</span>
+                </div>
+                <div class="review-info-item">
+                    <span class="review-info-label">Статус</span>
+                    <span class="review-info-value">
+                        {% if submission.status == 'pending' %}
+                            ⏳ Ожидает проверки
+                        {% elif submission.status == 'correct' %}
+                            ✅ Правильно
+                        {% elif submission.status == 'incorrect' %}
+                            ❌ Не засчитано
+                        {% endif %}
+                    </span>
+                </div>
+            </div>
+        </div>
+        
+        <div class="review-body">
+            {% if submission.reviewed_by %}
+            <div class="already-reviewed">
+                <h4>Задание уже проверено</h4>
+                <p style="margin: 5px 0;">
+                    Проверил: {{ submission.reviewed_by.get_full_name|default:submission.reviewed_by.username }}
+                    <br>
+                    Дата: {{ submission.reviewed_at|date:"d.m.Y H:i" }}
+                </p>
+                {% if submission.mentor_feedback %}
+                <p style="margin: 10px 0 0 0;"><strong>Комментарий:</strong> {{ submission.mentor_feedback }}</p>
+                {% endif %}
+            </div>
+            {% endif %}
+            
+            <div class="task-section">
+                <h3>
+                    Текст задания
+                    {% if homework.mentor_comment %}
+                    <span class="mentor-hint" data-tooltip="{{ homework.mentor_comment }}">?</span>
+                    {% endif %}
+                </h3>
+                <div class="task-text">
+                    {{ homework.title }}
+                </div>
+            </div>
+            
+            <div class="answer-section">
+                <h3>Ответ студента</h3>
+                <div class="student-answer">
+                    {% if submission.answer_text %}
+                    <div class="answer-text-content">
+                        {{ submission.answer_text|safe }}
+                    </div>
+                    {% endif %}
+                    
+                    {% if submission.images.exists %}
+                    <div class="attached-images" style="margin-top: 15px; {% if submission.answer_text %}padding-top: 15px; border-top: 1px solid #eee;{% endif %}">
+                        <p style="color: #666; font-size: 0.9rem; margin-bottom: 10px;">📷 Прикреплённые фото ({{ submission.images.count }}):</p>
+                        <div style="display: flex; flex-wrap: wrap; gap: 10px;">
+                            {% for image in submission.images.all %}
+                            <a href="{{ image.image.url }}" target="_blank" style="display: block;">
+                                <img src="{{ image.image.url }}" alt="Изображение {{ forloop.counter }}" 
+                                     style="width: 150px; height: 150px; object-fit: cover; border-radius: 8px; cursor: pointer; transition: transform 0.2s;"
+                                     onmouseover="this.style.transform='scale(1.05)'" 
+                                     onmouseout="this.style.transform='scale(1)'">
+                            </a>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    {% endif %}
+                    
+                    {% if not submission.answer_text and not submission.images.exists %}
+                    <p style="color: #999; font-style: italic;">Ответ пуст</p>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <form method="post">
+                {% csrf_token %}
+                
+                <div class="score-section">
+                    <h3>Оценка</h3>
+                    <div class="score-buttons">
+                        <button type="button" 
+                                class="score-btn correct {% if submission.status == 'correct' %}selected{% endif %}" 
+                                onclick="selectStatus('correct', this)">
+                            ✅ Правильно
+                        </button>
+                        <button type="button" 
+                                class="score-btn incorrect {% if submission.status == 'incorrect' %}selected{% endif %}" 
+                                onclick="selectStatus('incorrect', this)">
+                            ❌ Неправильно
+                        </button>
+                    </div>
+                    <input type="hidden" name="status" id="status_input" value="{% if submission.status != 'pending' %}{{ submission.status }}{% endif %}">
+                </div>
+                
+                <div class="feedback-section">
+                    <h3>Комментарий для студента (необязательно)</h3>
+                    <textarea name="mentor_feedback" placeholder="Оставьте комментарий или рекомендации для студента...">{% if submission.mentor_feedback %}{{ submission.mentor_feedback }}{% endif %}</textarea>
+                </div>
+                
+                <div class="form-actions">
+                    <button type="submit" class="btn-submit">Сохранить оценку</button>
+                    <a href="{% url 'quizzes:pending_quizzes' %}" class="btn-cancel">Отмена</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+function selectStatus(status, button) {
+    // Убираем выделение со всех кнопок
+    document.querySelectorAll('.score-btn').forEach(btn => {
+        btn.classList.remove('selected');
+    });
+    
+    // Выделяем выбранную кнопку
+    button.classList.add('selected');
+    
+    // Устанавливаем значение в скрытое поле
+    document.getElementById('status_input').value = status;
+}
+
+// При загрузке страницы проверяем, выбран ли статус
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.querySelector('form');
+    form.addEventListener('submit', function(e) {
+        const status = document.getElementById('status_input').value;
+        if (!status) {
+            e.preventDefault();
+            alert('Пожалуйста, выберите оценку (Правильно или Неправильно)');
+        }
+    });
+});
+</script>
+{% endblock %}

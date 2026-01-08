@@ -1,0 +1,606 @@
+{% extends "layout.html" %}
+{% load static %}
+
+{% block title %}Задание: {{ homework.title }}{% endblock %}
+
+{% block specific_styles %}
+<link rel="stylesheet" href="{% static 'quizzes/css/quiz_styles.css' %}">
+<style>
+.homework-container {
+    max-width: 900px;
+    margin: 40px auto;
+    padding: 0 20px;
+}
+
+.homework-card {
+    background: #fff;
+    border-radius: 12px;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.1);
+    overflow: hidden;
+}
+
+.homework-header {
+    background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
+    color: #fff;
+    padding: 25px 30px;
+}
+
+.homework-header h2 {
+    margin: 0;
+    font-size: 1.4rem;
+    font-weight: 500;
+}
+
+.homework-body {
+    padding: 30px;
+}
+
+.task-section {
+    margin-bottom: 30px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid #eee;
+}
+
+.task-section h3 {
+    color: #2c3e50;
+    font-size: 1.1rem;
+    margin-bottom: 15px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.task-section h3::before {
+    content: "📝";
+}
+
+.task-text {
+    background: #f8f9fa;
+    padding: 20px;
+    border-radius: 8px;
+    color: #34495e;
+    font-size: 1rem;
+    line-height: 1.6;
+    border-left: 4px solid #3498db;
+}
+
+.answer-section h3 {
+    color: #2c3e50;
+    font-size: 1.1rem;
+    margin-bottom: 15px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.answer-section h3::before {
+    content: "✏️";
+}
+
+.existing-submission {
+    background: #e7f3ff;
+    border-left: 4px solid #3498db;
+    padding: 20px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+}
+
+.existing-submission h4 {
+    color: #1976D2;
+    margin: 0 0 10px 0;
+    font-size: 1rem;
+}
+
+.existing-submission .status {
+    display: inline-block;
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 0.85rem;
+    font-weight: 500;
+    margin-bottom: 10px;
+}
+
+.existing-submission .status.pending {
+    background: #fff3cd;
+    color: #856404;
+}
+
+.existing-submission .status.correct {
+    background: #d4edda;
+    color: #155724;
+}
+
+.existing-submission .status.incorrect {
+    background: #f8d7da;
+    color: #721c24;
+}
+
+.existing-answer {
+    background: #fff;
+    padding: 15px;
+    border-radius: 6px;
+    margin-top: 15px;
+    border: 1px solid #ddd;
+}
+
+.mentor-feedback {
+    background: #fff3cd;
+    border-left: 4px solid #ffc107;
+    padding: 15px;
+    border-radius: 6px;
+    margin-top: 15px;
+}
+
+.mentor-feedback h5 {
+    color: #856404;
+    margin: 0 0 8px 0;
+    font-size: 0.95rem;
+}
+
+.form-actions {
+    display: flex;
+    gap: 15px;
+    margin-top: 30px;
+    padding-top: 20px;
+    border-top: 1px solid #eee;
+}
+
+.btn-submit {
+    background: #27ae60;
+    color: #fff;
+    border: none;
+    padding: 14px 35px;
+    border-radius: 8px;
+    font-size: 1rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.btn-submit:hover {
+    background: #219a52;
+}
+
+.btn-back {
+    background: #ecf0f1;
+    color: #7f8c8d;
+    border: none;
+    padding: 14px 30px;
+    border-radius: 8px;
+    font-size: 1rem;
+    font-weight: 500;
+    cursor: pointer;
+    text-decoration: none;
+    transition: background 0.2s;
+}
+
+.btn-back:hover {
+    background: #bdc3c7;
+    color: #2c3e50;
+}
+
+/* Поле загрузки изображений */
+.upload-section {
+    margin-top: 25px;
+}
+
+.upload-section h4 {
+    color: #2c3e50;
+    font-size: 1rem;
+    margin-bottom: 15px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.upload-section h4::before {
+    content: "📷";
+}
+
+.upload-area {
+    border: 2px dashed #ccc;
+    border-radius: 10px;
+    padding: 30px;
+    text-align: center;
+    background: #fafafa;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    position: relative;
+}
+
+.upload-area:hover, .upload-area.dragover {
+    border-color: #3498db;
+    background: #f0f7ff;
+}
+
+.upload-area input[type="file"] {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    top: 0;
+    left: 0;
+    opacity: 0;
+    cursor: pointer;
+}
+
+.upload-icon {
+    font-size: 48px;
+    color: #bdc3c7;
+    margin-bottom: 10px;
+}
+
+.upload-text {
+    color: #7f8c8d;
+    font-size: 0.95rem;
+}
+
+.upload-text span {
+    color: #3498db;
+    font-weight: 500;
+}
+
+/* Превью изображений */
+.image-previews {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 15px;
+    margin-top: 20px;
+}
+
+.image-preview {
+    position: relative;
+    width: 120px;
+    height: 120px;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.image-preview img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.image-preview .remove-btn {
+    position: absolute;
+    top: 5px;
+    right: 5px;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: rgba(231, 76, 60, 0.9);
+    color: white;
+    border: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    transition: background 0.2s;
+}
+
+.image-preview .remove-btn:hover {
+    background: #c0392b;
+}
+
+/* Уже загруженные изображения */
+.existing-images {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 15px;
+}
+
+.existing-images img {
+    width: 100px;
+    height: 100px;
+    object-fit: cover;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: transform 0.2s;
+}
+
+.existing-images img:hover {
+    transform: scale(1.05);
+}
+
+/* Модальное окно для просмотра изображений */
+.image-modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0,0,0,0.9);
+    z-index: 9999;
+    justify-content: center;
+    align-items: center;
+}
+
+.image-modal.active {
+    display: flex;
+}
+
+.image-modal img {
+    max-width: 90%;
+    max-height: 90%;
+    border-radius: 8px;
+}
+
+.image-modal .close-modal {
+    position: absolute;
+    top: 20px;
+    right: 30px;
+    color: white;
+    font-size: 40px;
+    cursor: pointer;
+}
+
+/* Textarea стили */
+.answer-textarea {
+    width: 100%;
+    min-height: 120px;
+    padding: 15px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    font-size: 1rem;
+    resize: vertical;
+    transition: border-color 0.2s;
+}
+
+.answer-textarea:focus {
+    outline: none;
+    border-color: #3498db;
+    box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
+}
+
+/* Ошибки формы */
+.form-errors {
+    background: #f8d7da;
+    border-left: 4px solid #e74c3c;
+    padding: 15px;
+    border-radius: 6px;
+    margin-bottom: 20px;
+    color: #721c24;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="homework-container">
+    <div class="homework-card">
+        <div class="homework-header">
+            <h2>Задание</h2>
+        </div>
+        
+        <div class="homework-body">
+            <div class="task-section">
+                <h3>Текст задания</h3>
+                <div class="task-text">
+                    {{ homework.title }}
+                </div>
+            </div>
+            
+            {% if existing_submission %}
+            <div class="existing-submission">
+                <h4>Ваш предыдущий ответ</h4>
+                <span class="status {{ existing_submission.status }}">
+                    {% if existing_submission.status == 'pending' %}
+                        ⏳ Ожидает проверки
+                    {% elif existing_submission.status == 'correct' %}
+                        ✅ Правильно
+                    {% elif existing_submission.status == 'incorrect' %}
+                        ❌ Не засчитано
+                    {% endif %}
+                </span>
+                {% if existing_submission.answer_text %}
+                <div class="existing-answer">
+                    {{ existing_submission.answer_text|safe }}
+                </div>
+                {% endif %}
+                
+                {% if existing_submission.images.exists %}
+                <div class="existing-images" style="margin-top: 15px;">
+                    <p style="color: #555; font-size: 0.9rem; margin-bottom: 10px;">📷 Прикреплённые фото:</p>
+                    {% for image in existing_submission.images.all %}
+                    <img src="{{ image.image.url }}" alt="Изображение {{ forloop.counter }}" onclick="openImageModal(this.src)">
+                    {% endfor %}
+                </div>
+                {% endif %}
+                
+                {% if existing_submission.mentor_feedback %}
+                <div class="mentor-feedback">
+                    <h5>Комментарий наставника:</h5>
+                    <p style="margin: 0; white-space: pre-line;">{{ existing_submission.mentor_feedback }}</p>
+                </div>
+                {% endif %}
+                
+                {% if existing_submission.status == 'correct' %}
+                <p style="margin-top: 15px; color: #155724;">
+                    <strong>Задание засчитано!</strong> Вам начислено {{ homework.points }} DASCOIN.
+                </p>
+                {% endif %}
+            </div>
+            {% endif %}
+            
+            {% if not existing_submission or existing_submission.status == 'incorrect' %}
+            <div class="answer-section">
+                <h3>{% if existing_submission and existing_submission.status == 'incorrect' %}Отправить новый ответ{% else %}Ваш ответ{% endif %}</h3>
+                
+                <form method="post" enctype="multipart/form-data" id="homework-form">
+                    {% csrf_token %}
+                    {% if course %}
+                    <input type="hidden" name="course_slug" value="{{ course.slug }}">
+                    {% endif %}
+                    
+                    {% if form.non_field_errors %}
+                    <div class="form-errors">
+                        {% for error in form.non_field_errors %}
+                            <p style="margin: 0;">{{ error }}</p>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                    
+                    <div class="text-section">
+                        <label for="id_answer_text" style="display: block; margin-bottom: 8px; color: #2c3e50; font-weight: 500;">
+                            💬 Текст ответа <span style="color: #95a5a6; font-weight: normal;">(необязательно)</span>
+                        </label>
+                        <textarea name="answer_text" id="id_answer_text" class="answer-textarea" 
+                                  placeholder="Введите текст ответа или оставьте пустым, если прикрепляете только фото...">{{ form.answer_text.value|default:'' }}</textarea>
+                        
+                        {% if form.answer_text.errors %}
+                        <div class="error-text" style="color: #e74c3c; font-size: 0.85rem; margin-top: 10px;">
+                            {{ form.answer_text.errors.0 }}
+                        </div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="upload-section">
+                        <h4>Прикрепить фото</h4>
+                        <div class="upload-area" id="upload-area">
+                            <input type="file" name="images" id="images-input" multiple accept="image/*">
+                            <div class="upload-icon">📤</div>
+                            <div class="upload-text">
+                                Перетащите изображения сюда или <span>нажмите для выбора</span>
+                            </div>
+                            <p style="color: #95a5a6; font-size: 0.8rem; margin-top: 10px;">
+                                Можно загрузить несколько фото (JPG, PNG, GIF)
+                            </p>
+                        </div>
+                        <div class="image-previews" id="image-previews"></div>
+                    </div>
+                    
+                    <div class="form-actions">
+                        <button type="submit" class="btn-submit">Отправить на проверку</button>
+                        {% if course %}
+                        <a href="{% url 'courses:course_detail' slug=course.slug %}" class="btn-back">Вернуться к курсу</a>
+                        {% else %}
+                        <a href="{% url 'home' %}" class="btn-back">На главную</a>
+                        {% endif %}
+                    </div>
+                </form>
+            </div>
+            {% else %}
+            <div class="form-actions">
+                {% if course %}
+                <a href="{% url 'courses:course_detail' slug=course.slug %}" class="btn-back">Вернуться к курсу</a>
+                {% else %}
+                <a href="{% url 'home' %}" class="btn-back">На главную</a>
+                {% endif %}
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Модальное окно для просмотра изображений -->
+<div class="image-modal" id="imageModal" onclick="closeImageModal()">
+    <span class="close-modal">&times;</span>
+    <img src="" alt="Просмотр изображения" id="modalImage">
+</div>
+{% endblock %}
+
+{% block specific_scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const uploadArea = document.getElementById('upload-area');
+    const fileInput = document.getElementById('images-input');
+    const previewsContainer = document.getElementById('image-previews');
+    
+    if (!uploadArea || !fileInput) return;
+    
+    let selectedFiles = [];
+    
+    // Drag and drop события
+    uploadArea.addEventListener('dragover', function(e) {
+        e.preventDefault();
+        uploadArea.classList.add('dragover');
+    });
+    
+    uploadArea.addEventListener('dragleave', function(e) {
+        e.preventDefault();
+        uploadArea.classList.remove('dragover');
+    });
+    
+    uploadArea.addEventListener('drop', function(e) {
+        e.preventDefault();
+        uploadArea.classList.remove('dragover');
+        
+        const files = e.dataTransfer.files;
+        handleFiles(files);
+    });
+    
+    // Выбор файлов через клик
+    fileInput.addEventListener('change', function(e) {
+        handleFiles(this.files);
+    });
+    
+    function handleFiles(files) {
+        for (let file of files) {
+            if (file.type.startsWith('image/')) {
+                selectedFiles.push(file);
+            }
+        }
+        updatePreviews();
+        updateFileInput();
+    }
+    
+    function updatePreviews() {
+        previewsContainer.innerHTML = '';
+        
+        selectedFiles.forEach((file, index) => {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const preview = document.createElement('div');
+                preview.className = 'image-preview';
+                preview.innerHTML = `
+                    <img src="${e.target.result}" alt="Превью">
+                    <button type="button" class="remove-btn" data-index="${index}">&times;</button>
+                `;
+                previewsContainer.appendChild(preview);
+                
+                // Обработчик удаления
+                preview.querySelector('.remove-btn').addEventListener('click', function() {
+                    const idx = parseInt(this.dataset.index);
+                    selectedFiles.splice(idx, 1);
+                    updatePreviews();
+                    updateFileInput();
+                });
+            };
+            reader.readAsDataURL(file);
+        });
+    }
+    
+    function updateFileInput() {
+        // Создаём новый DataTransfer для обновления input
+        const dt = new DataTransfer();
+        selectedFiles.forEach(file => dt.items.add(file));
+        fileInput.files = dt.files;
+    }
+});
+
+// Функции для модального окна просмотра изображений
+function openImageModal(src) {
+    const modal = document.getElementById('imageModal');
+    const modalImg = document.getElementById('modalImage');
+    modal.classList.add('active');
+    modalImg.src = src;
+    document.body.style.overflow = 'hidden';
+}
+
+function closeImageModal() {
+    const modal = document.getElementById('imageModal');
+    modal.classList.remove('active');
+    document.body.style.overflow = '';
+}
+
+// Закрытие по Escape
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+        closeImageModal();
+    }
+});
+</script>
+{% endblock %}
