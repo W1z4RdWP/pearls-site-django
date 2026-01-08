@@ -36,6 +36,7 @@ def nav_menu(request):
         {'url': 'about', 'label': 'О нас', 'icon': 'fa-solid fa-circle-info'},
         {'url': 'builder:lesson_master', 'label': 'База знаний', 'icon': 'fa-solid fa-book'},
         {'url': 'shop:shop', 'label': 'Магазин', 'icon': 'fa-solid fa-store'},
+        {'url': 'messenger:chat_room_list', 'label': 'Мессенджер', 'icon': 'fa-solid fa-comments'},
     ]
     nav_staff = [
         {'url': 'builder:trajectory_management', 'label': 'Управление траекториями', 'icon': 'fa-solid fa-route'},
