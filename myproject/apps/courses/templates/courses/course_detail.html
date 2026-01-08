@@ -79,7 +79,9 @@
         <div class="progress-bar-modern" style="width: {{ progress }}%"></div>
     </div>
     <div class="progress-text">
-        {{ completed_lessons }}/{{ total_lessons }} уроков{% if total_quizzes > 0 %}, {{ completed_quizzes }}/{{ total_quizzes }} тестов{% endif %} ({{ progress }}%)
+        {% with total_tests=total_quizzes|add:total_homeworks completed_tests=completed_quizzes|add:completed_homeworks %}
+        {{ completed_lessons }}/{{ total_lessons }} уроков{% if total_tests > 0 %}, {{ completed_tests }}/{{ total_tests }} тестов{% endif %} ({{ progress }}%)
+        {% endwith %}
     </div>
     {% endif %}
     
@@ -387,10 +389,10 @@
                                 {% if user.is_staff or user.is_superuser or user_course and user_course.status in 'started,completed' %}
                                     {% with homework_status=homework_statuses|get_item:material.id %}
                                         {% if homework_status == 'correct' %}
-                                            <div class="material-item homework d-flex align-items-center p-3" style="border-left: 3px solid #9b59b6;">
+                                            <div class="material-item homework d-flex align-items-center p-3">
                                                 <a href="{% url 'quizzes:homework_submit' homework_id=material.id %}?course_slug={{ course.slug }}"
                                                    class="d-flex align-items-center flex-grow-1 text-decoration-none">
-                                                    <span class="material-icon" style="color: #9b59b6;"><i class="fa fa-tasks"></i></span>
+                                                    <span class="material-icon"><i class="fa fa-tasks"></i></span>
                                                     <div class="flex-grow-1">
                                                         <div class="material-title">{{ material.name }}</div>
                                                         <div class="material-type">Задание</div>
@@ -409,10 +411,10 @@
                                                 {% endif %}
                                             </div>
                                         {% elif homework_status == 'pending' %}
-                                            <div class="material-item homework d-flex align-items-center p-3" style="border-left: 3px solid #9b59b6;">
+                                            <div class="material-item homework d-flex align-items-center p-3">
                                                 <a href="{% url 'quizzes:homework_submit' homework_id=material.id %}?course_slug={{ course.slug }}"
                                                    class="d-flex align-items-center flex-grow-1 text-decoration-none">
-                                                    <span class="material-icon" style="color: #9b59b6;"><i class="fa fa-tasks"></i></span>
+                                                    <span class="material-icon"><i class="fa fa-tasks"></i></span>
                                                     <div class="flex-grow-1">
                                                         <div class="material-title">{{ material.name }}</div>
                                                         <div class="material-type">Задание</div>
@@ -431,10 +433,10 @@
                                                 {% endif %}
                                             </div>
                                         {% elif homework_status == 'incorrect' %}
-                                            <div class="material-item homework d-flex align-items-center p-3" style="border-left: 3px solid #9b59b6;">
+                                            <div class="material-item homework d-flex align-items-center p-3">
                                                 <a href="{% url 'quizzes:homework_submit' homework_id=material.id %}?course_slug={{ course.slug }}"
                                                    class="d-flex align-items-center flex-grow-1 text-decoration-none">
-                                                    <span class="material-icon" style="color: #9b59b6;"><i class="fa fa-tasks"></i></span>
+                                                    <span class="material-icon"><i class="fa fa-tasks"></i></span>
                                                     <div class="flex-grow-1">
                                                         <div class="material-title">{{ material.name }}</div>
                                                         <div class="material-type">Задание (требуется исправление)</div>
@@ -453,10 +455,10 @@
                                                 {% endif %}
                                             </div>
                                         {% else %}
-                                            <div class="material-item homework d-flex align-items-center p-3" style="border-left: 3px solid #9b59b6;">
+                                            <div class="material-item homework d-flex align-items-center p-3">
                                                 <a href="{% url 'quizzes:homework_submit' homework_id=material.id %}?course_slug={{ course.slug }}"
                                                    class="d-flex align-items-center flex-grow-1 text-decoration-none">
-                                                    <span class="material-icon" style="color: #9b59b6;"><i class="fa fa-tasks"></i></span>
+                                                    <span class="material-icon"><i class="fa fa-tasks"></i></span>
                                                     <div class="flex-grow-1">
                                                         <div class="material-title">{{ material.name }}</div>
                                                         <div class="material-type">Задание</div>
@@ -476,8 +478,8 @@
                                         {% endif %}
                                     {% endwith %}
                                 {% elif not user.is_staff and not user.is_superuser %}
-                                    <div class="material-item blocked d-flex align-items-center p-3" style="border-left: 3px solid #9b59b6;">
-                                        <span class="material-icon" style="color: #9b59b6; opacity: 0.6;"><i class="fa fa-tasks"></i></span>
+                                    <div class="material-item blocked d-flex align-items-center p-3">
+                                        <span class="material-icon"><i class="fa fa-tasks"></i></span>
                                         <div class="flex-grow-1">
                                             <div class="material-title">{{ material.name }}</div>
                                             <div class="material-type">Задание</div>

@@ -148,18 +148,20 @@
                                             <span>{{ course_data.total_lessons }} уроков</span>
                                         </div>
                                     {% endif %}
-                                    {% if course_data.total_quizzes > 0 %}
+                                    {% with total_tests=course_data.total_quizzes|add:course_data.total_homeworks %}
+                                    {% if total_tests > 0 %}
                                         <div class="detail-item">
                                             <i class="fa fa-question-circle"></i>
-                                            <span>{{ course_data.total_quizzes }} тестов</span>
+                                            <span>{{ total_tests }} тестов</span>
                                         </div>
                                     {% endif %}
-                                    {% if course_data.total_quizzes > 0 and course_data.total_lessons > 0 %}
+                                    {% if total_tests > 0 and course_data.total_lessons > 0 %}
                                         <div class="detail-item">
                                             <i class="fa fa-list"></i>
                                             <span>{{ course_data.total_materials }} материалов</span>
                                         </div>
                                     {% endif %}
+                                {% endwith %}
                                 </div>
                             {% else %}
                             
@@ -181,12 +183,14 @@
                                         <i class="fa fa-book"></i>
                                         <span>{{ course_data.completed_lessons }}/{{ course_data.total_lessons }} уроков</span>
                                     </div>
-                                    {% if course_data.total_quizzes > 0 %}
-                                        <div class="detail-item">
-                                            <i class="fa fa-question-circle"></i>
-                                            <span>{{ course_data.completed_quizzes }}/{{ course_data.total_quizzes }} тестов</span>
-                                        </div>
-                                    {% endif %}
+                                    {% with total_tests=course_data.total_quizzes|add:course_data.total_homeworks completed_tests=course_data.completed_quizzes|add:course_data.completed_homeworks %}
+                                        {% if total_tests > 0 %}
+                                            <div class="detail-item">
+                                                <i class="fa fa-question-circle"></i>
+                                                <span>{{ completed_tests }}/{{ total_tests }} тестов</span>
+                                            </div>
+                                        {% endif %}
+                                    {% endwith %}
                                 </div>
                             {% endif %}
                             
@@ -304,18 +308,20 @@
                                             <span>{{ course_data.total_lessons }} уроков</span>
                                         </div>
                                     {% endif %}
-                                    {% if course_data.total_quizzes > 0 %}
+                                    {% with total_tests=course_data.total_quizzes|add:course_data.total_homeworks %}
+                                    {% if total_tests > 0 %}
                                         <div class="detail-item">
                                             <i class="fa fa-question-circle"></i>
-                                            <span>{{ course_data.total_quizzes }} тестов</span>
+                                            <span>{{ total_tests }} тестов</span>
                                         </div>
                                     {% endif %}
-                                    {% if course_data.total_quizzes > 0 and course_data.total_lessons > 0 %}
+                                    {% if total_tests > 0 and course_data.total_lessons > 0 %}
                                         <div class="detail-item">
                                             <i class="fa fa-list"></i>
                                             <span>{{ course_data.total_materials }} материалов</span>
                                         </div>
                                     {% endif %}
+                                {% endwith %}
                                 </div>
                             {% else %}
                             
@@ -337,12 +343,14 @@
                                         <i class="fa fa-book"></i>
                                         <span>{{ course_data.completed_lessons }}/{{ course_data.total_lessons }} уроков</span>
                                     </div>
-                                    {% if course_data.total_quizzes > 0 %}
-                                        <div class="detail-item">
-                                            <i class="fa fa-question-circle"></i>
-                                            <span>{{ course_data.completed_quizzes }}/{{ course_data.total_quizzes }} тестов</span>
-                                        </div>
-                                    {% endif %}
+                                    {% with total_tests=course_data.total_quizzes|add:course_data.total_homeworks completed_tests=course_data.completed_quizzes|add:course_data.completed_homeworks %}
+                                        {% if total_tests > 0 %}
+                                            <div class="detail-item">
+                                                <i class="fa fa-question-circle"></i>
+                                                <span>{{ completed_tests }}/{{ total_tests }} тестов</span>
+                                            </div>
+                                        {% endif %}
+                                    {% endwith %}
                                 </div>
                             {% endif %}
                             

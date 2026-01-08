@@ -22,7 +22,7 @@ from django.contrib.auth import get_user_model
 from django.utils.decorators import method_decorator
 from gamification.utils import award_dascoin_points, award_course_badge, award_trajectory_badge, award_first_lesson_badge
 from .utils import issue_certificate, get_user_certificates
-from quizzes.models import Quiz
+from quizzes.models import Quiz, HomeworkSubmission
 
 
 
@@ -207,13 +207,17 @@ class CourseDetailView(DetailView):
         progress = 0
         completed_lessons = 0
         completed_quizzes = 0
+        completed_homeworks = 0
         total_lessons = course.lessons.count()
         total_quizzes = course.quizzes.count()
-        total_materials = total_lessons + total_quizzes
+        total_homeworks = course.homeworks.count()
+        # Задания считаются как тесты для общего подсчёта материалов
+        total_materials = total_lessons + total_quizzes + total_homeworks
         next_lesson = None
         all_completed = False
         completed_lessons_ids = None
         completed_quizzes_ids = None
+        completed_homeworks_ids = None
         trajectory = None
         show_final_quiz = False
         show_completion_animation = False
@@ -270,6 +274,17 @@ class CourseDetailView(DetailView):
                     )
                     completed_quizzes = len(completed_quizzes_ids)
                     
+                    # Получаем выполненные задания в рамках этого курса
+                    completed_homeworks_ids = list(
+                        HomeworkSubmission.objects.filter(
+                            user=user,
+                            course=course,
+                            homework__in=course.homeworks,
+                            status='correct'
+                        ).values_list('homework_id', flat=True).distinct()
+                    )
+                    completed_homeworks = len(completed_homeworks_ids)
+                    
                     # Получаем статус каждого теста (для отображения иконки ожидания проверки)
                     quiz_statuses = {}
                     for quiz in course.quizzes:
@@ -325,6 +340,17 @@ class CourseDetailView(DetailView):
                     )
                     completed_quizzes = len(completed_quizzes_ids)
                     
+                    # Получаем выполненные задания в рамках этого курса
+                    completed_homeworks_ids = list(
+                        HomeworkSubmission.objects.filter(
+                            user=user,
+                            course=course,
+                            homework__in=course.homeworks,
+                            status='correct'
+                        ).values_list('homework_id', flat=True).distinct()
+                    )
+                    completed_homeworks = len(completed_homeworks_ids)
+                    
                     # Получаем статус каждого теста (для отображения иконки ожидания проверки)
                     quiz_statuses = {}
                     for quiz in course.quizzes:
@@ -352,10 +378,12 @@ class CourseDetailView(DetailView):
                         # Ищем следующий материал (урок или тест) в порядке курса
                         next_lesson = self._get_next_material(user, course, None, max_completed_order)
                 
-                # Вычисляем прогресс с учетом уроков и тестов
-                completed_materials = completed_lessons + completed_quizzes
+                # Вычисляем прогресс с учетом уроков, тестов и заданий
+                completed_materials = completed_lessons + completed_quizzes + completed_homeworks
                 progress = int((completed_materials / total_materials) * 100) if total_materials > 0 else 0
-                all_completed = completed_lessons >= total_lessons and completed_quizzes >= total_quizzes
+                all_completed = (completed_lessons >= total_lessons and 
+                                completed_quizzes >= total_quizzes and 
+                                completed_homeworks >= total_homeworks)
 
                 # Автоматическое завершение курса при выполнении условий
                 if user_course.status == 'started' and all_completed:
@@ -564,10 +592,13 @@ class CourseDetailView(DetailView):
             'progress': progress,
             'completed_lessons': completed_lessons,
             'completed_quizzes': completed_quizzes,
+            'completed_homeworks': completed_homeworks,
             'completed_lessons_ids': completed_lessons_ids or [],
             'completed_quizzes_ids': completed_quizzes_ids or [],
+            'completed_homeworks_ids': completed_homeworks_ids or [],
             'total_lessons': total_lessons,
             'total_quizzes': total_quizzes,
+            'total_homeworks': total_homeworks,
             'total_materials': total_materials,
             'next_lesson': next_lesson,
             'next_material': next_lesson,  # Для совместимости с шаблоном
@@ -867,8 +898,10 @@ class LessonDetailView(DetailView):
 
     def _get_next_material_after_lesson(self, lesson, course, trajectory):
         """
-        Находит следующий материал (урок или тест) после текущего урока
+        Находит следующий материал (урок, тест или задание) после текущего урока
         """
+        from quizzes.models import HomeworkSubmission
+        
         # Получаем все материалы курса в порядке
         materials = course.get_course_materials()
         
@@ -890,10 +923,19 @@ class LessonDetailView(DetailView):
             ).values_list('quiz_title', flat=True)
         )
         
+        # Получаем завершенные задания (correct)
+        completed_homework_ids = set(
+            HomeworkSubmission.objects.filter(
+                user=self.request.user,
+                course=course,
+                status='correct'
+            ).values_list('homework_id', flat=True)
+        )
+        
         # Если есть траектория, фильтруем материалы по траектории
         if trajectory:
             trajectory_lesson_ids = set(trajectory.lessons.values_list('id', flat=True))
-            materials = [m for m in materials if m['type'] == 'quiz' or m['id'] in trajectory_lesson_ids]
+            materials = [m for m in materials if m['type'] in ('quiz', 'homework') or m['id'] in trajectory_lesson_ids]
         
         # Находим текущий урок в списке материалов
         current_lesson_index = None
@@ -913,6 +955,9 @@ class LessonDetailView(DetailView):
                     return material
             elif material['type'] == 'quiz':
                 if material['title'] not in completed_quizzes_ids:
+                    return material
+            elif material['type'] == 'homework':
+                if material['id'] not in completed_homework_ids:
                     return material
         
         return None
@@ -1552,6 +1597,7 @@ def complete_lesson(request, course_slug, lesson_id):
         lesson_ids = course.lessons.values_list('id', flat=True)
     
     total_quizzes = course.quizzes.count()
+    total_homeworks = course.homeworks.count()
 
     # Считаем пройденные уроки
     completed_lessons = UserProgress.objects.filter(
@@ -1568,9 +1614,19 @@ def complete_lesson(request, course_slug, lesson_id):
         quiz_title__in=[quiz.name for quiz in course.quizzes],
         passed=True
     ).count()
+    
+    # Считаем выполненные задания в рамках этого курса
+    completed_homeworks = HomeworkSubmission.objects.filter(
+        user=user,
+        course=course,
+        homework__in=course.homeworks,
+        status='correct'
+    ).values('homework_id').distinct().count()
 
-    # Курс завершен только если пройдены ВСЕ уроки И ВСЕ тесты
-    all_completed = completed_lessons >= total_lessons and completed_quizzes >= total_quizzes
+    # Курс завершен только если пройдены ВСЕ уроки, ВСЕ тесты И ВСЕ задания
+    all_completed = (completed_lessons >= total_lessons and 
+                    completed_quizzes >= total_quizzes and 
+                    completed_homeworks >= total_homeworks)
 
     user_course = UserCourse.objects.get(user=user, course=course)
     
@@ -1630,6 +1686,14 @@ def complete_lesson(request, course_slug, lesson_id):
         from django.urls import reverse
         from urllib.parse import urlencode
         url = reverse('quizzes:quiz_start', kwargs={'quiz_id': quiz_id})
+        params = urlencode({'course_slug': course.slug})
+        return redirect(f'{url}?{params}')
+    elif request.POST.get('go_to_homework'):
+        # Пользователь хочет перейти к заданию после завершения урока
+        homework_id = request.POST.get('go_to_homework')
+        from django.urls import reverse
+        from urllib.parse import urlencode
+        url = reverse('quizzes:homework_submit', kwargs={'homework_id': homework_id})
         params = urlencode({'course_slug': course.slug})
         return redirect(f'{url}?{params}')
     elif request.POST.get('continue_learning'):
@@ -1909,9 +1973,18 @@ class UserCourseTrajectoryListView(ListView):
             ).values('quiz_title').distinct().count()
             total_quizzes = course.quizzes.count()
             
-            # Общий подсчет материалов
-            completed_materials = completed_lessons + completed_quizzes
-            total_materials = total_lessons + total_quizzes
+            # Подсчет выполненных заданий в рамках этого курса
+            completed_homeworks = HomeworkSubmission.objects.filter(
+                user=user,
+                course=course,
+                homework__in=course.homeworks,
+                status='correct'
+            ).values('homework_id').distinct().count()
+            total_homeworks = course.homeworks.count()
+            
+            # Общий подсчет материалов (задания считаются как тесты)
+            completed_materials = completed_lessons + completed_quizzes + completed_homeworks
+            total_materials = total_lessons + total_quizzes + total_homeworks
             
             # Если у курса нет материалов, считаем его доступным
             if total_materials == 0:
@@ -1988,8 +2061,10 @@ class UserCourseTrajectoryListView(ListView):
                     'user_course': user_course,
                     'completed_lessons': completed_lessons,
                     'completed_quizzes': completed_quizzes,
+                    'completed_homeworks': completed_homeworks,
                     'total_lessons': total_lessons,
                     'total_quizzes': total_quizzes,
+                    'total_homeworks': total_homeworks,
                     'completed_materials': completed_materials,
                     'total_materials': total_materials,
                     'percent': percent,

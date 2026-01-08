@@ -2332,6 +2332,41 @@ class HomeworkSubmitView(LoginRequiredMixin, View):
         self.homework = get_object_or_404(Homework, id=kwargs['homework_id'])
         return super().dispatch(request, *args, **kwargs)
     
+    def _get_navigation_context(self, course):
+        """Получает контекст навигации (предыдущий/следующий материал)"""
+        from .models import HomeworkSubmission
+        
+        if not course:
+            return {}
+        
+        # Получаем все материалы курса
+        materials = course.get_course_materials()
+        
+        # Находим текущее задание в списке материалов
+        current_index = None
+        for i, material in enumerate(materials):
+            if material['type'] == 'homework' and material['id'] == self.homework.id:
+                current_index = i
+                break
+        
+        if current_index is None:
+            return {}
+        
+        # Определяем предыдущий материал
+        previous_material = None
+        if current_index > 0:
+            previous_material = materials[current_index - 1]
+        
+        # Определяем следующий материал
+        next_material = None
+        if current_index < len(materials) - 1:
+            next_material = materials[current_index + 1]
+        
+        return {
+            'previous_material': previous_material,
+            'next_material': next_material,
+        }
+    
     def get(self, request, *args, **kwargs):
         from .forms import HomeworkSubmissionForm
         from .models import HomeworkSubmission
@@ -2350,12 +2385,16 @@ class HomeworkSubmitView(LoginRequiredMixin, View):
         
         form = HomeworkSubmissionForm()
         
+        # Получаем контекст навигации
+        nav_context = self._get_navigation_context(course)
+        
         context = {
             'homework': self.homework,
             'form': form,
             'course': course,
             'existing_submission': existing_submission,
         }
+        context.update(nav_context)
         return render(request, self.template_name, context)
     
     def post(self, request, *args, **kwargs):
@@ -2375,11 +2414,13 @@ class HomeworkSubmitView(LoginRequiredMixin, View):
         answer_text = request.POST.get('answer_text', '').strip()
         if not answer_text and not images:
             form.add_error(None, 'Введите текст ответа или прикрепите хотя бы одно фото.')
+            nav_context = self._get_navigation_context(course)
             context = {
                 'homework': self.homework,
                 'form': form,
                 'course': course,
             }
+            context.update(nav_context)
             return render(request, self.template_name, context)
         
         if form.is_valid():
@@ -2434,11 +2475,13 @@ class HomeworkSubmitView(LoginRequiredMixin, View):
                 return redirect('courses:course_detail', slug=course.slug)
             return redirect('home')
         
+        nav_context = self._get_navigation_context(course)
         context = {
             'homework': self.homework,
             'form': form,
             'course': course,
         }
+        context.update(nav_context)
         return render(request, self.template_name, context)
 
 

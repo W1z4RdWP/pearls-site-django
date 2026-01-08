@@ -4,35 +4,16 @@
 {% block title %}Задание: {{ homework.title }}{% endblock %}
 
 {% block specific_styles %}
+<link rel="stylesheet" href="{% static 'courses/css/lesson_custom_buttons.css' %}">
 <link rel="stylesheet" href="{% static 'quizzes/css/quiz_styles.css' %}">
 <style>
-.homework-container {
-    max-width: 900px;
-    margin: 40px auto;
-    padding: 0 20px;
-}
-
-.homework-card {
+/* Стили для формы задания */
+.homework-content {
     background: #fff;
     border-radius: 12px;
     box-shadow: 0 2px 12px rgba(0,0,0,0.1);
-    overflow: hidden;
-}
-
-.homework-header {
-    background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
-    color: #fff;
-    padding: 25px 30px;
-}
-
-.homework-header h2 {
-    margin: 0;
-    font-size: 1.4rem;
-    font-weight: 500;
-}
-
-.homework-body {
     padding: 30px;
+    margin-top: 20px;
 }
 
 .task-section {
@@ -369,20 +350,66 @@
 {% endblock %}
 
 {% block content %}
-<div class="homework-container">
-    <div class="homework-card">
-        <div class="homework-header">
-            <h2>Задание</h2>
-        </div>
+
+    {% if course %}
+    <div class="lesson-navigation">
+        <a href="{% url 'courses:course_detail' slug=course.slug %}" 
+           class="btn btn-outline-secondary" style="margin-right: 10px;">
+            <i class="fa fa-arrow-left"></i> Вернуться к курсу
+        </a>
         
-        <div class="homework-body">
-            <div class="task-section">
-                <h3>Текст задания</h3>
-                <div class="task-text">
-                    {{ homework.title }}
-                </div>
-            </div>
-            
+        {% if previous_material %}
+            {% if previous_material.type == 'lesson' %}
+                <a href="{% url 'courses:lesson_detail' course_slug=course.slug lesson_id=previous_material.id %}" 
+                   class="btn btn-primary">
+                    ← {{ previous_material.title }}
+                </a>
+            {% elif previous_material.type == 'quiz' %}
+                <a href="{% url 'quizzes:quiz_start' quiz_id=previous_material.id %}?course_slug={{ course.slug }}" 
+                   class="btn btn-success" style="background-color: #28a745; border-color: #28a745;">
+                    <i class="fa fa-graduation-cap"></i> ← {{ previous_material.title }}
+                </a>
+            {% elif previous_material.type == 'homework' %}
+                <a href="{% url 'quizzes:homework_submit' homework_id=previous_material.id %}?course_slug={{ course.slug }}" 
+                   class="btn btn-warning" style="background-color: #ffc107; border-color: #ffc107; color: #212529;">
+                    <i class="fa fa-pencil-alt"></i> ← {{ previous_material.title }}
+                </a>
+            {% endif %}
+        {% else %}
+            <button class="btn btn-secondary" disabled>← Это первый элемент</button>
+        {% endif %}
+        
+        {% if next_material %}
+            {% if next_material.type == 'lesson' %}
+                <a href="{% url 'courses:lesson_detail' course_slug=course.slug lesson_id=next_material.id %}" 
+                   class="btn btn-primary">
+                    {{ next_material.title }} →
+                </a>
+            {% elif next_material.type == 'quiz' %}
+                <a href="{% url 'quizzes:quiz_start' quiz_id=next_material.id %}?course_slug={{ course.slug }}" 
+                   class="btn btn-success" style="background-color: #28a745; border-color: #28a745;">
+                    <i class="fa fa-graduation-cap"></i> {{ next_material.title }} →
+                </a>
+            {% elif next_material.type == 'homework' %}
+                <a href="{% url 'quizzes:homework_submit' homework_id=next_material.id %}?course_slug={{ course.slug }}" 
+                   class="btn btn-warning" style="background-color: #ffc107; border-color: #ffc107; color: #212529;">
+                    <i class="fa fa-pencil-alt"></i> {{ next_material.title }} →
+                </a>
+            {% endif %}
+        {% else %}
+            <button class="btn btn-secondary" disabled>Это последний элемент →</button>
+        {% endif %}
+    </div>
+    {% endif %}
+
+    <div class="content-section">
+        {% if course %}
+        <h1>{{ course.title }}</h1>
+        {% endif %}
+        <h2>{{ homework.title }}</h2>
+        
+        <div class="homework-content">
+        
             {% if existing_submission %}
             <div class="existing-submission">
                 <h4>Ваш предыдущий ответ</h4>
@@ -493,7 +520,6 @@
             {% endif %}
         </div>
     </div>
-</div>
 
 <!-- Модальное окно для просмотра изображений -->
 <div class="image-modal" id="imageModal" onclick="closeImageModal()">

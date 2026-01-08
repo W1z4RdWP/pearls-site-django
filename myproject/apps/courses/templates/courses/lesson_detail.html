@@ -131,6 +131,11 @@
             class="btn btn-success" style="background-color: #28a745; border-color: #28a745;">
                 <i class="fa fa-graduation-cap"></i> Перейти к тесту: {{ lesson_quiz.name }} →
             </a>
+        {% elif next_material and next_material.type == 'homework' %}
+            <a href="{% url 'quizzes:homework_submit' homework_id=next_material.id %}?course_slug={{ course.slug }}" 
+            class="btn btn-warning" style="background-color: #ffc107; border-color: #ffc107; color: #212529;">
+                <i class="fa fa-pencil-alt"></i> Перейти к заданию: {{ next_material.title }} →
+            </a>
         {% elif next_lesson %}
             <a href="{% url 'courses:lesson_detail' course_slug=course.slug lesson_id=next_lesson.id %}" 
             class="btn btn-primary">
@@ -235,6 +240,8 @@
                     <div class="mb-3">
                         {% if next_material and next_material.type == 'quiz' %}
                             <i class="fa fa-clipboard-check" style="font-size: 3rem; color: #dc3545;"></i>
+                        {% elif next_material and next_material.type == 'homework' %}
+                            <i class="fa fa-pencil-alt" style="font-size: 3rem; color: #ffc107;"></i>
                         {% else %}
                             <i class="fa fa-question-circle" style="font-size: 3rem; color: #007bff;"></i>
                         {% endif %}
@@ -248,6 +255,9 @@
                     {% elif next_material and next_material.type == 'quiz' %}
                         <p class="lead">Урок завершен! Следующий этап - тест.</p>
                         <p class="text-muted">После завершения урока вас ждет тест <strong>"{{ next_material.title }}"</strong>. Готовы проверить свои знания?</p>
+                    {% elif next_material and next_material.type == 'homework' %}
+                        <p class="lead">Урок завершен! Следующий этап - задание.</p>
+                        <p class="text-muted">После завершения урока вас ждет задание <strong>"{{ next_material.title }}"</strong>. Готовы выполнить задание?</p>
                     {% else %}
                         <p class="lead">Урок завершен! Хотите продолжить обучение?</p>
                         <p class="text-muted">Вы можете перейти к следующему уроку или отдохнуть и вернуться позже.</p>
@@ -266,6 +276,8 @@
                             <i class="fa fa-check"></i> Вернуться к курсу
                         {% elif next_material and next_material.type == 'quiz' %}
                             <i class="fa fa-clipboard-check"></i> Перейти к тесту
+                        {% elif next_material and next_material.type == 'homework' %}
+                            <i class="fa fa-pencil-alt"></i> Перейти к заданию
                         {% else %}
                             <i class="fa fa-arrow-right"></i> Да, продолжаем!
                         {% endif %}
@@ -315,6 +327,13 @@
                 const input = document.createElement('input');
                 input.type = 'hidden';
                 input.name = 'go_to_quiz';
+                input.value = '{{ next_material.id }}';
+                form.appendChild(input);
+            {% elif next_material and next_material.type == 'homework' %}
+                // Если следующий материал - задание, добавляем параметр для перехода к заданию
+                const input = document.createElement('input');
+                input.type = 'hidden';
+                input.name = 'go_to_homework';
                 input.value = '{{ next_material.id }}';
                 form.appendChild(input);
             {% elif is_last_lesson %}
