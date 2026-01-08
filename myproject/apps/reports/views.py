@@ -41,7 +41,7 @@ class HomeworkCheckDashboardView(LoginRequiredMixin, UserPassesTestMixin, Templa
         
         # Импортируем модели
         from courses.models import Lesson, Course
-        from quizzes.models import Quiz
+        from quizzes.models import Quiz, Homework
         
         # Для последних завершений
         from myapp.models import UserProgress, QuizResult
@@ -53,7 +53,9 @@ class HomeworkCheckDashboardView(LoginRequiredMixin, UserPassesTestMixin, Templa
             # Для администраторов - общая статистика по всей платформе
             total_lessons = Lesson.objects.count()
             total_quizzes = Quiz.objects.count()
-            total_materials = total_lessons + total_quizzes
+            total_homeworks = Homework.objects.count()
+            # Задания считаются как тесты для общего подсчёта материалов
+            total_materials = total_lessons + total_quizzes + total_homeworks
             active_users = User.objects.filter(profile__is_approved=True).count()
             total_groups = Group.objects.count()
             # Последние завершения по всей платформе
@@ -86,7 +88,11 @@ class HomeworkCheckDashboardView(LoginRequiredMixin, UserPassesTestMixin, Templa
                 # Тесты из курсов наставника
                 total_quizzes = Quiz.objects.filter(courses__in=mentor_courses).distinct().count()
                 
-                total_materials = total_lessons + total_quizzes
+                # Задания из курсов наставника
+                total_homeworks = Homework.objects.filter(courses__in=mentor_courses).distinct().count()
+                
+                # Задания считаются как тесты для общего подсчёта материалов
+                total_materials = total_lessons + total_quizzes + total_homeworks
                 
                 # Активные пользователи из групп наставника
                 active_users = mentor_group_users.filter(profile__is_approved=True).count()
@@ -111,6 +117,7 @@ class HomeworkCheckDashboardView(LoginRequiredMixin, UserPassesTestMixin, Templa
                 # Если у наставника нет групп, показываем нули
                 total_lessons = 0
                 total_quizzes = 0
+                total_homeworks = 0
                 total_materials = 0
                 active_users = 0
                 total_groups = 0
@@ -197,6 +204,7 @@ class HomeworkCheckDashboardView(LoginRequiredMixin, UserPassesTestMixin, Templa
             'total_materials': total_materials,
             'total_lessons': total_lessons,
             'total_quizzes': total_quizzes,
+            'total_homeworks': total_homeworks,
             'active_users': active_users,
             'total_groups': total_groups,
             'is_admin': is_admin,

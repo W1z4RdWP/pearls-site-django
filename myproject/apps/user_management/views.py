@@ -11,7 +11,7 @@ from django import forms
 from django.urls import reverse_lazy
 from django.core.exceptions import PermissionDenied
 from myapp.models import UserProgress, UserCourse, QuizResult, UserAnswer
-from quizzes.models import Quiz, QuizLock
+from quizzes.models import Quiz, QuizLock, HomeworkSubmission
 from courses.models import Course, Lesson, UserLessonTrajectory, UserCourseTrajectory, Trajectory, UserLesson
 from django.core.paginator import Paginator, PageNotAnInteger, EmptyPage
 from django.utils.decorators import method_decorator
@@ -569,8 +569,16 @@ class UserEditDetailedView(UpdateView):
             ).values('quiz_title').distinct().count()
             total_quizzes = course.quizzes.count()
             
-            total_materials = total_lessons + total_quizzes
-            completed_materials = completed_lessons + completed_quizzes
+            # Подсчёт выполненных заданий (задания считаются как тесты)
+            completed_homeworks = HomeworkSubmission.objects.filter(
+                user=user, course=course,
+                homework__in=course.homeworks,
+                status='correct'
+            ).values('homework_id').distinct().count()
+            total_homeworks = course.homeworks.count()
+            
+            total_materials = total_lessons + total_quizzes + total_homeworks
+            completed_materials = completed_lessons + completed_quizzes + completed_homeworks
             progress_percent = int((completed_materials / total_materials) * 100) if total_materials > 0 else 0
             
             quiz_passed = False
@@ -617,6 +625,7 @@ class UserEditDetailedView(UpdateView):
                 'course': course, 'user_course': user_course,
                 'total_lessons': total_lessons, 'completed_lessons': completed_lessons,
                 'total_quizzes': total_quizzes, 'completed_quizzes': completed_quizzes,
+                'total_homeworks': total_homeworks, 'completed_homeworks': completed_homeworks,
                 'total_materials': total_materials, 'completed_materials': completed_materials,
                 'progress_percent': progress_percent, 'quiz_passed': quiz_passed,
                 'lessons_detail': lessons_detail, 'best_attempt': best_attempt,
@@ -897,9 +906,18 @@ class UserProgressDashboardView(DetailView):
             ).values('quiz_title').distinct().count()
             total_quizzes = course.quizzes.count()
             
-            # Вычисляем процент прогресса с учетом уроков и тестов
-            total_materials = total_lessons + total_quizzes
-            completed_materials = completed_lessons + completed_quizzes
+            # Подсчитываем выполненные задания в рамках этого курса (задания считаются как тесты)
+            completed_homeworks = HomeworkSubmission.objects.filter(
+                user=user,
+                course=course,
+                homework__in=course.homeworks,
+                status='correct'
+            ).values('homework_id').distinct().count()
+            total_homeworks = course.homeworks.count()
+            
+            # Вычисляем процент прогресса с учетом уроков, тестов и заданий
+            total_materials = total_lessons + total_quizzes + total_homeworks
+            completed_materials = completed_lessons + completed_quizzes + completed_homeworks
             progress_percent = int((completed_materials / total_materials) * 100) if total_materials > 0 else 0
             
             # Проверяем прохождение финального теста в рамках этого курса
@@ -980,6 +998,8 @@ class UserProgressDashboardView(DetailView):
                 'completed_lessons': completed_lessons,
                 'total_quizzes': total_quizzes,
                 'completed_quizzes': completed_quizzes,
+                'total_homeworks': total_homeworks,
+                'completed_homeworks': completed_homeworks,
                 'total_materials': total_materials,
                 'completed_materials': completed_materials,
                 'progress_percent': progress_percent,

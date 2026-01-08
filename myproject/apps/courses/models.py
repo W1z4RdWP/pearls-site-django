@@ -203,9 +203,14 @@ class Course(models.Model):
         """Возвращает тесты курса через связь many-to-many, отсортированные по `order`, `name`."""
         return self.course_quizzes.all().order_by('order', 'name')
     
+    @property
+    def homeworks(self):
+        """Возвращает задания курса через связь many-to-many, отсортированные по `order`, `name`."""
+        return self.course_homeworks.all().order_by('order', 'name')
+    
 
     def get_course_materials(self):
-        """Собирает все материалы курса (уроки + тесты) в одну упорядоченную ленту."""
+        """Собирает все материалы курса (уроки + тесты + задания) в одну упорядоченную ленту."""
         materials = []
         
         # Добавляем уроки
@@ -226,6 +231,16 @@ class Course(models.Model):
                 'order': quiz.order,
                 'title': quiz.name,
                 'id': quiz.id
+            })
+        
+        # Добавляем задания
+        for homework in self.homeworks:
+            materials.append({
+                'type': 'homework',
+                'object': homework,
+                'order': homework.order,
+                'title': homework.title,
+                'id': homework.id
             })
         
         # Сортируем по порядку

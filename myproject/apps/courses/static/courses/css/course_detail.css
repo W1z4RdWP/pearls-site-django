@@ -88,6 +88,12 @@
     border: 1px solid #dee2e6;
 }
 
+.material-item.homework {
+    background: #f8f9fa;
+    color: #495057;
+    border: 1px solid #dee2e6;
+}
+
 .material-item.form {
     display: none!important;
     background: #f8f9fa;

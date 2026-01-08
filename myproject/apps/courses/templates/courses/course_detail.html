@@ -79,7 +79,9 @@
         <div class="progress-bar-modern" style="width: {{ progress }}%"></div>
     </div>
     <div class="progress-text">
-        {{ completed_lessons }}/{{ total_lessons }} уроков{% if total_quizzes > 0 %}, {{ completed_quizzes }}/{{ total_quizzes }} тестов{% endif %} ({{ progress }}%)
+        {% with total_tests=total_quizzes|add:total_homeworks completed_tests=completed_quizzes|add:completed_homeworks %}
+        {{ completed_lessons }}/{{ total_lessons }} уроков{% if total_tests > 0 %}, {{ completed_tests }}/{{ total_tests }} тестов{% endif %} ({{ progress }}%)
+        {% endwith %}
     </div>
     {% endif %}
     
@@ -380,6 +382,109 @@
                                                 </button>
                                             </form>
                                         {% endif %}
+                                    </div>
+                                {% endif %}
+                            {% elif material.type == 'homework' %}
+                                {% comment %} Задание (Homework) {% endcomment %}
+                                {% if user.is_staff or user.is_superuser or user_course and user_course.status in 'started,completed' %}
+                                    {% with homework_status=homework_statuses|get_item:material.id %}
+                                        {% if homework_status == 'correct' %}
+                                            <div class="material-item homework d-flex align-items-center p-3">
+                                                <a href="{% url 'quizzes:homework_submit' homework_id=material.id %}?course_slug={{ course.slug }}"
+                                                   class="d-flex align-items-center flex-grow-1 text-decoration-none">
+                                                    <span class="material-icon"><i class="fa fa-tasks"></i></span>
+                                                    <div class="flex-grow-1">
+                                                        <div class="material-title">{{ material.name }}</div>
+                                                        <div class="material-type">Задание</div>
+                                                    </div>
+                                                    <span class="badge bg-success">✓</span>
+                                                </a>
+                                                {% if user.is_authenticated and user.is_staff %}
+                                                    <form method="POST" action="{% url 'courses:remove_homework_from_course' course_slug=course.slug homework_id=material.id %}" style="margin-left: 10px;">
+                                                        {% csrf_token %}
+                                                        <button type="submit" class="btn-delete-material" 
+                                                                title="Удалить задание из курса"
+                                                                onclick="return confirm('Вы уверены, что хотите удалить это задание из курса?')">
+                                                            <i class="fa fa-times"></i>
+                                                        </button>
+                                                    </form>
+                                                {% endif %}
+                                            </div>
+                                        {% elif homework_status == 'pending' %}
+                                            <div class="material-item homework d-flex align-items-center p-3">
+                                                <a href="{% url 'quizzes:homework_submit' homework_id=material.id %}?course_slug={{ course.slug }}"
+                                                   class="d-flex align-items-center flex-grow-1 text-decoration-none">
+                                                    <span class="material-icon"><i class="fa fa-tasks"></i></span>
+                                                    <div class="flex-grow-1">
+                                                        <div class="material-title">{{ material.name }}</div>
+                                                        <div class="material-type">Задание</div>
+                                                    </div>
+                                                    <span class="badge" style="background-color: #f39c12; color: white;"><i class="fa fa-hourglass-half"></i></span>
+                                                </a>
+                                                {% if user.is_authenticated and user.is_staff %}
+                                                    <form method="POST" action="{% url 'courses:remove_homework_from_course' course_slug=course.slug homework_id=material.id %}" style="margin-left: 10px;">
+                                                        {% csrf_token %}
+                                                        <button type="submit" class="btn-delete-material" 
+                                                                title="Удалить задание из курса"
+                                                                onclick="return confirm('Вы уверены, что хотите удалить это задание из курса?')">
+                                                            <i class="fa fa-times"></i>
+                                                        </button>
+                                                    </form>
+                                                {% endif %}
+                                            </div>
+                                        {% elif homework_status == 'incorrect' %}
+                                            <div class="material-item homework d-flex align-items-center p-3">
+                                                <a href="{% url 'quizzes:homework_submit' homework_id=material.id %}?course_slug={{ course.slug }}"
+                                                   class="d-flex align-items-center flex-grow-1 text-decoration-none">
+                                                    <span class="material-icon"><i class="fa fa-tasks"></i></span>
+                                                    <div class="flex-grow-1">
+                                                        <div class="material-title">{{ material.name }}</div>
+                                                        <div class="material-type">Задание (требуется исправление)</div>
+                                                    </div>
+                                                    <span class="badge bg-danger">↻</span>
+                                                </a>
+                                                {% if user.is_authenticated and user.is_staff %}
+                                                    <form method="POST" action="{% url 'courses:remove_homework_from_course' course_slug=course.slug homework_id=material.id %}" style="margin-left: 10px;">
+                                                        {% csrf_token %}
+                                                        <button type="submit" class="btn-delete-material" 
+                                                                title="Удалить задание из курса"
+                                                                onclick="return confirm('Вы уверены, что хотите удалить это задание из курса?')">
+                                                            <i class="fa fa-times"></i>
+                                                        </button>
+                                                    </form>
+                                                {% endif %}
+                                            </div>
+                                        {% else %}
+                                            <div class="material-item homework d-flex align-items-center p-3">
+                                                <a href="{% url 'quizzes:homework_submit' homework_id=material.id %}?course_slug={{ course.slug }}"
+                                                   class="d-flex align-items-center flex-grow-1 text-decoration-none">
+                                                    <span class="material-icon"><i class="fa fa-tasks"></i></span>
+                                                    <div class="flex-grow-1">
+                                                        <div class="material-title">{{ material.name }}</div>
+                                                        <div class="material-type">Задание</div>
+                                                    </div>
+                                                </a>
+                                                {% if user.is_authenticated and user.is_staff %}
+                                                    <form method="POST" action="{% url 'courses:remove_homework_from_course' course_slug=course.slug homework_id=material.id %}" style="margin-left: 10px;">
+                                                        {% csrf_token %}
+                                                        <button type="submit" class="btn-delete-material" 
+                                                                title="Удалить задание из курса"
+                                                                onclick="return confirm('Вы уверены, что хотите удалить это задание из курса?')">
+                                                            <i class="fa fa-times"></i>
+                                                        </button>
+                                                    </form>
+                                                {% endif %}
+                                            </div>
+                                        {% endif %}
+                                    {% endwith %}
+                                {% elif not user.is_staff and not user.is_superuser %}
+                                    <div class="material-item blocked d-flex align-items-center p-3">
+                                        <span class="material-icon"><i class="fa fa-tasks"></i></span>
+                                        <div class="flex-grow-1">
+                                            <div class="material-title">{{ material.name }}</div>
+                                            <div class="material-type">Задание</div>
+                                        </div>
+                                        <span class="badge bg-secondary">🔒</span>
                                     </div>
                                 {% endif %}
                             {% endif %}

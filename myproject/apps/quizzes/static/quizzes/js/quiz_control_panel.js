@@ -28,7 +28,7 @@ function initializeQuizControlPanel() {
 // === ФУНКЦИИ ДЛЯ ГЛАВНОЙ СТРАНИЦЫ ===
 
 function initializeMainPageHandlers() {
-    // Обработчик для кнопок удаления
+    // Обработчик для кнопок удаления тестов
     document.querySelectorAll('.btn-delete-quiz').forEach(button => {
         button.addEventListener('click', function() {
             const quizId = this.dataset.quizId;
@@ -41,6 +41,9 @@ function initializeMainPageHandlers() {
             deleteModal.show();
         });
     });
+    
+    // Обработчик для кнопок удаления заданий
+    initializeHomeworkDeleteHandlers();
 
     // Обработка создания теста
     const createQuizForm = document.getElementById('createQuizForm');
@@ -96,8 +99,41 @@ function initializeMainPageHandlers() {
     // === ПОИСК ПО НАЗВАНИЮ ТЕСТА ===
     initializeQuizSearch();
     
+    // === ПОИСК ПО НАЗВАНИЮ ЗАДАНИЯ ===
+    initializeHomeworkSearch();
+    
     // === ОБРАБОТКА ЗАГРУЗКИ DOCX ===
     initializeDocxUpload();
+}
+
+/**
+ * Инициализирует обработчики для кнопок удаления заданий
+ */
+function initializeHomeworkDeleteHandlers() {
+    const container = document.querySelector('[data-homework-delete-url]');
+    if (!container) return;
+    
+    const deleteUrl = container.dataset.homeworkDeleteUrl;
+    
+    document.querySelectorAll('.btn-delete-homework').forEach(button => {
+        button.addEventListener('click', function() {
+            const homeworkId = this.dataset.homeworkId;
+            const homeworkTitle = this.dataset.homeworkTitle;
+            
+            const titleElement = document.getElementById('homeworkTitleToDelete');
+            const formElement = document.getElementById('deleteHomeworkForm');
+            
+            if (titleElement) {
+                titleElement.textContent = homeworkTitle;
+            }
+            if (formElement && deleteUrl) {
+                formElement.action = deleteUrl.replace('/0/', '/' + homeworkId + '/');
+            }
+            
+            const modal = new bootstrap.Modal(document.getElementById('deleteHomeworkModal'));
+            modal.show();
+        });
+    });
 }
 
 // === ФУНКЦИИ ДЛЯ ЗАГРУЗКИ DOCX ===
@@ -1018,11 +1054,10 @@ function initializeQuizSearch() {
     }
     
     const searchUrl = container.dataset.searchUrl;
-    const quizCards = document.querySelectorAll('.quiz-card');
-    const paginationNav = document.querySelector('nav[aria-label="Page navigation"]');
+    const quizzesContainer = document.getElementById('quizzesContainer');
+    const paginationNav = document.getElementById('quizzesPagination');
     
     // Сохраняем оригинальные карточки для восстановления
-    const originalRow = document.querySelector('.container .row:last-of-type');
     let originalContent = null;
     
     /**
@@ -1034,22 +1069,22 @@ function initializeQuizSearch() {
         
         const searchTerm = this.value.trim();
         
+        // Сохраняем оригинальный контент при первом поиске
+        if (!originalContent && quizzesContainer) {
+            originalContent = quizzesContainer.innerHTML;
+        }
+        
         // Если поле пустое - восстанавливаем оригинальное состояние
         if (searchTerm === '') {
-            restoreOriginalState(originalRow, originalContent, paginationNav);
+            restoreOriginalState(quizzesContainer, originalContent, paginationNav);
             return;
         }
         
         // Debounce 300мс для снижения нагрузки на сервер
         searchTimeout = setTimeout(() => {
-            performAjaxSearch(searchTerm, searchUrl, originalRow, paginationNav);
+            performAjaxSearch(searchTerm, searchUrl, quizzesContainer, paginationNav);
         }, 300);
     });
-    
-    // Сохраняем оригинальный контент при первом поиске
-    if (!originalContent) {
-        originalContent = originalRow.innerHTML;
-    }
 }
 
 /**
@@ -1259,5 +1294,236 @@ function restoreOriginalState(container, originalContent, paginationNav) {
         
         // Переинициализируем обработчики
         initializeMainPageHandlers();
+    }
+}
+
+
+// === ФУНКЦИЯ ПОИСКА ЗАДАНИЙ С AJAX ===
+
+/**
+ * Инициализация функциональности поиска заданий по названию
+ * Использует AJAX для поиска по всей базе данных
+ */
+function initializeHomeworkSearch() {
+    const searchInput = document.getElementById('homeworkSearch');
+    if (!searchInput) return;
+    
+    const container = document.querySelector('[data-homework-search-url]');
+    if (!container) {
+        console.error('Не найден контейнер с data-homework-search-url');
+        return;
+    }
+    
+    const searchUrl = container.dataset.homeworkSearchUrl;
+    const homeworksContainer = document.getElementById('homeworksContainer');
+    const paginationNav = document.getElementById('homeworksPagination');
+    
+    // Сохраняем оригинальные карточки для восстановления
+    let originalContent = null;
+    
+    /**
+     * Обработчик ввода в поле поиска с debounce
+     */
+    let searchTimeout;
+    searchInput.addEventListener('input', function() {
+        clearTimeout(searchTimeout);
+        
+        const searchTerm = this.value.trim();
+        
+        // Сохраняем оригинальный контент при первом поиске
+        if (!originalContent && homeworksContainer) {
+            originalContent = homeworksContainer.innerHTML;
+        }
+        
+        // Если поле пустое - восстанавливаем оригинальное состояние
+        if (searchTerm === '') {
+            restoreHomeworksOriginalState(homeworksContainer, originalContent, paginationNav);
+            return;
+        }
+        
+        // Debounce 300мс для снижения нагрузки на сервер
+        searchTimeout = setTimeout(() => {
+            performHomeworksAjaxSearch(searchTerm, searchUrl, homeworksContainer, paginationNav);
+        }, 300);
+    });
+}
+
+/**
+ * Выполняет AJAX запрос для поиска заданий
+ * @param {string} searchTerm - Поисковый запрос
+ * @param {string} searchUrl - URL для AJAX запроса
+ * @param {HTMLElement} targetContainer - Контейнер для результатов
+ * @param {HTMLElement} paginationNav - Элемент пагинации
+ */
+function performHomeworksAjaxSearch(searchTerm, searchUrl, targetContainer, paginationNav) {
+    // Показываем индикатор загрузки
+    showHomeworksLoadingState(targetContainer);
+    
+    // Скрываем пагинацию во время поиска
+    if (paginationNav) {
+        paginationNav.style.display = 'none';
+    }
+    
+    // Выполняем AJAX запрос
+    fetch(`${searchUrl}?q=${encodeURIComponent(searchTerm)}`, {
+        method: 'GET',
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest',
+        }
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        return response.json();
+    })
+    .then(data => {
+        if (data.success) {
+            renderHomeworksSearchResults(data.results, targetContainer, searchTerm);
+        } else {
+            showHomeworksErrorMessage(targetContainer, data.error || 'Ошибка поиска');
+        }
+    })
+    .catch(error => {
+        console.error('Ошибка AJAX запроса:', error);
+        showHomeworksErrorMessage(targetContainer, 'Не удалось выполнить поиск. Попробуйте позже.');
+    });
+}
+
+/**
+ * Отображает результаты поиска заданий
+ * @param {Array} results - Массив найденных заданий
+ * @param {HTMLElement} targetContainer - Контейнер для результатов
+ * @param {string} searchTerm - Поисковый запрос для подсветки
+ */
+function renderHomeworksSearchResults(results, targetContainer, searchTerm) {
+    if (results.length === 0) {
+        showHomeworksNoResultsMessage(targetContainer, searchTerm);
+        return;
+    }
+    
+    // Очищаем контейнер
+    targetContainer.innerHTML = '';
+    
+    // Генерируем HTML для каждого результата
+    results.forEach(homework => {
+        const homeworkCard = createHomeworkCardHTML(homework, searchTerm);
+        targetContainer.insertAdjacentHTML('beforeend', homeworkCard);
+    });
+    
+    // Переинициализируем обработчики для кнопок удаления
+    initializeHomeworkDeleteHandlers();
+}
+
+/**
+ * Создает HTML для карточки задания
+ * @param {Object} homework - Объект с данными задания
+ * @param {string} searchTerm - Поисковый запрос для подсветки
+ * @returns {string} HTML строка
+ */
+function createHomeworkCardHTML(homework, searchTerm) {
+    // Подсвечиваем совпадение в названии
+    const highlightedTitle = highlightSearchTerm(homework.title, searchTerm);
+    
+    return `
+        <div class="col-12 mb-3">
+            <div class="card quiz-card shadow-sm h-100" style="border-left: 4px solid #9b59b6;" data-homework-title="${homework.title.toLowerCase()}">
+                <div class="card-body d-flex align-items-center">
+                    <div class="quiz-info">
+                        <h5 class="card-title mb-1">
+                            <i class="fas fa-tasks" style="color: #9b59b6;"></i>
+                            ${highlightedTitle}
+                        </h5>
+                        <p class="text-muted mb-2">
+                            <i class="fas fa-coins"></i> ${homework.points} DASCOIN
+                        </p>
+                        <small class="text-secondary">ID: ${homework.id}</small>
+                    </div>
+                    <div class="quiz-actions">
+                        <a href="/quizzes/homework/${homework.id}/edit/" 
+                           class="btn-mini edit btn-sm">
+                            <i class="fas fa-edit"></i> Редактировать
+                        </a>
+                        <button type="button" 
+                                class="btn-mini delete btn-sm btn-delete-homework"
+                                data-homework-id="${homework.id}"
+                                data-homework-title="${homework.title}">
+                            <i class="fas fa-trash"></i> Удалить
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+/**
+ * Показывает индикатор загрузки для заданий
+ * @param {HTMLElement} container - Контейнер
+ */
+function showHomeworksLoadingState(container) {
+    container.innerHTML = `
+        <div class="col-12">
+            <div class="text-center py-5">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">Загрузка...</span>
+                </div>
+                <p class="mt-3 text-muted">Поиск заданий...</p>
+            </div>
+        </div>
+    `;
+}
+
+/**
+ * Показывает сообщение об отсутствии результатов для заданий
+ * @param {HTMLElement} container - Контейнер
+ * @param {string} searchTerm - Поисковый запрос
+ */
+function showHomeworksNoResultsMessage(container, searchTerm) {
+    container.innerHTML = `
+        <div class="col-12">
+            <div class="no-results-message">
+                <i class="fas fa-search"></i>
+                <h5 class="text-muted">Ничего не найдено</h5>
+                <p class="text-muted mb-0">По запросу "<strong>${searchTerm}</strong>" не найдено ни одного задания</p>
+                <p class="text-muted mt-2"><small>Попробуйте изменить поисковый запрос</small></p>
+            </div>
+        </div>
+    `;
+}
+
+/**
+ * Показывает сообщение об ошибке для заданий
+ * @param {HTMLElement} container - Контейнер
+ * @param {string} errorMessage - Текст ошибки
+ */
+function showHomeworksErrorMessage(container, errorMessage) {
+    container.innerHTML = `
+        <div class="col-12">
+            <div class="alert alert-danger text-center">
+                <i class="fas fa-exclamation-triangle me-2"></i>
+                ${errorMessage}
+            </div>
+        </div>
+    `;
+}
+
+/**
+ * Восстанавливает оригинальное состояние заданий
+ * @param {HTMLElement} container - Контейнер
+ * @param {string} originalContent - Оригинальный HTML
+ * @param {HTMLElement} paginationNav - Элемент пагинации
+ */
+function restoreHomeworksOriginalState(container, originalContent, paginationNav) {
+    if (originalContent && container) {
+        container.innerHTML = originalContent;
+        
+        // Показываем пагинацию обратно
+        if (paginationNav) {
+            paginationNav.style.display = 'block';
+        }
+        
+        // Переинициализируем обработчики
+        initializeHomeworkDeleteHandlers();
     }
 }

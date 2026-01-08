@@ -88,8 +88,28 @@ function addSelectedItem(itemId, type, title) {
     item.className = 'selected-item';
     item.dataset.itemId = itemId;
     
-    const icon = type === 'category' ? '📁' : (type === 'quiz' ? '🧪' : '📄');
-    const typeText = type === 'category' ? 'Категория' : (type === 'uncategorized' ? 'Урок (без категории)' : (type === 'quiz' ? 'Тест' : 'Урок'));
+    let icon, typeText;
+    switch(type) {
+        case 'category':
+            icon = '📁';
+            typeText = 'Категория';
+            break;
+        case 'quiz':
+            icon = '🧪';
+            typeText = 'Тест';
+            break;
+        case 'homework':
+            icon = '📝';
+            typeText = 'Задание';
+            break;
+        case 'uncategorized':
+            icon = '📄';
+            typeText = 'Урок (без категории)';
+            break;
+        default:
+            icon = '📄';
+            typeText = 'Урок';
+    }
     
     item.innerHTML = `
         <span class="selected-item-icon">${icon}</span>
@@ -141,6 +161,11 @@ function removeSelectedItem(itemId) {
         }
     } else if (type === 'quiz') {
         const leftPanelItem = document.querySelector(`#tests-block [data-quiz-id="${id}"]`);
+        if (leftPanelItem) {
+            leftPanelItem.classList.remove('selected');
+        }
+    } else if (type === 'homework') {
+        const leftPanelItem = document.querySelector(`#tests-block [data-homework-id="${id}"]`);
         if (leftPanelItem) {
             leftPanelItem.classList.remove('selected');
         }
@@ -465,20 +490,22 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
     
-    // Обработчик кликов для уроков (делегирование)
+    // Обработчик кликов для уроков, тестов и заданий (делегирование)
     const leftPanel = document.querySelector('.left-panel');
     if (leftPanel) {
         leftPanel.addEventListener('click', function(e) {
             const lessonItem = e.target.closest('.lesson-li');
             if (!lessonItem) return;
             
-            const lessonId = lessonItem.dataset.lessonId || lessonItem.dataset.quizId;
+            const lessonId = lessonItem.dataset.lessonId || lessonItem.dataset.quizId || lessonItem.dataset.homeworkId;
             if (!lessonId) return;
             
             const lessonTitle = lessonItem.querySelector('.lesson-link').textContent;
             let type = 'lesson';
             if (lessonItem.dataset.quizId) {
                 type = 'quiz';
+            } else if (lessonItem.dataset.homeworkId) {
+                type = 'homework';
             } else if (lessonItem.closest('#uncategorized-block')) {
                 type = 'uncategorized';
             }

@@ -18,6 +18,7 @@ class Notification(models.Model):
         ('ticket_status', 'Изменение статуса тикета'),
         ('ticket_comment', 'Новое сообщение по тикету'),
         ('quiz_reviewed', 'Оценка теста наставником'),
+        ('homework_reviewed', 'Оценка задания наставником'),
         ('order_status', 'Изменение статуса заказа'),
         ('course_materials_updated', 'Обновление материалов в завершенном курсе'),
     ]
@@ -72,6 +73,13 @@ class Notification(models.Model):
         blank=True,
         verbose_name="Связанный заказ"
     )
+    related_homework_submission = models.ForeignKey(
+        'quizzes.HomeworkSubmission',
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        verbose_name="Связанный ответ на задание"
+    )
     points_change = models.IntegerField(
         null=True, 
         blank=True, 
@@ -123,6 +131,9 @@ class Notification(models.Model):
             quiz = Quiz.objects.filter(name=self.related_quiz_result.quiz_title).first()
             if quiz and self.related_quiz_result.course:
                 return reverse('quizzes:quiz_best_result', kwargs={'quiz_id': quiz.id}) + f'?course_slug={self.related_quiz_result.course.slug}'
+        elif self.notification_type == 'homework_reviewed' and self.related_course:
+            # Уведомление о проверке задания ведет на страницу курса
+            return reverse('courses:course_detail', kwargs={'slug': self.related_course.slug})
         elif self.notification_type == 'order_status' and self.related_order:
             # Уведомления о заказах ведут на страницу магазина
             return reverse('shop:shop')
