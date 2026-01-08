@@ -73,6 +73,13 @@ class Notification(models.Model):
         blank=True,
         verbose_name="Связанный заказ"
     )
+    related_homework_submission = models.ForeignKey(
+        'quizzes.HomeworkSubmission',
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        verbose_name="Связанный ответ на задание"
+    )
     points_change = models.IntegerField(
         null=True, 
         blank=True, 

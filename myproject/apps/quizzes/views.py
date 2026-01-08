@@ -2377,7 +2377,9 @@ class HomeworkSubmitView(LoginRequiredMixin, View):
             course = get_object_or_404(Course, slug=course_slug)
         
         # Проверяем, есть ли уже отправленный ответ
-        existing_submission = HomeworkSubmission.objects.filter(
+        existing_submission = HomeworkSubmission.objects.select_related(
+            'reviewed_by__profile'
+        ).filter(
             user=request.user,
             homework=self.homework,
             course=course
@@ -2562,7 +2564,8 @@ class HomeworkReviewView(LoginRequiredMixin, UserPassesTestMixin, View):
             notification_type='homework_reviewed',
             title=title,
             message=message,
-            related_course=self.submission.course
+            related_course=self.submission.course,
+            related_homework_submission=self.submission
         )
         
         messages.success(request, f'Задание оценено: {self.submission.get_status_display()}')

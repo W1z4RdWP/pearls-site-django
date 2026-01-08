@@ -118,6 +118,53 @@
     font-size: 0.95rem;
 }
 
+.mentor-info {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 12px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid rgba(133, 100, 4, 0.2);
+}
+
+.mentor-avatar {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid #ffc107;
+    flex-shrink: 0;
+}
+
+.mentor-avatar-placeholder {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background: #ffc107;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    font-size: 1.2rem;
+    flex-shrink: 0;
+}
+
+.mentor-details {
+    display: flex;
+    flex-direction: column;
+}
+
+.mentor-name {
+    font-weight: 600;
+    color: #856404;
+    font-size: 0.95rem;
+}
+
+.mentor-label {
+    font-size: 0.8rem;
+    color: #a68307;
+}
+
 .form-actions {
     display: flex;
     gap: 15px;
@@ -439,6 +486,23 @@
                 
                 {% if existing_submission.mentor_feedback %}
                 <div class="mentor-feedback">
+                    {% if existing_submission.reviewed_by %}
+                    <div class="mentor-info">
+                        {% if existing_submission.reviewed_by.profile.image %}
+                            <img src="{{ existing_submission.reviewed_by.profile.image.url }}" 
+                                 alt="{{ existing_submission.reviewed_by.get_full_name|default:existing_submission.reviewed_by.username }}"
+                                 class="mentor-avatar">
+                        {% else %}
+                            <div class="mentor-avatar-placeholder">
+                                <i class="fa fa-user"></i>
+                            </div>
+                        {% endif %}
+                        <div class="mentor-details">
+                            <span class="mentor-name">{{ existing_submission.reviewed_by.get_full_name|default:existing_submission.reviewed_by.username }}</span>
+                            <span class="mentor-label">Наставник</span>
+                        </div>
+                    </div>
+                    {% endif %}
                     <h5>Комментарий наставника:</h5>
                     <p style="margin: 0; white-space: pre-line;">{{ existing_submission.mentor_feedback }}</p>
                 </div>
