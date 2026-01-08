@@ -12,7 +12,9 @@
 <div class="container mt-5" 
      data-delete-url="{% url 'quizzes:quiz_delete' quiz_id=0 %}"
      data-quizzes-url="{% url 'quizzes:quizzes' %}"
-     data-search-url="{% url 'quizzes:quiz_search_ajax' %}">
+     data-search-url="{% url 'quizzes:quiz_search_ajax' %}"
+     data-homework-search-url="{% url 'quizzes:homework_search_ajax' %}"
+     data-homework-delete-url="{% url 'quizzes:homework_delete' homework_id=0 %}">
      
     <div class="row">
         <div class="col-12">
@@ -33,16 +35,6 @@
         </div>
     </div>
 
-    <!-- Поиск по названию теста -->
-    {% if topics %}
-    <div class="search-container mb-4">
-        <div class="d-flex align-items-center">
-            <i class="fas fa-search me-3 text-muted"></i>
-            <input type="text" id="quizSearch" class="search-input" placeholder="Поиск по названию теста...">
-        </div>
-    </div>
-    {% endif %}
-
     <!-- Вкладки для переключения между тестами и заданиями -->
     <ul class="nav nav-tabs mb-4" id="controlPanelTabs" role="tablist">
         <li class="nav-item" role="presentation">
@@ -60,7 +52,17 @@
     <div class="tab-content" id="controlPanelTabsContent">
         <!-- Вкладка с тестами -->
         <div class="tab-pane fade show active" id="quizzes-content" role="tabpanel">
-            <div class="row">
+            <!-- Поиск по названию теста -->
+            {% if topics %}
+            <div class="search-container mb-4">
+                <div class="d-flex align-items-center">
+                    <i class="fas fa-search me-3 text-muted"></i>
+                    <input type="text" id="quizSearch" class="search-input" placeholder="Поиск по названию теста...">
+                </div>
+            </div>
+            {% endif %}
+            
+            <div class="row" id="quizzesContainer">
                 {% for topic in topics %}
                 <div class="col-12 mb-3">
                     <div class="card quiz-card shadow-sm h-100" data-quiz-name="{{ topic.name|lower }}">
@@ -110,11 +112,56 @@
                 </div>
                 {% endfor %}
             </div>
+            
+            <!-- Пагинация для тестов -->
+            {% if page_obj.has_other_pages %}
+            <nav aria-label="Page navigation" class="mt-4" id="quizzesPagination">
+                <ul class="pagination justify-content-center">
+                    {% if page_obj.has_previous %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page=1{% if homeworks_page_obj.number != 1 %}&hw_page={{ homeworks_page_obj.number }}{% endif %}">Первая</a>
+                        </li>
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if homeworks_page_obj.number != 1 %}&hw_page={{ homeworks_page_obj.number }}{% endif %}">Назад</a>
+                        </li>
+                    {% endif %}
+
+                    {% for num in page_obj.paginator.page_range %}
+                        {% if num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                            {% if page_obj.number == num %}
+                                <li class="page-item active"><span class="page-link">{{ num }}</span></li>
+                            {% else %}
+                                <li class="page-item"><a class="page-link" href="?page={{ num }}{% if homeworks_page_obj.number != 1 %}&hw_page={{ homeworks_page_obj.number }}{% endif %}">{{ num }}</a></li>
+                            {% endif %}
+                        {% endif %}
+                    {% endfor %}
+
+                    {% if page_obj.has_next %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if homeworks_page_obj.number != 1 %}&hw_page={{ homeworks_page_obj.number }}{% endif %}">Вперед</a>
+                        </li>
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}{% if homeworks_page_obj.number != 1 %}&hw_page={{ homeworks_page_obj.number }}{% endif %}">Последняя</a>
+                        </li>
+                    {% endif %}
+                </ul>
+            </nav>
+            {% endif %}
         </div>
         
         <!-- Вкладка с заданиями -->
         <div class="tab-pane fade" id="homeworks-content" role="tabpanel">
-            <div class="row">
+            <!-- Поиск по названию задания -->
+            {% if homeworks %}
+            <div class="search-container mb-4">
+                <div class="d-flex align-items-center">
+                    <i class="fas fa-search me-3 text-muted"></i>
+                    <input type="text" id="homeworkSearch" class="search-input" placeholder="Поиск по названию задания...">
+                </div>
+            </div>
+            {% endif %}
+            
+            <div class="row" id="homeworksContainer">
                 {% for homework in homeworks %}
                 <div class="col-12 mb-3">
                     <div class="card quiz-card shadow-sm h-100" style="border-left: 4px solid #9b59b6;">
@@ -162,7 +209,7 @@
             
             <!-- Пагинация для заданий -->
             {% if homeworks_page_obj.has_other_pages %}
-            <nav aria-label="Homework page navigation" class="mt-4">
+            <nav aria-label="Homework page navigation" class="mt-4" id="homeworksPagination">
                 <ul class="pagination justify-content-center">
                     {% if homeworks_page_obj.has_previous %}
                         <li class="page-item">
@@ -197,40 +244,6 @@
         </div>
     </div>
 </div>
-
-<!-- Навигация по страницам -->
-<nav aria-label="Page navigation" class="mt-4">
-    <ul class="pagination justify-content-center">
-        {% if page_obj.has_previous %}
-            <li class="page-item">
-                <a class="page-link" href="?page=1">Первая</a>
-            </li>
-            <li class="page-item">
-                <a class="page-link" href="?page={{ page_obj.previous_page_number }}">Назад</a>
-            </li>
-        {% endif %}
-
-        {% for num in page_obj.paginator.page_range %}
-            {% if num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
-                {% if page_obj.number == num %}
-                    <li class="page-item active"><span class="page-link">{{ num }}</span></li>
-                {% else %}
-                    <li class="page-item"><a class="page-link" href="?page={{ num }}">{{ num }}</a></li>
-                {% endif %}
-            {% endif %}
-        {% endfor %}
-
-        {% if page_obj.has_next %}
-            <li class="page-item">
-                <a class="page-link" href="?page={{ page_obj.next_page_number }}">Вперед</a>
-            </li>
-            <li class="page-item">
-                <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}">Последняя</a>
-            </li>
-        {% endif %}
-    </ul>
-</nav>
-
 
 <!-- Модальное окно создания теста -->
 <div class="modal fade" id="createQuizModal" tabindex="-1" aria-labelledby="createQuizModalLabel" aria-hidden="true">
@@ -406,23 +419,5 @@
         </div>
     </div>
 </div>
-
-<script>
-// Обработчик удаления заданий
-document.addEventListener('DOMContentLoaded', function() {
-    document.querySelectorAll('.btn-delete-homework').forEach(function(btn) {
-        btn.addEventListener('click', function() {
-            const homeworkId = this.dataset.homeworkId;
-            const homeworkTitle = this.dataset.homeworkTitle;
-            
-            document.getElementById('homeworkTitleToDelete').textContent = homeworkTitle;
-            document.getElementById('deleteHomeworkForm').action = "{% url 'quizzes:homework_delete' homework_id=0 %}".replace('/0/', '/' + homeworkId + '/');
-            
-            const modal = new bootstrap.Modal(document.getElementById('deleteHomeworkModal'));
-            modal.show();
-        });
-    });
-});
-</script>
 
 {% endblock %}
