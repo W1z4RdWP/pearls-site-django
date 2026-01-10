@@ -77,18 +77,20 @@
                             </a>
                             <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="profileDropdownMobile">
                               <li><a class="dropdown-item" href="{% url 'users:profile' %}">Профиль</a></li>
-                              <li><a class="dropdown-item" href="{% url 'users:transactions' %}">
-                               История транзакций
-                              </a></li>
-                              <li><a class="dropdown-item" href="{% url 'courses:user_course_trajectory_list' %}">
-                                Ваши траектории и курсы
-                              </a></li>
-                              <li><a class="dropdown-item" href="{% url 'courses:user_certificates' %}">
-                                Ваши сертификаты
-                              </a></li>
-                              <li><a class="dropdown-item" href="{% url 'users:quiz_attempts_report' %}">
-                                Ваши попытки тестов
-                              </a></li>
+                              {% if not request.user.groups.all.0.name == 'Внешний пользователь' %}
+                                <li><a class="dropdown-item" href="{% url 'users:transactions' %}">
+                                История транзакций
+                                </a></li>
+                                <li><a class="dropdown-item" href="{% url 'courses:user_course_trajectory_list' %}">
+                                  Ваши траектории и курсы
+                                </a></li>
+                                <li><a class="dropdown-item" href="{% url 'courses:user_certificates' %}">
+                                  Ваши сертификаты
+                                </a></li>
+                                <li><a class="dropdown-item" href="{% url 'users:quiz_attempts_report' %}">
+                                  Ваши попытки тестов
+                                </a></li>
+                              {% endif %}
                               <li><hr class="dropdown-divider"></li>
                               <li>
                                 <form action="{% url 'users:logout' %}" method="post" style="display: inline;">
@@ -173,18 +175,20 @@
                         </a>
                         <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="profileDropdown">
                           <li><a class="dropdown-item" href="{% url 'users:profile' %}">Профиль</a></li>
-                          <li><a class="dropdown-item" href="{% url 'users:transactions' %}">
-                           История транзакций
-                          </a></li>
-                          <li><a class="dropdown-item" href="{% url 'courses:user_course_trajectory_list' %}">
-                            Ваши траектории и курсы
-                          </a></li>
-                          <li><a class="dropdown-item" href="{% url 'courses:user_certificates' %}">
-                            Ваши сертификаты
-                          </a></li>
-                          <li><a class="dropdown-item" href="{% url 'users:quiz_attempts_report' %}">
-                            Ваши попытки тестов
-                          </a></li>
+                          {% if not request.user.groups.all.0.name == 'Внешний пользователь' %}
+                            <li><a class="dropdown-item" href="{% url 'users:transactions' %}">
+                            История транзакций
+                            </a></li>
+                            <li><a class="dropdown-item" href="{% url 'courses:user_course_trajectory_list' %}">
+                              Ваши траектории и курсы
+                            </a></li>
+                            <li><a class="dropdown-item" href="{% url 'courses:user_certificates' %}">
+                              Ваши сертификаты
+                            </a></li>
+                            <li><a class="dropdown-item" href="{% url 'users:quiz_attempts_report' %}">
+                              Ваши попытки тестов
+                            </a></li>
+                          {% endif %}
                           <li><hr class="dropdown-divider"></li>
                           <li>
                             <form action="{% url 'users:logout' %}" method="post" style="display: inline;">
