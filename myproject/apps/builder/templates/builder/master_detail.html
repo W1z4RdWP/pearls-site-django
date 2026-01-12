@@ -183,6 +183,12 @@
         const scrollTopContainer = document.getElementById('scroll-to-top-container');
         if (scrollTopContainer) {
             scrollTopContainer.style.display = 'flex';
+            // Пересчитываем позицию после показа контейнера (через requestAnimationFrame для корректных размеров)
+            requestAnimationFrame(function() {
+                if (typeof window.positionScrollTopButton === 'function') {
+                    window.positionScrollTopButton();
+                }
+            });
         }
         {% endif %}
     });

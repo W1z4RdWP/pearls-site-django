@@ -663,6 +663,12 @@ document.addEventListener('DOMContentLoaded', function() {
                     const scrollTopContainer = document.getElementById('scroll-to-top-container');
                     if (scrollTopContainer) {
                         scrollTopContainer.style.display = 'flex';
+                        // Пересчитываем позицию после показа контейнера
+                        requestAnimationFrame(function() {
+                            if (typeof window.positionScrollTopButton === 'function') {
+                                window.positionScrollTopButton();
+                            }
+                        });
                     }
                 })
                 .catch(e => {
@@ -725,6 +731,12 @@ document.addEventListener('DOMContentLoaded', function() {
                 const scrollTopContainer = document.getElementById('scroll-to-top-container');
                 if (scrollTopContainer) {
                     scrollTopContainer.style.display = 'flex';
+                    // Пересчитываем позицию после показа контейнера
+                    requestAnimationFrame(function() {
+                        if (typeof window.positionScrollTopButton === 'function') {
+                            window.positionScrollTopButton();
+                        }
+                    });
                 }
             })
             .catch(e => {
@@ -2262,6 +2274,11 @@ document.addEventListener('DOMContentLoaded', function() {
             const scrollTopContainer = document.getElementById('scroll-to-top-container');
             if (!sidebar || !scrollToTopBtn || !scrollTopContainer) return;
             
+            // Если контейнер скрыт, не рассчитываем позицию (getBoundingClientRect вернёт нули)
+            if (scrollTopContainer.style.display === 'none' || scrollTopContainer.offsetParent === null) {
+                return;
+            }
+            
             const sidebarRect = sidebar.getBoundingClientRect();
             const containerRect = scrollTopContainer.getBoundingClientRect();
             const buttonHeight = scrollToTopBtn.offsetHeight || 38;
@@ -2297,6 +2314,9 @@ document.addEventListener('DOMContentLoaded', function() {
                 scrollToTopBtn.style.bottom = effectiveBottom + 'px';
             }
         }
+        
+        // Экспортируем функцию глобально для вызова после показа контейнера
+        window.positionScrollTopButton = positionScrollTopButton;
         
         // Позиционируем кнопку при загрузке и изменении размера окна
         positionScrollTopButton();
