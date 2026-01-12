@@ -2154,6 +2154,7 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }, 100);
     }
+    
     // === АВТОВЫДЕЛЕНИЕ только что отредактированного урока ===
     const editedLessonId = sessionStorage.getItem('edited_lesson_id');
     if (editedLessonId) {
