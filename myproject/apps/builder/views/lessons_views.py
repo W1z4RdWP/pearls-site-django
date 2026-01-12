@@ -129,6 +129,12 @@ class LessonMasterDetailView(TemplateView):
                 # Новый: id ответственного по умолчанию
                 if latest_version and latest_version.updated_by:
                     context['responsible_id_default'] = latest_version.updated_by.id
+                    # Проверяем, является ли текущий пользователь ответственным за урок
+                    context['user_is_responsible_for_lesson'] = (
+                        latest_version.updated_by == self.request.user
+                    )
+                else:
+                    context['user_is_responsible_for_lesson'] = False
                 # Добавляем информацию о предыдущей роли для автозаполнения
                 if latest_version and latest_version.updated_by and latest_version.updated_by.profile and latest_version.updated_by.profile.role:
                     context['previous_role_id'] = latest_version.updated_by.profile.role.id
@@ -144,6 +150,7 @@ class LessonMasterDetailView(TemplateView):
                 context['actualization_info'] = None
                 context['actualization_history'] = []
                 context['today'] = None
+                context['user_is_responsible_for_lesson'] = False
         else:
             context['selected_lesson'] = None
             context['lesson_versions'] = []
@@ -151,6 +158,7 @@ class LessonMasterDetailView(TemplateView):
             context['actualization_info'] = None
             context['actualization_history'] = []
             context['today'] = None
+            context['user_is_responsible_for_lesson'] = False
         return context
 
     def get(self, request, *args, **kwargs):
@@ -173,6 +181,7 @@ class LessonMasterDetailView(TemplateView):
                 'responsible_id_default': context.get('responsible_id_default'),
                 'previous_role_id': context.get('previous_role_id'),
                 'previous_role_name': context.get('previous_role_name'),
+                'user_is_responsible_for_lesson': context.get('user_is_responsible_for_lesson', False),
             }
             return HttpResponse(render_to_string('builder/includes/_lesson_detail_block.html', ajax_context, request=request))
         return self.render_to_response(context)
@@ -483,7 +492,12 @@ def actualize_version(request):
     logger = logging.getLogger(__name__)
     logger.info(f"actualize_version called by user {request.user.username}")
     
-    if not (request.user.is_staff or request.user.is_superuser):
+    # Проверка прав доступа: staff/superuser имеют полный доступ
+    # is_mentor_user может актуализировать только если он является ответственным за урок
+    is_staff_or_admin = request.user.is_staff or request.user.is_superuser
+    is_mentor = hasattr(request.user, 'profile') and request.user.profile.is_mentor_user
+    
+    if not is_staff_or_admin and not is_mentor:
         logger.warning(f"Access denied for user {request.user.username}")
         return JsonResponse({'error': 'Доступ запрещен'}, status=403)
     if request.method != 'POST':
@@ -518,6 +532,13 @@ def actualize_version(request):
     if not last_version:
         logger.error(f"No versions found for lesson {lesson_id}")
         return JsonResponse({'error': 'У урока нет версий'}, status=400)
+    
+    # Для is_mentor_user (не staff/superuser) проверяем, что он является ответственным за урок
+    if is_mentor and not is_staff_or_admin:
+        responsible_user = last_version.updated_by
+        if responsible_user != request.user:
+            logger.warning(f"Access denied for mentor {request.user.username}: not responsible for lesson {lesson_id}")
+            return JsonResponse({'error': 'Вы не являетесь ответственным за данный урок'}, status=403)
     
     logger.info(f"Last version: {last_version.version}")
     today = timezone.now().date()

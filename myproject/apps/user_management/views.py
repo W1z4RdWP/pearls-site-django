@@ -283,7 +283,10 @@ def role_users_json(request, role_id):
     """
     Возвращает список пользователей с данной ролью в JSON формате
     """
-    if not request.user.is_staff:
+    is_staff_or_admin = request.user.is_staff or request.user.is_superuser
+    is_mentor = hasattr(request.user, 'profile') and request.user.profile.is_mentor_user
+    
+    if not is_staff_or_admin and not is_mentor:
         from django.http import JsonResponse
         return JsonResponse({'error': 'forbidden'}, status=403)
     
@@ -346,7 +349,10 @@ def lesson_allowed_roles_json(request, lesson_id):
     """
     Возвращает список разрешенных должностей для урока в JSON формате
     """
-    if not request.user.is_staff:
+    is_staff_or_admin = request.user.is_staff or request.user.is_superuser
+    is_mentor = hasattr(request.user, 'profile') and request.user.profile.is_mentor_user
+    
+    if not is_staff_or_admin and not is_mentor:
         from django.http import JsonResponse
         return JsonResponse({'error': 'forbidden'}, status=403)
     

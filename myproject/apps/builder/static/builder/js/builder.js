@@ -1818,6 +1818,17 @@ document.addEventListener('DOMContentLoaded', function() {
                                 roleSelect.appendChild(option);
                             });
                             
+                            // Для наставника: если роли нет в списке allowed_roles, добавляем её
+                            if (window.isMentorOnly && window.previousRoleId && window.previousRoleName) {
+                                const roleExists = Array.from(roleSelect.options).some(opt => opt.value == window.previousRoleId);
+                                if (!roleExists) {
+                                    const option = document.createElement('option');
+                                    option.value = window.previousRoleId;
+                                    option.textContent = window.previousRoleName;
+                                    roleSelect.appendChild(option);
+                                }
+                            }
+                            
                             // Автозаполнение роли из предыдущей версии (после загрузки ролей)
                             if (window.previousRoleId && window.previousRoleId !== null) {
                                 roleSelect.value = window.previousRoleId;
@@ -1832,7 +1843,23 @@ document.addEventListener('DOMContentLoaded', function() {
                     })
                     .catch(error => {
                         console.error('Ошибка загрузки разрешенных ролей:', error);
-                        validateActualizeForm();
+                        // Для наставника: если загрузка не удалась, всё равно пытаемся установить роль
+                        if (window.isMentorOnly && window.previousRoleId && window.previousRoleName) {
+                            const roleSelect = document.getElementById('actualize-role');
+                            if (roleSelect) {
+                                roleSelect.innerHTML = '<option value="">— выберите роль —</option>';
+                                const option = document.createElement('option');
+                                option.value = window.previousRoleId;
+                                option.textContent = window.previousRoleName;
+                                roleSelect.appendChild(option);
+                                roleSelect.value = window.previousRoleId;
+                                // Триггерим событие change для загрузки пользователей
+                                const event = new Event('change');
+                                roleSelect.dispatchEvent(event);
+                            }
+                        } else {
+                            validateActualizeForm();
+                        }
                     });
             } else {
                 // Если нет lessonId, все равно вызываем валидацию
