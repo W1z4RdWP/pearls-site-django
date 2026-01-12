@@ -248,13 +248,12 @@ $(document).ready(function() {
         $('#searchForm').submit();
     });
     
-    // Поиск с задержкой (debounce)
-    let searchTimeout;
-    $('#courseSearch').on('input', function() {
-        clearTimeout(searchTimeout);
-        searchTimeout = setTimeout(function() {
+    // Поиск только по Enter или клику на кнопку
+    $('#courseSearch').on('keypress', function(e) {
+        if (e.which === 13 || e.keyCode === 13) { // Enter
+            e.preventDefault();
             $('#searchForm').submit();
-        }, 500); // Задержка 500мс
+        }
     });
     
     // Настройка dropdown меню для предотвращения перекрытия header
