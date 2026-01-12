@@ -89,6 +89,8 @@
                     <button id="delete-category" title="Удалить">x</button>
                     <button id="add-lesson" title="Добавить урок">📄</button>
                 </div>
+            {% endif %}
+            {% if not is_readonly or user.profile.is_mentor_user %}
                 <div class="sidebar-buttons" style="margin: 18px 32px 0 32px;">
                     <a href="/builder/update_control/" id="update-control-btn" class="btn btn-outline-primary" style="width:100%;margin-top:8px;">Контроль обновлений</a>
                     <div class="sidebar-scroll-top-container" id="scroll-to-top-container" style="display: none;">

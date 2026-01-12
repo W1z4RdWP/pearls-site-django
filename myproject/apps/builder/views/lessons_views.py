@@ -361,19 +361,55 @@ class UpdateControlStandaloneView(TemplateView):
     template_name = 'builder/lesson_update_control_form.html'
 
     def dispatch(self, request, *args, **kwargs):
-        if not request.user.is_authenticated or not (request.user.is_staff or request.user.is_superuser):
+        is_staff_or_admin = request.user.is_staff or request.user.is_superuser
+        is_mentor = hasattr(request.user, 'profile') and request.user.profile.is_mentor_user
+        
+        if not request.user.is_authenticated or not (is_staff_or_admin or is_mentor):
             return render(request, '403.html', status=403)
         return super().dispatch(request, *args, **kwargs)
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        from courses.models import Lesson
+        from courses.models import Lesson, UserLesson
         from django.utils import timezone
-        lessons = Lesson.objects.select_related('category').all()
+        
+        user = self.request.user
+        is_staff_or_admin = user.is_staff or user.is_superuser
+        is_mentor = hasattr(user, 'profile') and user.profile.is_mentor_user
+        
+        # Для staff/superuser показываем все уроки, для наставников - только доступные
+        if is_staff_or_admin:
+            lessons = Lesson.objects.select_related('category').all()
+        else:
+            # Для наставников получаем уроки через курсы и назначенные напрямую
+            allowed_lesson_ids = set()
+            
+            # Уроки из назначенных курсов
+            user_courses = UserCourse.objects.filter(user=user).select_related('course')
+            allowed_courses = [uc.course for uc in user_courses if uc.status in ['available', 'started', 'completed']]
+            for course in allowed_courses:
+                trajectory = UserLessonTrajectory.objects.filter(user=user, course=course).first()
+                if trajectory:
+                    allowed_lesson_ids.update(trajectory.lessons.values_list('id', flat=True))
+                else:
+                    allowed_lesson_ids.update(course.lessons.values_list('id', flat=True))
+            
+            # Уроки, назначенные напрямую
+            assigned_lesson_ids = UserLesson.objects.filter(user=user).values_list('lesson_id', flat=True)
+            allowed_lesson_ids.update(assigned_lesson_ids)
+            
+            lessons = Lesson.objects.select_related('category').filter(id__in=allowed_lesson_ids)
         today = timezone.now().date()
         year_start = today.replace(month=1, day=1)
-        created_from = self.request.GET.get('created_from') or year_start.strftime('%Y-%m-%d')
-        created_to = self.request.GET.get('created_to') or today.strftime('%Y-%m-%d')
+        
+        # Параметр all_dates=1 сбрасывает фильтр по датам
+        all_dates = self.request.GET.get('all_dates') == '1'
+        if all_dates:
+            created_from = ''
+            created_to = ''
+        else:
+            created_from = self.request.GET.get('created_from') or year_start.strftime('%Y-%m-%d')
+            created_to = self.request.GET.get('created_to') or today.strftime('%Y-%m-%d')
         title_query = self.request.GET.get('title', '').strip()
         rows = []
         for lesson in lessons:
@@ -451,9 +487,16 @@ class UpdateControlStandaloneView(TemplateView):
             filtered = [r for r in filtered if r['responsible_position'] == responsible_position]
         if title_query:
             filtered = [r for r in filtered if title_query.lower() in r['title'].lower()]
+        
         # Список должностей для фильтра
         from users.models import Role
         roles = Role.objects.all().order_by('name')
+        
+        # Должность текущего пользователя для кнопки "Мои к актуализации"
+        user_role_name = None
+        if hasattr(user, 'profile') and user.profile and user.profile.role:
+            user_role_name = user.profile.role.name
+        
         context['update_rows'] = filtered
         context['roles'] = roles
         context['show_overdue'] = show_overdue
@@ -463,6 +506,7 @@ class UpdateControlStandaloneView(TemplateView):
         context['created_from'] = created_from
         context['created_to'] = created_to
         context['title_query'] = title_query
+        context['user_role_name'] = user_role_name
         return context
 
 
