@@ -45,36 +45,59 @@ class Command(BaseCommand):
             help='Количество дней после даты актуализации, до которых отправлять уведомления (по умолчанию: 0)'
         )
         parser.add_argument(
+            '--overdue-only',
+            action='store_true',
+            help='Отправлять уведомления только по просроченным урокам (где next_update < сегодня)'
+        )
+        parser.add_argument(
             '--dry-run',
             action='store_true',
             help='Показать, какие уведомления будут отправлены, без фактической отправки'
+        )
+        parser.add_argument(
+            '--notification-interval',
+            type=int,
+            default=7,
+            help='Минимальный интервал между повторными уведомлениями в днях (по умолчанию: 7)'
         )
 
     def handle(self, *args, **options):
         days_before = options['days_before']
         days_after = options['days_after']
+        overdue_only = options['overdue_only']
         dry_run = options['dry_run']
 
         today = timezone.now().date()
-        start_date = today - timedelta(days=days_after)
-        end_date = today + timedelta(days=days_before)
-
-        self.stdout.write(
-            self.style.SUCCESS(
-                f'Поиск уроков с датой актуализации между {start_date} и {end_date}'
-            )
-        )
 
         # Получаем все версии уроков с подошедшей датой актуализации
         # Нужно получить последнюю версию каждого урока
         lessons_to_notify = {}
 
-        # Получаем все версии с подошедшей датой
-        versions = LessonVersion.objects.filter(
-            next_update__isnull=False,
-            next_update__gte=start_date,
-            next_update__lte=end_date
-        ).select_related('lesson', 'updated_by').order_by('lesson', '-version')
+        if overdue_only:
+            # Только просроченные уроки (next_update < сегодня)
+            self.stdout.write(
+                self.style.SUCCESS(
+                    f'Поиск просроченных уроков (next_update < {today})'
+                )
+            )
+            versions = LessonVersion.objects.filter(
+                next_update__isnull=False,
+                next_update__lt=today
+            ).select_related('lesson', 'updated_by').order_by('lesson', '-version')
+        else:
+            start_date = today - timedelta(days=days_after)
+            end_date = today + timedelta(days=days_before)
+            self.stdout.write(
+                self.style.SUCCESS(
+                    f'Поиск уроков с датой актуализации между {start_date} и {end_date}'
+                )
+            )
+            # Получаем все версии с подошедшей датой
+            versions = LessonVersion.objects.filter(
+                next_update__isnull=False,
+                next_update__gte=start_date,
+                next_update__lte=end_date
+            ).select_related('lesson', 'updated_by').order_by('lesson', '-version')
 
         # Группируем по урокам и берем только последнюю версию каждого урока
         for version in versions:
@@ -112,8 +135,8 @@ class Command(BaseCommand):
                 continue
 
             # Проверяем, не было ли уже отправлено уведомление для этого урока и пользователя
-            # в последние 30 дней
-            time_threshold = timezone.now() - timedelta(days=30)
+            notification_interval = options['notification_interval']
+            time_threshold = timezone.now() - timedelta(days=notification_interval)
             recent_notification = Notification.objects.filter(
                 user=responsible_user,
                 notification_type='lesson_actualization',
@@ -130,26 +153,35 @@ class Command(BaseCommand):
                 )
                 notifications_skipped += 1
                 continue
+            
+            # Определяем, просрочен ли урок
+            is_overdue = next_update < today
+            days_overdue = (today - next_update).days if is_overdue else 0
 
             if dry_run:
+                status_msg = f'просрочен на {days_overdue} дн.' if is_overdue else f'дата актуализации: {next_update.strftime("%d.%m.%Y")}'
                 self.stdout.write(
                     self.style.SUCCESS(
                         f'  [DRY RUN] Будет отправлено уведомление пользователю {responsible_user.username} '
-                        f'об уроке «{lesson.title}» (дата актуализации: {next_update.strftime("%d.%m.%Y")})'
+                        f'об уроке «{lesson.title}» ({status_msg})'
                     )
                 )
                 notifications_sent += 1
             else:
                 try:
-                    Notification.create_lesson_actualization_notification(
-                        user=responsible_user,
+                    # Создаём уведомление с учетом просрочки
+                    self._create_notification(
+                        responsible_user=responsible_user,
                         lesson=lesson,
-                        actualization_date=next_update
+                        next_update=next_update,
+                        is_overdue=is_overdue,
+                        days_overdue=days_overdue
                     )
+                    status_msg = f'просрочен на {days_overdue} дн.' if is_overdue else f'дата актуализации: {next_update.strftime("%d.%m.%Y")}'
                     self.stdout.write(
                         self.style.SUCCESS(
                             f'  ✓ Отправлено уведомление пользователю {responsible_user.username} '
-                            f'об уроке «{lesson.title}» (дата актуализации: {next_update.strftime("%d.%m.%Y")})'
+                            f'об уроке «{lesson.title}» ({status_msg})'
                         )
                     )
                     notifications_sent += 1
@@ -172,5 +204,22 @@ class Command(BaseCommand):
             self.style.SUCCESS(
                 f'Итого: отправлено {notifications_sent} уведомлений, пропущено {notifications_skipped}'
             )
+        )
+
+    def _create_notification(self, responsible_user, lesson, next_update, is_overdue, days_overdue):
+        """Создаёт уведомление об актуализации урока"""
+        if is_overdue:
+            title = "Требуется актуализация урока"
+            message = f"Урок «{lesson.title}» просрочен на {days_overdue} дн. (плановая дата: {next_update.strftime('%d.%m.%Y')}). Требуется актуализация."
+        else:
+            title = "Напоминание об актуализации"
+            message = f"Приближается дата актуализации для урока «{lesson.title}» - {next_update.strftime('%d.%m.%Y')}"
+        
+        return Notification.objects.create(
+            user=responsible_user,
+            notification_type='lesson_actualization',
+            title=title,
+            message=message,
+            related_lesson=lesson
         )
 
