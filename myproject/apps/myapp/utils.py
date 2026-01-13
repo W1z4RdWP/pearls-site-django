@@ -1,4 +1,5 @@
 import bleach
+from bleach.css_sanitizer import CSSSanitizer
 import re
 
 def clean_rutube_iframe(html: str) -> str:
@@ -50,11 +51,39 @@ def clean_rutube_iframe(html: str) -> str:
         'abbr': ['title'],
     }
     
-    # Очищаем HTML с разрешёнными тегами и атрибутами
+    # Разрешённые CSS свойства для сохранения форматирования из CKEditor5
+    ALLOWED_CSS_PROPERTIES = [
+        # Шрифты
+        'font-size', 'font-family', 'font-weight', 'font-style',
+        # Цвета
+        'color', 'background-color', 'background',
+        # Текст
+        'text-align', 'text-decoration', 'text-indent', 'text-transform',
+        'line-height', 'letter-spacing', 'word-spacing',
+        'vertical-align', 'white-space',
+        # Размеры
+        'width', 'height', 'min-width', 'min-height', 'max-width', 'max-height',
+        # Отступы и границы
+        'margin', 'margin-top', 'margin-right', 'margin-bottom', 'margin-left',
+        'padding', 'padding-top', 'padding-right', 'padding-bottom', 'padding-left',
+        'border', 'border-width', 'border-style', 'border-color',
+        'border-top', 'border-right', 'border-bottom', 'border-left',
+        'border-collapse', 'border-spacing', 'border-radius',
+        # Отображение и позиционирование
+        'display', 'float', 'clear', 'overflow',
+        # Списки
+        'list-style', 'list-style-type',
+    ]
+    
+    # CSS Sanitizer для разрешения CSS свойств внутри атрибута style
+    css_sanitizer = CSSSanitizer(allowed_css_properties=ALLOWED_CSS_PROPERTIES)
+    
+    # Очищаем HTML с разрешёнными тегами, атрибутами и CSS свойствами
     cleaned = bleach.clean(
         html,
         tags=ALLOWED_TAGS,
         attributes=ALLOWED_ATTRIBUTES,
+        css_sanitizer=css_sanitizer,
         strip=False,
         strip_comments=True
     )

@@ -673,10 +673,13 @@ def actualize_version(request):
 @login_required
 def create_lesson_draft(request, lesson_id):
     """
-    Создает черновик урока для редактирования наставниками.
-    Доступ: только для пользователей с is_mentor_user=True
+    Создает черновик урока для редактирования наставниками и администраторами.
+    Доступ: is_mentor_user, staff или superuser
     """
-    if not hasattr(request.user, 'profile') or not request.user.profile.is_mentor_user:
+    is_mentor = hasattr(request.user, 'profile') and request.user.profile.is_mentor_user
+    is_staff = request.user.is_staff or request.user.is_superuser
+    
+    if not (is_mentor or is_staff):
         return render(request, '403.html', status=403)
     
     lesson = get_object_or_404(Lesson, id=lesson_id)
@@ -768,9 +771,8 @@ class LessonDraftUpdateView(UpdateView, AuditLoggerMixin):
             draft.courses.set(original.courses.all())
         else:
             # Для staff/superuser сохраняем все изменения
-            response = super().form_valid(form)
-            form.save_m2m()
-            return response
+            # super().form_valid() уже сохраняет форму полностью, включая M2M связи
+            return super().form_valid(form)
         
         return redirect(self.get_success_url())
 
