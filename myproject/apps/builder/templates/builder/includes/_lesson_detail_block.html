@@ -12,6 +12,18 @@
                         {% if not is_readonly or user_is_responsible_for_lesson %}
                         <button id="actualize-main-btn" class="btn btn-primary btn-sm">Актуализировать</button>
                         {% endif %}
+                        {% if user.profile.is_mentor_user %}
+                            {% if pending_draft %}
+                                <a href="{% url 'builder:lesson_draft_edit' pending_draft.id %}" class="btn btn-info btn-sm" title="Редактировать черновик">Редактировать черновик</a>
+                            {% else %}
+                                <a href="{% url 'builder:lesson_draft_create' lesson.id %}" class="btn btn-outline-info btn-sm" title="Создать черновик для редактирования">Черновик</a>
+                            {% endif %}
+                        {% endif %}
+                        {% if user.is_staff or user.is_superuser %}
+                            {% if pending_draft %}
+                                <a href="{% url 'builder:lesson_draft_review' pending_draft.id %}" class="btn btn-warning btn-sm" title="Рассмотреть черновик">Рассмотреть черновик</a>
+                            {% endif %}
+                        {% endif %}
                         {% if not is_readonly %}
                         <button id="responsible-settings-btn" class="btn btn-outline-secondary btn-sm" title="Настройки ответственных">
                             <i class="fa fa-cog"></i>

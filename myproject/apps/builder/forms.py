@@ -1,5 +1,7 @@
 from django import forms
-from .models import Document, Incident, IPR, IPRModule
+from django_ckeditor_5.fields import CKEditor5Widget
+from .models import Document, Incident, IPR, IPRModule, LessonDraft
+from myapp.utils import clean_rutube_iframe
 
 
 
@@ -172,3 +174,49 @@ class IPRModuleForm(forms.ModelForm):
         # Если передан ipr_id, устанавливаем его
         if ipr_id:
             self.fields['ipr'].initial = ipr_id
+
+
+class LessonDraftForm(forms.ModelForm):
+    """Форма для редактирования черновика урока."""
+    class Meta:
+        model = LessonDraft
+        fields = ['title', 'content', 'order', 'courses', 'category', 'required_time', 'final_quiz']
+        widgets = {
+            'content': CKEditor5Widget(
+                attrs={'class': 'django_ckeditor_5'}, 
+                config_name='extends'
+            ),
+            'courses': forms.SelectMultiple(attrs={'class': 'form-select'}),
+            'required_time': forms.NumberInput(attrs={'class': 'form-control', 'min': '1', 'max': '999'}),
+            'final_quiz': forms.HiddenInput()
+        }
+        
+        labels = {
+            'courses': 'Выберите курсы, куда добавить урок',
+            'required_time': 'Необходимое время (минуты)'
+        }
+        
+        help_texts = {
+            'courses': 'Выберите курсы, в которых будет использоваться этот урок',
+            'required_time': 'Время в минутах, необходимое для прохождения урока'
+        }
+    
+    def clean_content(self):
+        """Чистит HTML контент (в т.ч. iframe Rutube) из CKEditor5."""
+        data = self.cleaned_data.get('content')
+        if data:
+            data = clean_rutube_iframe(data)
+        return data
+    
+    def __init__(self, *args, **kwargs):
+        """Настраивает форму в зависимости от прав пользователя"""
+        user = kwargs.pop('user', None)
+        super().__init__(*args, **kwargs)
+        
+        # Если пользователь - наставник (не staff/superuser), делаем все поля кроме content readonly
+        if user and hasattr(user, 'profile') and user.profile.is_mentor_user and not (user.is_staff or user.is_superuser):
+            # Делаем все поля кроме content недоступными для редактирования
+            for field_name in self.fields:
+                if field_name != 'content':
+                    self.fields[field_name].disabled = True
+                    self.fields[field_name].required = False

@@ -1,0 +1,242 @@
+{% extends 'layout.html' %}
+{% load static %}
+
+{% block title %}
+    Рассмотрение черновика урока
+{% endblock %}
+
+{% block specific_styles %}
+<link rel="stylesheet" href="{% static 'builder/css/builder_style.css' %}">
+<style>
+    .diff-container {
+        background: #f8f9fa;
+        border: 1px solid #dee2e6;
+        border-radius: 4px;
+        padding: 16px;
+        margin-bottom: 20px;
+        max-height: 500px;
+        overflow-y: auto;
+    }
+    .diff-line {
+        font-family: 'Courier New', monospace;
+        font-size: 13px;
+        line-height: 1.6;
+        padding: 2px 8px;
+        white-space: pre-wrap;
+    }
+    .diff-line.added {
+        background: #d4edda;
+        color: #155724;
+    }
+    .diff-line.removed {
+        background: #f8d7da;
+        color: #721c24;
+    }
+    .diff-line.context {
+        background: #fff;
+        color: #6c757d;
+    }
+    .change-item {
+        background: #fff;
+        border: 1px solid #dee2e6;
+        border-radius: 4px;
+        padding: 12px;
+        margin-bottom: 12px;
+    }
+    .change-item.no-changes {
+        background: #e9ecef;
+        color: #6c757d;
+        font-style: italic;
+    }
+    .change-label {
+        font-weight: 600;
+        color: #495057;
+        margin-bottom: 8px;
+    }
+    .change-old {
+        color: #dc3545;
+        text-decoration: line-through;
+    }
+    .change-new {
+        color: #28a745;
+        font-weight: 500;
+    }
+    .draft-header {
+        background: #e7f3ff;
+        border-left: 4px solid #2196F3;
+        padding: 16px;
+        margin-bottom: 24px;
+        border-radius: 4px;
+    }
+    .review-form {
+        background: #fff;
+        border: 1px solid #dee2e6;
+        border-radius: 4px;
+        padding: 20px;
+        margin-top: 24px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container" style="max-width: 1200px; margin-top: 48px;">
+    <h2>Рассмотрение черновика урока</h2>
+    
+    <div class="draft-header">
+        <h4>{{ draft.lesson.title }}</h4>
+        <p>
+            <strong>Создан:</strong> {{ draft.created_by.get_full_name|default:draft.created_by.username }} 
+            ({{ draft.created_at|date:"d.m.Y H:i" }})<br>
+            <strong>Статус:</strong> {{ draft.get_status_display }}<br>
+            {% if draft.reviewed_by %}
+            <strong>Рассмотрел:</strong> {{ draft.reviewed_by.get_full_name|default:draft.reviewed_by.username }}
+            ({{ draft.reviewed_at|date:"d.m.Y H:i" }})<br>
+            {% endif %}
+        </p>
+    </div>
+    
+    <h3>Изменения в черновике</h3>
+        
+    <div style="background: #fff3cd; border-left: 4px solid #ffc107; padding: 12px 16px; margin-bottom: 20px; border-radius: 4px;">
+        <small style="color: #856404;">
+            <strong>ℹ️ Примечание:</strong> Некоторые изменения могут быть автоматическим форматированием CKEditor5 
+            (например, добавление/удаление HTML-тегов). Система пытается игнорировать такие изменения, 
+            но если вы видите строку как удаленную и добавленную с одинаковым текстом, 
+            это обычно означает только изменение форматирования, а не реальное изменение содержимого.
+        </small>
+    </div>
+
+    <!-- Содержимое урока -->
+    <div class="change-item">
+        <div class="change-label">Содержимое урока</div>
+        {% if changes.content_diff %}
+            <div class="diff-container">
+                {% for line_data in changes.content_diff %}
+                    {% if line_data.type == 'added' %}
+                        <div class="diff-line added">{{ line_data.text|escape }}</div>
+                    {% elif line_data.type == 'removed' %}
+                        <div class="diff-line removed">{{ line_data.text|escape }}</div>
+                    {% elif line_data.type == 'header' %}
+                        <div class="diff-line context" style="background: #fff3cd; color: #856404;">{{ line_data.text|escape }}</div>
+                    {% else %}
+                        <div class="diff-line context">{{ line_data.text|escape }}</div>
+                    {% endif %}
+                {% endfor %}
+            </div>
+        {% else %}
+            <div class="no-changes">Изменений нет</div>
+        {% endif %}
+    </div>
+    
+    <!-- Другие поля -->
+    {% if changes.video_id %}
+    <div class="change-item">
+        <div class="change-label">ID видео</div>
+        <div>
+            <span class="change-old">{{ changes.video_id.old|default:"—" }}</span> 
+            → 
+            <span class="change-new">{{ changes.video_id.new|default:"—" }}</span>
+        </div>
+    </div>
+    {% endif %}
+    
+    {% if changes.order %}
+    <div class="change-item">
+        <div class="change-label">Порядок</div>
+        <div>
+            <span class="change-old">{{ changes.order.old }}</span> 
+            → 
+            <span class="change-new">{{ changes.order.new }}</span>
+        </div>
+    </div>
+    {% endif %}
+    
+    {% if changes.category %}
+    <div class="change-item">
+        <div class="change-label">Категория</div>
+        <div>
+            <span class="change-old">{{ changes.category.old|default:"—" }}</span> 
+            → 
+            <span class="change-new">{{ changes.category.new|default:"—" }}</span>
+        </div>
+    </div>
+    {% endif %}
+    
+    {% if changes.required_time %}
+    <div class="change-item">
+        <div class="change-label">Необходимое время (минуты)</div>
+        <div>
+            <span class="change-old">{{ changes.required_time.old }}</span> 
+            → 
+            <span class="change-new">{{ changes.required_time.new }}</span>
+        </div>
+    </div>
+    {% endif %}
+    
+    {% if changes.final_quiz %}
+    <div class="change-item">
+        <div class="change-label">Финальный тест</div>
+        <div>
+            <span class="change-old">{{ changes.final_quiz.old|default:"—" }}</span> 
+            → 
+            <span class="change-new">{{ changes.final_quiz.new|default:"—" }}</span>
+        </div>
+    </div>
+    {% endif %}
+    
+    {% if changes.courses %}
+    <div class="change-item">
+        <div class="change-label">Курсы</div>
+        <div>
+            {% if changes.courses.added %}
+            <div style="color: #28a745; margin-top: 8px;">
+                <strong>Добавлены:</strong>
+                <ul>
+                    {% for course in changes.courses.added %}
+                    <li>{{ course.title }}</li>
+                    {% endfor %}
+                </ul>
+            </div>
+            {% endif %}
+            {% if changes.courses.removed %}
+            <div style="color: #dc3545; margin-top: 8px;">
+                <strong>Удалены:</strong>
+                <ul>
+                    {% for course in changes.courses.removed %}
+                    <li>{{ course.title }}</li>
+                    {% endfor %}
+                </ul>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+    
+    <!-- Форма принятия/отклонения -->
+    {% if draft.status == 'pending' %}
+    <div class="review-form">
+        <h4>Решение по черновику</h4>
+        <form method="post">
+            {% csrf_token %}
+            <div class="mb-3">
+                <label for="comment" class="form-label">Комментарий (необязательно)</label>
+                <textarea name="comment" id="comment" class="form-control" rows="3" placeholder="Введите комментарий к решению..."></textarea>
+            </div>
+            <div class="button-group">
+                <button type="submit" name="action" value="approve" class="btn btn-success">Принять изменения</button>
+                <button type="submit" name="action" value="reject" class="btn btn-danger">Отклонить</button>
+                <a href="{% url 'builder:lesson_master' %}?lesson_id={{ lesson.id }}" class="btn btn-secondary">Отмена</a>
+            </div>
+        </form>
+    </div>
+    {% else %}
+    <div class="alert alert-info">
+        <strong>Статус:</strong> {{ draft.get_status_display }}
+        {% if draft.review_comment %}
+        <br><strong>Комментарий:</strong> {{ draft.review_comment }}
+        {% endif %}
+    </div>
+    <a href="{% url 'builder:lesson_master' %}?lesson_id={{ lesson.id }}" class="btn btn-secondary">Вернуться к уроку</a>
+    {% endif %}
+</div>
+{% endblock %}

@@ -300,7 +300,77 @@ class LessonVersion(models.Model):
 
  
  
- 
+
+
+class LessonDraft(models.Model):
+    """
+    Черновик урока для редактирования наставниками.
+    После создания черновика наставники могут редактировать его,
+    а пользователи с правами is_staff или superuser могут просматривать
+    изменения и принимать/отклонять их.
+    """
+    STATUS_CHOICES = [
+        ('pending', 'Ожидает рассмотрения'),
+        ('approved', 'Принят'),
+        ('rejected', 'Отклонен'),
+    ]
+    
+    lesson = models.ForeignKey('courses.Lesson', on_delete=models.CASCADE, related_name='drafts', verbose_name='Урок')
+    title = models.CharField(max_length=200, verbose_name='Название урока')
+    content = models.TextField(verbose_name='Содержимое')
+    video_id = models.CharField(max_length=100, blank=True, null=True, verbose_name='ID видео с Rutube')
+    order = models.PositiveIntegerField(verbose_name='Порядок урока')
+    category = models.ForeignKey(CategoryName, on_delete=models.SET_NULL, null=True, blank=True, related_name='draft_lessons', verbose_name='Категория')
+    required_time = models.PositiveIntegerField(default=7, verbose_name='Необходимое время (минуты)')
+    final_quiz = models.ForeignKey('quizzes.Quiz', on_delete=models.SET_NULL, null=True, blank=True, verbose_name='Финальный тест')
+    
+    # Связь many-to-many с курсами
+    courses = models.ManyToManyField('courses.Course', blank=True, related_name='draft_lessons', verbose_name='Курсы')
+    
+    # Статус черновика
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending', verbose_name='Статус')
+    
+    # Кто создал черновик
+    created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, related_name='created_drafts', verbose_name='Создал')
+    
+    # Кто рассмотрел черновик (для approved/rejected)
+    reviewed_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name='reviewed_drafts', verbose_name='Рассмотрел')
+    
+    # Комментарий при рассмотрении
+    review_comment = models.TextField(blank=True, verbose_name='Комментарий при рассмотрении')
+    
+    # Временные метки
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name='Дата создания')
+    updated_at = models.DateTimeField(auto_now=True, verbose_name='Дата обновления')
+    reviewed_at = models.DateTimeField(null=True, blank=True, verbose_name='Дата рассмотрения')
+    
+    class Meta:
+        verbose_name = 'Черновик урока'
+        verbose_name_plural = 'Черновики уроков'
+        ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['lesson', 'status'], name='lessondraft_lesson_status_idx'),
+            models.Index(fields=['created_by'], name='lessondraft_created_by_idx'),
+            models.Index(fields=['status'], name='lessondraft_status_idx'),
+        ]
+    
+    def __str__(self) -> str:
+        return f"Черновик: {self.lesson.title} ({self.get_status_display()})"
+    
+    def get_original_lesson_data(self):
+        """Возвращает данные оригинального урока для сравнения"""
+        return {
+            'title': self.lesson.title,
+            'content': self.lesson.content,
+            'video_id': self.lesson.video_id,
+            'order': self.lesson.order,
+            'category': self.lesson.category,
+            'required_time': self.lesson.required_time,
+            'final_quiz': self.lesson.final_quiz,
+            'courses': list(self.lesson.courses.all()),
+        }
+
+
 class LessonCategoryMirror(models.Model):
     """
     Зеркальная ссылка на урок (Lesson) в другой категории (CategoryName).

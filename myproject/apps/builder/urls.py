@@ -12,7 +12,8 @@ from builder.views.api_views import api_get_category_lessons, api_get_group_user
 from builder.views.audit import audit_history_api, audit_search_api
 from builder.views.lessons_views import (
                     LessonCreateView, LessonDeleteView, LessonMasterDetailView, 
-                    LessonUpdateView, UpdateControlStandaloneView, actualize_version
+                    LessonUpdateView, UpdateControlStandaloneView, actualize_version,
+                    create_lesson_draft, LessonDraftUpdateView, LessonDraftReviewView
 )
 from builder.views.categories_views import (
                     CategoryCreateView, CategoryDeleteView, CategoryListView, CategoryUpdateView, 
@@ -52,6 +53,11 @@ urlpatterns = [
     path('add/', LessonCreateView.as_view(), name='lesson_add'),
     path('add/<int:category_id>/', LessonCreateView.as_view(), name='lesson_add_with_category'),
     path('update_control/', UpdateControlStandaloneView.as_view(), name='update_control_standalone'),
+    
+    # Черновики уроков
+    path('lesson/<int:lesson_id>/draft/create/', create_lesson_draft, name='lesson_draft_create'),
+    path('lesson/draft/<int:pk>/edit/', LessonDraftUpdateView.as_view(), name='lesson_draft_edit'),
+    path('lesson/draft/<int:pk>/review/', LessonDraftReviewView.as_view(), name='lesson_draft_review'),
 
     # Категории
     path('categories/', CategoryListView.as_view(), name='category_list'),
