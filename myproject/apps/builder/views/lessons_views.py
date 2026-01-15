@@ -904,8 +904,37 @@ class LessonDraftReviewView(TemplateView):
             lesson.courses.clear()
             lesson.courses.set(draft.courses.all())
             
-            # Обновляем статус черновика
+            # --- Создаём новую версию урока (LessonVersion) ---
             from django.utils import timezone
+            
+            # Определяем следующий номер версии
+            last_version = LessonVersion.objects.filter(lesson=lesson).order_by('-version').first()
+            next_version = (last_version.version + 1) if last_version else 1
+            
+            # Определяем период обновления и дату следующего обновления
+            today = timezone.now().date()
+            period = last_version.update_period_days if last_version else 90
+            
+            # Определяем ответственного пользователя (сохраняем из последней версии или используем того, кто создал черновик)
+            responsible_user = get_responsible_user_for_lesson(last_version) if last_version else draft.created_by
+            
+            lesson_version = LessonVersion.objects.create(
+                lesson=lesson,
+                version=next_version,
+                title=lesson.title,
+                content=lesson.content,
+                video_id=lesson.video_id,
+                updated_by=responsible_user,
+                next_update=today + timezone.timedelta(days=period),
+                update_period_days=period,
+                comment=f"Применены изменения из черновика #{draft.id}"
+            )
+            
+            # Логируем создание новой версии
+            log_create(request.user, lesson_version, request,
+                      comment=f"Создана версия {next_version} при применении черновика #{draft.id}")
+            
+            # Обновляем статус черновика
             draft.status = 'approved'
             draft.reviewed_by = request.user
             draft.reviewed_at = timezone.now()
