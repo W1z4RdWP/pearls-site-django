@@ -852,23 +852,97 @@ class LessonDraftReviewView(TemplateView):
             result.append({'type': line_type, 'text': line})
         return result
     
+    def _strip_html_tags(self, html_content):
+        """Извлекает чистый текст из HTML, сохраняя структуру абзацев"""
+        from html.parser import HTMLParser
+        from io import StringIO
+        
+        class MLStripper(HTMLParser):
+            def __init__(self):
+                super().__init__()
+                self.reset()
+                self.strict = False
+                self.convert_charrefs = True
+                self.text = StringIO()
+                self.in_block = False
+                
+            def handle_starttag(self, tag, attrs):
+                # Добавляем перенос строки для блочных элементов
+                if tag in ('p', 'div', 'br', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'li', 'tr'):
+                    if self.text.getvalue() and not self.text.getvalue().endswith('\n'):
+                        self.text.write('\n')
+                        
+            def handle_endtag(self, tag):
+                if tag in ('p', 'div', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'li', 'ul', 'ol', 'table'):
+                    if self.text.getvalue() and not self.text.getvalue().endswith('\n'):
+                        self.text.write('\n')
+                        
+            def handle_data(self, d):
+                self.text.write(d)
+                
+            def get_data(self):
+                return self.text.getvalue()
+        
+        s = MLStripper()
+        try:
+            s.feed(html_content or '')
+        except:
+            return html_content or ''
+        return s.get_data().strip()
+    
     def _get_html_diff(self, old_html, new_html):
-        """Вычисляет diff для HTML контента и возвращает список словарей с типом строки"""
-        # Для HTML используем простой текстовый diff
-        old_lines = old_html.splitlines(keepends=True)
-        new_lines = new_html.splitlines(keepends=True)
-        diff = difflib.unified_diff(old_lines, new_lines, lineterm='', n=3)
+        """
+        Вычисляет diff для HTML контента и возвращает список сегментов для inline отображения.
+        Каждый сегмент имеет тип: 'unchanged', 'added', 'removed'
+        """
+        # Извлекаем чистый текст
+        old_text = self._strip_html_tags(old_html)
+        new_text = self._strip_html_tags(new_html)
+        
+        # Если тексты одинаковые (только HTML изменился), не показываем diff
+        if old_text == new_text:
+            return None
+        
+        # Разбиваем на слова, сохраняя пробелы и переносы
+        import re
+        
+        def tokenize(text):
+            """Разбивает текст на токены (слова, пробелы, пунктуация)"""
+            # Разбиваем по границам слов, сохраняя разделители
+            tokens = re.findall(r'\S+|\s+', text)
+            return tokens
+        
+        old_tokens = tokenize(old_text)
+        new_tokens = tokenize(new_text)
+        
+        # Используем SequenceMatcher для поиска различий
+        matcher = difflib.SequenceMatcher(None, old_tokens, new_tokens)
+        
         result = []
-        for line in diff:
-            line_type = 'context'
-            if line.startswith('+') and not line.startswith('+++'):
-                line_type = 'added'
-            elif line.startswith('-') and not line.startswith('---'):
-                line_type = 'removed'
-            elif line.startswith('@@'):
-                line_type = 'header'
-            result.append({'type': line_type, 'text': line})
-        return result
+        for tag, i1, i2, j1, j2 in matcher.get_opcodes():
+            if tag == 'equal':
+                text = ''.join(old_tokens[i1:i2])
+                if text.strip():  # Добавляем только непустые сегменты
+                    result.append({'type': 'unchanged', 'text': text})
+                elif text:  # Пробелы тоже добавляем
+                    result.append({'type': 'unchanged', 'text': text})
+            elif tag == 'replace':
+                old_part = ''.join(old_tokens[i1:i2])
+                new_part = ''.join(new_tokens[j1:j2])
+                if old_part.strip():
+                    result.append({'type': 'removed', 'text': old_part})
+                if new_part.strip():
+                    result.append({'type': 'added', 'text': new_part})
+            elif tag == 'delete':
+                old_part = ''.join(old_tokens[i1:i2])
+                if old_part.strip():
+                    result.append({'type': 'removed', 'text': old_part})
+            elif tag == 'insert':
+                new_part = ''.join(new_tokens[j1:j2])
+                if new_part.strip():
+                    result.append({'type': 'added', 'text': new_part})
+        
+        return result if result else None
     
     def post(self, request, *args, **kwargs):
         """Обработка принятия или отклонения черновика"""

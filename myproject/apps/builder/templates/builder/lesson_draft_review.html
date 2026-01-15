@@ -9,32 +9,54 @@
 <link rel="stylesheet" href="{% static 'builder/css/builder_style.css' %}">
 <style>
     .diff-container {
-        background: #f8f9fa;
+        background: #fff;
         border: 1px solid #dee2e6;
         border-radius: 4px;
-        padding: 16px;
+        padding: 20px;
         margin-bottom: 20px;
         max-height: 500px;
         overflow-y: auto;
+        line-height: 1.8;
+        font-size: 15px;
     }
-    .diff-line {
-        font-family: 'Courier New', monospace;
-        font-size: 13px;
-        line-height: 1.6;
-        padding: 2px 8px;
+    .diff-inline {
         white-space: pre-wrap;
+        word-wrap: break-word;
     }
-    .diff-line.added {
+    .diff-added {
         background: #d4edda;
         color: #155724;
+        padding: 2px 4px;
+        border-radius: 3px;
+        font-weight: 500;
     }
-    .diff-line.removed {
+    .diff-removed {
         background: #f8d7da;
         color: #721c24;
+        padding: 2px 4px;
+        border-radius: 3px;
+        text-decoration: line-through;
     }
-    .diff-line.context {
-        background: #fff;
-        color: #6c757d;
+    .diff-unchanged {
+        color: #333;
+    }
+    .diff-legend {
+        display: flex;
+        gap: 20px;
+        margin-bottom: 16px;
+        padding-bottom: 12px;
+        border-bottom: 1px solid #dee2e6;
+        font-size: 14px;
+    }
+    .diff-legend-item {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+    .diff-legend-sample {
+        padding: 2px 8px;
+        border-radius: 3px;
+        font-size: 12px;
     }
     .change-item {
         background: #fff;
@@ -97,31 +119,22 @@
     
     <h3>Изменения в черновике</h3>
         
-    <div style="background: #fff3cd; border-left: 4px solid #ffc107; padding: 12px 16px; margin-bottom: 20px; border-radius: 4px;">
-        <small style="color: #856404;">
-            <strong>ℹ️ Примечание:</strong> Некоторые изменения могут быть автоматическим форматированием CKEditor5 
-            (например, добавление/удаление HTML-тегов). Система пытается игнорировать такие изменения, 
-            но если вы видите строку как удаленную и добавленную с одинаковым текстом, 
-            это обычно означает только изменение форматирования, а не реальное изменение содержимого.
-        </small>
-    </div>
-
     <!-- Содержимое урока -->
     <div class="change-item">
         <div class="change-label">Содержимое урока</div>
         {% if changes.content_diff %}
             <div class="diff-container">
-                {% for line_data in changes.content_diff %}
-                    {% if line_data.type == 'added' %}
-                        <div class="diff-line added">{{ line_data.text|escape }}</div>
-                    {% elif line_data.type == 'removed' %}
-                        <div class="diff-line removed">{{ line_data.text|escape }}</div>
-                    {% elif line_data.type == 'header' %}
-                        <div class="diff-line context" style="background: #fff3cd; color: #856404;">{{ line_data.text|escape }}</div>
-                    {% else %}
-                        <div class="diff-line context">{{ line_data.text|escape }}</div>
-                    {% endif %}
-                {% endfor %}
+                <div class="diff-legend">
+                    <div class="diff-legend-item">
+                        <span class="diff-legend-sample diff-removed">удалено</span>
+                        <span>— удалённый текст</span>
+                    </div>
+                    <div class="diff-legend-item">
+                        <span class="diff-legend-sample diff-added">добавлено</span>
+                        <span>— добавленный текст</span>
+                    </div>
+                </div>
+                <div class="diff-inline">{% for segment in changes.content_diff %}{% if segment.type == 'added' %}<span class="diff-added">{{ segment.text }}</span>{% elif segment.type == 'removed' %}<span class="diff-removed">{{ segment.text }}</span>{% else %}<span class="diff-unchanged">{{ segment.text }}</span>{% endif %}{% endfor %}</div>
             </div>
         {% else %}
             <div class="no-changes">Изменений нет</div>
