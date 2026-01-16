@@ -14,6 +14,11 @@ logger = logging.getLogger(__name__)
 # Словарь для хранения старых значений UserCourse перед сохранением
 _user_course_old_status = {}
 
+# Словари для хранения предыдущих связей уроков и тестов с курсами
+# Ключ: ID урока/теста, значение: set() с ID курсов
+_lesson_courses_before_save = {}
+_quiz_courses_before_save = {}
+
 
 
 
@@ -694,31 +699,109 @@ def notify_completed_course_users_about_material_update(course, material_type, m
 
 
 @receiver(m2m_changed, sender=Lesson.courses.through)
+def track_lesson_courses_before_change(sender, instance, action, pk_set, **kwargs):
+    """
+    Сохраняет текущие связи урока с курсами перед изменением.
+    Это необходимо для определения, действительно ли курс был добавлен,
+    а не просто пересохранен через форму.
+    
+    Логика:
+    - При использовании .set() Django вызывает pre_clear (связи еще есть) -> сохраняем
+    - При использовании только .add() Django вызывает pre_add (связи еще есть) -> сохраняем
+    """
+    lesson_id = instance.pk
+    if not lesson_id:
+        return
+    
+    if action == "pre_clear":
+        # Сохраняем текущие связи перед очисткой (они еще есть)
+        _lesson_courses_before_save[lesson_id] = set(
+            instance.courses.values_list('pk', flat=True)
+        )
+    elif action == "pre_add":
+        # Сохраняем текущие связи только если они еще не были сохранены
+        # (т.е. если pre_clear не был вызван, значит используется только .add())
+        if lesson_id not in _lesson_courses_before_save:
+            _lesson_courses_before_save[lesson_id] = set(
+                instance.courses.values_list('pk', flat=True)
+            )
+
+
+@receiver(m2m_changed, sender=Lesson.courses.through)
 def notify_on_lesson_added_to_course(sender, instance, action, pk_set, **kwargs):
     """
     Отслеживает добавление урока к курсу и отправляет уведомления
     пользователям, которые уже завершили этот курс.
     
     Важно: сигнал срабатывает только при реальном добавлении урока к новому курсу.
-    pk_set содержит только ID курсов, которые были добавлены в этой операции.
+    Проверяет, что курс не был связан с уроком до этой операции.
     """
     if action == "post_add" and pk_set:
+        lesson_id = instance.pk
+        if not lesson_id:
+            return
+        
+        # Получаем предыдущие связи (если они были сохранены)
+        previous_courses = _lesson_courses_before_save.get(lesson_id, set())
+        
         # Получаем курсы, к которым был добавлен урок (только те, что в pk_set)
         courses = Course.objects.filter(pk__in=pk_set)
         
         for course in courses:
             # Дополнительная проверка: убеждаемся, что курс действительно в списке курсов урока
             # Это защита от возможных race conditions
-            if course in instance.courses.all():
-                logger.info(
-                    f"Урок «{instance.title}» добавлен к курсу «{course.title}»"
+            if course not in instance.courses.all():
+                continue
+            
+            # КЛЮЧЕВАЯ ПРОВЕРКА: курс должен быть новым (не был в предыдущих связях)
+            if course.pk in previous_courses:
+                logger.debug(
+                    f"Пропуск уведомления: урок «{instance.title}» уже был связан с курсом «{course.title}» "
+                    f"(это пересохранение формы, а не реальное добавление)"
                 )
-                # Отправляем уведомления пользователям с завершенным курсом
-                notify_completed_course_users_about_material_update(
-                    course=course,
-                    material_type='lesson',
-                    material_name=instance.title
-                )
+                continue
+            
+            logger.info(
+                f"Урок «{instance.title}» добавлен к курсу «{course.title}»"
+            )
+            # Отправляем уведомления пользователям с завершенным курсом
+            notify_completed_course_users_about_material_update(
+                course=course,
+                material_type='lesson',
+                material_name=instance.title
+            )
+        
+        # Очищаем сохраненное состояние после обработки
+        _lesson_courses_before_save.pop(lesson_id, None)
+
+
+@receiver(m2m_changed, sender=Quiz.courses.through)
+def track_quiz_courses_before_change(sender, instance, action, pk_set, **kwargs):
+    """
+    Сохраняет текущие связи теста с курсами перед изменением.
+    Это необходимо для определения, действительно ли курс был добавлен,
+    а не просто пересохранен через форму.
+    
+    Логика:
+    - При использовании .set() Django вызывает pre_clear (связи еще есть) -> сохраняем
+    - При использовании только .add() Django вызывает pre_add (связи еще есть) -> сохраняем
+    """
+    quiz_id = instance.pk
+    if not quiz_id:
+        return
+    
+    if action == "pre_clear":
+        # Сохраняем текущие связи перед очисткой (они еще есть)
+        _quiz_courses_before_save[quiz_id] = set(
+            instance.courses.values_list('pk', flat=True)
+        )
+    elif action == "pre_add":
+        # Сохраняем текущие связи только если они еще не были сохранены
+        # (т.е. если pre_clear не был вызван, значит используется только .add())
+        if quiz_id not in _quiz_courses_before_save:
+            _quiz_courses_before_save[quiz_id] = set(
+                instance.courses.values_list('pk', flat=True)
+            )
 
 
 @receiver(m2m_changed, sender=Quiz.courses.through)
@@ -728,25 +811,45 @@ def notify_on_quiz_added_to_course(sender, instance, action, pk_set, **kwargs):
     пользователям, которые уже завершили этот курс.
     
     Важно: сигнал срабатывает только при реальном добавлении теста к новому курсу.
-    pk_set содержит только ID курсов, которые были добавлены в этой операции.
+    Проверяет, что курс не был связан с тестом до этой операции.
     """
     if action == "post_add" and pk_set:
+        quiz_id = instance.pk
+        if not quiz_id:
+            return
+        
+        # Получаем предыдущие связи (если они были сохранены)
+        previous_courses = _quiz_courses_before_save.get(quiz_id, set())
+        
         # Получаем курсы, к которым был добавлен тест (только те, что в pk_set)
         courses = Course.objects.filter(pk__in=pk_set)
         
         for course in courses:
             # Дополнительная проверка: убеждаемся, что курс действительно в списке курсов теста
             # Это защита от возможных race conditions
-            if course in instance.courses.all():
-                logger.info(
-                    f"Тест «{instance.name}» добавлен к курсу «{course.title}»"
+            if course not in instance.courses.all():
+                continue
+            
+            # КЛЮЧЕВАЯ ПРОВЕРКА: курс должен быть новым (не был в предыдущих связях)
+            if course.pk in previous_courses:
+                logger.debug(
+                    f"Пропуск уведомления: тест «{instance.name}» уже был связан с курсом «{course.title}» "
+                    f"(это пересохранение формы, а не реальное добавление)"
                 )
-                # Отправляем уведомления пользователям с завершенным курсом
-                notify_completed_course_users_about_material_update(
-                    course=course,
-                    material_type='quiz',
-                    material_name=instance.name
-                )
+                continue
+            
+            logger.info(
+                f"Тест «{instance.name}» добавлен к курсу «{course.title}»"
+            )
+            # Отправляем уведомления пользователям с завершенным курсом
+            notify_completed_course_users_about_material_update(
+                course=course,
+                material_type='quiz',
+                material_name=instance.name
+            )
+        
+        # Очищаем сохраненное состояние после обработки
+        _quiz_courses_before_save.pop(quiz_id, None)
 
 
 # Удален сигнал post_save для Lesson, так как обновление урока само по себе
