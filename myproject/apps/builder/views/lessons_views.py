@@ -5,7 +5,7 @@ from django.shortcuts import get_object_or_404, render, redirect
 from django.urls import reverse, reverse_lazy
 from django.utils.decorators import method_decorator
 from django.contrib.auth.decorators import login_required
-from django.views.generic import CreateView, DeleteView, TemplateView, UpdateView
+from django.views.generic import CreateView, DeleteView, ListView, TemplateView, UpdateView
 
 from builder.audit_logger import AuditLoggerMixin, log_actualize, log_create, serialize_model_data
 from builder.models import CategoryName, DictionarySection, LessonVersion, LessonDraft
@@ -756,9 +756,9 @@ class LessonDraftUpdateView(UpdateView, AuditLoggerMixin):
         is_staff = self.request.user.is_staff or self.request.user.is_superuser
         
         if is_mentor and not is_staff:
-            # Для наставников сохраняем только content, остальные поля берем из instance
+            # Для наставников сохраняем content и submit_comment, остальные поля берем из instance
             draft = form.save(commit=False)
-            # Восстанавливаем значения из исходного объекта для всех полей кроме content
+            # Восстанавливаем значения из исходного объекта для всех полей кроме content и submit_comment
             original = self.get_object()
             draft.title = original.title
             draft.video_id = original.video_id
@@ -766,6 +766,7 @@ class LessonDraftUpdateView(UpdateView, AuditLoggerMixin):
             draft.category = original.category
             draft.required_time = original.required_time
             draft.final_quiz = original.final_quiz
+            # submit_comment уже сохранен через form.save(commit=False)
             draft.save()
             # Сохраняем связи many-to-many (курсы) из исходного объекта
             draft.courses.set(original.courses.all())
@@ -1032,4 +1033,198 @@ class LessonDraftReviewView(TemplateView):
             return redirect('builder:lesson_draft_review', pk=draft.id)
         
         return redirect('builder:lesson_master')
+
+
+@method_decorator(login_required(login_url='users:login'), name='dispatch')
+class LessonDraftHistoryListView(ListView):
+    """
+    Список всех черновиков, созданных текущим пользователем.
+    С фильтрацией по статусу и поиском по названию урока.
+    """
+    model = LessonDraft
+    template_name = 'builder/lesson_draft_history_list.html'
+    context_object_name = 'drafts'
+    paginate_by = 20
+    
+    def dispatch(self, request, *args, **kwargs):
+        if not request.user.is_authenticated:
+            return render(request, '403.html', status=403)
+        return super().dispatch(request, *args, **kwargs)
+    
+    def get_queryset(self):
+        """Фильтруем черновики по текущему пользователю и параметрам поиска"""
+        queryset = LessonDraft.objects.filter(created_by=self.request.user).select_related(
+            'lesson', 'created_by', 'reviewed_by', 'category'
+        ).prefetch_related('courses').order_by('-created_at')
+        
+        # Фильтр по статусу
+        status = self.request.GET.get('status', '')
+        if status in ['pending', 'approved', 'rejected']:
+            queryset = queryset.filter(status=status)
+        
+        # Поиск по названию урока
+        search_query = self.request.GET.get('search', '').strip()
+        if search_query:
+            queryset = queryset.filter(lesson__title__icontains=search_query)
+        
+        return queryset
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['current_status'] = self.request.GET.get('status', '')
+        context['search_query'] = self.request.GET.get('search', '')
+        return context
+
+
+@method_decorator(login_required(login_url='users:login'), name='dispatch')
+class LessonDraftHistoryDetailView(TemplateView):
+    """
+    Детальный просмотр черновика для пользователя, который его создал.
+    Показывает diff изменений, комментарий проверяющего и результат.
+    """
+    template_name = 'builder/lesson_draft_history_detail.html'
+    
+    def dispatch(self, request, *args, **kwargs):
+        if not request.user.is_authenticated:
+            return render(request, '403.html', status=403)
+        
+        # Проверяем доступ к черновику
+        pk = kwargs.get('pk')
+        if pk:
+            draft = get_object_or_404(LessonDraft, pk=pk)
+            if draft.created_by != request.user:
+                return render(request, '403.html', status=403)
+        
+        return super().dispatch(request, *args, **kwargs)
+    
+    def get_object(self):
+        """Получает объект черновика по pk из URL"""
+        pk = self.kwargs.get('pk')
+        return get_object_or_404(LessonDraft, pk=pk)
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        draft = self.get_object()
+        lesson = draft.lesson
+        
+        context['draft'] = draft
+        context['lesson'] = lesson
+        
+        # Получаем версию урока, если есть
+        try:
+            latest_version = LessonVersion.objects.filter(lesson=lesson).order_by('-version').first()
+            context['lesson_version'] = latest_version
+        except:
+            context['lesson_version'] = None
+        
+        # Вычисляем diff для текстовых полей
+        title_diff = self._get_text_diff(lesson.title, draft.title)
+        content_diff = self._get_html_diff(lesson.content or '', draft.content or '')
+        
+        # Сравниваем другие поля
+        changes = {
+            'title_diff': title_diff if lesson.title != draft.title else None,
+            'content_diff': content_diff if (lesson.content or '') != (draft.content or '') else None,
+            'video_id': {'old': lesson.video_id or '', 'new': draft.video_id or ''} if lesson.video_id != draft.video_id else None,
+            'order': {'old': lesson.order, 'new': draft.order} if lesson.order != draft.order else None,
+            'category': {'old': lesson.category, 'new': draft.category} if lesson.category != draft.category else None,
+            'required_time': {'old': lesson.required_time, 'new': draft.required_time} if lesson.required_time != draft.required_time else None,
+            'final_quiz': {'old': lesson.final_quiz, 'new': draft.final_quiz} if lesson.final_quiz != draft.final_quiz else None,
+        }
+        
+        # Сравниваем курсы
+        lesson_courses = set(lesson.courses.all())
+        draft_courses = set(draft.courses.all())
+        if lesson_courses != draft_courses:
+            changes['courses'] = {
+                'old': list(lesson_courses),
+                'new': list(draft_courses),
+                'added': list(draft_courses - lesson_courses),
+                'removed': list(lesson_courses - draft_courses),
+            }
+        else:
+            changes['courses'] = None
+        
+        context['changes'] = changes
+        return context
+    
+    def _get_text_diff(self, old_text, new_text):
+        """Вычисляет diff для обычного текста и возвращает список словарей с типом строки"""
+        old_lines = old_text.splitlines(keepends=True)
+        new_lines = new_text.splitlines(keepends=True)
+        diff = difflib.unified_diff(old_lines, new_lines, lineterm='', n=3)
+        result = []
+        for line in diff:
+            line_type = 'context'
+            if line.startswith('+') and not line.startswith('+++'):
+                line_type = 'added'
+            elif line.startswith('-') and not line.startswith('---'):
+                line_type = 'removed'
+            elif line.startswith('@@'):
+                line_type = 'header'
+            result.append({'type': line_type, 'text': line})
+        return result
+    
+    def _strip_html_tags(self, html_content):
+        """Извлекает чистый текст из HTML, сохраняя структуру абзацев"""
+        from html.parser import HTMLParser
+        from io import StringIO
+        
+        class MLStripper(HTMLParser):
+            def __init__(self):
+                super().__init__()
+                self.reset()
+                self.strict = False
+                self.convert_charrefs = True
+                self.text = StringIO()
+                self.in_block = False
+                
+            def handle_starttag(self, tag, attrs):
+                if tag in ('p', 'div', 'br', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'li', 'tr'):
+                    if self.text.getvalue() and not self.text.getvalue().endswith('\n'):
+                        self.text.write('\n')
+                        
+            def handle_endtag(self, tag):
+                if tag in ('p', 'div', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'li', 'ul', 'ol', 'table'):
+                    if self.text.getvalue() and not self.text.getvalue().endswith('\n'):
+                        self.text.write('\n')
+                        
+            def handle_data(self, data):
+                self.text.write(data)
+                
+            def get_text(self):
+                return self.text.getvalue()
+        
+        stripper = MLStripper()
+        stripper.feed(html_content)
+        return stripper.get_text()
+    
+    def _get_html_diff(self, old_html, new_html):
+        """Вычисляет diff для HTML контента"""
+        old_text = self._strip_html_tags(old_html)
+        new_text = self._strip_html_tags(new_html)
+        
+        old_lines = old_text.splitlines(keepends=True)
+        new_lines = new_text.splitlines(keepends=True)
+        
+        matcher = difflib.SequenceMatcher(None, old_lines, new_lines)
+        result = []
+        
+        for tag, i1, i2, j1, j2 in matcher.get_opcodes():
+            if tag == 'equal':
+                for line in old_lines[i1:i2]:
+                    result.append({'type': 'unchanged', 'text': line})
+            elif tag == 'delete':
+                for line in old_lines[i1:i2]:
+                    result.append({'type': 'removed', 'text': line})
+            elif tag == 'insert':
+                for line in new_lines[j1:j2]:
+                    result.append({'type': 'added', 'text': line})
+            elif tag == 'replace':
+                for line in old_lines[i1:i2]:
+                    result.append({'type': 'removed', 'text': line})
+                for line in new_lines[j1:j2]:
+                    result.append({'type': 'added', 'text': line})
+        
+        return result
 

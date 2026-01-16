@@ -180,7 +180,7 @@ class LessonDraftForm(forms.ModelForm):
     """Форма для редактирования черновика урока."""
     class Meta:
         model = LessonDraft
-        fields = ['title', 'content', 'order', 'courses', 'category', 'required_time', 'final_quiz']
+        fields = ['title', 'content', 'order', 'courses', 'category', 'required_time', 'final_quiz', 'submit_comment']
         widgets = {
             'content': CKEditor5Widget(
                 attrs={'class': 'django_ckeditor_5'}, 
@@ -188,17 +188,20 @@ class LessonDraftForm(forms.ModelForm):
             ),
             'courses': forms.SelectMultiple(attrs={'class': 'form-select'}),
             'required_time': forms.NumberInput(attrs={'class': 'form-control', 'min': '1', 'max': '999'}),
-            'final_quiz': forms.HiddenInput()
+            'final_quiz': forms.HiddenInput(),
+            'submit_comment': forms.Textarea(attrs={'class': 'form-control', 'rows': 3, 'placeholder': 'Введите комментарий к черновику (необязательно)...'})
         }
         
         labels = {
             'courses': 'Выберите курсы, куда добавить урок',
-            'required_time': 'Необходимое время (минуты)'
+            'required_time': 'Необходимое время (минуты)',
+            'submit_comment': 'Комментарий к черновику'
         }
         
         help_texts = {
             'courses': 'Выберите курсы, в которых будет использоваться этот урок',
-            'required_time': 'Время в минутах, необходимое для прохождения урока'
+            'required_time': 'Время в минутах, необходимое для прохождения урока',
+            'submit_comment': 'Комментарий будет виден проверяющему при рассмотрении черновика'
         }
     
     def clean_content(self):
@@ -213,10 +216,10 @@ class LessonDraftForm(forms.ModelForm):
         user = kwargs.pop('user', None)
         super().__init__(*args, **kwargs)
         
-        # Если пользователь - наставник (не staff/superuser), делаем все поля кроме content readonly
+        # Если пользователь - наставник (не staff/superuser), делаем все поля кроме content и submit_comment readonly
         if user and hasattr(user, 'profile') and user.profile.is_mentor_user and not (user.is_staff or user.is_superuser):
-            # Делаем все поля кроме content недоступными для редактирования
+            # Делаем все поля кроме content и submit_comment недоступными для редактирования
             for field_name in self.fields:
-                if field_name != 'content':
+                if field_name not in ['content', 'submit_comment']:
                     self.fields[field_name].disabled = True
                     self.fields[field_name].required = False

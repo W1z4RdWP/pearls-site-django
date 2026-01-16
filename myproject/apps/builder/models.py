@@ -339,6 +339,9 @@ class LessonDraft(models.Model):
     # Комментарий при рассмотрении
     review_comment = models.TextField(blank=True, verbose_name='Комментарий при рассмотрении')
     
+    # Комментарий от создателя черновика
+    submit_comment = models.TextField(blank=True, verbose_name='Комментарий к черновику')
+    
     # Временные метки
     created_at = models.DateTimeField(auto_now_add=True, verbose_name='Дата создания')
     updated_at = models.DateTimeField(auto_now=True, verbose_name='Дата обновления')
