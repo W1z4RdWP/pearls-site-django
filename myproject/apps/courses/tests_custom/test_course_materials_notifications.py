@@ -2,7 +2,7 @@ from django.test import TestCase, override_settings
 from django.contrib.auth import get_user_model
 
 from courses.models import Course, Lesson
-from quizzes.models import Quiz
+from quizzes.models import Quiz, Homework
 from myapp.models import UserCourse
 from notifications.models import Notification
 
@@ -229,6 +229,47 @@ class CourseMaterialsNotificationsTest(TestCase):
             count_after_first,
             'При добавлении второго урока количество уведомлений не должно уменьшаться'
         )
+
+    def test_add_new_homework_creates_notification(self):
+        """
+        При добавлении нового задания в завершенный курс,
+        пользователю должно прийти уведомление о новом тесте
+        (используется тот же тип уведомления, что и для тестов).
+        """
+        initial_notification_count = Notification.objects.filter(
+            user=self.user,
+            notification_type='course_materials_updated'
+        ).count()
+        
+        # Создаем новое задание и добавляем его в курс
+        new_homework = Homework.objects.create(
+            name='Новое задание',
+        )
+        new_homework.courses.add(self.course)
+        
+        # Проверяем, что уведомление было создано
+        final_notification_count = Notification.objects.filter(
+            user=self.user,
+            notification_type='course_materials_updated'
+        ).count()
+        
+        self.assertEqual(
+            final_notification_count,
+            initial_notification_count + 1,
+            'При добавлении нового задания должно создаваться уведомление'
+        )
+        
+        # Проверяем содержимое уведомления
+        # Используется тот же тип уведомления, что и для тестов
+        notification = Notification.objects.filter(
+            user=self.user,
+            notification_type='course_materials_updated'
+        ).latest('created_at')
+        
+        self.assertEqual(notification.title, 'Новый тест в завершенном курсе')
+        self.assertIn('Новое задание', notification.message)
+        self.assertIn(self.course.title, notification.message)
+        self.assertEqual(notification.related_course, self.course)
 
     def test_notification_only_for_completed_course(self):
         """

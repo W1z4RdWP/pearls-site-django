@@ -4,7 +4,7 @@ from django.contrib.auth.models import User,Group
 from django.utils import timezone
 from datetime import timedelta
 from courses.models import Course, Trajectory, UserCourseTrajectory, TrajectoryCourse, ManualTrajectoryUnassignment, Lesson
-from quizzes.models import Quiz
+from quizzes.models import Quiz, Homework
 from myapp.models import UserCourse, ManualCourseUnassignment
 from user_management.utils import send_course_assignment_email, send_trajectory_assignment_email
 import logging
@@ -14,10 +14,11 @@ logger = logging.getLogger(__name__)
 # Словарь для хранения старых значений UserCourse перед сохранением
 _user_course_old_status = {}
 
-# Словари для хранения предыдущих связей уроков и тестов с курсами
-# Ключ: ID урока/теста, значение: set() с ID курсов
+# Словари для хранения предыдущих связей уроков, тестов и заданий с курсами
+# Ключ: ID урока/теста/задания, значение: set() с ID курсов
 _lesson_courses_before_save = {}
 _quiz_courses_before_save = {}
+_homework_courses_before_save = {}
 
 
 
@@ -852,6 +853,87 @@ def notify_on_quiz_added_to_course(sender, instance, action, pk_set, **kwargs):
         _quiz_courses_before_save.pop(quiz_id, None)
 
 
+@receiver(m2m_changed, sender=Homework.courses.through)
+def track_homework_courses_before_change(sender, instance, action, pk_set, **kwargs):
+    """
+    Сохраняет текущие связи задания с курсами перед изменением.
+    Это необходимо для определения, действительно ли курс был добавлен,
+    а не просто пересохранен через форму.
+    
+    Логика:
+    - При использовании .set() Django вызывает pre_clear (связи еще есть) -> сохраняем
+    - При использовании только .add() Django вызывает pre_add (связи еще есть) -> сохраняем
+    """
+    homework_id = instance.pk
+    if not homework_id:
+        return
+    
+    if action == "pre_clear":
+        # Сохраняем текущие связи перед очисткой (они еще есть)
+        _homework_courses_before_save[homework_id] = set(
+            instance.courses.values_list('pk', flat=True)
+        )
+    elif action == "pre_add":
+        # Сохраняем текущие связи только если они еще не были сохранены
+        # (т.е. если pre_clear не был вызван, значит используется только .add())
+        if homework_id not in _homework_courses_before_save:
+            _homework_courses_before_save[homework_id] = set(
+                instance.courses.values_list('pk', flat=True)
+            )
+
+
+@receiver(m2m_changed, sender=Homework.courses.through)
+def notify_on_homework_added_to_course(sender, instance, action, pk_set, **kwargs):
+    """
+    Отслеживает добавление задания к курсу и отправляет уведомления
+    пользователям, которые уже завершили этот курс.
+    
+    Важно: сигнал срабатывает только при реальном добавлении задания к новому курсу.
+    Проверяет, что курс не был связан с заданием до этой операции.
+    
+    Использует тот же тип уведомления, что и для тестов (material_type='quiz'),
+    как было запрошено пользователем.
+    """
+    if action == "post_add" and pk_set:
+        homework_id = instance.pk
+        if not homework_id:
+            return
+        
+        # Получаем предыдущие связи (если они были сохранены)
+        previous_courses = _homework_courses_before_save.get(homework_id, set())
+        
+        # Получаем курсы, к которым было добавлено задание (только те, что в pk_set)
+        courses = Course.objects.filter(pk__in=pk_set)
+        
+        for course in courses:
+            # Дополнительная проверка: убеждаемся, что курс действительно в списке курсов задания
+            # Это защита от возможных race conditions
+            if course not in instance.courses.all():
+                continue
+            
+            # КЛЮЧЕВАЯ ПРОВЕРКА: курс должен быть новым (не был в предыдущих связях)
+            if course.pk in previous_courses:
+                logger.debug(
+                    f"Пропуск уведомления: задание «{instance.name}» уже было связано с курсом «{course.title}» "
+                    f"(это пересохранение формы, а не реальное добавление)"
+                )
+                continue
+            
+            logger.info(
+                f"Задание «{instance.name}» добавлено к курсу «{course.title}»"
+            )
+            # Отправляем уведомления пользователям с завершенным курсом
+            # Используем material_type='quiz', как было запрошено пользователем
+            notify_completed_course_users_about_material_update(
+                course=course,
+                material_type='quiz',
+                material_name=instance.name
+            )
+        
+        # Очищаем сохраненное состояние после обработки
+        _homework_courses_before_save.pop(homework_id, None)
+
+
 # Удален сигнал post_save для Lesson, так как обновление урока само по себе
 # не должно вызывать уведомления. Уведомления отправляются только при добавлении
-# нового материала (урока или теста) к курсу через сигналы m2m_changed.
+# нового материала (урока, теста или задания) к курсу через сигналы m2m_changed.
