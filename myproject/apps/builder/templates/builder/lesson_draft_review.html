@@ -1,0 +1,193 @@
+{% extends 'layout.html' %}
+{% load static %}
+
+{% block title %}
+    Рассмотрение черновика урока
+{% endblock %}
+
+{% block specific_styles %}
+    <link rel="stylesheet" href="{% static 'builder/css/builder_style.css' %}">
+    <link rel="stylesheet" href="{% static 'builder/css/lesson_draft_review.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="container" style="max-width: 1200px; margin-top: 48px;">
+    <h2>Рассмотрение черновика урока</h2>
+    
+    <div class="draft-header">
+        <h4>{{ draft.lesson.title }}</h4>
+        <p>
+            <strong>Создан:</strong> {{ draft.created_by.get_full_name|default:draft.created_by.username }} 
+            ({{ draft.created_at|date:"d.m.Y H:i" }})<br>
+            <strong>Статус:</strong> {{ draft.get_status_display }}<br>
+            {% if draft.reviewed_by %}
+            <strong>Рассмотрел:</strong> {{ draft.reviewed_by.get_full_name|default:draft.reviewed_by.username }}
+            ({{ draft.reviewed_at|date:"d.m.Y H:i" }})<br>
+            {% endif %}
+        </p>
+    </div>
+    
+    <!-- Комментарий от создателя черновика -->
+    {% if draft.submit_comment %}
+    <div class="submit-comment-block" style="background: #f8f9fa; border-left: 4px solid #2196F3; padding: 16px; margin-bottom: 24px; border-radius: 4px;">
+        <div style="display: flex; align-items: flex-start; gap: 12px;">
+            <div style="flex-shrink: 0;">
+                {% if draft.created_by.profile.image %}
+                    <img src="{{ draft.created_by.profile.image.url }}" 
+                         alt="{{ draft.created_by.get_full_name|default:draft.created_by.username }}"
+                         class="rounded-circle" 
+                         style="width: 48px; height: 48px; object-fit: cover;">
+                {% else %}
+                    <div class="bg-secondary rounded-circle d-flex align-items-center justify-content-center" 
+                         style="width: 48px; height: 48px;">
+                        <i class="fas fa-user text-white"></i>
+                    </div>
+                {% endif %}
+            </div>
+            <div style="flex-grow: 1;">
+                <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+                    <strong style="color: #1976D2;">{{ draft.created_by.get_full_name|default:draft.created_by.username }}</strong>
+                    <span style="color: #6c757d; font-size: 0.9em;">{{ draft.created_at|date:"d.m.Y H:i" }}</span>
+                </div>
+                <div style="color: #333; white-space: pre-wrap;">{{ draft.submit_comment }}</div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+    
+    <h3>Изменения в черновике</h3>
+        
+    <!-- Содержимое урока -->
+    <div class="change-item">
+        <div class="change-label">Содержимое урока</div>
+        {% if changes.content_diff %}
+            <div class="diff-container">
+                <div class="diff-legend">
+                    <div class="diff-legend-item">
+                        <span class="diff-legend-sample diff-removed">удалено</span>
+                        <span>— удалённый текст</span>
+                    </div>
+                    <div class="diff-legend-item">
+                        <span class="diff-legend-sample diff-added">добавлено</span>
+                        <span>— добавленный текст</span>
+                    </div>
+                </div>
+                <div class="diff-inline">{% for segment in changes.content_diff %}{% if segment.type == 'added' %}<span class="diff-added">{{ segment.text }}</span>{% elif segment.type == 'removed' %}<span class="diff-removed">{{ segment.text }}</span>{% else %}<span class="diff-unchanged">{{ segment.text }}</span>{% endif %}{% endfor %}</div>
+            </div>
+        {% else %}
+            <div class="no-changes">Изменений нет</div>
+        {% endif %}
+    </div>
+    
+    <!-- Другие поля -->
+    {% if changes.video_id %}
+    <div class="change-item">
+        <div class="change-label">ID видео</div>
+        <div>
+            <span class="change-old">{{ changes.video_id.old|default:"—" }}</span> 
+            → 
+            <span class="change-new">{{ changes.video_id.new|default:"—" }}</span>
+        </div>
+    </div>
+    {% endif %}
+    
+    {% if changes.order %}
+    <div class="change-item">
+        <div class="change-label">Порядок</div>
+        <div>
+            <span class="change-old">{{ changes.order.old }}</span> 
+            → 
+            <span class="change-new">{{ changes.order.new }}</span>
+        </div>
+    </div>
+    {% endif %}
+    
+    {% if changes.category %}
+    <div class="change-item">
+        <div class="change-label">Категория</div>
+        <div>
+            <span class="change-old">{{ changes.category.old|default:"—" }}</span> 
+            → 
+            <span class="change-new">{{ changes.category.new|default:"—" }}</span>
+        </div>
+    </div>
+    {% endif %}
+    
+    {% if changes.required_time %}
+    <div class="change-item">
+        <div class="change-label">Необходимое время (минуты)</div>
+        <div>
+            <span class="change-old">{{ changes.required_time.old }}</span> 
+            → 
+            <span class="change-new">{{ changes.required_time.new }}</span>
+        </div>
+    </div>
+    {% endif %}
+    
+    {% if changes.final_quiz %}
+    <div class="change-item">
+        <div class="change-label">Финальный тест</div>
+        <div>
+            <span class="change-old">{{ changes.final_quiz.old|default:"—" }}</span> 
+            → 
+            <span class="change-new">{{ changes.final_quiz.new|default:"—" }}</span>
+        </div>
+    </div>
+    {% endif %}
+    
+    {% if changes.courses %}
+    <div class="change-item">
+        <div class="change-label">Курсы</div>
+        <div>
+            {% if changes.courses.added %}
+            <div style="color: #28a745; margin-top: 8px;">
+                <strong>Добавлены:</strong>
+                <ul>
+                    {% for course in changes.courses.added %}
+                    <li>{{ course.title }}</li>
+                    {% endfor %}
+                </ul>
+            </div>
+            {% endif %}
+            {% if changes.courses.removed %}
+            <div style="color: #dc3545; margin-top: 8px;">
+                <strong>Удалены:</strong>
+                <ul>
+                    {% for course in changes.courses.removed %}
+                    <li>{{ course.title }}</li>
+                    {% endfor %}
+                </ul>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+    
+    <!-- Форма принятия/отклонения -->
+    {% if draft.status == 'pending' %}
+    <div class="review-form">
+        <h4>Решение по черновику</h4>
+        <form method="post">
+            {% csrf_token %}
+            <div class="mb-3">
+                <label for="comment" class="form-label">Комментарий (необязательно)</label>
+                <textarea name="comment" id="comment" class="form-control" rows="3" placeholder="Введите комментарий к решению..."></textarea>
+            </div>
+            <div class="button-group">
+                <button type="submit" name="action" value="approve" class="btn btn-success">Принять изменения</button>
+                <button type="submit" name="action" value="reject" class="btn btn-danger">Отклонить</button>
+                <a href="{% url 'builder:lesson_master' %}?lesson_id={{ lesson.id }}" class="btn btn-secondary">Отмена</a>
+            </div>
+        </form>
+    </div>
+    {% else %}
+    <div class="alert alert-info">
+        <strong>Статус:</strong> {{ draft.get_status_display }}
+        {% if draft.review_comment %}
+        <br><strong>Комментарий:</strong> {{ draft.review_comment }}
+        {% endif %}
+    </div>
+    <a href="{% url 'builder:lesson_master' %}?lesson_id={{ lesson.id }}" class="btn btn-secondary">Вернуться к уроку</a>
+    {% endif %}
+</div>
+{% endblock %}

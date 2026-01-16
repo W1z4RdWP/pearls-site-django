@@ -645,9 +645,10 @@ document.addEventListener('DOMContentLoaded', function() {
                     document.getElementById('detail').innerHTML = html;
                     
                     // Выполняем скрипты из загруженного HTML
+                    // Пропускаем скрипты с type="application/json" — это данные, а не код
                     const scripts = document.getElementById('detail').querySelectorAll('script');
                     scripts.forEach(script => {
-                        if (script.textContent) {
+                        if (script.textContent && script.type !== 'application/json') {
                             try {
                                 eval(script.textContent);
                             } catch (e) {
@@ -713,9 +714,10 @@ document.addEventListener('DOMContentLoaded', function() {
                 document.getElementById('detail').innerHTML = html;
                 
                 // Выполняем скрипты из загруженного HTML
+                // Пропускаем скрипты с type="application/json" — это данные, а не код
                 const scripts = document.getElementById('detail').querySelectorAll('script');
                 scripts.forEach(script => {
-                    if (script.textContent) {
+                    if (script.textContent && script.type !== 'application/json') {
                         try {
                             eval(script.textContent);
                         } catch (e) {

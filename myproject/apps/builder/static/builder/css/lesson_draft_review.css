@@ -1,0 +1,108 @@
+.diff-container {
+    background: #fff;
+    border: 1px solid #dee2e6;
+    border-radius: 4px;
+    padding: 20px;
+    margin-bottom: 20px;
+    max-height: 500px;
+    overflow-y: auto;
+    line-height: 1.8;
+    font-size: 15px;
+}
+.diff-inline {
+    white-space: pre-wrap;
+    word-wrap: break-word;
+}
+.diff-added {
+    background: #d4edda;
+    color: #155724;
+    padding: 2px 4px;
+    border-radius: 3px;
+    font-weight: 500;
+}
+.diff-removed {
+    background: #f8d7da;
+    color: #721c24;
+    padding: 2px 4px;
+    border-radius: 3px;
+    text-decoration: line-through;
+}
+.diff-unchanged {
+    color: #333;
+}
+.diff-legend {
+    display: flex;
+    gap: 20px;
+    margin-bottom: 16px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid #dee2e6;
+    font-size: 14px;
+}
+.diff-legend-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+.diff-legend-sample {
+    padding: 2px 8px;
+    border-radius: 3px;
+    font-size: 12px;
+}
+.change-item {
+    background: #fff;
+    border: 1px solid #dee2e6;
+    border-radius: 4px;
+    padding: 12px;
+    margin-bottom: 12px;
+}
+.change-item.no-changes {
+    background: #e9ecef;
+    color: #6c757d;
+    font-style: italic;
+}
+.change-label {
+    font-weight: 600;
+    color: #495057;
+    margin-bottom: 8px;
+}
+.change-old {
+    color: #dc3545;
+    text-decoration: line-through;
+}
+.change-new {
+    color: #28a745;
+    font-weight: 500;
+}
+.draft-header {
+    background: #e7f3ff;
+    border-left: 4px solid #2196F3;
+    padding: 16px;
+    margin-bottom: 24px;
+    border-radius: 4px;
+}
+.review-form {
+    background: #fff;
+    border: 1px solid #dee2e6;
+    border-radius: 4px;
+    padding: 20px;
+    margin-top: 24px;
+}
+.submit-comment-block {
+    background: #f8f9fa;
+    border-left: 4px solid #2196F3;
+    padding: 16px;
+    margin-bottom: 24px;
+    border-radius: 4px;
+}
+.submit-comment-block img {
+    width: 48px;
+    height: 48px;
+    object-fit: cover;
+}
+.submit-comment-block .bg-secondary {
+    width: 48px;
+    height: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}

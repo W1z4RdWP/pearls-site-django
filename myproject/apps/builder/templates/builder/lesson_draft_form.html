@@ -1,0 +1,84 @@
+{% extends 'layout.html' %}
+{% load static %}
+{% load crispy_forms_tags %}
+
+{% block title %}
+    Редактировать черновик урока
+{% endblock %}
+
+{% block specific_styles %}
+<link rel="stylesheet" href="{% static 'builder/css/builder_style.css' %}">
+<style>
+    .draft-info {
+        background: #e7f3ff;
+        border-left: 4px solid #2196F3;
+        padding: 12px 16px;
+        margin-bottom: 20px;
+        border-radius: 4px;
+    }
+    .draft-info strong {
+        color: #1976D2;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container" style="max-width: 800px; margin-top: 48px;">
+    <h2>Редактировать черновик урока</h2>
+    
+    <div class="draft-info">
+        <strong>Черновик урока:</strong> {{ object.lesson.title }}<br>
+        <small>Создан: {{ object.created_at|date:"d.m.Y H:i" }} | Статус: {{ object.get_status_display }}</small>
+        {% if object.status == 'pending' %}
+        <br><small style="color: #ff9800;">⚠️ После сохранения изменений черновик будет отправлен на рассмотрение администратору.</small>
+        {% endif %}
+        {% if user.profile.is_mentor_user and not user.is_staff and not user.is_superuser %}
+        <br><small style="color: #2196F3; font-weight: 600;">ℹ️ Для наставников доступно редактирование только поля "Содержимое".</small>
+        {% endif %}
+    </div>
+    
+    <form method="post" enctype="multipart/form-data" class="bg-light p-4 rounded shadow-sm" style="color: black;" id="edit_draft_form__builder">
+        {% csrf_token %}
+        {{ form.media }}
+        {% for field in form %}
+            {% if field.name == "content" %}
+                <div class="mb-3">
+                    {{ field.label_tag }}
+                    <div class="django-ckeditor-widget">
+                        {{ field }}
+                    </div>
+                    {% if field.help_text %}
+                        <small class="form-text text-muted">{{ field.help_text }}</small>
+                    {% endif %}
+                    {% for error in field.errors %}
+                        <div class="text-danger">{{ error }}</div>
+                    {% endfor %}
+                </div>
+            {% elif field.name == "order" %}
+                {% if form.instance.pk %}
+                    <div class="mb-3">
+                        {{ field|as_crispy_field }}
+                        {% if field.disabled %}
+                        <small class="form-text text-muted" style="color: #6c757d; font-style: italic;">Это поле недоступно для редактирования</small>
+                        {% endif %}
+                    </div>
+                {% endif %}
+            {% else %}
+                <div class="mb-3">
+                    {{ field|as_crispy_field }}
+                    {% if field.disabled %}
+                    <small class="form-text text-muted" style="color: #6c757d; font-style: italic;">Это поле недоступно для редактирования</small>
+                    {% endif %}
+                </div>
+            {% endif %}
+        {% endfor %}
+        <div class="button-group mt-4">
+            <button type="submit" class="btn btn-primary">Сохранить черновик</button>
+            <a href="{% url 'builder:lesson_master' %}?lesson_id={{ object.lesson.id }}" class="btn btn-secondary">Отмена</a>
+            {% if user.is_staff or user.is_superuser %}
+            <a href="{% url 'builder:lesson_draft_review' object.id %}" class="btn btn-info">Просмотреть изменения</a>
+            {% endif %}
+        </div>
+    </form>
+</div>
+{% endblock %}
