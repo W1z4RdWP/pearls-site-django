@@ -117,3 +117,48 @@ class RoomMessageAttachment(models.Model):
                 return f"{size:.1f} {unit}"
             size /= 1024
         return f"{size:.1f} ТБ"
+
+
+class ChatRoomNotificationSettings(models.Model):
+    """Настройки уведомлений пользователя для комнаты чата"""
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='chat_notification_settings', verbose_name="Пользователь")
+    room = models.ForeignKey(ChatRoom, on_delete=models.CASCADE, related_name='notification_settings', verbose_name="Комната")
+    notifications_enabled = models.BooleanField(default=True, verbose_name="Уведомления включены")
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name="Дата создания")
+    updated_at = models.DateTimeField(auto_now=True, verbose_name="Дата обновления")
+    
+    class Meta:
+        verbose_name = "Настройка уведомлений чата"
+        verbose_name_plural = "Настройки уведомлений чата"
+        unique_together = ['user', 'room']
+    
+    def __str__(self):
+        status = "вкл" if self.notifications_enabled else "выкл"
+        return f"Уведомления для {self.user.username} в {self.room.room_id}: {status}"
+    
+    @classmethod
+    def are_notifications_enabled(cls, user, room):
+        """Проверяет, включены ли уведомления для пользователя в комнате"""
+        try:
+            settings = cls.objects.get(user=user, room=room)
+            return settings.notifications_enabled
+        except cls.DoesNotExist:
+            # По умолчанию уведомления включены
+            return True
+    
+    @classmethod
+    def toggle_notifications(cls, user, room):
+        """Переключает состояние уведомлений"""
+        settings, created = cls.objects.get_or_create(
+            user=user,
+            room=room,
+            defaults={'notifications_enabled': True}
+        )
+        if not created:
+            settings.notifications_enabled = not settings.notifications_enabled
+            settings.save()
+        else:
+            # Если только что создали, значит было True по умолчанию, переключаем на False
+            settings.notifications_enabled = False
+            settings.save()
+        return settings.notifications_enabled

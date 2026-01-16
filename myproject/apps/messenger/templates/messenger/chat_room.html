@@ -16,6 +16,17 @@
                 <div class="room-id">Идентификатор комнаты: {{ room.room_id }}</div>
             </div>
             <div class="chat-header-actions">
+                <button type="button" id="notification-toggle-btn" class="notification-toggle-btn {% if notifications_enabled %}enabled{% else %}disabled{% endif %}" title="{% if notifications_enabled %}Уведомления включены{% else %}Уведомления выключены{% endif %}">
+                    <!-- Иконка колокольчика (уведомления включены) -->
+                    <svg class="bell-icon bell-enabled" xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+                    </svg>
+                    <!-- Иконка перечеркнутого колокольчика (уведомления выключены) -->
+                    <svg class="bell-icon bell-disabled" xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+                        <line x1="3" y1="3" x2="21" y2="21" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                    </svg>
+                </button>
                 <button type="button" id="participants-btn" class="btn btn-secondary">Участники</button>
                 <a href="{% url 'messenger:chat_room_list' %}" class="btn btn-secondary">Список комнат</a>
             </div>
@@ -188,6 +199,9 @@
         const uploadUrl = '{% url "messenger:chat_upload_attachment" room.room_id %}';
         const csrfToken = '{{ csrf_token }}';
         const isCreator = {{ is_creator|yesno:"true,false" }};
+        const toggleNotificationsUrl = '{% url "messenger:chat_room_toggle_notifications" room.room_id %}';
+        const roomName = '{{ room.name|default:"Чат"|escapejs }}';
+        let notificationsEnabled = {{ notifications_enabled|yesno:"true,false" }};
         
         // Определяем WebSocket URL
         const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
@@ -403,6 +417,16 @@
             
             chatMessages.appendChild(messageDiv);
             chatMessages.scrollTop = chatMessages.scrollHeight;
+            
+            // Показываем браузерное уведомление (если сообщение не от нас)
+            if (!isOwn) {
+                showBrowserNotification(
+                    data.sender_full_name,
+                    data.message || 'Новое сообщение',
+                    roomId,
+                    roomName
+                );
+            }
         }
         
         function addMessageWithAttachments(data) {
@@ -479,6 +503,17 @@
             
             chatMessages.appendChild(messageDiv);
             chatMessages.scrollTop = chatMessages.scrollHeight;
+            
+            // Показываем браузерное уведомление (если сообщение не от нас)
+            if (!isOwn) {
+                const notificationText = data.message || (data.attachments && data.attachments.length > 0 ? '📎 Файл' : 'Новое сообщение');
+                showBrowserNotification(
+                    data.sender_full_name,
+                    notificationText,
+                    roomId,
+                    roomName
+                );
+            }
         }
         
         function escapeHtml(text) {
@@ -986,6 +1021,86 @@
                 alert('Ошибка добавления участника');
             });
         }
+        
+        // === Управление уведомлениями ===
+        const notificationToggleBtn = document.getElementById('notification-toggle-btn');
+        
+        // Запрос разрешения на уведомления при загрузке страницы
+        function requestNotificationPermission() {
+            if ('Notification' in window) {
+                if (Notification.permission === 'default') {
+                    Notification.requestPermission();
+                }
+            }
+        }
+        
+        // Показать браузерное уведомление
+        function showBrowserNotification(senderName, message, roomId, roomTitle) {
+            if (!notificationsEnabled) return;
+            if (!('Notification' in window)) return;
+            if (Notification.permission !== 'granted') return;
+            if (document.hasFocus()) return; // Не показываем уведомление, если вкладка активна
+            
+            const truncatedMessage = message.length > 100 ? message.substring(0, 100) + '...' : message;
+            
+            const notification = new Notification(roomTitle || 'Новое сообщение', {
+                body: `${senderName}: ${truncatedMessage}`,
+                icon: '/static/img/chat-icon.png',
+                tag: `chat-${roomId}`,
+                requireInteraction: false,
+            });
+            
+            notification.onclick = function() {
+                window.focus();
+                notification.close();
+            };
+            
+            // Автоматически закрываем уведомление через 5 секунд
+            setTimeout(() => notification.close(), 5000);
+        }
+        
+        // Переключение уведомлений
+        notificationToggleBtn.addEventListener('click', async () => {
+            try {
+                const response = await fetch(toggleNotificationsUrl, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': csrfToken,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                const data = await response.json();
+                
+                if (data.error) {
+                    alert('Ошибка: ' + data.error);
+                    return;
+                }
+                
+                notificationsEnabled = data.notifications_enabled;
+                updateNotificationButtonState();
+                
+            } catch (error) {
+                console.error('Ошибка переключения уведомлений:', error);
+                alert('Ошибка переключения уведомлений');
+            }
+        });
+        
+        // Обновление состояния кнопки уведомлений
+        function updateNotificationButtonState() {
+            if (notificationsEnabled) {
+                notificationToggleBtn.classList.remove('disabled');
+                notificationToggleBtn.classList.add('enabled');
+                notificationToggleBtn.title = 'Уведомления включены';
+            } else {
+                notificationToggleBtn.classList.remove('enabled');
+                notificationToggleBtn.classList.add('disabled');
+                notificationToggleBtn.title = 'Уведомления выключены';
+            }
+        }
+        
+        // Запрашиваем разрешение при загрузке страницы
+        requestNotificationPermission();
     </script>
 {% endblock %}
 

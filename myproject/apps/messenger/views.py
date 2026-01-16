@@ -6,7 +6,7 @@ from django.views.generic import View, DetailView, ListView
 from django.views.decorators.http import require_http_methods
 from django.db.models import Q
 
-from .models import ChatRoom, RoomMessage, RoomMessageAttachment
+from .models import ChatRoom, RoomMessage, RoomMessageAttachment, ChatRoomNotificationSettings
 
 # WebSocket Chat Views
 class ChatRoomCreateView(LoginRequiredMixin, View):
@@ -52,6 +52,10 @@ class ChatRoomView(LoginRequiredMixin, DetailView):
         context['is_creator'] = room.created_by == self.request.user
         # Получаем список участников
         context['participants'] = room.participants.all().select_related('profile')
+        # Получаем статус уведомлений для текущего пользователя
+        context['notifications_enabled'] = ChatRoomNotificationSettings.are_notifications_enabled(
+            self.request.user, room
+        )
         return context
 
 
@@ -143,6 +147,10 @@ def upload_chat_attachment(request, room_id):
             'is_image': attachment.is_image,
             'is_video': attachment.is_video,
         })
+    
+    # Создаем уведомления для всех участников (кроме отправителя)
+    # Уведомления НЕ создаем здесь, т.к. они будут созданы через WebSocket в consumers.py
+    # когда клиент отправит message_with_attachments
     
     return JsonResponse({
         'success': True,
@@ -277,3 +285,49 @@ def search_users_for_room(request, room_id):
         })
     
     return JsonResponse({'users': users_data})
+
+
+@login_required
+@require_http_methods(["POST"])
+def toggle_room_notifications(request, room_id):
+    """Переключение уведомлений для комнаты"""
+    try:
+        room = ChatRoom.objects.get(room_id=room_id, is_active=True)
+    except ChatRoom.DoesNotExist:
+        return JsonResponse({'error': 'Комната не найдена'}, status=404)
+    
+    # Проверяем, что пользователь является участником комнаты
+    if not room.is_participant(request.user):
+        return JsonResponse({'error': 'Доступ запрещен'}, status=403)
+    
+    # Переключаем состояние уведомлений
+    notifications_enabled = ChatRoomNotificationSettings.toggle_notifications(
+        request.user, room
+    )
+    
+    return JsonResponse({
+        'success': True,
+        'notifications_enabled': notifications_enabled
+    })
+
+
+@login_required
+@require_http_methods(["GET"])
+def get_room_notification_status(request, room_id):
+    """Получение статуса уведомлений для комнаты"""
+    try:
+        room = ChatRoom.objects.get(room_id=room_id, is_active=True)
+    except ChatRoom.DoesNotExist:
+        return JsonResponse({'error': 'Комната не найдена'}, status=404)
+    
+    # Проверяем, что пользователь является участником комнаты
+    if not room.is_participant(request.user):
+        return JsonResponse({'error': 'Доступ запрещен'}, status=403)
+    
+    notifications_enabled = ChatRoomNotificationSettings.are_notifications_enabled(
+        request.user, room
+    )
+    
+    return JsonResponse({
+        'notifications_enabled': notifications_enabled
+    })

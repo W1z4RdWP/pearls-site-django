@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import ChatRoom, RoomMessage
+from .models import ChatRoom, RoomMessage, ChatRoomNotificationSettings
 
 @admin.register(ChatRoom)
 class ChatRoomAdmin(admin.ModelAdmin):
@@ -15,3 +15,11 @@ class RoomMessageAdmin(admin.ModelAdmin):
     list_filter = ('created_at', 'room')
     search_fields = ('content', 'sender__username', 'room__room_id')
     readonly_fields = ('created_at',)
+
+
+@admin.register(ChatRoomNotificationSettings)
+class ChatRoomNotificationSettingsAdmin(admin.ModelAdmin):
+    list_display = ('user', 'room', 'notifications_enabled', 'updated_at')
+    list_filter = ('notifications_enabled', 'updated_at')
+    search_fields = ('user__username', 'room__room_id', 'room__name')
+    readonly_fields = ('created_at', 'updated_at')

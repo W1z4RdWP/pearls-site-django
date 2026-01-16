@@ -19,6 +19,8 @@ class Notification(models.Model):
         ('ticket_comment', 'Новое сообщение по тикету'),
         ('quiz_reviewed', 'Оценка теста наставником'),
         ('order_status', 'Изменение статуса заказа'),
+        # Чат
+        ('chat_message', 'Новое сообщение в чате'),
     ]
     
     user = models.ForeignKey(User, on_delete=models.CASCADE, verbose_name="Пользователь")
@@ -70,6 +72,13 @@ class Notification(models.Model):
         null=True,
         blank=True,
         verbose_name="Связанный заказ"
+    )
+    related_chat_room = models.ForeignKey(
+        'messenger.ChatRoom',
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        verbose_name="Связанная комната чата"
     )
     points_change = models.IntegerField(
         null=True, 
@@ -125,6 +134,8 @@ class Notification(models.Model):
         elif self.notification_type == 'order_status' and self.related_order:
             # Уведомления о заказах ведут на страницу магазина
             return reverse('shop:shop')
+        elif self.notification_type == 'chat_message' and self.related_chat_room:
+            return reverse('messenger:chat_room', kwargs={'room_id': self.related_chat_room.room_id})
         return '#'
     
     @classmethod
@@ -307,4 +318,30 @@ class Notification(models.Model):
             title=title,
             message=message,
             related_order=order,
+        )
+    
+    @classmethod
+    def create_chat_message_notification(cls, user, chat_room, sender, message_text):
+        """Создает уведомление о новом сообщении в чате"""
+        from messenger.models import ChatRoomNotificationSettings
+        
+        # Проверяем, включены ли уведомления для этого пользователя и комнаты
+        if not ChatRoomNotificationSettings.are_notifications_enabled(user, chat_room):
+            return None
+        
+        sender_name = sender.get_full_name() or sender.username
+        room_name = chat_room.name or 'Чат'
+        
+        # Обрезаем сообщение если оно слишком длинное
+        truncated_message = message_text[:200] + '...' if len(message_text) > 200 else message_text
+        
+        title = f"Новое сообщение в «{room_name}»"
+        message = f"{sender_name}: {truncated_message}"
+        
+        return cls.objects.create(
+            user=user,
+            notification_type='chat_message',
+            title=title,
+            message=message,
+            related_chat_room=chat_room,
         )
