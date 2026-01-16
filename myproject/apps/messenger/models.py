@@ -9,6 +9,7 @@ class ChatRoom(models.Model):
     room_id = models.CharField(max_length=100, unique=True, verbose_name="ID комнаты")
     name = models.CharField(max_length=200, blank=True, verbose_name="Название комнаты")
     created_by = models.ForeignKey(User, on_delete=models.CASCADE, related_name='created_chat_rooms', verbose_name="Создатель")
+    participants = models.ManyToManyField(User, related_name='chat_rooms', verbose_name="Участники")
     created_at = models.DateTimeField(auto_now_add=True, verbose_name="Дата создания")
     updated_at = models.DateTimeField(auto_now=True, verbose_name="Дата обновления")
     is_active = models.BooleanField(default=True, verbose_name="Активна")
@@ -24,7 +25,15 @@ class ChatRoom(models.Model):
     def save(self, *args, **kwargs):
         if not self.room_id:
             self.room_id = uuid.uuid4().hex[:16]
+        is_new = self.pk is None
         super().save(*args, **kwargs)
+        # При создании комнаты автоматически добавляем создателя как участника
+        if is_new and self.created_by:
+            self.participants.add(self.created_by)
+    
+    def is_participant(self, user):
+        """Проверяет, является ли пользователь участником комнаты"""
+        return self.participants.filter(id=user.id).exists()
 
 
 class RoomMessage(models.Model):

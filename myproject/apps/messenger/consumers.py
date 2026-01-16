@@ -13,9 +13,22 @@ class ChatRoomConsumer(AsyncWebsocketConsumer):
         self.room_id = self.scope['url_route']['kwargs']['room_id']
         self.room_group_name = f'chat_{self.room_id}'
         
-        # Проверяем существование комнаты
+        user = self.scope['user']
+        
+        # Проверяем авторизацию
+        if not user.is_authenticated:
+            await self.close()
+            return
+        
+        # Проверяем существование комнаты и доступ
         room = await self.get_room(self.room_id)
         if not room:
+            await self.close()
+            return
+        
+        # Проверяем, является ли пользователь участником комнаты
+        is_participant = await self.check_participant(room, user)
+        if not is_participant:
             await self.close()
             return
         
@@ -187,9 +200,17 @@ class ChatRoomConsumer(AsyncWebsocketConsumer):
             return None
     
     @database_sync_to_async
+    def check_participant(self, room, user):
+        """Проверка, является ли пользователь участником комнаты"""
+        return room.is_participant(user)
+    
+    @database_sync_to_async
     def save_message(self, room_id, user, message):
         """Сохранение сообщения в БД"""
         room = ChatRoom.objects.get(room_id=room_id)
+        # Дополнительная проверка доступа при сохранении сообщения
+        if not room.is_participant(user):
+            raise PermissionError('Пользователь не является участником комнаты')
         room_message = RoomMessage.objects.create(
             room=room,
             sender=user,

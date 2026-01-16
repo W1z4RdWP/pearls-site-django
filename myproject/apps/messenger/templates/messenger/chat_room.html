@@ -13,9 +13,36 @@
         <div class="chat-header">
             <div>
                 <h2>{{ room.name|default:"Чат" }}</h2>
-                <div class="room-id">ID комнаты: {{ room.room_id }}</div>
+                <div class="room-id">Идентификатор комнаты: {{ room.room_id }}</div>
             </div>
-            <a href="{% url 'messenger:chat_room_list' %}" class="btn btn-secondary">Список комнат</a>
+            <div class="chat-header-actions">
+                <button type="button" id="participants-btn" class="btn btn-secondary">Участники</button>
+                <a href="{% url 'messenger:chat_room_list' %}" class="btn btn-secondary">Список комнат</a>
+            </div>
+        </div>
+        
+        <!-- Модальное окно участников -->
+        <div id="participants-modal" class="modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>Участники комнаты</h3>
+                    <button type="button" class="modal-close" id="close-participants-modal">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <div id="participants-list" class="participants-list">
+                        <!-- Список участников будет загружен через AJAX -->
+                    </div>
+                    {% if is_creator %}
+                    <div class="add-participant-section">
+                        <h4>Добавить участника</h4>
+                        <div class="search-users-container">
+                            <input type="text" id="search-users-input" placeholder="Поиск пользователей..." autocomplete="off">
+                            <div id="search-users-results" class="search-users-results"></div>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
         </div>
         
         <div id="connection-status" class="connection-status connecting">Подключение...</div>
@@ -160,6 +187,7 @@
         const currentUserInitials = '{{ user.first_name|first|default:user.username|first|upper }}{{ user.last_name|first|upper }}';
         const uploadUrl = '{% url "messenger:chat_upload_attachment" room.room_id %}';
         const csrfToken = '{{ csrf_token }}';
+        const isCreator = {{ is_creator|yesno:"true,false" }};
         
         // Определяем WebSocket URL
         const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
@@ -748,6 +776,216 @@
         
         // Подключаемся при загрузке страницы
         connect();
+        
+        // === Управление участниками ===
+        const participantsBtn = document.getElementById('participants-btn');
+        const participantsModal = document.getElementById('participants-modal');
+        const closeParticipantsModal = document.getElementById('close-participants-modal');
+        const participantsList = document.getElementById('participants-list');
+        const addParticipantSection = document.querySelector('.add-participant-section');
+        const searchUsersInput = document.getElementById('search-users-input');
+        const searchUsersResults = document.getElementById('search-users-results');
+        
+        // Скрываем секцию добавления участника, если пользователь не создатель
+        if (!isCreator && addParticipantSection) {
+            addParticipantSection.style.display = 'none';
+        }
+        
+        let searchTimeout = null;
+        
+        // Открытие модального окна
+        participantsBtn.addEventListener('click', () => {
+            participantsModal.style.display = 'block';
+            loadParticipants();
+        });
+        
+        // Закрытие модального окна
+        closeParticipantsModal.addEventListener('click', () => {
+            participantsModal.style.display = 'none';
+            if (searchUsersInput) {
+                searchUsersInput.value = '';
+            }
+            if (searchUsersResults) {
+                searchUsersResults.innerHTML = '';
+            }
+        });
+        
+        // Закрытие при клике вне модального окна
+        window.addEventListener('click', (e) => {
+            if (e.target === participantsModal) {
+                participantsModal.style.display = 'none';
+                if (searchUsersInput) {
+                    searchUsersInput.value = '';
+                }
+                if (searchUsersResults) {
+                    searchUsersResults.innerHTML = '';
+                }
+            }
+        });
+        
+        // Загрузка списка участников
+        function loadParticipants() {
+            fetch(`{% url 'messenger:chat_room_participants' room.room_id %}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.error) {
+                        alert('Ошибка: ' + data.error);
+                        return;
+                    }
+                    
+                    participantsList.innerHTML = '';
+                    if (data.participants.length === 0) {
+                        participantsList.innerHTML = '<p>Нет участников</p>';
+                        return;
+                    }
+                    
+                    data.participants.forEach(participant => {
+                        const item = document.createElement('div');
+                        item.className = 'participant-item';
+                        
+                        let avatarHtml = '';
+                        if (participant.avatar_url) {
+                            avatarHtml = `<img src="${participant.avatar_url}" alt="${escapeHtml(participant.full_name)}">`;
+                        } else {
+                            avatarHtml = `<div class="participant-initials">${escapeHtml(participant.initials)}</div>`;
+                        }
+                        
+                        item.innerHTML = `
+                            <div class="participant-avatar">${avatarHtml}</div>
+                            <div class="participant-info">
+                                <div class="participant-name">${escapeHtml(participant.full_name)}</div>
+                                ${participant.is_creator ? '<span class="participant-badge">Создатель</span>' : ''}
+                            </div>
+                        `;
+                        
+                        participantsList.appendChild(item);
+                    });
+                    
+                    // Показываем/скрываем секцию добавления в зависимости от прав
+                    if (addParticipantSection) {
+                        if (data.is_creator) {
+                            addParticipantSection.style.display = 'block';
+                        } else {
+                            addParticipantSection.style.display = 'none';
+                        }
+                    }
+                })
+                .catch(error => {
+                    console.error('Ошибка загрузки участников:', error);
+                    alert('Ошибка загрузки участников');
+                });
+        }
+        
+        // Поиск пользователей (только для создателя)
+        if (isCreator && searchUsersInput) {
+            searchUsersInput.addEventListener('input', (e) => {
+                const query = e.target.value.trim();
+                
+                clearTimeout(searchTimeout);
+                
+                if (query.length < 2) {
+                    searchUsersResults.innerHTML = '';
+                    return;
+                }
+                
+                searchTimeout = setTimeout(() => {
+                    fetch(`{% url 'messenger:chat_room_search_users' room.room_id %}?q=${encodeURIComponent(query)}`)
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.error) {
+                                searchUsersResults.innerHTML = '<div class="search-error">Ошибка: ' + escapeHtml(data.error) + '</div>';
+                                return;
+                            }
+                            
+                            searchUsersResults.innerHTML = '';
+                            
+                            if (data.users.length === 0) {
+                                searchUsersResults.innerHTML = '<div class="search-no-results">Пользователи не найдены</div>';
+                                return;
+                            }
+                            
+                            data.users.forEach(user => {
+                                const item = document.createElement('div');
+                                item.className = 'search-user-item';
+                                
+                                let avatarHtml = '';
+                                if (user.avatar_url) {
+                                    avatarHtml = `<img src="${user.avatar_url}" alt="${escapeHtml(user.full_name)}">`;
+                                } else {
+                                    avatarHtml = `<div class="search-user-initials">${escapeHtml(user.initials)}</div>`;
+                                }
+                                
+                                item.innerHTML = `
+                                    <div class="search-user-avatar">${avatarHtml}</div>
+                                    <div class="search-user-info">
+                                        <div class="search-user-name">${escapeHtml(user.full_name)}</div>
+                                        <div class="search-user-username">${escapeHtml(user.username)}</div>
+                                    </div>
+                                    <button type="button" class="btn-add-user" data-user-id="${user.id}">Добавить</button>
+                                `;
+                                
+                                const addBtn = item.querySelector('.btn-add-user');
+                                addBtn.addEventListener('click', () => {
+                                    addParticipant(user.id, user);
+                                });
+                                
+                                searchUsersResults.appendChild(item);
+                            });
+                        })
+                        .catch(error => {
+                            console.error('Ошибка поиска пользователей:', error);
+                            searchUsersResults.innerHTML = '<div class="search-error">Ошибка поиска</div>';
+                        });
+                }, 300);
+            });
+        }
+        
+        // Добавление участника (только для создателя)
+        function addParticipant(userId, userData) {
+            if (!isCreator) {
+                alert('Только создатель комнаты может добавлять участников');
+                return;
+            }
+            
+            const formData = new FormData();
+            formData.append('user_id', userId);
+            
+            fetch(`{% url 'messenger:chat_room_add_participant' room.room_id %}`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': csrfToken
+                },
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    alert('Ошибка: ' + data.error);
+                    return;
+                }
+                
+                // Обновляем список участников
+                loadParticipants();
+                
+                // Удаляем пользователя из результатов поиска
+                const userItem = document.querySelector(`.search-user-item button[data-user-id="${userId}"]`)?.closest('.search-user-item');
+                if (userItem) {
+                    userItem.remove();
+                }
+                
+                // Очищаем поле поиска
+                if (searchUsersInput) {
+                    searchUsersInput.value = '';
+                }
+                if (searchUsersResults) {
+                    searchUsersResults.innerHTML = '';
+                }
+            })
+            .catch(error => {
+                console.error('Ошибка добавления участника:', error);
+                alert('Ошибка добавления участника');
+            });
+        }
     </script>
 {% endblock %}
 

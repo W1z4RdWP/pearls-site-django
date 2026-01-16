@@ -19,7 +19,7 @@
                 {% csrf_token %}
                 <div class="form-group">
                     <label for="room-name">Название комнаты (необязательно)</label>
-                    <input type="text" id="room-name" name="name" placeholder="Введите название комнаты">
+                    <input type="text" id="room-name" name="name" placeholder="Введите название комнаты" autocomplete="off">
                 </div>
                 <button type="submit" class="btn btn-primary">Создать комнату</button>
             </form>
