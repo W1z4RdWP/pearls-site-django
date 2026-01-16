@@ -49,7 +49,7 @@
             {% endif %}
         </div>
         <form method="get" class="um-user-list-filter">
-            <input type="text" name="q" placeholder="Поиск по имени или email" value="{{ request.GET.q }}">
+            <input type="text" name="q" placeholder="Поиск по имени или email" value="{{ request.GET.q }}" autocomplete="off">
             <select name="filter" class="um-user-list-combined-filter">
                 <option value="" {% if request.GET.filter == "" %}selected{% endif %}>Все</option>
                 <option value="approved" {% if not request.GET.filter or request.GET.filter == "approved"  %}selected{% endif %}>Только подтверждённые</option>
