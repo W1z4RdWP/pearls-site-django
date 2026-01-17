@@ -355,13 +355,6 @@ def clear_intro_modal_flag(request):
     return JsonResponse({'status': 'success'})
 
 
-@login_required
-@require_http_methods(["POST"])
-def clear_december_video_flag(request):
-    """Очищает флаг показа декабрьского видео из сессии"""
-    if 'show_december_video' in request.session:
-        del request.session['show_december_video']
-    return JsonResponse({'status': 'success'})
 
 
 @login_required
