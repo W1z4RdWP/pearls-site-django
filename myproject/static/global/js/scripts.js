@@ -135,24 +135,3 @@ document.addEventListener('DOMContentLoaded', () => {
 //   });
 //   mo.observe(document.body, { childList: true, subtree: true });
 // });
-
-// Анимация гирлянды
-function gir() {
-    let girElement = document.getElementById('gir');
-    if (!girElement) return;
-    
-    let nums = girElement.className;
-    if (nums == 'gir_1') {
-        girElement.className = 'gir_2';
-    } else if (nums == 'gir_2') {
-        girElement.className = 'gir_3';
-    } else if (nums == 'gir_3') {
-        girElement.className = 'gir_1';
-    }
-}
-
-// Запускаем анимацию гирлянды
-document.addEventListener('DOMContentLoaded', () => {
-    setInterval(gir, 500);
-});
-
