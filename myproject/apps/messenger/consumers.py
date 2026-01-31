@@ -2,7 +2,7 @@ import json
 from channels.generic.websocket import AsyncWebsocketConsumer
 from channels.db import database_sync_to_async
 from django.contrib.auth.models import User
-from .models import ChatRoom, RoomMessage, RoomMessageAttachment
+from .models import ChatRoom, RoomMessage, RoomMessageAttachment, ChatRoomNotificationSettings
 
 
 class ChatRoomConsumer(AsyncWebsocketConsumer):
@@ -13,9 +13,22 @@ class ChatRoomConsumer(AsyncWebsocketConsumer):
         self.room_id = self.scope['url_route']['kwargs']['room_id']
         self.room_group_name = f'chat_{self.room_id}'
         
-        # Проверяем существование комнаты
+        user = self.scope['user']
+        
+        # Проверяем авторизацию
+        if not user.is_authenticated:
+            await self.close()
+            return
+        
+        # Проверяем существование комнаты и доступ
         room = await self.get_room(self.room_id)
         if not room:
+            await self.close()
+            return
+        
+        # Проверяем, является ли пользователь участником комнаты
+        is_participant = await self.check_participant(room, user)
+        if not is_participant:
             await self.close()
             return
         
@@ -61,6 +74,14 @@ class ChatRoomConsumer(AsyncWebsocketConsumer):
                 message_id = text_data_json.get('message_id')
                 attachments = text_data_json.get('attachments', [])
                 
+                # Создаем уведомления для всех участников (кроме отправителя)
+                notification_message = message if message else '📎 Отправлен файл'
+                await self.create_notifications_for_participants(
+                    self.room_id,
+                    user,
+                    notification_message
+                )
+                
                 # Получаем информацию об аватаре пользователя
                 avatar_url, initials = await self.get_user_avatar_info(user)
                 
@@ -93,8 +114,18 @@ class ChatRoomConsumer(AsyncWebsocketConsumer):
                 message
             )
             
+            # Создаем уведомления для всех участников (кроме отправителя)
+            await self.create_notifications_for_participants(
+                self.room_id,
+                user,
+                message
+            )
+            
             # Получаем информацию об аватаре пользователя
             avatar_url, initials = await self.get_user_avatar_info(user)
+            
+            # Получаем информацию о комнате для уведомлений
+            room_info = await self.get_room_info(self.room_id)
             
             # Отправляем сообщение в группу комнаты
             await self.channel_layer.group_send(
@@ -108,6 +139,8 @@ class ChatRoomConsumer(AsyncWebsocketConsumer):
                     'sender_avatar': avatar_url,
                     'sender_initials': initials,
                     'timestamp': room_message.created_at.isoformat(),
+                    'room_id': self.room_id,
+                    'room_name': room_info.get('name', ''),
                 }
             )
         except json.JSONDecodeError:
@@ -132,6 +165,8 @@ class ChatRoomConsumer(AsyncWebsocketConsumer):
             'sender_avatar': event.get('sender_avatar', ''),
             'sender_initials': event.get('sender_initials', ''),
             'timestamp': event['timestamp'],
+            'room_id': event.get('room_id', ''),
+            'room_name': event.get('room_name', ''),
         }))
     
     async def chat_message_with_attachments(self, event):
@@ -187,13 +222,55 @@ class ChatRoomConsumer(AsyncWebsocketConsumer):
             return None
     
     @database_sync_to_async
+    def check_participant(self, room, user):
+        """Проверка, является ли пользователь участником комнаты"""
+        return room.is_participant(user)
+    
+    @database_sync_to_async
     def save_message(self, room_id, user, message):
         """Сохранение сообщения в БД"""
         room = ChatRoom.objects.get(room_id=room_id)
+        # Дополнительная проверка доступа при сохранении сообщения
+        if not room.is_participant(user):
+            raise PermissionError('Пользователь не является участником комнаты')
         room_message = RoomMessage.objects.create(
             room=room,
             sender=user,
             content=message
         )
         return room_message
+    
+    @database_sync_to_async
+    def get_room_info(self, room_id):
+        """Получение информации о комнате"""
+        try:
+            room = ChatRoom.objects.get(room_id=room_id)
+            return {
+                'name': room.name or 'Чат',
+                'room_id': room.room_id,
+            }
+        except ChatRoom.DoesNotExist:
+            return {'name': 'Чат', 'room_id': room_id}
+    
+    @database_sync_to_async
+    def create_notifications_for_participants(self, room_id, sender, message_text):
+        """Создание уведомлений для всех участников комнаты (кроме отправителя)"""
+        from notifications.models import Notification
+        
+        try:
+            room = ChatRoom.objects.get(room_id=room_id)
+            participants = room.participants.exclude(id=sender.id)
+            
+            for participant in participants:
+                Notification.create_chat_message_notification(
+                    user=participant,
+                    chat_room=room,
+                    sender=sender,
+                    message_text=message_text
+                )
+        except ChatRoom.DoesNotExist:
+            pass
+        except Exception as e:
+            # Логируем ошибку, но не прерываем отправку сообщения
+            print(f"Ошибка создания уведомлений: {e}")
 

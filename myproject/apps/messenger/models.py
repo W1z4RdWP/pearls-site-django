@@ -9,6 +9,7 @@ class ChatRoom(models.Model):
     room_id = models.CharField(max_length=100, unique=True, verbose_name="ID комнаты")
     name = models.CharField(max_length=200, blank=True, verbose_name="Название комнаты")
     created_by = models.ForeignKey(User, on_delete=models.CASCADE, related_name='created_chat_rooms', verbose_name="Создатель")
+    participants = models.ManyToManyField(User, related_name='chat_rooms', verbose_name="Участники")
     created_at = models.DateTimeField(auto_now_add=True, verbose_name="Дата создания")
     updated_at = models.DateTimeField(auto_now=True, verbose_name="Дата обновления")
     is_active = models.BooleanField(default=True, verbose_name="Активна")
@@ -24,7 +25,15 @@ class ChatRoom(models.Model):
     def save(self, *args, **kwargs):
         if not self.room_id:
             self.room_id = uuid.uuid4().hex[:16]
+        is_new = self.pk is None
         super().save(*args, **kwargs)
+        # При создании комнаты автоматически добавляем создателя как участника
+        if is_new and self.created_by:
+            self.participants.add(self.created_by)
+    
+    def is_participant(self, user):
+        """Проверяет, является ли пользователь участником комнаты"""
+        return self.participants.filter(id=user.id).exists()
 
 
 class RoomMessage(models.Model):
@@ -108,3 +117,48 @@ class RoomMessageAttachment(models.Model):
                 return f"{size:.1f} {unit}"
             size /= 1024
         return f"{size:.1f} ТБ"
+
+
+class ChatRoomNotificationSettings(models.Model):
+    """Настройки уведомлений пользователя для комнаты чата"""
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='chat_notification_settings', verbose_name="Пользователь")
+    room = models.ForeignKey(ChatRoom, on_delete=models.CASCADE, related_name='notification_settings', verbose_name="Комната")
+    notifications_enabled = models.BooleanField(default=True, verbose_name="Уведомления включены")
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name="Дата создания")
+    updated_at = models.DateTimeField(auto_now=True, verbose_name="Дата обновления")
+    
+    class Meta:
+        verbose_name = "Настройка уведомлений чата"
+        verbose_name_plural = "Настройки уведомлений чата"
+        unique_together = ['user', 'room']
+    
+    def __str__(self):
+        status = "вкл" if self.notifications_enabled else "выкл"
+        return f"Уведомления для {self.user.username} в {self.room.room_id}: {status}"
+    
+    @classmethod
+    def are_notifications_enabled(cls, user, room):
+        """Проверяет, включены ли уведомления для пользователя в комнате"""
+        try:
+            settings = cls.objects.get(user=user, room=room)
+            return settings.notifications_enabled
+        except cls.DoesNotExist:
+            # По умолчанию уведомления включены
+            return True
+    
+    @classmethod
+    def toggle_notifications(cls, user, room):
+        """Переключает состояние уведомлений"""
+        settings, created = cls.objects.get_or_create(
+            user=user,
+            room=room,
+            defaults={'notifications_enabled': True}
+        )
+        if not created:
+            settings.notifications_enabled = not settings.notifications_enabled
+            settings.save()
+        else:
+            # Если только что создали, значит было True по умолчанию, переключаем на False
+            settings.notifications_enabled = False
+            settings.save()
+        return settings.notifications_enabled
