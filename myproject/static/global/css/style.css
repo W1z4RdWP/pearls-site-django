@@ -123,17 +123,28 @@ header{
 
 .nav-profile-actions {
     position: absolute;
-    right: 30px;
-    top: 0;
-    height: 100%;
+    right: 15px;
+    top: 50%;
+    transform: translateY(-50%);
     display: flex;
     align-items: center;
-    gap: 10px;
-    z-index: 10;
+    gap: 5px;
+    z-index: 1001;
+    flex-shrink: 0;
+    flex-wrap: nowrap;
+}
+
+.nav-profile-actions .nav-link {
+    color: var(--color-navbar-link) !important;
+    padding: 0.5rem !important;
+}
+
+.nav-profile-actions .nav-link:hover {
+    color: var(--color-navbar-link-hover) !important;
 }
 
 .custom-navbar .navbar-nav {
-    margin-right: 120px; /* чтобы не налезали на profile-actions */
+    margin-right: 100px; /* чтобы не налезали на profile-actions */
 }
 
 .form-group{
@@ -1244,7 +1255,7 @@ main > section > .text-block-2 {
         margin-right: 0px;
     }
 
-    .nav-profile-actions, .custom-nav-list .nav-item.staff-icons-row {
+    .custom-nav-list .nav-item.staff-icons-row {
         display: flex !important;
         flex-direction: row;
         justify-content: center;

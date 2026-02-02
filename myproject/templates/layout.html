@@ -143,8 +143,21 @@
                       </li>
                     {% endif %}
                   {% endif %}
-                      <!-- Уведомления - только для десктопа -->
-                      <li class="nav-item dropdown d-none d-lg-block">
+                    {% else %}
+                      <li class="nav-item">
+                        <a class="nav-link custom-nav-link" href="{% url 'users:login' %}" title="Вход">
+                          <i class="fa-solid fa-right-to-bracket"></i>
+                          <span>Войти</span>
+                        </a>
+                      </li>
+                    {% endif %}
+                  </ul>
+                </div>
+                {% if user.is_authenticated %}
+                <!-- Уведомления и профиль - фиксированная позиция справа на desktop -->
+                <div class="nav-profile-actions d-none d-lg-flex">
+                      <!-- Уведомления -->
+                      <div class="nav-item dropdown">
                         <a class="nav-link dropdown-toggle d-flex align-items-center position-relative" href="#" id="notificationDropdown" role="button"
                           data-bs-toggle="dropdown" aria-expanded="false">
                           <i class="fas fa-bell"></i>
@@ -159,10 +172,10 @@
                             </div>
                           </li>
                         </ul>
-                      </li>
+                      </div>
                       
-                      <!-- Профиль - только для десктопа -->
-                      <li class="nav-item dropdown d-none d-lg-block">
+                      <!-- Профиль -->
+                      <div class="nav-item dropdown">
                         <a class="nav-link dropdown-toggle d-flex align-items-center" href="#" id="profileDropdown" role="button"
                           data-bs-toggle="dropdown" aria-expanded="false">
                           <img src="{{ request.user.profile.image.url|default:'/media/profile_pics/default.jpg' }}" alt="Аватар"
@@ -192,17 +205,9 @@
                             </form>
                           </li>
                         </ul>
-                      </li>
-                    {% else %}
-                      <li class="nav-item">
-                        <a class="nav-link custom-nav-link" href="{% url 'users:login' %}" title="Вход">
-                          <i class="fa-solid fa-right-to-bracket"></i>
-                          <span>Войти</span>
-                        </a>
-                      </li>
-                    {% endif %}
-                  </ul>
+                      </div>
                 </div>
+                {% endif %}
             </div>
         </nav>
     </header>
