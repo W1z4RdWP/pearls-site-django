@@ -13,6 +13,20 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name='notification',
             name='notification_type',
-            field=models.CharField(choices=[('dascoin', 'Начисление/списание DASCOIN'), ('course_assigned', 'Назначение курса'), ('trajectory_assigned', 'Назначение траектории'), ('platform_update', 'Обновление платформы'), ('course_reminder', 'Напоминание о курсе'), ('lesson_actualization', 'Напоминание об актуализации урока'), ('ticket_status', 'Изменение статуса тикета'), ('ticket_comment', 'Новое сообщение по тикету'), ('quiz_reviewed', 'Оценка теста наставником'), ('order_status', 'Изменение статуса заказа'), ('course_materials_updated', 'Обновление материалов в завершенном курсе')], max_length=50, verbose_name='Тип уведомления'),
+            field=models.CharField(choices=[
+                ('dascoin', 'Начисление/списание DASCOIN'), 
+                ('course_assigned', 'Назначение курса'), 
+                ('trajectory_assigned', 'Назначение траектории'), 
+                ('platform_update', 'Обновление платформы'), 
+                ('course_reminder', 'Напоминание о курсе'), 
+                ('lesson_actualization', 'Напоминание об актуализации урока'), 
+                ('ticket_status', 'Изменение статуса тикета'), 
+                ('ticket_comment', 'Новое сообщение по тикету'), 
+                ('quiz_reviewed', 'Оценка теста наставником'), 
+                ('order_status', 'Изменение статуса заказа'), 
+                ('course_materials_updated', 'Обновление материалов в завершенном курсе')
+                ], 
+                max_length=50, verbose_name='Тип уведомления'
+            ),
         ),
     ]

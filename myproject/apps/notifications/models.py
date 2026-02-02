@@ -80,6 +80,21 @@ class Notification(models.Model):
         blank=True, 
         verbose_name="Изменение баллов DASCOIN"
     )
+    related_chat_room = models.ForeignKey(
+        'messenger.ChatRoom', 
+        on_delete=models.CASCADE, 
+        null=True, 
+        blank=True, 
+        verbose_name="Связанная комната чата"
+    )
+    
+    related_homework_submission = models.ForeignKey(
+        'quizzes.HomeworkSubmission',
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        verbose_name="Связанный ответ на задание"
+    )
     
     class Meta:
         app_label = 'notifications'
