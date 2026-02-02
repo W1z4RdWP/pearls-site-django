@@ -262,12 +262,13 @@ class ChatRoomConsumer(AsyncWebsocketConsumer):
             participants = room.participants.exclude(id=sender.id)
             
             for participant in participants:
-                Notification.create_chat_message_notification(
-                    user=participant,
-                    chat_room=room,
-                    sender=sender,
-                    message_text=message_text
-                )
+                if ChatRoomNotificationSettings.are_notifications_enabled(participant, room):
+                    Notification.create_chat_message_notification(
+                        user=participant,
+                        chat_room=room,
+                        sender=sender,
+                        message_text=message_text
+                    )
         except ChatRoom.DoesNotExist:
             pass
         except Exception as e:

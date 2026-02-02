@@ -147,6 +147,8 @@ class Notification(models.Model):
         elif self.notification_type == 'order_status' and self.related_order:
             # Уведомления о заказах ведут на страницу магазина
             return reverse('shop:shop')
+        elif self.notification_type == 'chat_message' and self.related_chat_room:
+            return reverse('messenger:chat_room', kwargs={'room_id': self.related_chat_room.room_id})
         return '#'
     
     @classmethod
@@ -329,4 +331,21 @@ class Notification(models.Model):
             title=title,
             message=message,
             related_order=order,
+        )
+
+
+    @classmethod
+    def create_chat_message_notification(cls, user, chat_room, sender, message_text):
+        """
+        Создает уведомление о сообщении в чате
+        """
+        notification_title = f"Новое сообщение в «{chat_room}»"
+        notification_message = f"{sender}: {message_text}"
+
+        return cls.objects.create(
+            user=user,
+            notification_type='chat_message',
+            title=notification_title,
+            message=notification_message,
+            related_chat_room=chat_room,
         )
