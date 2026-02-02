@@ -144,7 +144,7 @@ header{
 }
 
 .custom-navbar .navbar-nav {
-    margin-right: 100px; /* чтобы не налезали на profile-actions */
+    margin-right: 130px; /* отступ от колокольчика и аватара */
 }
 
 .form-group{
