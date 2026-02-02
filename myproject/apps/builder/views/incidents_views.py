@@ -29,7 +29,7 @@ class IncidentListView(ListView):
 
     def dispatch(self, request, *args, **kwargs):
         # Только staff/superuser
-        if not request.user.is_authenticated or not (request.user.is_staff or request.user.is_superuser):
+        if not request.user.is_authenticated or not (request.user.is_staff or request.user.is_superuser or request.user.profile.is_mentor_user):
             return render(request, '403.html', status=403)
         return super().dispatch(request, *args, **kwargs)
 
@@ -138,6 +138,11 @@ class IncidentListView(ListView):
         from django.utils import timezone
         
         context = super().get_context_data(**kwargs)
+        readonly = False
+        is_mentor = self.request.user.profile.is_mentor_user
+        if is_mentor:
+            readonly = True
+        context['readonly'] = readonly
         context['status_choices'] = Incident.STATUS_CHOICES
         context['incident_type_choices'] = Incident.INCIDENT_TYPE_CHOICES
         context['now'] = timezone.now()  # Текущая дата и время для проверки просроченных дедлайнов

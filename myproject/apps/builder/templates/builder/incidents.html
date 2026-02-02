@@ -28,11 +28,13 @@
                         {% endfor %}
                     </select>
                 </div>
-                <!-- Кнопка добавления -->
-                <div class="col-md-3 col-lg-6 text-end">
-                    <a href="{% url 'builder:incident_add' %}" class="btn btn-primary">+ Новый инцидент</a>
-                    <button type="button" id="column-comments-button" class="btn btn-secondary" title="Комментарий к столбцам">К</button>
-                </div>
+                {% if not readonly %}
+                    <!-- Кнопка добавления -->
+                    <div class="col-md-3 col-lg-6 text-end">
+                        <a href="{% url 'builder:incident_add' %}" class="btn btn-primary">+ Новый инцидент</a>
+                        <button type="button" id="column-comments-button" class="btn btn-secondary" title="Комментарий к столбцам">К</button>
+                    </div>
+                {% endif %}
             </div>
             
             <!-- Фильтр по статусу -->
@@ -75,7 +77,7 @@
  Кнопка открывает отчёт с фильтром “только нарушители” за последние 30 дней. В таблице отображаются все сотрудники, у которых были нарушения, с указанием количества инцидентов и деталей по каждому случаю. При изменении периода можно выбрать конкретного человека и посмотреть, в каких именно инцидентах он участвовал как нарушитель.
 ">Нарушители</a>
 
-
+        {% if not readonly %}
             <form id="decline-form" method="post" action="" style="display: none;">
                 {% csrf_token %}
                 <button type="submit" id="decline-button" class="btn btn-danger">Отклонить</button>
@@ -84,6 +86,7 @@
                 {% csrf_token %}
                 <button type="submit" id="resume-button" class="btn btn-success">Возобновить</button>
             </form>
+        {% endif %}
         </div>
         
         <div class="incidents-table-responsive">
@@ -109,7 +112,7 @@
                         data-incident-id="{{ inc.pk }}"
                         data-incident-status="{{ inc.status }}"
                         onclick="selectRow(this, event)"
-                        ondblclick="window.location.href='{% url 'builder:incident_edit' inc.pk %}'">
+                        {% if not readonly %}ondblclick="window.location.href='{% url 'builder:incident_edit' inc.pk %}'"{% endif %}>
                         <td>{{ inc.created_at|date:"d.m.Y" }}</td>
                         <td>{{ inc.title }}</td>
                         <td>{{ inc.get_incident_type_display }}</td>
