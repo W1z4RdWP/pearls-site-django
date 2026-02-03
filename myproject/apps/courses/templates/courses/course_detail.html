@@ -502,12 +502,23 @@
                 <div class="sidebar-body">
                     {% if user_course %}
                         {% if user_course.status == 'available' %}
-                            <div class="status-badge status-available">
-                                <i class="fa fa-unlock"></i> Доступен
-                            </div>
-                            <p>Для того, чтобы начать курс, пожалуйста, нажмите на кнопку "Начать курс".</p>
+                            {% if user.is_staff or user.is_superuser %}
+                                <div class="text-center">
+                                    {% if user.is_superuser %}
+                                        <p class="text-muted mb-3">Вы авторизованы как суперпользователь</p>
+                                    {% else %}
+                                        <p class="text-muted mb-3">Вы авторизованы как администратор системы</p>
+                                    {% endif %}
+                                    <p class="text-muted">Статусы курса отключены</p>
+                                </div>
+                            {% else %}
+                                <div class="status-badge status-available">
+                                    <i class="fa fa-unlock"></i> Доступен
+                                </div>
+                                <p>Для того, чтобы начать курс, пожалуйста, нажмите на кнопку "Начать курс".</p>
+                            {% endif %}
                             
-                            {% if user_course.deadline %}
+                            {% if user_course.deadline and not user.is_staff and not user.is_superuser %}
                                 {% if is_deadline_overdue %}
                                     <div class="alert alert-danger border-0 mb-3" style="background: #f8d7da; border: 1px solid #f5c6cb; border-radius: 6px;">
                                         <i class="fa fa-exclamation-triangle text-danger"></i>
