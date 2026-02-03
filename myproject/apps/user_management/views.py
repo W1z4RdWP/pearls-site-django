@@ -4,7 +4,7 @@ from django.views.generic import ListView, CreateView, UpdateView, DetailView, F
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User, Group
-from django.db.models import Q, Count, Max, F, Sum
+from django.db.models import Q, Count, Max, F, Sum, Subquery, OuterRef
 from users.models import Profile, Role
 from users.permissions import MentorRequiredMixin
 from django import forms
@@ -1712,6 +1712,17 @@ class AdminDashboardView(LoginRequiredMixin, UserPassesTestMixin, ListView):
         
         # Применяем distinct() до среза
         queryset = queryset.distinct()
+        
+        # Добавляем аннотацию для получения даты последнего начисления для каждого пользователя
+        from gamification.models import DascoinTransaction
+        last_award_subquery = DascoinTransaction.objects.filter(
+            user=OuterRef('pk'),
+            transaction_type='award'
+        ).order_by('-created_at').values('created_at')[:1]
+        
+        queryset = queryset.annotate(
+            last_award_date=Subquery(last_award_subquery)
+        )
         
         # Быстрый фильтр топ-N применяется после distinct()
         top_users = self.request.GET.get('top')

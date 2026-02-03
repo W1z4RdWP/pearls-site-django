@@ -161,7 +161,7 @@
                                         <th class="py-2">Должность</th>
                                         <th class="py-2">DASCOIN</th>
                                         <th class="py-2">Статус</th>
-                                        <th class="py-2">Дата регистрации</th>
+                                        <th class="py-2">Дата последнего начисления</th>
                                         <th class="py-2">Действия</th>
                                     </tr>
                                 </thead>
@@ -231,12 +231,16 @@
                                             {% endif %}
                                         </td>
                                         <td class="py-2">
-                                            <div class="small text-muted">
-                                                {{ user.date_joined|date:"d.m.Y" }}
-                                            </div>
-                                            <div class="small text-muted">
-                                                {{ user.date_joined|date:"H:i" }}
-                                            </div>
+                                            {% if user.last_award_date %}
+                                                <div class="small text-muted">
+                                                    {{ user.last_award_date|date:"d.m.Y" }}
+                                                </div>
+                                                <div class="small text-muted">
+                                                    {{ user.last_award_date|date:"H:i" }}
+                                                </div>
+                                            {% else %}
+                                                <span class="text-muted small">—</span>
+                                            {% endif %}
                                         </td>
                                         <td class="py-2">
                                             <div class="btn-group btn-group-sm">
