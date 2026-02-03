@@ -162,12 +162,11 @@
                                         <th class="py-2">DASCOIN</th>
                                         <th class="py-2">Статус</th>
                                         <th class="py-2">Дата последнего начисления</th>
-                                        <th class="py-2">Действия</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     {% for user in users %}
-                                    <tr>
+                                    <tr class="user-row" data-user-url="{% url 'user_management:admin_user_transactions' user.id %}">
                                         <td class="py-2">
                                             <div class="d-flex align-items-center">
                                                 {% if user.profile.image %}
@@ -230,7 +229,7 @@
                                                 </span>
                                             {% endif %}
                                         </td>
-                                        <td class="py-2">
+                                        <td class="py-2" style="text-align: center;">
                                             {% if user.last_award_date %}
                                                 <div class="small text-muted">
                                                     {{ user.last_award_date|date:"d.m.Y" }}
@@ -241,15 +240,6 @@
                                             {% else %}
                                                 <span class="text-muted small">—</span>
                                             {% endif %}
-                                        </td>
-                                        <td class="py-2">
-                                            <div class="btn-group btn-group-sm">
-                                                <a href="{% url 'user_management:admin_user_transactions' user.id %}" 
-                                                   class="btn btn-outline-info btn-sm" 
-                                                   title="История транзакций">
-                                                    <i class="fas fa-history"></i>
-                                                </a>
-                                            </div>
                                         </td>
                                     </tr>
                                     {% endfor %}
@@ -576,4 +566,21 @@
         }
     }
 </style>
+{% endblock %}
+{% block specific_scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const userRows = document.querySelectorAll('.user-row');
+        userRows.forEach(function(row) {
+            row.addEventListener('dblclick', function() {
+                const userUrl = this.getAttribute('data-user-url');
+                if (userUrl) {
+                    window.location.href = userUrl;
+                }
+            });
+            // Добавляем визуальную обратную связь при наведении
+            row.style.cursor = 'pointer';
+        });
+    });
+</script>
 {% endblock %} 
