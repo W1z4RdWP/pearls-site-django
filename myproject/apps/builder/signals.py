@@ -39,7 +39,10 @@ def update_course_access_on_incident_assignment_change(sender, instance, action,
 def check_and_update_incident_studies_completed_status(incident):
     """
     Проверяет наличие неоцененных открытых ответов в тестах курса-инцидента
-    и обновляет статус инцидента на 'studies_completed', если есть такие ответы.
+    и завершение обучения всеми назначенными пользователями.
+    Обновляет статус инцидента на 'studies_completed', если:
+    - есть неоцененные открытые ответы, или
+    - все назначенные пользователи завершили обучение.
     """
     if not incident.course:
         return
@@ -53,6 +56,14 @@ def check_and_update_incident_studies_completed_status(incident):
     
     assigned_user_ids = list(assigned_users.values_list('id', flat=True))
     
+    # Проверяем, все ли назначенные пользователи завершили курс
+    completed_count = UserCourse.objects.filter(
+        user_id__in=assigned_user_ids,
+        course=course,
+        status='completed'
+    ).count()
+    all_completed = completed_count == len(assigned_user_ids) and completed_count > 0
+    
     # Проверяем, есть ли неоцененные открытые ответы для назначенных пользователей
     # в тестах курса-инцидента
     unrated_text_answers = UserAnswer.objects.filter(
@@ -64,18 +75,27 @@ def check_and_update_incident_studies_completed_status(incident):
         answer_text__gt=''  # Не пустой ответ
     ).exists()
     
-    # Если есть неоцененные открытые ответы и статус не 'studies_completed', 'resolved' или 'declined'
-    if unrated_text_answers and incident.status not in ['studies_completed', 'resolved', 'declined']:
-        incident.status = 'studies_completed'
-        incident.save(update_fields=['status', 'updated_at'])
-        logger.info(f"Инцидент {incident.title} переведен в статус 'Обучение завершено' - есть неоцененные открытые ответы в тестах")
-    # Если нет неоцененных открытых ответов и статус 'studies_completed', возвращаем к предыдущему статусу
-    elif not unrated_text_answers and incident.status == 'studies_completed':
-        # Возвращаем к статусу 'assigned', если курс назначен
-        if incident.course:
-            incident.status = 'assigned'
+    # Если статус уже 'resolved' или 'declined', не меняем его
+    if incident.status in ['resolved', 'declined']:
+        return
+    
+    # Если все пользователи завершили обучение, устанавливаем статус 'studies_completed'
+    if all_completed:
+        if incident.status != 'studies_completed':
+            incident.status = 'studies_completed'
             incident.save(update_fields=['status', 'updated_at'])
-            logger.info(f"Инцидент {incident.title} возвращен в статус 'Назначен' - все открытые ответы оценены")
+            logger.info(f"Инцидент {incident.title} переведен в статус 'Обучение завершено' - все назначенные пользователи ({completed_count}) завершили обучение")
+    # Если есть неоцененные открытые ответы, устанавливаем статус 'studies_completed'
+    elif unrated_text_answers:
+        if incident.status != 'studies_completed':
+            incident.status = 'studies_completed'
+            incident.save(update_fields=['status', 'updated_at'])
+            logger.info(f"Инцидент {incident.title} переведен в статус 'Обучение завершено' - есть неоцененные открытые ответы в тестах")
+    # Если нет неоцененных открытых ответов и не все завершили, и статус 'studies_completed', возвращаем к 'assigned'
+    elif not unrated_text_answers and not all_completed and incident.status == 'studies_completed':
+        incident.status = 'assigned'
+        incident.save(update_fields=['status', 'updated_at'])
+        logger.info(f"Инцидент {incident.title} возвращен в статус 'Назначен' - все открытые ответы оценены, но не все пользователи завершили обучение")
 
 
 @receiver(post_save, sender=QuizResult)

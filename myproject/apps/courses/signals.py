@@ -619,12 +619,18 @@ def check_incident_completion_on_course_completion(sender, instance, created, **
                         ).count()
                         
                         # Если все назначенные пользователи завершили курс
-                        if completed_count == len(assigned_user_ids) and incident.status != 'resolved':
-                            incident.status = 'resolved'
-                            if not incident.resolved_at:
-                                incident.resolved_at = timezone.now()
-                            incident.save(update_fields=['status', 'resolved_at', 'updated_at'])
-                            logger.info(f"Инцидент {incident.title} автоматически завершен, так как все назначенные пользователи ({completed_count}) завершили курс")
+                        if completed_count == len(assigned_user_ids) and completed_count > 0:
+                            # Если статус еще не 'resolved' или 'declined', меняем на 'studies_completed'
+                            if incident.status not in ['resolved', 'declined']:
+                                incident.status = 'studies_completed'
+                                incident.save(update_fields=['status', 'updated_at'])
+                                logger.info(f"Инцидент {incident.title} переведен в статус 'Обучение завершено', так как все назначенные пользователи ({completed_count}) завершили курс")
+                            # Если статус уже 'resolved', не меняем его
+                            elif incident.status == 'resolved':
+                                # Обновляем resolved_at, если он еще не установлен
+                                if not incident.resolved_at:
+                                    incident.resolved_at = timezone.now()
+                                    incident.save(update_fields=['resolved_at', 'updated_at'])
                 
                 except ImportError:
                     # Если модель Incident не найдена, просто пропускаем
