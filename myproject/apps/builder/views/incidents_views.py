@@ -38,10 +38,11 @@ class IncidentListView(ListView):
         import datetime
         
         queryset = super().get_queryset()
-        
+
+        # pyright: reportUnreachable=false
         # Оптимизация: предзагрузка ManyToMany полей
         queryset = queryset.prefetch_related('assigned_to', 'violators').select_related('user')
-        
+
         # Фильтр по дате создания
         date_from = self.request.GET.get('date_from')
         date_to = self.request.GET.get('date_to')
@@ -133,6 +134,7 @@ class IncidentListView(ListView):
                 logger.error(f"Ошибка при проверке статуса инцидента {incident.id}: {e}")
         
         return queryset
+
 
     def get_context_data(self, **kwargs):
         from django.utils import timezone
@@ -357,7 +359,7 @@ class IncidentDetailListView(ListView):
     ordering = ['-created_at']
 
     def dispatch(self, request, *args, **kwargs):
-        if not request.user.is_authenticated or not (request.user.is_staff or request.user.is_superuser):
+        if not request.user.is_authenticated or not (request.user.is_staff or request.user.is_superuser or request.user.profile.is_mentor_user):
             return render(request, '403.html', status=403)
         return super().dispatch(request, *args, **kwargs)
 

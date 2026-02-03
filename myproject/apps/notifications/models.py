@@ -87,7 +87,15 @@ class Notification(models.Model):
         blank=True, 
         verbose_name="Связанная комната чата"
     )
-    
+    related_sender = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='sent_chat_notifications',
+        verbose_name="Отправитель сообщения (чат)"
+    )
+
     related_homework_submission = models.ForeignKey(
         'quizzes.HomeworkSubmission',
         on_delete=models.CASCADE,
@@ -348,4 +356,5 @@ class Notification(models.Model):
             title=notification_title,
             message=notification_message,
             related_chat_room=chat_room,
+            related_sender=sender,
         )
