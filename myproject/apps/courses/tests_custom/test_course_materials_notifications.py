@@ -313,3 +313,355 @@ class CourseMaterialsNotificationsTest(TestCase):
                         'Пользователю с завершенным курсом должно прийти уведомление')
         self.assertEqual(other_user_notifications, 0,
                         'Пользователю с незавершенным курсом не должно приходить уведомление')
+
+
+@override_settings(STATICFILES_STORAGE='django.contrib.staticfiles.storage.StaticFilesStorage')
+class HomeworkNotificationsRegularAndIncidentCoursesTest(TestCase):
+    """
+    Проверяет, что задание (Homework) работает одинаково как в обычных курсах,
+    так и в курсах-инцидентах (is_incident=True).
+    
+    После добавления задания к уже завершенному пользователем курсу,
+    ему приходит уведомление о новом материале курса,
+    как при добавлении урока или теста.
+    """
+
+    def setUp(self):
+        User = get_user_model()
+        
+        # Создаем пользователей
+        self.staff_user = User.objects.create_user(
+            username='staff',
+            password='testpass',
+            email='staff@example.com',
+            is_staff=True
+        )
+        
+        self.user_regular = User.objects.create_user(
+            username='user_regular',
+            password='testpass',
+            email='user_regular@example.com'
+        )
+        
+        self.user_incident = User.objects.create_user(
+            username='user_incident',
+            password='testpass',
+            email='user_incident@example.com'
+        )
+        
+        # Создаем обычный курс
+        self.regular_course = Course.objects.create(
+            title='Обычный курс',
+            description='Описание обычного курса',
+            author=self.staff_user,
+            is_incident=False
+        )
+        
+        # Создаем курс-инцидент
+        self.incident_course = Course.objects.create(
+            title='Курс-инцидент',
+            description='Описание курса-инцидента',
+            author=self.staff_user,
+            is_incident=True
+        )
+        
+        # Создаем начальные уроки для курсов
+        self.regular_lesson = Lesson.objects.create(
+            title='Урок обычного курса',
+            content='Контент',
+            order=1,
+        )
+        self.regular_lesson.courses.add(self.regular_course)
+        
+        self.incident_lesson = Lesson.objects.create(
+            title='Урок курса-инцидента',
+            content='Контент',
+            order=1,
+        )
+        self.incident_lesson.courses.add(self.incident_course)
+        
+        # Завершаем курсы пользователями
+        self.user_course_regular = UserCourse.objects.create(
+            user=self.user_regular,
+            course=self.regular_course,
+            status='completed'
+        )
+        
+        self.user_course_incident = UserCourse.objects.create(
+            user=self.user_incident,
+            course=self.incident_course,
+            status='completed'
+        )
+        
+        # Очищаем все уведомления перед тестами
+        Notification.objects.all().delete()
+
+    def test_add_homework_to_regular_course_creates_notification(self):
+        """
+        При добавлении задания к завершенному обычному курсу,
+        пользователю приходит уведомление.
+        """
+        initial_count = Notification.objects.filter(
+            user=self.user_regular,
+            notification_type='course_materials_updated'
+        ).count()
+        
+        # Создаем задание и добавляем в обычный курс
+        homework = Homework.objects.create(name='Задание для обычного курса')
+        homework.courses.add(self.regular_course)
+        
+        # Проверяем, что уведомление создано
+        final_count = Notification.objects.filter(
+            user=self.user_regular,
+            notification_type='course_materials_updated'
+        ).count()
+        
+        self.assertEqual(
+            final_count, 
+            initial_count + 1,
+            'При добавлении задания к завершенному обычному курсу должно создаваться уведомление'
+        )
+        
+        # Проверяем содержимое уведомления
+        notification = Notification.objects.filter(
+            user=self.user_regular,
+            notification_type='course_materials_updated'
+        ).latest('created_at')
+        
+        self.assertEqual(notification.title, 'Новый тест в завершенном курсе')
+        self.assertIn('Задание для обычного курса', notification.message)
+        self.assertIn(self.regular_course.title, notification.message)
+        self.assertEqual(notification.related_course, self.regular_course)
+
+    def test_add_homework_to_incident_course_creates_notification(self):
+        """
+        При добавлении задания к завершенному курсу-инциденту,
+        пользователю приходит уведомление (работает так же, как для обычного курса).
+        """
+        initial_count = Notification.objects.filter(
+            user=self.user_incident,
+            notification_type='course_materials_updated'
+        ).count()
+        
+        # Создаем задание и добавляем в курс-инцидент
+        homework = Homework.objects.create(name='Задание для курса-инцидента')
+        homework.courses.add(self.incident_course)
+        
+        # Проверяем, что уведомление создано
+        final_count = Notification.objects.filter(
+            user=self.user_incident,
+            notification_type='course_materials_updated'
+        ).count()
+        
+        self.assertEqual(
+            final_count, 
+            initial_count + 1,
+            'При добавлении задания к завершенному курсу-инциденту должно создаваться уведомление'
+        )
+        
+        # Проверяем содержимое уведомления
+        notification = Notification.objects.filter(
+            user=self.user_incident,
+            notification_type='course_materials_updated'
+        ).latest('created_at')
+        
+        self.assertEqual(notification.title, 'Новый тест в завершенном курсе')
+        self.assertIn('Задание для курса-инцидента', notification.message)
+        self.assertIn(self.incident_course.title, notification.message)
+        self.assertEqual(notification.related_course, self.incident_course)
+
+    def test_homework_notifications_identical_for_regular_and_incident_courses(self):
+        """
+        Проверяет, что уведомления о заданиях работают ИДЕНТИЧНО
+        для обычных курсов и курсов-инцидентов.
+        
+        Это главный тест, который проверяет одинаковое поведение.
+        """
+        # Добавляем задание в обычный курс
+        homework_regular = Homework.objects.create(name='Задание тест 1')
+        homework_regular.courses.add(self.regular_course)
+        
+        # Добавляем задание в курс-инцидент
+        homework_incident = Homework.objects.create(name='Задание тест 2')
+        homework_incident.courses.add(self.incident_course)
+        
+        # Получаем уведомления
+        notification_regular = Notification.objects.filter(
+            user=self.user_regular,
+            notification_type='course_materials_updated'
+        ).latest('created_at')
+        
+        notification_incident = Notification.objects.filter(
+            user=self.user_incident,
+            notification_type='course_materials_updated'
+        ).latest('created_at')
+        
+        # Проверяем, что оба уведомления созданы
+        self.assertIsNotNone(notification_regular)
+        self.assertIsNotNone(notification_incident)
+        
+        # Проверяем, что тип уведомления одинаковый
+        self.assertEqual(
+            notification_regular.notification_type,
+            notification_incident.notification_type,
+            'Тип уведомления должен быть одинаковым для обоих типов курсов'
+        )
+        
+        # Проверяем, что заголовок уведомления одинаковый
+        self.assertEqual(
+            notification_regular.title,
+            notification_incident.title,
+            'Заголовок уведомления должен быть одинаковым для обоих типов курсов'
+        )
+        
+        # Проверяем, что структура сообщения одинаковая (содержит название задания и курса)
+        self.assertIn('Задание тест 1', notification_regular.message)
+        self.assertIn('Задание тест 2', notification_incident.message)
+        self.assertIn(self.regular_course.title, notification_regular.message)
+        self.assertIn(self.incident_course.title, notification_incident.message)
+
+    def test_add_lesson_to_incident_course_creates_notification(self):
+        """
+        При добавлении урока к завершенному курсу-инциденту,
+        пользователю приходит уведомление (работает так же, как для обычного курса).
+        """
+        initial_count = Notification.objects.filter(
+            user=self.user_incident,
+            notification_type='course_materials_updated'
+        ).count()
+        
+        # Создаем урок и добавляем в курс-инцидент
+        lesson = Lesson.objects.create(
+            title='Новый урок для курса-инцидента',
+            content='Контент',
+            order=2,
+        )
+        lesson.courses.add(self.incident_course)
+        
+        # Проверяем, что уведомление создано
+        final_count = Notification.objects.filter(
+            user=self.user_incident,
+            notification_type='course_materials_updated'
+        ).count()
+        
+        self.assertEqual(
+            final_count, 
+            initial_count + 1,
+            'При добавлении урока к завершенному курсу-инциденту должно создаваться уведомление'
+        )
+        
+        # Проверяем содержимое уведомления
+        notification = Notification.objects.filter(
+            user=self.user_incident,
+            notification_type='course_materials_updated'
+        ).latest('created_at')
+        
+        self.assertEqual(notification.title, 'Новый урок в завершенном курсе')
+        self.assertIn('Новый урок для курса-инцидента', notification.message)
+        self.assertIn(self.incident_course.title, notification.message)
+        self.assertEqual(notification.related_course, self.incident_course)
+
+    def test_add_quiz_to_incident_course_creates_notification(self):
+        """
+        При добавлении теста к завершенному курсу-инциденту,
+        пользователю приходит уведомление (работает так же, как для обычного курса).
+        """
+        initial_count = Notification.objects.filter(
+            user=self.user_incident,
+            notification_type='course_materials_updated'
+        ).count()
+        
+        # Создаем тест и добавляем в курс-инцидент
+        quiz = Quiz.objects.create(name='Новый тест для курса-инцидента')
+        quiz.courses.add(self.incident_course)
+        
+        # Проверяем, что уведомление создано
+        final_count = Notification.objects.filter(
+            user=self.user_incident,
+            notification_type='course_materials_updated'
+        ).count()
+        
+        self.assertEqual(
+            final_count, 
+            initial_count + 1,
+            'При добавлении теста к завершенному курсу-инциденту должно создаваться уведомление'
+        )
+        
+        # Проверяем содержимое уведомления
+        notification = Notification.objects.filter(
+            user=self.user_incident,
+            notification_type='course_materials_updated'
+        ).latest('created_at')
+        
+        self.assertEqual(notification.title, 'Новый тест в завершенном курсе')
+        self.assertIn('Новый тест для курса-инцидента', notification.message)
+        self.assertIn(self.incident_course.title, notification.message)
+        self.assertEqual(notification.related_course, self.incident_course)
+
+    def test_all_material_types_work_identically_in_both_course_types(self):
+        """
+        Проверяет, что все типы материалов (урок, тест, задание) работают
+        одинаково в обычных курсах и курсах-инцидентах.
+        
+        Примечание: Из-за защиты от дубликатов уведомлений (5 минут),
+        при добавлении нескольких материалов к одному курсу за короткий период
+        создаётся только одно уведомление. Поэтому тест проверяет,
+        что для ОБОИХ типов курсов создаётся хотя бы одно уведомление,
+        и что поведение идентично.
+        """
+        # Очищаем уведомления перед тестом
+        Notification.objects.all().delete()
+        
+        # Добавляем урок в оба типа курсов
+        lesson_regular = Lesson.objects.create(title='Урок в обычном', content='Контент', order=2)
+        lesson_regular.courses.add(self.regular_course)
+        
+        lesson_incident = Lesson.objects.create(title='Урок в инциденте', content='Контент', order=2)
+        lesson_incident.courses.add(self.incident_course)
+        
+        # Добавляем тест в оба типа курсов
+        quiz_regular = Quiz.objects.create(name='Тест в обычном')
+        quiz_regular.courses.add(self.regular_course)
+        
+        quiz_incident = Quiz.objects.create(name='Тест в инциденте')
+        quiz_incident.courses.add(self.incident_course)
+        
+        # Добавляем задание в оба типа курсов
+        homework_regular = Homework.objects.create(name='Задание в обычном')
+        homework_regular.courses.add(self.regular_course)
+        
+        homework_incident = Homework.objects.create(name='Задание в инциденте')
+        homework_incident.courses.add(self.incident_course)
+        
+        # Проверяем количество уведомлений для обычного курса
+        regular_notifications = Notification.objects.filter(
+            user=self.user_regular,
+            notification_type='course_materials_updated'
+        ).count()
+        
+        # Проверяем количество уведомлений для курса-инцидента
+        incident_notifications = Notification.objects.filter(
+            user=self.user_incident,
+            notification_type='course_materials_updated'
+        ).count()
+        
+        # Оба пользователя должны получить хотя бы 1 уведомление
+        # (из-за защиты от дубликатов при быстром добавлении материалов
+        # к одному курсу создаётся только одно уведомление)
+        self.assertGreaterEqual(
+            regular_notifications, 1,
+            f'Пользователь обычного курса должен получить хотя бы 1 уведомление, получил {regular_notifications}'
+        )
+        
+        self.assertGreaterEqual(
+            incident_notifications, 1,
+            f'Пользователь курса-инцидента должен получить хотя бы 1 уведомление, получил {incident_notifications}'
+        )
+        
+        # Проверяем, что количество уведомлений одинаково для обоих типов курсов
+        # (поведение должно быть идентичным)
+        self.assertEqual(
+            regular_notifications,
+            incident_notifications,
+            'Количество уведомлений должно быть одинаковым для обоих типов курсов'
+        )
