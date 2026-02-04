@@ -625,3 +625,60 @@ class IncidentDetailListView(ListView):
         
         context['incident_user_list'] = incident_user_list
         return context
+
+
+@method_decorator(login_required, name='dispatch')
+class UnassignIncidentUserView(View, AuditLoggerMixin):
+    """
+    Отмена назначения пользователя на инцидент.
+    Удаляет пользователя из поля assigned_to инцидента.
+    """
+    def dispatch(self, request, *args, **kwargs):
+        if not request.user.is_authenticated or not (request.user.is_staff or request.user.is_superuser or request.user.profile.is_mentor_user):
+            return render(request, '403.html', status=403)
+        return super().dispatch(request, *args, **kwargs)
+    
+    def post(self, request, *args, **kwargs):
+        from django.contrib.auth import get_user_model
+        from django.contrib import messages
+        
+        User = get_user_model()
+        incident_id = kwargs.get('incident_id')
+        user_id = kwargs.get('user_id')
+        
+        incident = get_object_or_404(Incident, pk=incident_id)
+        user = get_object_or_404(User, pk=user_id)
+        
+        # Проверяем, что пользователь действительно назначен на инцидент
+        if user not in incident.assigned_to.all():
+            messages.error(request, f'Пользователь {user.get_full_name() or user.username} не назначен на инцидент "{incident.title}"')
+            return redirect('builder:incident_detail')
+        
+        # Сохраняем старые значения для аудита
+        old_values = serialize_model_data(incident)
+        
+        # Удаляем пользователя из assigned_to
+        # Сигнал автоматически удалит доступ к курсу, если он есть
+        incident.assigned_to.remove(user)
+        
+        # Логируем действие
+        comment = f"Отменено назначение пользователя {user.get_full_name() or user.username} на инцидент"
+        self.log_update_action(incident, old_values, comment)
+        
+        messages.success(request, f'Назначение пользователя {user.get_full_name() or user.username} на инцидент "{incident.title}" отменено')
+        
+        # Перенаправляем обратно на страницу деталей с сохранением фильтров
+        redirect_url = reverse('builder:incident_detail')
+        # Получаем параметры фильтров из POST (они передаются как скрытые поля формы)
+        # или из GET (если они есть)
+        from urllib.parse import urlencode
+        query_params = []
+        for key in ['search', 'date_from', 'date_to', 'assigned_user', 'violator_filter']:
+            value = request.POST.get(key) or request.GET.get(key)
+            if value:
+                query_params.append((key, value))
+        
+        if query_params:
+            redirect_url += '?' + urlencode(query_params)
+        
+        return redirect(redirect_url)

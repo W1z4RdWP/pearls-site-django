@@ -6,6 +6,7 @@
     <link rel="stylesheet" href="{% static 'builder/css/incidents.css' %}">
 {% endblock %}
 {% block content %}
+{% csrf_token %}
 <div class="incidents-card mb-4">
     <div class="d-flex justify-content-between align-items-center mb-3">
         <h2 class="mb-0">Детали инцидентов</h2>
@@ -79,12 +80,13 @@
                     <th style="width: 10%;">Ответственный</th>
                     <th style="width: 10%;">Дедлайн</th>
                     <th style="width: 10%;">Статус</th>
+                    <th style="width: 10%;">Действия</th>
                 </tr>
             </thead>
             <tbody>
                 {% if incident_user_list %}
                     {% for item in incident_user_list %}
-                    <tr id="item__incident_user_list">
+                    <tr class="incident-user-row" data-incident-id="{{ item.incident.id }}" data-user-id="{{ item.user.id }}" style="cursor: pointer;">
                         <td>{{ forloop.counter }}</td>
                         <td>{{ item.incident.created_at|date:"d.m.Y" }}</td>
                         <td>{{ item.incident.title }}</td>
@@ -133,11 +135,19 @@
                                 —
                             {% endif %}
                         </td>
+                        <td style="text-align: center;">
+                            <button type="button" class="btn btn-sm unassign-button" 
+                                    data-incident-id="{{ item.incident.id }}" 
+                                    data-user-id="{{ item.user.id }}"
+                                        >
+                                    <i class="fa fa-cancel" style="color: red; font-size: larger;" aria-hidden="true"></i>
+                            </button>
+                        </td>
                     </tr>
                     {% endfor %}
                 {% else %}
                     <tr>
-                        <td colspan="9" class="text-center">Нет назначенных пользователей</td>
+                        <td colspan="10" class="text-center">Нет назначенных пользователей</td>
                     </tr>
                 {% endif %}
             </tbody>
@@ -335,13 +345,85 @@
         
         // Применяем сохраненные title к столбцам при загрузке страницы
         applySavedColumnTitles();
-    });
-
-    const user_row = document.getElementById("item__incident_user_list");
-
-    user_row.addEventListener("click", function(event) {
-        event.preventDefault();
         
+        // Обработчики для строк таблицы и кнопки "Отменить"
+        const incidentUserRows = document.querySelectorAll('.incident-user-row');
+        let selectedRow = null;
+        
+        incidentUserRows.forEach(row => {
+            
+            // Обработчик клика на кнопку "Отменить"
+            const unassignButton = row.querySelector('.unassign-button');
+            if (unassignButton) {
+                unassignButton.addEventListener('click', function(event) {
+                    event.stopPropagation(); // Предотвращаем срабатывание клика на строку
+                    
+                    const incidentId = this.dataset.incidentId;
+                    const userId = this.dataset.userId;
+                    
+                    if (!incidentId || !userId) {
+                        alert('Ошибка: не удалось определить инцидент или пользователя');
+                        return;
+                    }
+                    
+                    // Подтверждение действия
+                    if (!confirm('Вы уверены, что хотите отменить назначение этого пользователя на инцидент?')) {
+                        return;
+                    }
+                    
+                    // Получаем текущие параметры URL для сохранения фильтров
+                    const urlParams = new URLSearchParams(window.location.search);
+                    
+                    // Функция для получения CSRF токена
+                    function getCookie(name) {
+                        let cookieValue = null;
+                        if (document.cookie && document.cookie !== '') {
+                            const cookies = document.cookie.split(';');
+                            for (let i = 0; i < cookies.length; i++) {
+                                const cookie = cookies[i].trim();
+                                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                                    break;
+                                }
+                            }
+                        }
+                        return cookieValue;
+                    }
+                    
+                    // Создаем форму для отправки POST запроса
+                    const form = document.createElement('form');
+                    form.method = 'POST';
+                    // Генерируем URL с правильными параметрами
+                    const baseUrl = "{% url 'builder:incident_unassign_user' incident_id=999999 user_id=888888 %}";
+                    form.action = baseUrl.replace('999999', incidentId).replace('888888', userId);
+                    
+                    // Добавляем CSRF токен
+                    const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]');
+                    const csrfInput = document.createElement('input');
+                    csrfInput.type = 'hidden';
+                    csrfInput.name = 'csrfmiddlewaretoken';
+                    if (csrfToken) {
+                        csrfInput.value = csrfToken.value;
+                    } else {
+                        // Если токен не найден, получаем его из cookies
+                        csrfInput.value = getCookie('csrftoken') || '';
+                    }
+                    form.appendChild(csrfInput);
+                    
+                    // Добавляем параметры фильтров как скрытые поля
+                    urlParams.forEach((value, key) => {
+                        const input = document.createElement('input');
+                        input.type = 'hidden';
+                        input.name = key;
+                        input.value = value;
+                        form.appendChild(input);
+                    });
+                    
+                    document.body.appendChild(form);
+                    form.submit();
+                });
+            }
+        });
     });
 </script>
 

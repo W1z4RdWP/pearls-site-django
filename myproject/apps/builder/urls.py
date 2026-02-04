@@ -23,8 +23,8 @@ from builder.views.categories_views import (
 )
 from builder.views.incidents_views import (
                     CreateCourseFromIncidentView, IncidentDeclineView, IncidentDetailListView, 
-                    IncidentListView, IncidentCreateView, IncidentUpdateView
-)
+                    IncidentListView, IncidentCreateView, IncidentUpdateView, UnassignIncidentUserView
+                )
 from builder.views.ipr_views import (
                     IPRCreateView, IPRListView, IPRModuleCompleteView, IPRModuleCreateView, IPRModuleDetailView, 
                     IPRModuleListView, IPRModulePauseView, IPRModuleResumeView, IPRModuleStartView, 
@@ -80,6 +80,7 @@ urlpatterns = [
     path('incidents/<int:pk>/decline/', IncidentDeclineView.as_view(), name='incident_decline'),
     path('incidents/<int:pk>/create-course/', CreateCourseFromIncidentView.as_view(), name='incident_create_course'),
     path('incidents/detail/', IncidentDetailListView.as_view(), name='incident_detail'),
+    path('incidents/<int:incident_id>/unassign-user/<int:user_id>/', UnassignIncidentUserView.as_view(), name='incident_unassign_user'),
 
     # Поиск/реордеры/клипборд
     path('search/', ajax_search_tree, name='search_tree'),
