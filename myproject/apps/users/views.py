@@ -360,11 +360,12 @@ def clear_intro_modal_flag(request):
 @login_required
 def quiz_attempts_report(request: HttpRequest) -> HttpResponse:
     """
-    Отображает отчёт по попыткам тестов пользователя.
+    Отображает отчёт по попыткам тестов и заданий пользователя.
     Если тест не содержит открытых ответов - показывает лучшую попытку.
     Если тест содержит открытые ответы - показывает проверенные попытки.
+    Также отображаются все отправленные на проверку задания.
     """
-    from quizzes.models import Quiz, Question
+    from quizzes.models import Quiz, Question, HomeworkSubmission
     
     user = request.user
     
@@ -444,6 +445,7 @@ def quiz_attempts_report(request: HttpRequest) -> HttpResponse:
         total_count = result.total_questions
         
         report_data.append({
+            'item_type': 'quiz',
             'quiz_name': quiz_title,
             'quiz_id': quiz.id,
             'course_name': course_name,
@@ -454,6 +456,40 @@ def quiz_attempts_report(request: HttpRequest) -> HttpResponse:
             'percent': round(result.percent, 1),
             'status': status,
             'completed_at': result.completed_at,
+        })
+    
+    # Добавляем отправленные на проверку задания
+    homework_submissions = HomeworkSubmission.objects.filter(user=user).select_related('homework', 'course')
+    
+    for submission in homework_submissions:
+        # Определяем статус задания
+        if submission.status == 'pending':
+            status = 'Ожидает проверки'
+        elif submission.status == 'correct':
+            status = 'Правильно'
+        elif submission.status == 'incorrect':
+            status = 'Не правильно'
+        else:
+            status = submission.get_status_display()
+        
+        # Получаем курс
+        course_name = submission.course.title if submission.course else 'Не указан'
+        course_slug = submission.course.slug if submission.course else None
+        
+        report_data.append({
+            'item_type': 'homework',
+            'quiz_name': submission.homework.name,
+            'quiz_id': None,
+            'homework_id': submission.homework.id,
+            'submission_id': submission.id,
+            'course_name': course_name,
+            'course_slug': course_slug,
+            'quiz_type': 'Задание',
+            'correct_count': None,
+            'total_count': None,
+            'percent': None,
+            'status': status,
+            'completed_at': submission.submitted_at,
         })
     
     # Сортируем по дате завершения (новые первыми)
