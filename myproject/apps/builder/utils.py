@@ -1,7 +1,8 @@
+from django.db.models.query import QuerySet
 from .models import CategoryName
 from courses.models import Course, UserLessonTrajectory, UserLesson
 from django.db import transaction
-from django.db.models import Max
+from django.db.models import Count, Max
 from courses.models import Lesson
 
 def get_compact_fio(user):
@@ -311,3 +312,15 @@ def get_responsible_user_for_lesson(lesson_version):
     except Exception:
         pass
     return lesson_version.updated_by
+
+
+def get_total_incidents_students(incidents: QuerySet) -> int:
+    """
+    Функция для подсчета назначений инцидентов, назначеные + нарушители.
+    Используется в представлении export_admin_user_transactions_excel
+    """
+
+    assigned_count = incidents.aggregate(Count('assigned_to', distinct=False))['assigned_to__count'] or 0
+    violators_count = incidents.aggregate(Count('violators', distinct=False))['violators__count'] or 0
+    total_students = assigned_count + violators_count
+    return total_students

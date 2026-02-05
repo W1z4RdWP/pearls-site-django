@@ -1,20 +1,30 @@
+from datetime import datetime
+from django.contrib.auth import login
 from django.contrib.auth.decorators import login_required
+from django.contrib.auth.models import User
 from django.db.models import Count, Q, F
+from django.http import HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse, reverse_lazy
 from django.utils.decorators import method_decorator
 from django.views.generic import CreateView, ListView, UpdateView, View
+from openpyxl import Workbook
+from openpyxl.styles import Alignment, Font, PatternFill
+from openpyxl.utils import get_column_letter
+from openpyxl.chart import PieChart, BarChart, Reference
+from openpyxl.chart.label import DataLabelList
 
 from builder.audit_logger import AuditLoggerMixin, serialize_model_data
 from builder.forms import IncidentForm
 from builder.models import Incident
+from builder.utils import get_total_incidents_students
 from courses.models import Course, UserLessonTrajectory
 from myapp.models import UserCourse, UserProgress
-
 
 import logging
 
 logger = logging.getLogger(__name__)
+audit_logger = logging.getLogger('audit')
 
 
 
@@ -163,6 +173,259 @@ class IncidentListView(ListView):
             context['date_to'] = self.request.GET.get('date_to', '')
         
         return context
+
+
+def _apply_header_style(ws, row_num, col_count):
+    """Применяет стили к заголовкам таблицы."""
+    for col_num in range(1, col_count + 1):
+        cell = ws.cell(row=row_num, column=col_num)
+        cell.font = Font(bold=True, color="FFFFFF")
+        cell.fill = PatternFill(start_color="366092", end_color="366092", fill_type="solid")
+        cell.alignment = Alignment(horizontal='center')
+
+
+def _set_column_widths(ws, widths):
+    """Устанавливает ширину колонок."""
+    for col_num, width in enumerate(widths, 1):
+        col_letter = get_column_letter(col_num)
+        ws.column_dimensions[col_letter].width = width
+
+
+@login_required
+def incidents_export_excel_report(request):
+    if not (request.user.is_staff or request.user.is_superuser):
+        return HttpResponse("Доступ запрещен", status=403)
+
+    incidents = Incident.objects.all()
+    wb = Workbook()
+    
+    # ================== ЛИСТ 1: Общая сводка ==================
+    ws_summary = wb.active
+    ws_summary.title = "Общая сводка"
+    
+    # Подсчёт данных
+    total_incidents = incidents.count()
+    info_incidents_count = incidents.filter(incident_type='informational').count()
+    edu_incidents_count = incidents.filter(incident_type='educational').count()
+    
+    # Всего назначений (assigned_to + violators)
+    total_assignments = get_total_incidents_students(incidents)
+    
+    # Уникальные назначения (каждый пользователь считается 1 раз)
+    unique_assigned_users = set()
+    for incident in incidents:
+        unique_assigned_users.update(incident.assigned_to.values_list('id', flat=True))
+        unique_assigned_users.update(incident.violators.values_list('id', flat=True))
+    total_unique_assignments = len(unique_assigned_users)
+    
+    # Завершённые обучения по курсам-инцидентам
+    incident_courses = Course.objects.filter(is_incident=True)
+    total_completed = UserCourse.objects.filter(
+        course__in=incident_courses,
+        status='completed'
+    ).count()
+    
+    # Статусы инцидентов
+    status_counts = {
+        'new': incidents.filter(status='new').count(),
+        'accepted': incidents.filter(status='accepted').count(),
+        'assigned': incidents.filter(status='assigned').count(),
+        'studies_completed': incidents.filter(status='studies_completed').count(),
+        'resolved': incidents.filter(status='resolved').count(),
+        'declined': incidents.filter(status='declined').count(),
+    }
+    
+    # Заголовки и данные для общей сводки
+    summary_headers = [
+        "Всего инцидентов", "Информационных", "Обучающих",
+        "Всего назначений", "Уникальных назначений", "Завершено обучений"
+    ]
+    ws_summary.append(summary_headers)
+    _apply_header_style(ws_summary, 1, len(summary_headers))
+    _set_column_widths(ws_summary, [20, 18, 15, 20, 22, 22])
+    
+    ws_summary.append([
+        total_incidents, info_incidents_count, edu_incidents_count,
+        total_assignments, total_unique_assignments, total_completed
+    ])
+    
+    # Отступ и статусы инцидентов
+    ws_summary.append([])
+    ws_summary.append(["Статусы инцидентов"])
+    ws_summary.cell(row=4, column=1).font = Font(bold=True)
+    
+    status_headers = ["Новый", "Принят", "Назначен", "Обучение завершено", "Завершён", "Отклонён"]
+    ws_summary.append(status_headers)
+    _apply_header_style(ws_summary, 5, len(status_headers))
+    
+    ws_summary.append([
+        status_counts['new'], status_counts['accepted'], status_counts['assigned'],
+        status_counts['studies_completed'], status_counts['resolved'], status_counts['declined']
+    ])
+    
+    # ================== ЛИСТ 2: Диаграммы ==================
+    ws_charts = wb.create_sheet("Диаграммы")
+    
+    # --- Данные для круговой диаграммы: Типы инцидентов ---
+    ws_charts.append(["Тип инцидента", "Количество"])
+    ws_charts.append(["Информационные", info_incidents_count])
+    ws_charts.append(["Обучающие", edu_incidents_count])
+    
+    # Круговая диаграмма: Типы инцидентов
+    pie_chart = PieChart()
+    pie_chart.title = "Типы инцидентов"
+    labels = Reference(ws_charts, min_col=1, min_row=2, max_row=3)
+    data = Reference(ws_charts, min_col=2, min_row=1, max_row=3)
+    pie_chart.add_data(data, titles_from_data=True)
+    pie_chart.set_categories(labels)
+    pie_chart.dataLabels = DataLabelList()
+    pie_chart.dataLabels.showPercent = True
+    pie_chart.dataLabels.showVal = True
+    pie_chart.dataLabels.showCatName = False
+    pie_chart.width = 12
+    pie_chart.height = 8
+    ws_charts.add_chart(pie_chart, "D2")
+    
+    # --- Данные для столбчатой диаграммы: Статусы инцидентов ---
+    ws_charts.append([])  # Пустая строка
+    ws_charts.append(["Статус", "Количество"])
+    status_data_start_row = 6
+    ws_charts.append(["Новый", status_counts['new']])
+    ws_charts.append(["Принят", status_counts['accepted']])
+    ws_charts.append(["Назначен", status_counts['assigned']])
+    ws_charts.append(["Обучение завершено", status_counts['studies_completed']])
+    ws_charts.append(["Завершён", status_counts['resolved']])
+    ws_charts.append(["Отклонён", status_counts['declined']])
+    
+    # Столбчатая диаграмма: Статусы инцидентов
+    bar_chart = BarChart()
+    bar_chart.title = "Статусы инцидентов"
+    bar_chart.type = "col"
+    bar_chart.style = 10
+    bar_chart.y_axis.title = "Количество"
+    bar_chart.x_axis.title = "Статус"
+    
+    bar_labels = Reference(ws_charts, min_col=1, min_row=status_data_start_row, max_row=status_data_start_row + 5)
+    bar_data = Reference(ws_charts, min_col=2, min_row=status_data_start_row - 1, max_row=status_data_start_row + 5)
+    bar_chart.add_data(bar_data, titles_from_data=True)
+    bar_chart.set_categories(bar_labels)
+    bar_chart.shape = 4
+    bar_chart.width = 16
+    bar_chart.height = 10
+    ws_charts.add_chart(bar_chart, "D14")
+    
+    # --- Данные для диаграммы: Назначения и завершения ---
+    ws_charts.append([])
+    ws_charts.append(["Метрика", "Значение"])
+    metrics_start_row = 14
+    ws_charts.append(["Всего назначений", total_assignments])
+    ws_charts.append(["Уникальных назначений", total_unique_assignments])
+    ws_charts.append(["Завершено обучений", total_completed])
+    
+    # Столбчатая диаграмма: Назначения
+    bar_chart2 = BarChart()
+    bar_chart2.title = "Назначения и завершения"
+    bar_chart2.type = "col"
+    bar_chart2.style = 12
+    bar_chart2.y_axis.title = "Количество"
+    
+    bar2_labels = Reference(ws_charts, min_col=1, min_row=metrics_start_row, max_row=metrics_start_row + 2)
+    bar2_data = Reference(ws_charts, min_col=2, min_row=metrics_start_row - 1, max_row=metrics_start_row + 2)
+    bar_chart2.add_data(bar2_data, titles_from_data=True)
+    bar_chart2.set_categories(bar2_labels)
+    bar_chart2.width = 12
+    bar_chart2.height = 8
+    ws_charts.add_chart(bar_chart2, "D28")
+    
+    # Устанавливаем ширину колонок для данных
+    _set_column_widths(ws_charts, [25, 15])
+    
+    # ================== ЛИСТ 3: Группировка по названию ==================
+    ws_by_title = wb.create_sheet("По названиям")
+    
+    # Группируем инциденты по названию
+    incidents_by_title = incidents.values('title').annotate(
+        count=Count('id'),
+        info_count=Count('id', filter=Q(incident_type='informational')),
+        edu_count=Count('id', filter=Q(incident_type='educational'))
+    ).order_by('-count')
+    
+    title_headers = ["Название инцидента", "Всего", "Информационных", "Обучающих"]
+    ws_by_title.append(title_headers)
+    _apply_header_style(ws_by_title, 1, len(title_headers))
+    _set_column_widths(ws_by_title, [50, 12, 18, 15])
+    
+    for item in incidents_by_title:
+        ws_by_title.append([
+            item['title'], item['count'], item['info_count'], item['edu_count']
+        ])
+    
+    # ================== ЛИСТ 4: Кто зафиксировал ==================
+    ws_by_user = wb.create_sheet("Кто зафиксировал")
+    
+    # Группируем по пользователю, который создал инцидент
+    incidents_by_user = incidents.values(
+        'user__id', 'user__username', 'user__first_name', 'user__last_name'
+    ).annotate(count=Count('id')).order_by('-count')
+    
+    user_headers = ["Пользователь", "Количество инцидентов"]
+    ws_by_user.append(user_headers)
+    _apply_header_style(ws_by_user, 1, len(user_headers))
+    _set_column_widths(ws_by_user, [40, 25])
+    
+    for item in incidents_by_user:
+        # Формируем имя пользователя
+        full_name = f"{item['user__last_name'] or ''} {item['user__first_name'] or ''}".strip()
+        display_name = full_name if full_name else item['user__username']
+        ws_by_user.append([display_name, item['count']])
+    
+    # ================== ЛИСТ 5: Детализация по инцидентам ==================
+    ws_details = wb.create_sheet("Детализация")
+    
+    details_headers = [
+        "ID", "Название", "Тип", "Статус", "Зафиксировал",
+        "Назначено (чел.)", "Нарушителей", "Курс-инцидент", "Дата создания"
+    ]
+    ws_details.append(details_headers)
+    _apply_header_style(ws_details, 1, len(details_headers))
+    _set_column_widths(ws_details, [8, 40, 18, 22, 30, 18, 15, 35, 20])
+    
+    for incident in incidents.select_related('user', 'course').prefetch_related('assigned_to', 'violators'):
+        # Имя зафиксировавшего
+        user = incident.user
+        user_full_name = f"{user.last_name or ''} {user.first_name or ''}".strip()
+        user_display = user_full_name if user_full_name else user.username
+        
+        # Тип и статус
+        incident_type_display = "Информационный" if incident.incident_type == 'informational' else "Обучающий"
+        status_display = dict(Incident.STATUS_CHOICES).get(incident.status, incident.status)
+        
+        ws_details.append([
+            incident.id,
+            incident.title,
+            incident_type_display,
+            status_display,
+            user_display,
+            incident.assigned_to.count(),
+            incident.violators.count(),
+            incident.course.title if incident.course else "—",
+            incident.created_at.strftime('%Y-%m-%d %H:%M') if incident.created_at else "—"
+        ])
+    
+    # Сохраняем файл
+    response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+    filename = f"incidents_{datetime.now().strftime('%Y%m%d_%H%M')}.xlsx"
+    response['Content-Disposition'] = f'attachment; filename={filename}'
+    wb.save(response)
+    
+    audit_logger.info(
+        f'Экспортировал отчет по инцидентам в Excel', 
+        extra={
+            'user': request.user.email if request.user.is_authenticated else 'Anonymous',
+            'target_user': request.user.email
+        }
+    )
+    return response
 
 
 
