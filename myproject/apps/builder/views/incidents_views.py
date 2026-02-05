@@ -1,7 +1,7 @@
 from datetime import datetime
 from django.contrib.auth import login
 from django.contrib.auth.decorators import login_required
-from django.contrib.auth.models import User
+from django.contrib.auth.models import Group, User
 from django.db.models import Count, Q, F
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
@@ -13,6 +13,7 @@ from openpyxl.styles import Alignment, Font, PatternFill
 from openpyxl.utils import get_column_letter
 from openpyxl.chart import PieChart, BarChart, Reference
 from openpyxl.chart.label import DataLabelList
+from weasyprint.css.validation.properties import word_break
 
 from builder.audit_logger import AuditLoggerMixin, serialize_model_data
 from builder.forms import IncidentForm
@@ -262,7 +263,77 @@ def incidents_export_excel_report(request):
         status_counts['new'], status_counts['accepted'], status_counts['assigned'],
         status_counts['studies_completed'], status_counts['resolved'], status_counts['declined']
     ])
-    
+
+    ws_summary.append([])
+    ws_summary.append(['По подразделениям'])
+    _apply_header_style(ws_summary, 8, 1)
+
+    groups_headers = ["Подразделение", "Всего", "Обучающие", "Информационные", "Завершены", "Не завершены", "Повторяющиеся"]
+    ws_summary.append(groups_headers)
+    _apply_header_style(ws_summary, 9, 8)
+
+    groups_involved = list(
+        Group.objects.filter(user__id__in=unique_assigned_users)
+        .values_list('name', flat=True)
+        .distinct()
+    )
+
+    incidents_prefetched = incidents.prefetch_related('assigned_to', 'violators')
+
+    start_row = 10
+    for idx, group_name in enumerate(groups_involved):
+        group_user_ids = set(
+            User.objects.filter(groups__name=group_name)
+            .filter(id__in=unique_assigned_users)
+            .values_list('id', flat=True)
+        )
+        if not group_user_ids:
+            ws_summary.append([group_name, 0, 0, 0, 0, 0, "Не выявлено"])
+            row_num = start_row + idx
+            for col in range(1,8):
+                ws_summary.cell(row=row_num, column=col).alignment = Alignment(wrap_text=True)
+            continue
+
+        group_total = 0
+        group_edu = 0
+        group_info = 0
+        titles_list = []
+
+        for inc in incidents_prefetched:
+            assigned_ids = set(inc.assigned_to.values_list('id', flat=True))
+            violator_ids = set(inc.violators.values_list('id', flat=True))
+            in_group = (assigned_ids | violator_ids) & group_user_ids
+            n = len(in_group)
+            if n == 0:
+                continue
+            group_total += n
+            if inc.incident_type == 'educational':
+                group_edu += n
+            else:
+                group_info += n
+            titles_list.append(inc.title)
+
+        completed = UserCourse.objects.filter(
+            user_id__in=group_user_ids,
+            course__in=incident_courses,
+            status='completed'
+        ).count()
+        not_completed = max(0, group_total - completed)
+        
+        has_duplicate_titles = len(titles_list) != len(set(titles_list))
+        repeat_value = "Выявлено" if has_duplicate_titles else "Не выявлено"
+
+        ws_summary.append([
+            group_name,
+            group_total,
+            group_edu,
+            group_info,
+            completed,
+            not_completed,
+            repeat_value,
+        ])
+
+
     # ================== ЛИСТ 2: Диаграммы ==================
     ws_charts = wb.create_sheet("Диаграммы")
     
