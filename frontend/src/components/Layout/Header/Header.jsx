@@ -106,10 +106,10 @@ const Header = ({ user, isAuthenticated, isExternal, navPublic, navStaff, navMen
                 </li>
               )}
 
-              {/* Кнопка входа */}
+              {/* Войти — только в мобильном меню (на десктопе кнопка справа) */}
               {!isAuthenticated && (
-                <li className="header__nav-item">
-                  <a href="/users/login/" className="header__nav-link">
+                <li className="header__nav-item header__nav-item--login-only">
+                  <a href="/users/login/" className="header__nav-link" onClick={closeAll}>
                     <i className="fa-solid fa-right-to-bracket" />
                     <span>Войти</span>
                   </a>
@@ -118,9 +118,9 @@ const Header = ({ user, isAuthenticated, isExternal, navPublic, navStaff, navMen
             </ul>
           </div>
 
-          {/* Desktop: профиль */}
-          {isAuthenticated && (
-            <div className="header__desktop-actions">
+          {/* Правый угол: профиль или кнопка Войти */}
+          <div className="header__desktop-actions">
+            {isAuthenticated ? (
               <div className="header__profile-wrapper">
                 <button
                   className="header__avatar-btn"
@@ -135,8 +135,13 @@ const Header = ({ user, isAuthenticated, isExternal, navPublic, navStaff, navMen
                   </div>
                 )}
               </div>
-            </div>
-          )}
+            ) : (
+              <a href="/users/login/" className="header__login-link">
+                <i className="fa-solid fa-right-to-bracket" />
+                <span>Войти</span>
+              </a>
+            )}
+          </div>
         </div>
       </nav>
     </header>

@@ -94,11 +94,36 @@
   border: 2px solid var(--color-accent);
 }
 
-/* Desktop-действия */
+/* Desktop-действия (профиль или Войти) */
 .header__desktop-actions {
   display: flex;
   align-items: center;
   gap: 12px;
+}
+
+.header__login-link {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-weight: 600;
+  color: var(--color-navbar-link);
+  border-radius: 8px;
+  padding: 0.5rem 1rem;
+  background: transparent;
+  text-decoration: none;
+  transition: color 0.2s, background 0.2s;
+  font-size: 0.95rem;
+  white-space: nowrap;
+}
+
+.header__login-link:hover {
+  color: var(--color-navbar-link-hover);
+  background: rgba(77, 124, 255, 0.08);
+}
+
+/* В мобильном меню показываем «Войти» в списке; на десктопе — только справа */
+.header__nav-item--login-only {
+  display: none;
 }
 
 .header__profile-wrapper {
@@ -237,5 +262,9 @@
     padding: 0.75rem 1rem;
     border-radius: 8px;
     width: 100%;
+  }
+
+  .header__nav-item--login-only {
+    display: list-item;
   }
 }
