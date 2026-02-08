@@ -1,0 +1,94 @@
+/* ===== Глобальные CSS-переменные (из Django style.css) ===== */
+
+:root {
+  --color-bg: #f7f8fa;
+  --color-bg-secondary: #fff;
+  --color-text: #232a3a;
+  --color-text-secondary: #444;
+  --color-accent: #4d7cff;
+  --color-accent-hover: #2dabc4;
+  --color-card-bg: #fff;
+  --color-card-shadow: 0 2px 16px #e3e8f0;
+  --color-btn-bg: #4d7cff;
+  --color-btn-text: #fff;
+  --color-navbar-bg: #cfe2ff;
+  --color-navbar-link: #232a3a;
+  --color-navbar-link-hover: #4d7cff;
+  --color-footer-bg: #cfe2ff;
+  --color-footer-bottom-bg: #c1d8fc;
+  --color-footer-text: #232a3a;
+  --color-footer-link: #232a3a;
+  --color-footer-link-hover: #4d7cff;
+  --color-footer-accent: #4d7cff;
+  --color-footer-tagline: #444;
+  --color-footer-border: #e3e8f0;
+  --color-card-border: #e3e8f0;
+  --color-card-title: #232a3a;
+  --color-card-desc: #444;
+  --color-hero-face-label: #232a3a;
+  --color-hero-face-bg: #fff;
+  --color-hero-face-shadow: 0 2px 16px #e3e8f0;
+  --color-overlay-bg: rgba(255, 255, 255, 0.92);
+  --color-overlay-text: #232a3a;
+  --color-hero-gradient: #e3e8f0;
+  --color-hero-btn-bg: var(--color-accent);
+  --color-hero-btn-text: #fff;
+  --color-hero-btn-hover-bg: var(--color-accent);
+  --color-hero-btn-hover-text: #fff;
+  --color-link: #4d7cff;
+  --color-link-hover: #2dabc4;
+  --primary-font: 'Onest', sans-serif;
+}
+
+/* ===== Глобальный сброс ===== */
+
+*,
+*::before,
+*::after {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  display: flex;
+  min-height: 100vh;
+  flex-direction: column;
+  background-color: var(--color-bg);
+  color: var(--color-text);
+  font-family: var(--primary-font);
+  line-height: 1.5;
+}
+
+#root {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+a {
+  color: var(--color-link);
+  text-decoration: none;
+}
+
+a:hover {
+  color: var(--color-link-hover);
+}
+
+img {
+  max-width: 100%;
+  height: auto;
+}
+
+ul {
+  list-style: none;
+}
+
+button {
+  cursor: pointer;
+  font-family: inherit;
+}

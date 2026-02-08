@@ -1,0 +1,241 @@
+/* ===== Header ===== */
+
+.header {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+  position: relative;
+}
+
+.header__nav {
+  box-shadow: 0 2px 16px 0 rgba(0, 0, 0, 0.08);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background: var(--color-navbar-bg);
+  width: 100%;
+  padding: 0.5rem 1rem;
+  transition: box-shadow 0.3s;
+}
+
+.header__container {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  max-width: 1400px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+/* Логотип */
+.header__logo-link {
+  display: flex;
+  align-items: center;
+}
+
+.header__logo {
+  height: 44px;
+  width: auto;
+}
+
+/* Навигация */
+.header__nav-collapse {
+  display: flex;
+  flex: 1;
+  justify-content: center;
+}
+
+.header__nav-list {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.2rem;
+}
+
+.header__nav-item {
+  list-style: none;
+}
+
+.header__nav-link {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-weight: 600;
+  color: var(--color-navbar-link);
+  border-radius: 8px;
+  padding: 0.5rem 1rem;
+  background: transparent;
+  text-decoration: none;
+  transition: color 0.2s, background 0.2s;
+  font-size: 0.95rem;
+  white-space: nowrap;
+}
+
+.header__nav-link:hover {
+  color: var(--color-navbar-link-hover);
+  background: rgba(77, 124, 255, 0.08);
+}
+
+/* Аватар и профиль */
+.header__avatar-btn {
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+}
+
+.header__avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid var(--color-accent);
+}
+
+/* Desktop-действия */
+.header__desktop-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.header__profile-wrapper {
+  position: relative;
+}
+
+/* Dropdown */
+.header__dropdown {
+  position: absolute;
+  right: 0;
+  top: 100%;
+  margin-top: 8px;
+  background: var(--color-bg-secondary);
+  border-radius: 12px;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.12);
+  min-width: 220px;
+  z-index: 200;
+  padding: 8px 0;
+  animation: dropdownFadeIn 0.15s ease-out;
+}
+
+@keyframes dropdownFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.header__dropdown-list {
+  list-style: none;
+}
+
+.header__dropdown-item {
+  display: block;
+  padding: 10px 20px;
+  color: var(--color-text);
+  text-decoration: none;
+  font-size: 0.9rem;
+  transition: background 0.15s;
+  cursor: pointer;
+}
+
+.header__dropdown-item:hover {
+  background: rgba(77, 124, 255, 0.08);
+  color: var(--color-accent);
+}
+
+.header__dropdown-item--btn {
+  width: 100%;
+  text-align: left;
+  background: none;
+  border: none;
+  font-family: inherit;
+  font-size: 0.9rem;
+  color: var(--color-text);
+}
+
+.header__dropdown-item--btn:hover {
+  background: rgba(77, 124, 255, 0.08);
+  color: var(--color-accent);
+}
+
+.header__dropdown-divider {
+  height: 1px;
+  background: var(--color-card-border);
+  margin: 4px 0;
+}
+
+/* Бургер-меню */
+.header__burger {
+  display: none;
+  background: none;
+  border: none;
+  font-size: 1.4rem;
+  color: var(--color-navbar-link);
+  padding: 0.5rem;
+  cursor: pointer;
+}
+
+.header__mobile-actions {
+  display: none;
+  align-items: center;
+  gap: 8px;
+}
+
+.header__mobile-profile {
+  position: relative;
+}
+
+.header__dropdown--mobile {
+  right: 0;
+}
+
+/* ===== Адаптивность ===== */
+
+@media (max-width: 991px) {
+  .header__burger {
+    display: flex;
+  }
+
+  .header__mobile-actions {
+    display: flex;
+  }
+
+  .header__desktop-actions {
+    display: none;
+  }
+
+  .header__nav-collapse {
+    display: none;
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background: var(--color-navbar-bg);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+    padding: 1rem;
+    z-index: 99;
+  }
+
+  .header__nav-collapse--open {
+    display: block;
+  }
+
+  .header__nav-list {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0;
+  }
+
+  .header__nav-link {
+    padding: 0.75rem 1rem;
+    border-radius: 8px;
+    width: 100%;
+  }
+}

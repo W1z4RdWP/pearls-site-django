@@ -1,5 +1,6 @@
 from django.urls import path
 from . import views
+from . import views_frontend
 
 app_name = 'api'
 
@@ -14,4 +15,8 @@ urlpatterns = [
     path('telegram/metrics-check/', views.telegram_metrics_check, name='telegram_metrics_check'),
     path('short-token/', views.generate_short_token, name='generate_short_token'),
     path('s/<str:short_token>/', views.short_token_auth, name='short_token_auth'),
+
+    # Frontend endpoints
+    path('frontend/layout/', views_frontend.layout_data, name='frontend_layout'),
+    path('frontend/courses/', views_frontend.home_courses, name='frontend_courses'),
 ]

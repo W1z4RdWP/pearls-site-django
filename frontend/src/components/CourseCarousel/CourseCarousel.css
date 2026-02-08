@@ -1,0 +1,131 @@
+/* ===== Course Carousel ===== */
+
+.course-carousel {
+  margin-bottom: 48px;
+}
+
+.course-carousel__all-btn {
+  display: inline-block;
+  background: var(--color-btn-bg);
+  color: var(--color-btn-text);
+  padding: 12px 32px;
+  border-radius: 12px;
+  font-weight: 700;
+  font-size: 1rem;
+  text-decoration: none;
+  margin-bottom: 20px;
+  transition: background 0.2s, transform 0.2s;
+}
+
+.course-carousel__all-btn:hover {
+  background: var(--color-accent-hover);
+  transform: translateY(-2px);
+  color: var(--color-btn-text);
+}
+
+/* Обёртка */
+.course-carousel__wrapper {
+  position: relative;
+}
+
+.course-carousel__inner {
+  position: relative;
+  min-height: 360px;
+  overflow: hidden;
+  border-radius: 16px;
+}
+
+/* Элемент */
+.course-carousel__item {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  transition: opacity 0.5s ease;
+  pointer-events: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.course-carousel__item--active {
+  opacity: 1;
+  pointer-events: all;
+  position: relative;
+}
+
+.course-carousel__image {
+  width: 100%;
+  max-height: 300px;
+  object-fit: cover;
+  border-radius: 16px;
+  display: block;
+}
+
+/* Информация о курсе */
+.course-carousel__info {
+  padding: 16px 0;
+  text-align: center;
+  max-width: 600px;
+}
+
+.course-carousel__title-link {
+  text-decoration: none;
+  color: inherit;
+}
+
+.course-carousel__title {
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: var(--color-card-title);
+  margin-bottom: 8px;
+  transition: color 0.2s;
+}
+
+.course-carousel__title-link:hover .course-carousel__title {
+  color: var(--color-accent);
+}
+
+.course-carousel__description {
+  font-size: 0.9rem;
+  color: var(--color-card-desc);
+  line-height: 1.6;
+}
+
+/* Стрелки */
+.course-carousel__arrows {
+  display: flex;
+  justify-content: center;
+  gap: 24px;
+  margin-top: 16px;
+}
+
+.course-carousel__arrow {
+  background: none;
+  border: none;
+  font-size: 1.8rem;
+  color: var(--color-text);
+  cursor: pointer;
+  padding: 8px;
+  transition: color 0.2s, transform 0.2s;
+}
+
+.course-carousel__arrow:hover {
+  color: var(--color-accent);
+  transform: scale(1.15);
+}
+
+/* ===== Адаптивность ===== */
+
+@media (max-width: 768px) {
+  .course-carousel__inner {
+    min-height: 260px;
+  }
+
+  .course-carousel__image {
+    max-height: 220px;
+  }
+
+  .course-carousel__info {
+    padding: 12px 8px;
+  }
+}

@@ -1,0 +1,159 @@
+/* ===== Footer ===== */
+
+.footer {
+  background: var(--color-footer-bg);
+  color: var(--color-footer-text);
+  width: 100%;
+  padding: 40px 0 0 0;
+  border-top: 2px solid var(--color-footer-border);
+  font-family: var(--primary-font);
+  margin-top: auto;
+}
+
+.footer__container {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: flex-start;
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 0 32px;
+  gap: 32px;
+}
+
+.footer__col {
+  flex: 1 1 180px;
+  min-width: 160px;
+}
+
+.footer__heading {
+  font-size: 1rem;
+  font-weight: 700;
+  margin-bottom: 12px;
+  color: var(--color-footer-text);
+}
+
+/* Бренд */
+.footer__brand {
+  flex: 1.5 1 240px;
+}
+
+.footer__logo {
+  height: 40px;
+  width: auto;
+  margin-bottom: 8px;
+}
+
+.footer__tagline {
+  color: var(--color-footer-tagline);
+  font-size: 0.95rem;
+  line-height: 1.5;
+}
+
+/* Ссылки */
+.footer__links ul,
+.footer__contact ul,
+.footer__requisites ul {
+  list-style: none;
+}
+
+.footer__links li,
+.footer__contact li,
+.footer__requisites li {
+  margin-bottom: 6px;
+}
+
+.footer__links a,
+.footer__contact a {
+  color: var(--color-footer-link);
+  text-decoration: none;
+  font-size: 0.95rem;
+  transition: color 0.2s;
+}
+
+.footer__links a:hover,
+.footer__contact a:hover {
+  color: var(--color-footer-link-hover);
+}
+
+.footer__requisites li {
+  font-size: 0.9rem;
+  color: var(--color-footer-text);
+}
+
+/* Соцсети */
+.footer__social-icons {
+  display: flex;
+  gap: 12px;
+}
+
+.footer__social-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  transition: transform 0.2s;
+}
+
+.footer__social-icon:hover {
+  transform: scale(1.1);
+}
+
+/* Нижняя часть */
+.footer__bottom {
+  border-top: 1px solid var(--color-footer-border);
+  margin-top: 12px;
+  padding: 16px 32px 8px 32px;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.98em;
+  background: var(--color-footer-bottom-bg);
+}
+
+.footer__version {
+  font-size: 0.85rem;
+  color: var(--color-footer-tagline);
+}
+
+.footer__policy {
+  color: var(--color-footer-link);
+  text-decoration: none;
+  font-size: 0.9rem;
+}
+
+.footer__policy:hover {
+  color: var(--color-footer-link-hover);
+}
+
+.footer__logo-mobile {
+  display: none;
+}
+
+/* ===== Адаптивность ===== */
+
+@media (max-width: 768px) {
+  .footer__container {
+    flex-direction: column;
+    gap: 24px;
+    padding: 0 16px;
+  }
+
+  .footer__col {
+    min-width: 100%;
+  }
+
+  .footer__bottom {
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    text-align: center;
+    padding: 16px;
+  }
+
+  .footer__logo-mobile {
+    display: block;
+    height: 32px;
+    width: auto;
+  }
+}
