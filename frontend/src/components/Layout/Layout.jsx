@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Outlet } from 'react-router-dom';
 import Header from './Header/Header';
 import Footer from './Footer/Footer';
@@ -10,21 +10,21 @@ const Layout = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  useEffect(() => {
-    const loadLayout = async () => {
-      try {
-        const data = await fetchLayoutData();
-        setLayoutData(data);
-      } catch (err) {
-        console.error('Ошибка загрузки данных layout:', err);
-        setError(err.message);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    loadLayout();
+  const loadLayout = useCallback(async () => {
+    try {
+      const data = await fetchLayoutData();
+      setLayoutData(data);
+    } catch (err) {
+      console.error('Ошибка загрузки данных layout:', err);
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
   }, []);
+
+  useEffect(() => {
+    loadLayout();
+  }, [loadLayout]);
 
   if (loading) {
     return (
@@ -62,10 +62,11 @@ const Layout = () => {
         navPublic={navPublic}
         navStaff={navStaff}
         navMentor={navMentor}
+        refreshLayout={loadLayout}
       />
 
       <main className="layout__main">
-        <Outlet context={{ user, isAuthenticated, isExternal }} />
+        <Outlet context={{ user, isAuthenticated, isExternal, refreshLayout: loadLayout }} />
       </main>
 
       {/* Кнопка поддержки */}

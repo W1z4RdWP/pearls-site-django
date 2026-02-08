@@ -3,19 +3,26 @@ API views для фронтенда на React.
 Предоставляет данные для Layout (navbar, footer) и HomePage.
 """
 
+import logging
+
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework import status
 
+from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.models import User
+from django.views.decorators.csrf import ensure_csrf_cookie
 from courses.models import Course, TrajectoryCourse
 
 from .serializers import UserMeSerializer, CourseListSerializer
 
+audit_logger = logging.getLogger('api_audit')
+
 
 @api_view(['GET'])
 @permission_classes([AllowAny])
+@ensure_csrf_cookie
 def layout_data(request):
     """
     Возвращает данные для Layout: информация о пользователе,
@@ -146,3 +153,80 @@ def _is_course_available_in_trajectory(user, course):
             return True
 
     return False
+
+
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def login_view(request):
+    """
+    Авторизация пользователя через JSON API.
+    Принимает {username, password}, возвращает данные пользователя.
+    """
+    username = request.data.get('username', '').strip()
+    password = request.data.get('password', '')
+
+    if not username or not password:
+        return Response(
+            {'error': 'Введите логин и пароль'},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    user = authenticate(request, username=username, password=password)
+
+    if user is None:
+        audit_logger.info(
+            'Неудачная попытка входа через фронтенд API',
+            extra={
+                'user': username,
+                'ip': request.META.get('REMOTE_ADDR', 'Unknown'),
+            },
+        )
+        return Response(
+            {'error': 'Неверный логин или пароль'},
+            status=status.HTTP_401_UNAUTHORIZED,
+        )
+
+    # Проверяем, что профиль подтверждён
+    try:
+        if hasattr(user, 'profile') and not user.profile.is_approved:
+            return Response(
+                {'error': 'Ваш аккаунт ожидает подтверждения администратором'},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+    except Exception:
+        pass
+
+    login(request, user)
+
+    audit_logger.info(
+        'Успешный вход через фронтенд API',
+        extra={
+            'user': user.email or user.username,
+            'ip': request.META.get('REMOTE_ADDR', 'Unknown'),
+        },
+    )
+
+    user_data = UserMeSerializer(user).data
+    is_external = user.groups.filter(name='Внешний пользователь').exists()
+
+    return Response({
+        'success': True,
+        'user': user_data,
+        'is_external': is_external,
+    })
+
+
+@api_view(['POST'])
+def logout_view(request):
+    """
+    Выход пользователя через JSON API.
+    """
+    audit_logger.info(
+        'Выход через фронтенд API',
+        extra={
+            'user': request.user.email or request.user.username,
+            'ip': request.META.get('REMOTE_ADDR', 'Unknown'),
+        },
+    )
+    logout(request)
+    return Response({'success': True})

@@ -80,6 +80,26 @@
   background: var(--color-accent-hover);
 }
 
+.login-page__error {
+  margin-bottom: 1rem;
+  padding: 0.75rem 1rem;
+  font-size: 0.875rem;
+  color: #b91c1c;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: 8px;
+}
+
+.login-page__btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.login-page__input:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
 .login-page__hint {
   margin-top: 1.5rem;
   padding-top: 1.25rem;

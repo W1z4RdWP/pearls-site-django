@@ -60,3 +60,27 @@ export function fetchLayoutData() {
 export function fetchHomeCourses() {
   return request('/frontend/courses/');
 }
+
+/**
+ * Авторизация пользователя.
+ * @param {string} username — логин или email
+ * @param {string} password — пароль
+ * @returns {Promise<{success: boolean, user: object, is_external: boolean}>}
+ */
+export function loginUser(username, password) {
+  return request('/frontend/login/', {
+    method: 'POST',
+    body: JSON.stringify({ username, password }),
+  });
+}
+
+/**
+ * Выход пользователя.
+ * @returns {Promise<{success: boolean}>}
+ */
+export function logoutUser() {
+  return request('/frontend/logout/', {
+    method: 'POST',
+    body: JSON.stringify({}),
+  });
+}

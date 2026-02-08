@@ -1,10 +1,13 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
+import { logoutUser } from '../../../api/api';
 import './Header.css';
 
-const Header = ({ user, isAuthenticated, isExternal, navPublic, navStaff, navMentor }) => {
+const Header = ({ user, isAuthenticated, isExternal, navPublic, navStaff, navMentor, refreshLayout }) => {
   const [menuOpen, setMenuOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
+
+  const navigate = useNavigate();
 
   const toggleMenu = () => setMenuOpen((prev) => !prev);
   const toggleProfile = () => setProfileOpen((prev) => !prev);
@@ -13,7 +16,17 @@ const Header = ({ user, isAuthenticated, isExternal, navPublic, navStaff, navMen
     setProfileOpen(false);
   };
 
-  // const backendUrl = import.meta.env.VITE_BACKEND_URL
+  const handleLogout = async () => {
+    closeAll();
+    try {
+      await logoutUser();
+      await refreshLayout();
+      navigate('/users/login', { replace: true });
+    } catch (err) {
+      console.error('Ошибка при выходе:', err);
+    }
+  };
+
   const avatarUrl = user?.avatar_url || '/media/profile_pics/default.jpg';
 
 
@@ -51,7 +64,7 @@ const Header = ({ user, isAuthenticated, isExternal, navPublic, navStaff, navMen
                 </button>
                 {profileOpen && (
                   <div className="header__dropdown header__dropdown--mobile">
-                    <ProfileDropdownItems user={user} isExternal={isExternal} onClose={closeAll} />
+                    <ProfileDropdownItems user={user} isExternal={isExternal} onClose={closeAll} onLogout={handleLogout} />
                   </div>
                 )}
               </div>
@@ -109,10 +122,10 @@ const Header = ({ user, isAuthenticated, isExternal, navPublic, navStaff, navMen
               {/* Войти — только в мобильном меню (на десктопе кнопка справа) */}
               {!isAuthenticated && (
                 <li className="header__nav-item header__nav-item--login-only">
-                  <a href="/users/login/" className="header__nav-link" onClick={closeAll}>
+                  <Link to="/users/login" className="header__nav-link" onClick={closeAll}>
                     <i className="fa-solid fa-right-to-bracket" />
                     <span>Войти</span>
-                  </a>
+                  </Link>
                 </li>
               )}
             </ul>
@@ -131,15 +144,15 @@ const Header = ({ user, isAuthenticated, isExternal, navPublic, navStaff, navMen
                 </button>
                 {profileOpen && (
                   <div className="header__dropdown">
-                    <ProfileDropdownItems user={user} isExternal={isExternal} onClose={closeAll} />
+                    <ProfileDropdownItems user={user} isExternal={isExternal} onClose={closeAll} onLogout={handleLogout} />
                   </div>
                 )}
               </div>
             ) : (
-              <a href="/users/login/" className="header__login-link">
+              <Link to="/users/login" className="header__login-link">
                 <i className="fa-solid fa-right-to-bracket" />
                 <span>Войти</span>
-              </a>
+              </Link>
             )}
           </div>
         </div>
@@ -151,7 +164,7 @@ const Header = ({ user, isAuthenticated, isExternal, navPublic, navStaff, navMen
 /**
  * Элементы выпадающего меню профиля.
  */
-const ProfileDropdownItems = ({ user, isExternal, onClose }) => (
+const ProfileDropdownItems = ({ user, isExternal, onClose, onLogout }) => (
   <ul className="header__dropdown-list">
     <li>
       <a href="/users/profile/" className="header__dropdown-item" onClick={onClose}>
@@ -184,11 +197,13 @@ const ProfileDropdownItems = ({ user, isExternal, onClose }) => (
     )}
     <li className="header__dropdown-divider" />
     <li>
-      <form action="/users/logout/" method="post">
-        <button type="submit" className="header__dropdown-item header__dropdown-item--btn">
-          Выйти
-        </button>
-      </form>
+      <button
+        type="button"
+        className="header__dropdown-item header__dropdown-item--btn"
+        onClick={onLogout}
+      >
+        Выйти
+      </button>
     </li>
   </ul>
 );

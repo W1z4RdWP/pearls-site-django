@@ -19,4 +19,6 @@ urlpatterns = [
     # Frontend endpoints
     path('frontend/layout/', views_frontend.layout_data, name='frontend_layout'),
     path('frontend/courses/', views_frontend.home_courses, name='frontend_courses'),
+    path('frontend/login/', views_frontend.login_view, name='frontend_login'),
+    path('frontend/logout/', views_frontend.logout_view, name='frontend_logout'),
 ]
