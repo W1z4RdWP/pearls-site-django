@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useOutletContext } from 'react-router-dom';
-import { loginUser } from '../../api/api';
+import { loginUser } from '../../../api/api';
 import './LoginPage.css';
 
 const LoginPage = () => {

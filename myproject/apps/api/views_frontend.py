@@ -5,10 +5,11 @@ API views для фронтенда на React.
 
 import logging
 
-from rest_framework.decorators import api_view, permission_classes
+from rest_framework.decorators import api_view, permission_classes, authentication_classes
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework import status
+from rest_framework.authentication import SessionAuthentication
 
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.models import User
@@ -18,6 +19,12 @@ from courses.models import Course, TrajectoryCourse
 from .serializers import UserMeSerializer, CourseListSerializer
 
 audit_logger = logging.getLogger('api_audit')
+
+
+class SessionAuthenticationNoCSRF(SessionAuthentication):
+    """SessionAuthentication без проверки CSRF для POST logout (сессия уже есть от Django)."""
+    def enforce_csrf(self, request):
+        pass
 
 
 @api_view(['GET'])
@@ -217,6 +224,8 @@ def login_view(request):
 
 
 @api_view(['POST'])
+@permission_classes([AllowAny])
+@authentication_classes([SessionAuthenticationNoCSRF])
 def logout_view(request):
     """
     Выход пользователя через JSON API.
@@ -224,7 +233,7 @@ def logout_view(request):
     audit_logger.info(
         'Выход через фронтенд API',
         extra={
-            'user': request.user.email or request.user.username,
+            'user': getattr(request.user, 'email', None) or getattr(request.user, 'username', 'Anonymous'),
             'ip': request.META.get('REMOTE_ADDR', 'Unknown'),
         },
     )
