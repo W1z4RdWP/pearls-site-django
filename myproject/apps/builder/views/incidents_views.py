@@ -192,6 +192,14 @@ def _set_column_widths(ws, widths):
         ws.column_dimensions[col_letter].width = width
 
 
+def _insert_rows(ws, rows):
+    """Устанавливает пустые строки"""
+    
+    return ws.append([])
+            
+        
+
+
 @login_required
 def incidents_export_excel_report(request):
     if not (request.user.is_staff or request.user.is_superuser):
@@ -243,7 +251,7 @@ def incidents_export_excel_report(request):
     ]
     ws_summary.append(summary_headers)
     _apply_header_style(ws_summary, 1, len(summary_headers))
-    _set_column_widths(ws_summary, [20, 18, 15, 20, 22, 22])
+    _set_column_widths(ws_summary, [50, 30, 30, 20, 22, 22])
     
     ws_summary.append([
         total_incidents, info_incidents_count, edu_incidents_count,
@@ -264,23 +272,70 @@ def incidents_export_excel_report(request):
         status_counts['studies_completed'], status_counts['resolved'], status_counts['declined']
     ])
 
-    ws_summary.append([])
-    ws_summary.append(['По подразделениям'])
-    _apply_header_style(ws_summary, 8, 1)
-
-    groups_headers = ["Подразделение", "Всего", "Обучающие", "Информационные", "Завершены", "Не завершены", "Повторяющиеся"]
-    ws_summary.append(groups_headers)
-    _apply_header_style(ws_summary, 9, 8)
-
+    # Группы и инциденты для блоков «Просрочены дедлайны» и «По подразделениям»
     groups_involved = list(
         Group.objects.filter(user__id__in=unique_assigned_users)
         .values_list('name', flat=True)
         .distinct()
     )
-
     incidents_prefetched = incidents.prefetch_related('assigned_to', 'violators')
 
-    start_row = 10
+    # Просрочены дедлайны по подразделениям: считаем по UserCourse.deadline (срок курса у пользователя), не по Incident.deadline
+    from django.utils import timezone
+    now = timezone.now()
+    incidents_with_course = [inc for inc in incidents_prefetched if inc.course_id is not None]
+    # По группе: (group_name, set(user_ids) просрочивших, set(incident_ids) просроченных для группы)
+    overdue_by_group = {}
+    for group_name in groups_involved:
+        group_user_ids = set(
+            User.objects.filter(groups__name=group_name)
+            .filter(id__in=unique_assigned_users)
+            .values_list('id', flat=True)
+        )
+        overdue_user_ids = set()
+        overdue_incident_ids = set()
+        for inc in incidents_with_course:
+            assigned_ids = set(inc.assigned_to.values_list('id', flat=True))
+            violator_ids = set(inc.violators.values_list('id', flat=True))
+            in_group = (assigned_ids | violator_ids) & group_user_ids
+            if not in_group:
+                continue
+            # Просрочили: у пользователя есть UserCourse по курсу инцидента с дедлайном < now и статус не 'completed'
+            overdue_user_ids_for_inc = set(
+                UserCourse.objects.filter(
+                    user_id__in=in_group,
+                    course_id=inc.course_id,
+                    deadline__isnull=False,
+                    deadline__lt=now,
+                ).exclude(status='completed').values_list('user_id', flat=True)
+            )
+            if overdue_user_ids_for_inc:
+                overdue_incident_ids.add(inc.id)
+                overdue_user_ids |= overdue_user_ids_for_inc
+        overdue_by_group[group_name] = (len(overdue_user_ids), len(overdue_incident_ids))
+    # Сортируем группы по количеству просроченных инцидентов (убывание)
+    overdue_rows = [
+        [group_name, num_employees, num_incidents]
+        for group_name, (num_employees, num_incidents) in sorted(
+            overdue_by_group.items(), key=lambda x: -x[1][1]
+        )
+    ]
+
+    ws_summary.append([])
+    ws_summary.append(['Просрочены дедлайны в подразделении', 'Количество сотрудников', 'Количество инцидентов'])
+    _apply_header_style(ws_summary, ws_summary.max_row, 3)
+    for row in overdue_rows:
+        ws_summary.append(row)
+    ws_summary.append([])
+    ws_summary.append([])
+    ws_summary.append(['По подразделениям'])
+    _apply_header_style(ws_summary, ws_summary.max_row, 1)
+
+    groups_headers = ["Подразделение", "Всего", "Обучающие", "Информационные", "Завершены", "Не завершены", "Повторяющиеся"]
+    ws_summary.append(groups_headers)
+    _apply_header_style(ws_summary, ws_summary.max_row, 8)
+
+    start_row = ws_summary.max_row + 1
     for idx, group_name in enumerate(groups_involved):
         group_user_ids = set(
             User.objects.filter(groups__name=group_name)
