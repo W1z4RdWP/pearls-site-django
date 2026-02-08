@@ -13,7 +13,9 @@ const Header = ({ user, isAuthenticated, isExternal, navPublic, navStaff, navMen
     setProfileOpen(false);
   };
 
+  // const backendUrl = import.meta.env.VITE_BACKEND_URL
   const avatarUrl = user?.avatar_url || '/media/profile_pics/default.jpg';
+
 
   return (
     <header className="header">

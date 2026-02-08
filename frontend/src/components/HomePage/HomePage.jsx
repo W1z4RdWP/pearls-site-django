@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react';
 import { useOutletContext } from 'react-router-dom';
-import HeroSection from '../HeroSection/HeroSection';
-import StaffCarousel from '../StaffCarousel/StaffCarousel';
-import FeatureCards from '../FeatureCards/FeatureCards';
-import CourseCarousel from '../CourseCarousel/CourseCarousel';
+import HeroSection from './HeroSection/HeroSection';
+import StaffCarousel from './StaffCarousel/StaffCarousel';
+import FeatureCards from './FeatureCards/FeatureCards';
+import CourseCarousel from './CourseCarousel/CourseCarousel';
 import { fetchHomeCourses } from '../../api/api';
 import './HomePage.css';
 

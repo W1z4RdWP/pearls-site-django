@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Outlet } from 'react-router-dom';
-import Header from '../Header/Header';
-import Footer from '../Footer/Footer';
+import Header from './Header/Header';
+import Footer from './Footer/Footer';
 import { fetchLayoutData } from '../../api/api';
 import './Layout.css';
 
