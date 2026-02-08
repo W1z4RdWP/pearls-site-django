@@ -1,0 +1,89 @@
+/* login-page — блок страницы входа */
+.login-page {
+  min-height: 60vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+  background: var(--color-bg);
+}
+
+.login-page__card {
+  width: 100%;
+  max-width: 360px;
+  padding: 2.5rem;
+  background: var(--color-card-bg);
+  border-radius: 12px;
+  box-shadow: var(--color-card-shadow);
+}
+
+.login-page__title {
+  margin-bottom: 1.5rem;
+  font-family: var(--primary-font);
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.login-page__form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.login-page__field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.login-page__label {
+  font-size: 0.875rem;
+  color: var(--color-text-secondary);
+}
+
+.login-page__input {
+  padding: 0.65rem 0.85rem;
+  font-family: var(--primary-font);
+  font-size: 1rem;
+  color: var(--color-text);
+  background: var(--color-bg);
+  border: 1px solid var(--color-card-border);
+  border-radius: 8px;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.login-page__input::placeholder {
+  color: #999;
+}
+
+.login-page__input:focus {
+  border-color: var(--color-accent);
+}
+
+.login-page__btn {
+  margin-top: 0.5rem;
+  padding: 0.75rem 1.25rem;
+  font-family: var(--primary-font);
+  font-size: 1rem;
+  font-weight: 500;
+  color: var(--color-btn-text);
+  background: var(--color-btn-bg);
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.login-page__btn:hover {
+  background: var(--color-accent-hover);
+}
+
+.login-page__hint {
+  margin-top: 1.5rem;
+  padding-top: 1.25rem;
+  font-size: 0.8125rem;
+  color: var(--color-text-secondary);
+  border-top: 1px solid var(--color-card-border);
+}
