@@ -11,6 +11,9 @@ myproject_cache
 staticfiles
 staticfiles_old
 
+# Node
+node_modules/
+
 # Backup files # 
 *.bak 
 
