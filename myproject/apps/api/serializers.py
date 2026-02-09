@@ -1,6 +1,7 @@
 from rest_framework import serializers
 from django.contrib.auth.models import User, Group
 from courses.models import Course
+from myapp.models import UserCourse
 
 
 class GroupSerializer(serializers.ModelSerializer):
@@ -78,3 +79,10 @@ class CourseListSerializer(serializers.ModelSerializer):
         text = re.sub(r'<[^>]+>', '', str(obj.description))
         words = text.split()
         return ' '.join(words[:50]) + ('...' if len(words) > 50 else '')
+
+
+
+class UserCourseSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = UserCourse
+        fields = '__all__'

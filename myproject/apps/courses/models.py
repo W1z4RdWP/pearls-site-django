@@ -142,7 +142,7 @@ class CourseManager(models.Manager):
 
 class Course(models.Model):
     """
-    Модель представляющая таблицу myapp_course с курсами.
+    Модель представляющая таблицу courses_course с курсами.
 
     Attrs:
         title (CharField) - заголовок курса

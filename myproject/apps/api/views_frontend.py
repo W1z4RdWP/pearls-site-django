@@ -16,7 +16,7 @@ from django.contrib.auth.models import User
 from django.views.decorators.csrf import ensure_csrf_cookie
 from courses.models import Course, TrajectoryCourse
 
-from .serializers import UserMeSerializer, CourseListSerializer
+from .serializers import UserCourseSerializer, UserMeSerializer, CourseListSerializer
 
 audit_logger = logging.getLogger('api_audit')
 

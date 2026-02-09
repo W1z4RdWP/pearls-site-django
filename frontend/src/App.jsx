@@ -4,6 +4,7 @@ import HomePage from './components/HomePage/HomePage';
 import './App.css';
 import LoginPage from './components/UsersApp/LoginPage/LoginPage';
 import LogoutPage from './components/UsersApp/LogoutPage/LogoutPage';
+import AboutPage from './components/AboutPage/AboutPage';
 
 const App = () => {
   return (
@@ -13,6 +14,7 @@ const App = () => {
           <Route index element={<HomePage />} />
           <Route path='/users/login' element={<LoginPage />}/>
           <Route path='/users/logout' element={<LogoutPage />}/>
+          <Route path='/about' element={<AboutPage />}/>
           {/* Добавляйте новые маршруты здесь */}
         </Route>
       </Routes>

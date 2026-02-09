@@ -1,0 +1,19 @@
+.about-page{
+    display: flex;
+    flex-direction: column;
+}
+
+.about-page__block{
+    height: 40%;
+    width: 40%;
+    padding: 1rem;
+    font-size: larger;
+}
+
+.about-page__warning-msg{
+    width: 30%;
+    height: 30%;
+    align-self: center;
+    padding: 1%;
+    margin-top: 2%;
+}
