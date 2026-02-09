@@ -20,6 +20,10 @@ export default defineConfig({
         target: 'http://127.0.0.1:8005',
         changeOrigin: true,
       },
+      '/admin': {
+        target: 'http://127.0.0.1:8005',
+        changeOrigin: true,
+      },
       // '/users': {
       //   target: 'http://127.0.0.1:8005',
       //   changeOrigin: true,

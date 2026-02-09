@@ -2,6 +2,7 @@ from rest_framework import serializers
 from django.contrib.auth.models import User, Group
 from courses.models import Course
 from myapp.models import UserCourse
+from shop.models import InternalProduct, ProductOrder
 
 
 class GroupSerializer(serializers.ModelSerializer):
@@ -85,4 +86,16 @@ class CourseListSerializer(serializers.ModelSerializer):
 class UserCourseSerializer(serializers.ModelSerializer):
     class Meta:
         model = UserCourse
+        fields = '__all__'
+
+
+class InternalProductSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = InternalProduct
+        fields = '__all__'
+
+
+class ProductOrderSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = InternalProduct
         fields = '__all__'

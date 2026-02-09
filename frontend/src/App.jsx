@@ -5,6 +5,7 @@ import './App.css';
 import LoginPage from './components/UsersApp/LoginPage/LoginPage';
 import LogoutPage from './components/UsersApp/LogoutPage/LogoutPage';
 import AboutPage from './components/AboutPage/AboutPage';
+import ShopPage from './components/ShopPage/ShopPage';
 
 const App = () => {
   return (
@@ -15,6 +16,8 @@ const App = () => {
           <Route path='/users/login' element={<LoginPage />}/>
           <Route path='/users/logout' element={<LogoutPage />}/>
           <Route path='/about' element={<AboutPage />}/>
+          <Route path='/shop/catalog' element={<ShopPage />}/>
+
           {/* Добавляйте новые маршруты здесь */}
         </Route>
       </Routes>
