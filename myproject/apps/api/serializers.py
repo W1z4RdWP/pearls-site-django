@@ -97,5 +97,5 @@ class InternalProductSerializer(serializers.ModelSerializer):
 
 class ProductOrderSerializer(serializers.ModelSerializer):
     class Meta:
-        model = InternalProduct
+        model = ProductOrder
         fields = '__all__'
