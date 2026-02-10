@@ -304,9 +304,12 @@ def assign_courses_from_trajectory(user, trajectory, send_email_notifications=Fa
     """
 
     logger.info(f"Назначаем курсы из траектории {trajectory.name} пользователю {user.username}")
-    
+
+    # Получаем курсы траектории в порядке следования
     trajectory_courses = TrajectoryCourse.objects.filter(trajectory=trajectory).order_by('order')
-    
+
+    # Назначаем ТОЛЬКО первый доступный курс траектории.
+    # Остальные курсы будут назначаться последовательно после завершения предыдущего.
     for tc in trajectory_courses:
         # Проверяем, не был ли курс отменен вручную
         manual_unassignment = ManualCourseUnassignment.objects.filter(
@@ -321,15 +324,15 @@ def assign_courses_from_trajectory(user, trajectory, send_email_notifications=Fa
                 f"пользователем {manual_unassignment.unassigned_by.username if manual_unassignment.unassigned_by else 'неизвестно'}"
             )
             continue
-        
+
         user_course, created = UserCourse.objects.get_or_create(
             user=user,
             course=tc.course,
             defaults={'status': 'available'}
         )
         if created:
-            logger.info(f"Назначен курс {tc.course.title} пользователю {user.username}")
-            
+            logger.info(f"Назначен первый курс траектории {tc.course.title} пользователю {user.username}")
+
             # Создаем внутреннее уведомление только если это явно запрошено
             if create_notifications:
                 try:
@@ -337,7 +340,7 @@ def assign_courses_from_trajectory(user, trajectory, send_email_notifications=Fa
                     Notification.create_course_assignment_notification(user, tc.course)
                 except Exception as e:
                     logger.error(f"Ошибка создания внутреннего уведомления о курсе {tc.course.title}: {e}")
-            
+
             # Отправляем email уведомление только если это явно запрошено
             if send_email_notifications:
                 try:
@@ -345,6 +348,10 @@ def assign_courses_from_trajectory(user, trajectory, send_email_notifications=Fa
                     logger.info(f"Отправлено email уведомление о курсе {tc.course.title} пользователю {user.email}")
                 except Exception as e:
                     logger.error(f"Ошибка отправки email уведомления о курсе {tc.course.title}: {e}")
+
+            # Как только первый доступный курс назначен — выходим из цикла
+            break
+
 
 
 @receiver(post_save, sender=UserCourse)
@@ -510,6 +517,86 @@ def set_default_deadline_for_usercourse(sender, instance, created, **kwargs):
         except Course.DoesNotExist:
             pass
 
+
+@receiver(post_save, sender=UserCourse)
+def assign_next_trajectory_course_on_completion(sender, instance, created, **kwargs):
+    """
+    После завершения курса, входящего в траекторию, назначает следующий курс траектории.
+    Дедлайн следующего курса рассчитывается от времени завершения предыдущего курса
+    (instance.end_date или текущее время, если по какой-то причине end_date ещё не установлен).
+    """
+    # Интересует только переход в статус 'completed'
+    if instance.status != 'completed':
+        return
+
+    # Получаем старый статус из кэша, подготовленного в store_old_user_course_status
+    if instance.pk:
+        old_status = _user_course_old_status.pop(instance.pk, None)
+    else:
+        old_status = _user_course_old_status.pop(id(instance), None)
+
+    # Если статус не изменился на 'completed' (уже был completed) и это не новая запись — выходим
+    if old_status == 'completed' and not created:
+        return
+
+    user = instance.user
+    completed_course = instance.course
+
+    # Находим все траектории, в которых этот курс присутствует
+    trajectory_courses = TrajectoryCourse.objects.filter(course=completed_course).select_related('trajectory')
+    if not trajectory_courses.exists():
+        return
+
+    # Для каждой траектории, где пользователь состоит (UserCourseTrajectory), пытаемся выдать следующий курс
+    for tc in trajectory_courses:
+        trajectory = tc.trajectory
+
+        # Проверяем, есть ли у пользователя эта траектория
+        try:
+            user_trajectory = UserCourseTrajectory.objects.get(user=user, trajectory=trajectory)
+        except UserCourseTrajectory.DoesNotExist:
+            continue
+
+        # Находим следующий по порядку курс в этой траектории
+        next_tc = (
+            TrajectoryCourse.objects.filter(trajectory=trajectory, order__gt=tc.order)
+            .order_by('order')
+            .first()
+        )
+        if not next_tc:
+            # В траектории больше нет последующих курсов
+            continue
+
+        # Если следующий курс уже назначен пользователю, не дублируем
+        if UserCourse.objects.filter(user=user, course=next_tc.course).exists():
+            continue
+
+        # Определяем базовую дату для дедлайна: от даты завершения предыдущего курса
+        base_datetime = instance.end_date or timezone.now()
+
+        # Получаем количество дней для дедлайна из default_deadline_days следующего курса
+        deadline = None
+        next_course = next_tc.course
+        if hasattr(next_course, 'default_deadline_days') and next_course.default_deadline_days and next_course.default_deadline_days > 0:
+            deadline = base_datetime + timedelta(days=next_course.default_deadline_days)
+
+        # Создаем UserCourse для следующего курса с рассчитанным дедлайном (если он определён)
+        defaults = {'status': 'available'}
+        if deadline:
+            defaults['deadline'] = deadline
+
+        next_user_course, created_next = UserCourse.objects.get_or_create(
+            user=user,
+            course=next_course,
+            defaults=defaults,
+        )
+
+        if created_next:
+            logger.info(
+                f"Назначен следующий курс траектории {next_course.title} пользователю {user.username} "
+                f"после завершения курса {completed_course.title}. "
+                f"Дедлайн: {deadline if deadline else 'не установлен'}"
+            )
 
 @receiver(post_save, sender=UserCourse)
 def check_incident_completion_on_course_completion(sender, instance, created, **kwargs):

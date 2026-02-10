@@ -535,6 +535,10 @@ class UserEditDetailedView(UpdateView):
             if user_course:
                 user_courses.append(user_course)
             else:
+                # Курсы из траекторий назначаются только последовательно (после завершения предыдущего).
+                # Не создаём UserCourse здесь — он будет создан сигналом assign_next_trajectory_course_on_completion.
+                if UserCourseTrajectory.objects.filter(user=user, trajectory__trajectorycourse__course=course).exists():
+                    continue
                 # Проверяем, не был ли курс отменен вручную
                 manual_unassignment = ManualCourseUnassignment.objects.filter(
                     user=user, 
@@ -542,7 +546,7 @@ class UserEditDetailedView(UpdateView):
                 ).first()
                 
                 if not manual_unassignment:
-                    # Создаём UserCourse только если не было ручной отмены
+                    # Создаём UserCourse только если не было ручной отмены (для курсов из групп и т.п.)
                     user_course = UserCourse.objects.create(user=user, course=course, status='available')
                     user_courses.append(user_course)
                 # Если была ручная отмена, просто пропускаем этот курс
@@ -857,6 +861,10 @@ class UserProgressDashboardView(DetailView):
             if user_course:
                 user_courses.append(user_course)
             else:
+                # Курсы из траекторий назначаются только последовательно (после завершения предыдущего).
+                # Не создаём UserCourse здесь — он будет создан сигналом assign_next_trajectory_course_on_completion.
+                if UserCourseTrajectory.objects.filter(user=user, trajectory__trajectorycourse__course=course).exists():
+                    continue
                 # Проверяем, не был ли курс отменен вручную
                 manual_unassignment = ManualCourseUnassignment.objects.filter(
                     user=user, 
@@ -864,7 +872,7 @@ class UserProgressDashboardView(DetailView):
                 ).first()
                 
                 if not manual_unassignment:
-                    # Создаем UserCourse если его нет (для курсов из траекторий)
+                    # Создаем UserCourse если его нет (для курсов из групп и т.п.)
                     user_course = UserCourse.objects.create(user=user, course=course, status='available')
                     user_courses.append(user_course)
                 # Если была ручная отмена, просто пропускаем этот курс

@@ -727,6 +727,9 @@ class LessonDetailView(DetailView):
         # Получаем UserCourse для проверки статуса
         user_course = UserCourse.objects.filter(user=request.user, course=course).first()
         if not user_course:
+            # Курсы из траекторий назначаются только после завершения предыдущего — не создаём запись здесь
+            if UserCourseTrajectory.objects.filter(user=request.user, trajectory__trajectorycourse__course=course).exists():
+                return redirect('courses:course_detail', slug=course.slug)
             # Проверяем, не был ли курс отменен вручную
             from myapp.models import ManualCourseUnassignment
             manual_unassignment = ManualCourseUnassignment.objects.filter(
@@ -1504,6 +1507,9 @@ def complete_lesson(request, course_slug, lesson_id):
     # Получаем UserCourse
     user_course = UserCourse.objects.filter(user=user, course=course).first()
     if not user_course:
+        # Курсы из траекторий назначаются только после завершения предыдущего — не создаём запись здесь
+        if UserCourseTrajectory.objects.filter(user=user, trajectory__trajectorycourse__course=course).exists():
+            return redirect('courses:course_detail', slug=course.slug)
         # Проверяем, не был ли курс отменен вручную
         from myapp.models import ManualCourseUnassignment
         manual_unassignment = ManualCourseUnassignment.objects.filter(
@@ -1933,6 +1939,13 @@ class UserCourseTrajectoryListView(ListView):
         
         user_courses = []
         for course in filtered_courses:
+            user_course = UserCourse.objects.filter(user=user, course=course).first()
+            if user_course:
+                user_courses.append(user_course)
+                continue
+            # Курсы из траекторий назначаются только после завершения предыдущего — не создаём запись здесь
+            if UserCourseTrajectory.objects.filter(user=user, trajectory__trajectorycourse__course=course).exists():
+                continue
             # Проверяем, не был ли курс отменен вручную
             manual_unassignment = ManualCourseUnassignment.objects.filter(
                 user=user, 
@@ -1940,7 +1953,6 @@ class UserCourseTrajectoryListView(ListView):
             ).first()
             
             if not manual_unassignment:
-                # Создаем или получаем UserCourse если его нет (для курсов из траекторий)
                 user_course, created = UserCourse.objects.get_or_create(
                     user=user, 
                     course=course, 
