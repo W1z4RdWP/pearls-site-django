@@ -1,5 +1,5 @@
 from django import forms
-from users.models import Profile, Role
+from users.models import Profile, Role, Department
 from django.db import models
 from django.contrib.auth.models import Group
 
@@ -27,6 +27,12 @@ class UserProfileForm(forms.ModelForm):
         self.fields['role'] = forms.ModelChoiceField(
             label='Должность',
             queryset=Role.objects.all(),
+            required=False,
+            empty_label='— выберите —',
+        )
+        self.fields['department'] = forms.ModelChoiceField(
+            label='Подразделение',
+            queryset=Department.objects.all().order_by('name'),
             required=False,
             empty_label='— выберите —',
         )
@@ -66,7 +72,7 @@ class UserProfileForm(forms.ModelForm):
 
     class Meta:
         model = Profile
-        fields = ['middle_name', 'role', 'date_of_birth', 'phone_number', 'phone_arbitrary_format', 'image', 'bio', 'is_approved', 'is_mentor']
+        fields = ['middle_name', 'role', 'department', 'date_of_birth', 'phone_number', 'phone_arbitrary_format', 'image', 'bio', 'is_approved', 'is_mentor']
         widgets = {
             'date_of_birth': forms.DateInput(attrs={'type': 'date'}),
         }

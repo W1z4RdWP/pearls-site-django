@@ -22,6 +22,7 @@
                 {{ form.last_name.label_tag }}{{ form.last_name|attr:'readonly:readonly,disabled:disabled' }}
                 {{ profile_form.middle_name.label_tag }}{{ profile_form.middle_name|attr:'readonly:readonly,disabled:disabled' }}
                 {{ profile_form.role.label_tag }}{{ profile_form.role|attr:'readonly:readonly,disabled:disabled' }}
+                {{ profile_form.department.label_tag }}{{ profile_form.department|attr:'readonly:readonly,disabled:disabled' }}
                 {{ form.email.label_tag }}{{ form.email|attr:'readonly:readonly,disabled:disabled' }}
                 {{ form.groups.label_tag }}
                 {% with form.instance.groups.all as groups %}
@@ -62,6 +63,7 @@
                         <label class="form-check-label" for="is_responsible">Ответственный</label>
                     </div>
                 </div>
+                {{ profile_form.department.label_tag }}{{ profile_form.department }}
                 <br>
                 {{ form.email.label_tag }}{{ form.email }}
                 <label for="id_groups">Группы пользователя</label>

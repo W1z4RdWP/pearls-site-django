@@ -92,7 +92,7 @@
                     <th style="width: 10%;">Дата назначения</th>
                     <th style="width: 20%;">Название инцидента</th>
                     <th style="width: 15%;">Назначено</th>
-                    <th style="width: 15%;">Группа</th>
+                    <th style="width: 15%;">Подразделение</th>
                     <th style="width: 10%;">Нарушитель</th>
                     <!-- <th style="width: 10%;">Дедлайн</th> -->
                     <th style="width: 10%;">Ответственный</th>
@@ -110,9 +110,7 @@
                         <td>{{ item.incident.title }}</td>
                         <td>{{ item.user.get_full_name|default:item.user.username }}</td>
                         <td style="text-wrap: wrap;">
-                            {% for group in item.user.groups.all %}
-                                {{ group.name|default:"Без групп"}}{% if not forloop.last %},{% endif %}
-                            {% endfor %}
+                            {{ item.user.profile.department }}
                         </td>
                         <td>
                             {% if item.is_violator %}
