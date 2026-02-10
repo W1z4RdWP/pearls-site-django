@@ -1,0 +1,20 @@
+.no-products {
+  text-align: center;
+  padding: 3rem 0;
+  color: #666;
+}
+
+.no-products i {
+  font-size: 4rem;
+  color: #ccc;
+  margin-bottom: 1rem;
+}
+
+.no-products__title {
+  margin: 0 0 0.5rem;
+  font-size: 1.5rem;
+}
+
+.no-products__text {
+  margin: 0;
+}

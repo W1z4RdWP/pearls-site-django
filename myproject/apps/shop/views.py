@@ -1,3 +1,4 @@
+import json
 from django.shortcuts import get_object_or_404, redirect
 from django.views.generic import TemplateView, ListView, CreateView
 from django.contrib.auth.decorators import login_required
@@ -23,6 +24,24 @@ class ShopView(TemplateView):
         # Получаем только активные товары
         context['products'] = InternalProduct.objects.filter(is_active=True)
         return context
+
+
+@require_http_methods(["GET"])
+def api_products_list(request):
+    """API: список активных товаров для React-фронтенда."""
+    products = InternalProduct.objects.filter(is_active=True)
+    data = [
+        {
+            'id': p.id,
+            'name': p.name,
+            'points_price': p.points_price,
+            'image_url': p.get_image_url(),
+            'restrictions_text': p.restrictions_text or '',
+            'constraints_display': p.get_constraints_display() if p.constraints else None,
+        }
+        for p in products
+    ]
+    return JsonResponse({'products': data})
 
 
 @login_required
@@ -57,9 +76,14 @@ def product_details(request):
 @login_required
 @require_http_methods(["POST"])
 def order_product(request):
-    """Обработка заказа товара"""
+    """Обработка заказа товара. Принимает product_id из POST или JSON body."""
     product_id = request.POST.get('product_id')
-    
+    if not product_id and request.content_type == 'application/json' and request.body:
+        try:
+            data = json.loads(request.body)
+            product_id = data.get('product_id')
+        except (ValueError, TypeError):
+            pass
     if not product_id:
         return JsonResponse({'error': 'Не указан ID товара'}, status=400)
     

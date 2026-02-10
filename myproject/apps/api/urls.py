@@ -1,6 +1,7 @@
 from django.urls import path
 from . import views
 from . import views_frontend
+from shop import views as shop_views
 
 app_name = 'api'
 
@@ -21,4 +22,10 @@ urlpatterns = [
     path('frontend/courses/', views_frontend.home_courses, name='frontend_courses'),
     path('frontend/login/', views_frontend.login_view, name='frontend_login'),
     path('frontend/logout/', views_frontend.logout_view, name='frontend_logout'),
+
+    # Shop API — данные для фронтенда (магазин работает на React)
+    path('shop/products/', shop_views.api_products_list, name='api_shop_products'),
+    path('shop/product/details/', shop_views.product_details, name='api_shop_product_details'),
+    path('shop/order/', shop_views.order_product, name='api_shop_order'),
+    path('shop/orders/count/', shop_views.orders_count, name='api_shop_orders_count'),
 ]

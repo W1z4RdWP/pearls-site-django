@@ -84,3 +84,42 @@ export function logoutUser() {
     body: JSON.stringify({}),
   });
 }
+
+// ——— Shop API (бэкенд отдаёт данные по /api/shop/...) ———
+
+/**
+ * Список товаров магазина.
+ * @returns {Promise<{products: Array}>}
+ */
+export function fetchShopProducts() {
+  return request('/shop/products/');
+}
+
+/**
+ * Детали товара по ID.
+ * @param {number} productId
+ * @returns {Promise<{product: object}>}
+ */
+export function fetchProductDetails(productId) {
+  return request(`/shop/product/details/?product_id=${productId}`);
+}
+
+/**
+ * Оформить заказ товара.
+ * @param {number} productId
+ * @returns {Promise<{success: boolean, order_id: number, points_spent: number}>}
+ */
+export function orderProduct(productId) {
+  return request('/shop/order/', {
+    method: 'POST',
+    body: JSON.stringify({ product_id: productId }),
+  });
+}
+
+/**
+ * Количество заказов пользователя (для бейджа корзины).
+ * @returns {Promise<{count: number}>}
+ */
+export function fetchOrdersCount() {
+  return request('/shop/orders/count/');
+}
