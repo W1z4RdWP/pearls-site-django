@@ -803,6 +803,10 @@ class IncidentDetailListView(ListView):
         selected_user_id = self.request.GET.get('assigned_user', '')
         violator_filter = self.request.GET.get('violator_filter', 'all')  # 'all', 'yes', 'no'
         
+        # Фильтр по статусу UserCourse
+        status_choices = UserCourse.STATUS_CHOICES
+        context['status_choices'] = status_choices
+        
         # Если нет параметров в GET запросе (первичная загрузка), устанавливаем дефолтные значения
         if not self.request.GET:
             context['date_from'] = '2025-01-01'
@@ -825,6 +829,9 @@ class IncidentDetailListView(ListView):
             context['date_from'] = date_from
             context['date_to'] = date_to
             context['search'] = search
+            # Статусы, выбранные в фильтре (чекбоксы)
+            context['selected_statuses'] = self.request.GET.getlist('status', [])
+            
             try:
                 context['selected_user_id'] = int(selected_user_id) if selected_user_id else None
             except (ValueError, TypeError):
@@ -837,6 +844,7 @@ class IncidentDetailListView(ListView):
         incident_user_list = []
         selected_user_id = context['selected_user_id']
         violator_filter = context['violator_filter']
+        selected_statuses = context.get('selected_statuses', [])
         
         for incident in context['incidents']:
             assigned_users = incident.assigned_to.all()
@@ -855,10 +863,14 @@ class IncidentDetailListView(ListView):
                 if violator_filter == 'no' and is_violator:
                     continue
                 
-                # Проверяем, назначен ли курс пользователю (если у инцидента есть курс)
+                # Проверяем, назначен ли курс пользователю и подходит ли по статусу (если у инцидента есть курс)
                 if incident.course:
-                    # Если курс не назначен пользователю, пропускаем этого пользователя
-                    if not UserCourse.objects.filter(user=user, course=incident.course).exists():
+                    user_course_qs = UserCourse.objects.filter(user=user, course=incident.course)
+                    # Если выбраны статусы, ограничиваем ими
+                    if selected_statuses:
+                        user_course_qs = user_course_qs.filter(status__in=selected_statuses)
+                    # Если подходящего UserCourse нет, пропускаем пользователя
+                    if not user_course_qs.exists():
                         continue
                 
                 # Вычисляем прогресс курса, если он есть
@@ -870,7 +882,7 @@ class IncidentDetailListView(ListView):
                 if incident.course:
                     course = incident.course
                     
-                    # Получаем UserCourse для получения дедлайна
+                    # Получаем UserCourse для получения дедлайна (с учетом уже примененного фильтра по статусу выше)
                     user_course = UserCourse.objects.filter(user=user, course=course).first()
                     if user_course:
                         course_deadline = user_course.deadline
@@ -942,10 +954,13 @@ class IncidentDetailListView(ListView):
                     if violator_filter == 'yes':
                         should_add_expert = False
                     
-                    # Проверяем, назначен ли курс expert (если у инцидента есть курс)
+                    # Проверяем, назначен ли курс expert и подходит ли по статусу (если у инцидента есть курс)
                     if incident.course:
-                        # Если курс не назначен expert, пропускаем его
-                        if not UserCourse.objects.filter(user=expert, course=incident.course).exists():
+                        expert_course_qs = UserCourse.objects.filter(user=expert, course=incident.course)
+                        if selected_statuses:
+                            expert_course_qs = expert_course_qs.filter(status__in=selected_statuses)
+                        # Если курс не назначен expert или статус не входит в выбранные, пропускаем его
+                        if not expert_course_qs.exists():
                             should_add_expert = False
                     
                     if should_add_expert:
@@ -957,7 +972,7 @@ class IncidentDetailListView(ListView):
                         if incident.course:
                             course = incident.course
                             
-                            # Получаем UserCourse для получения дедлайна
+                            # Получаем UserCourse для получения дедлайна (с учетом уже примененного фильтра по статусу выше)
                             user_course = UserCourse.objects.filter(user=expert, course=course).first()
                             if user_course:
                                 course_deadline = user_course.deadline

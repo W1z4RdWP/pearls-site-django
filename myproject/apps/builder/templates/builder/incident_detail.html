@@ -50,6 +50,24 @@
                 {% endif %}
             </div>
         </div>
+        <!-- Фильтр по статусу курса -->
+        <div class="mb-2">
+            <div class="status-filters d-flex flex-wrap gap-2 align-items-center">
+                {% for value, label in status_choices %}
+                    <div class="form-check">
+                        <input class="form-check-input status-checkbox"
+                               type="checkbox"
+                               name="status"
+                               value="{{ value }}"
+                               id="status_{{ value }}"
+                               {% if value in selected_statuses %}checked{% endif %}>
+                        <label class="form-check-label" for="status_{{ value }}">
+                            {{ label }}
+                        </label>
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
         <!-- Кнопки под строкой поиска -->
         <div class="row">
             <div class="col-md-2 col-lg-2">
