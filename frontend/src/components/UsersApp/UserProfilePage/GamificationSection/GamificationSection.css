@@ -1,0 +1,224 @@
+.gamification-section {
+  margin-top: 2rem;
+}
+
+.gamification-section__grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+
+.gamification-section__card {
+  background: var(--color-card-bg, #fff);
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+}
+
+.gamification-section__card-header {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: #fff;
+  padding: 1rem 1.5rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.gamification-section__card-header h4 {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.gamification-section__badge-count {
+  background: rgba(255, 255, 255, 0.2);
+  color: #fff;
+  padding: 0.25rem 0.75rem;
+  border-radius: 20px;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.gamification-section__card-content {
+  padding: 1.5rem;
+  min-height: 120px;
+}
+
+.gamification-section__checkup-text {
+  margin: 0 0 1rem 0;
+  color: var(--color-text-secondary, #444);
+}
+
+.gamification-section__grid-items {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 15px;
+}
+
+.gamification-section__item {
+  text-align: center;
+  padding: 5px;
+  border-radius: 8px;
+  flex-shrink: 0;
+  width: 80px;
+  min-width: 80px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.2s, box-shadow 0.2s;
+  cursor: default;
+}
+
+.gamification-section__item:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.gamification-section__item-icon {
+  width: 45px;
+  height: 45px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.gamification-section__item-icon-placeholder {
+  width: 45px;
+  height: 45px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #ffd700, #ffed4e);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #b8860b;
+  font-size: 1.3rem;
+}
+
+.gamification-section__item-icon-placeholder--achievement {
+  background: linear-gradient(135deg, #ff6b35, #ff8c42);
+  color: #fff;
+}
+
+.gamification-section__item-name {
+  display: block;
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: var(--color-text, #333);
+  margin-top: 2px;
+  line-height: 1.2;
+  text-align: center;
+  word-wrap: break-word;
+}
+
+.gamification-section__item-date {
+  display: block;
+  font-size: 0.7rem;
+  color: var(--color-text-secondary, #6c757d);
+  margin-top: 2px;
+}
+
+.gamification-section__show-more {
+  text-align: center;
+  margin-top: 10px;
+}
+
+.gamification-section__btn {
+  background: linear-gradient(90deg, #4e8cff 0%, #38b6ff 100%);
+  color: #fff;
+  border: none;
+  border-radius: 22px;
+  padding: 10px 24px;
+  font-size: 1.1rem;
+  font-weight: 500;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(78, 140, 255, 0.08);
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  text-decoration: none;
+  font-family: inherit;
+  transition: background 0.2s, box-shadow 0.2s;
+}
+
+.gamification-section__btn:hover {
+  background: linear-gradient(90deg, #38b6ff 0%, #4e8cff 100%);
+  box-shadow: 0 4px 16px rgba(78, 140, 255, 0.14);
+  color: #fff;
+}
+
+.gamification-section__btn--sm {
+  padding: 6px 12px;
+  font-size: 0.8rem;
+}
+
+.gamification-section__empty {
+  text-align: center;
+  padding: 20px;
+  color: var(--color-text-secondary, #6c757d);
+}
+
+.gamification-section__empty i {
+  margin-bottom: 10px;
+  opacity: 0.5;
+  display: block;
+}
+
+.gamification-section__empty p {
+  margin: 5px 0;
+  font-weight: 500;
+}
+
+.gamification-section__empty small {
+  font-size: 0.8rem;
+  opacity: 0.7;
+}
+
+@media (max-width: 768px) {
+  .gamification-section__grid {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+
+  .gamification-section__card-content {
+    padding: 1rem;
+    min-height: 100px;
+  }
+
+  .gamification-section__grid-items {
+    gap: 6px;
+  }
+
+  .gamification-section__item {
+    width: 65px;
+    min-width: 65px;
+  }
+
+  .gamification-section__item-icon,
+  .gamification-section__item-icon-placeholder {
+    width: 40px;
+    height: 40px;
+    font-size: 1.1rem;
+  }
+}
+
+@media (max-width: 512px) {
+  .gamification-section__card-header h4 {
+    font-size: 0.9rem;
+  }
+
+  .gamification-section__card-content {
+    padding: 0.75rem;
+    min-height: 80px;
+  }
+
+  .gamification-section__item-icon,
+  .gamification-section__item-icon-placeholder {
+    width: 35px;
+    height: 35px;
+    font-size: 1rem;
+  }
+}

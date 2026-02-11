@@ -125,6 +125,17 @@ export function fetchOrdersCount() {
 }
 
 
+/**
+ * Данные текущего пользователя (краткие, для navbar и т.п.).
+ */
 export function fetchUserData() {
   return request('/users/user_info/');
+}
+
+/**
+ * Полные данные для страницы профиля (профиль, бейджи, достижения, группы).
+ * @returns {Promise<object>}
+ */
+export function fetchProfilePageData() {
+  return request('/users/profile/');
 }

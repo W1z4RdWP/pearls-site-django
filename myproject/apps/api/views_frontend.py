@@ -175,6 +175,107 @@ def user_info(request):
     return Response(UserMeSerializer(request.user).data)
 
 
+def _profile_page_data(user):
+    """Собирает данные для полной страницы профиля (user + profile + badges + achievements)."""
+    from django.core.exceptions import ObjectDoesNotExist
+
+    base = UserMeSerializer(user).data
+    try:
+        profile = user.profile
+    except ObjectDoesNotExist:
+        return {
+            **base,
+            'date_joined': user.date_joined.strftime('%d.%m.%Y %H:%M') if user.date_joined else None,
+            'profile': None,
+            'groups': [{'id': g.id, 'name': g.name} for g in user.groups.all()],
+            'is_external': False,
+            'recent_badges': [],
+            'recent_achievements': [],
+            'total_badges': 0,
+            'total_achievements': 0,
+        }
+
+    group_list = [{'id': g.id, 'name': g.name} for g in user.groups.all()]
+    group_names = [g['name'] for g in group_list]
+    is_external = 'Внешний пользователь' in group_names
+
+    def avatar_url():
+        try:
+            if profile.image:
+                return profile.image.url
+        except Exception:
+            pass
+        return '/media/profile_pics/default.jpg'
+
+    role_name = str(profile.role) if profile.role else None
+    date_of_birth = profile.date_of_birth.strftime('%d.%m.%Y') if profile.date_of_birth else None
+
+    recent_badges = []
+    try:
+        for ub in profile.get_recent_badges(limit=8):
+            badge = ub.badge
+            recent_badges.append({
+                'name': badge.name,
+                'description': badge.description or '',
+                'icon_url': badge.icon.url if badge.icon else None,
+                'earned_at': ub.earned_at.strftime('%d.%m.%Y') if ub.earned_at else None,
+            })
+    except Exception:
+        recent_badges = []
+
+    recent_achievements = []
+    try:
+        for ua in profile.get_recent_achievements(limit=8):
+            ach = ua.achievement
+            recent_achievements.append({
+                'name': ach.name,
+                'description': ach.description or '',
+                'icon_url': ach.icon.url if ach.icon else None,
+                'earned_at': ua.earned_at.strftime('%d.%m.%Y') if ua.earned_at else None,
+            })
+    except Exception:
+        recent_achievements = []
+
+    try:
+        total_badges = profile.get_badges().count()
+        total_achievements = profile.get_achievements().count()
+    except Exception:
+        total_badges = len(recent_badges)
+        total_achievements = len(recent_achievements)
+
+    return {
+        **base,
+        'date_joined': user.date_joined.strftime('%d.%m.%Y %H:%M') if user.date_joined else None,
+        'profile': {
+            'bio': profile.bio or '',
+            'role': role_name,
+            'date_of_birth': date_of_birth,
+            'phone_number': profile.phone_number or '',
+            'dascoin_points': profile.dascoin_points,
+            'avatar_url': avatar_url(),
+        },
+        'groups': group_list,
+        'is_external': is_external,
+        'recent_badges': recent_badges,
+        'recent_achievements': recent_achievements,
+        'total_badges': total_badges,
+        'total_achievements': total_achievements,
+    }
+
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+@ensure_csrf_cookie
+def profile_page(request):
+    """
+    Полные данные для страницы профиля React (ручка /api/users/profile/).
+    Для неавторизованных — 401.
+    """
+    if not request.user.is_authenticated:
+        return Response({'error': 'Не авторизован'}, status=status.HTTP_401_UNAUTHORIZED)
+    return Response(_profile_page_data(request.user))
+
+
 @api_view(['POST'])
 @permission_classes([AllowAny])
 def login_view(request):

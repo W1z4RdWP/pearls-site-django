@@ -1,0 +1,40 @@
+.profile-page {
+  flex: 1;
+  padding: 20px 0;
+}
+
+.profile-page__content {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 20px;
+  background: var(--color-bg-secondary, #fff);
+  border: 1px solid var(--color-card-border, #e3e8f0);
+  border-radius: 8px;
+  box-shadow: var(--color-card-shadow, 0 2px 16px #e3e8f0);
+}
+
+.profile-page__loading,
+.profile-page__message {
+  margin: 0;
+  color: var(--color-text-secondary, #444);
+  text-align: center;
+  padding: 2rem;
+}
+
+@media (max-width: 768px) {
+  .profile-page {
+    padding: 15px 0;
+  }
+
+  .profile-page__content {
+    padding: 15px 10px;
+    margin: 0 10px;
+  }
+}
+
+@media (max-width: 512px) {
+  .profile-page__content {
+    padding: 10px 8px;
+    margin: 0 5px;
+  }
+}
