@@ -213,6 +213,46 @@ def incidents_export_excel_report(request):
     ws_summary = wb.active
     ws_summary.title = "Общая сводка"
     
+    # Статистика за последнюю неделю
+    from django.utils import timezone
+    now = timezone.now()
+    week_ago = now - timedelta(days=7)
+    
+    # Инциденты, созданные за последнюю неделю
+    incidents_last_week = incidents.filter(created_at__gte=week_ago)
+    total_last_week = incidents_last_week.count()
+    
+    # Сколько из них в статусе "Назначен" (назначен курс-инцидент)
+    assigned_last_week = incidents_last_week.filter(status='assigned').count()
+    
+    # Сколько из них в статусе "Принят" и "Новый"
+    accepted_and_new_last_week = incidents_last_week.filter(status__in=['accepted', 'new']).count()
+    
+    # Добавляем статистику за последнюю неделю в начало листа
+    ws_summary.append(["Статистика за последнюю неделю"])
+    # Применяем стиль только к первому столбцу первой строки
+    header_cell = ws_summary.cell(row=1, column=1)
+    header_cell.fill = PatternFill(start_color="366092", end_color="366092", fill_type="solid")
+    header_cell.font = Font(bold=True, size=12, color="FFFFFF")
+    
+    week_stats_headers = [
+        "Создано за неделю",
+        "Назначено курс (статус 'Назначен')",
+        "В статусе 'Принят' и 'Новый'"
+    ]
+    ws_summary.append(week_stats_headers)
+    _apply_header_style(ws_summary, 2, len(week_stats_headers))
+    _set_column_widths(ws_summary, [30, 40, 40])
+    
+    ws_summary.append([
+        total_last_week,
+        assigned_last_week,
+        accepted_and_new_last_week
+    ])
+    
+    # Отступ перед общей сводкой
+    ws_summary.append([])
+    
     # Подсчёт данных
     total_incidents = incidents.count()
     info_incidents_count = incidents.filter(incident_type='informational').count()
@@ -251,7 +291,8 @@ def incidents_export_excel_report(request):
         "Всего назначений", "Уникальных назначений", "Завершено обучений"
     ]
     ws_summary.append(summary_headers)
-    _apply_header_style(ws_summary, 1, len(summary_headers))
+    # Применяем стиль к строке 5 (после статистики за неделю: строка 1, строка 2, строка 3, строка 4 пустая, строка 5 - заголовки)
+    _apply_header_style(ws_summary, ws_summary.max_row, len(summary_headers))
     _set_column_widths(ws_summary, [50, 30, 30, 20, 22, 22])
     
     ws_summary.append([
@@ -262,11 +303,16 @@ def incidents_export_excel_report(request):
     # Отступ и статусы инцидентов
     ws_summary.append([])
     ws_summary.append(["Статусы инцидентов"])
-    ws_summary.cell(row=4, column=1).font = Font(bold=True)
+    # Применяем стиль только к первому столбцу строки со статусами
+    status_title_row = ws_summary.max_row
+    status_title_cell = ws_summary.cell(row=status_title_row, column=1)
+    status_title_cell.fill = PatternFill(start_color="366092", end_color="366092", fill_type="solid")
+    status_title_cell.font = Font(bold=True, color="FFFFFF")
     
     status_headers = ["Новый", "Принят", "Назначен", "Обучение завершено", "Завершён", "Отклонён"]
     ws_summary.append(status_headers)
-    _apply_header_style(ws_summary, 5, len(status_headers))
+    # Применяем стиль к заголовкам статусов (строка после "Статусы инцидентов")
+    _apply_header_style(ws_summary, ws_summary.max_row, len(status_headers))
     
     ws_summary.append([
         status_counts['new'], status_counts['accepted'], status_counts['assigned'],
@@ -282,8 +328,7 @@ def incidents_export_excel_report(request):
     incidents_prefetched = incidents.prefetch_related('assigned_to', 'violators')
 
     # Просрочены дедлайны по подразделениям: считаем по UserCourse.deadline (срок курса у пользователя), не по Incident.deadline
-    from django.utils import timezone
-    now = timezone.now()
+    # now уже определен выше для статистики за неделю
     incidents_with_course = [inc for inc in incidents_prefetched if inc.course_id is not None]
     # По группе: (group_name, set(user_ids) просрочивших, set(incident_ids) просроченных для группы)
     overdue_by_group = {}
