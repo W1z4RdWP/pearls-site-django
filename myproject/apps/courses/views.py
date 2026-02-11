@@ -3146,12 +3146,24 @@ class AssignCourseToExpertView(View):
             
             if not incident.expert:
                 return JsonResponse({'success': False, 'error': 'Руководитель не назначен в инциденте'}, status=400)
-            
+                        
+                        # Определяем дедлайн:
+            # 1) приоритет у incident.expert_time_to_complete (если задано и > 0),
+            # 2) затем используем course.default_deadline_days (если задано и > 0),
+            # 3) иначе берём значение по умолчанию (3 дня).
+            time_to_complete_for_experts = incident.expert_time_to_complete
+            if not time_to_complete_for_experts or time_to_complete_for_experts <= 0:
+                if course.default_deadline_days and course.default_deadline_days > 0:
+                    time_to_complete_for_experts = course.default_deadline_days
+                else:
+                    time_to_complete_for_experts = 3
+            deadline = timezone.now() + timedelta(days=time_to_complete_for_experts)
+
             # Назначаем курс руководителю
             user_course, created = UserCourse.objects.get_or_create(
                 user=incident.expert,
                 course=course,
-                defaults={'status': 'available'}
+                defaults={'status': 'available', 'deadline': deadline}
             )
             
             if created:
@@ -3202,11 +3214,19 @@ class AssignCourseToAssignedView(View):
                 return JsonResponse({'success': False, 'error': 'Нет назначенных пользователей в инциденте'}, status=400)
             
             assigned_count = 0
-            # Определяем дедлайн: приоритет у course.default_deadline_days, иначе используем incident.deadline
-            if course.default_deadline_days and course.default_deadline_days > 0:
-                deadline = timezone.now() + timedelta(days=course.default_deadline_days)
-            else:
-                deadline = incident.deadline
+            # Определяем дедлайн:
+            # 1) приоритет у incident.assigned_to_time_to_complete (если задано и > 0),
+            # 2) затем используем course.default_deadline_days (если задано и > 0),
+            # 3) иначе берём значение по умолчанию (3 дня).
+            time_to_complete = incident.assigned_to_time_to_complete
+            if not time_to_complete or time_to_complete <= 0:
+                if course.default_deadline_days and course.default_deadline_days > 0:
+                    time_to_complete = course.default_deadline_days
+                else:
+                    time_to_complete = 3
+            deadline = timezone.now() + timedelta(days=time_to_complete)
+            
+
             
             # Назначаем курс всем назначенным пользователям
             for user in incident.assigned_to.all():
