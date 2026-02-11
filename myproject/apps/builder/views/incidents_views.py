@@ -629,7 +629,7 @@ class IncidentUpdateView(UpdateView, AuditLoggerMixin):
                 UserCourse.objects.get_or_create(
                     user=user,
                     course=course,
-                    defaults={'status': 'available', 'deadline': self.object.deadline}
+                    defaults={'status': 'available', 'deadline': self.object.course.deadline}
                 )
         
         # Логируем обновление инцидента
