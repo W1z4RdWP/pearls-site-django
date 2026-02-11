@@ -79,9 +79,13 @@ class UserCourse(models.Model):
                     self.deadline = timezone.now() + timedelta(days=course.default_deadline_days)
         
         # Проверяем deadline и блокируем курс, если срок истек
+        # Для курс-инцидентов (is_incident=True) блокировка не применяется
         if self.deadline and self.status not in ['completed', 'blocked']:
             if timezone.now() > self.deadline:
-                self.status = 'blocked'
+                # Проверяем, является ли курс курс-инцидентом
+                course = self.course
+                if not (hasattr(course, 'is_incident') and course.is_incident):
+                    self.status = 'blocked'
         
         # Устанавливаем end_date только при первом завершении курса
         if self.status == 'completed' and not self.end_date:

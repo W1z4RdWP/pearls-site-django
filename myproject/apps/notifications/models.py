@@ -23,6 +23,7 @@ class Notification(models.Model):
         # Чат
         ('chat_message', 'Новое сообщение в чате'),
         ('course_materials_updated', 'Обновление материалов в завершенном курсе'),
+        ('incident_course_overdue', 'Просрочен курс-инцидент'),
     ]
     
     user = models.ForeignKey(User, on_delete=models.CASCADE, verbose_name="Пользователь")
@@ -234,6 +235,17 @@ class Notification(models.Model):
             notification_type='course_reminder',
             title="Напоминание о курсе",
             message=f"Не забудьте пройти курс «{course.title}»",
+            related_course=course
+        )
+    
+    @classmethod
+    def create_incident_course_overdue_notification(cls, user, course):
+        """Создает уведомление о просроченном курсе-инциденте"""
+        return cls.objects.create(
+            user=user,
+            notification_type='incident_course_overdue',
+            title="Просрочен курс-инцидент",
+            message=f"Срок завершения курса-инцидента «{course.title}» истек. Пожалуйста, завершите обучение как можно скорее.",
             related_course=course
         )
     

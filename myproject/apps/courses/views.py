@@ -233,8 +233,9 @@ class CourseDetailView(DetailView):
             user_course = UserCourse.objects.filter(user=user, course=course).first()
             
             # Проверяем deadline и блокируем курс, если срок истек
+            # Для курс-инцидентов блокировка не применяется (обрабатывается ниже)
             if user_course and user_course.deadline and user_course.status not in ['completed', 'blocked']:
-                if timezone.now() > user_course.deadline:
+                if timezone.now() > user_course.deadline and not course.is_incident:
                     user_course.status = 'blocked'
                     user_course.save(update_fields=['status'])
 
@@ -545,13 +546,26 @@ class CourseDetailView(DetailView):
         if hasattr(request.user, 'profile') and request.user.profile:
             user_country = request.user.profile.country or ''
 
-        # Проверяем deadline и блокируем курс, если срок истек
+        # Проверяем deadline.
+        # Для обычных курсов по-прежнему блокируем курс при просрочке.
+        # Для курсов-инцидентов доступ не блокируем, но помечаем просрочку и шлем уведомление один раз.
         is_deadline_overdue = False
         if user_course and user_course.deadline:
-            if timezone.now() > user_course.deadline and user_course.status not in ['completed', 'blocked']:
-                user_course.status = 'blocked'
-                user_course.save(update_fields=['status'])
             is_deadline_overdue = timezone.now() > user_course.deadline
+            if is_deadline_overdue:
+                if course.is_incident:
+                    # Отправляем единоразовое уведомление о просроченном курсе-инциденте
+                    from notifications.models import Notification
+                    last_overdue = Notification.objects.filter(
+                        user=user,
+                        related_course=course,
+                        notification_type='incident_course_overdue',
+                    ).order_by('-created_at').first()
+                    if not last_overdue:
+                        Notification.create_incident_course_overdue_notification(user, course)
+                elif user_course.status not in ['completed', 'blocked']:
+                    user_course.status = 'blocked'
+                    user_course.save(update_fields=['status'])
         
         # Получаем инцидент, связанный с курсом (если курс-инцидент)
         incident = None
@@ -2005,14 +2019,17 @@ class UserCourseTrajectoryListView(ListView):
                 percent = int((completed_materials / total_materials) * 100)
 
             # Проверяем deadline и блокируем курс, если срок истек
+            # Для курс-инцидентов блокировка не применяется
             deadline = user_course.deadline
             is_deadline_overdue = False
             if deadline:
                 from django.utils import timezone
-                if timezone.now() > deadline and user_course.status not in ['completed', 'blocked']:
-                    user_course.status = 'blocked'
-                    user_course.save(update_fields=['status'])
                 is_deadline_overdue = timezone.now() > deadline
+                if is_deadline_overdue and user_course.status not in ['completed', 'blocked']:
+                    # Проверяем, является ли курс курс-инцидентом
+                    if not user_course.course.is_incident:
+                        user_course.status = 'blocked'
+                        user_course.save(update_fields=['status'])
 
             # Определяем статус курса
             # Если курс заблокирован, используем статус blocked

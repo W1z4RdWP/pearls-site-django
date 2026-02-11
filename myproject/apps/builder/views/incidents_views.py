@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 from django.contrib.auth import login
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import Group, User
@@ -6,6 +6,7 @@ from django.db.models import Count, Q, F
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse, reverse_lazy
+from django.utils import timezone
 from django.utils.decorators import method_decorator
 from django.views.generic import CreateView, ListView, UpdateView, View
 from openpyxl import Workbook
@@ -625,11 +626,23 @@ class IncidentUpdateView(UpdateView, AuditLoggerMixin):
                 UserCourse.objects.filter(user=user, course=course).delete()
             
             # Назначаем курс новым пользователям
+            # Определяем дедлайн:
+            # 1) приоритет у incident.assigned_to_time_to_complete (если задано и > 0),
+            # 2) затем используем course.default_deadline_days (если задано и > 0),
+            # 3) иначе берём значение по умолчанию (3 дня).
+            time_to_complete = self.object.assigned_to_time_to_complete
+            if not time_to_complete or time_to_complete <= 0:
+                if course.default_deadline_days and course.default_deadline_days > 0:
+                    time_to_complete = course.default_deadline_days
+                else:
+                    time_to_complete = 3
+            deadline = timezone.now() + timedelta(days=time_to_complete)
+            
             for user in added_users:
                 UserCourse.objects.get_or_create(
                     user=user,
                     course=course,
-                    defaults={'status': 'available', 'deadline': self.object.course.deadline}
+                    defaults={'status': 'available', 'deadline': deadline}
                 )
         
         # Логируем обновление инцидента
