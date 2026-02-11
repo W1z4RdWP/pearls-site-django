@@ -123,3 +123,8 @@ export function orderProduct(productId) {
 export function fetchOrdersCount() {
   return request('/shop/orders/count/');
 }
+
+
+export function fetchUserData() {
+  return request('/users/user_info/');
+}

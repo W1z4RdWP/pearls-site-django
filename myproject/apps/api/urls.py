@@ -28,4 +28,7 @@ urlpatterns = [
     path('shop/product/details/', shop_views.product_details, name='api_shop_product_details'),
     path('shop/order/', shop_views.order_product, name='api_shop_order'),
     path('shop/orders/count/', shop_views.orders_count, name='api_shop_orders_count'),
+
+    # Профиль пользователя для React
+    path('users/user_info/', views_frontend.user_info, name='api_user_info'),
 ]

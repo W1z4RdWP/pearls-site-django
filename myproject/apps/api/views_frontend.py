@@ -162,6 +162,19 @@ def _is_course_available_in_trajectory(user, course):
     return False
 
 
+@api_view(['GET'])
+@permission_classes([AllowAny])
+@ensure_csrf_cookie
+def user_info(request):
+    """
+    Данные текущего пользователя для страницы профиля (ручка /api/users/user_info/).
+    Для неавторизованных — 401.
+    """
+    if not request.user.is_authenticated:
+        return Response({'error': 'Не авторизован'}, status=status.HTTP_401_UNAUTHORIZED)
+    return Response(UserMeSerializer(request.user).data)
+
+
 @api_view(['POST'])
 @permission_classes([AllowAny])
 def login_view(request):
