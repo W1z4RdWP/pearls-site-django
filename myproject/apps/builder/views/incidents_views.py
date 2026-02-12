@@ -227,7 +227,18 @@ def incidents_export_excel_report(request):
     
     # Сколько из них в статусе "Принят" и "Новый"
     accepted_and_new_last_week = incidents_last_week.filter(status__in=['accepted', 'new']).count()
+
+    # Сколько из них в статусе "Обуч. завершено" и "Завершено"
+    completed_last_week = incidents_last_week.filter(status__in=['studies_completed', 'resolved']).count()
     
+    # Количество назначений курсов-инцидентов для инцидентов за последнюю неделю
+    incidents_with_course_last_week = incidents_last_week.filter(course__isnull=False)
+    course_ids_last_week = incidents_with_course_last_week.values_list('course_id', flat=True).distinct()
+    course_assignments_last_week = UserCourse.objects.filter(
+        course_id__in=course_ids_last_week
+    ).count()
+    
+
     # Добавляем статистику за последнюю неделю в начало листа
     ws_summary.append(["Статистика за последнюю неделю"])
     # Применяем стиль только к первому столбцу первой строки
@@ -238,16 +249,20 @@ def incidents_export_excel_report(request):
     week_stats_headers = [
         "Создано за неделю",
         "Назначено курс (статус 'Назначен')",
-        "В статусе 'Принят' и 'Новый'"
+        "В статусе 'Принят' и 'Новый'",
+        "Обуч. завершено и завершено",
+        "Назначений курсов-инцидентов"
     ]
     ws_summary.append(week_stats_headers)
     _apply_header_style(ws_summary, 2, len(week_stats_headers))
-    _set_column_widths(ws_summary, [30, 40, 40])
+    _set_column_widths(ws_summary, [30, 40, 40, 40, 40])
     
     ws_summary.append([
         total_last_week,
         assigned_last_week,
-        accepted_and_new_last_week
+        accepted_and_new_last_week,
+        completed_last_week,
+        course_assignments_last_week
     ])
     
     # Отступ перед общей сводкой
