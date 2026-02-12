@@ -153,7 +153,7 @@ def _is_course_available_in_trajectory(user, course):
             user_course = UserCourse.objects.filter(
                 user=user,
                 course=prev_tc.course,
-                is_completed=True,
+                status='completed',
             ).exists()
             if not user_course:
                 all_completed = False
@@ -342,7 +342,7 @@ def login_view(request):
 
 @api_view(['POST'])
 @permission_classes([AllowAny])
-@authentication_classes([SessionAuthenticationNoCSRF])
+@ensure_csrf_cookie
 def logout_view(request):
     """
     Выход пользователя через JSON API.
