@@ -139,3 +139,38 @@ export function fetchUserData() {
 export function fetchProfilePageData() {
   return request('/users/profile/');
 }
+
+/**
+ * Обновление профиля пользователя.
+ * @param {FormData|object} data - Данные для обновления (first_name, last_name, middle_name, date_of_birth, image, bio)
+ * @returns {Promise<object>} - Обновленные данные профиля
+ */
+export function updateProfile(data) {
+  // Если data - это FormData (с файлом), используем multipart/form-data
+  if (data instanceof FormData) {
+    const config = {
+      method: 'POST',
+      credentials: 'include',
+      headers: {
+        'X-CSRFToken': getCSRFToken(),
+        // Не устанавливаем Content-Type для FormData - браузер сам установит с boundary
+      },
+      body: data,
+    };
+    
+    return fetch(`${API_BASE}/users/profile/update/`, config)
+      .then(async (response) => {
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}));
+          throw new Error(errorData.error || `HTTP ${response.status}`);
+        }
+        return response.json();
+      });
+  }
+  
+  // Иначе отправляем как JSON
+  return request('/users/profile/update/', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+}

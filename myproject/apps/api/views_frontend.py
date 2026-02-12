@@ -14,7 +14,9 @@ from rest_framework.authentication import SessionAuthentication
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.models import User
 from django.views.decorators.csrf import ensure_csrf_cookie
+from django.core.exceptions import ObjectDoesNotExist
 from courses.models import Course, TrajectoryCourse
+from users.forms import UserUpdateForm, ProfileUpdateForm
 
 from .serializers import UserCourseSerializer, UserMeSerializer, CourseListSerializer
 
@@ -251,6 +253,7 @@ def _profile_page_data(user):
             'role': role_name,
             'date_of_birth': date_of_birth,
             'phone_number': profile.phone_number or '',
+            'middle_name': profile.middle_name or '',
             'dascoin_points': profile.dascoin_points,
             'avatar_url': avatar_url(),
         },
@@ -353,3 +356,72 @@ def logout_view(request):
     )
     logout(request)
     return Response({'success': True})
+
+
+@api_view(['POST'])
+@permission_classes([AllowAny])
+@ensure_csrf_cookie
+def update_profile(request):
+    """
+    Обновление профиля пользователя через JSON API.
+    Принимает данные формы (first_name, last_name, middle_name, date_of_birth, image, bio).
+    """
+    if not request.user.is_authenticated:
+        return Response({'error': 'Не авторизован'}, status=status.HTTP_401_UNAUTHORIZED)
+
+    try:
+        profile = request.user.profile
+    except ObjectDoesNotExist:
+        return Response(
+            {'error': 'Профиль пользователя не найден'},
+            status=status.HTTP_404_NOT_FOUND,
+        )
+
+    # Подготовка данных для форм
+    user_data = {
+        'first_name': request.data.get('first_name', ''),
+        'last_name': request.data.get('last_name', ''),
+    }
+    
+    date_of_birth = request.data.get('date_of_birth', '') or None
+    middle_name = request.data.get('middle_name', '').strip() or None
+    profile_data = {
+        'middle_name': middle_name,
+        'date_of_birth': date_of_birth,
+        'bio': request.data.get('bio', ''),
+    }
+
+    # Обработка файла изображения
+    if 'image' in request.FILES:
+        profile_data['image'] = request.FILES['image']
+    elif request.data.get('image') == '':
+        # Если передана пустая строка, это означает удаление изображения
+        profile.image = None
+
+    user_form = UserUpdateForm(user_data, instance=request.user)
+    profile_form = ProfileUpdateForm(profile_data, request.FILES, instance=profile)
+
+    if user_form.is_valid() and profile_form.is_valid():
+        user_form.save()
+        profile_form.save()
+
+        audit_logger.info(
+            'Обновление профиля через фронтенд API',
+            extra={
+                'user': request.user.email or request.user.username,
+                'ip': request.META.get('REMOTE_ADDR', 'Unknown'),
+            },
+        )
+
+        # Возвращаем обновленные данные профиля
+        return Response(_profile_page_data(request.user))
+    else:
+        errors = {}
+        if user_form.errors:
+            errors['user'] = user_form.errors
+        if profile_form.errors:
+            errors['profile'] = profile_form.errors
+        return Response(
+            {'error': 'Ошибка валидации', 'errors': errors},
+            status=status.HTTP_400_BAD_REQUEST,
+        )

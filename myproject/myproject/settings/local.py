@@ -52,6 +52,8 @@ CSRF_TRUSTED_ORIGINS = [
     'http://127.0.0.1:3000',
     'http://localhost:8005',
     'http://127.0.0.1:8005',
+    'http://10.0.0.40:3000',
+    'http://10.0.0.40:8005',
 ]
 
 CSRF_COOKIE_HTTPONLY = False

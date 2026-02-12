@@ -32,4 +32,5 @@ urlpatterns = [
     # Профиль пользователя для React
     path('users/user_info/', views_frontend.user_info, name='api_user_info'),
     path('users/profile/', views_frontend.profile_page, name='api_profile_page'),
+    path('users/profile/update/', views_frontend.update_profile, name='api_profile_update'),
 ]

@@ -1,21 +1,19 @@
 import './ProfileActions.css';
 
-const ProfileActions = ({ isExternal }) => {
-  const handleEditClick = () => {
-    window.location.href = '/users/profile/edit';
-  };
-
+const ProfileActions = ({ isExternal, onEditClick, isEditing }) => {
   return (
     <div className="profile-actions">
-      <button
-        type="button"
-        className="profile-actions__btn"
-        onClick={handleEditClick}
-        aria-label="Редактировать профиль"
-      >
-        <i className="fa fa-edit" aria-hidden="true" /> Редактировать
-      </button>
-      {isExternal ? (
+      {!isEditing && (
+        <button
+          type="button"
+          className="profile-actions__btn"
+          onClick={onEditClick}
+          aria-label="Редактировать профиль"
+        >
+          <i className="fa fa-edit" aria-hidden="true" /> Редактировать
+        </button>
+      )}
+      {!isEditing && (isExternal ? (
         <a
           href="https://t.me/das_metrics_bot"
           target="_blank"
@@ -35,7 +33,7 @@ const ProfileActions = ({ isExternal }) => {
         >
           <i className="fa fa-envelope" aria-hidden="true" /> Почта
         </a>
-      )}
+      ))}
     </div>
   );
 };
