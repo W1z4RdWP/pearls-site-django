@@ -475,6 +475,8 @@ class TrajectoryCourse(models.Model):
         return f"{self.trajectory.name}: {self.course.title} (#{self.order})"
 
 
+
+
 class UserCourseTrajectory(models.Model):
     """
     Индивидуальная траектория пользователя: к какой Trajectory он привязан, и прогресс по курсам.
