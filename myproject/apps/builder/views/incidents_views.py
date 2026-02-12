@@ -21,7 +21,7 @@ from builder.forms import IncidentForm
 from builder.models import Incident
 from builder.utils import get_total_incidents_students
 from courses.models import Course, UserLessonTrajectory
-from myapp.models import UserCourse, UserProgress
+from myapp.models import UserCourse, UserProgress, ManualCourseUnassignment
 
 import logging
 
@@ -740,13 +740,58 @@ class IncidentDeclineView(View, AuditLoggerMixin):
                 incident.status = 'new'
                 incident.previous_status = None
                 comment = "Инцидент возобновлён. Статус изменён на 'Новый'"
+            
+            # Если у инцидента есть связанный курс-инцидент, назначаем его снова всем пользователям из assigned_to
+            if incident.course:
+                course = incident.course
+                # Получаем всех пользователей, назначенных на инцидент
+                assigned_users = incident.assigned_to.all()
+                
+                # Определяем дедлайн:
+                # 1) приоритет у incident.assigned_to_time_to_complete (если задано и > 0),
+                # 2) затем используем course.default_deadline_days (если задано и > 0),
+                # 3) иначе берём значение по умолчанию (3 дня).
+                time_to_complete = incident.assigned_to_time_to_complete
+                if not time_to_complete or time_to_complete <= 0:
+                    if course.default_deadline_days and course.default_deadline_days > 0:
+                        time_to_complete = course.default_deadline_days
+                    else:
+                        time_to_complete = 3
+                deadline = timezone.now() + timedelta(days=time_to_complete)
+                
+                for user in assigned_users:
+                    # Удаляем запись из ManualCourseUnassignment, если она есть
+                    ManualCourseUnassignment.objects.filter(
+                        user=user,
+                        course=course
+                    ).delete()
+                    
+                    # Назначаем курс пользователю
+                    UserCourse.objects.get_or_create(
+                        user=user,
+                        course=course,
+                        defaults={'status': 'available', 'deadline': deadline}
+                    )
         else:
             # Отклоняем инцидент - сохраняем текущий статус и устанавливаем 'declined'
             previous_status_display = dict(Incident.STATUS_CHOICES).get(incident.status, incident.status)
             incident.previous_status = incident.status
             incident.status = 'declined'
             comment = f"Инцидент отклонён. Предыдущий статус: '{previous_status_display}'"
-        
+
+            if incident.course:
+                user_courses = list(UserCourse.objects.filter(course=incident.course))
+                for user_course in user_courses:
+                    ManualCourseUnassignment.objects.get_or_create(
+                        user=user_course.user,
+                        course=incident.course,
+                        defaults={
+                            'unassigned_by': request.user,
+                            'reason': f'Инцидент "{incident.title}" переведен в статус "Отклонен".'
+                        }
+                    )
+                    user_course.delete()
+
         incident.save(update_fields=['status', 'previous_status', 'updated_at'])
         
         # Логируем действие
