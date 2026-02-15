@@ -1,0 +1,28 @@
+.users-with-orders-page {
+  padding: 2rem 0;
+  min-height: 70vh;
+}
+
+.users-with-orders-page__container {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 0 1rem;
+}
+
+.users-with-orders-page__loading,
+.users-with-orders-page__error {
+  margin: 1rem 0;
+}
+
+.users-with-orders-page__error {
+  color: #721c24;
+  background: #f8d7da;
+  padding: 1rem;
+  border-radius: 6px;
+}
+
+.users-with-orders-page__list {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}

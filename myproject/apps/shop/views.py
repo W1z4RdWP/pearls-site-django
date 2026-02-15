@@ -284,6 +284,77 @@ class UsersWithOrdersView(LoginRequiredMixin, UserPassesTestMixin, ListView):
         return context
 
 
+PAGINATE_USERS_WITH_ORDERS_BY = 25
+
+
+@login_required
+@require_http_methods(["GET"])
+def api_users_with_orders(request):
+    """API: список пользователей с покупками (только staff/superuser). Поиск, пагинация."""
+    if not (request.user.is_staff or request.user.is_superuser):
+        return JsonResponse({'error': 'Доступ запрещён'}, status=403)
+
+    search_query = request.GET.get('q', '').strip()
+    users_with_orders = User.objects.filter(
+        product_orders__isnull=False
+    ).annotate(
+        orders_count=Count('product_orders'),
+        total_spent=Sum('product_orders__points_spent'),
+        last_order_date=Max('product_orders__created_at')
+    ).distinct().order_by('-last_order_date')
+
+    if search_query:
+        users_with_orders = users_with_orders.filter(
+            Q(first_name__icontains=search_query) |
+            Q(last_name__icontains=search_query) |
+            Q(email__icontains=search_query) |
+            Q(username__icontains=search_query)
+        )
+
+    total_users = users_with_orders.count()
+    total_orders = ProductOrder.objects.count()
+    total_points_spent = ProductOrder.objects.aggregate(total=Sum('points_spent'))['total'] or 0
+
+    page = request.GET.get('page', '1')
+    try:
+        page = max(1, int(page))
+    except (ValueError, TypeError):
+        page = 1
+
+    from django.core.paginator import Paginator
+    paginator = Paginator(users_with_orders, PAGINATE_USERS_WITH_ORDERS_BY)
+    if page > paginator.num_pages and paginator.num_pages > 0:
+        page = paginator.num_pages
+    page_obj = paginator.get_page(page)
+
+    users = [
+        {
+            'id': u.id,
+            'full_name': u.get_full_name() or u.username,
+            'email': u.email or '',
+            'username': u.username,
+            'orders_count': u.orders_count,
+            'total_spent': u.total_spent or 0,
+            'last_order_date': u.last_order_date.strftime('%d.%m.%Y') if u.last_order_date else None,
+        }
+        for u in page_obj
+    ]
+
+    return JsonResponse({
+        'users': users,
+        'total_users': total_users,
+        'total_orders': total_orders,
+        'total_points_spent': total_points_spent,
+        'search_query': search_query,
+        'pagination': {
+            'page': page_obj.number,
+            'num_pages': paginator.num_pages,
+            'has_previous': page_obj.has_previous(),
+            'has_next': page_obj.has_next(),
+        },
+    })
+
+
 class UserOrdersAdminView(LoginRequiredMixin, UserPassesTestMixin, ListView):
     """Класс представление истории покупок конкретного пользователя для админа"""
     model = ProductOrder

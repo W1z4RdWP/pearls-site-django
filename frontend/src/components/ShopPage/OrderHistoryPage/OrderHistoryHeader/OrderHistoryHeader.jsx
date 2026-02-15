@@ -16,10 +16,10 @@ const OrderHistoryHeader = ({ isStaff, isSuperuser }) => {
           История покупок
         </h1>
         {showUsersLink && (
-          <a href="/shop/admin/users/" className="order-history-header__btn" aria-label="Пользователи с покупками">
+          <Link to="/shop/admin/users" className="order-history-header__btn" aria-label="Пользователи с покупками">
             <i className="fas fa-users" aria-hidden />
             <span>Пользователи с покупками</span>
-          </a>
+          </Link>
         )}
       </div>
     </header>

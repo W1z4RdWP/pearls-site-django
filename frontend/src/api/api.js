@@ -133,6 +133,17 @@ export function fetchOrderHistory(page = 1) {
   return request(`/shop/orders/history/?page=${page}`);
 }
 
+/**
+ * Пользователи с покупками (только staff/superuser). Поиск и пагинация.
+ * @param {number} [page=1] — номер страницы
+ * @param {string} [q=''] — поисковый запрос (имя, email, username)
+ * @returns {Promise<{users: Array, total_users: number, total_orders: number, total_points_spent: number, search_query: string, pagination: object}>}
+ */
+export function fetchUsersWithOrders(page = 1, q = '') {
+  const params = new URLSearchParams({ page: String(page) });
+  if (q && q.trim()) params.set('q', q.trim());
+  return request(`/shop/admin/users/?${params.toString()}`);
+}
 
 /**
  * Данные текущего пользователя (краткие, для navbar и т.п.).

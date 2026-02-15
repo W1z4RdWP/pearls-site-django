@@ -1,0 +1,25 @@
+.users-with-orders-stats {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 2rem;
+  flex-wrap: wrap;
+}
+
+.users-with-orders-stats__item {
+  background: #f8f9fa;
+  padding: 1rem 1.5rem;
+  border-radius: 8px;
+  border: 1px solid var(--color-card-border, #e0e0e0);
+}
+
+.users-with-orders-stats__label {
+  font-size: 0.85rem;
+  color: var(--color-text-secondary, #666);
+  margin-bottom: 0.25rem;
+}
+
+.users-with-orders-stats__value {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--color-accent, #007bff);
+}

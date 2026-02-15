@@ -1,0 +1,21 @@
+.no-users {
+  text-align: center;
+  padding: 3rem 0;
+  color: var(--color-text-secondary, #666);
+}
+
+.no-users__icon {
+  font-size: 4rem;
+  color: #ccc;
+  margin-bottom: 1rem;
+}
+
+.no-users__title {
+  margin: 0 0 0.5rem;
+  font-size: 1.5rem;
+  color: var(--color-text, #333);
+}
+
+.no-users__text {
+  margin: 0;
+}
