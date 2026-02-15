@@ -9,6 +9,7 @@ import ShopPage from './components/ShopPage/ShopPage';
 import OrderHistoryPage from './components/ShopPage/OrderHistoryPage/OrderHistoryPage';
 import UsersWithOrdersPage from './components/ShopPage/UsersWithOrdersPage/UsersWithOrdersPage';
 import UserOrdersAdminPage from './components/ShopPage/UserOrdersAdminPage/UserOrdersAdminPage';
+import CreateProductPage from './components/ShopPage/CreateProductPage/CreateProductPage';
 import ProfilePage from './components/UsersApp/UserProfilePage/ProfilePage';
 
 const App = () => {
@@ -24,6 +25,7 @@ const App = () => {
           <Route path='/shop/history' element={<OrderHistoryPage />} />
           <Route path='/shop/admin/users' element={<UsersWithOrdersPage />} />
           <Route path='/shop/admin/user/:userId/orders' element={<UserOrdersAdminPage />} />
+          <Route path='/shop/product/create' element={<CreateProductPage />} />
           <Route path='/users/profile' element={<ProfilePage />} /> 
 
           {/* Добавляйте новые маршруты здесь */}

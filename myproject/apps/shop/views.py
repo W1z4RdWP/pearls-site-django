@@ -470,6 +470,30 @@ def api_user_orders_admin(request, user_id):
     })
 
 
+@login_required
+@require_http_methods(["POST"])
+def api_create_product(request):
+    """API: создание товара (только staff/superuser). Multipart/form-data."""
+    if not (request.user.is_staff or request.user.is_superuser):
+        return JsonResponse({'error': 'Доступ запрещён'}, status=403)
+
+    form = InternalProductForm(request.POST, request.FILES)
+    if not form.is_valid():
+        errors = {k: list(v) for k, v in form.errors.items()}
+        return JsonResponse({'error': 'Ошибка валидации', 'errors': errors}, status=400)
+
+    product = form.save()
+    return JsonResponse({
+        'success': True,
+        'product': {
+            'id': product.id,
+            'name': product.name,
+            'points_price': product.points_price,
+            'is_active': product.is_active,
+        },
+    }, status=201)
+
+
 class CreateProductView(LoginRequiredMixin, UserPassesTestMixin, CreateView):
     """Класс представление для создания нового товара"""
     model = InternalProduct

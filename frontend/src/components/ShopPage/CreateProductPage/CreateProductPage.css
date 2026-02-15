@@ -1,0 +1,10 @@
+.create-product-page {
+  padding: 2rem 0;
+  min-height: 70vh;
+}
+
+.create-product-page__container {
+  max-width: 700px;
+  margin: 0 auto;
+  padding: 0 1rem;
+}

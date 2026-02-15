@@ -156,6 +156,31 @@ export function fetchUserOrdersAdmin(userId, page = 1) {
 }
 
 /**
+ * Создание товара (staff/superuser). FormData: name, description, points_price, constraints, restrictions_text, image, is_active.
+ * @param {FormData} formData
+ * @returns {Promise<{success: boolean, product: object}>}
+ */
+export function createProduct(formData) {
+  const config = {
+    method: 'POST',
+    credentials: 'include',
+    headers: {
+      'X-CSRFToken': getCSRFToken(),
+    },
+    body: formData,
+  };
+  return fetch(`${API_BASE}/shop/product/create/`, config).then(async (response) => {
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      const err = new Error(data.error || `HTTP ${response.status}`);
+      err.errors = data.errors;
+      throw err;
+    }
+    return data;
+  });
+}
+
+/**
  * Данные текущего пользователя (краткие, для navbar и т.п.).
  */
 export function fetchUserData() {
