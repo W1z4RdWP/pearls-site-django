@@ -411,16 +411,15 @@ class UpdateControlStandaloneView(TemplateView):
             
             lessons = Lesson.objects.select_related('category').filter(id__in=allowed_lesson_ids)
         today = timezone.now().date()
-        year_start = today.replace(month=1, day=1)
         
-        # Параметр all_dates=1 сбрасывает фильтр по датам
+        # По умолчанию — за весь период (пустые даты). Параметр all_dates=1 тоже сбрасывает фильтр по датам.
         all_dates = self.request.GET.get('all_dates') == '1'
         if all_dates:
             created_from = ''
             created_to = ''
         else:
-            created_from = self.request.GET.get('created_from') or year_start.strftime('%Y-%m-%d')
-            created_to = self.request.GET.get('created_to') or today.strftime('%Y-%m-%d')
+            created_from = self.request.GET.get('created_from', '')
+            created_to = self.request.GET.get('created_to', '')
         title_query = self.request.GET.get('title', '').strip()
         rows = []
         for lesson in lessons:
