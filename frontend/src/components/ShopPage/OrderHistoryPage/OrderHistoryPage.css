@@ -1,0 +1,28 @@
+.order-history-page {
+  padding: 2rem 0;
+  min-height: 70vh;
+}
+
+.order-history-page__container {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 0 1rem;
+}
+
+.order-history-page__loading,
+.order-history-page__error {
+  margin: 1rem 0;
+}
+
+.order-history-page__error {
+  color: #721c24;
+  background: #f8d7da;
+  padding: 1rem;
+  border-radius: 6px;
+}
+
+.order-history-page__list {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}

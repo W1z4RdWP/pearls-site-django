@@ -2,10 +2,18 @@
 
 ## Структура компонентов
 
-Каждый компонент создаётся в отдельной папке внутри `src/components/`:
+Каждый компонент создаётся в отдельной папке внутри `src/components/`. Компоненты, относящиеся к одному Django-приложению, размещают в **общей папке с тем же смысловым именем** (например, страницы и виджеты магазина — в `ShopPage/`, профиля пользователя — в `UsersApp/` и т.д.):
 
 ```
 src/components/
+├── ShopPage/                    # всё, что относится к приложению shop
+│   ├── ShopPage.jsx
+│   ├── ShopPage.css
+│   ├── OrderHistoryPage/
+│   │   ├── OrderHistoryPage.jsx
+│   │   └── …
+│   └── ProductCard/
+│       └── …
 └── ComponentName/
     ├── ComponentName.jsx   # React-компонент
     └── ComponentName.css   # Стили компонента

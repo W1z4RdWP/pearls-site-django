@@ -1,0 +1,30 @@
+.no-orders {
+  text-align: center;
+  padding: 3rem 0;
+  color: var(--color-text-secondary, #666);
+}
+
+.no-orders__icon {
+  font-size: 4rem;
+  color: #ccc;
+  margin-bottom: 1rem;
+}
+
+.no-orders__title {
+  margin: 0 0 0.5rem;
+  font-size: 1.5rem;
+  color: var(--color-text, #333);
+}
+
+.no-orders__text {
+  margin: 0;
+}
+
+.no-orders__text a {
+  color: var(--color-link, #007bff);
+  text-decoration: none;
+}
+
+.no-orders__text a:hover {
+  text-decoration: underline;
+}

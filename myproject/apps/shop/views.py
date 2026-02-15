@@ -172,6 +172,66 @@ def orders_count(request):
     return JsonResponse({'count': count})
 
 
+PAGINATE_ORDER_HISTORY_BY = 20
+
+
+@login_required
+@require_http_methods(["GET"])
+def api_order_history(request):
+    """API: история заказов текущего пользователя (пагинация, статистика)."""
+    user = request.user
+    queryset = ProductOrder.objects.filter(user=user).select_related('product').order_by('-created_at')
+
+    stats = {
+        'total': queryset.count(),
+        'pending': queryset.filter(status='pending').count(),
+    }
+    total_points_spent = queryset.aggregate(total=Sum('points_spent'))['total'] or 0
+    refunded_orders = queryset.filter(status__in=['rejected', 'cancelled'])
+    total_points_refunded = refunded_orders.aggregate(total=Sum('points_spent'))['total'] or 0
+
+    page = request.GET.get('page', '1')
+    try:
+        page = max(1, int(page))
+    except (ValueError, TypeError):
+        page = 1
+
+    from django.core.paginator import Paginator
+    paginator = Paginator(queryset, PAGINATE_ORDER_HISTORY_BY)
+    if page > paginator.num_pages and paginator.num_pages > 0:
+        page = paginator.num_pages
+    page_obj = paginator.get_page(page)
+
+    orders = [
+        {
+            'id': o.id,
+            'product': {'id': o.product.id, 'name': o.product.name},
+            'created_at': o.created_at.strftime('%d.%m.%Y %H:%M'),
+            'points_spent': o.points_spent,
+            'status': o.status,
+            'status_display': o.get_status_display(),
+            'reviewed_at': o.reviewed_at.strftime('%d.%m.%Y %H:%M') if o.reviewed_at else None,
+            'admin_comment': o.admin_comment or None,
+        }
+        for o in page_obj
+    ]
+
+    return JsonResponse({
+        'orders': orders,
+        'stats': stats,
+        'total_points_spent': total_points_spent,
+        'total_points_refunded': total_points_refunded,
+        'pagination': {
+            'page': page_obj.number,
+            'num_pages': paginator.num_pages,
+            'has_previous': page_obj.has_previous(),
+            'has_next': page_obj.has_next(),
+            'previous_page_number': page_obj.previous_page_number() if page_obj.has_previous() else None,
+            'next_page_number': page_obj.next_page_number() if page_obj.has_next() else None,
+        },
+    })
+
+
 class UsersWithOrdersView(LoginRequiredMixin, UserPassesTestMixin, ListView):
     """Класс представление списка пользователей, которые когда-либо совершали покупки"""
     model = User

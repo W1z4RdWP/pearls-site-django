@@ -1,0 +1,114 @@
+.order-card {
+  background: var(--color-card-bg, #fff);
+  border: 1px solid var(--color-card-border, #e0e0e0);
+  border-radius: 8px;
+  padding: 1.5rem;
+  transition: box-shadow 0.3s ease, border-color 0.3s ease;
+}
+
+.order-card:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  border-color: var(--color-accent, #007bff);
+}
+
+.order-card__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 1rem;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.order-card__info {
+  flex: 1;
+  min-width: 0;
+}
+
+.order-card__product-name {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--color-text, #333);
+  margin: 0 0 0.5rem;
+}
+
+.order-card__meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  font-size: 0.9rem;
+  color: var(--color-text-secondary, #666);
+}
+
+.order-card__meta span {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.order-card__points {
+  font-weight: 600;
+  color: var(--color-accent, #007bff);
+}
+
+.order-card__status-wrap {
+  flex-shrink: 0;
+}
+
+.order-card__status {
+  display: inline-block;
+  padding: 0.5rem 1rem;
+  border-radius: 20px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.order-card__status--pending {
+  background: #fff3cd;
+  color: #856404;
+}
+
+.order-card__status--approved {
+  background: #d1ecf1;
+  color: #0c5460;
+}
+
+.order-card__status--rejected {
+  background: #f8d7da;
+  color: #721c24;
+}
+
+.order-card__status--completed {
+  background: #d4edda;
+  color: #155724;
+}
+
+.order-card__status--cancelled {
+  background: #e2e3e5;
+  color: #383d41;
+}
+
+.order-card__admin-comment {
+  margin-top: 1rem;
+  padding: 1rem;
+  background: #f8f9fa;
+  border-left: 4px solid var(--color-accent, #007bff);
+  border-radius: 4px;
+  font-size: 0.9rem;
+  color: var(--color-text-secondary, #666);
+}
+
+.order-card__admin-comment strong {
+  color: var(--color-text, #333);
+}
+
+.order-card__admin-comment-text {
+  margin: 0.25rem 0 0;
+}
+
+@media (max-width: 768px) {
+  .order-card__header {
+    flex-direction: column;
+  }
+}

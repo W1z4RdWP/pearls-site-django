@@ -124,6 +124,15 @@ export function fetchOrdersCount() {
   return request('/shop/orders/count/');
 }
 
+/**
+ * История заказов пользователя (с пагинацией и статистикой).
+ * @param {number} [page=1] — номер страницы
+ * @returns {Promise<{orders: Array, stats: {total: number, pending: number}, total_points_spent: number, total_points_refunded: number, pagination: object}>}
+ */
+export function fetchOrderHistory(page = 1) {
+  return request(`/shop/orders/history/?page=${page}`);
+}
+
 
 /**
  * Данные текущего пользователя (краткие, для navbar и т.п.).
