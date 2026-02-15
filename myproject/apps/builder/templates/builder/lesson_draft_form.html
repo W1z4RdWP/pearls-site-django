@@ -24,7 +24,12 @@
 
 {% block content %}
 <div class="container" style="max-width: 800px; margin-top: 48px;">
-    <h2>Редактировать черновик урока</h2>
+    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; margin-bottom: 20px;">
+        <h2 style="margin-bottom: 0;">Редактировать черновик урока</h2>
+        {% if object and object.saved_at_least_once and user.is_staff or object and object.saved_at_least_once and user.is_superuser %}
+        <a href="{% url 'builder:lesson_draft_review' object.id %}" class="btn btn-info">Просмотреть изменения</a>
+        {% endif %}
+    </div>
     
     <div class="draft-info">
         <strong>Черновик урока:</strong> {{ object.lesson.title }}<br>
@@ -76,7 +81,11 @@
             <button type="submit" class="btn btn-primary">Сохранить черновик</button>
             <a href="{% url 'builder:lesson_master' %}?lesson_id={{ object.lesson.id }}" class="btn btn-secondary">Отмена</a>
             {% if user.is_staff or user.is_superuser %}
+            {% if object.saved_at_least_once %}
             <a href="{% url 'builder:lesson_draft_review' object.id %}" class="btn btn-info">Просмотреть изменения</a>
+            {% else %}
+            <span class="btn btn-info disabled" title="Сначала сохраните черновик">Просмотреть изменения</span>
+            {% endif %}
             {% endif %}
         </div>
     </form>

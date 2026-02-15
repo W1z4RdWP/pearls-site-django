@@ -342,6 +342,9 @@ class LessonDraft(models.Model):
     # Комментарий от создателя черновика
     submit_comment = models.TextField(blank=True, verbose_name='Комментарий к черновику')
     
+    # Было ли выполнено хотя бы одно сохранение черновика (через «Сохранить черновик»)
+    saved_at_least_once = models.BooleanField(default=False, verbose_name='Черновик сохранялся')
+
     # Временные метки
     created_at = models.DateTimeField(auto_now_add=True, verbose_name='Дата создания')
     updated_at = models.DateTimeField(auto_now=True, verbose_name='Дата обновления')

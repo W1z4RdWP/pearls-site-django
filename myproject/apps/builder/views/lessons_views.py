@@ -769,10 +769,15 @@ class LessonDraftUpdateView(UpdateView, AuditLoggerMixin):
             draft.save()
             # Сохраняем связи many-to-many (курсы) из исходного объекта
             draft.courses.set(original.courses.all())
+            draft.saved_at_least_once = True
+            draft.save(update_fields=['saved_at_least_once'])
         else:
             # Для staff/superuser сохраняем все изменения
-            # super().form_valid() уже сохраняет форму полностью, включая M2M связи
-            return super().form_valid(form)
+            self.object = form.save(commit=False)
+            self.object.saved_at_least_once = True
+            self.object.save()
+            form.save_m2m()
+            return redirect(self.get_success_url())
         
         return redirect(self.get_success_url())
 
