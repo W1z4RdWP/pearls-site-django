@@ -598,7 +598,121 @@ def incidents_export_excel_report(request):
             incident.course.title if incident.course else "—",
             incident.created_at.strftime('%Y-%m-%d %H:%M') if incident.created_at else "—"
         ])
-    
+
+    # ================== ЛИСТ 6: Моё подразделение ==================
+    ws_my_dept = wb.create_sheet("Моё подразделение")
+
+    # Пользователи из подразделений текущего пользователя
+    my_group_names = list(request.user.groups.values_list('name', flat=True))
+    my_group_user_ids = set()
+    if my_group_names:
+        my_group_user_ids = set(
+            User.objects.filter(groups__name__in=my_group_names).values_list('id', flat=True)
+        )
+
+    # Первая таблица: назначения курсов-инцидентов по подразделению
+    table1_headers = [
+        "Дата назначения (курса-инцидента)", "ФИО (кому назначено)", "Подразделение",
+        "Дедлайн", "Статус", "Название инцидента"
+    ]
+    ws_my_dept.append(table1_headers)
+    _apply_header_style(ws_my_dept, 1, len(table1_headers))
+    _set_column_widths(ws_my_dept, [28, 35, 30, 22, 22, 45])
+
+    if my_group_user_ids:
+        incident_courses = Course.objects.filter(is_incident=True)
+        user_courses_list = (
+            UserCourse.objects.filter(
+                user_id__in=my_group_user_ids,
+                course__in=incident_courses,
+            )
+            .select_related('user', 'course')
+            .order_by('-start_date')
+        )
+        incidents_by_course = {
+            inc.course_id: inc
+            for inc in Incident.objects.filter(course_id__isnull=False).select_related('course')
+        }
+        for uc in user_courses_list:
+            incident = incidents_by_course.get(uc.course_id)
+            if not incident:
+                continue
+            user = uc.user
+            fio = f"{user.last_name or ''} {user.first_name or ''}".strip() or user.username
+            subdivision = ", ".join(
+                user.groups.filter(name__in=my_group_names).values_list('name', flat=True)
+            ) or "—"
+            status_display = dict(Incident.STATUS_CHOICES).get(incident.status, incident.status)
+            ws_my_dept.append([
+                uc.start_date.strftime('%Y-%m-%d %H:%M') if uc.start_date else "—",
+                fio,
+                subdivision,
+                uc.deadline.strftime('%Y-%m-%d %H:%M') if uc.deadline else "—",
+                status_display,
+                incident.title,
+            ])
+
+    # Пустая строка и вторая таблица: сводка по ФИО
+    ws_my_dept.append([])
+    table2_headers = [
+        "ФИО",
+        "Количество просроченных курсов-инцидентов",
+        "Количество завершенных",
+        "Количество назначенных",
+        "Количество в статусе «Принят»/«Новый»",
+        "Всего инцидентов",
+    ]
+    ws_my_dept.append(table2_headers)
+    _apply_header_style(ws_my_dept, ws_my_dept.max_row, len(table2_headers))
+    _set_column_widths(ws_my_dept, [35, 20, 42, 28, 28, 42])
+
+    if my_group_user_ids:
+        incident_courses = Course.objects.filter(is_incident=True)
+        now = timezone.now()
+        # Всего инцидентов по пользователям (assigned_to + violators + expert), уникально
+        total_incident_ids_by_user = {}
+        for inc in Incident.objects.prefetch_related('assigned_to', 'violators').select_related('expert'):
+            for u in list(inc.assigned_to.all()) + list(inc.violators.all()):
+                total_incident_ids_by_user.setdefault(u.id, set()).add(inc.id)
+            if inc.expert_id:
+                total_incident_ids_by_user.setdefault(inc.expert_id, set()).add(inc.id)
+        total_incidents_by_user = {uid: len(s) for uid, s in total_incident_ids_by_user.items()}
+
+        # Количество инцидентов в статусе Принят/Новый по пользователям (assigned_to + violators)
+        incidents_prefetch = Incident.objects.prefetch_related('assigned_to', 'violators').filter(
+            status__in=['accepted', 'new']
+        )
+        accepted_new_by_user = {}
+        for inc in incidents_prefetch:
+            for u in list(inc.assigned_to.all()) + list(inc.violators.all()):
+                accepted_new_by_user[u.id] = accepted_new_by_user.get(u.id, 0) + 1
+
+        for user in User.objects.filter(id__in=my_group_user_ids).prefetch_related('groups').order_by('last_name', 'first_name'):
+            fio = f"{user.last_name or ''} {user.first_name or ''}".strip() or user.username
+            total_incidents = total_incidents_by_user.get(user.id, 0)
+            ucs = list(
+                UserCourse.objects.filter(
+                    user=user,
+                    course__in=incident_courses,
+                ).select_related('course')
+            )
+            assigned_count = len(ucs)
+            completed_count = sum(1 for uc in ucs if uc.status == 'completed')
+            overdue_count = sum(
+                1 for uc in ucs
+                if uc.status != 'completed' and uc.deadline and uc.deadline < now
+            )
+            accepted_new_count = accepted_new_by_user.get(user.id, 0)
+            if total_incidents > 0 or assigned_count > 0 or accepted_new_count > 0:
+                ws_my_dept.append([
+                    fio,
+                    overdue_count,
+                    completed_count,
+                    assigned_count,
+                    accepted_new_count,
+                    total_incidents,
+                ])
+
     # Сохраняем файл
     response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
     filename = f"incidents_{datetime.now().strftime('%Y%m%d_%H%M')}.xlsx"
