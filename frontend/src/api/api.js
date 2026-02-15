@@ -146,6 +146,16 @@ export function fetchUsersWithOrders(page = 1, q = '') {
 }
 
 /**
+ * История заказов пользователя (админ, staff/superuser). Пагинация.
+ * @param {number} userId — ID пользователя
+ * @param {number} [page=1] — номер страницы
+ * @returns {Promise<{target_user: object, orders: Array, stats: object, total_points_spent: number, total_points_refunded: number, pagination: object}>}
+ */
+export function fetchUserOrdersAdmin(userId, page = 1) {
+  return request(`/shop/admin/user/${userId}/orders/?page=${page}`);
+}
+
+/**
  * Данные текущего пользователя (краткие, для navbar и т.п.).
  */
 export function fetchUserData() {

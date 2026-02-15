@@ -1,0 +1,17 @@
+.no-orders-admin {
+  text-align: center;
+  padding: 3rem 0;
+  color: var(--color-text-secondary, #666);
+}
+
+.no-orders-admin__icon {
+  font-size: 4rem;
+  color: #ccc;
+  margin-bottom: 1rem;
+}
+
+.no-orders-admin__title {
+  margin: 0;
+  font-size: 1.5rem;
+  color: var(--color-text, #333);
+}

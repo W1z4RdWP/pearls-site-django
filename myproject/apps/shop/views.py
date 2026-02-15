@@ -402,6 +402,74 @@ class UserOrdersAdminView(LoginRequiredMixin, UserPassesTestMixin, ListView):
         return context
 
 
+@login_required
+@require_http_methods(["GET"])
+def api_user_orders_admin(request, user_id):
+    """API: история заказов конкретного пользователя (только staff/superuser). Пагинация."""
+    if not (request.user.is_staff or request.user.is_superuser):
+        return JsonResponse({'error': 'Доступ запрещён'}, status=403)
+
+    target_user = get_object_or_404(User, id=user_id)
+    queryset = (
+        ProductOrder.objects.filter(user=target_user)
+        .select_related('product')
+        .order_by('-created_at')
+    )
+
+    stats = {
+        'total': queryset.count(),
+        'pending': queryset.filter(status='pending').count(),
+    }
+    total_points_spent = queryset.aggregate(total=Sum('points_spent'))['total'] or 0
+    refunded_orders = queryset.filter(status__in=['rejected', 'cancelled'])
+    total_points_refunded = refunded_orders.aggregate(total=Sum('points_spent'))['total'] or 0
+
+    page = request.GET.get('page', '1')
+    try:
+        page = max(1, int(page))
+    except (ValueError, TypeError):
+        page = 1
+
+    from django.core.paginator import Paginator
+    paginator = Paginator(queryset, PAGINATE_ORDER_HISTORY_BY)
+    if page > paginator.num_pages and paginator.num_pages > 0:
+        page = paginator.num_pages
+    page_obj = paginator.get_page(page)
+
+    orders = [
+        {
+            'id': o.id,
+            'product': {'id': o.product.id, 'name': o.product.name},
+            'created_at': o.created_at.strftime('%d.%m.%Y %H:%M'),
+            'points_spent': o.points_spent,
+            'status': o.status,
+            'status_display': o.get_status_display(),
+            'reviewed_at': o.reviewed_at.strftime('%d.%m.%Y %H:%M') if o.reviewed_at else None,
+            'admin_comment': o.admin_comment or None,
+        }
+        for o in page_obj
+    ]
+
+    return JsonResponse({
+        'target_user': {
+            'id': target_user.id,
+            'full_name': target_user.get_full_name() or target_user.username,
+            'email': target_user.email or '',
+            'username': target_user.username,
+        },
+        'orders': orders,
+        'stats': stats,
+        'total_points_spent': total_points_spent,
+        'total_points_refunded': total_points_refunded,
+        'pagination': {
+            'page': page_obj.number,
+            'num_pages': paginator.num_pages,
+            'has_previous': page_obj.has_previous(),
+            'has_next': page_obj.has_next(),
+        },
+    })
+
+
 class CreateProductView(LoginRequiredMixin, UserPassesTestMixin, CreateView):
     """Класс представление для создания нового товара"""
     model = InternalProduct

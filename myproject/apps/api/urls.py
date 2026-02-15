@@ -30,6 +30,7 @@ urlpatterns = [
     path('shop/orders/count/', shop_views.orders_count, name='api_shop_orders_count'),
     path('shop/orders/history/', shop_views.api_order_history, name='api_shop_order_history'),
     path('shop/admin/users/', shop_views.api_users_with_orders, name='api_shop_users_with_orders'),
+    path('shop/admin/user/<int:user_id>/orders/', shop_views.api_user_orders_admin, name='api_shop_user_orders_admin'),
 
     # Профиль пользователя для React
     path('users/user_info/', views_frontend.user_info, name='api_user_info'),

@@ -8,6 +8,7 @@ import AboutPage from './components/AboutPage/AboutPage';
 import ShopPage from './components/ShopPage/ShopPage';
 import OrderHistoryPage from './components/ShopPage/OrderHistoryPage/OrderHistoryPage';
 import UsersWithOrdersPage from './components/ShopPage/UsersWithOrdersPage/UsersWithOrdersPage';
+import UserOrdersAdminPage from './components/ShopPage/UserOrdersAdminPage/UserOrdersAdminPage';
 import ProfilePage from './components/UsersApp/UserProfilePage/ProfilePage';
 
 const App = () => {
@@ -22,6 +23,7 @@ const App = () => {
           <Route path='/shop/catalog' element={<ShopPage />}/>
           <Route path='/shop/history' element={<OrderHistoryPage />} />
           <Route path='/shop/admin/users' element={<UsersWithOrdersPage />} />
+          <Route path='/shop/admin/user/:userId/orders' element={<UserOrdersAdminPage />} />
           <Route path='/users/profile' element={<ProfilePage />} /> 
 
           {/* Добавляйте новые маршруты здесь */}

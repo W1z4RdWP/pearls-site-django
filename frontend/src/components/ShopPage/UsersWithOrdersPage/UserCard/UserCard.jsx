@@ -1,8 +1,7 @@
+import { Link } from 'react-router-dom';
 import './UserCard.css';
 
 const UserCard = ({ user }) => {
-  const ordersUrl = `/shop/admin/user/${user.id}/orders/`;
-
   return (
     <article className="user-card" aria-labelledby={`user-name-${user.id}`}>
       <div className="user-card__header">
@@ -35,14 +34,14 @@ const UserCard = ({ user }) => {
             )}
           </div>
         </div>
-        <a
-          href={ordersUrl}
+        <Link
+          to={`/shop/admin/user/${user.id}/orders`}
           className="user-card__link"
           aria-label={`История покупок: ${user.full_name}`}
         >
           <i className="fas fa-shopping-bag" aria-hidden />
           История покупок
-        </a>
+        </Link>
       </div>
     </article>
   );
