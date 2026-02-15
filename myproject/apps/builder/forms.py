@@ -176,11 +176,21 @@ class IPRModuleForm(forms.ModelForm):
             self.fields['ipr'].initial = ipr_id
 
 
+ELEMENT_STATUS_CHOICES = [
+    ('actual', 'Готово (актуально сейчас)'),
+    ('needs_work', 'Нужно доработать'),
+]
+
+
 class LessonDraftForm(forms.ModelForm):
     """Форма для редактирования черновика урока."""
     class Meta:
         model = LessonDraft
-        fields = ['title', 'content', 'order', 'courses', 'category', 'required_time', 'final_quiz', 'submit_comment']
+        fields = [
+            'title', 'content', 'order', 'courses', 'category', 'required_time', 'final_quiz',
+            'content_element_status', 'video_element_status', 'links_element_status',
+            'submit_comment'
+        ]
         widgets = {
             'content': CKEditor5Widget(
                 attrs={'class': 'django_ckeditor_5'}, 
@@ -189,6 +199,9 @@ class LessonDraftForm(forms.ModelForm):
             'courses': forms.SelectMultiple(attrs={'class': 'form-select'}),
             'required_time': forms.NumberInput(attrs={'class': 'form-control', 'min': '1', 'max': '999'}),
             'final_quiz': forms.HiddenInput(),
+            'content_element_status': forms.RadioSelect(choices=ELEMENT_STATUS_CHOICES),
+            'video_element_status': forms.RadioSelect(choices=ELEMENT_STATUS_CHOICES),
+            'links_element_status': forms.RadioSelect(choices=ELEMENT_STATUS_CHOICES),
             'submit_comment': forms.Textarea(attrs={'class': 'form-control', 'rows': 3, 'placeholder': 'Введите комментарий к черновику (необязательно)...'})
         }
         
@@ -215,11 +228,14 @@ class LessonDraftForm(forms.ModelForm):
         """Настраивает форму в зависимости от прав пользователя"""
         user = kwargs.pop('user', None)
         super().__init__(*args, **kwargs)
+        # По умолчанию ничего не выбрано; сохранить можно только при выборе по каждому элементу
+        for fn in ('content_element_status', 'video_element_status', 'links_element_status'):
+            self.fields[fn].required = True
         
-        # Если пользователь - наставник (не staff/superuser), делаем все поля кроме content и submit_comment readonly
+        # Если пользователь - наставник (не staff/superuser), делаем все поля кроме content, матрицы статусов и submit_comment readonly
+        mentor_editable = ['content', 'content_element_status', 'video_element_status', 'links_element_status', 'submit_comment']
         if user and hasattr(user, 'profile') and user.profile.is_mentor_user and not (user.is_staff or user.is_superuser):
-            # Делаем все поля кроме content и submit_comment недоступными для редактирования
             for field_name in self.fields:
-                if field_name not in ['content', 'submit_comment']:
+                if field_name not in mentor_editable:
                     self.fields[field_name].disabled = True
                     self.fields[field_name].required = False

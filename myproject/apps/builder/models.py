@@ -314,6 +314,10 @@ class LessonDraft(models.Model):
         ('approved', 'Принят'),
         ('rejected', 'Отклонен'),
     ]
+    ELEMENT_STATUS_CHOICES = [
+        ('actual', 'Готово (актуально сейчас)'),
+        ('needs_work', 'Нужно доработать'),
+    ]
     
     lesson = models.ForeignKey('courses.Lesson', on_delete=models.CASCADE, related_name='drafts', verbose_name='Урок')
     title = models.CharField(max_length=200, verbose_name='Название урока')
@@ -341,6 +345,20 @@ class LessonDraft(models.Model):
     
     # Комментарий от создателя черновика
     submit_comment = models.TextField(blank=True, verbose_name='Комментарий к черновику')
+    
+    # Статус элементов контента: актуально или нужно доработать (по одному варианту на элемент)
+    content_element_status = models.CharField(
+        max_length=20, choices=ELEMENT_STATUS_CHOICES, null=True, blank=True,
+        verbose_name='Текст (актуально/нужно доработать)'
+    )
+    video_element_status = models.CharField(
+        max_length=20, choices=ELEMENT_STATUS_CHOICES, null=True, blank=True,
+        verbose_name='Видео (актуально/нужно доработать)'
+    )
+    links_element_status = models.CharField(
+        max_length=20, choices=ELEMENT_STATUS_CHOICES, null=True, blank=True,
+        verbose_name='Ссылки (актуально/нужно доработать)'
+    )
     
     # Было ли выполнено хотя бы одно сохранение черновика (через «Сохранить черновик»)
     saved_at_least_once = models.BooleanField(default=False, verbose_name='Черновик сохранялся')
