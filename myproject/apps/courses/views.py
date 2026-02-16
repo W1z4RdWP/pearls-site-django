@@ -3199,6 +3199,12 @@ class AssignCourseToExpertView(View):
                 except Exception as e:
                     logger.error(f"Ошибка отправки email уведомления о курсе-инциденте {course.title}: {e}")
             
+            # При назначении руководителю статус должен быть 'accepted' (если еще не 'assigned')
+            # Статус 'assigned' устанавливается только когда курс назначен сотрудникам
+            if incident.status not in ['assigned', 'studies_completed', 'resolved', 'declined']:
+                incident.status = 'accepted'
+                incident.save(update_fields=['status', 'updated_at'])
+            
             return JsonResponse({
                 'success': True, 
                 'message': f'Курс назначен руководителю {incident.expert.get_full_name()}'
@@ -3269,6 +3275,11 @@ class AssignCourseToAssignedView(View):
                         logger.info(f"Отправлено email уведомление о курсе-инциденте {course.title} пользователю {user.email}")
                     except Exception as e:
                         logger.error(f"Ошибка отправки email уведомления о курсе-инциденте {course.title}: {e}")
+            
+            # Меняем статус инцидента на 'assigned', так как курс назначен сотрудникам
+            if assigned_count > 0 and incident.status != 'assigned':
+                incident.status = 'assigned'
+                incident.save(update_fields=['status', 'updated_at'])
             
             return JsonResponse({
                 'success': True, 

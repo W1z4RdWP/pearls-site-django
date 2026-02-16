@@ -714,6 +714,11 @@ def check_incident_completion_on_course_completion(sender, instance, created, **
                                         except Exception as e:
                                             logger.error(f"Ошибка отправки email уведомления о курсе-инциденте {course.title}: {e}")
                                 
+                                # Меняем статус инцидента на 'assigned', так как курс назначен сотрудникам
+                                if assigned_count > 0 and incident.status != 'assigned':
+                                    incident.status = 'assigned'
+                                    incident.save(update_fields=['status', 'updated_at'])
+                                
                                 logger.info(f"После завершения курса expert'ом ({user.username}) курс {course.title} автоматически назначен {assigned_count} пользователям из assigned_to инцидента {incident.title}")
                         
                         if not assigned_users.exists():

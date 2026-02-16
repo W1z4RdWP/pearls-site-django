@@ -22,6 +22,7 @@ from builder.models import Incident
 from builder.utils import get_total_incidents_students
 from courses.models import Course, UserLessonTrajectory
 from myapp.models import UserCourse, UserProgress, ManualCourseUnassignment
+from users.models import Department
 
 import logging
 
@@ -341,9 +342,9 @@ def incidents_export_excel_report(request):
         status_counts['studies_completed'], status_counts['resolved'], status_counts['declined']
     ])
 
-    # Группы и инциденты для блоков «Просрочены дедлайны» и «По подразделениям»
-    groups_involved = list(
-        Group.objects.filter(user__id__in=unique_assigned_users)
+    # Подразделения и инциденты для блоков «Просрочены дедлайны» и «По подразделениям»
+    departments_involved = list(
+        Department.objects.filter(profile__user__id__in=unique_assigned_users)
         .values_list('name', flat=True)
         .distinct()
     )
@@ -352,11 +353,11 @@ def incidents_export_excel_report(request):
     # Просрочены дедлайны по подразделениям: считаем по UserCourse.deadline (срок курса у пользователя), не по Incident.deadline
     # now уже определен выше для статистики за неделю
     incidents_with_course = [inc for inc in incidents_prefetched if inc.course_id is not None]
-    # По группе: (group_name, set(user_ids) просрочивших, set(incident_ids) просроченных для группы)
-    overdue_by_group = {}
-    for group_name in groups_involved:
-        group_user_ids = set(
-            User.objects.filter(groups__name=group_name)
+    # По подразделению: (department_name, set(user_ids) просрочивших, set(incident_ids) просроченных для подразделения)
+    overdue_by_department = {}
+    for department_name in departments_involved:
+        department_user_ids = set(
+            User.objects.filter(profile__department__name=department_name)
             .filter(id__in=unique_assigned_users)
             .values_list('id', flat=True)
         )
@@ -365,13 +366,13 @@ def incidents_export_excel_report(request):
         for inc in incidents_with_course:
             assigned_ids = set(inc.assigned_to.values_list('id', flat=True))
             violator_ids = set(inc.violators.values_list('id', flat=True))
-            in_group = (assigned_ids | violator_ids) & group_user_ids
-            if not in_group:
+            in_department = (assigned_ids | violator_ids) & department_user_ids
+            if not in_department:
                 continue
             # Просрочили: у пользователя есть UserCourse по курсу инцидента с дедлайном < now и статус не 'completed'
             overdue_user_ids_for_inc = set(
                 UserCourse.objects.filter(
-                    user_id__in=in_group,
+                    user_id__in=in_department,
                     course_id=inc.course_id,
                     deadline__isnull=False,
                     deadline__lt=now,
@@ -380,12 +381,12 @@ def incidents_export_excel_report(request):
             if overdue_user_ids_for_inc:
                 overdue_incident_ids.add(inc.id)
                 overdue_user_ids |= overdue_user_ids_for_inc
-        overdue_by_group[group_name] = (len(overdue_user_ids), len(overdue_incident_ids))
-    # Сортируем группы по количеству просроченных инцидентов (убывание)
+        overdue_by_department[department_name] = (len(overdue_user_ids), len(overdue_incident_ids))
+    # Сортируем подразделения по количеству просроченных инцидентов (убывание)
     overdue_rows = [
-        [group_name, num_employees, num_incidents]
-        for group_name, (num_employees, num_incidents) in sorted(
-            overdue_by_group.items(), key=lambda x: -x[1][1]
+        [department_name, num_employees, num_incidents]
+        for department_name, (num_employees, num_incidents) in sorted(
+            overdue_by_department.items(), key=lambda x: -x[1][1]
         )
     ]
 
@@ -399,58 +400,58 @@ def incidents_export_excel_report(request):
     ws_summary.append(['По подразделениям'])
     _apply_header_style(ws_summary, ws_summary.max_row, 1)
 
-    groups_headers = ["Подразделение", "Всего", "Обучающие", "Информационные", "Завершены", "Не завершены", "Повторяющиеся"]
-    ws_summary.append(groups_headers)
+    departments_headers = ["Подразделение", "Всего", "Обучающие", "Информационные", "Завершены", "Не завершены", "Повторяющиеся"]
+    ws_summary.append(departments_headers)
     _apply_header_style(ws_summary, ws_summary.max_row, 8)
 
     start_row = ws_summary.max_row + 1
-    for idx, group_name in enumerate(groups_involved):
-        group_user_ids = set(
-            User.objects.filter(groups__name=group_name)
+    for idx, department_name in enumerate(departments_involved):
+        department_user_ids = set(
+            User.objects.filter(profile__department__name=department_name)
             .filter(id__in=unique_assigned_users)
             .values_list('id', flat=True)
         )
-        if not group_user_ids:
-            ws_summary.append([group_name, 0, 0, 0, 0, 0, "Не выявлено"])
+        if not department_user_ids:
+            ws_summary.append([department_name, 0, 0, 0, 0, 0, "Не выявлено"])
             row_num = start_row + idx
             for col in range(1,8):
                 ws_summary.cell(row=row_num, column=col).alignment = Alignment(wrap_text=True)
             continue
 
-        group_total = 0
-        group_edu = 0
-        group_info = 0
+        department_total = 0
+        department_edu = 0
+        department_info = 0
         titles_list = []
 
         for inc in incidents_prefetched:
             assigned_ids = set(inc.assigned_to.values_list('id', flat=True))
             violator_ids = set(inc.violators.values_list('id', flat=True))
-            in_group = (assigned_ids | violator_ids) & group_user_ids
-            n = len(in_group)
+            in_department = (assigned_ids | violator_ids) & department_user_ids
+            n = len(in_department)
             if n == 0:
                 continue
-            group_total += n
+            department_total += n
             if inc.incident_type == 'educational':
-                group_edu += n
+                department_edu += n
             else:
-                group_info += n
+                department_info += n
             titles_list.append(inc.title)
 
         completed = UserCourse.objects.filter(
-            user_id__in=group_user_ids,
+            user_id__in=department_user_ids,
             course__in=incident_courses,
             status='completed'
         ).count()
-        not_completed = max(0, group_total - completed)
+        not_completed = max(0, department_total - completed)
         
         has_duplicate_titles = len(titles_list) != len(set(titles_list))
         repeat_value = "Выявлено" if has_duplicate_titles else "Не выявлено"
 
         ws_summary.append([
-            group_name,
-            group_total,
-            group_edu,
-            group_info,
+            department_name,
+            department_total,
+            department_edu,
+            department_info,
             completed,
             not_completed,
             repeat_value,
@@ -609,13 +610,15 @@ def incidents_export_excel_report(request):
     # ================== ЛИСТ 6: Моё подразделение ==================
     ws_my_dept = wb.create_sheet("Моё подразделение")
 
-    # Пользователи из подразделений текущего пользователя
-    my_group_names = list(request.user.groups.values_list('name', flat=True))
-    my_group_user_ids = set()
-    if my_group_names:
-        my_group_user_ids = set(
-            User.objects.filter(groups__name__in=my_group_names).values_list('id', flat=True)
+    # Пользователи из подразделения текущего пользователя
+    my_department = None
+    if hasattr(request.user, 'profile') and request.user.profile and request.user.profile.department:
+        my_department = request.user.profile.department
+        my_department_user_ids = set(
+            User.objects.filter(profile__department=my_department).values_list('id', flat=True)
         )
+    else:
+        my_department_user_ids = set()
 
     # Первая таблица: назначения курсов-инцидентов по подразделению
     table1_headers = [
@@ -626,11 +629,11 @@ def incidents_export_excel_report(request):
     _apply_header_style(ws_my_dept, 1, len(table1_headers))
     _set_column_widths(ws_my_dept, [28, 35, 30, 22, 22, 45])
 
-    if my_group_user_ids:
+    if my_department_user_ids:
         incident_courses = Course.objects.filter(is_incident=True)
         user_courses_list = (
             UserCourse.objects.filter(
-                user_id__in=my_group_user_ids,
+                user_id__in=my_department_user_ids,
                 course__in=incident_courses,
             )
             .select_related('user', 'course')
@@ -646,9 +649,7 @@ def incidents_export_excel_report(request):
                 continue
             user = uc.user
             fio = f"{user.last_name or ''} {user.first_name or ''}".strip() or user.username
-            subdivision = ", ".join(
-                user.groups.filter(name__in=my_group_names).values_list('name', flat=True)
-            ) or "—"
+            subdivision = user.profile.department.name if (hasattr(user, 'profile') and user.profile and user.profile.department) else "—"
             status_display = dict(Incident.STATUS_CHOICES).get(incident.status, incident.status)
             ws_my_dept.append([
                 uc.start_date.strftime('%Y-%m-%d %H:%M') if uc.start_date else "—",
@@ -680,7 +681,7 @@ def incidents_export_excel_report(request):
         cell.alignment = Alignment(horizontal='center', vertical='center', wrap_text=True)
     _set_column_widths(ws_my_dept, [35, 30, 42, 28, 28, 42])
 
-    if my_group_user_ids:
+    if my_department_user_ids:
         incident_courses = Course.objects.filter(is_incident=True)
         now = timezone.now()
         # Всего инцидентов по пользователям (assigned_to + violators + expert), уникально
@@ -701,7 +702,7 @@ def incidents_export_excel_report(request):
             for u in list(inc.assigned_to.all()) + list(inc.violators.all()):
                 accepted_new_by_user[u.id] = accepted_new_by_user.get(u.id, 0) + 1
 
-        for user in User.objects.filter(id__in=my_group_user_ids).prefetch_related('groups').order_by('last_name', 'first_name'):
+        for user in User.objects.filter(id__in=my_department_user_ids).prefetch_related('profile').order_by('last_name', 'first_name'):
             fio = f"{user.last_name or ''} {user.first_name or ''}".strip() or user.username
             total_incidents = total_incidents_by_user.get(user.id, 0)
             ucs = list(
@@ -959,14 +960,13 @@ class CreateCourseFromIncidentView(View):
                 mentors_time_to_check=incident.mentors_time_to_check or 2
             )
             
-            # Связываем инцидент с курсом и обновляем статус
+            # Связываем инцидент с курсом
+            # Статус остается 'accepted', так как курс еще не назначен сотрудникам
             incident.course = course
-            incident.status = 'assigned'
+            # Если статус был 'new', меняем на 'accepted'
+            if incident.status == 'new':
+                incident.status = 'accepted'
             incident.save(update_fields=['course', 'status', 'updated_at'])
-
-            if incident.course and not incident.status == 'assigned':
-                incident.status = 'assigned'
-                incident.save(update_fields=['course', 'status', 'updated_at'])
             
             # Автоназначение курса отключено - назначение происходит вручную через кнопки в деталке курса
             
@@ -1332,3 +1332,100 @@ class UnassignIncidentUserView(View, AuditLoggerMixin):
             redirect_url += '?' + urlencode(query_params)
         
         return redirect(redirect_url)
+
+
+@method_decorator(login_required, name='dispatch')
+class IncidentWeeklyReportView(ListView):
+    """
+    Отчет за последнюю неделю по инцидентам.
+    Показывает статистику по каждому пользователю:
+    - ФИО
+    - Подразделение
+    - Назначено (количество инцидентов со статусом 'assigned')
+    - Просрочено (количество инцидентов с просроченным дедлайном курса)
+    - Завершено (количество инцидентов со статусом 'resolved')
+    - Обучение завершено (количество инцидентов со статусом 'studies_completed')
+    """
+    template_name = 'builder/incident_weekly_report.html'
+    context_object_name = 'report_data'
+
+    def dispatch(self, request, *args, **kwargs):
+        if not request.user.is_authenticated or not (request.user.is_staff or request.user.is_superuser or request.user.profile.is_mentor_user):
+            return render(request, '403.html', status=403)
+        return super().dispatch(request, *args, **kwargs)
+
+    def get_queryset(self):
+        from django.contrib.auth import get_user_model
+        from django.db.models import Q
+        
+        User = get_user_model()
+        now = timezone.now()
+        week_ago = now - timedelta(days=7)
+        
+        # Получаем все инциденты за последнюю неделю
+        incidents = Incident.objects.filter(
+            created_at__gte=week_ago
+        ).prefetch_related('assigned_to', 'violators', 'course').select_related('course')
+        
+        # Собираем уникальных пользователей, которые были назначены на инциденты
+        users_with_incidents = set()
+        for incident in incidents:
+            users_with_incidents.update(incident.assigned_to.all())
+            users_with_incidents.update(incident.violators.all())
+            if incident.expert:
+                users_with_incidents.add(incident.expert)
+        
+        # Формируем отчет для каждого пользователя
+        report_data = []
+        for user in users_with_incidents:
+            # Получаем профиль пользователя
+            if not hasattr(user, 'profile') or not user.profile:
+                continue
+            
+            # Фильтруем инциденты для этого пользователя
+            user_incidents = incidents.filter(
+                Q(assigned_to=user) | Q(violators=user) | Q(expert=user)
+            ).distinct()
+            
+            # Подсчитываем статистику
+            assigned_count = user_incidents.filter(status='assigned').count()
+            resolved_count = user_incidents.filter(status='resolved').count()
+            studies_completed_count = user_incidents.filter(status='studies_completed').count()
+            
+            # Подсчитываем просроченные инциденты
+            overdue_count = 0
+            for incident in user_incidents:
+                if incident.course:
+                    # Проверяем, есть ли у пользователя UserCourse для этого курса
+                    user_course = UserCourse.objects.filter(
+                        user=user,
+                        course=incident.course
+                    ).first()
+                    
+                    if user_course and user_course.deadline:
+                        # Проверяем, просрочен ли дедлайн и не завершен ли курс
+                        if user_course.deadline < now and user_course.status != 'completed':
+                            overdue_count += 1
+            
+            report_data.append({
+                'user': user,
+                'full_name': user.get_full_name() or user.username,
+                'department': user.profile.department.name if user.profile.department else '—',
+                'assigned_count': assigned_count,
+                'overdue_count': overdue_count,
+                'resolved_count': resolved_count,
+                'studies_completed_count': studies_completed_count,
+            })
+        
+        # Сортируем по ФИО
+        report_data.sort(key=lambda x: x['full_name'])
+        
+        return report_data
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        now = timezone.now()
+        week_ago = now - timedelta(days=7)
+        context['week_start'] = week_ago
+        context['week_end'] = now
+        return context

@@ -1,0 +1,62 @@
+{% extends 'layout.html' %}
+{% load static %}
+{% block title %}Отчет за неделю{% endblock %}
+{% block specific_styles %}
+    <link rel="stylesheet" href="{% static 'builder/css/incidents.css' %}">
+{% endblock %}
+{% block content %}
+{% csrf_token %}
+<div class="incidents-card mb-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h2 class="mb-0">Отчет за неделю</h2>
+        <a href="{% url 'builder:incident_detail' %}" class="btn btn-secondary">← Назад к деталям</a>
+    </div>
+    
+    <div class="mb-3">
+        <p class="text-muted">
+            Период: с {{ week_start|date:"d.m.Y" }} по {{ week_end|date:"d.m.Y" }}
+        </p>
+    </div>
+    
+    <div class="incidents-table-responsive">
+        <table class="table">
+            <thead>
+                <tr>
+                    <th style="width: 5%;">№</th>
+                    <th style="width: 20%;">ФИО</th>
+                    <th style="width: 20%;">Подразделение</th>
+                    <th style="width: 15%;">Назначено</th>
+                    <th style="width: 15%;">Просрочено</th>
+                    <th style="width: 15%;">Завершено</th>
+                    <th style="width: 15%;">Обучение завершено</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% if report_data %}
+                    {% for item in report_data %}
+                    <tr>
+                        <td>{{ forloop.counter }}</td>
+                        <td>{{ item.full_name }}</td>
+                        <td>{{ item.department }}</td>
+                        <td style="text-align: center;">{{ item.assigned_count }}</td>
+                        <td style="text-align: center;">
+                            {% if item.overdue_count > 0 %}
+                                <span class="badge bg-danger">{{ item.overdue_count }}</span>
+                            {% else %}
+                                {{ item.overdue_count }}
+                            {% endif %}
+                        </td>
+                        <td style="text-align: center;">{{ item.resolved_count }}</td>
+                        <td style="text-align: center;">{{ item.studies_completed_count }}</td>
+                    </tr>
+                    {% endfor %}
+                {% else %}
+                    <tr>
+                        <td colspan="7" class="text-center">Нет данных за указанный период</td>
+                    </tr>
+                {% endif %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
