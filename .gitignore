@@ -13,6 +13,7 @@ staticfiles_old
 
 # Node
 node_modules/
+.vite/
 
 # Backup files # 
 *.bak 

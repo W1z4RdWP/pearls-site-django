@@ -254,8 +254,15 @@ def incidents_export_excel_report(request):
         "Назначений курсов-инцидентов"
     ]
     ws_summary.append(week_stats_headers)
+    week_stats_header_row = ws_summary.max_row
     _apply_header_style(ws_summary, 2, len(week_stats_headers))
-    _set_column_widths(ws_summary, [30, 40, 40, 40, 40])
+    ws_summary.row_dimensions[week_stats_header_row].height = 30
+    for col_num in range(1, len(week_stats_headers) + 1):
+        cell = ws_summary.cell(row=week_stats_header_row, column=col_num)
+        cell.alignment = Alignment(horizontal='center', vertical='center', wrap_text=True)
+    _set_column_widths(ws_summary, [40, 30, 30, 30, 30, 25, 20])
+
+    # _set_column_widths(ws_summary, [45, 40, 40, 40, 40, 25, 20])
     
     ws_summary.append([
         total_last_week,
@@ -308,7 +315,7 @@ def incidents_export_excel_report(request):
     ws_summary.append(summary_headers)
     # Применяем стиль к строке 5 (после статистики за неделю: строка 1, строка 2, строка 3, строка 4 пустая, строка 5 - заголовки)
     _apply_header_style(ws_summary, ws_summary.max_row, len(summary_headers))
-    _set_column_widths(ws_summary, [50, 30, 30, 20, 22, 22])
+    # _set_column_widths(ws_summary, [50, 30, 30, 20, 22, 22])
     
     ws_summary.append([
         total_incidents, info_incidents_count, edu_incidents_count,
@@ -663,8 +670,15 @@ def incidents_export_excel_report(request):
         "Всего инцидентов",
     ]
     ws_my_dept.append(table2_headers)
-    _apply_header_style(ws_my_dept, ws_my_dept.max_row, len(table2_headers))
-    _set_column_widths(ws_my_dept, [35, 20, 42, 28, 28, 42])
+    table2_header_row = ws_my_dept.max_row
+    _apply_header_style(ws_my_dept, table2_header_row, len(table2_headers))
+    # Высота строки в 2 раза и перенос по словам для заголовков второй таблицы
+    default_height = 15
+    ws_my_dept.row_dimensions[table2_header_row].height = default_height * 2
+    for col_num in range(1, len(table2_headers) + 1):
+        cell = ws_my_dept.cell(row=table2_header_row, column=col_num)
+        cell.alignment = Alignment(horizontal='center', vertical='center', wrap_text=True)
+    _set_column_widths(ws_my_dept, [35, 30, 42, 28, 28, 42])
 
     if my_group_user_ids:
         incident_courses = Course.objects.filter(is_incident=True)
