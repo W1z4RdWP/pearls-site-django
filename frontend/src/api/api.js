@@ -189,6 +189,13 @@ export function fetchDashboardData() {
   return request('/builder/dashboard/');
 }
 
+
+export function fetchChangelogData() {
+  return request('/changelog/');
+}
+
+
+
 /**
  * Данные текущего пользователя (краткие, для navbar и т.п.).
  */

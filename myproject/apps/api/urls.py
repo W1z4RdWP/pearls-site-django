@@ -35,6 +35,7 @@ urlpatterns = [
 
     # Дашборд builder (панель управления)
     path('builder/dashboard/', views_frontend.dashboard_data, name='api_builder_dashboard'),
+    path('changelog/', views_frontend.changelog_data, name='api_changelog'),
 
     # Профиль пользователя для React
     path('users/user_info/', views_frontend.user_info, name='api_user_info'),

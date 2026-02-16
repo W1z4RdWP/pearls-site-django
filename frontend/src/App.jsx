@@ -12,6 +12,7 @@ import UserOrdersAdminPage from './components/ShopPage/UserOrdersAdminPage/UserO
 import CreateProductPage from './components/ShopPage/CreateProductPage/CreateProductPage';
 import ProfilePage from './components/UsersApp/UserProfilePage/ProfilePage';
 import DashboardPage from './components/DashboardPage/DashboardPage';
+import ChangeLogPage from './components/ChangeLogPage/ChangeLogPage';
 
 const App = () => {
   return (
@@ -22,6 +23,7 @@ const App = () => {
           <Route path='/users/login' element={<LoginPage />}/>
           <Route path='/users/logout' element={<LogoutPage />}/>
           <Route path='/about' element={<AboutPage />}/>
+          <Route path='/changelog' element={<ChangeLogPage />}/>
           <Route path='/builder' element={<DashboardPage />}/>
           <Route path='/shop/catalog' element={<ShopPage />}/>
           <Route path='/shop/history' element={<OrderHistoryPage />} />

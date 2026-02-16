@@ -5,6 +5,7 @@ API views для фронтенда на React.
 
 import logging
 
+from django.http import JsonResponse
 from rest_framework.decorators import api_view, permission_classes, authentication_classes
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
@@ -16,9 +17,10 @@ from django.contrib.auth.models import User
 from django.views.decorators.csrf import ensure_csrf_cookie
 from django.core.exceptions import ObjectDoesNotExist
 from courses.models import Course, TrajectoryCourse
+from myapp.models import ChangeLog
 from users.forms import UserUpdateForm, ProfileUpdateForm
 
-from .serializers import UserCourseSerializer, UserMeSerializer, CourseListSerializer
+from .serializers import ChangelogSerializer, UserCourseSerializer, UserMeSerializer, CourseListSerializer
 
 audit_logger = logging.getLogger('api_audit')
 
@@ -561,3 +563,36 @@ def dashboard_data(request):
         return Response({'error': 'Доступ запрещён'}, status=status.HTTP_403_FORBIDDEN)
 
     return Response(context)
+
+
+
+def _changelog_context(request):
+    has_access = False
+    if request.user.is_staff:
+        has_access = True
+    if has_access == False:
+        return None
+    
+    changelog = ChangeLog.objects.filter(is_public=True).first()
+    return changelog
+
+
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def changelog_data(request):
+    """
+    Данные для страницы "Список изменений" (changelog)
+    Доступ: staff, superuser
+    """
+
+    if not request.user.is_authenticated:
+        return Response({'error': 'Не авторизован'}, status=status.HTTP_401_UNAUTHORIZED)
+
+    context = _changelog_context(request)
+    if context is None:
+        return Response({'error': 'Доступ запрещён'}, status=status.HTTP_403_FORBIDDEN)
+    
+    serializer = ChangelogSerializer(context)
+
+    return Response(serializer.data)
