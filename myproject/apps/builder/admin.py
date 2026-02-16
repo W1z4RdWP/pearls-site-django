@@ -42,6 +42,7 @@ class IncidentAdmin(admin.ModelAdmin):
     list_filter = ('created_at',)
     search_fields = ('title',)
 
+
 admin.site.register(IPR)
 
 admin.site.register(IPRModule)
@@ -49,8 +50,6 @@ admin.site.register(IPRModule)
 admin.site.register(DictionaryTerm)
 
 admin.site.register(DictionarySection)
-
-
 
 
 @admin.register(LessonAllowedRole)
