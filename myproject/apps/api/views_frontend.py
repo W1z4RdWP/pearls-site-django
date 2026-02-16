@@ -50,10 +50,10 @@ def layout_data(request):
     nav_staff = [
         {'url': '/trajectories', 'label': 'Управление траекториями', 'icon': 'fa-solid fa-route'},
         {'url': '/changelog', 'label': 'Список изменений', 'icon': 'fa-solid fa-list-check'},
-        {'url': '/dashboard', 'label': 'Панель управления', 'icon': 'fa-solid fa-cog'},
+        {'url': '/builder', 'label': 'Панель управления', 'icon': 'fa-solid fa-cog'},
     ]
     nav_mentor = [
-        {'url': '/dashboard', 'label': 'Панель управления', 'icon': 'fa-solid fa-cog'},
+        {'url': '/builder', 'label': 'Панель управления', 'icon': 'fa-solid fa-cog'},
     ]
 
     # Версия сайта
@@ -425,3 +425,139 @@ def update_profile(request):
             {'error': 'Ошибка валидации', 'errors': errors},
             status=status.HTTP_400_BAD_REQUEST,
         )
+
+
+def _dashboard_context(request):
+    """
+    Строит контекст дашборда (как в builder.views.dashboard_views.DashboardView).
+    Возвращает словарь, пригодный для JSON (без моделей Django).
+    """
+    from django.db.models import Q
+
+    user = request.user
+    if not user.is_authenticated:
+        return None
+
+    has_access = (
+        user.is_staff
+        or user.is_superuser
+        or (hasattr(user, 'profile') and getattr(user.profile, 'is_mentor_user', False))
+    )
+    if not has_access:
+        return None
+
+    is_mentor_only = (
+        hasattr(user, 'profile')
+        and getattr(user.profile, 'is_mentor_user', False)
+        and not user.is_staff
+        and not user.is_superuser
+    )
+
+    result = {
+        'top_users_dascoin': [],
+        'total_unrated_count': 0,
+        'unrated_text_answers': [],
+    }
+
+    if not is_mentor_only:
+        from myapp.models import UserAnswer, QuizResult
+
+        unrated_answers_queryset = UserAnswer.objects.filter(
+            question__question_type='text',
+            is_correct__isnull=True,
+            answer_text__isnull=False,
+            answer_text__gt='',
+        ).select_related('user', 'question', 'quiz_result', 'quiz_result__course')
+
+        quiz_result_ids = unrated_answers_queryset.values_list('quiz_result_id', flat=True).distinct()
+        quiz_results = QuizResult.objects.filter(id__in=quiz_result_ids).select_related(
+            'user', 'course'
+        ).order_by('user_id', 'quiz_title', 'course_id', '-percent', '-completed_at')
+
+        seen = set()
+        best_result_ids = []
+        for result_obj in quiz_results:
+            course_id = result_obj.course_id if result_obj.course_id else None
+            key = (result_obj.user_id, result_obj.quiz_title, course_id)
+            if key not in seen:
+                seen.add(key)
+                best_result_ids.append(result_obj.id)
+        best_result_ids = set(best_result_ids)
+
+        unrated_answers_best = unrated_answers_queryset.filter(quiz_result_id__in=best_result_ids)
+        result['total_unrated_count'] = unrated_answers_best.count()
+
+        unrated_text_answers = unrated_answers_best.order_by('-quiz_result__completed_at')[:20]
+        grouped_answers = {}
+        for answer in unrated_text_answers:
+            key = f"{answer.user.username}_{answer.quiz_result.id}"
+            if key not in grouped_answers:
+                grouped_answers[key] = {
+                    'user': {
+                        'id': answer.user.id,
+                        'username': answer.user.username,
+                        'first_name': answer.user.first_name or '',
+                        'last_name': answer.user.last_name or '',
+                        'full_name': answer.user.get_full_name() or answer.user.username,
+                        'email': answer.user.email or '',
+                    },
+                    'quiz_result': {
+                        'id': answer.quiz_result.id,
+                        'quiz_title': answer.quiz_result.quiz_title,
+                        'completed_at': answer.quiz_result.completed_at.strftime('%d.%m.%Y %H:%M')
+                        if answer.quiz_result.completed_at else None,
+                    },
+                    'answers': [],
+                }
+            grouped_answers[key]['answers'].append({
+                'question_text': (answer.question.text or '')[:60],
+            })
+        result['unrated_text_answers'] = list(grouped_answers.values())
+    else:
+        mentor_groups = user.groups.all()
+        if mentor_groups.exists():
+            top_users = (
+                User.objects.filter(
+                    groups__in=mentor_groups,
+                    profile__is_approved=True,
+                )
+                .exclude(Q(is_superuser=True) | Q(is_staff=True))
+                .select_related('profile')
+                .order_by('-profile__dascoin_points', 'email')
+                .distinct()[:5]
+            )
+            for u in top_users:
+                profile = getattr(u, 'profile', None)
+                image_url = None
+                if profile and profile.image:
+                    image_url = profile.image.url
+                result['top_users_dascoin'].append({
+                    'id': u.id,
+                    'username': u.username,
+                    'first_name': u.first_name or '',
+                    'last_name': u.last_name or '',
+                    'full_name': u.get_full_name() or u.username,
+                    'email': u.email or '',
+                    'profile': {
+                        'image_url': image_url,
+                        'dascoin_points': getattr(profile, 'dascoin_points', 0) if profile else 0,
+                    },
+                })
+    return result
+
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def dashboard_data(request):
+    """
+    Данные для страницы «Панель управления» (builder dashboard).
+    Доступ: staff, superuser или наставник (is_mentor_user).
+    """
+    if not request.user.is_authenticated:
+        return Response({'error': 'Не авторизован'}, status=status.HTTP_401_UNAUTHORIZED)
+
+    context = _dashboard_context(request)
+    if context is None:
+        return Response({'error': 'Доступ запрещён'}, status=status.HTTP_403_FORBIDDEN)
+
+    return Response(context)

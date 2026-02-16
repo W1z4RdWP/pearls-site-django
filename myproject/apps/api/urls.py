@@ -33,6 +33,9 @@ urlpatterns = [
     path('shop/admin/user/<int:user_id>/orders/', shop_views.api_user_orders_admin, name='api_shop_user_orders_admin'),
     path('shop/product/create/', shop_views.api_create_product, name='api_shop_create_product'),
 
+    # Дашборд builder (панель управления)
+    path('builder/dashboard/', views_frontend.dashboard_data, name='api_builder_dashboard'),
+
     # Профиль пользователя для React
     path('users/user_info/', views_frontend.user_info, name='api_user_info'),
     path('users/profile/', views_frontend.profile_page, name='api_profile_page'),

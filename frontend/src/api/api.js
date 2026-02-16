@@ -181,6 +181,15 @@ export function createProduct(formData) {
 }
 
 /**
+ * Данные дашборда (панель управления): топ пользователей по DASCOIN (для наставников)
+ * или неоценённые открытые ответы (для админов/staff).
+ * @returns {Promise<{top_users_dascoin: Array, total_unrated_count: number, unrated_text_answers: Array}>}
+ */
+export function fetchDashboardData() {
+  return request('/builder/dashboard/');
+}
+
+/**
  * Данные текущего пользователя (краткие, для navbar и т.п.).
  */
 export function fetchUserData() {
