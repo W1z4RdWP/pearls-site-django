@@ -1065,10 +1065,12 @@ class IncidentDetailListView(ListView):
             context['violator_filter'] = 'all'
             context['violator_filter_locked'] = False
             context['department_filter'] = ''
+            context['only_overdue'] = False
         else:
             date_from = self.request.GET.get('date_from', '')
             date_to = self.request.GET.get('date_to', '')
             department_filter = self.request.GET.get('department_filter', '')
+            only_overdue = self.request.GET.get('only_overdue', '') == 'on'
 
             
             # Если violator_filter=yes и даты не указаны, устанавливаем последние 30 дней
@@ -1084,6 +1086,7 @@ class IncidentDetailListView(ListView):
             # Статусы, выбранные в фильтре (чекбоксы)
             context['selected_statuses'] = self.request.GET.getlist('status', [])
             context['department_filter'] = department_filter
+            context['only_overdue'] = only_overdue
             
             try:
                 context['selected_user_id'] = int(selected_user_id) if selected_user_id else None
@@ -1099,6 +1102,8 @@ class IncidentDetailListView(ListView):
         violator_filter = context['violator_filter']
         selected_statuses = context.get('selected_statuses', [])
         department_filter = (context.get('department_filter') or '').strip()
+        only_overdue = context.get('only_overdue', False)
+        now = context['now']
         
         for incident in context['incidents']:
             assigned_users = incident.assigned_to.all()
@@ -1125,6 +1130,10 @@ class IncidentDetailListView(ListView):
                 if violator_filter == 'no' and is_violator:
                     continue
                 
+                # Если фильтр "только просроченные" включен, показываем только инциденты с курсами
+                if only_overdue and not incident.course:
+                    continue
+                
                 # Проверяем, назначен ли курс пользователю и подходит ли по статусу (если у инцидента есть курс)
                 if incident.course:
                     user_course_qs = UserCourse.objects.filter(user=user, course=incident.course)
@@ -1149,6 +1158,12 @@ class IncidentDetailListView(ListView):
                     if user_course:
                         course_deadline = user_course.deadline
                         course_status = user_course.status
+                    
+                    # Фильтр по просроченным курсам
+                    if only_overdue:
+                        # Показываем только просроченные курсы: есть дедлайн, он просрочен и курс не завершен
+                        if not course_deadline or course_deadline >= now or course_status == 'completed':
+                            continue
                     
                     # Получаем траекторию пользователя для этого курса
                     trajectory = UserLessonTrajectory.objects.filter(user=user, course=course).first()
@@ -1207,6 +1222,14 @@ class IncidentDetailListView(ListView):
                     # Проверяем фильтры: если они не пропускают expert, добавляем его в список
                     should_add_expert = True
                     
+                    # Фильтр по подразделению
+                    if department_filter:
+                        expert_department_name = None
+                        if hasattr(expert, 'profile') and expert.profile and expert.profile.department:
+                            expert_department_name = expert.profile.department.name
+                        if expert_department_name != department_filter:
+                            should_add_expert = False
+                    
                     # Фильтр по назначенному пользователю
                     if selected_user_id and expert.id != selected_user_id:
                         should_add_expert = False
@@ -1214,6 +1237,10 @@ class IncidentDetailListView(ListView):
                     # Expert не является нарушителем (violator_filter не применяется к expert)
                     # Но если фильтр установлен на 'yes' (только нарушители), пропускаем expert
                     if violator_filter == 'yes':
+                        should_add_expert = False
+                    
+                    # Если фильтр "только просроченные" включен, показываем только инциденты с курсами
+                    if only_overdue and not incident.course:
                         should_add_expert = False
                     
                     # Проверяем, назначен ли курс expert и подходит ли по статусу (если у инцидента есть курс)
@@ -1239,6 +1266,11 @@ class IncidentDetailListView(ListView):
                             if user_course:
                                 course_deadline = user_course.deadline
                                 course_status = user_course.status
+                            
+                            # Фильтр по просроченным курсам
+                            if only_overdue:
+                                if not course_deadline or course_deadline >= now or course_status == 'completed':
+                                    should_add_expert = False
                             
                             # Получаем траекторию пользователя для этого курса
                             trajectory = UserLessonTrajectory.objects.filter(user=expert, course=course).first()
@@ -1278,16 +1310,17 @@ class IncidentDetailListView(ListView):
                             completed_materials = completed_lessons + completed_quizzes
                             progress_percent = int((completed_materials / total_materials) * 100) if total_materials > 0 else 0
                         
-                        incident_user_list.append({
-                            'incident': incident,
-                            'user': expert,
-                            'is_violator': False,  # Expert никогда не является нарушителем
-                            'is_expert': True,  # Флаг, что это expert
-                            'progress_percent': progress_percent,
-                            'course_deadline': course_deadline,
-                            'course_status': course_status,
-                            'course_status_display': user_course.get_status_display() if user_course else None
-                        })
+                        if should_add_expert:
+                            incident_user_list.append({
+                                'incident': incident,
+                                'user': expert,
+                                'is_violator': False,  # Expert никогда не является нарушителем
+                                'is_expert': True,  # Флаг, что это expert
+                                'progress_percent': progress_percent,
+                                'course_deadline': course_deadline,
+                                'course_status': course_status,
+                                'course_status_display': user_course.get_status_display() if user_course else None
+                            })
         
         context['incident_user_list'] = incident_user_list
         return context

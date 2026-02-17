@@ -79,6 +79,12 @@
                         {% endfor %}
                     </select>
                 </div>
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" id="only_overdue" name="only_overdue" {% if only_overdue %}checked{% endif %}>
+                    <label class="form-check-label" for="only_overdue">
+                        Только просроченные
+                    </label>
+                </div>
             </div>
         </div>
         <!-- Кнопки под строкой поиска -->
