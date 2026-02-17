@@ -539,7 +539,7 @@ class IncidentCourseListView(ListView):
     """
     Представление для просмотра всех курсов-инцидентов на платформе сотрудниками УЦ.
     """
-    template_name = 'builder/incident_course_list.html'
+    template_name = 'builder/course-incident_list.html'
     context_object_name = 'courses'
     paginate_by = 15
 

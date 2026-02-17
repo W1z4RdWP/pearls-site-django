@@ -36,7 +36,7 @@ class IncidentListView(ListView):
     Список инцидентов с фильтрацией и быстрым просмотром.
     """
     model = Incident
-    template_name = 'builder/incidents.html'
+    template_name = 'builder/incidents/incidents.html'
     context_object_name = 'incidents'
     ordering = ['-created_at']
 
@@ -751,7 +751,7 @@ class IncidentCreateView(CreateView, AuditLoggerMixin):
     """
     model = Incident
     form_class = IncidentForm
-    template_name = 'builder/incident_form.html'
+    template_name = 'builder/incidents/incident_form.html'
 
     def dispatch(self, request, *args, **kwargs):
         if not request.user.is_authenticated or not (request.user.is_staff or request.user.is_superuser):
@@ -784,7 +784,7 @@ class IncidentUpdateView(UpdateView, AuditLoggerMixin):
     """
     model = Incident
     form_class = IncidentForm
-    template_name = 'builder/incident_form.html'
+    template_name = 'builder/incidents/incident_form.html'
     success_url = reverse_lazy('builder:incidents')
 
     def dispatch(self, request, *args, **kwargs):
@@ -989,7 +989,7 @@ class IncidentDetailListView(ListView):
     Список по прогрессу пользователей по всем инцидентам
     """
     model = Incident
-    template_name = 'builder/incident_detail.html'
+    template_name = 'builder/incidents/incident_detail.html'
     context_object_name = 'incidents'
     ordering = ['-created_at']
 
@@ -1346,7 +1346,7 @@ class IncidentWeeklyReportView(ListView):
     - Завершено (количество инцидентов со статусом 'resolved')
     - Обучение завершено (количество инцидентов со статусом 'studies_completed')
     """
-    template_name = 'builder/incident_weekly_report.html'
+    template_name = 'builder/incidents/incident_weekly_report.html'
     context_object_name = 'report_data'
 
     def dispatch(self, request, *args, **kwargs):
