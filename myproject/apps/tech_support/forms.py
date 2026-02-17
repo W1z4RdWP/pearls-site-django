@@ -103,6 +103,7 @@ class TicketRatingForm(forms.ModelForm):
 
 
 
+
 class TicketFilterForm(forms.Form):
     """Форма фильтрации тикетов"""
     
