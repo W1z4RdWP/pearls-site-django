@@ -32,6 +32,115 @@
     /* Секции второго шага */
     .step-section { display: none; }
     .step-section.active { display: block; }
+
+     /* Окно добавления вложения */
+    .file-input-wrapper {
+        position: relative;
+        display: inline-block;
+        width: 100%;
+    }
+    .file-input-wrapper input[type=file] {
+        position: absolute;
+        left: -9999px;
+    }
+    .file-input-label {
+        display: block;
+        padding: 20px 16px;
+        background: #f8f9fa;
+        border: 2px dashed #dee2e6;
+        border-radius: 8px;
+        text-align: center;
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+    .file-input-label:hover {
+        background: #e9ecef;
+        border-color: #0d6efd;
+    }
+    .file-input-label.drag-over {
+        background: #e7f3ff;
+        border-color: #0d6efd;
+    }
+    .file-input-label i {
+        font-size: 1.5rem;
+        color: #6c757d;
+        margin-bottom: 8px;
+    }
+    
+    /* Список загруженных файлов */
+    .attachments-list {
+        margin-top: 16px;
+        display: none;
+    }
+    .attachments-list.has-files {
+        display: block;
+    }
+    .attachment-item {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 12px;
+        background: #f8f9fa;
+        border-radius: 8px;
+        margin-bottom: 8px;
+        transition: all 0.2s ease;
+    }
+    .attachment-item:hover {
+        background: #e9ecef;
+    }
+    .attachment-preview {
+        width: 60px;
+        height: 60px;
+        object-fit: cover;
+        border-radius: 6px;
+        flex-shrink: 0;
+    }
+    .attachment-icon {
+        width: 60px;
+        height: 60px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: #e9ecef;
+        border-radius: 6px;
+        flex-shrink: 0;
+        font-size: 1.5rem;
+        color: #6c757d;
+    }
+    .attachment-info {
+        flex: 1;
+        min-width: 0;
+    }
+    .attachment-name {
+        font-weight: 500;
+        color: #212529;
+        margin-bottom: 4px;
+        word-break: break-word;
+    }
+    .attachment-size {
+        font-size: 0.875rem;
+        color: #6c757d;
+    }
+    .attachment-remove {
+        background: none;
+        border: none;
+        color: #dc3545;
+        cursor: pointer;
+        padding: 4px 8px;
+        border-radius: 4px;
+        transition: all 0.2s ease;
+        flex-shrink: 0;
+    }
+    .attachment-remove:hover {
+        background: #dc3545;
+        color: #fff;
+    }
+    .file-error {
+        color: #dc3545;
+        font-size: 0.875rem;
+        margin-top: 4px;
+    }
+
 </style>
 {% endblock %}
 
@@ -65,7 +174,7 @@
                     <div class="step" data-step="2">2</div>
                 </div>
 
-                <form method="post" novalidate id="ticketForm">
+                <form method="post" enctype="multipart/form-data" novalidate id="ticketForm">
                     {% csrf_token %}
 
                     {% if form.non_field_errors %}
@@ -184,6 +293,31 @@
                                     <div class="form-help" id="helpDescription">Добавьте скриншоты/детали позже в самом тикете, если потребуется.</div>
                                 {% endif %}
                             </div>
+
+                            <!-- Вложения -->
+                            <div class="col-12">
+                                <label class="form-label">Вложения (опционально)</label>
+                                <div class="file-input-wrapper">
+                                    <label for="id_attachments" class="file-input-label" id="fileInputLabel">
+                                        <i class="fas fa-cloud-upload-alt"></i>
+                                        <div>Нажмите для выбора файлов или перетащите их сюда</div>
+                                        <small class="text-muted">JPG, PNG, PDF, DOC, TXT и другие (максимум 10MB на файл)</small>
+                                    </label>
+                                    <input type="file" name="attachments" id="id_attachments" multiple
+                                           accept=".jpg,.jpeg,.png,.gif,.pdf,.doc,.docx,.txt,.log">
+                                </div>
+                                <div class="form-help mt-2">Можно загрузить несколько файлов. Максимальный размер одного файла: 10MB</div>
+                                
+                                <!-- Список загруженных файлов -->
+                                <div class="attachments-list" id="attachmentsList">
+                                    <div class="d-flex justify-content-between align-items-center mb-2">
+                                        <strong>Загруженные файлы:</strong>
+                                        <span class="badge bg-primary" id="filesCount">0</span>
+                                    </div>
+                                    <div id="attachmentsContainer"></div>
+                                </div>
+                            </div>
+
 
                             <!-- Дополнительные поля (динамические, не из модели) -->
                             <div class="col-12" id="extraFieldsContainer"></div>
@@ -374,4 +508,5 @@
     });
 })();
 </script>
+<script src="{% static 'tech_support/js/tech_support_scripts.js' %}"></script>
 {% endblock %}

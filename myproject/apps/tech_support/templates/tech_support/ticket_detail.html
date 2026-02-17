@@ -67,19 +67,60 @@
         font-size: 0.8rem;
         color: #6c757d;
     }
-    .attachment-item {
+    /* Вложения */
+    .attachments-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+        gap: 12px;
+    }
+    .att-card {
         display: flex;
         align-items: center;
-        padding: 0.5rem;
+        gap: 12px;
+        padding: 12px;
         border: 1px solid #e9ecef;
-        border-radius: 5px;
-        margin-bottom: 0.5rem;
+        border-radius: 10px;
         background: #f8f9fa;
+        transition: all .2s ease;
     }
-    .attachment-icon {
-        font-size: 1.5rem;
-        margin-right: 1rem;
-        color: #007bff;
+    .att-card:hover { background: #e9ecef; box-shadow: 0 2px 8px rgba(0,0,0,.08); }
+    .att-thumb {
+        width: 64px; height: 64px;
+        object-fit: cover;
+        border-radius: 8px;
+        flex-shrink: 0;
+        cursor: pointer;
+    }
+    .att-icon {
+        width: 64px; height: 64px;
+        display: flex; align-items: center; justify-content: center;
+        border-radius: 8px; flex-shrink: 0; font-size: 1.6rem;
+    }
+    .att-icon.i-pdf  { background: #fde8e8; color: #dc3545; }
+    .att-icon.i-doc  { background: #e8f0fe; color: #0d6efd; }
+    .att-icon.i-txt  { background: #eef2f5; color: #6c757d; }
+    .att-icon.i-img  { background: #e8f8f0; color: #198754; }
+    .att-icon.i-vid  { background: #fff3e0; color: #fd7e14; }
+    .att-icon.i-def  { background: #f0f0f0; color: #6c757d; }
+    .att-meta { flex: 1; min-width: 0; }
+    .att-name { font-weight: 600; word-break: break-word; margin-bottom: 2px; font-size: .9rem; }
+    .att-date { font-size: .8rem; color: #6c757d; }
+    /* Лайтбокс */
+    .lb-overlay {
+        display: none; position: fixed; inset: 0;
+        background: rgba(0,0,0,.88); z-index: 9999;
+        justify-content: center; align-items: center; cursor: pointer;
+    }
+    .lb-overlay.active { display: flex; }
+    .lb-overlay img,
+    .lb-overlay video {
+        max-width: 90vw; max-height: 90vh;
+        border-radius: 8px; box-shadow: 0 4px 30px rgba(0,0,0,.4);
+    }
+    .lb-close {
+        position: absolute; top: 20px; right: 30px;
+        color: #fff; font-size: 2rem; cursor: pointer;
+        background: none; border: none; z-index: 10000;
     }
     .overdue-warning {
         background: linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%);
@@ -224,22 +265,70 @@
                 <h4 class="mb-3">
                     <i class="fas fa-paperclip me-2"></i>
                     Вложения
+                    <span class="badge bg-secondary ms-2">{{ attachments|length }}</span>
                 </h4>
-                {% for attachment in attachments %}
-                <div class="attachment-item">
-                    <div class="attachment-icon">
-                        <i class="fas fa-file"></i>
+                <div class="attachments-grid">
+                    {% for att in attachments %}
+                    {% with fn=att.filename|lower %}
+                    <div class="att-card">
+                        {% if '.jpg' in fn or '.jpeg' in fn or '.png' in fn or '.gif' in fn %}
+                            <img src="{{ att.file.url }}" alt="{{ att.filename }}" class="att-thumb"
+                                 onclick="openLB('{{ att.file.url }}','image')">
+                        {% elif '.mp4' in fn or '.webm' in fn or '.mov' in fn %}
+                            <div class="att-icon i-vid" style="cursor:pointer"
+                                 onclick="openLB('{{ att.file.url }}','video')">
+                                <i class="fas fa-play-circle"></i>
+                            </div>
+                        {% elif '.pdf' in fn %}
+                            <div class="att-icon i-pdf"><i class="fas fa-file-pdf"></i></div>
+                        {% elif '.doc' in fn or '.docx' in fn %}
+                            <div class="att-icon i-doc"><i class="fas fa-file-word"></i></div>
+                        {% elif '.txt' in fn or '.log' in fn %}
+                            <div class="att-icon i-txt"><i class="fas fa-file-alt"></i></div>
+                        {% else %}
+                            <div class="att-icon i-def"><i class="fas fa-file"></i></div>
+                        {% endif %}
+                        <div class="att-meta">
+                            <div class="att-name">{{ att.filename }}</div>
+                            <div class="att-date">
+                                <i class="far fa-clock me-1"></i>{{ att.uploaded_at|date:"d.m.Y H:i" }}
+                            </div>
+                        </div>
+                        <a href="{{ att.file.url }}" class="btn btn-outline-primary btn-sm" download title="Скачать">
+                            <i class="fas fa-download"></i>
+                        </a>
                     </div>
-                    <div class="flex-grow-1">
-                        <div class="fw-bold">{{ attachment.filename }}</div>
-                        <small class="text-muted">Загружено {{ attachment.uploaded_at|date:"d.m.Y H:i" }}</small>
-                    </div>
-                    <a href="{{ attachment.file.url }}" class="btn btn-outline-primary btn-sm" target="_blank">
-                        <i class="fas fa-download me-1"></i>Скачать
-                    </a>
+                    {% endwith %}
+                    {% endfor %}
                 </div>
-                {% endfor %}
             </div>
+
+            <!-- Лайтбокс для просмотра изображений и видео -->
+            <div class="lb-overlay" id="lightbox" onclick="closeLB(event)">
+                <button class="lb-close" onclick="closeLB(event)">&times;</button>
+                <img src="" alt="" id="lbImg" style="display:none">
+                <video src="" id="lbVid" controls style="display:none"></video>
+            </div>
+            <script>
+            function openLB(url, type) {
+                var o = document.getElementById('lightbox');
+                var img = document.getElementById('lbImg');
+                var vid = document.getElementById('lbVid');
+                img.style.display = 'none'; vid.style.display = 'none'; vid.pause();
+                if (type === 'video') { vid.src = url; vid.style.display = 'block'; }
+                else { img.src = url; img.style.display = 'block'; }
+                o.classList.add('active');
+                document.body.style.overflow = 'hidden';
+            }
+            function closeLB(e) {
+                if (e && e.target.tagName === 'VIDEO') return;
+                var o = document.getElementById('lightbox');
+                document.getElementById('lbVid').pause();
+                o.classList.remove('active');
+                document.body.style.overflow = '';
+            }
+            document.addEventListener('keydown', function(e) { if (e.key === 'Escape') closeLB(e); });
+            </script>
             {% endif %}
 
             <!-- Комментарии -->

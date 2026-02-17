@@ -12,7 +12,7 @@ from django.db.models import Count, Avg, Q
 from datetime import timedelta, datetime
 
 from .forms import TicketCreateForm, TicketCommentForm, TicketStaffUpdateForm, TicketRatingForm
-from .models import Ticket, TicketStatus, TicketComment, TicketCategory, TicketPriority
+from .models import Ticket, TicketAttachment, TicketStatus, TicketComment, TicketCategory, TicketPriority
 
 
 class StaffRequiredMixin(UserPassesTestMixin):
@@ -74,6 +74,32 @@ class TicketCreateView(CreateView):
             ticket.priority = TicketPriority.objects.first()
             
         ticket.save()
+
+        # Обрабатываем вложения (множественные файлы)
+        if 'attachments' in self.request.FILES:
+            files = self.request.FILES.getlist('attachments')
+            allowed_extensions = ['.jpg', '.jpeg', '.png', '.gif', '.pdf', '.doc', '.docx', '.txt', '.log']
+            max_size = 10 * 1024 * 1024  # 10MB
+            import os
+            
+            for file in files:
+                # Валидация на сервере
+                ext = os.path.splitext(file.name)[1].lower()
+                if ext not in allowed_extensions:
+                    messages.warning(self.request, f'Файл "{file.name}" пропущен: недопустимое расширение')
+                    continue
+                
+                if file.size > max_size:
+                    messages.warning(self.request, f'Файл "{file.name}" пропущен: размер превышает 10MB')
+                    continue
+                
+                TicketAttachment.objects.create(
+                    ticket=ticket,
+                    file=file,
+                    filename=file.name
+                )
+
+    
         messages.success(self.request, 'Тикет создан')
         return redirect('tech_support:ticket_detail', pk=ticket.pk)
 
@@ -210,6 +236,7 @@ class TicketDetailView(DetailView):
         if (user == ticket.created_by) and is_closed and not ticket.rating:
             context['rating_form'] = TicketRatingForm(instance=ticket)
         context['comments'] = TicketComment.objects.filter(ticket=ticket).order_by('created_at')
+        context['attachments'] = ticket.attachments.all()
         return context
 
 
