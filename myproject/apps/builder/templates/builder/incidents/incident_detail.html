@@ -69,6 +69,16 @@
                         </label>
                     </div>
                 {% endfor %}
+                <div class="col-md-auto">
+                    <select class="form-select" id="department_filter" name="department_filter">
+                        <option value="">Все подразделения</option>
+                        {% for department in departments %}
+                            <option value="{{ department.name }}" {% if department_filter == department.name %}selected{% endif %}>
+                                {{ department.name }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
             </div>
         </div>
         <!-- Кнопки под строкой поиска -->

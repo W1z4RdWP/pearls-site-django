@@ -1052,6 +1052,9 @@ class IncidentDetailListView(ListView):
         # Фильтр по статусу UserCourse
         status_choices = UserCourse.STATUS_CHOICES
         context['status_choices'] = status_choices
+
+        departments = Department.objects.all().order_by('name')
+        context['departments'] = departments
         
         # Если нет параметров в GET запросе (первичная загрузка), устанавливаем дефолтные значения
         if not self.request.GET:
@@ -1061,9 +1064,12 @@ class IncidentDetailListView(ListView):
             context['selected_user_id'] = None
             context['violator_filter'] = 'all'
             context['violator_filter_locked'] = False
+            context['department_filter'] = ''
         else:
             date_from = self.request.GET.get('date_from', '')
             date_to = self.request.GET.get('date_to', '')
+            department_filter = self.request.GET.get('department_filter', '')
+
             
             # Если violator_filter=yes и даты не указаны, устанавливаем последние 30 дней
             if violator_filter == 'yes' and not date_from and not date_to:
@@ -1077,6 +1083,7 @@ class IncidentDetailListView(ListView):
             context['search'] = search
             # Статусы, выбранные в фильтре (чекбоксы)
             context['selected_statuses'] = self.request.GET.getlist('status', [])
+            context['department_filter'] = department_filter
             
             try:
                 context['selected_user_id'] = int(selected_user_id) if selected_user_id else None
@@ -1091,12 +1098,21 @@ class IncidentDetailListView(ListView):
         selected_user_id = context['selected_user_id']
         violator_filter = context['violator_filter']
         selected_statuses = context.get('selected_statuses', [])
+        department_filter = (context.get('department_filter') or '').strip()
         
         for incident in context['incidents']:
             assigned_users = incident.assigned_to.all()
             violators = incident.violators.all()
             
             for user in assigned_users:
+                # Фильтр по подразделению
+                if department_filter:
+                    user_department_name = None
+                    if hasattr(user, 'profile') and user.profile and user.profile.department:
+                        user_department_name = user.profile.department.name
+                    if user_department_name != department_filter:
+                        continue
+
                 # Фильтр по назначенному пользователю
                 if selected_user_id and user.id != selected_user_id:
                     continue
