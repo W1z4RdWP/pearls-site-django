@@ -53,7 +53,7 @@
                 {% endif %}
             </div>
         </div>
-        <!-- Фильтр по статусу курса -->
+        <!-- Фильтр по статусу инцидента -->
         <div class="mb-2">
             <div class="status-filters d-flex flex-wrap gap-2 align-items-center">
                 {% for value, label in status_choices %}
@@ -163,9 +163,9 @@
                                 —
                             {% endif %}
                         </td>
-                        <td style="text-align: center;">
-                            {% if item.course_status %}
-                                <span class="status-{{ item.course_status }}">{{ item.course_status_display|capfirst }}</span>
+                        <td {% if item.incident_status %}class="status-{{ item.incident_status }}"{% endif %} style="text-align: center;">
+                            {% if item.incident_status %}
+                                {{ item.incident_status_display|capfirst }}
                             {% else %}
                                 —
                             {% endif %}

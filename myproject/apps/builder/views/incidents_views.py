@@ -1030,6 +1030,11 @@ class IncidentDetailListView(ListView):
             date_to_datetime = timezone.make_aware(datetime.datetime.combine(date_to_parsed, datetime.time.max))
             queryset = queryset.filter(created_at__lte=date_to_datetime)
         
+        # Фильтр по статусу инцидента
+        selected_statuses = self.request.GET.getlist('status', [])
+        if selected_statuses:
+            queryset = queryset.filter(status__in=selected_statuses)
+        
         return queryset
 
     def get_context_data(self, **kwargs):
@@ -1049,8 +1054,8 @@ class IncidentDetailListView(ListView):
         selected_user_id = self.request.GET.get('assigned_user', '')
         violator_filter = self.request.GET.get('violator_filter', 'all')  # 'all', 'yes', 'no'
         
-        # Фильтр по статусу UserCourse
-        status_choices = UserCourse.STATUS_CHOICES
+        # Фильтр по статусу инцидента
+        status_choices = Incident.STATUS_CHOICES
         context['status_choices'] = status_choices
 
         departments = Department.objects.all().order_by('name')
@@ -1100,7 +1105,6 @@ class IncidentDetailListView(ListView):
         incident_user_list = []
         selected_user_id = context['selected_user_id']
         violator_filter = context['violator_filter']
-        selected_statuses = context.get('selected_statuses', [])
         department_filter = (context.get('department_filter') or '').strip()
         only_overdue = context.get('only_overdue', False)
         now = context['now']
@@ -1134,12 +1138,9 @@ class IncidentDetailListView(ListView):
                 if only_overdue and not incident.course:
                     continue
                 
-                # Проверяем, назначен ли курс пользователю и подходит ли по статусу (если у инцидента есть курс)
+                # Проверяем, назначен ли курс пользователю (если у инцидента есть курс)
                 if incident.course:
                     user_course_qs = UserCourse.objects.filter(user=user, course=incident.course)
-                    # Если выбраны статусы, ограничиваем ими
-                    if selected_statuses:
-                        user_course_qs = user_course_qs.filter(status__in=selected_statuses)
                     # Если подходящего UserCourse нет, пропускаем пользователя
                     if not user_course_qs.exists():
                         continue
@@ -1210,8 +1211,8 @@ class IncidentDetailListView(ListView):
                     'is_expert': False,
                     'progress_percent': progress_percent,
                     'course_deadline': course_deadline,
-                    'course_status': course_status,
-                    'course_status_display': user_course.get_status_display() if user_course else None
+                    'incident_status': incident.status,
+                    'incident_status_display': incident.get_status_display(),
                 })
             
             # Добавляем expert, если он существует и не находится в assigned_to
@@ -1243,12 +1244,10 @@ class IncidentDetailListView(ListView):
                     if only_overdue and not incident.course:
                         should_add_expert = False
                     
-                    # Проверяем, назначен ли курс expert и подходит ли по статусу (если у инцидента есть курс)
+                    # Проверяем, назначен ли курс expert (если у инцидента есть курс)
                     if incident.course:
                         expert_course_qs = UserCourse.objects.filter(user=expert, course=incident.course)
-                        if selected_statuses:
-                            expert_course_qs = expert_course_qs.filter(status__in=selected_statuses)
-                        # Если курс не назначен expert или статус не входит в выбранные, пропускаем его
+                        # Если курс не назначен expert, пропускаем его
                         if not expert_course_qs.exists():
                             should_add_expert = False
                     
@@ -1318,8 +1317,8 @@ class IncidentDetailListView(ListView):
                                 'is_expert': True,  # Флаг, что это expert
                                 'progress_percent': progress_percent,
                                 'course_deadline': course_deadline,
-                                'course_status': course_status,
-                                'course_status_display': user_course.get_status_display() if user_course else None
+                                'incident_status': incident.status,
+                                'incident_status_display': incident.get_status_display(),
                             })
         
         context['incident_user_list'] = incident_user_list

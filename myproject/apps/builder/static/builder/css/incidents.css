@@ -295,6 +295,11 @@
   color: #721c24 !important;
   font-weight: 600;
 }
+.incidents-card .table tbody td.status-studies_completed {
+  background-color: #d1ecf1 !important;
+  color: #0c5460 !important;
+  font-weight: 600;
+}
 
 /* Hover-эффекты для ячеек со статусом */
 .incidents-card .table tbody tr:hover td.status-new {
@@ -311,6 +316,9 @@
 }
 .incidents-card .table tbody tr:hover td.status-declined {
   background-color: #f5c6cb !important;
+}
+.incidents-card .table tbody tr:hover td.status-studies_completed {
+  background-color: #bee5eb !important;
 }
 
 /* Стиль для просроченного дедлайна */
@@ -421,7 +429,8 @@
 .incident-row.row-selected td.status-accepted,
 .incident-row.row-selected td.status-assigned,
 .incident-row.row-selected td.status-resolved,
-.incident-row.row-selected td.status-declined {
+.incident-row.row-selected td.status-declined,
+.incident-row.row-selected td.status-studies_completed {
   background-color: inherit !important;
 }
 
