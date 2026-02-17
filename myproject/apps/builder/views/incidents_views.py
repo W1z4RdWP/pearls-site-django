@@ -1335,7 +1335,7 @@ class UnassignIncidentUserView(View, AuditLoggerMixin):
 
 
 @method_decorator(login_required, name='dispatch')
-class IncidentWeeklyReportView(ListView):
+class IncidentStatusesReportView(ListView):
     """
     Отчет за последнюю неделю по инцидентам.
     Показывает статистику по каждому пользователю:
@@ -1346,7 +1346,7 @@ class IncidentWeeklyReportView(ListView):
     - Завершено (количество инцидентов со статусом 'resolved')
     - Обучение завершено (количество инцидентов со статусом 'studies_completed')
     """
-    template_name = 'builder/incidents/incident_weekly_report.html'
+    template_name = 'builder/incidents/incident_statuses_report.html'
     context_object_name = 'report_data'
 
     def dispatch(self, request, *args, **kwargs):
@@ -1365,7 +1365,9 @@ class IncidentWeeklyReportView(ListView):
         # Получаем параметры дат из GET запроса
         date_from_str = self.request.GET.get('date_from')
         date_to_str = self.request.GET.get('date_to')
-        
+        department_filter = self.request.GET.get('department_filter')
+
+
         # Если даты не указаны, устанавливаем диапазон с начала месяца
         if not date_from_str or not date_to_str:
             today = now.date()
@@ -1404,6 +1406,12 @@ class IncidentWeeklyReportView(ListView):
             # Получаем профиль пользователя
             if not hasattr(user, 'profile') or not user.profile:
                 continue
+            
+            # Применяем фильтр по подразделению, если он указан
+            if department_filter:
+                user_department = user.profile.department.name if user.profile.department else '—'
+                if user_department != department_filter:
+                    continue
             
             # Фильтруем инциденты для этого пользователя
             user_incidents = incidents.filter(
@@ -1454,6 +1462,7 @@ class IncidentWeeklyReportView(ListView):
         # Получаем параметры дат из GET запроса
         date_from_str = self.request.GET.get('date_from')
         date_to_str = self.request.GET.get('date_to')
+        department_filter = self.request.GET.get('department_filter', '')
         
         # Если даты не указаны, устанавливаем диапазон с начала месяца
         if not date_from_str or not date_to_str:
@@ -1463,8 +1472,13 @@ class IncidentWeeklyReportView(ListView):
             date_from_str = month_start.strftime('%Y-%m-%d')
             date_to_str = today.strftime('%Y-%m-%d')
         
+        # Получаем список всех подразделений для выпадающего списка
+        departments = Department.objects.all().order_by('name')
+        
         context['date_from'] = date_from_str
         context['date_to'] = date_to_str
         context['week_start'] = dt.datetime.strptime(date_from_str, '%Y-%m-%d').date()
         context['week_end'] = dt.datetime.strptime(date_to_str, '%Y-%m-%d').date()
+        context['departments'] = departments
+        context['department_filter'] = department_filter
         return context

@@ -17,17 +17,30 @@
         <div class="row g-2 align-items-end">
             <div class="col-md-auto">
                 <!-- <label for="date_from" class="form-label mb-1">С:</label> -->
-                <input type="date" class="form-control date-input-compact" id="date_from" name="date_from" value="{{ date_from }}">
+                <input type="date" class="form-control date-input-compact" id="date_from" name="date_from" value="{{ date_from }}" />
             </div>
             <div class="col-md-auto">
                 <!-- <label for="date_to" class="form-label mb-1">По:</label> -->
-                <input type="date" class="form-control date-input-compact" id="date_to" name="date_to" value="{{ date_to }}">
+                <input type="date" class="form-control date-input-compact" id="date_to" name="date_to" value="{{ date_to }}" />
+            </div>
+
+            <!-- Фильтр по подразделению -->
+            <div class="col-md-auto">
+                <select class="form-select" id="department_filter" name="department_filter">
+                    <option value="">Все подразделения</option>
+                    {% for department in departments %}
+                        <option value="{{ department.name }}" {% if department_filter == department.name %}selected{% endif %}>
+                            {{ department.name }}
+                        </option>
+                    {% endfor %}
+                </select>
             </div>
             <div class="col-md-auto">
                 <button type="submit" class="btn btn-primary">Применить</button>
             </div>
         </div>
     </form>
+    
     
     <div class="incidents-table-responsive">
         <table class="table">
