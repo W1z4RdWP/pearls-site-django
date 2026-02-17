@@ -1357,14 +1357,37 @@ class IncidentWeeklyReportView(ListView):
     def get_queryset(self):
         from django.contrib.auth import get_user_model
         from django.db.models import Q
+        import datetime as dt
         
         User = get_user_model()
         now = timezone.now()
-        week_ago = now - timedelta(days=7)
         
-        # Получаем все инциденты за последнюю неделю
+        # Получаем параметры дат из GET запроса
+        date_from_str = self.request.GET.get('date_from')
+        date_to_str = self.request.GET.get('date_to')
+        
+        # Если даты не указаны, устанавливаем диапазон с начала месяца
+        if not date_from_str or not date_to_str:
+            today = now.date()
+            # Начало текущего месяца
+            month_start = dt.date(today.year, today.month, 1)
+            date_from_str = month_start.strftime('%Y-%m-%d')
+            date_to_str = today.strftime('%Y-%m-%d')
+        
+        # Преобразуем строки в datetime объекты
+        date_from = timezone.make_aware(dt.datetime.combine(
+            dt.datetime.strptime(date_from_str, '%Y-%m-%d').date(),
+            dt.time.min
+        ))
+        date_to = timezone.make_aware(dt.datetime.combine(
+            dt.datetime.strptime(date_to_str, '%Y-%m-%d').date(),
+            dt.time.max
+        ))
+        
+        # Получаем все инциденты за выбранный период
         incidents = Incident.objects.filter(
-            created_at__gte=week_ago
+            created_at__gte=date_from,
+            created_at__lte=date_to
         ).prefetch_related('assigned_to', 'violators', 'course').select_related('course')
         
         # Собираем уникальных пользователей, которые были назначены на инциденты
@@ -1423,9 +1446,25 @@ class IncidentWeeklyReportView(ListView):
         return report_data
 
     def get_context_data(self, **kwargs):
+        import datetime as dt
+        
         context = super().get_context_data(**kwargs)
         now = timezone.now()
-        week_ago = now - timedelta(days=7)
-        context['week_start'] = week_ago
-        context['week_end'] = now
+        
+        # Получаем параметры дат из GET запроса
+        date_from_str = self.request.GET.get('date_from')
+        date_to_str = self.request.GET.get('date_to')
+        
+        # Если даты не указаны, устанавливаем диапазон с начала месяца
+        if not date_from_str or not date_to_str:
+            today = now.date()
+            # Начало текущего месяца
+            month_start = dt.date(today.year, today.month, 1)
+            date_from_str = month_start.strftime('%Y-%m-%d')
+            date_to_str = today.strftime('%Y-%m-%d')
+        
+        context['date_from'] = date_from_str
+        context['date_to'] = date_to_str
+        context['week_start'] = dt.datetime.strptime(date_from_str, '%Y-%m-%d').date()
+        context['week_end'] = dt.datetime.strptime(date_to_str, '%Y-%m-%d').date()
         return context
