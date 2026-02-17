@@ -1163,7 +1163,7 @@ class IncidentDetailListView(ListView):
                     # Фильтр по просроченным курсам
                     if only_overdue:
                         # Показываем только просроченные курсы: есть дедлайн, он просрочен и курс не завершен
-                        if not course_deadline or course_deadline >= now or course_status == 'completed':
+                        if not course_deadline or course_deadline >= now or course_status == 'completed' or incident.status == 'declined':
                             continue
                     
                     # Получаем траекторию пользователя для этого курса
@@ -1268,7 +1268,7 @@ class IncidentDetailListView(ListView):
                             
                             # Фильтр по просроченным курсам
                             if only_overdue:
-                                if not course_deadline or course_deadline >= now or course_status == 'completed':
+                                if not course_deadline or course_deadline >= now or course_status == 'completed' or incident.status == 'declined':
                                     should_add_expert = False
                             
                             # Получаем траекторию пользователя для этого курса
