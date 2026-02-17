@@ -11,6 +11,7 @@ import UsersWithOrdersPage from './components/ShopPage/UsersWithOrdersPage/Users
 import UserOrdersAdminPage from './components/ShopPage/UserOrdersAdminPage/UserOrdersAdminPage';
 import CreateProductPage from './components/ShopPage/CreateProductPage/CreateProductPage';
 import ProfilePage from './components/UsersApp/UserProfilePage/ProfilePage';
+import TransactionsPage from './components/UsersApp/TransactionsPage/TransactionsPage';
 import DashboardPage from './components/DashboardPage/DashboardPage';
 import ChangeLogPage from './components/ChangeLogPage/ChangeLogPage';
 
@@ -30,7 +31,8 @@ const App = () => {
           <Route path='/shop/admin/users' element={<UsersWithOrdersPage />} />
           <Route path='/shop/admin/user/:userId/orders' element={<UserOrdersAdminPage />} />
           <Route path='/shop/product/create' element={<CreateProductPage />} />
-          <Route path='/users/profile' element={<ProfilePage />} /> 
+          <Route path='/users/profile' element={<ProfilePage />} />
+          <Route path='/users/profile/transactions' element={<TransactionsPage />} />
 
           {/* Добавляйте новые маршруты здесь */}
         </Route>

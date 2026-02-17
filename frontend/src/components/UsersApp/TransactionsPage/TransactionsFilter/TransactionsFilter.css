@@ -1,0 +1,157 @@
+.transactions-filter {
+  background: var(--card-bg, #fff);
+  border-left: 1px solid var(--border-color, #dee2e6);
+  border-right: 1px solid var(--border-color, #dee2e6);
+  border-bottom: 1px solid var(--border-color, #dee2e6);
+  padding: 0.75rem 1rem;
+}
+
+.transactions-filter__row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.transactions-filter__buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.transactions-filter__label,
+.transactions-filter__stats-label {
+  font-size: 0.78rem;
+  color: var(--text-muted, #6c757d);
+  font-weight: 600;
+}
+
+.transactions-filter__group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px;
+}
+
+.transactions-filter__btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.25rem 0.55rem;
+  font-size: 0.78rem;
+  border-radius: 0.25rem;
+  border: 1px solid transparent;
+  background: transparent;
+  cursor: pointer;
+  transition: background-color 0.15s, color 0.15s, border-color 0.15s;
+  font-family: inherit;
+  line-height: 1.4;
+}
+
+.transactions-filter__count {
+  font-size: 0.72rem;
+}
+
+/* Варианты */
+.transactions-filter__btn--secondary {
+  color: var(--text-muted, #6c757d);
+  border-color: var(--text-muted, #6c757d);
+}
+.transactions-filter__btn--secondary:hover,
+.transactions-filter__btn--secondary.transactions-filter__btn--active {
+  background: var(--text-muted, #6c757d);
+  color: #fff;
+}
+
+.transactions-filter__btn--success {
+  color: var(--success, #198754);
+  border-color: var(--success, #198754);
+}
+.transactions-filter__btn--success:hover,
+.transactions-filter__btn--success.transactions-filter__btn--active {
+  background: var(--success, #198754);
+  color: #fff;
+}
+
+.transactions-filter__btn--danger {
+  color: var(--danger, #dc3545);
+  border-color: var(--danger, #dc3545);
+}
+.transactions-filter__btn--danger:hover,
+.transactions-filter__btn--danger.transactions-filter__btn--active {
+  background: var(--danger, #dc3545);
+  color: #fff;
+}
+
+.transactions-filter__btn--info {
+  color: var(--info, #0dcaf0);
+  border-color: var(--info, #0dcaf0);
+}
+.transactions-filter__btn--info:hover,
+.transactions-filter__btn--info.transactions-filter__btn--active {
+  background: var(--info, #0dcaf0);
+  color: #fff;
+}
+
+.transactions-filter__btn--warning {
+  color: var(--warning-text, #cc8800);
+  border-color: var(--warning, #ffc107);
+}
+.transactions-filter__btn--warning:hover,
+.transactions-filter__btn--warning.transactions-filter__btn--active {
+  background: var(--warning, #ffc107);
+  color: #212529;
+}
+
+/* Статистика */
+.transactions-filter__stats {
+  text-align: right;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  align-items: flex-end;
+}
+
+.transactions-filter__stats-grid {
+  display: flex;
+  gap: 1rem;
+}
+
+.transactions-filter__stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.15rem;
+  font-size: 0.8rem;
+}
+
+.transactions-filter__stat--success { color: var(--success, #198754); }
+.transactions-filter__stat--danger  { color: var(--danger, #dc3545); }
+.transactions-filter__stat--info    { color: var(--info, #0dcaf0); }
+.transactions-filter__stat--warning { color: var(--warning-text, #cc8800); }
+
+.transactions-filter__stat-value {
+  font-weight: 600;
+  font-size: 0.8rem;
+}
+
+@media (max-width: 768px) {
+  .transactions-filter__row {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .transactions-filter__stats {
+    align-items: flex-start;
+    width: 100%;
+  }
+
+  .transactions-filter__group {
+    gap: 2px;
+  }
+
+  .transactions-filter__btn {
+    padding: 0.2rem 0.4rem;
+    font-size: 0.72rem;
+  }
+}

@@ -1,0 +1,130 @@
+.transactions-table-wrap {
+  background: var(--card-bg, #fff);
+  border-left: 1px solid var(--border-color, #dee2e6);
+  border-right: 1px solid var(--border-color, #dee2e6);
+  overflow-x: auto;
+  padding: 0 1rem;
+}
+
+.transactions-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+}
+
+.transactions-table__head {
+  background: var(--table-head-bg, #212529);
+  color: #fff;
+}
+
+.transactions-table__th {
+  padding: 0.5rem 0.4rem;
+  font-weight: 600;
+  font-size: 0.82rem;
+  text-align: left;
+  white-space: nowrap;
+}
+
+.transactions-table__row {
+  transition: background-color 0.1s;
+}
+
+.transactions-table__row:hover {
+  background-color: rgba(0, 123, 255, 0.04);
+}
+
+.transactions-table__td {
+  padding: 0.35rem 0.4rem;
+  vertical-align: middle;
+  border-bottom: 1px solid var(--border-color, #f0f0f0);
+}
+
+/* Дата и время */
+.transactions-table__date,
+.transactions-table__time {
+  font-size: 0.8rem;
+  color: var(--text-muted, #6c757d);
+  line-height: 1.3;
+}
+
+/* Бейдж типа */
+.transactions-table__badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.2rem 0.45rem;
+  border-radius: 0.2rem;
+  font-size: 0.7rem;
+  font-weight: 500;
+  color: #fff;
+  white-space: nowrap;
+}
+
+.transactions-table__badge--success { background: var(--success, #198754); }
+.transactions-table__badge--danger  { background: var(--danger, #dc3545); }
+.transactions-table__badge--info    { background: var(--info, #0dcaf0); color: #000; }
+.transactions-table__badge--warning { background: var(--warning, #ffc107); color: #212529; }
+
+.transactions-table__badge-label {
+  display: inline;
+}
+
+/* Изменение баллов */
+.transactions-table__change {
+  font-weight: 700;
+  font-size: 0.83rem;
+}
+
+.transactions-table__change--positive {
+  color: var(--success, #198754);
+}
+
+.transactions-table__change--negative {
+  color: var(--danger, #dc3545);
+}
+
+/* Текстовые ячейки */
+.transactions-table__muted {
+  color: var(--text-muted, #6c757d);
+  font-size: 0.82rem;
+}
+
+.transactions-table__bold {
+  font-weight: 700;
+  font-size: 0.82rem;
+}
+
+.transactions-table__reason {
+  font-size: 0.8rem;
+  display: block;
+  max-width: 200px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  word-break: break-word;
+}
+
+.transactions-table__admin {
+  font-size: 0.78rem;
+  color: var(--text-muted, #6c757d);
+}
+
+@media (max-width: 768px) {
+  .transactions-table {
+    font-size: 0.8rem;
+  }
+
+  .transactions-table__th,
+  .transactions-table__td {
+    padding: 0.25rem 0.2rem;
+    font-size: 0.78rem;
+  }
+
+  .transactions-table__badge-label {
+    display: none;
+  }
+
+  .transactions-table__reason {
+    max-width: 120px;
+  }
+}

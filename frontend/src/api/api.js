@@ -245,3 +245,17 @@ export function updateProfile(data) {
     body: JSON.stringify(data),
   });
 }
+
+// ——— Users API: транзакции DASCOIN ———
+
+/**
+ * История транзакций DASCOIN текущего пользователя (фильтрация, пагинация, статистика).
+ * @param {number} [page=1] — номер страницы
+ * @param {string} [type=''] — фильтр по типу транзакции (award, deduct, set, correction)
+ * @returns {Promise<{transactions: Array, total_transactions: number, current_filter: string, stats: object, pagination: object}>}
+ */
+export function fetchTransactions(page = 1, type = '') {
+  const params = new URLSearchParams({ page: String(page) });
+  if (type && type.trim()) params.set('type', type.trim());
+  return request(`/users/transactions/?${params.toString()}`);
+}

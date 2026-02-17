@@ -1,0 +1,35 @@
+.transactions-page {
+  padding: 1.5rem 0;
+}
+
+.transactions-page__container {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 0 1rem;
+}
+
+.transactions-page__loading {
+  text-align: center;
+  padding: 3rem 0;
+  color: var(--text-muted, #6c757d);
+  font-size: 0.95rem;
+}
+
+.transactions-page__error {
+  text-align: center;
+  padding: 2rem;
+  color: var(--danger, #dc3545);
+  background: var(--danger-bg, #f8d7da);
+  border-radius: 0.5rem;
+  font-size: 0.9rem;
+}
+
+@media (max-width: 768px) {
+  .transactions-page {
+    padding: 1rem 0;
+  }
+
+  .transactions-page__container {
+    padding: 0 0.5rem;
+  }
+}

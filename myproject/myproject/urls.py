@@ -27,7 +27,7 @@ from debug_toolbar.toolbar import debug_toolbar_urls
 from myapp import views
 from myapp.views import page_not_found_view, PrivacyPolicyView
 from quizzes.models import Answer
-from apps.api.views import telegram_register
+from apps.api.views.views import telegram_register
 from .sitemaps import (
     StaticViewSitemap,
     CourseSitemap,

@@ -1,3 +1,129 @@
+---
+name: react-backend
+description: Правила написания бэкенда (Django API views) для React-фронтенда. Использовать при создании или редактировании API-представлений для React, добавлении новых эндпоинтов, миграции Django-шаблонов на React API.
+---
+
+# Бэкенд для React-фронтенда
+
+## Структура модуля API views
+
+Все API-представления для React расположены в модуле:
+
+```
+myproject/apps/api/views/views_frontend/
+```
+
+Для **каждого приложения** создаётся отдельный файл по шаблону:
+
+```
+views_frontend/
+├── views_shop.py        # приложение shop
+├── views_users.py       # приложение users
+├── views_messenger.py   # приложение messenger
+└── ...                  # views_{app-name}.py
+```
+
+Имя файла: `views_{app-name}.py`, где `{app-name}` — имя Django-приложения.
+
+## Маршрутизация (urls)
+
+Все эндпоинты для React регистрируются **только** в `myproject/apps/api/urls.py`.
+
+Эндпоинты **обязательно** визуально разделяются по приложениям:
+- Пустая строка перед блоком
+- Комментарий с названием секции
+
+Пример:
+
+```python
+from .views.views_frontend import views_shop as shop_views
+from .views.views_frontend import views_users as users_views
+
+urlpatterns = [
+    # ...
+
+    # Shop API — данные для фронтенда (магазин работает на React)
+    path('shop/products/', shop_views.api_products_list, name='api_shop_products'),
+    path('shop/product/details/', shop_views.product_details, name='api_shop_product_details'),
+
+    # Users API — данные пользователей для React
+    path('users/transactions/', users_views.api_transactions, name='api_users_transactions'),
+]
+```
+
+**Важно**: URI существующих эндпоинтов нельзя менять. При миграции с Django-шаблона на React API сохраняй исходные пути.
+
+## Шаблон API-представления
+
+При создании нового файла `views_{app-name}.py` используй следующий шаблон:
+
+```python
+import json
+
+from django.http import JsonResponse
+from django.views.decorators.http import require_http_methods
+from django.contrib.auth.decorators import login_required
+
+# Импорты моделей конкретного приложения
+from {app_name}.models import SomeModel
+
+
+@login_required
+@require_http_methods(["GET"])
+def api_some_endpoint(request):
+    """API: краткое описание — что возвращает и для чего."""
+    # Логика получения данных
+    data = {}
+    return JsonResponse(data)
+```
+
+### Правила написания представлений
+
+1. **JsonResponse** — все представления возвращают `JsonResponse`
+2. **Декораторы** — `@login_required` если нужна авторизация, `@require_http_methods` для ограничения HTTP-методов
+3. **Пагинация** — использовать `django.core.paginator.Paginator`, возвращать объект pagination в ответе
+4. **Фильтрация** — параметры из `request.GET`
+5. **Имена функций** — начинаются с `api_` для явной идентификации как API-эндпоинта
+6. **Docstring** — обязательный, формат: `"""API: описание."""`
+7. **Ошибки** — возвращать `JsonResponse({'error': 'текст'}, status=код)`
+8. **Права доступа staff** — проверять через `request.user.is_staff or request.user.is_superuser`
+
+### Стандартный формат пагинации
+
+```python
+from django.core.paginator import Paginator
+
+PAGINATE_BY = 20
+
+paginator = Paginator(queryset, PAGINATE_BY)
+page_obj = paginator.get_page(page)
+
+response = {
+    'items': [...],
+    'pagination': {
+        'page': page_obj.number,
+        'num_pages': paginator.num_pages,
+        'has_previous': page_obj.has_previous(),
+        'has_next': page_obj.has_next(),
+        'previous_page_number': page_obj.previous_page_number() if page_obj.has_previous() else None,
+        'next_page_number': page_obj.next_page_number() if page_obj.has_next() else None,
+    },
+}
+```
+
+## Миграция Django-шаблона на React API
+
+При переносе Django-шаблона (`.html`) на React:
+
+1. Проанализируй шаблон: какие данные используются (переменные контекста)
+2. Найди соответствующий View (CBV/FBV), изучи `get_context_data` / контекст
+3. Создай API-представление в `views_{app-name}.py`, которое возвращает те же данные в формате JSON
+4. Добавь эндпоинт в `api/urls.py` в секцию соответствующего приложения
+5. URI должен быть осмысленным: `{app}/transactions/`, `{app}/products/` и т.д.
+6. Шаблон `.html` **не удаляй** до полного перехода на React
+
+
+
 # Frontend React — Методология написания кода
 
 ## Структура компонентов

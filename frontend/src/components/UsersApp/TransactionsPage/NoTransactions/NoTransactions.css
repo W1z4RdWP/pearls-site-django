@@ -1,0 +1,44 @@
+.no-transactions {
+  background: var(--card-bg, #fff);
+  border-left: 1px solid var(--border-color, #dee2e6);
+  border-right: 1px solid var(--border-color, #dee2e6);
+  border-bottom: 1px solid var(--border-color, #dee2e6);
+  border-radius: 0 0 0.5rem 0.5rem;
+  text-align: center;
+  padding: 3rem 1.5rem;
+}
+
+.no-transactions__icon {
+  font-size: 3rem;
+  color: var(--text-muted, #6c757d);
+  margin-bottom: 1rem;
+  display: block;
+}
+
+.no-transactions__title {
+  color: var(--text-muted, #6c757d);
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin: 0 0 0.5rem;
+}
+
+.no-transactions__text {
+  color: var(--text-muted, #6c757d);
+  font-size: 0.9rem;
+  margin: 0;
+}
+
+.no-transactions__link {
+  background: none;
+  border: none;
+  color: var(--primary, #0d6efd);
+  cursor: pointer;
+  text-decoration: underline;
+  font-size: inherit;
+  font-family: inherit;
+  padding: 0;
+}
+
+.no-transactions__link:hover {
+  color: var(--primary-hover, #0a58ca);
+}

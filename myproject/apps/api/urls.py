@@ -1,7 +1,8 @@
 from django.urls import path
-from . import views
+from .views import views
 from . import views_frontend
-from shop import views as shop_views
+from .views.views_frontend import views_shop as shop_views
+from .views.views_frontend import views_users as users_views
 
 app_name = 'api'
 
@@ -41,4 +42,7 @@ urlpatterns = [
     path('users/user_info/', views_frontend.user_info, name='api_user_info'),
     path('users/profile/', views_frontend.profile_page, name='api_profile_page'),
     path('users/profile/update/', views_frontend.update_profile, name='api_profile_update'),
+
+    # Users API — транзакции DASCOIN для React
+    path('users/transactions/', users_views.api_transactions, name='api_users_transactions'),
 ]

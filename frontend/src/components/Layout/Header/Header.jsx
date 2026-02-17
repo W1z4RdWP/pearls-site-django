@@ -174,7 +174,7 @@ const ProfileDropdownItems = ({ user, isExternal, onClose, onLogout }) => (
     {!isExternal && (
       <>
         <li>
-          <a href="/users/transactions/" className="header__dropdown-item" onClick={onClose}>
+          <a href="/users/profile/transactions/" className="header__dropdown-item" onClick={onClose}>
             История транзакций
           </a>
         </li>
