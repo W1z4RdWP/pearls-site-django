@@ -2,6 +2,7 @@ from rest_framework import serializers
 from django.contrib.auth.models import User, Group
 from courses.models import Course
 from myapp.models import ChangeLog, UserCourse
+from messenger.models import ChatRoom, RoomMessage, RoomMessageAttachment
 from shop.models import InternalProduct, ProductOrder
 
 
@@ -104,4 +105,22 @@ class ProductOrderSerializer(serializers.ModelSerializer):
 class ChangelogSerializer(serializers.ModelSerializer):
     class Meta:
         model = ChangeLog
+        fields = '__all__'
+
+
+class UserBasicSerializer(serializers.ModelSerializer):
+    """Базовый сериализатор пользователя для вложенных объектов."""
+    
+    class Meta:
+        model = User
+        fields = ('id', 'username', 'first_name', 'last_name', 'email')
+
+
+class MessengerChatRoomSerializer(serializers.ModelSerializer):
+    """Сериализатор комнаты чата для API."""
+    
+    created_by = UserBasicSerializer(read_only=True)
+    
+    class Meta:
+        model = ChatRoom
         fields = '__all__'

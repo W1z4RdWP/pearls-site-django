@@ -182,9 +182,15 @@ src/components/
 ### API
 
 1. Все запросы к бэкенду — через единый модуль `src/api/api.js`.
-2. **Fetch API** с обработкой ошибок.
-3. CSRF-токен передаётся через cookie (Django SessionAuthentication).
-4. Базовый URL задаётся через Vite proxy (`/api/` → Django backend).
+2. **Разделение API файлов по Django приложениям**: для каждого Django-приложения создаётся отдельный файл API в `src/api/` по шаблону `{app_name}_api.js`. Например:
+   - `messenger_api.js` для приложения `messenger`
+   - `shop_api.js` для приложения `shop`
+   - `users_api.js` для приложения `users`
+   
+   Каждый такой файл импортирует базовые функции (`request`, `getCSRFToken`, `API_BASE`) из `api.js` и экспортирует функции для работы с конкретным приложением.
+3. **Fetch API** с обработкой ошибок.
+4. CSRF-токен передаётся через cookie (Django SessionAuthentication).
+5. Базовый URL задаётся через Vite proxy (`/api/` → Django backend).
 
 ### Общие правила
 

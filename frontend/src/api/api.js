@@ -3,12 +3,12 @@
  * Использует fetch API, CSRF-токен из cookie.
  */
 
-const API_BASE = '/api';
+export const API_BASE = '/api';
 
 /**
  * Получает CSRF-токен из cookie.
  */
-function getCSRFToken() {
+export function getCSRFToken() {
   const cookies = document.cookie.split(';');
   for (const cookie of cookies) {
     const [name, value] = cookie.trim().split('=');
@@ -22,7 +22,7 @@ function getCSRFToken() {
 /**
  * Универсальная обёртка для fetch-запросов.
  */
-async function request(url, options = {}) {
+export async function request(url, options = {}) {
   const defaultHeaders = {
     'Content-Type': 'application/json',
     'X-CSRFToken': getCSRFToken(),

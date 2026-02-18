@@ -47,7 +47,7 @@ def layout_data(request):
         {'url': '/about', 'label': 'О нас', 'icon': 'fa-solid fa-circle-info'},
         {'url': '/knowledge-base', 'label': 'База знаний', 'icon': 'fa-solid fa-book'},
         {'url': '/shop/catalog', 'label': 'Магазин', 'icon': 'fa-solid fa-store'},
-        {'url': '/messenger', 'label': 'Мессенджер', 'icon': 'fa-solid fa-comments'},
+        {'url': '/messenger/chat/rooms', 'label': 'Мессенджер', 'icon': 'fa-solid fa-comments'},
     ]
     nav_staff = [
         {'url': '/trajectories', 'label': 'Управление траекториями', 'icon': 'fa-solid fa-route'},

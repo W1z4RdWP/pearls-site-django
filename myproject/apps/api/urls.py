@@ -3,6 +3,7 @@ from .views import views
 from . import views_frontend
 from .views.views_frontend import views_shop as shop_views
 from .views.views_frontend import views_users as users_views
+from .views.views_frontend import views_messenger as messenger_views
 
 app_name = 'api'
 
@@ -45,4 +46,8 @@ urlpatterns = [
 
     # Users API — транзакции DASCOIN для React
     path('users/transactions/', users_views.api_transactions, name='api_users_transactions'),
+
+    # Messenger API
+    path('messenger/chat_rooms/', messenger_views.api_chat_rooms, name='api_messenger_chat_rooms'),
+    path('messenger/chat_room/create/', messenger_views.api_chat_room_create, name='api_messenger_chat_room_create'),
 ]
