@@ -1,0 +1,337 @@
+.chat-input-container {
+  background: #fff;
+  padding: 0.75rem 1rem 1rem 1rem;
+  border-top: 1px solid #e1e8ed;
+  border-radius: 0 0 8px 8px;
+  flex-shrink: 0;
+}
+
+.chat-input-container.dragging {
+  background: #e3f2fd;
+}
+
+.chat-input-form {
+  display: flex;
+  gap: 0.5rem;
+  align-items: flex-end;
+}
+
+.chat-input-wrapper {
+  display: flex;
+  gap: 0.375rem;
+  align-items: flex-end;
+  flex: 1;
+}
+
+.attachment-btn {
+  width: 40px;
+  height: 40px;
+  border: none;
+  border-radius: 50%;
+  background: #f8f9fa;
+  color: #6c757d;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+  flex-shrink: 0;
+}
+
+.attachment-btn:hover {
+  background: #e9ecef;
+  color: #0d6efd;
+}
+
+.attachment-btn:active {
+  transform: scale(0.95);
+}
+
+.attachment-btn.has-files {
+  background: #d1e7dd;
+  color: #198754;
+}
+
+.attachment-btn svg {
+  width: 20px;
+  height: 20px;
+}
+
+.chat-input {
+  flex: 1;
+  padding: 0.625rem 0.875rem;
+  border: 1px solid #dee2e6;
+  border-radius: 20px;
+  font-size: 0.938rem;
+  resize: none;
+  background: #f8f9fa;
+  color: #212529;
+  max-height: 120px;
+  min-height: 40px;
+  transition: all 0.2s;
+  font-family: inherit;
+}
+
+.chat-input:focus {
+  outline: none;
+  background: #fff;
+  border-color: #0d6efd;
+}
+
+.chat-input::placeholder {
+  color: #6c757d;
+}
+
+.chat-input:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.chat-send-btn {
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  background: #0d6efd;
+  color: #fff;
+  border: none;
+  border-radius: 50%;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.chat-send-btn:hover:not(:disabled) {
+  background: #0b5ed7;
+  transform: scale(1.05);
+}
+
+.chat-send-btn:active:not(:disabled) {
+  transform: scale(0.95);
+}
+
+.chat-send-btn:disabled {
+  background: #6c757d;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.chat-send-btn svg {
+  width: 20px;
+  height: 20px;
+}
+
+.file-preview-container {
+  background: #f8f9fa;
+  border: 1px solid #dee2e6;
+  border-radius: 8px;
+  padding: 0.75rem;
+  margin-bottom: 0.5rem;
+  display: none;
+}
+
+.file-preview-container.show {
+  display: block;
+}
+
+.file-preview-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.5rem;
+}
+
+.file-preview-header h4 {
+  margin: 0;
+  font-size: 0.813rem;
+  color: #495057;
+}
+
+.file-preview-clear {
+  background: none;
+  border: none;
+  color: #dc3545;
+  cursor: pointer;
+  font-size: 0.813rem;
+  padding: 0.25rem 0.5rem;
+}
+
+.file-preview-clear:hover {
+  text-decoration: underline;
+}
+
+.file-preview-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.file-preview-item {
+  background: #fff;
+  border: 1px solid #dee2e6;
+  border-radius: 6px;
+  padding: 0.5rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  max-width: 200px;
+}
+
+.file-preview-item img {
+  width: 40px;
+  height: 40px;
+  object-fit: cover;
+  border-radius: 4px;
+}
+
+.file-preview-item .file-icon {
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #e9ecef;
+  border-radius: 4px;
+  color: #6c757d;
+  font-size: 1.25rem;
+}
+
+.file-preview-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.file-preview-name {
+  font-size: 0.8rem;
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: #212529;
+}
+
+.file-preview-size {
+  font-size: 0.7rem;
+  color: #6c757d;
+}
+
+.file-preview-remove {
+  background: none;
+  border: none;
+  color: #dc3545;
+  cursor: pointer;
+  padding: 0.25rem;
+  font-size: 1rem;
+  line-height: 1;
+}
+
+.file-preview-remove:hover {
+  color: #b02a37;
+}
+
+.upload-progress {
+  display: none;
+  padding: 0.5rem 1rem;
+  background: #e9ecef;
+  border-radius: 8px;
+  margin-bottom: 0.5rem;
+}
+
+.upload-progress.show {
+  display: block;
+}
+
+.upload-progress-bar {
+  height: 4px;
+  background: #dee2e6;
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.upload-progress-fill {
+  height: 100%;
+  background: #0d6efd;
+  width: 0%;
+  transition: width 0.3s;
+}
+
+.upload-progress-text {
+  font-size: 0.813rem;
+  color: #6c757d;
+  margin-top: 0.25rem;
+}
+
+@media (max-width: 480px) {
+  .chat-input-container {
+    padding: 0.625rem 0.75rem 0.75rem 0.75rem;
+  }
+
+  .chat-input {
+    font-size: 0.875rem;
+    padding: 0.5rem 0.75rem;
+    border-radius: 18px;
+  }
+
+  .chat-send-btn {
+    width: 36px;
+    height: 36px;
+  }
+
+  .chat-send-btn svg {
+    width: 18px;
+    height: 18px;
+  }
+
+  .attachment-btn {
+    width: 36px;
+    height: 36px;
+  }
+
+  .attachment-btn svg {
+    width: 18px;
+    height: 18px;
+  }
+
+  .file-preview-container {
+    padding: 0.625rem;
+    margin-bottom: 0.5rem;
+  }
+
+  .file-preview-header h4 {
+    font-size: 0.75rem;
+  }
+
+  .file-preview-clear {
+    font-size: 0.75rem;
+  }
+
+  .file-preview-item {
+    max-width: 160px;
+    padding: 0.375rem;
+  }
+
+  .file-preview-item img,
+  .file-preview-item .file-icon {
+    width: 36px;
+    height: 36px;
+  }
+
+  .upload-progress {
+    padding: 0.5rem 0.75rem;
+  }
+}
+
+@media (hover: none) and (pointer: coarse) {
+  .chat-send-btn,
+  .attachment-btn {
+    min-width: 44px;
+    min-height: 44px;
+  }
+
+  .file-preview-remove {
+    min-width: 32px;
+    min-height: 32px;
+  }
+}

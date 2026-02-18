@@ -1,0 +1,58 @@
+.connection-status {
+  padding: 0.375rem 1rem;
+  margin: 0.5rem 1rem;
+  border-radius: 6px;
+  font-size: 0.813rem;
+  text-align: center;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.connection-status--connected {
+  background: #d1e7dd;
+  color: #0f5132;
+}
+
+.connection-status--disconnected {
+  background: #f8d7da;
+  color: #842029;
+}
+
+.connection-status--connecting {
+  background: #fff3cd;
+  color: #856404;
+}
+
+.connection-status__reconnect-btn {
+  padding: 0.25rem 0.75rem;
+  background: #842029;
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  cursor: pointer;
+  transition: background 0.2s;
+  margin-left: 0.5rem;
+}
+
+.connection-status__reconnect-btn:hover {
+  background: #6a1a1f;
+}
+
+@media (max-width: 480px) {
+  .connection-status {
+    margin: 0.375rem 0.75rem;
+    padding: 0.375rem 0.75rem;
+    font-size: 0.75rem;
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+
+  .connection-status__reconnect-btn {
+    margin-left: 0;
+    width: 100%;
+  }
+}

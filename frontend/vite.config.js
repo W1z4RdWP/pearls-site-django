@@ -24,6 +24,13 @@ export default defineConfig({
         target: 'http://127.0.0.1:8005',
         changeOrigin: true,
       },
+      // WebSocket прокси для messenger
+      '/ws': {
+        target: 'http://127.0.0.1:8006', // Используем http для target, Vite сам преобразует в ws
+        ws: true,
+        changeOrigin: true,
+        secure: false, // Для локальной разработки
+      },
       // '/users': {
       //   target: 'http://127.0.0.1:8005',
       //   changeOrigin: true,

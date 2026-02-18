@@ -54,4 +54,6 @@ urlpatterns = [
     # Messenger API
     path('messenger/chat_rooms/', messenger_views.api_chat_rooms, name='api_messenger_chat_rooms'),
     path('messenger/chat_room/create/', messenger_views.api_chat_room_create, name='api_messenger_chat_room_create'),
+    path('messenger/chat_room/<str:room_id>/', messenger_views.api_chat_room_data, name='api_messenger_chat_room_data'),
+    path('messenger/chat_room/<str:room_id>/send/', messenger_views.api_chat_room_send_message, name='api_messenger_chat_room_send_message'),
 ]

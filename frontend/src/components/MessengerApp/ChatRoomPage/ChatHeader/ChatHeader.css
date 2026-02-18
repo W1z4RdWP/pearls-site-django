@@ -1,0 +1,146 @@
+.chat-header {
+  background: #fff;
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid #e1e8ed;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  min-height: 60px;
+  flex-shrink: 0;
+  border-radius: 8px 8px 0 0;
+}
+
+.chat-header h2 {
+  margin: 0;
+  font-size: 1.125rem;
+  color: #212529;
+  font-weight: 600;
+}
+
+.chat-header__room-id {
+  font-size: 0.813rem;
+  color: #6c757d;
+  margin-top: 0.125rem;
+}
+
+.chat-header__actions {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.chat-header__notification-toggle {
+  width: 40px;
+  height: 40px;
+  border: none;
+  border-radius: 8px;
+  background: #f8f9fa;
+  color: #6c757d;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+  position: relative;
+}
+
+.chat-header__notification-toggle:hover {
+  background: #e9ecef;
+}
+
+.chat-header__notification-toggle.enabled {
+  color: #0d6efd;
+  background: #e7f1ff;
+}
+
+.chat-header__notification-toggle.enabled:hover {
+  background: #d0e2ff;
+}
+
+.chat-header__notification-toggle.disabled {
+  color: #6c757d;
+  background: #f8f9fa;
+}
+
+.chat-header__notification-toggle.disabled:hover {
+  background: #e9ecef;
+}
+
+.chat-header__notification-toggle .bell-icon {
+  width: 20px;
+  height: 20px;
+}
+
+.chat-header__notification-toggle.enabled .bell-enabled {
+  display: block;
+}
+
+.chat-header__notification-toggle.enabled .bell-disabled {
+  display: none;
+}
+
+.chat-header__notification-toggle.disabled .bell-enabled {
+  display: none;
+}
+
+.chat-header__notification-toggle.disabled .bell-disabled {
+  display: block;
+}
+
+.chat-header .btn {
+  padding: 0.5rem 1rem;
+  font-size: 0.875rem;
+  background: #0d6efd;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  text-decoration: none;
+  transition: background 0.2s;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.chat-header .btn:hover {
+  background: #0b5ed7;
+}
+
+.chat-header .btn-secondary {
+  background: #6c757d;
+}
+
+.chat-header .btn-secondary:hover {
+  background: #5a6268;
+}
+
+@media (max-width: 768px) {
+  .chat-header {
+    padding: 0.875rem 1rem;
+    min-height: 56px;
+    border-radius: 0;
+  }
+
+  .chat-header h2 {
+    font-size: 1rem;
+  }
+
+  .chat-header__room-id {
+    font-size: 0.75rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .chat-header {
+    padding: 0.75rem;
+    min-height: 52px;
+    border-radius: 0;
+  }
+
+  .chat-header h2 {
+    font-size: 0.938rem;
+  }
+
+  .chat-header__room-id {
+    font-size: 0.688rem;
+  }
+}

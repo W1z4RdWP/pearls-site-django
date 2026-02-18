@@ -15,6 +15,7 @@ import TransactionsPage from './components/UsersApp/TransactionsPage/Transaction
 import DashboardPage from './components/DashboardPage/DashboardPage';
 import ChangeLogPage from './components/ChangeLogPage/ChangeLogPage';
 import MessengerPage from './components/MessengerApp/MessengerPage/MessengerPage';
+import ChatRoomPage from './components/MessengerApp/ChatRoomPage/ChatRoomPage';
 
 const App = () => {
   return (
@@ -26,6 +27,7 @@ const App = () => {
           <Route path='/changelog' element={<ChangeLogPage />}/>
           <Route path='/builder' element={<DashboardPage />}/>
           <Route path='/messenger/chat/rooms' element={<MessengerPage />}/>
+          <Route path='/messenger/chat/room/:roomId' element={<ChatRoomPage />}/>
 
 
 
