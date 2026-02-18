@@ -1,0 +1,117 @@
+.gamification-achievements-stats {
+  display: flex;
+  justify-content: space-around;
+  margin-bottom: 30px;
+  padding: 20px;
+  background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.gamification-achievements-grid-all {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 20px;
+}
+
+.gamification-achievement-item-all {
+  background: white;
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  border: 1px solid #e9ecef;
+  transition: transform 0.2s, box-shadow 0.2s;
+  display: flex;
+  gap: 15px;
+  align-items: flex-start;
+}
+
+.gamification-achievement-item-all:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+}
+
+.gamification-achievement-icon-container {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.gamification-achievement-icon-large {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 3px solid #ff6b35;
+}
+
+.gamification-achievement-icon-large-placeholder {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #ff6b35, #ff8c42);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 3px solid #ff6b35;
+  color: #fff;
+  font-size: 2em;
+}
+
+.gamification-achievement-earned-date {
+  position: absolute;
+  bottom: -5px;
+  right: -5px;
+  background: #ff6b35;
+  color: white;
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-size: 0.75em;
+  white-space: nowrap;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.gamification-achievement-info {
+  flex: 1;
+}
+
+.gamification-achievement-title {
+  margin: 0 0 8px 0;
+  font-size: 1.2em;
+  color: #333;
+  font-weight: 600;
+}
+
+.gamification-achievement-description {
+  margin: 0 0 10px 0;
+  color: #666;
+  font-size: 0.9em;
+  line-height: 1.5;
+}
+
+.gamification-achievement-type {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: #ff6b35;
+  font-size: 0.85em;
+  font-weight: 500;
+}
+
+@media (max-width: 768px) {
+  .gamification-achievements-grid-all {
+    grid-template-columns: 1fr;
+    gap: 15px;
+  }
+
+  .gamification-achievements-stats {
+    flex-direction: column;
+    gap: 15px;
+  }
+
+  .gamification-stat-number {
+    font-size: 2em;
+  }
+}

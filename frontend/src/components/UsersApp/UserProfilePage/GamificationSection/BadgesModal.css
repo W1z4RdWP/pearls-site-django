@@ -1,0 +1,136 @@
+.gamification-badges-stats {
+  display: flex;
+  justify-content: space-around;
+  margin-bottom: 30px;
+  padding: 20px;
+  background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.gamification-stat-item {
+  text-align: center;
+  flex: 1;
+}
+
+.gamification-stat-number {
+  display: block;
+  font-size: 2.5em;
+  font-weight: bold;
+  color: #007bff;
+  margin-bottom: 5px;
+}
+
+.gamification-stat-label {
+  font-size: 0.9em;
+  color: #666;
+  font-weight: 500;
+}
+
+.gamification-badges-grid-all {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 20px;
+}
+
+.gamification-badge-item-all {
+  background: white;
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  border: 1px solid #e9ecef;
+  transition: transform 0.2s, box-shadow 0.2s;
+  display: flex;
+  gap: 15px;
+  align-items: flex-start;
+}
+
+.gamification-badge-item-all:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+}
+
+.gamification-badge-icon-container {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.gamification-badge-icon-large {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 3px solid #ffd700;
+}
+
+.gamification-badge-icon-large-placeholder {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #ffd700, #ffed4e);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 3px solid #ffd700;
+  color: #b8860b;
+  font-size: 2em;
+}
+
+.gamification-badge-earned-date {
+  position: absolute;
+  bottom: -5px;
+  right: -5px;
+  background: #007bff;
+  color: white;
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-size: 0.75em;
+  white-space: nowrap;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.gamification-badge-info {
+  flex: 1;
+}
+
+.gamification-badge-title {
+  margin: 0 0 8px 0;
+  font-size: 1.2em;
+  color: #333;
+  font-weight: 600;
+}
+
+.gamification-badge-description {
+  margin: 0 0 10px 0;
+  color: #666;
+  font-size: 0.9em;
+  line-height: 1.5;
+}
+
+.gamification-badge-requirement {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: #ff6b35;
+  font-size: 0.85em;
+  font-weight: 500;
+}
+
+@media (max-width: 768px) {
+  .gamification-badges-grid-all {
+    grid-template-columns: 1fr;
+    gap: 15px;
+  }
+
+  .gamification-badges-stats {
+    flex-direction: column;
+    gap: 15px;
+  }
+
+  .gamification-stat-number {
+    font-size: 2em;
+  }
+}

@@ -19,6 +19,7 @@ from django.core.exceptions import ObjectDoesNotExist
 from courses.models import Course, TrajectoryCourse
 from myapp.models import ChangeLog
 from users.forms import UserUpdateForm, ProfileUpdateForm
+from gamification.models import Badge
 
 from .serializers import ChangelogSerializer, UserCourseSerializer, UserMeSerializer, CourseListSerializer
 
@@ -427,6 +428,94 @@ def update_profile(request):
             {'error': 'Ошибка валидации', 'errors': errors},
             status=status.HTTP_400_BAD_REQUEST,
         )
+
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+@ensure_csrf_cookie
+def all_badges_api(request):
+    """
+    API: все бейджи пользователя в JSON формате для React.
+    Для неавторизованных — 401.
+    """
+    if not request.user.is_authenticated:
+        return Response({'error': 'Не авторизован'}, status=status.HTTP_401_UNAUTHORIZED)
+    
+    try:
+        profile = request.user.profile
+    except ObjectDoesNotExist:
+        return Response(
+            {'error': 'Профиль пользователя не найден'},
+            status=status.HTTP_404_NOT_FOUND,
+        )
+    
+    user_badges = profile.get_badges()
+    total_badges_received = user_badges.count()
+    all_badges_count = Badge.objects.filter(is_active=True).count()
+    total_badges_available = profile.get_available_badges_count()
+    progress_percent = int((total_badges_received / all_badges_count * 100)) if all_badges_count > 0 else 0
+    
+    badges_data = []
+    for user_badge in user_badges:
+        badge = user_badge.badge
+        badges_data.append({
+            'name': badge.name,
+            'description': badge.description or '',
+            'icon_url': badge.icon.url if badge.icon else None,
+            'earned_at': user_badge.earned_at.strftime('%d.%m.%Y') if user_badge.earned_at else None,
+            'badge_type': badge.badge_type,
+            'points_required': badge.points_required if badge.badge_type == 'points' else None,
+        })
+    
+    return Response({
+        'badges': badges_data,
+        'stats': {
+            'total_received': total_badges_received,
+            'total_available': total_badges_available,
+            'progress_percent': progress_percent,
+        },
+    })
+
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+@ensure_csrf_cookie
+def all_achievements_api(request):
+    """
+    API: все достижения пользователя в JSON формате для React.
+    Для неавторизованных — 401.
+    """
+    if not request.user.is_authenticated:
+        return Response({'error': 'Не авторизован'}, status=status.HTTP_401_UNAUTHORIZED)
+    
+    try:
+        profile = request.user.profile
+    except ObjectDoesNotExist:
+        return Response(
+            {'error': 'Профиль пользователя не найден'},
+            status=status.HTTP_404_NOT_FOUND,
+        )
+    
+    user_achievements = profile.get_achievements()
+    
+    achievements_data = []
+    for user_achievement in user_achievements:
+        achievement = user_achievement.achievement
+        achievements_data.append({
+            'name': achievement.name,
+            'description': achievement.description or '',
+            'icon_url': achievement.icon.url if achievement.icon else None,
+            'earned_at': user_achievement.earned_at.strftime('%d.%m.%Y') if user_achievement.earned_at else None,
+            'achievement_type': achievement.achievement_type,
+            'achievement_type_display': achievement.get_achievement_type_display(),
+        })
+    
+    return Response({
+        'achievements': achievements_data,
+        'stats': {
+            'total_received': user_achievements.count(),
+        },
+    })
 
 
 def _dashboard_context(request):

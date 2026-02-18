@@ -47,6 +47,8 @@ urlpatterns = [
     path('users/user_info/', views_frontend.user_info, name='api_user_info'),
     path('users/profile/', views_frontend.profile_page, name='api_profile_page'),
     path('users/profile/update/', views_frontend.update_profile, name='api_profile_update'),
+    path('users/profile/all-badges/', views_frontend.all_badges_api, name='api_all_badges'),
+    path('users/profile/all-achievements/', views_frontend.all_achievements_api, name='api_all_achievements'),
 
     # Users API — транзакции DASCOIN для React
     path('users/transactions/', users_views.api_transactions, name='api_users_transactions'),

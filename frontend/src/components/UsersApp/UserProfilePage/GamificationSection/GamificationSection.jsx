@@ -1,4 +1,7 @@
+import { useState } from 'react';
 import './GamificationSection.css';
+import BadgesModal from './BadgesModal';
+import AchievementsModal from './AchievementsModal';
 
 const CHECKUP_COURSE_SLUG = 'chek-ap-stomatologicheskoi-kliniki';
 
@@ -9,6 +12,9 @@ const GamificationSection = ({
   recentAchievements = [],
   totalAchievements = 0,
 }) => {
+  const [isBadgesModalOpen, setIsBadgesModalOpen] = useState(false);
+  const [isAchievementsModalOpen, setIsAchievementsModalOpen] = useState(false);
+
   if (isExternal) {
     return (
       <section className="gamification-section" aria-label="Чек-ап">
@@ -74,9 +80,12 @@ const GamificationSection = ({
                 </div>
                 {totalBadges > 0 && (
                   <div className="gamification-section__show-more">
-                    <a href="/users/profile/badges" className="gamification-section__btn gamification-section__btn--sm">
+                    <button
+                      onClick={() => setIsBadgesModalOpen(true)}
+                      className="gamification-section__btn gamification-section__btn--sm"
+                    >
                       <i className="fa fa-eye" aria-hidden="true" /> Показать все ({totalBadges})
-                    </a>
+                    </button>
                   </div>
                 )}
               </>
@@ -127,9 +136,12 @@ const GamificationSection = ({
                 </div>
                 {totalAchievements > 0 && (
                   <div className="gamification-section__show-more">
-                    <a href="/users/profile/achievements" className="gamification-section__btn gamification-section__btn--sm">
+                    <button
+                      onClick={() => setIsAchievementsModalOpen(true)}
+                      className="gamification-section__btn gamification-section__btn--sm"
+                    >
                       <i className="fa fa-eye" aria-hidden="true" /> Показать все ({totalAchievements})
-                    </a>
+                    </button>
                   </div>
                 )}
               </>
@@ -143,6 +155,14 @@ const GamificationSection = ({
           </div>
         </div>
       </div>
+      <BadgesModal
+        isOpen={isBadgesModalOpen}
+        onClose={() => setIsBadgesModalOpen(false)}
+      />
+      <AchievementsModal
+        isOpen={isAchievementsModalOpen}
+        onClose={() => setIsAchievementsModalOpen(false)}
+      />
     </section>
   );
 };

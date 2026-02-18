@@ -1,0 +1,133 @@
+.gamification-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  animation: gamification-fadeIn 0.3s ease;
+}
+
+.gamification-modal-content {
+  background: white;
+  border-radius: 12px;
+  max-width: 90%;
+  max-height: 90%;
+  width: 800px;
+  overflow: hidden;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+  animation: gamification-slideIn 0.3s ease;
+}
+
+.gamification-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px;
+  border-bottom: 1px solid #e0e0e0;
+  background: #f8f9fa;
+}
+
+.gamification-modal-header h3 {
+  margin: 0;
+  color: #333;
+  font-size: 1.3em;
+}
+
+.gamification-modal-close {
+  background: none;
+  border: none;
+  font-size: 24px;
+  cursor: pointer;
+  color: #666;
+  padding: 0;
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: background-color 0.2s;
+}
+
+.gamification-modal-close:hover {
+  background: #e0e0e0;
+  color: #333;
+}
+
+.gamification-modal-body {
+  padding: 20px;
+  max-height: 60vh;
+  overflow-y: auto;
+}
+
+.gamification-modal-loading,
+.gamification-modal-error,
+.gamification-modal-empty {
+  text-align: center;
+  padding: 40px 20px;
+  color: #666;
+}
+
+.gamification-modal-loading i,
+.gamification-modal-error i,
+.gamification-modal-empty i {
+  margin-bottom: 15px;
+  opacity: 0.7;
+  display: block;
+}
+
+.gamification-modal-empty h3 {
+  margin: 15px 0 10px;
+  color: #333;
+}
+
+.gamification-modal-empty p {
+  margin: 0;
+  color: #666;
+}
+
+@keyframes gamification-fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes gamification-slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-20px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* Адаптивность для модального окна */
+@media (max-width: 768px) {
+  .gamification-modal-content {
+    width: 95%;
+    max-height: 95%;
+  }
+
+  .gamification-modal-header {
+    padding: 15px;
+  }
+
+  .gamification-modal-body {
+    padding: 15px;
+    max-height: 70vh;
+  }
+
+  .gamification-modal-header h3 {
+    font-size: 1.1em;
+  }
+}

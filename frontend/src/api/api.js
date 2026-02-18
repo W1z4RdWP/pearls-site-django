@@ -252,3 +252,19 @@ export function fetchTransactions(page = 1, type = '') {
   if (type && type.trim()) params.set('type', type.trim());
   return request(`/users/transactions/?${params.toString()}`);
 }
+
+/**
+ * Все бейджи пользователя.
+ * @returns {Promise<{badges: Array, stats: {total_received: number, total_available: number, progress_percent: number}}>}
+ */
+export function fetchAllBadges() {
+  return request('/users/profile/all-badges/');
+}
+
+/**
+ * Все достижения пользователя.
+ * @returns {Promise<{achievements: Array, stats: {total_received: number}}>}
+ */
+export function fetchAllAchievements() {
+  return request('/users/profile/all-achievements/');
+}
