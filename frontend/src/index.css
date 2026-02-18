@@ -38,6 +38,17 @@
   --color-link: #4d7cff;
   --color-link-hover: #2dabc4;
   --primary-font: 'Onest', sans-serif;
+
+  /* Changelog variables */
+  --changelog-timeline-bg: #e9ecef;
+  --changelog-card-bg: #fff;
+  --changelog-card-text: #232a3a;
+  --changelog-feature: #4CAF50;
+  --changelog-bugfix: #f44336;
+  --changelog-improvement: #2196F3;
+  --changelog-security: #FFC107;
+  --changelog-version-date: #6c757d;
+  --changelog-type-badge-bg: rgba(0, 0, 0, 0.1);
 }
 
 /* ===== Глобальный сброс ===== */

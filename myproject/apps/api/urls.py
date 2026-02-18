@@ -4,6 +4,7 @@ from . import views_frontend
 from .views.views_frontend import views_shop as shop_views
 from .views.views_frontend import views_users as users_views
 from .views.views_frontend import views_messenger as messenger_views
+from .views.views_frontend import views_myapp as myapp_views
 
 app_name = 'api'
 
@@ -38,6 +39,9 @@ urlpatterns = [
     # Дашборд builder (панель управления)
     path('builder/dashboard/', views_frontend.dashboard_data, name='api_builder_dashboard'),
     path('changelog/', views_frontend.changelog_data, name='api_changelog'),
+
+    # MyApp API — история изменений для React
+    path('myapp/changelog/', myapp_views.api_changelog_list, name='api_myapp_changelog'),
 
     # Профиль пользователя для React
     path('users/user_info/', views_frontend.user_info, name='api_user_info'),
