@@ -268,3 +268,4 @@ export function fetchAllBadges() {
 export function fetchAllAchievements() {
   return request('/users/profile/all-achievements/');
 }
+

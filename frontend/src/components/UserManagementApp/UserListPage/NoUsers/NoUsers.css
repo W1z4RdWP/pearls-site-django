@@ -1,0 +1,10 @@
+.no-users {
+  text-align: center;
+  padding: 3rem 1rem;
+  color: #6c757d;
+}
+
+.no-users__message {
+  font-size: 1rem;
+  margin: 0;
+}

@@ -1,0 +1,53 @@
+.user-list-page {
+  padding: 1.5rem 0;
+}
+
+.user-list-page__container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 1rem;
+}
+
+.user-list-page__wrapper {
+  max-width: 1200px;
+  margin: 40px auto;
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  padding: 32px 40px;
+  color: #222;
+}
+
+.user-list-page__loading {
+  text-align: center;
+  padding: 3rem 0;
+  color: #6c757d;
+  font-size: 0.95rem;
+}
+
+.user-list-page__error {
+  text-align: center;
+  padding: 2rem;
+  color: #dc3545;
+  background: #f8d7da;
+  border-radius: 0.5rem;
+  font-size: 0.9rem;
+}
+
+@media (max-width: 600px) {
+  .user-list-page__wrapper {
+    max-width: 100vw;
+    padding: 10px 2px;
+    box-shadow: none;
+    border-radius: 0;
+    margin: 0;
+  }
+
+  .user-list-page {
+    padding: 1rem 0;
+  }
+
+  .user-list-page__container {
+    padding: 0 0.5rem;
+  }
+}

@@ -1,0 +1,126 @@
+.user-list-table-wrap {
+  width: 100%;
+  overflow-x: auto;
+  margin-bottom: 24px;
+}
+
+.user-list-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.97rem;
+}
+
+.user-list-table__head {
+  background: #f3f4f6;
+}
+
+.user-list-table__th {
+  padding: 6px 4px;
+  font-size: 0.98rem;
+  font-weight: 600;
+  color: #444;
+  text-align: left;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.user-list-table__row {
+  transition: background-color 0.1s;
+}
+
+.user-list-table__row--clickable {
+  cursor: pointer;
+}
+
+.user-list-table__row:hover {
+  background-color: rgba(91, 60, 196, 0.04);
+}
+
+.user-list-table__td {
+  padding: 6px 4px;
+  font-size: 0.97rem;
+  border-bottom: 1px solid #e5e7eb;
+  text-align: left;
+  vertical-align: middle;
+  overflow: hidden;
+  max-width: 250px;
+}
+
+.user-list-table__row:last-child .user-list-table__td {
+  border-bottom: none;
+}
+
+.user-list-table__user-info {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.user-list-table__avatar {
+  width: 28px;
+  height: 28px;
+  min-width: 28px;
+  min-height: 28px;
+  border-radius: 50%;
+  object-fit: cover;
+  background: #e5e7eb;
+  border: 2px solid #d1d5db;
+}
+
+.user-list-table__user-details {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.1;
+}
+
+.user-list-table__user-name {
+  font-size: 0.97rem;
+  color: #222;
+}
+
+.user-list-table__user-email {
+  font-size: 0.92em;
+  color: #888;
+}
+
+.user-list-table__status {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-weight: 500;
+  border-radius: 5px;
+  padding: 2px 10px;
+  font-size: 0.98em;
+}
+
+.user-list-table__status--approved {
+  background: #e6fbe6;
+  color: #15803d;
+  border: 1px solid #bbf7d0;
+}
+
+.user-list-table__status--unapproved {
+  background: #f3f4f6;
+  color: #888;
+  border: 1px solid #e5e7eb;
+}
+
+@media (max-width: 600px) {
+  .user-list-table {
+    font-size: 0.95rem;
+  }
+
+  .user-list-table__th,
+  .user-list-table__td {
+    padding: 8px 4px;
+    font-size: 0.95rem;
+  }
+
+  .user-list-table__avatar {
+    width: 32px;
+    height: 32px;
+  }
+
+  .user-list-table__user-info {
+    gap: 8px;
+  }
+}

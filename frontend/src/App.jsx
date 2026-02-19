@@ -16,6 +16,7 @@ import DashboardPage from './components/DashboardPage/DashboardPage';
 import ChangeLogPage from './components/ChangeLogPage/ChangeLogPage';
 import MessengerPage from './components/MessengerApp/MessengerPage/MessengerPage';
 import ChatRoomPage from './components/MessengerApp/ChatRoomPage/ChatRoomPage';
+import UserListPage from './components/UserManagementApp/UserListPage/UserListPage';
 
 const App = () => {
   return (
@@ -26,10 +27,6 @@ const App = () => {
           <Route path='/about' element={<AboutPage />}/>
           <Route path='/changelog' element={<ChangeLogPage />}/>
           <Route path='/builder' element={<DashboardPage />}/>
-          <Route path='/messenger/chat/rooms' element={<MessengerPage />}/>
-          <Route path='/messenger/chat/room/:roomId' element={<ChatRoomPage />}/>
-
-
 
           {/* shop */}
           <Route path='/shop/catalog' element={<ShopPage />}/>
@@ -43,6 +40,13 @@ const App = () => {
           <Route path='/users/logout' element={<LogoutPage />}/>
           <Route path='/users/profile' element={<ProfilePage />} />
           <Route path='/users/profile/transactions' element={<TransactionsPage />} />
+
+          {/* messenger */}
+          <Route path='/messenger/chat/rooms' element={<MessengerPage />}/>
+          <Route path='/messenger/chat/room/:roomId' element={<ChatRoomPage />}/>
+
+          {/* user management */}
+          <Route path='/user_management/users' element={<UserListPage />} />
 
           {/* Добавляйте новые маршруты здесь */}
         </Route>

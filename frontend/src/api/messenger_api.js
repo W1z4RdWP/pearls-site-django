@@ -1,4 +1,4 @@
-import { request, getCSRFToken, API_BASE } from './api'
+import { request, getCSRFToken } from './api'
 
 /**
  * Получает список комнат чата для текущего пользователя.
