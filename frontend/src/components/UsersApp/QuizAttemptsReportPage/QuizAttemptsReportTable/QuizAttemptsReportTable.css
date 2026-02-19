@@ -1,39 +1,44 @@
 .quiz-attempts-report-table-wrap {
   width: 100%;
   overflow-x: auto;
-  margin-bottom: 1.5rem;
+  -webkit-overflow-scrolling: touch;
+  margin-top: 16px;
 }
 
 .quiz-attempts-report-table {
   width: 100%;
-  min-width: 1000px;
+  min-width: 900px;
   border-collapse: collapse;
-  font-size: 0.97rem;
+  font-size: 0.9em;
+  table-layout: fixed;
 }
 
 .quiz-attempts-report-table__head {
-  background: #f3f4f6;
+  background: #f7f8fa;
 }
 
 .quiz-attempts-report-table__th {
-  padding: 0.75rem 0.5rem;
-  font-size: 0.98rem;
+  padding: 10px 6px;
+  font-size: 1em;
   font-weight: 600;
-  color: #444;
+  color: #232a3a;
   text-align: left;
-  border-bottom: 1px solid #e5e7eb;
+  border-bottom: 2px solid #e3e8f0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .quiz-attempts-report-table__row {
-  transition: background-color 0.1s;
+  transition: background-color 0.2s;
 }
 
 .quiz-attempts-report-table__row--clickable {
   cursor: pointer;
 }
 
-.quiz-attempts-report-table__row:hover {
-  background-color: rgba(91, 60, 196, 0.04);
+.quiz-attempts-report-table__row:hover td:not(.quiz-attempts-report-table__status) {
+  background-color: #f5f7fa !important;
 }
 
 .quiz-attempts-report-table__row--selected {
@@ -50,83 +55,81 @@
 }
 
 .quiz-attempts-report-table__td {
-  padding: 0.75rem 0.5rem;
-  font-size: 0.97rem;
-  border-bottom: 1px solid #e5e7eb;
+  padding: 10px 6px;
+  font-size: 1em;
+  border-bottom: 1px solid #e3e8f0;
   text-align: left;
-  vertical-align: middle;
+  vertical-align: top;
+  color: #232a3a;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .quiz-attempts-report-table__row:last-child .quiz-attempts-report-table__td {
   border-bottom: none;
 }
 
-/* Стили для статусов */
+/* Статусы */
 .quiz-attempts-report-table__status {
   font-weight: 600;
 }
 
-/* Пройден -> projden */
+/* Пройден */
 .quiz-attempts-report-table__status--projden {
   background-color: #d4edda !important;
   color: #155724 !important;
 }
-
 .quiz-attempts-report-table__row:hover .quiz-attempts-report-table__status--projden {
   background-color: #c3e6cb !important;
 }
 
-/* Не пройден -> ne-projden */
+/* Не пройден */
 .quiz-attempts-report-table__status--ne-projden {
   background-color: #f8d7da !important;
   color: #721c24 !important;
 }
-
 .quiz-attempts-report-table__row:hover .quiz-attempts-report-table__status--ne-projden {
   background-color: #f5c6cb !important;
 }
 
-/* На проверке -> na-proverke */
+/* На проверке */
 .quiz-attempts-report-table__status--na-proverke {
   background-color: #fff3cd !important;
   color: #856404 !important;
 }
-
 .quiz-attempts-report-table__row:hover .quiz-attempts-report-table__status--na-proverke {
   background-color: #ffeaa7 !important;
 }
 
-/* Ожидает проверки -> ozhidaet-proverki */
+/* Ожидает проверки */
 .quiz-attempts-report-table__status--ozhidaet-proverki {
   background-color: #fff3cd !important;
   color: #856404 !important;
 }
-
 .quiz-attempts-report-table__row:hover .quiz-attempts-report-table__status--ozhidaet-proverki {
   background-color: #ffeaa7 !important;
 }
 
-/* Правильно -> pravilno */
+/* Правильно */
 .quiz-attempts-report-table__status--pravilno {
   background-color: #d4edda !important;
   color: #155724 !important;
 }
-
 .quiz-attempts-report-table__row:hover .quiz-attempts-report-table__status--pravilno {
   background-color: #c3e6cb !important;
 }
 
-/* Не правильно -> ne-pravilno */
+/* Не правильно */
 .quiz-attempts-report-table__status--ne-pravilno {
   background-color: #f8d7da !important;
   color: #721c24 !important;
 }
-
 .quiz-attempts-report-table__row:hover .quiz-attempts-report-table__status--ne-pravilno {
   background-color: #f5c6cb !important;
 }
 
-/* Завершен -> zavershen */
+/* Завершен */
 .quiz-attempts-report-table__status--zavershen {
   background-color: #e2e3e5 !important;
   color: #383d41 !important;
@@ -134,12 +137,11 @@
 
 @media (max-width: 1200px) {
   .quiz-attempts-report-table {
-    min-width: 900px;
+    min-width: 800px;
   }
-
   .quiz-attempts-report-table__th,
   .quiz-attempts-report-table__td {
-    padding: 0.5rem 0.25rem;
-    font-size: 0.85rem;
+    padding: 8px 4px;
+    font-size: 0.85em;
   }
 }
