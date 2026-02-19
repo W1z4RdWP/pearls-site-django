@@ -1,0 +1,155 @@
+.admin-user-transactions-filter {
+  background: var(--card-bg, #fff);
+  border-left: 1px solid var(--border-color, #dee2e6);
+  border-right: 1px solid var(--border-color, #dee2e6);
+  border-bottom: 1px solid var(--border-color, #dee2e6);
+  padding: 0.5rem 1rem;
+}
+
+.admin-user-transactions-filter__row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.admin-user-transactions-filter__buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.admin-user-transactions-filter__label,
+.admin-user-transactions-filter__stats-label {
+  font-size: 0.78rem;
+  color: var(--text-muted, #6c757d);
+  font-weight: 600;
+}
+
+.admin-user-transactions-filter__group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px;
+}
+
+.admin-user-transactions-filter__btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.25rem 0.55rem;
+  font-size: 0.78rem;
+  border-radius: 0.25rem;
+  border: 1px solid transparent;
+  background: transparent;
+  cursor: pointer;
+  transition: background-color 0.15s, color 0.15s, border-color 0.15s;
+  font-family: inherit;
+  line-height: 1.4;
+}
+
+.admin-user-transactions-filter__count {
+  font-size: 0.72rem;
+}
+
+.admin-user-transactions-filter__btn--secondary {
+  color: var(--text-muted, #6c757d);
+  border-color: var(--text-muted, #6c757d);
+}
+.admin-user-transactions-filter__btn--secondary:hover,
+.admin-user-transactions-filter__btn--secondary.admin-user-transactions-filter__btn--active {
+  background: var(--text-muted, #6c757d);
+  color: #fff;
+}
+
+.admin-user-transactions-filter__btn--success {
+  color: var(--success, #198754);
+  border-color: var(--success, #198754);
+}
+.admin-user-transactions-filter__btn--success:hover,
+.admin-user-transactions-filter__btn--success.admin-user-transactions-filter__btn--active {
+  background: var(--success, #198754);
+  color: #fff;
+}
+
+.admin-user-transactions-filter__btn--danger {
+  color: var(--danger, #dc3545);
+  border-color: var(--danger, #dc3545);
+}
+.admin-user-transactions-filter__btn--danger:hover,
+.admin-user-transactions-filter__btn--danger.admin-user-transactions-filter__btn--active {
+  background: var(--danger, #dc3545);
+  color: #fff;
+}
+
+.admin-user-transactions-filter__btn--info {
+  color: var(--info, #0dcaf0);
+  border-color: var(--info, #0dcaf0);
+}
+.admin-user-transactions-filter__btn--info:hover,
+.admin-user-transactions-filter__btn--info.admin-user-transactions-filter__btn--active {
+  background: var(--info, #0dcaf0);
+  color: #fff;
+}
+
+.admin-user-transactions-filter__btn--warning {
+  color: var(--warning-text, #cc8800);
+  border-color: var(--warning, #ffc107);
+}
+.admin-user-transactions-filter__btn--warning:hover,
+.admin-user-transactions-filter__btn--warning.admin-user-transactions-filter__btn--active {
+  background: var(--warning, #ffc107);
+  color: #212529;
+}
+
+.admin-user-transactions-filter__stats {
+  text-align: right;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  align-items: flex-end;
+}
+
+.admin-user-transactions-filter__stats-grid {
+  display: flex;
+  gap: 1rem;
+}
+
+.admin-user-transactions-filter__stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.15rem;
+  font-size: 0.8rem;
+}
+
+.admin-user-transactions-filter__stat--success { color: var(--success, #198754); }
+.admin-user-transactions-filter__stat--danger  { color: var(--danger, #dc3545); }
+.admin-user-transactions-filter__stat--info    { color: var(--info, #0dcaf0); }
+.admin-user-transactions-filter__stat--warning { color: var(--warning-text, #cc8800); }
+
+.admin-user-transactions-filter__stat-value {
+  font-weight: 600;
+  font-size: 0.8rem;
+}
+
+@media (max-width: 768px) {
+  .admin-user-transactions-filter__row {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .admin-user-transactions-filter__stats {
+    align-items: flex-start;
+    width: 100%;
+  }
+
+  .admin-user-transactions-filter__group {
+    gap: 2px;
+  }
+
+  .admin-user-transactions-filter__btn {
+    padding: 0.2rem 0.4rem;
+    font-size: 0.72rem;
+  }
+}

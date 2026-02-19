@@ -1,0 +1,119 @@
+.admin-user-transactions-header {
+  background: var(--card-bg, #fff);
+  border-radius: 0.5rem 0.5rem 0 0;
+  border: 1px solid var(--border-color, #dee2e6);
+  border-bottom: none;
+  padding: 0.5rem 1rem;
+}
+
+.admin-user-transactions-header__title-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.admin-user-transactions-header__title {
+  font-size: 1rem;
+  font-weight: 600;
+  margin: 0;
+  color: var(--text-color, #212529);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.admin-user-transactions-header__icon {
+  color: var(--warning, #ffc107);
+}
+
+.admin-user-transactions-header__actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.admin-user-transactions-header__export {
+  display: flex;
+  gap: 2px;
+}
+
+.admin-user-transactions-header__btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.3rem 0.6rem;
+  font-size: 0.8rem;
+  border-radius: 0.25rem;
+  border: 1px solid transparent;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background-color 0.15s, color 0.15s;
+  font-family: inherit;
+  line-height: 1.4;
+  background: transparent;
+}
+
+.admin-user-transactions-header__btn--excel {
+  color: var(--success, #198754);
+  border-color: var(--success, #198754);
+}
+
+.admin-user-transactions-header__btn--excel:hover {
+  background: var(--success, #198754);
+  color: #fff;
+}
+
+.admin-user-transactions-header__btn--pdf {
+  color: var(--danger, #dc3545);
+  border-color: var(--danger, #dc3545);
+}
+
+.admin-user-transactions-header__btn--pdf:hover {
+  background: var(--danger, #dc3545);
+  color: #fff;
+}
+
+.admin-user-transactions-header__btn--back {
+  color: var(--text-muted, #6c757d);
+  border-color: var(--text-muted, #6c757d);
+}
+
+.admin-user-transactions-header__btn--back:hover {
+  background: var(--text-muted, #6c757d);
+  color: #fff;
+}
+
+.admin-user-transactions-header__badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 2rem;
+  padding: 0.2rem 0.5rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #fff;
+  background: var(--primary, #0d6efd);
+  border-radius: 0.35rem;
+}
+
+.admin-user-transactions-header__btn-label {
+  display: inline;
+}
+
+@media (max-width: 768px) {
+  .admin-user-transactions-header__title-row {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .admin-user-transactions-header__actions {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .admin-user-transactions-header__btn-label {
+    display: none;
+  }
+}

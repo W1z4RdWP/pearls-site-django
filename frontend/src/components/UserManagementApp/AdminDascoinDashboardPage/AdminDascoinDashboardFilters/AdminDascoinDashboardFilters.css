@@ -1,0 +1,164 @@
+.admin-dascoin-dashboard-filters {
+  background: var(--card-bg, #fff);
+  border-left: 1px solid var(--border-color, #dee2e6);
+  border-right: 1px solid var(--border-color, #dee2e6);
+  border-bottom: 1px solid var(--border-color, #dee2e6);
+  padding: 0.75rem 1rem;
+}
+
+.admin-dascoin-dashboard-filters__form {
+  margin-bottom: 0.75rem;
+}
+
+.admin-dascoin-dashboard-filters__row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 0.75rem;
+  align-items: end;
+}
+
+.admin-dascoin-dashboard-filters__field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.admin-dascoin-dashboard-filters__label {
+  font-size: 0.78rem;
+  color: var(--text-muted, #6c757d);
+  font-weight: 600;
+}
+
+.admin-dascoin-dashboard-filters__select,
+.admin-dascoin-dashboard-filters__input {
+  padding: 0.3rem 0.5rem;
+  font-size: 0.85rem;
+  border: 1px solid var(--border-color, #dee2e6);
+  border-radius: 0.25rem;
+  font-family: inherit;
+}
+
+.admin-dascoin-dashboard-filters__submit {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  padding: 0.3rem 0.75rem;
+  font-size: 0.85rem;
+  border-radius: 0.25rem;
+  border: 1px solid var(--primary, #0d6efd);
+  background: var(--primary, #0d6efd);
+  color: #fff;
+  cursor: pointer;
+  transition: background-color 0.15s;
+  font-family: inherit;
+}
+
+.admin-dascoin-dashboard-filters__submit:hover {
+  background: #0b5ed7;
+}
+
+.admin-dascoin-dashboard-filters__quick {
+  margin-top: 0.75rem;
+}
+
+.admin-dascoin-dashboard-filters__quick-group {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.admin-dascoin-dashboard-filters__quick-btn {
+  display: inline-block;
+  padding: 0.5rem 1rem;
+  border: 2px solid #6c757d;
+  border-radius: 0.375rem;
+  text-decoration: none;
+  color: #6c757d;
+  font-size: 0.875rem;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  background: white;
+  min-width: 120px;
+  text-align: center;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.admin-dascoin-dashboard-filters__quick-btn:hover {
+  text-decoration: none;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.admin-dascoin-dashboard-filters__quick-btn--active {
+  background: #6c757d;
+  color: white;
+  border-color: #6c757d;
+  font-weight: 600;
+}
+
+.admin-dascoin-dashboard-filters__quick-btn--warning {
+  border-color: #ffc107;
+  color: #ffc107;
+}
+
+.admin-dascoin-dashboard-filters__quick-btn--warning:hover {
+  background: #fff3cd;
+  color: #856404;
+}
+
+.admin-dascoin-dashboard-filters__quick-btn--warning.admin-dascoin-dashboard-filters__quick-btn--active {
+  background: #ffc107;
+  color: #212529;
+  border-color: #ffc107;
+}
+
+.admin-dascoin-dashboard-filters__quick-btn--danger {
+  border-color: #dc3545;
+  color: #dc3545;
+}
+
+.admin-dascoin-dashboard-filters__quick-btn--danger:hover {
+  background: #f8d7da;
+  color: #721c24;
+}
+
+.admin-dascoin-dashboard-filters__quick-btn--danger.admin-dascoin-dashboard-filters__quick-btn--active {
+  background: #dc3545;
+  color: white;
+  border-color: #dc3545;
+}
+
+.admin-dascoin-dashboard-filters__quick-btn--success {
+  border-color: #28a745;
+  color: #28a745;
+}
+
+.admin-dascoin-dashboard-filters__quick-btn--success:hover {
+  background: #d4edda;
+  color: #155724;
+}
+
+.admin-dascoin-dashboard-filters__quick-btn--success.admin-dascoin-dashboard-filters__quick-btn--active {
+  background: #28a745;
+  color: white;
+  border-color: #28a745;
+}
+
+@media (max-width: 768px) {
+  .admin-dascoin-dashboard-filters__row {
+    grid-template-columns: 1fr;
+    gap: 0.5rem;
+  }
+
+  .admin-dascoin-dashboard-filters__quick-group {
+    gap: 0.25rem;
+  }
+
+  .admin-dascoin-dashboard-filters__quick-btn {
+    padding: 0.375rem 0.75rem;
+    font-size: 0.8rem;
+    min-width: 100px;
+  }
+}

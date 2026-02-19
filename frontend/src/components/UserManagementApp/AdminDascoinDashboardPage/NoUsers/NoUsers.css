@@ -1,0 +1,30 @@
+.admin-dascoin-dashboard-no-users {
+  text-align: center;
+  padding: 3rem 0;
+}
+
+.admin-dascoin-dashboard-no-users__icon {
+  font-size: 3rem;
+  color: var(--text-muted, #6c757d);
+  margin-bottom: 1rem;
+}
+
+.admin-dascoin-dashboard-no-users__title {
+  color: var(--text-muted, #6c757d);
+  margin-bottom: 0.5rem;
+  font-size: 1.25rem;
+}
+
+.admin-dascoin-dashboard-no-users__text {
+  color: var(--text-muted, #6c757d);
+  font-size: 0.9rem;
+}
+
+.admin-dascoin-dashboard-no-users__link {
+  color: var(--primary, #007bff);
+  text-decoration: none;
+}
+
+.admin-dascoin-dashboard-no-users__link:hover {
+  text-decoration: underline;
+}

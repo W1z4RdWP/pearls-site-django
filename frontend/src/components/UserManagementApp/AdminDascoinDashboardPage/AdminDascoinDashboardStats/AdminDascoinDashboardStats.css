@@ -1,0 +1,107 @@
+.admin-dascoin-dashboard-stats {
+  background: var(--card-bg, #fff);
+  border-left: 1px solid var(--border-color, #dee2e6);
+  border-right: 1px solid var(--border-color, #dee2e6);
+  border-bottom: 1px solid var(--border-color, #dee2e6);
+  padding: 0.75rem 1rem;
+}
+
+.admin-dascoin-dashboard-stats__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 0.75rem;
+}
+
+.admin-dascoin-dashboard-stats__card {
+  background: #f8f9fa;
+  border: 1px solid #e9ecef;
+  border-radius: 0.5rem;
+  padding: 1rem;
+  transition: all 0.2s ease;
+  height: 100%;
+}
+
+.admin-dascoin-dashboard-stats__card:hover {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  transform: translateY(-1px);
+}
+
+.admin-dascoin-dashboard-stats__content {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.admin-dascoin-dashboard-stats__icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.2rem;
+  flex-shrink: 0;
+}
+
+.admin-dascoin-dashboard-stats__card--spent .admin-dascoin-dashboard-stats__icon {
+  background: #f8d7da;
+  color: #721c24;
+}
+
+.admin-dascoin-dashboard-stats__card--total .admin-dascoin-dashboard-stats__icon {
+  background: #d4edda;
+  color: #155724;
+}
+
+.admin-dascoin-dashboard-stats__card--last .admin-dascoin-dashboard-stats__icon {
+  background: #d1ecf1;
+  color: #0c5460;
+}
+
+.admin-dascoin-dashboard-stats__info {
+  flex: 1;
+  min-width: 0;
+}
+
+.admin-dascoin-dashboard-stats__value {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #212529;
+  margin-bottom: 0.25rem;
+  line-height: 1.2;
+}
+
+.admin-dascoin-dashboard-stats__label {
+  font-size: 0.8rem;
+  color: #6c757d;
+  line-height: 1.2;
+}
+
+@media (max-width: 768px) {
+  .admin-dascoin-dashboard-stats__grid {
+    grid-template-columns: 1fr;
+    gap: 0.5rem;
+  }
+
+  .admin-dascoin-dashboard-stats__card {
+    padding: 0.75rem;
+  }
+
+  .admin-dascoin-dashboard-stats__content {
+    gap: 0.5rem;
+  }
+
+  .admin-dascoin-dashboard-stats__icon {
+    width: 32px;
+    height: 32px;
+    font-size: 1rem;
+  }
+
+  .admin-dascoin-dashboard-stats__value {
+    font-size: 1.1rem;
+  }
+
+  .admin-dascoin-dashboard-stats__label {
+    font-size: 0.75rem;
+  }
+}

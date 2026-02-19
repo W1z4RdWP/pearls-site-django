@@ -219,3 +219,42 @@ export function changeUserPassword(userId, newPassword1, newPassword2) {
     body: JSON.stringify({ new_password1: newPassword1, new_password2: newPassword2 }),
   });
 }
+
+/**
+ * Административная панель статистики пользователей по баллам DASCOIN (staff/superuser/mentor).
+ * @param {number} [page=1] — номер страницы
+ * @param {string} [group=''] — ID группы для фильтрации
+ * @param {string} [role=''] — ID должности для фильтрации
+ * @param {string} [points_min=''] — минимальное количество баллов
+ * @param {string} [points_max=''] — максимальное количество баллов
+ * @param {boolean} [zero_points=false] — фильтр по нулевым баллам
+ * @param {boolean} [approved_only=true] — фильтр по подтвержденным пользователям
+ * @param {boolean} [show_all=false] — показать всех пользователей
+ * @param {number} [top=null] — показать топ-N пользователей
+ * @returns {Promise<{users: Array, total_spent_points: number, total_dascoin_points: number, last_award_date: string, groups: Array, roles: Array, pagination: object}>}
+ */
+export function fetchAdminDascoinDashboard(page = 1, filters = {}) {
+  const params = new URLSearchParams({ page: String(page) });
+  if (filters.group) params.set('group', filters.group);
+  if (filters.role) params.set('role', filters.role);
+  if (filters.points_min) params.set('points_min', filters.points_min);
+  if (filters.points_max) params.set('points_max', filters.points_max);
+  if (filters.zero_points) params.set('zero_points', '1');
+  if (filters.approved_only) params.set('approved', '1');
+  if (filters.show_all) params.set('show_all', '1');
+  if (filters.top) params.set('top', String(filters.top));
+  return request(`/user_management/admin/dascoin_dashboard/?${params.toString()}`);
+}
+
+/**
+ * История транзакций DASCOIN конкретного пользователя (staff/superuser).
+ * @param {number} userId — ID пользователя
+ * @param {number} [page=1] — номер страницы
+ * @param {string} [type=''] — фильтр по типу транзакции (award, deduct, set, correction)
+ * @returns {Promise<{user: object, transactions: Array, total_transactions: number, current_filter: string, stats: object, pagination: object}>}
+ */
+export function fetchAdminUserTransactions(userId, page = 1, type = '') {
+  const params = new URLSearchParams({ page: String(page) });
+  if (type && type.trim()) params.set('type', type.trim());
+  return request(`/user_management/admin/user/${userId}/transactions/?${params.toString()}`);
+}

@@ -1,0 +1,179 @@
+.admin-dascoin-dashboard-table {
+  background: var(--card-bg, #fff);
+  border-left: 1px solid var(--border-color, #dee2e6);
+  border-right: 1px solid var(--border-color, #dee2e6);
+  overflow-x: auto;
+  padding: 0 1rem;
+}
+
+.admin-dascoin-dashboard-table__wrapper {
+  overflow-x: auto;
+}
+
+.admin-dascoin-dashboard-table__table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+}
+
+.admin-dascoin-dashboard-table__thead {
+  background: var(--table-head-bg, #212529);
+  color: #fff;
+}
+
+.admin-dascoin-dashboard-table__th {
+  padding: 0.5rem 0.25rem;
+  font-weight: 600;
+  font-size: 0.85rem;
+  text-align: left;
+  white-space: nowrap;
+}
+
+.admin-dascoin-dashboard-table__tbody {
+  background: #fff;
+}
+
+.admin-dascoin-dashboard-table__row {
+  transition: background-color 0.1s;
+}
+
+.admin-dascoin-dashboard-table__row:hover {
+  background-color: rgba(0, 123, 255, 0.05);
+}
+
+.admin-dascoin-dashboard-table__td {
+  padding: 0.5rem 0.25rem;
+  vertical-align: middle;
+  border-bottom: 1px solid var(--border-color, #f0f0f0);
+  font-size: 0.85rem;
+}
+
+.admin-dascoin-dashboard-table__td--center {
+  text-align: center;
+}
+
+.admin-dascoin-dashboard-table__user {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.admin-dascoin-dashboard-table__avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+.admin-dascoin-dashboard-table__avatar--placeholder {
+  background: #6c757d;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+}
+
+.admin-dascoin-dashboard-table__user-info {
+  min-width: 0;
+}
+
+.admin-dascoin-dashboard-table__user-name {
+  font-weight: 600;
+  font-size: 0.85rem;
+  color: var(--text-color, #212529);
+}
+
+.admin-dascoin-dashboard-table__user-email {
+  font-size: 0.8rem;
+  color: var(--text-muted, #6c757d);
+}
+
+.admin-dascoin-dashboard-table__badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.2rem 0.4rem;
+  border-radius: 0.2rem;
+  font-size: 0.7rem;
+  font-weight: 500;
+  white-space: nowrap;
+  margin-right: 0.25rem;
+}
+
+.admin-dascoin-dashboard-table__badge--secondary {
+  background: #6c757d;
+  color: #fff;
+}
+
+.admin-dascoin-dashboard-table__badge--info {
+  background: #0dcaf0;
+  color: #000;
+}
+
+.admin-dascoin-dashboard-table__badge--success {
+  background: #198754;
+  color: #fff;
+}
+
+.admin-dascoin-dashboard-table__badge--warning {
+  background: #ffc107;
+  color: #212529;
+}
+
+.admin-dascoin-dashboard-table__badge--danger {
+  background: #dc3545;
+  color: #fff;
+}
+
+.admin-dascoin-dashboard-table__points {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.admin-dascoin-dashboard-table__points-value {
+  font-weight: 700;
+  color: #ffc107;
+  font-size: 0.85rem;
+}
+
+.admin-dascoin-dashboard-table__points-icon {
+  color: #ffc107;
+  font-size: 0.75rem;
+}
+
+.admin-dascoin-dashboard-table__date {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+}
+
+.admin-dascoin-dashboard-table__date-day,
+.admin-dascoin-dashboard-table__date-time {
+  font-size: 0.8rem;
+  color: var(--text-muted, #6c757d);
+}
+
+.admin-dascoin-dashboard-table__empty {
+  color: var(--text-muted, #6c757d);
+  font-size: 0.85rem;
+}
+
+@media (max-width: 768px) {
+  .admin-dascoin-dashboard-table__table {
+    font-size: 0.8rem;
+  }
+
+  .admin-dascoin-dashboard-table__th,
+  .admin-dascoin-dashboard-table__td {
+    padding: 0.25rem 0.15rem;
+    font-size: 0.8rem;
+  }
+
+  .admin-dascoin-dashboard-table__avatar {
+    width: 28px;
+    height: 28px;
+  }
+}

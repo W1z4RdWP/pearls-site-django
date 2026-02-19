@@ -1,16 +1,22 @@
 import json
+import logging
 
 from django.contrib.auth.models import User, Group
-from django.db.models import Q, F
+from django.db.models import Q, F, Sum, OuterRef, Subquery
 from django.core.paginator import Paginator
 from django.http import JsonResponse
 from django.views.decorators.http import require_http_methods
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied
+from django.shortcuts import get_object_or_404
+from django.utils.http import urlencode
 from users.models import Role, Profile
 from users.forms import UserRegisterNoCaptchaForm
 from user_management.forms import UserProfileForm
 from user_management.utils import send_user_credentials_email
+from gamification.models import DascoinTransaction
+
+audit_logger = logging.getLogger('api_audit')
 
 
 PAGINATE_BY = 20
@@ -102,36 +108,34 @@ def api_user_list(request):
             'id': user.id,
             'username': user.username,
             'email': user.email,
-            'first_name': user.first_name or '',
-            'last_name': user.last_name or '',
+            'first_name': user.first_name,
+            'last_name': user.last_name,
             'full_name': user.get_full_name() or user.username,
-            'date_of_birth': user.profile.date_of_birth.strftime('%d.%m.%Y') if user.profile.date_of_birth else None,
+            'is_active': user.is_active,
             'groups': groups_list,
-            'groups_display': ', '.join(groups_list) if groups_list else '',
-            'is_approved': user.profile.is_approved if hasattr(user, 'profile') else False,
-            'avatar_url': user.profile.image.url if hasattr(user, 'profile') and user.profile.image else None,
-            'edit_url': f'/user_management/users/{user.id}/edit/',
+            'profile': {
+                'dascoin_points': user.profile.dascoin_points if hasattr(user, 'profile') else 0,
+                'is_approved': user.profile.is_approved if hasattr(user, 'profile') else False,
+                'image': user.profile.image.url if (hasattr(user, 'profile') and user.profile.image) else None,
+                'role': {
+                    'id': user.profile.role.id,
+                    'name': user.profile.role.name
+                } if (hasattr(user, 'profile') and user.profile.role) else None,
+            },
         })
     
-    # Получение списка групп для фильтра (только для не-наставников)
-    groups_data = []
+    # Группы для фильтра (только для не-наставников)
     if not is_mentor_only:
-        groups = Group.objects.all().order_by('name')
+        groups = Group.objects.exclude(name="Внешний пользователь").order_by('name')
         groups_data = [{'id': g.id, 'name': g.name} for g in groups]
     else:
-        # Для наставников показываем только их группы
-        mentor_groups = request.user.groups.all().order_by('name')
-        groups_data = [{'id': g.id, 'name': g.name} for g in mentor_groups]
+        groups_data = []
     
-    # Проверка чекбокса exclude_external
-    exclude_external_vals = request.GET.getlist('exclude_external')
-    exclude_external_checked = ('1' in exclude_external_vals) or (not exclude_external_vals)
-    
-    response = {
+    return JsonResponse({
         'users': users_data,
         'groups': groups_data,
         'is_mentor_only': is_mentor_only,
-        'exclude_external_checked': exclude_external_checked,
+        'exclude_external_checked': True,
         'pagination': {
             'page': page_obj.number,
             'num_pages': paginator.num_pages,
@@ -139,19 +143,16 @@ def api_user_list(request):
             'has_next': page_obj.has_next(),
             'previous_page_number': page_obj.previous_page_number() if page_obj.has_previous() else None,
             'next_page_number': page_obj.next_page_number() if page_obj.has_next() else None,
-            'start_index': start_index,
-            'end_index': start_index + len(users_data) - 1,
             'total_count': paginator.count,
+            'start_index': page_obj.start_index(),
+            'end_index': page_obj.end_index(),
         },
         'filters': {
             'q': q,
             'filter': filter_val,
             'group': request.GET.get('group', ''),
-            'exclude_external': exclude_external_checked,
         },
-    }
-    
-    return JsonResponse(response)
+    })
 
 
 @login_required
@@ -161,15 +162,15 @@ def api_user_create_step1(request):
     
     # Проверка прав доступа
     if not (request.user.is_staff or request.user.is_superuser):
-        return JsonResponse({'error': 'У вас нет доступа к управлению пользователями.'}, status=403)
+        return JsonResponse({'error': 'У вас нет прав для создания пользователей.'}, status=403)
     
     try:
         data = json.loads(request.body)
         email = data.get('email', '').strip()
-        password1 = data.get('password1', '')
-        password2 = data.get('password2', '')
+        password1 = data.get('password1', '').strip()
+        password2 = data.get('password2', '').strip()
         
-        # Создаём форму с данными
+        # Используем форму для валидации
         form = UserRegisterNoCaptchaForm({
             'email': email,
             'password1': password1,
@@ -178,24 +179,16 @@ def api_user_create_step1(request):
         
         if form.is_valid():
             user = form.save()
-            # Сохраняем user_id и пароль в сессии
-            request.session['user_create_step1_user_id'] = user.id
-            request.session['user_password'] = password1
-            
             return JsonResponse({
                 'success': True,
                 'user_id': user.id,
-                'message': 'Пользователь создан. Переход к шагу 2.'
+                'message': f'Пользователь {email} успешно создан.'
             })
         else:
-            # Формируем ошибки в удобном формате
             errors = {}
             for field, field_errors in form.errors.items():
                 errors[field] = field_errors
-            return JsonResponse({
-                'success': False,
-                'errors': errors
-            }, status=400)
+            return JsonResponse({'error': 'Ошибка валидации данных.', 'errors': errors}, status=400)
             
     except json.JSONDecodeError:
         return JsonResponse({'error': 'Неверный формат JSON.'}, status=400)
@@ -206,60 +199,19 @@ def api_user_create_step1(request):
 @login_required
 @require_http_methods(["GET"])
 def api_user_create_step2_data(request):
-    """API: получение данных для шага 2 (роли, группы)."""
+    """API: получение данных для шага 2 создания пользователя (роли, группы)."""
     
     # Проверка прав доступа
     if not (request.user.is_staff or request.user.is_superuser):
-        return JsonResponse({'error': 'У вас нет доступа к управлению пользователями.'}, status=403)
+        return JsonResponse({'error': 'У вас нет прав для создания пользователей.'}, status=403)
     
-    # Проверяем, что есть user_id в сессии
-    if 'user_create_step1_user_id' not in request.session:
-        return JsonResponse({'error': 'Сначала выполните шаг 1 создания пользователя.'}, status=400)
+    roles = Role.objects.all().order_by('name')
+    groups = Group.objects.exclude(name="Внешний пользователь").order_by('name')
     
-    try:
-        user_id = request.session.get('user_create_step1_user_id')
-        user = User.objects.get(id=user_id)
-        
-        # Получаем роли
-        roles = Role.objects.all().order_by('name')
-        roles_data = [{'id': role.id, 'name': role.name} for role in roles]
-        
-        # Получаем группы
-        groups = Group.objects.all().order_by('name')
-        groups_data = [{'id': group.id, 'name': group.name} for group in groups]
-        
-        # Получаем текущие данные пользователя (если есть)
-        profile_data = {}
-        if hasattr(user, 'profile'):
-            profile = user.profile
-            profile_data = {
-                'first_name': user.first_name or '',
-                'last_name': user.last_name or '',
-                'middle_name': profile.middle_name or '',
-                'role_id': profile.role.id if profile.role else None,
-                'date_of_birth': profile.date_of_birth.strftime('%Y-%m-%d') if profile.date_of_birth else '',
-                'phone_number': profile.phone_number or '',
-                'phone_arbitrary_format': profile.phone_arbitrary_format if hasattr(profile, 'phone_arbitrary_format') else False,
-                'bio': profile.bio or '',
-                'is_approved': profile.is_approved,
-                'is_mentor': profile.is_mentor if hasattr(profile, 'is_mentor') else False,
-                'groups': [group.id for group in user.groups.all()],
-            }
-        
-        return JsonResponse({
-            'roles': roles_data,
-            'groups': groups_data,
-            'user': {
-                'id': user.id,
-                'email': user.email,
-            },
-            'profile': profile_data,
-        })
-        
-    except User.DoesNotExist:
-        return JsonResponse({'error': 'Пользователь не найден.'}, status=404)
-    except Exception as e:
-        return JsonResponse({'error': str(e)}, status=500)
+    return JsonResponse({
+        'roles': [{'id': r.id, 'name': r.name} for r in roles],
+        'groups': [{'id': g.id, 'name': g.name} for g in groups],
+    })
 
 
 @login_required
@@ -269,125 +221,75 @@ def api_user_create_step2(request):
     
     # Проверка прав доступа
     if not (request.user.is_staff or request.user.is_superuser):
-        return JsonResponse({'error': 'У вас нет доступа к управлению пользователями.'}, status=403)
-    
-    # Проверяем, что есть user_id в сессии
-    if 'user_create_step1_user_id' not in request.session:
-        return JsonResponse({'error': 'Сначала выполните шаг 1 создания пользователя.'}, status=400)
+        return JsonResponse({'error': 'У вас нет прав для создания пользователей.'}, status=403)
     
     try:
-        user_id = request.session.get('user_create_step1_user_id')
-        user = User.objects.get(id=user_id)
-        password = request.session.get('user_password')
+        user_id = request.POST.get('user_id')
+        if not user_id:
+            return JsonResponse({'error': 'Не указан ID пользователя.'}, status=400)
         
-        # Получаем данные из запроса (может быть multipart/form-data для загрузки файла)
-        if request.content_type and 'multipart/form-data' in request.content_type:
-            # Форма с файлом
-            form_data = request.POST.copy()
-            files_data = request.FILES
-        else:
-            # JSON запрос
-            data = json.loads(request.body)
-            form_data = {}
-            files_data = {}
-            for key, value in data.items():
-                if key == 'image' and isinstance(value, str) and value:
-                    # Если изображение передано как base64 или URL, пропускаем
-                    continue
-                form_data[key] = value
+        try:
+            user = User.objects.get(id=user_id)
+        except User.DoesNotExist:
+            return JsonResponse({'error': 'Пользователь не найден.'}, status=404)
+        
+        # Получаем группы из JSON строки
+        groups_json = request.POST.get('groups', '[]')
+        try:
+            groups_ids = json.loads(groups_json)
+        except json.JSONDecodeError:
+            groups_ids = []
         
         # Подготавливаем данные для формы
-        form_fields = {
-            'first_name': form_data.get('first_name', ''),
-            'last_name': form_data.get('last_name', ''),
-            'middle_name': form_data.get('middle_name', ''),
-            'role': form_data.get('role', '') or None,
-            'date_of_birth': form_data.get('date_of_birth', '') or None,
-            'phone_number': form_data.get('phone_number', ''),
-            'phone_arbitrary_format': form_data.get('phone_arbitrary_format', False),
-            'bio': form_data.get('bio', ''),
-            'is_approved': form_data.get('is_approved', False),
-            'is_mentor': form_data.get('is_mentor', False),
+        form_data = {
+            'first_name': request.POST.get('first_name', ''),
+            'last_name': request.POST.get('last_name', ''),
+            'middle_name': request.POST.get('middle_name', ''),
+            'date_of_birth': request.POST.get('date_of_birth', '') or None,
+            'bio': request.POST.get('bio', ''),
+            'role': request.POST.get('role', '') or None,
         }
         
-        # Обработка phone_arbitrary_format (может быть строкой 'true'/'false')
-        if isinstance(form_fields['phone_arbitrary_format'], str):
-            form_fields['phone_arbitrary_format'] = form_fields['phone_arbitrary_format'].lower() in ('true', '1', 'on')
-        
-        # Обработка is_approved и is_mentor
-        if isinstance(form_fields['is_approved'], str):
-            form_fields['is_approved'] = form_fields['is_approved'].lower() in ('true', '1', 'on')
-        if isinstance(form_fields['is_mentor'], str):
-            form_fields['is_mentor'] = form_fields['is_mentor'].lower() in ('true', '1', 'on')
-        
-        # Получаем группы
-        groups_ids = form_data.get('groups', [])
-        if isinstance(groups_ids, str):
-            # Если передана строка, пытаемся распарсить JSON
-            try:
-                groups_ids = json.loads(groups_ids)
-            except:
-                # Если не JSON, возможно это список из FormData (может быть несколько значений с одним ключом)
-                groups_ids = form_data.getlist('groups') if hasattr(form_data, 'getlist') else [groups_ids]
-        if not isinstance(groups_ids, list):
-            groups_ids = []
-        # Преобразуем все ID в int
-        groups_ids = [int(gid) for gid in groups_ids if str(gid).isdigit()]
-        
-        # Создаём форму с instance профиля
-        if hasattr(user, 'profile'):
-            profile = user.profile
-        else:
-            profile = Profile.objects.create(user=user)
-        
-        # Добавляем файл изображения, если есть
-        if 'image' in files_data:
-            form_fields['image'] = files_data['image']
-        
-        form = UserProfileForm(form_fields, instance=profile, user_instance=user)
+        # Используем форму профиля
+        form = UserProfileForm(form_data, instance=user.profile if hasattr(user, 'profile') else None)
         
         if form.is_valid():
-            form.save()
+            profile = form.save(commit=False)
+            if not hasattr(user, 'profile'):
+                profile.user = user
+            profile.save()
             
-            # Устанавливаем группы
+            # Назначаем группы
             if groups_ids:
                 groups = Group.objects.filter(id__in=groups_ids)
                 user.groups.set(groups)
             
-            # Отправляем email с данными для входа
-            email_sent = False
-            if password:
-                try:
-                    email_sent = send_user_credentials_email(user, password)
-                except Exception as e:
-                    pass  # Игнорируем ошибки отправки email
+            # Обработка изображения
+            if 'image' in request.FILES:
+                profile.image = request.FILES['image']
+                profile.save()
             
-            # Очищаем сессию
-            if 'user_create_step1_user_id' in request.session:
-                del request.session['user_create_step1_user_id']
-            if 'user_password' in request.session:
-                del request.session['user_password']
+            # Отправляем email с учетными данными
+            email_sent = False
+            try:
+                send_user_credentials_email(user)
+                email_sent = True
+            except Exception as e:
+                # Логируем ошибку, но не прерываем процесс
+                pass
             
             return JsonResponse({
                 'success': True,
                 'user_id': user.id,
                 'email_sent': email_sent,
-                'message': f'Пользователь {user.email} создан.' + (' Email с данными для входа отправлен.' if email_sent else ' Не удалось отправить email с данными для входа.')
+                'message': f'Профиль пользователя {user.email} успешно создан.'
             })
         else:
-            # Формируем ошибки в удобном формате
             errors = {}
             for field, field_errors in form.errors.items():
                 errors[field] = field_errors
-            return JsonResponse({
-                'success': False,
-                'errors': errors
-            }, status=400)
+            return JsonResponse({'error': 'Ошибка валидации данных профиля.', 'errors': errors}, status=400)
             
-    except User.DoesNotExist:
-        return JsonResponse({'error': 'Пользователь не найден.'}, status=404)
-    except json.JSONDecodeError:
-        return JsonResponse({'error': 'Неверный формат JSON.'}, status=400)
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=500)
 
@@ -399,72 +301,39 @@ def api_user_edit_data(request, pk):
     
     # Проверка прав доступа
     if not (request.user.is_staff or request.user.is_superuser):
-        return JsonResponse({'error': 'У вас нет доступа к управлению пользователями.'}, status=403)
+        return JsonResponse({'error': 'У вас нет прав для редактирования пользователей.'}, status=403)
     
     try:
-        from user_management.utils import get_user_privilege_level
-        
-        user = User.objects.select_related('profile', 'profile__role').prefetch_related('groups').get(id=pk)
-        user_to_edit = user
-        
-        # Проверка прав на редактирование
-        readonly = False
-        if get_user_privilege_level(request.user) < get_user_privilege_level(user_to_edit):
-            readonly = True
-        
-        # Получаем роли
-        roles = Role.objects.all().order_by('name')
-        roles_data = [{'id': role.id, 'name': role.name} for role in roles]
-        
-        # Получаем группы
-        groups = Group.objects.all().order_by('name')
-        groups_data = [{'id': group.id, 'name': group.name} for group in groups]
-        
-        # Данные пользователя
-        profile = user.profile if hasattr(user, 'profile') else None
-        user_groups = [group.id for group in user.groups.all()]
-        
-        # Проверяем, является ли пользователь ответственным за свою роль
-        is_responsible = False
-        if profile and profile.role:
-            is_responsible = profile.role.responsible_user == user
-        
-        user_data = {
-            'id': user.id,
-            'email': user.email,
-            'first_name': user.first_name or '',
-            'last_name': user.last_name or '',
-            'is_active': user.is_active,
-            'groups': user_groups,
-            'readonly': readonly,
-        }
-        
-        profile_data = {}
-        if profile:
-            profile_data = {
-                'middle_name': profile.middle_name or '',
-                'role_id': profile.role.id if profile.role else None,
-                'date_of_birth': profile.date_of_birth.strftime('%Y-%m-%d') if profile.date_of_birth else '',
-                'phone_number': profile.phone_number or '',
-                'phone_arbitrary_format': profile.phone_arbitrary_format if hasattr(profile, 'phone_arbitrary_format') else False,
-                'bio': profile.bio or '',
-                'is_approved': profile.is_approved,
-                'is_mentor': profile.is_mentor if hasattr(profile, 'is_mentor') else False,
-                'is_responsible': is_responsible,
-                'image_url': profile.image.url if profile.image else None,
-            }
-        
-        return JsonResponse({
-            'user': user_data,
-            'profile': profile_data,
-            'roles': roles_data,
-            'groups': groups_data,
-        })
-        
+        user = User.objects.select_related('profile', 'profile__role').prefetch_related('groups').get(pk=pk)
     except User.DoesNotExist:
         return JsonResponse({'error': 'Пользователь не найден.'}, status=404)
-    except Exception as e:
-        return JsonResponse({'error': str(e)}, status=500)
+    
+    roles = Role.objects.all().order_by('name')
+    groups = Group.objects.exclude(name="Внешний пользователь").order_by('name')
+    
+    user_data = {
+        'id': user.id,
+        'username': user.username,
+        'email': user.email,
+        'first_name': user.first_name,
+        'last_name': user.last_name,
+        'is_active': user.is_active,
+        'groups': [g.id for g in user.groups.all()],
+        'profile': {
+            'middle_name': user.profile.middle_name if hasattr(user, 'profile') else '',
+            'date_of_birth': user.profile.date_of_birth.strftime('%Y-%m-%d') if (hasattr(user, 'profile') and user.profile.date_of_birth) else None,
+            'bio': user.profile.bio if hasattr(user, 'profile') else '',
+            'image': user.profile.image.url if (hasattr(user, 'profile') and user.profile.image) else None,
+            'role': user.profile.role.id if (hasattr(user, 'profile') and user.profile.role) else None,
+            'is_approved': user.profile.is_approved if hasattr(user, 'profile') else False,
+        },
+    }
+    
+    return JsonResponse({
+        'user': user_data,
+        'roles': [{'id': r.id, 'name': r.name} for r in roles],
+        'groups': [{'id': g.id, 'name': g.name} for g in groups],
+    })
 
 
 @login_required
@@ -474,109 +343,77 @@ def api_user_update(request, pk):
     
     # Проверка прав доступа
     if not (request.user.is_staff or request.user.is_superuser):
-        return JsonResponse({'error': 'У вас нет доступа к управлению пользователями.'}, status=403)
+        return JsonResponse({'error': 'У вас нет прав для редактирования пользователей.'}, status=403)
     
     try:
-        from user_management.utils import get_user_privilege_level
-        
-        user = User.objects.get(id=pk)
-        user_to_edit = user
-        
-        # Проверка прав на редактирование
-        if get_user_privilege_level(request.user) < get_user_privilege_level(user_to_edit):
-            return JsonResponse({'error': 'Недостаточно прав для редактирования этого пользователя.'}, status=403)
-        
-        # Получаем данные из запроса
-        if request.content_type and 'multipart/form-data' in request.content_type:
-            form_data = request.POST.copy()
-            files_data = request.FILES
-        else:
-            data = json.loads(request.body)
-            form_data = {}
-            files_data = {}
-            for key, value in data.items():
-                if key == 'image' and isinstance(value, str) and value:
-                    continue
-                form_data[key] = value
-        
-        # Обновляем данные пользователя
-        user.email = form_data.get('email', user.email)
-        user.first_name = form_data.get('first_name', user.first_name)
-        user.last_name = form_data.get('last_name', user.last_name)
-        user.is_active = form_data.get('is_active', user.is_active) in ('true', '1', 'on', True)
+        user = User.objects.get(pk=pk)
+    except User.DoesNotExist:
+        return JsonResponse({'error': 'Пользователь не найден.'}, status=404)
+    
+    try:
+        # Обновляем основные поля пользователя
+        user.first_name = request.POST.get('first_name', '')
+        user.last_name = request.POST.get('last_name', '')
+        user.is_active = request.POST.get('is_active', 'false') == 'true'
         user.save()
+        
+        # Получаем группы из JSON строки
+        groups_json = request.POST.get('groups', '[]')
+        try:
+            groups_ids = json.loads(groups_json)
+        except json.JSONDecodeError:
+            groups_ids = []
+        
+        # Назначаем группы
+        if groups_ids:
+            groups = Group.objects.filter(id__in=groups_ids)
+            user.groups.set(groups)
+        else:
+            user.groups.clear()
         
         # Обновляем профиль
         if hasattr(user, 'profile'):
             profile = user.profile
         else:
-            profile = Profile.objects.create(user=user)
+            from users.models import Profile
+            profile = Profile(user=user)
         
-        # Подготавливаем данные для формы профиля
-        profile_fields = {
-            'first_name': form_data.get('first_name', ''),
-            'last_name': form_data.get('last_name', ''),
-            'middle_name': form_data.get('middle_name', ''),
-            'role': form_data.get('role', '') or None,
-            'date_of_birth': form_data.get('date_of_birth', '') or None,
-            'phone_number': form_data.get('phone_number', ''),
-            'phone_arbitrary_format': form_data.get('phone_arbitrary_format', False),
-            'bio': form_data.get('bio', ''),
-            'is_approved': form_data.get('is_approved', False),
-            'is_mentor': form_data.get('is_mentor', False),
-        }
-        
-        # Обработка булевых значений
-        if isinstance(profile_fields['phone_arbitrary_format'], str):
-            profile_fields['phone_arbitrary_format'] = profile_fields['phone_arbitrary_format'].lower() in ('true', '1', 'on')
-        if isinstance(profile_fields['is_approved'], str):
-            profile_fields['is_approved'] = profile_fields['is_approved'].lower() in ('true', '1', 'on')
-        if isinstance(profile_fields['is_mentor'], str):
-            profile_fields['is_mentor'] = profile_fields['is_mentor'].lower() in ('true', '1', 'on')
-        
-        # Добавляем файл изображения, если есть
-        if 'image' in files_data:
-            profile_fields['image'] = files_data['image']
-        
-        form = UserProfileForm(profile_fields, instance=profile, user_instance=user)
-        
-        if form.is_valid():
-            form.save()
-            
-            # Устанавливаем группы
-            groups_ids = form_data.get('groups', [])
-            if isinstance(groups_ids, str):
-                try:
-                    groups_ids = json.loads(groups_ids)
-                except:
-                    groups_ids = form_data.getlist('groups') if hasattr(form_data, 'getlist') else [groups_ids]
-            if not isinstance(groups_ids, list):
-                groups_ids = []
-            groups_ids = [int(gid) for gid in groups_ids if str(gid).isdigit()]
-            
-            if groups_ids:
-                groups = Group.objects.filter(id__in=groups_ids)
-                user.groups.set(groups)
-            
-            return JsonResponse({
-                'success': True,
-                'user_id': user.id,
-                'message': f'Пользователь {user.email} обновлён.'
-            })
+        profile.middle_name = request.POST.get('middle_name', '')
+        date_of_birth = request.POST.get('date_of_birth', '') or None
+        if date_of_birth:
+            from datetime import datetime
+            try:
+                profile.date_of_birth = datetime.strptime(date_of_birth, '%Y-%m-%d').date()
+            except ValueError:
+                pass
         else:
-            # Формируем ошибки в удобном формате
-            errors = {}
-            for field, field_errors in form.errors.items():
-                errors[field] = field_errors
-            return JsonResponse({
-                'success': False,
-                'errors': errors
-            }, status=400)
-            
-    except User.DoesNotExist:
-        return JsonResponse({'error': 'Пользователь не найден.'}, status=404)
-    except json.JSONDecodeError:
-        return JsonResponse({'error': 'Неверный формат JSON.'}, status=400)
+            profile.date_of_birth = None
+        
+        profile.bio = request.POST.get('bio', '')
+        role_id = request.POST.get('role', '') or None
+        if role_id:
+            try:
+                profile.role = Role.objects.get(id=role_id)
+            except Role.DoesNotExist:
+                pass
+        else:
+            profile.role = None
+        
+        is_approved = request.POST.get('is_approved', 'false') == 'true'
+        profile.is_approved = is_approved
+        
+        # Обработка изображения
+        if 'image' in request.FILES:
+            profile.image = request.FILES['image']
+        
+        profile.save()
+        
+        return JsonResponse({
+            'success': True,
+            'user_id': user.id,
+            'message': f'Пользователь {user.email} успешно обновлён.'
+        })
+        
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=500)
 
@@ -586,8 +423,9 @@ def api_user_update(request, pk):
 def api_role_create(request):
     """API: создание новой должности."""
     
-    if not request.user.is_staff:
-        return JsonResponse({'error': 'У вас нет доступа к управлению должностями.'}, status=403)
+    # Проверка прав доступа
+    if not (request.user.is_staff or request.user.is_superuser):
+        return JsonResponse({'error': 'У вас нет прав для создания должностей.'}, status=403)
     
     try:
         data = json.loads(request.body)
@@ -596,20 +434,17 @@ def api_role_create(request):
         if not name:
             return JsonResponse({'error': 'Название должности не может быть пустым.'}, status=400)
         
-        role, created = Role.objects.get_or_create(name=name)
+        if Role.objects.filter(name=name).exists():
+            return JsonResponse({'error': 'Должность с таким названием уже существует.'}, status=400)
         
-        if created:
-            return JsonResponse({
-                'success': True,
-                'role': {'id': role.id, 'name': role.name},
-                'message': f'Должность "{name}" добавлена.'
-            })
-        else:
-            return JsonResponse({
-                'success': False,
-                'error': f'Должность "{name}" уже существует.'
-            }, status=400)
-            
+        role = Role.objects.create(name=name)
+        
+        return JsonResponse({
+            'success': True,
+            'role': {'id': role.id, 'name': role.name},
+            'message': f'Должность "{name}" успешно создана.'
+        })
+        
     except json.JSONDecodeError:
         return JsonResponse({'error': 'Неверный формат JSON.'}, status=400)
     except Exception as e:
@@ -621,28 +456,34 @@ def api_role_create(request):
 def api_role_update(request, role_id):
     """API: обновление должности."""
     
-    if not request.user.is_staff:
-        return JsonResponse({'error': 'У вас нет доступа к управлению должностями.'}, status=403)
+    # Проверка прав доступа
+    if not (request.user.is_staff or request.user.is_superuser):
+        return JsonResponse({'error': 'У вас нет прав для редактирования должностей.'}, status=403)
     
     try:
         role = Role.objects.get(id=role_id)
+    except Role.DoesNotExist:
+        return JsonResponse({'error': 'Должность не найдена.'}, status=404)
+    
+    try:
         data = json.loads(request.body)
-        new_name = data.get('name', '').strip()
+        name = data.get('name', '').strip()
         
-        if not new_name:
-            return JsonResponse({'error': 'Название не может быть пустым.'}, status=400)
+        if not name:
+            return JsonResponse({'error': 'Название должности не может быть пустым.'}, status=400)
         
-        role.name = new_name
+        if Role.objects.filter(name=name).exclude(id=role_id).exists():
+            return JsonResponse({'error': 'Должность с таким названием уже существует.'}, status=400)
+        
+        role.name = name
         role.save()
         
         return JsonResponse({
             'success': True,
             'role': {'id': role.id, 'name': role.name},
-            'message': f'Должность переименована в "{new_name}".'
+            'message': f'Должность успешно обновлена.'
         })
         
-    except Role.DoesNotExist:
-        return JsonResponse({'error': 'Должность не найдена.'}, status=404)
     except json.JSONDecodeError:
         return JsonResponse({'error': 'Неверный формат JSON.'}, status=400)
     except Exception as e:
@@ -654,8 +495,9 @@ def api_role_update(request, role_id):
 def api_role_delete(request, role_id):
     """API: удаление должности."""
     
-    if not request.user.is_staff:
-        return JsonResponse({'error': 'У вас нет доступа к управлению должностями.'}, status=403)
+    # Проверка прав доступа
+    if not (request.user.is_staff or request.user.is_superuser):
+        return JsonResponse({'error': 'У вас нет прав для удаления должностей.'}, status=403)
     
     try:
         role = Role.objects.get(id=role_id)
@@ -664,7 +506,7 @@ def api_role_delete(request, role_id):
         
         return JsonResponse({
             'success': True,
-            'message': f'Должность "{role_name}" удалена.'
+            'message': f'Должность "{role_name}" успешно удалена.'
         })
         
     except Role.DoesNotExist:
@@ -678,8 +520,11 @@ def api_role_delete(request, role_id):
 def api_role_set_responsible(request, role_id):
     """API: назначение ответственного за должность."""
     
-    if not request.user.is_staff:
-        return JsonResponse({'error': 'У вас нет доступа к управлению должностями.'}, status=403)
+    is_staff_or_admin = request.user.is_staff or request.user.is_superuser
+    is_mentor = hasattr(request.user, 'profile') and request.user.profile.is_mentor_user
+    
+    if not is_staff_or_admin and not is_mentor:
+        return JsonResponse({'error': 'forbidden'}, status=403)
     
     try:
         role = Role.objects.get(id=role_id)
@@ -689,14 +534,8 @@ def api_role_set_responsible(request, role_id):
         if responsible_id:
             user = User.objects.get(id=responsible_id)
             
-            # Проверяем, что у пользователя эта роль
-            if not hasattr(user, 'profile') or user.profile.role != role:
-                return JsonResponse({
-                    'error': f'Пользователь {user.get_full_name()} не имеет должности "{role.name}"'
-                }, status=400)
-            
-            # Проверяем, что у другой роли этот пользователь не назначен ответственным
-            other_role = Role.objects.filter(responsible_user=user).exclude(id=role.id).first()
+            # Проверяем, не назначен ли пользователь ответственным за другую должность
+            other_role = Role.objects.filter(responsible_user=user).exclude(id=role_id).first()
             if other_role:
                 return JsonResponse({
                     'error': f'Пользователь {user.get_full_name()} уже назначен ответственным за должность "{other_role.name}"'
@@ -819,3 +658,323 @@ def api_user_password_change(request, pk):
         return JsonResponse({'error': 'Неверный формат JSON.'}, status=400)
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=500)
+
+
+@login_required
+@require_http_methods(["GET"])
+def api_admin_dascoin_dashboard(request):
+    """API: административная панель статистики пользователей по баллам DASCOIN."""
+    
+    # Проверка прав доступа
+    if not (request.user.is_staff or request.user.is_superuser or 
+            (hasattr(request.user, 'profile') and request.user.profile.is_mentor_user)):
+        return JsonResponse({'error': 'У вас нет доступа к административной панели.'}, status=403)
+    
+    # Определяем, является ли пользователь только наставником
+    is_mentor_only = (hasattr(request.user, 'profile') and 
+                      request.user.profile.is_mentor_user and 
+                      not request.user.is_superuser and 
+                      not request.user.is_staff)
+    
+    # Базовый queryset
+    queryset = User.objects.select_related('profile', 'profile__role').prefetch_related('groups').order_by('-profile__dascoin_points', 'email')
+    
+    # Если пользователь - наставник (но не superuser и не staff), показываем только его группу
+    if is_mentor_only:
+        mentor_groups = request.user.groups.all()
+        if mentor_groups.exists():
+            queryset = queryset.filter(groups__in=mentor_groups).distinct()
+        else:
+            queryset = queryset.none()
+    
+    # Фильтрация по группе (только для не-наставников)
+    if not is_mentor_only:
+        group_id = request.GET.get('group')
+        if group_id:
+            queryset = queryset.filter(groups__id=group_id)
+    
+    # Фильтрация по должности
+    role_id = request.GET.get('role')
+    if role_id:
+        queryset = queryset.filter(profile__role__id=role_id)
+    
+    # Фильтрация по минимальному количеству баллов
+    points_min = request.GET.get('points_min')
+    if points_min and points_min.isdigit():
+        queryset = queryset.filter(profile__dascoin_points__gte=int(points_min))
+    
+    # Фильтрация по максимальному количеству баллов
+    points_max = request.GET.get('points_max')
+    if points_max and points_max.isdigit():
+        queryset = queryset.filter(profile__dascoin_points__lte=int(points_max))
+    
+    # Быстрые фильтры
+    zero_points = request.GET.get('zero_points')
+    if zero_points:
+        queryset = queryset.filter(profile__dascoin_points=0)
+    
+    approved_only = request.GET.get('approved')
+    show_all = request.GET.get('show_all')
+    has_any_params = bool(request.GET)
+    
+    if approved_only == '1' or (not has_any_params and not show_all):
+        queryset = queryset.filter(profile__is_approved=True)
+    
+    # Применяем distinct() до среза
+    queryset = queryset.distinct()
+    
+    # Добавляем аннотацию для получения даты последнего начисления для каждого пользователя
+    last_award_subquery = DascoinTransaction.objects.filter(
+        user=OuterRef('pk'),
+        transaction_type='award'
+    ).order_by('-created_at').values('created_at')[:1]
+    
+    queryset = queryset.annotate(
+        last_award_date=Subquery(last_award_subquery)
+    )
+    
+    # Быстрый фильтр топ-N применяется после distinct()
+    top_users = request.GET.get('top')
+    if top_users and top_users.isdigit():
+        queryset = queryset.order_by('-profile__dascoin_points')[:int(top_users)]
+    
+    # Пагинация
+    page = request.GET.get('page', '1')
+    try:
+        page = max(1, int(page))
+    except (ValueError, TypeError):
+        page = 1
+    
+    paginator = Paginator(queryset, 25)
+    if page > paginator.num_pages and paginator.num_pages > 0:
+        page = paginator.num_pages
+    page_obj = paginator.get_page(page)
+    
+    # Формирование данных пользователей
+    users_data = []
+    for user in page_obj:
+        groups_list = [{'id': g.id, 'name': g.name} for g in user.groups.all()]
+        users_data.append({
+            'id': user.id,
+            'username': user.username,
+            'email': user.email,
+            'first_name': user.first_name,
+            'last_name': user.last_name,
+            'full_name': user.get_full_name() or user.username,
+            'is_active': user.is_active,
+            'groups': groups_list,
+            'profile': {
+                'dascoin_points': user.profile.dascoin_points if hasattr(user, 'profile') else 0,
+                'is_approved': user.profile.is_approved if hasattr(user, 'profile') else False,
+                'image': user.profile.image.url if (hasattr(user, 'profile') and user.profile.image) else None,
+                'role': {
+                    'id': user.profile.role.id,
+                    'name': user.profile.role.name
+                } if (hasattr(user, 'profile') and user.profile.role) else None,
+            },
+            'last_award_date': user.last_award_date.strftime('%d.%m.%Y %H:%M') if hasattr(user, 'last_award_date') and user.last_award_date else None,
+        })
+    
+    # Общая статистика
+    if not is_mentor_only:
+        all_users = User.objects.select_related('profile')
+        total_users = all_users.count()
+        total_dascoin_points = all_users.aggregate(total=Sum('profile__dascoin_points'))['total'] or 0
+        active_users = all_users.filter(is_active=True).count()
+    else:
+        mentor_groups = request.user.groups.all()
+        if mentor_groups.exists():
+            all_users = User.objects.filter(groups__in=mentor_groups).select_related('profile').distinct()
+            total_users = all_users.count()
+            total_dascoin_points = all_users.aggregate(total=Sum('profile__dascoin_points'))['total'] or 0
+            active_users = all_users.filter(is_active=True).count()
+        else:
+            total_users = 0
+            total_dascoin_points = 0
+            active_users = 0
+    
+    # Статистика по баллам DASCOIN
+    total_spent_points = DascoinTransaction.objects.filter(
+        transaction_type='deduct'
+    ).aggregate(total=Sum('points_change'))['total'] or 0
+    total_spent_points = abs(total_spent_points)
+    
+    # Время последнего начисления баллов
+    last_award_transaction = DascoinTransaction.objects.filter(
+        transaction_type='award'
+    ).order_by('-created_at').first()
+    
+    last_award_date = None
+    if last_award_transaction:
+        last_award_date = last_award_transaction.created_at.strftime('%d.%m.%Y %H:%M')
+    
+    # Группы и должности для фильтров
+    if not is_mentor_only:
+        groups = Group.objects.all().order_by('name')
+    else:
+        groups = request.user.groups.all().order_by('name')
+    roles = Role.objects.all().order_by('name')
+    
+    # Параметры фильтрации
+    selected_group = request.GET.get('group', '')
+    selected_role = request.GET.get('role', '')
+    points_min_val = request.GET.get('points_min', '')
+    points_max_val = request.GET.get('points_max', '')
+    
+    # Флаги быстрых фильтров
+    context_top_users = bool(request.GET.get('top'))
+    context_zero_points = bool(request.GET.get('zero_points'))
+    context_approved_only = (request.GET.get('approved') == '1') or (not has_any_params and not show_all)
+    context_show_all = bool(show_all)
+    
+    # Параметры для пагинации
+    query_params = request.GET.copy()
+    if 'page' in query_params:
+        del query_params['page']
+    query_params_str = '&' + urlencode(query_params) if query_params else ''
+    
+    audit_logger.info(
+        'Просматривает административную панель статистики DASCOIN (API)',
+        extra={
+            'user': request.user.email if request.user.is_authenticated else 'Anonymous'
+        }
+    )
+    
+    return JsonResponse({
+        'users': users_data,
+        'total_spent_points': total_spent_points,
+        'total_dascoin_points': total_dascoin_points,
+        'last_award_date': last_award_date,
+        'groups': [{'id': g.id, 'name': g.name} for g in groups],
+        'roles': [{'id': r.id, 'name': r.name} for r in roles],
+        'selected_group': selected_group,
+        'selected_role': selected_role,
+        'points_min': points_min_val,
+        'points_max': points_max_val,
+        'top_users': context_top_users,
+        'zero_points': context_zero_points,
+        'approved_only': context_approved_only,
+        'show_all': context_show_all,
+        'is_mentor_only': is_mentor_only,
+        'pagination': {
+            'page': page_obj.number,
+            'num_pages': paginator.num_pages,
+            'has_previous': page_obj.has_previous(),
+            'has_next': page_obj.has_next(),
+            'previous_page_number': page_obj.previous_page_number() if page_obj.has_previous() else None,
+            'next_page_number': page_obj.next_page_number() if page_obj.has_next() else None,
+            'total_count': paginator.count,
+            'start_index': page_obj.start_index(),
+            'end_index': page_obj.end_index(),
+        },
+        'query_params': query_params_str,
+    })
+
+
+@login_required
+@require_http_methods(["GET"])
+def api_admin_user_transactions(request, user_id):
+    """API: история транзакций DASCOIN конкретного пользователя администратором."""
+    
+    # Проверка прав доступа
+    if not (request.user.is_staff or request.user.is_superuser):
+        return JsonResponse({'error': 'У вас нет доступа к просмотру транзакций пользователей.'}, status=403)
+    
+    user = get_object_or_404(User, id=user_id)
+    
+    queryset = DascoinTransaction.objects.filter(user=user).order_by('-created_at')
+    
+    # Фильтрация по типу транзакции
+    transaction_type = request.GET.get('type', '')
+    current_filter = transaction_type
+    if transaction_type and transaction_type in ['award', 'deduct', 'set', 'correction']:
+        queryset = queryset.filter(transaction_type=transaction_type)
+    
+    total_transactions = queryset.count()
+    
+    # Статистика по типам транзакций (всегда по всем транзакциям пользователя, без фильтра)
+    all_transactions = DascoinTransaction.objects.filter(user=user)
+    stats = {
+        'award': all_transactions.filter(transaction_type='award').count(),
+        'deduct': all_transactions.filter(transaction_type='deduct').count(),
+        'set': all_transactions.filter(transaction_type='set').count(),
+        'correction': all_transactions.filter(transaction_type='correction').count(),
+    }
+    
+    # Пагинация
+    page = request.GET.get('page', '1')
+    try:
+        page = max(1, int(page))
+    except (ValueError, TypeError):
+        page = 1
+    
+    paginator = Paginator(queryset, 20)
+    if page > paginator.num_pages and paginator.num_pages > 0:
+        page = paginator.num_pages
+    page_obj = paginator.get_page(page)
+    
+    # Формирование данных транзакций
+    transactions_data = []
+    for tx in page_obj:
+        transactions_data.append({
+            'id': tx.id,
+            'created_at': tx.created_at.strftime('%d.%m.%Y'),
+            'created_at_time': tx.created_at.strftime('%H:%M'),
+            'transaction_type': tx.transaction_type,
+            'transaction_type_display': tx.get_transaction_type_display(),
+            'points_change': tx.points_change,
+            'points_before': tx.points_before,
+            'points_after': tx.points_after,
+            'reason': tx.reason or None,
+            'admin_user': (
+                tx.admin_user.get_full_name() or tx.admin_user.username
+            ) if tx.admin_user else None,
+        })
+    
+    # Данные пользователя
+    user_data = {
+        'id': user.id,
+        'username': user.username,
+        'email': user.email,
+        'first_name': user.first_name,
+        'last_name': user.last_name,
+        'full_name': user.get_full_name() or user.username,
+        'is_active': user.is_active,
+        'groups': [{'id': g.id, 'name': g.name} for g in user.groups.all()],
+        'profile': {
+            'dascoin_points': user.profile.dascoin_points if hasattr(user, 'profile') else 0,
+            'is_approved': user.profile.is_approved if hasattr(user, 'profile') else False,
+            'image': user.profile.image.url if (hasattr(user, 'profile') and user.profile.image) else None,
+            'role': {
+                'id': user.profile.role.id,
+                'name': user.profile.role.name
+            } if (hasattr(user, 'profile') and user.profile.role) else None,
+        },
+    }
+    
+    audit_logger.info(
+        f'Просматривает историю транзакций пользователя {user.email} (API)',
+        extra={
+            'user': request.user.email if request.user.is_authenticated else 'Anonymous',
+            'target_user': user.email
+        }
+    )
+    
+    return JsonResponse({
+        'user': user_data,
+        'transactions': transactions_data,
+        'total_transactions': total_transactions,
+        'current_filter': current_filter,
+        'stats': stats,
+        'pagination': {
+            'page': page_obj.number,
+            'num_pages': paginator.num_pages,
+            'has_previous': page_obj.has_previous(),
+            'has_next': page_obj.has_next(),
+            'previous_page_number': page_obj.previous_page_number() if page_obj.has_previous() else None,
+            'next_page_number': page_obj.next_page_number() if page_obj.has_next() else None,
+            'total_count': paginator.count,
+            'start_index': page_obj.start_index(),
+            'end_index': page_obj.end_index(),
+        },
+    })

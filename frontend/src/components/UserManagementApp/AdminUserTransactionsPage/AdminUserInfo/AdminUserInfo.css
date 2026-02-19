@@ -1,0 +1,151 @@
+.admin-user-info {
+  background: var(--card-bg, #fff);
+  border-left: 1px solid var(--border-color, #dee2e6);
+  border-right: 1px solid var(--border-color, #dee2e6);
+  border-bottom: 1px solid var(--border-color, #dee2e6);
+  padding: 0.75rem 1rem;
+}
+
+.admin-user-info__row {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.admin-user-info__left {
+  flex: 1;
+}
+
+.admin-user-info__right {
+  text-align: right;
+}
+
+.admin-user-info__user {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.admin-user-info__avatar {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+.admin-user-info__avatar--placeholder {
+  background: #6c757d;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+}
+
+.admin-user-info__details {
+  min-width: 0;
+}
+
+.admin-user-info__name {
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin: 0 0 0.25rem 0;
+  color: var(--text-color, #212529);
+}
+
+.admin-user-info__email {
+  font-size: 0.9rem;
+  color: var(--text-muted, #6c757d);
+  margin: 0 0 0.5rem 0;
+}
+
+.admin-user-info__points {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.admin-user-info__points-value {
+  font-weight: 700;
+  color: #ffc107;
+  font-size: 0.95rem;
+}
+
+.admin-user-info__points-icon {
+  color: #ffc107;
+}
+
+.admin-user-info__meta {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.admin-user-info__meta-item {
+  font-size: 0.85rem;
+}
+
+.admin-user-info__meta-item strong {
+  display: block;
+  margin-bottom: 0.25rem;
+  color: var(--text-color, #212529);
+}
+
+.admin-user-info__badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.2rem 0.4rem;
+  border-radius: 0.2rem;
+  font-size: 0.7rem;
+  font-weight: 500;
+  white-space: nowrap;
+  margin-right: 0.25rem;
+}
+
+.admin-user-info__badge--secondary {
+  background: #6c757d;
+  color: #fff;
+}
+
+.admin-user-info__badge--info {
+  background: #0dcaf0;
+  color: #000;
+}
+
+.admin-user-info__badge--success {
+  background: #198754;
+  color: #fff;
+}
+
+.admin-user-info__badge--warning {
+  background: #ffc107;
+  color: #212529;
+}
+
+.admin-user-info__badge--danger {
+  background: #dc3545;
+  color: #fff;
+}
+
+@media (max-width: 768px) {
+  .admin-user-info__row {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .admin-user-info__right {
+    text-align: left;
+    width: 100%;
+  }
+
+  .admin-user-info__avatar {
+    width: 48px;
+    height: 48px;
+  }
+
+  .admin-user-info__name {
+    font-size: 1rem;
+  }
+}

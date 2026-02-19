@@ -1,0 +1,30 @@
+.admin-user-transactions-no-transactions {
+  text-align: center;
+  padding: 3rem 0;
+}
+
+.admin-user-transactions-no-transactions__icon {
+  font-size: 3rem;
+  color: var(--text-muted, #6c757d);
+  margin-bottom: 1rem;
+}
+
+.admin-user-transactions-no-transactions__title {
+  color: var(--text-muted, #6c757d);
+  margin-bottom: 0.5rem;
+  font-size: 1.25rem;
+}
+
+.admin-user-transactions-no-transactions__text {
+  color: var(--text-muted, #6c757d);
+  font-size: 0.9rem;
+}
+
+.admin-user-transactions-no-transactions__link {
+  color: var(--primary, #007bff);
+  text-decoration: none;
+}
+
+.admin-user-transactions-no-transactions__link:hover {
+  text-decoration: underline;
+}

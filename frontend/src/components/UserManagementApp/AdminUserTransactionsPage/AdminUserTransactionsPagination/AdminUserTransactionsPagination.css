@@ -1,0 +1,96 @@
+.admin-user-transactions-pagination {
+  background: var(--card-bg, #fff);
+  border-left: 1px solid var(--border-color, #dee2e6);
+  border-right: 1px solid var(--border-color, #dee2e6);
+  border-bottom: 1px solid var(--border-color, #dee2e6);
+  border-radius: 0 0 0.5rem 0.5rem;
+  padding: 0.75rem 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.admin-user-transactions-pagination__info {
+  font-size: 0.8rem;
+  color: var(--text-muted, #6c757d);
+  white-space: nowrap;
+}
+
+.admin-user-transactions-pagination__list {
+  list-style: none;
+  display: flex;
+  gap: 2px;
+  margin: 0;
+  padding: 0;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.admin-user-transactions-pagination__item {
+  display: inline-flex;
+}
+
+.admin-user-transactions-pagination__link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 2rem;
+  height: 2rem;
+  padding: 0 0.4rem;
+  font-size: 0.8rem;
+  border: 1px solid var(--border-color, #dee2e6);
+  border-radius: 0.25rem;
+  background: #fff;
+  color: var(--primary, #0d6efd);
+  cursor: pointer;
+  text-decoration: none;
+  transition: background-color 0.15s, color 0.15s, border-color 0.15s;
+  font-family: inherit;
+  line-height: 1;
+}
+
+.admin-user-transactions-pagination__link:hover {
+  background: var(--primary, #0d6efd);
+  color: #fff;
+  border-color: var(--primary, #0d6efd);
+}
+
+.admin-user-transactions-pagination__item--active .admin-user-transactions-pagination__link {
+  background: var(--primary, #0d6efd);
+  color: #fff;
+  border-color: var(--primary, #0d6efd);
+  cursor: default;
+  font-weight: 600;
+}
+
+.admin-user-transactions-pagination__item--disabled .admin-user-transactions-pagination__link {
+  color: var(--text-muted, #6c757d);
+  background: #fff;
+  border-color: var(--border-color, #dee2e6);
+  cursor: default;
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+.admin-user-transactions-pagination__page-info {
+  text-align: center;
+  margin-top: 0.25rem;
+}
+
+.admin-user-transactions-pagination__page-text {
+  font-size: 0.78rem;
+  color: var(--text-muted, #6c757d);
+}
+
+@media (max-width: 768px) {
+  .admin-user-transactions-pagination__list {
+    justify-content: center;
+  }
+
+  .admin-user-transactions-pagination__link {
+    min-width: 1.8rem;
+    height: 1.8rem;
+    font-size: 0.75rem;
+  }
+}
