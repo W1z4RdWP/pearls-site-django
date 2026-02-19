@@ -56,6 +56,16 @@ urlpatterns = [
 
     # User Management API — управление пользователями для React
     path('user_management/users/', user_management_views.api_user_list, name='api_user_management_user_list'),
+    path('user_management/users/add/step1/', user_management_views.api_user_create_step1, name='api_user_management_user_create_step1'),
+    path('user_management/users/add/step2/data/', user_management_views.api_user_create_step2_data, name='api_user_management_user_create_step2_data'),
+    path('user_management/users/add/step2/', user_management_views.api_user_create_step2, name='api_user_management_user_create_step2'),
+    path('user_management/users/<int:pk>/edit/data/', user_management_views.api_user_edit_data, name='api_user_management_user_edit_data'),
+    path('user_management/users/<int:pk>/edit/', user_management_views.api_user_update, name='api_user_management_user_update'),
+    path('user_management/roles/create/', user_management_views.api_role_create, name='api_user_management_role_create'),
+    path('user_management/roles/<int:role_id>/update/', user_management_views.api_role_update, name='api_user_management_role_update'),
+    path('user_management/roles/<int:role_id>/delete/', user_management_views.api_role_delete, name='api_user_management_role_delete'),
+    path('user_management/roles/<int:role_id>/set-responsible/', user_management_views.api_role_set_responsible, name='api_user_management_role_set_responsible'),
+    path('user_management/roles/<int:role_id>/users/', user_management_views.api_role_users, name='api_user_management_role_users'),
 
     # Messenger API
     path('messenger/chat_rooms/', messenger_views.api_chat_rooms, name='api_messenger_chat_rooms'),

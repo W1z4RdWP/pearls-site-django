@@ -17,6 +17,9 @@ import ChangeLogPage from './components/ChangeLogPage/ChangeLogPage';
 import MessengerPage from './components/MessengerApp/MessengerPage/MessengerPage';
 import ChatRoomPage from './components/MessengerApp/ChatRoomPage/ChatRoomPage';
 import UserListPage from './components/UserManagementApp/UserListPage/UserListPage';
+import UserCreateStep1Page from './components/UserManagementApp/UserCreateStep1Page/UserCreateStep1Page';
+import UserCreateStep2Page from './components/UserManagementApp/UserCreateStep2Page/UserCreateStep2Page';
+import UserEditPage from './components/UserManagementApp/UserEditPage/UserEditPage';
 
 const App = () => {
   return (
@@ -47,6 +50,9 @@ const App = () => {
 
           {/* user management */}
           <Route path='/user_management/users' element={<UserListPage />} />
+          <Route path='/user_management/users/add/step1' element={<UserCreateStep1Page />} />
+          <Route path='/user_management/users/add/step2' element={<UserCreateStep2Page />} />
+          <Route path='/user_management/users/:userId/edit' element={<UserEditPage />} />
 
           {/* Добавляйте новые маршруты здесь */}
         </Route>
