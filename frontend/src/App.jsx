@@ -20,6 +20,7 @@ import UserListPage from './components/UserManagementApp/UserListPage/UserListPa
 import UserCreateStep1Page from './components/UserManagementApp/UserCreateStep1Page/UserCreateStep1Page';
 import UserCreateStep2Page from './components/UserManagementApp/UserCreateStep2Page/UserCreateStep2Page';
 import UserEditPage from './components/UserManagementApp/UserEditPage/UserEditPage';
+import UserPasswordChangePage from './components/UserManagementApp/UserPasswordChangePage/UserPasswordChangePage';
 
 const App = () => {
   return (
@@ -53,6 +54,7 @@ const App = () => {
           <Route path='/user_management/users/add/step1' element={<UserCreateStep1Page />} />
           <Route path='/user_management/users/add/step2' element={<UserCreateStep2Page />} />
           <Route path='/user_management/users/:userId/edit' element={<UserEditPage />} />
+          <Route path='/user_management/user/:userId/password' element={<UserPasswordChangePage />} />
 
           {/* Добавляйте новые маршруты здесь */}
         </Route>

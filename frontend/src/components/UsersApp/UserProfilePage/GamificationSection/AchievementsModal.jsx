@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { fetchAllAchievements } from '../../../../api/api';
+import { fetchAllAchievements } from '../../../../api/users_api';
 import Modal from './Modal';
 import './AchievementsModal.css';
 

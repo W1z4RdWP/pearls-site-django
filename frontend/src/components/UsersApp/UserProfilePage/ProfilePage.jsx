@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { fetchProfilePageData } from '../../../api/api';
+import { fetchProfilePageData } from '../../../api/users_api';
 import ProfileHeader from './ProfileHeader/ProfileHeader';
 import ProfileActions from './ProfileActions/ProfileActions';
 import ProfileEditForm from './ProfileEditForm/ProfileEditForm';

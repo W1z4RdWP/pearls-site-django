@@ -110,7 +110,7 @@ def api_user_list(request):
             'groups_display': ', '.join(groups_list) if groups_list else '',
             'is_approved': user.profile.is_approved if hasattr(user, 'profile') else False,
             'avatar_url': user.profile.image.url if hasattr(user, 'profile') and user.profile.image else None,
-            'edit_url': f'/user_management/users/{user.id}/detailed/',
+            'edit_url': f'/user_management/users/{user.id}/edit/',
         })
     
     # Получение списка групп для фильтра (только для не-наставников)
@@ -762,5 +762,60 @@ def api_role_users(request, role_id):
         
     except Role.DoesNotExist:
         return JsonResponse({'error': 'role not found'}, status=404)
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+
+
+@login_required
+@require_http_methods(["POST"])
+def api_user_password_change(request, pk):
+    """API: смена пароля пользователя (только для staff/superuser)."""
+    
+    # Проверка прав доступа
+    if not (request.user.is_staff or request.user.is_superuser):
+        return JsonResponse({'error': 'У вас нет прав для смены пароля других пользователей.'}, status=403)
+    
+    try:
+        target_user = User.objects.get(pk=pk)
+    except User.DoesNotExist:
+        return JsonResponse({'error': 'Пользователь не найден.'}, status=404)
+    
+    try:
+        data = json.loads(request.body)
+        new_password1 = data.get('new_password1', '').strip()
+        new_password2 = data.get('new_password2', '').strip()
+        
+        # Валидация
+        if not new_password1:
+            return JsonResponse({'error': 'Пароль не может быть пустым.'}, status=400)
+        
+        if new_password1 != new_password2:
+            return JsonResponse({'error': 'Пароли не совпадают.'}, status=400)
+        
+        if len(new_password1) < 8:
+            return JsonResponse({'error': 'Пароль должен содержать минимум 8 символов.'}, status=400)
+        
+        # Используем SetPasswordForm для валидации
+        from django.contrib.auth.forms import SetPasswordForm
+        form = SetPasswordForm(user=target_user, data={
+            'new_password1': new_password1,
+            'new_password2': new_password2,
+        })
+        
+        if form.is_valid():
+            form.save()
+            return JsonResponse({
+                'success': True,
+                'message': f'Пароль для пользователя {target_user.get_full_name()} успешно изменён.'
+            })
+        else:
+            # Собираем ошибки формы
+            errors = {}
+            for field, field_errors in form.errors.items():
+                errors[field] = field_errors
+            return JsonResponse({'error': 'Ошибка валидации пароля.', 'errors': errors}, status=400)
+            
+    except json.JSONDecodeError:
+        return JsonResponse({'error': 'Неверный формат JSON.'}, status=400)
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=500)

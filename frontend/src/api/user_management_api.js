@@ -205,3 +205,17 @@ export function setRoleResponsible(roleId, responsibleId) {
 export function fetchRoleUsers(roleId) {
   return request(`/user_management/roles/${roleId}/users/`);
 }
+
+/**
+ * Смена пароля пользователя (только для staff/superuser).
+ * @param {number} userId — ID пользователя
+ * @param {string} newPassword1 — новый пароль
+ * @param {string} newPassword2 — подтверждение нового пароля
+ * @returns {Promise<{success: boolean, message: string, errors?: object}>}
+ */
+export function changeUserPassword(userId, newPassword1, newPassword2) {
+  return request(`/user_management/users/${userId}/password/`, {
+    method: 'POST',
+    body: JSON.stringify({ new_password1: newPassword1, new_password2: newPassword2 }),
+  });
+}

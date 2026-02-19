@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { fetchTransactions } from '../../../api/api';
+import { fetchTransactions } from '../../../api/users_api';
 import TransactionsHeader from './TransactionsHeader/TransactionsHeader';
 import TransactionsFilter from './TransactionsFilter/TransactionsFilter';
 import TransactionsTable from './TransactionsTable/TransactionsTable';

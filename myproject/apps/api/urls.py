@@ -66,6 +66,10 @@ urlpatterns = [
     path('user_management/roles/<int:role_id>/delete/', user_management_views.api_role_delete, name='api_user_management_role_delete'),
     path('user_management/roles/<int:role_id>/set-responsible/', user_management_views.api_role_set_responsible, name='api_user_management_role_set_responsible'),
     path('user_management/roles/<int:role_id>/users/', user_management_views.api_role_users, name='api_user_management_role_users'),
+    path('user_management/users/<int:pk>/password/', user_management_views.api_user_password_change, name='api_user_management_user_password_change'),
+
+    # Users API — смена пароля
+    path('users/password_change/', users_views.api_password_change, name='api_users_password_change'),
 
     # Messenger API
     path('messenger/chat_rooms/', messenger_views.api_chat_rooms, name='api_messenger_chat_rooms'),

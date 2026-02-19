@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { fetchAllBadges } from '../../../../api/api';
+import { fetchAllBadges } from '../../../../api/users_api';
 import Modal from './Modal';
 import './BadgesModal.css';
 

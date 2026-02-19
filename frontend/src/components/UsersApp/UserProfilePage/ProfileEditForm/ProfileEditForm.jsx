@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
-import { updateProfile } from '../../../../api/api';
+import { updateProfile } from '../../../../api/users_api';
+import ProfilePasswordChangeForm from '../ProfilePasswordChangeForm/ProfilePasswordChangeForm';
 import './ProfileEditForm.css';
 
 // Преобразует дату из формата DD.MM.YYYY в YYYY-MM-DD для input type="date"
@@ -26,6 +27,7 @@ const ProfileEditForm = ({ user, profile, onSuccess, onCancel }) => {
   const [cameraPreview, setCameraPreview] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [showPasswordForm, setShowPasswordForm] = useState(false);
   
   const imageInputRef = useRef(null);
   const cameraInputRef = useRef(null);
@@ -296,14 +298,26 @@ const ProfileEditForm = ({ user, profile, onSuccess, onCancel }) => {
           >
             Отмена
           </button>
-          <a
-            href="/users/password_change/"
+          <button
+            type="button"
             className="profile-edit-form__btn profile-edit-form__btn--link"
+            onClick={() => setShowPasswordForm(!showPasswordForm)}
+            disabled={loading}
           >
             <i className="fa fa-key" aria-hidden="true" /> Сменить пароль
-          </a>
+          </button>
         </div>
       </form>
+
+      {showPasswordForm && (
+        <ProfilePasswordChangeForm
+          onSuccess={(message) => {
+            alert(message);
+            setShowPasswordForm(false);
+          }}
+          onCancel={() => setShowPasswordForm(false)}
+        />
+      )}
     </div>
   );
 };

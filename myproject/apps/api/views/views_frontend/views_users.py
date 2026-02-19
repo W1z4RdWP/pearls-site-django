@@ -1,3 +1,4 @@
+import json
 import logging
 
 from django.http import JsonResponse
@@ -89,3 +90,57 @@ def api_transactions(request):
             'end_index': page_obj.end_index(),
         },
     })
+
+
+@login_required
+@require_http_methods(["POST"])
+def api_password_change(request):
+    """API: смена пароля текущего пользователя (требует старый пароль)."""
+    
+    try:
+        data = json.loads(request.body)
+        old_password = data.get('old_password', '').strip()
+        new_password1 = data.get('new_password1', '').strip()
+        new_password2 = data.get('new_password2', '').strip()
+        
+        user = request.user
+        
+        # Проверка старого пароля
+        if not user.check_password(old_password):
+            return JsonResponse({'error': 'Неверный текущий пароль.'}, status=400)
+        
+        # Валидация
+        if not new_password1:
+            return JsonResponse({'error': 'Новый пароль не может быть пустым.'}, status=400)
+        
+        if new_password1 != new_password2:
+            return JsonResponse({'error': 'Пароли не совпадают.'}, status=400)
+        
+        if len(new_password1) < 8:
+            return JsonResponse({'error': 'Пароль должен содержать минимум 8 символов.'}, status=400)
+        
+        # Используем PasswordChangeForm для валидации
+        from django.contrib.auth.forms import PasswordChangeForm
+        form = PasswordChangeForm(user=user, data={
+            'old_password': old_password,
+            'new_password1': new_password1,
+            'new_password2': new_password2,
+        })
+        
+        if form.is_valid():
+            form.save()
+            return JsonResponse({
+                'success': True,
+                'message': 'Пароль успешно изменён.'
+            })
+        else:
+            # Собираем ошибки формы
+            errors = {}
+            for field, field_errors in form.errors.items():
+                errors[field] = field_errors
+            return JsonResponse({'error': 'Ошибка валидации пароля.', 'errors': errors}, status=400)
+            
+    except json.JSONDecodeError:
+        return JsonResponse({'error': 'Неверный формат JSON.'}, status=400)
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
