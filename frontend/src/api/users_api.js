@@ -65,6 +65,14 @@ export function fetchUserData() {
   }
   
   /**
+   * Отчёт по попыткам тестов и заданий текущего пользователя.
+   * @returns {Promise<{report_data: Array, total_count: number}>}
+   */
+  export function fetchQuizAttemptsReport() {
+    return request('/users/quiz-attempts-report/');
+  }
+  
+  /**
    * Все бейджи пользователя.
    * @returns {Promise<{badges: Array, stats: {total_received: number, total_available: number, progress_percent: number}}>}
    */

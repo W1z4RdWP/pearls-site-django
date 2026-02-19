@@ -12,6 +12,7 @@ import UserOrdersAdminPage from './components/ShopApp/UserOrdersAdminPage/UserOr
 import CreateProductPage from './components/ShopApp/CreateProductPage/CreateProductPage';
 import ProfilePage from './components/UsersApp/UserProfilePage/ProfilePage';
 import TransactionsPage from './components/UsersApp/TransactionsPage/TransactionsPage';
+import QuizAttemptsReportPage from './components/UsersApp/QuizAttemptsReportPage/QuizAttemptsReportPage';
 import DashboardPage from './components/DashboardPage/DashboardPage';
 import ChangeLogPage from './components/ChangeLogPage/ChangeLogPage';
 import MessengerPage from './components/MessengerApp/MessengerPage/MessengerPage';
@@ -23,6 +24,7 @@ import UserEditPage from './components/UserManagementApp/UserEditPage/UserEditPa
 import UserPasswordChangePage from './components/UserManagementApp/UserPasswordChangePage/UserPasswordChangePage';
 import AdminDascoinDashboardPage from './components/UserManagementApp/AdminDascoinDashboardPage/AdminDascoinDashboardPage';
 import AdminUserTransactionsPage from './components/UserManagementApp/AdminUserTransactionsPage/AdminUserTransactionsPage';
+import KnowledgeBasePage from './components/BuilderApp/KnowledgeBasePage/KnowledgeBasePage';
 
 const App = () => {
   return (
@@ -33,6 +35,8 @@ const App = () => {
           <Route path='/about' element={<AboutPage />}/>
           <Route path='/changelog' element={<ChangeLogPage />}/>
           <Route path='/builder' element={<DashboardPage />}/>
+          <Route path='/builder/content' element={<KnowledgeBasePage />}/>
+          
 
           {/* shop */}
           <Route path='/shop/catalog' element={<ShopPage />}/>
@@ -46,6 +50,7 @@ const App = () => {
           <Route path='/users/logout' element={<LogoutPage />}/>
           <Route path='/users/profile' element={<ProfilePage />} />
           <Route path='/users/profile/transactions' element={<TransactionsPage />} />
+          <Route path='/users/profile/quiz-attempts-report' element={<QuizAttemptsReportPage />} />
 
           {/* messenger */}
           <Route path='/messenger/chat/rooms' element={<MessengerPage />}/>

@@ -189,7 +189,7 @@ const ProfileDropdownItems = ({ user, isExternal, onClose, onLogout }) => (
           </a>
         </li>
         <li>
-          <a href="/users/quiz-attempts/" className="header__dropdown-item" onClick={onClose}>
+          <a href="/users/profile/quiz-attempts-report/" className="header__dropdown-item" onClick={onClose}>
             Ваши попытки тестов
           </a>
         </li>

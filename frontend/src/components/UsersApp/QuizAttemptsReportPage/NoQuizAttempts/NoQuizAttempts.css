@@ -1,0 +1,24 @@
+.no-quiz-attempts {
+  text-align: center;
+  padding: 3rem 1rem;
+  color: var(--text-muted, #6c757d);
+}
+
+.no-quiz-attempts__icon {
+  font-size: 3rem;
+  color: var(--text-muted, #6c757d);
+  margin-bottom: 1rem;
+}
+
+.no-quiz-attempts__title {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: var(--text-muted, #6c757d);
+  margin: 0 0 0.5rem 0;
+}
+
+.no-quiz-attempts__text {
+  font-size: 1rem;
+  color: var(--text-muted, #6c757d);
+  margin: 0;
+}

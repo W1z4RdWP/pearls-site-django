@@ -46,7 +46,7 @@ def layout_data(request):
     nav_public = [
         {'url': '/', 'label': 'Главная', 'icon': 'fa-solid fa-house'},
         {'url': '/about', 'label': 'О нас', 'icon': 'fa-solid fa-circle-info'},
-        {'url': '/knowledge-base', 'label': 'База знаний', 'icon': 'fa-solid fa-book'},
+        {'url': '/builder/content', 'label': 'База знаний', 'icon': 'fa-solid fa-book'},
         {'url': '/shop/catalog', 'label': 'Магазин', 'icon': 'fa-solid fa-store'},
         {'url': '/messenger/chat/rooms', 'label': 'Мессенджер', 'icon': 'fa-solid fa-comments'},
     ]

@@ -53,6 +53,7 @@ urlpatterns = [
 
     # Users API — транзакции DASCOIN для React
     path('users/transactions/', users_views.api_transactions, name='api_users_transactions'),
+    path('users/quiz-attempts-report/', users_views.api_quiz_attempts_report, name='api_users_quiz_attempts_report'),
 
     # User Management API — управление пользователями для React
     path('user_management/users/', user_management_views.api_user_list, name='api_user_management_user_list'),
