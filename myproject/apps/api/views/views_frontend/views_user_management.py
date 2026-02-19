@@ -104,6 +104,17 @@ def api_user_list(request):
     
     for idx, user in enumerate(page_obj, start=start_index):
         groups_list = [group.name for group in user.groups.all()]
+        has_profile = hasattr(user, 'profile') and user.profile is not None
+        has_image = has_profile and user.profile.image and hasattr(user.profile.image, 'url')
+        
+        # Форматируем дату рождения
+        date_of_birth_str = None
+        if has_profile and user.profile.date_of_birth:
+            date_of_birth_str = user.profile.date_of_birth.strftime('%d.%m.%Y')
+        
+        # Формируем строку для отображения групп
+        groups_display = ', '.join(groups_list) if groups_list else None
+        
         users_data.append({
             'id': user.id,
             'username': user.username,
@@ -113,14 +124,19 @@ def api_user_list(request):
             'full_name': user.get_full_name() or user.username,
             'is_active': user.is_active,
             'groups': groups_list,
+            'groups_display': groups_display,
+            'date_of_birth': date_of_birth_str,
+            'avatar_url': user.profile.image.url if has_image else None,
+            'is_approved': user.profile.is_approved if has_profile else False,
+            'edit_url': f'/user_management/users/{user.id}/edit',
             'profile': {
-                'dascoin_points': user.profile.dascoin_points if hasattr(user, 'profile') else 0,
-                'is_approved': user.profile.is_approved if hasattr(user, 'profile') else False,
-                'image': user.profile.image.url if (hasattr(user, 'profile') and user.profile.image) else None,
+                'dascoin_points': user.profile.dascoin_points if has_profile else 0,
+                'is_approved': user.profile.is_approved if has_profile else False,
+                'image': user.profile.image.url if has_image else None,
                 'role': {
                     'id': user.profile.role.id,
                     'name': user.profile.role.name
-                } if (hasattr(user, 'profile') and user.profile.role) else None,
+                } if (has_profile and user.profile.role) else None,
             },
         })
     
@@ -322,10 +338,13 @@ def api_user_edit_data(request, pk):
         'profile': {
             'middle_name': user.profile.middle_name if hasattr(user, 'profile') else '',
             'date_of_birth': user.profile.date_of_birth.strftime('%Y-%m-%d') if (hasattr(user, 'profile') and user.profile.date_of_birth) else None,
+            'phone_number': user.profile.phone_number if hasattr(user, 'profile') else '',
+            'phone_arbitrary_format': user.profile.phone_arbitrary_format if hasattr(user, 'profile') else False,
             'bio': user.profile.bio if hasattr(user, 'profile') else '',
             'image': user.profile.image.url if (hasattr(user, 'profile') and user.profile.image) else None,
             'role': user.profile.role.id if (hasattr(user, 'profile') and user.profile.role) else None,
             'is_approved': user.profile.is_approved if hasattr(user, 'profile') else False,
+            'is_mentor': user.profile.is_mentor if hasattr(user, 'profile') else False,
         },
     }
     
@@ -389,6 +408,14 @@ def api_user_update(request, pk):
         else:
             profile.date_of_birth = None
         
+        # Обработка номера телефона
+        phone_number = request.POST.get('phone_number', '').strip()
+        profile.phone_number = phone_number if phone_number else None
+        
+        # Обработка флага произвольного формата телефона
+        phone_arbitrary_format = request.POST.get('phone_arbitrary_format', 'false')
+        profile.phone_arbitrary_format = phone_arbitrary_format in ('true', 'True', 'on', '1')
+        
         profile.bio = request.POST.get('bio', '')
         role_id = request.POST.get('role', '') or None
         if role_id:
@@ -401,6 +428,9 @@ def api_user_update(request, pk):
         
         is_approved = request.POST.get('is_approved', 'false') == 'true'
         profile.is_approved = is_approved
+        
+        is_mentor = request.POST.get('is_mentor', 'false') == 'true'
+        profile.is_mentor = is_mentor
         
         # Обработка изображения
         if 'image' in request.FILES:

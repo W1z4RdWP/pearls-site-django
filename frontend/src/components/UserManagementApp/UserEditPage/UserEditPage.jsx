@@ -61,24 +61,24 @@ const UserEditPage = () => {
         setGroups(data.groups || []);
         setUserData(data.user);
         setReadonly(data.user.readonly || false);
-        setIsResponsible(data.profile.is_responsible || false);
+        setIsResponsible(data.user.profile.is_responsible || false);
         
         // Заполняем форму данными
         setFormData({
           email: data.user.email || '',
           first_name: data.user.first_name || '',
           last_name: data.user.last_name || '',
-          middle_name: data.profile.middle_name || '',
-          role: data.profile.role_id || '',
+          middle_name: data.user.profile.middle_name || '',
+          role: data.user.profile.role || '',
           groups: data.user.groups || [],
-          date_of_birth: data.profile.date_of_birth || '',
-          phone_number: data.profile.phone_number || '',
-          phone_arbitrary_format: data.profile.phone_arbitrary_format || false,
-          bio: data.profile.bio || '',
+          date_of_birth: data.user.profile.date_of_birth || '',
+          phone_number: data.user.profile.phone_number || '',
+          phone_arbitrary_format: data.user.profile.phone_arbitrary_format || false,
+          bio: data.user.profile.bio || '',
           image: null,
           is_active: data.user.is_active !== undefined ? data.user.is_active : true,
-          is_approved: data.profile.is_approved || false,
-          is_mentor: data.profile.is_mentor || false,
+          is_approved: data.user.profile.is_approved || false,
+          is_mentor: data.user.profile.is_mentor || false,
         });
       } catch (err) {
         setError(err.message || 'Ошибка загрузки данных');
