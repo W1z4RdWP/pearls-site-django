@@ -35,7 +35,7 @@ const CourseListItem = ({
   const addLessonUrl = `${urls?.add_lesson || '/courses/course/'}${course.slug}/add-lesson/`;
 
   return (
-    <div className="course-list__item">
+    <div className={`course-list__item${dropdownOpen ? ' course-list__item--dropdown-open' : ''}`}>
       <div className="course-list__item-grid">
         <div className="course-list__item-index">{index}.</div>
         <div className="course-list__item-info">
