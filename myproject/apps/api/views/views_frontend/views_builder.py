@@ -5,10 +5,14 @@ API-представления приложения builder для React-фро�
 from django.http import JsonResponse
 from django.views.decorators.http import require_http_methods
 from django.contrib.auth.decorators import login_required
-from django.contrib.auth.models import Group
+from django.contrib.auth.models import Group, User
+from django.core.paginator import Paginator
+from django.db.models import Q, Count
 
 from courses.models import Course, Lesson, Trajectory
 from quizzes.models import Quiz
+
+PAGINATE_BY = 15
 
 
 def _serialize_lesson(lesson):
@@ -29,6 +33,24 @@ def _serialize_course(course):
         'title': course.title,
         'author_name': course.author.get_full_name() or course.author.username,
         'lesson_count': course.course_lessons.count(),
+    }
+
+
+def _serialize_course_for_list(course):
+    """Сериализация курса для страницы списка курсов (с slug, total_time_hours)."""
+    lesson_count = course.course_lessons.count()
+    total_minutes = sum(
+        getattr(lo, 'required_time', 7) or 7
+        for lo in course.lessons
+    )
+    total_time_hours = round(total_minutes / 60, 1)
+    return {
+        'id': course.id,
+        'title': course.title,
+        'slug': course.slug,
+        'author_name': course.author.get_full_name() or course.author.username,
+        'lesson_count': lesson_count,
+        'total_time_hours': total_time_hours,
     }
 
 
@@ -93,3 +115,98 @@ def api_trajectory_management(request):
         },
     }
     return JsonResponse(data)
+
+
+@login_required
+@require_http_methods(['GET'])
+def api_course_list(request):
+    """API: список курсов (не инциденты) с пагинацией и фильтрами — для страницы «Все курсы»."""
+    if not (request.user.is_staff or request.user.is_superuser):
+        return JsonResponse({'error': 'forbidden'}, status=403)
+
+    queryset = (
+        Course.objects.exclude(is_incident=True)
+        .select_related('author')
+        .prefetch_related('course_lessons')
+        .order_by('-created_at')
+    )
+
+    search_query = request.GET.get('search', '').strip()
+    if search_query:
+        queryset = queryset.filter(
+            Q(title__icontains=search_query)
+            | Q(description__icontains=search_query)
+            | Q(slug__icontains=search_query)
+        )
+
+    author_id = request.GET.get('author', '').strip()
+    if author_id:
+        try:
+            queryset = queryset.filter(author_id=int(author_id))
+        except (ValueError, TypeError):
+            pass
+
+    group_id = request.GET.get('group', '').strip()
+    if group_id:
+        try:
+            group = Group.objects.get(id=int(group_id))
+            queryset = queryset.filter(trajectory__groups=group).distinct()
+        except (ValueError, TypeError, Group.DoesNotExist):
+            pass
+
+    paginator = Paginator(queryset, PAGINATE_BY)
+    page_num = request.GET.get('page', 1)
+    try:
+        page_num = max(1, int(page_num))
+    except (ValueError, TypeError):
+        page_num = 1
+    page_obj = paginator.get_page(page_num)
+
+    total_courses = Course.objects.exclude(is_incident=True).count()
+    total_lessons = (
+        Course.objects.exclude(is_incident=True).aggregate(t=Count('course_lessons'))['t'] or 0
+    )
+    total_authors = User.objects.filter(authored_courses__isnull=False).distinct().count()
+
+    authors = User.objects.filter(
+        authored_courses__isnull=False
+    ).distinct().order_by('first_name', 'last_name', 'username')
+    groups = Group.objects.all().order_by('name')
+
+    data = {
+        'items': [_serialize_course_for_list(c) for c in page_obj],
+        'pagination': {
+            'page': page_obj.number,
+            'num_pages': paginator.num_pages,
+            'has_previous': page_obj.has_previous(),
+            'has_next': page_obj.has_next(),
+            'previous_page_number': page_obj.previous_page_number() if page_obj.has_previous() else None,
+            'next_page_number': page_obj.next_page_number() if page_obj.has_next() else None,
+            'start_index': page_obj.start_index(),
+        },
+        'total_courses': total_courses,
+        'total_lessons': total_lessons,
+        'total_authors': total_authors,
+        'authors': [{'id': u.id, 'name': u.get_full_name() or u.username} for u in authors],
+        'groups': [{'id': g.id, 'name': g.name} for g in groups],
+        'urls': {
+            'create_course': '/courses/create-course/',
+            'course_detail': '/courses/course/',   # + slug + /
+            'edit_course': '/courses/course/',     # + slug + /edit/
+            'add_lesson': '/courses/course/',     # + slug + /add-lesson/
+        },
+    }
+    return JsonResponse(data)
+
+
+@login_required
+@require_http_methods(['POST'])
+def api_course_delete(request, slug):
+    """API: удаление курса по slug. Только staff/superuser."""
+    if not (request.user.is_staff or request.user.is_superuser):
+        return JsonResponse({'error': 'forbidden'}, status=403)
+    course = Course.objects.filter(slug=slug).exclude(is_incident=True).first()
+    if not course:
+        return JsonResponse({'error': 'not_found'}, status=404)
+    course.delete()
+    return JsonResponse({'success': True})
