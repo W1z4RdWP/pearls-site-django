@@ -1,0 +1,143 @@
+.material-item {
+  border: 1px solid #dee2e6;
+  border-radius: 12px;
+  margin-bottom: 1rem;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  background: #f8f9fa;
+  display: flex;
+  align-items: center;
+  padding: 0;
+}
+
+.material-item:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.material-item--blocked {
+  opacity: 0.7;
+  color: #6c757d;
+}
+
+.material-item__link {
+  display: flex;
+  align-items: center;
+  flex: 1;
+  padding: 1rem;
+  text-decoration: none;
+  color: inherit;
+  gap: 1rem;
+}
+
+.material-item__link--disabled {
+  cursor: default;
+}
+
+.material-item__icon {
+  font-size: 1.5rem;
+  opacity: 0.9;
+  color: #495057;
+  flex-shrink: 0;
+  width: 2rem;
+  text-align: center;
+}
+
+.material-item__info {
+  flex: 1;
+  min-width: 0;
+}
+
+.material-item__title {
+  font-weight: 600;
+  font-size: 1.1rem;
+  color: #495057;
+}
+
+.material-item__type {
+  font-size: 0.85rem;
+  opacity: 0.8;
+  font-style: italic;
+  color: #495057;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.material-item__quiz-icon--success {
+  color: #28a745;
+}
+
+.material-item__quiz-icon--warning {
+  color: #ffc107;
+}
+
+.material-item__quiz-icon--info {
+  color: #17a2b8;
+}
+
+.material-item__badge {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  margin-right: 0.5rem;
+}
+
+.material-item__badge--success {
+  background: #28a745;
+  color: #fff;
+}
+
+.material-item__badge--pending {
+  background: #f39c12;
+  color: #fff;
+}
+
+.material-item__badge--danger {
+  background: #dc3545;
+  color: #fff;
+}
+
+.material-item__badge--locked {
+  background: #6c757d;
+  color: #fff;
+}
+
+.material-item__delete {
+  background: #dc3545;
+  color: #fff;
+  border: none;
+  border-radius: 50%;
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: 12px;
+  opacity: 0.7;
+  margin-right: 0.75rem;
+  flex-shrink: 0;
+}
+
+.material-item__delete:hover {
+  background: #c82333;
+  opacity: 1;
+  transform: scale(1.1);
+}
+
+@media (max-width: 768px) {
+  .material-item__link {
+    padding: 0.75rem;
+  }
+
+  .material-item__title {
+    font-size: 1rem;
+  }
+}

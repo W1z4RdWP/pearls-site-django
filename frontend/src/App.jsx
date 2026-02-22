@@ -29,6 +29,11 @@ import TrajectoryManagementPage from './components/BuilderApp/TrajectoryManageme
 import CourseListPage from './components/BuilderApp/CourseListPage/CourseListPage';
 import UserCertificatesPage from './components/CoursesApp/UserCertificatesPage/UserCertificatesPage';
 import UserTrajectoryListPage from './components/CoursesApp/UserTrajectoryListPage/UserTrajectoryListPage';
+import CreateCoursePage from './components/CoursesApp/CreateCoursePage/CreateCoursePage';
+import CreateLessonPage from './components/CoursesApp/CreateLessonPage/CreateLessonPage';
+import CourseDetailPage from './components/CoursesApp/CourseDetailPage/CourseDetailPage';
+import EditCoursePage from './components/CoursesApp/EditCoursePage/EditCoursePage';
+import EditLessonPage from './components/CoursesApp/EditLessonPage/EditLessonPage';
 
 const App = () => {
   return (
@@ -56,6 +61,12 @@ const App = () => {
           {/* courses */}
           <Route path='/courses/trajectories' element={<UserTrajectoryListPage />} />
           <Route path='/courses/user-certificates' element={<UserCertificatesPage />} />
+          <Route path='/courses/create-course' element={<CreateCoursePage />} />
+          <Route path='/courses/create-course/' element={<CreateCoursePage />} />
+          <Route path='/courses/course/:courseSlug/create-lesson' element={<CreateLessonPage />} />
+          <Route path='/courses/course/:slug/edit' element={<EditCoursePage />} />
+          <Route path='/courses/course/:slug' element={<CourseDetailPage />} />
+          <Route path='/courses/lesson/:lessonId/edit' element={<EditLessonPage />} />
 
           {/* users */}
           <Route path='/users/login' element={<LoginPage />}/>

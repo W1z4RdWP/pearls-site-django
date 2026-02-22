@@ -41,7 +41,9 @@ export async function request(url, options = {}) {
 
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({}));
-    throw new Error(errorData.error || `HTTP ${response.status}`);
+    const err = new Error(errorData.error || `HTTP ${response.status}`);
+    if (errorData.errors) err.errors = errorData.errors;
+    throw err;
   }
 
   return response.json();

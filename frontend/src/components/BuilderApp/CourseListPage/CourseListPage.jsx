@@ -8,7 +8,6 @@ import CourseListPagination from './CourseListPagination';
 import CourseListEmpty from './CourseListEmpty';
 import './CourseListPage.css';
 
-const CREATE_COURSE_URL = '/courses/create-course/';
 
 const CourseListPage = () => {
   const [searchQuery, setSearchQuery] = useState('');
@@ -147,9 +146,9 @@ const CourseListPage = () => {
       <section className="course-list__card">
         <div className="course-list__card-header">
           <h2 className="course-list__card-title">Список курсов</h2>
-          <a href={CREATE_COURSE_URL} className="course-list__card-create-btn">
+          <Link to="/courses/create-course" className="course-list__card-create-btn">
             <i className="fas fa-plus" aria-hidden /> Создать курс
-          </a>
+          </Link>
         </div>
         <div className="course-list__card-body">
           {items.length > 0 ? (

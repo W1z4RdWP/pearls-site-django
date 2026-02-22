@@ -8,6 +8,8 @@ from .views.views_frontend import views_myapp as myapp_views
 from .views.views_frontend import views_user_management as user_management_views
 from .views.views_frontend import views_courses as courses_views
 from .views.views_frontend import views_builder as builder_views
+from builder.views.api_views import api_search_users
+from quizzes.views import search_quizzes_ajax
 
 app_name = 'api'
 
@@ -59,6 +61,16 @@ urlpatterns = [
     # Courses API — траектории/курсы и сертификаты для React
     path('courses/trajectories/', courses_views.api_trajectory_list, name='api_courses_trajectories'),
     path('courses/user-certificates/', courses_views.api_user_certificates, name='api_courses_user_certificates'),
+    path('courses/create-course/', courses_views.api_create_course, name='api_courses_create_course'),
+    path('courses/course/<slug:slug>/', courses_views.api_course_detail, name='api_courses_course_detail'),
+    path('courses/course/<slug:slug>/start/', courses_views.api_start_course, name='api_courses_start_course'),
+    path('courses/lesson/<int:lesson_id>/edit/', courses_views.api_edit_lesson, name='api_courses_edit_lesson'),
+    path('courses/course/<slug:slug>/edit/', courses_views.api_course_edit, name='api_courses_course_edit'),
+    path('courses/course/<slug:slug>/create-lesson/', courses_views.api_create_lesson, name='api_courses_create_lesson'),
+
+    # Builder/Quizzes — поиск для форм (create course и др.)
+    path('builder/users/search/', api_search_users, name='api_builder_search_users'),
+    path('quizzes/search/', search_quizzes_ajax, name='api_quizzes_search'),
 
     # Users API — транзакции DASCOIN для React
     path('users/transactions/', users_views.api_transactions, name='api_users_transactions'),

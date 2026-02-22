@@ -1,0 +1,208 @@
+.edit-lesson-page {
+  flex: 1;
+  padding: 2rem 0;
+}
+
+.edit-lesson-page__container {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 0 1rem;
+}
+
+.edit-lesson-page__loading,
+.edit-lesson-page__error {
+  text-align: center;
+  padding: 3rem;
+  font-size: 1.1rem;
+}
+
+.edit-lesson-page__error {
+  color: #dc3545;
+}
+
+.edit-lesson-page__section.content-section {
+  background: var(--color-card-bg);
+  border-radius: 8px;
+  box-shadow: var(--color-card-shadow);
+  padding: 2rem;
+  border: 1px solid var(--color-card-border);
+}
+
+.edit-lesson-page__title {
+  margin-bottom: 1.5rem;
+  font-size: 1.5rem;
+  color: var(--color-card-title);
+}
+
+.edit-lesson-page__form-errors {
+  background: #f8d7da;
+  border: 1px solid #f5c6cb;
+  border-radius: 6px;
+  padding: 1rem;
+  margin-bottom: 1rem;
+  color: #721c24;
+}
+
+.edit-lesson-page__form-error-msg {
+  margin: 0.25rem 0;
+}
+
+.edit-lesson-page__form-error-msg:first-child {
+  margin-top: 0;
+}
+
+.edit-lesson-page__field {
+  margin-bottom: 1rem;
+}
+
+.edit-lesson-page__field.mb-3 {
+  margin-bottom: 1rem;
+}
+
+.edit-lesson-page__label {
+  display: block;
+  margin-bottom: 0.35rem;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.edit-lesson-page__input {
+  width: 100%;
+  padding: 0.5rem 0.75rem;
+  font-size: 1rem;
+  border: 1px solid var(--color-card-border);
+  border-radius: 6px;
+  background: var(--color-bg-secondary);
+  color: var(--color-text);
+  font-family: var(--primary-font);
+}
+
+.edit-lesson-page__input:focus {
+  outline: none;
+  border-color: var(--color-accent);
+  box-shadow: 0 0 0 2px rgba(77, 124, 255, 0.2);
+}
+
+.edit-lesson-page__input--number {
+  width: auto;
+  min-width: 5rem;
+}
+
+.edit-lesson-page__textarea {
+  width: 100%;
+  padding: 0.5rem 0.75rem;
+  font-size: 1rem;
+  border: 1px solid var(--color-card-border);
+  border-radius: 6px;
+  background: var(--color-bg-secondary);
+  color: var(--color-text);
+  font-family: var(--primary-font);
+  resize: vertical;
+  min-height: 200px;
+}
+
+.edit-lesson-page__textarea--content {
+  min-height: 280px;
+}
+
+.edit-lesson-page__textarea:focus {
+  outline: none;
+  border-color: var(--color-accent);
+  box-shadow: 0 0 0 2px rgba(77, 124, 255, 0.2);
+}
+
+.edit-lesson-page__hint {
+  display: block;
+  margin-top: 0.25rem;
+  font-size: 0.875rem;
+  color: var(--color-text-secondary);
+}
+
+.edit-lesson-page__row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.5rem;
+}
+
+.edit-lesson-page__field--inline .edit-lesson-page__input {
+  width: 6rem;
+}
+
+.edit-lesson-page__select {
+  width: 100%;
+  padding: 0.5rem 0.75rem;
+  font-size: 1rem;
+  border: 1px solid var(--color-card-border);
+  border-radius: 6px;
+  background: var(--color-bg-secondary);
+  color: var(--color-text);
+  font-family: var(--primary-font);
+}
+
+.edit-lesson-page__select--multiple {
+  min-height: 120px;
+}
+
+.edit-lesson-page__select:focus {
+  outline: none;
+  border-color: var(--color-accent);
+}
+
+.edit-lesson-page__button-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.edit-lesson-page__button-group.mt-4 {
+  margin-top: 1.5rem;
+}
+
+.edit-lesson-page__btn {
+  padding: 0.5rem 1.25rem;
+  font-size: 1rem;
+  font-family: var(--primary-font);
+  font-weight: 500;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s;
+  border: none;
+}
+
+.edit-lesson-page__btn--primary {
+  background: var(--color-btn-bg);
+  color: var(--color-btn-text);
+}
+
+.edit-lesson-page__btn--primary:hover:not(:disabled) {
+  background: var(--color-accent-hover);
+}
+
+.edit-lesson-page__btn--primary:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.edit-lesson-page__btn--secondary {
+  background: var(--color-card-border);
+  color: var(--color-text);
+}
+
+.edit-lesson-page__btn--secondary:hover:not(:disabled) {
+  background: #d0d5dd;
+}
+
+.edit-lesson-page__btn--secondary:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+@media (max-width: 640px) {
+  .edit-lesson-page__section.content-section {
+    padding: 1.25rem;
+  }
+
+  .edit-lesson-page__row {
+    flex-direction: column;
+  }
+}
