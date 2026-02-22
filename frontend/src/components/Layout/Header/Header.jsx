@@ -179,7 +179,7 @@ const ProfileDropdownItems = ({ user, isExternal, onClose, onLogout }) => (
           </a>
         </li>
         <li>
-          <a href="/courses/trajectory/" className="header__dropdown-item" onClick={onClose}>
+          <a href="/courses/trajectories/" className="header__dropdown-item" onClick={onClose}>
             Ваши траектории и курсы
           </a>
         </li>
