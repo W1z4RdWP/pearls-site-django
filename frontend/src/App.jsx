@@ -25,6 +25,7 @@ import UserPasswordChangePage from './components/UserManagementApp/UserPasswordC
 import AdminDascoinDashboardPage from './components/UserManagementApp/AdminDascoinDashboardPage/AdminDascoinDashboardPage';
 import AdminUserTransactionsPage from './components/UserManagementApp/AdminUserTransactionsPage/AdminUserTransactionsPage';
 import KnowledgeBasePage from './components/BuilderApp/KnowledgeBasePage/KnowledgeBasePage';
+import UserCertificatesPage from './components/CoursesApp/UserCertificatesPage/UserCertificatesPage';
 
 const App = () => {
   return (
@@ -44,6 +45,9 @@ const App = () => {
           <Route path='/shop/admin/users' element={<UsersWithOrdersPage />} />
           <Route path='/shop/admin/user/:userId/orders' element={<UserOrdersAdminPage />} />
           <Route path='/shop/product/create' element={<CreateProductPage />} />
+
+          {/* courses */}
+          <Route path='/courses/user-certificates' element={<UserCertificatesPage />} />
 
           {/* users */}
           <Route path='/users/login' element={<LoginPage />}/>

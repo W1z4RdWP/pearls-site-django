@@ -184,7 +184,7 @@ const ProfileDropdownItems = ({ user, isExternal, onClose, onLogout }) => (
           </a>
         </li>
         <li>
-          <a href="/courses/certificates/" className="header__dropdown-item" onClick={onClose}>
+          <a href="/courses/user-certificates/" className="header__dropdown-item" onClick={onClose}>
             Ваши сертификаты
           </a>
         </li>

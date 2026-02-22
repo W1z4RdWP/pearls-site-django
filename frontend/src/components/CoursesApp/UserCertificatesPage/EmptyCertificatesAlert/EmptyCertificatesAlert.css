@@ -1,0 +1,17 @@
+.empty-certificates {
+  padding: 1rem 1.25rem;
+  background: #cff4fc;
+  color: #055160;
+  border: 1px solid #9eeaf9;
+  border-radius: 0.375rem;
+  text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.empty-certificates__icon {
+  font-size: 1.25rem;
+  flex-shrink: 0;
+}

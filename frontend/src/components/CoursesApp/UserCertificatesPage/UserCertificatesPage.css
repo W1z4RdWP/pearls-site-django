@@ -1,0 +1,50 @@
+.user-certificates-page {
+  padding: 1.5rem 0;
+}
+
+.user-certificates-page__container {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 0 1rem;
+}
+
+.user-certificates-page__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-bottom: 1.5rem;
+}
+
+.user-certificates-page__title {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: var(--color-text);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.user-certificates-page__title-icon {
+  font-size: 1.5rem;
+}
+
+.user-certificates-page__badge {
+  padding: 0.35rem 0.75rem;
+  background: var(--color-text-secondary);
+  color: #fff;
+  border-radius: 0.25rem;
+  font-size: 0.875rem;
+}
+
+.user-certificates-page__loading,
+.user-certificates-page__error {
+  margin: 0;
+  padding: 0.75rem 0;
+}
+
+.user-certificates-page__error {
+  color: #dc3545;
+}

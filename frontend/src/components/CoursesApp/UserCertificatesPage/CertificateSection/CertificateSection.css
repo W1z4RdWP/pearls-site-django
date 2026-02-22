@@ -1,0 +1,51 @@
+.certificate-section__card {
+  background: var(--color-card-bg);
+  border-radius: 0.375rem;
+  box-shadow: var(--color-card-shadow);
+  margin-bottom: 1.5rem;
+  overflow: hidden;
+}
+
+.certificate-section--course .certificate-section__card {
+  border: 1px solid var(--color-accent);
+}
+
+.certificate-section--trajectory .certificate-section__card {
+  border: 1px solid #198754;
+}
+
+.certificate-section__header {
+  padding: 0.75rem 1rem;
+  background: var(--color-bg);
+  border-bottom: 1px solid var(--color-card-border);
+}
+
+.certificate-section__title {
+  margin: 0;
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: var(--color-card-title);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.certificate-section__icon {
+  font-size: 1.25rem;
+}
+
+.certificate-section__body {
+  padding: 1rem;
+}
+
+.certificate-section__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 1rem;
+}
+
+@media (max-width: 768px) {
+  .certificate-section__grid {
+    grid-template-columns: 1fr;
+  }
+}

@@ -6,6 +6,7 @@ from .views.views_frontend import views_users as users_views
 from .views.views_frontend import views_messenger as messenger_views
 from .views.views_frontend import views_myapp as myapp_views
 from .views.views_frontend import views_user_management as user_management_views
+from .views.views_frontend import views_courses as courses_views
 
 app_name = 'api'
 
@@ -50,6 +51,9 @@ urlpatterns = [
     path('users/profile/update/', views_frontend.update_profile, name='api_profile_update'),
     path('users/profile/all-badges/', views_frontend.all_badges_api, name='api_all_badges'),
     path('users/profile/all-achievements/', views_frontend.all_achievements_api, name='api_all_achievements'),
+
+    # Courses API — сертификаты пользователя для React
+    path('courses/user-certificates/', courses_views.api_user_certificates, name='api_courses_user_certificates'),
 
     # Users API — транзакции DASCOIN для React
     path('users/transactions/', users_views.api_transactions, name='api_users_transactions'),

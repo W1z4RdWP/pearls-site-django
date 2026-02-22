@@ -1,0 +1,93 @@
+.certificate-card {
+  transition: transform 0.2s;
+  border-radius: 0.375rem;
+  border: 1px solid var(--color-card-border);
+  background: var(--color-card-bg);
+}
+
+.certificate-card--primary {
+  border-color: var(--color-accent);
+}
+
+.certificate-card--success {
+  border-color: #198754;
+}
+
+.certificate-card:hover {
+  transform: translateY(-2px);
+}
+
+.certificate-card__body {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: 1rem;
+}
+
+.certificate-card__main {
+  flex: 1;
+}
+
+.certificate-card__title {
+  margin: 0 0 0.5rem 0;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--color-card-title);
+}
+
+.certificate-card__meta {
+  margin: 0 0 0.75rem 0;
+  font-size: 0.875rem;
+  color: var(--color-text-secondary);
+}
+
+.certificate-card__btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.35rem 0.75rem;
+  font-size: 0.875rem;
+  border-radius: 0.25rem;
+  text-decoration: none;
+  font-weight: 500;
+  transition: background-color 0.2s, color 0.2s;
+}
+
+.certificate-card__btn--primary {
+  background-color: var(--color-btn-bg);
+  color: var(--color-btn-text);
+}
+
+.certificate-card__btn--primary:hover {
+  background-color: var(--color-accent-hover);
+  color: var(--color-btn-text);
+}
+
+.certificate-card__btn--success {
+  background-color: #198754;
+  color: #fff;
+}
+
+.certificate-card__btn--success:hover {
+  background-color: #157347;
+  color: #fff;
+}
+
+.certificate-card__btn-icon {
+  font-size: 1em;
+}
+
+.certificate-card__icon {
+  opacity: 0.7;
+  font-size: 2rem;
+  flex-shrink: 0;
+  margin-left: 0.5rem;
+}
+
+.certificate-card__icon--certificate {
+  color: #ffc107;
+}
+
+.certificate-card__icon--medal {
+  color: #ffd700;
+}
