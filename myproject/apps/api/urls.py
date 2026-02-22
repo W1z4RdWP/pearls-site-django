@@ -52,7 +52,8 @@ urlpatterns = [
     path('users/profile/all-badges/', views_frontend.all_badges_api, name='api_all_badges'),
     path('users/profile/all-achievements/', views_frontend.all_achievements_api, name='api_all_achievements'),
 
-    # Courses API — сертификаты пользователя для React
+    # Courses API — траектории/курсы и сертификаты для React
+    path('courses/trajectories/', courses_views.api_trajectory_list, name='api_courses_trajectories'),
     path('courses/user-certificates/', courses_views.api_user_certificates, name='api_courses_user_certificates'),
 
     # Users API — транзакции DASCOIN для React

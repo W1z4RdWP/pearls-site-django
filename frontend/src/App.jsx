@@ -26,6 +26,7 @@ import AdminDascoinDashboardPage from './components/UserManagementApp/AdminDasco
 import AdminUserTransactionsPage from './components/UserManagementApp/AdminUserTransactionsPage/AdminUserTransactionsPage';
 import KnowledgeBasePage from './components/BuilderApp/KnowledgeBasePage/KnowledgeBasePage';
 import UserCertificatesPage from './components/CoursesApp/UserCertificatesPage/UserCertificatesPage';
+import UserTrajectoryListPage from './components/CoursesApp/UserTrajectoryListPage/UserTrajectoryListPage';
 
 const App = () => {
   return (
@@ -47,6 +48,7 @@ const App = () => {
           <Route path='/shop/product/create' element={<CreateProductPage />} />
 
           {/* courses */}
+          <Route path='/courses/trajectories' element={<UserTrajectoryListPage />} />
           <Route path='/courses/user-certificates' element={<UserCertificatesPage />} />
 
           {/* users */}

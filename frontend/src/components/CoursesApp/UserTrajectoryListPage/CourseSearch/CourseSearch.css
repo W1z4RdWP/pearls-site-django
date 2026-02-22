@@ -1,0 +1,23 @@
+.course-search {
+  margin-bottom: 1.5rem;
+}
+
+.course-search__form {
+  max-width: 100%;
+}
+
+.course-search__input-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.course-search__input {
+  flex: 1;
+  min-width: 200px;
+}
+
+.course-search__submit,
+.course-search__clear {
+  flex-shrink: 0;
+}

@@ -1,0 +1,28 @@
+.trajectories-section {
+  margin-bottom: 3rem;
+}
+
+.trajectories-section__title {
+  margin-bottom: 1.5rem;
+  font-size: 1.75rem;
+}
+
+.trajectories-section__title .fa {
+  margin-right: 0.5rem;
+}
+
+.trajectories-section__empty {
+  margin-top: 0.5rem;
+}
+
+.trajectories-section__grid {
+  display: flex;
+  flex-wrap: wrap;
+  margin-left: -0.75rem;
+  margin-right: -0.75rem;
+}
+
+.trajectories-section__grid > [class*='col-'] {
+  padding-left: 0.75rem;
+  padding-right: 0.75rem;
+}

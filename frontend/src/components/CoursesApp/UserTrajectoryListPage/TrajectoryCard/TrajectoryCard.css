@@ -1,0 +1,46 @@
+.trajectory-card__root {
+  border-radius: 16px;
+  box-shadow: 0 2px 12px rgba(60, 60, 60, 0.08);
+  transition: box-shadow 0.2s;
+}
+
+.trajectory-card__root:hover {
+  box-shadow: 0 4px 24px rgba(60, 60, 60, 0.16);
+}
+
+.trajectory-card__body {
+  padding: 1rem;
+}
+
+.trajectory-card__title {
+  margin-bottom: 0.5rem;
+  font-size: 1.25rem;
+}
+
+.trajectory-card__description {
+  margin-bottom: 1rem;
+  font-size: 0.9rem;
+}
+
+.trajectory-card__meta {
+  margin-bottom: 1rem;
+}
+
+.trajectory-card__link {
+  background: linear-gradient(90deg, #43e97b 0%, #38f9d7 100%);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 10px 24px;
+  font-weight: 500;
+  text-decoration: none;
+  display: inline-block;
+  text-align: center;
+  transition: background 0.2s, box-shadow 0.2s;
+}
+
+.trajectory-card__link:hover {
+  background: linear-gradient(90deg, #38f9d7 0%, #43e97b 100%);
+  box-shadow: 0 4px 16px rgba(67, 233, 123, 0.12);
+  color: #fff;
+}

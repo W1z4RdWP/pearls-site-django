@@ -1,0 +1,268 @@
+.course-card {
+  background: white;
+  border-radius: 15px;
+  overflow: hidden;
+  box-shadow: 0 5px 20px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s ease;
+  position: relative;
+  opacity: 0;
+  transform: translateY(20px);
+  animation: courseCardFadeIn 0.6s ease forwards;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  min-height: 0;
+}
+
+@keyframes courseCardFadeIn {
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.course-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 15px 40px rgba(0, 0, 0, 0.15);
+}
+
+.course-card--completed {
+  border: 2px solid #28a745;
+}
+
+.course-card--in_progress {
+  border: 2px solid #ffc107;
+}
+
+.course-card--available {
+  border: 2px solid #6c757d;
+}
+
+.course-card__image {
+  position: relative;
+  height: 120px;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.course-card__image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.course-card__image-placeholder {
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.8rem;
+  color: #6c757d;
+}
+
+.course-card__time-badge {
+  position: absolute;
+  top: 0.5rem;
+  left: 0.5rem;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: rgba(0, 123, 255, 0.9);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-weight: 600;
+  font-size: 0.65rem;
+  line-height: 1;
+}
+
+.course-card__time-number {
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.course-card__time-label {
+  font-size: 0.55rem;
+}
+
+.course-card__status-badge {
+  position: absolute;
+  top: 0.5rem;
+  right: 0.5rem;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.85rem;
+  color: white;
+}
+
+.course-card__status-badge--completed {
+  background: #28a745;
+}
+
+.course-card__status-badge--in_progress {
+  background: #ffc107;
+}
+
+.course-card__status-badge--available {
+  background: #6c757d;
+}
+
+.course-card__content {
+  padding: 0.75rem;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.course-card__title {
+  margin: 0 0 0.5rem 0;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #333;
+  line-height: 1.3;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.course-card__progress {
+  margin-bottom: 0.5rem;
+}
+
+.course-card__progress-info {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.5rem;
+}
+
+.course-card__progress-text {
+  font-weight: 600;
+  color: #333;
+  font-size: 0.75rem;
+}
+
+.course-card__progress-details {
+  font-size: 0.7rem;
+  color: #6c757d;
+}
+
+.course-card__progress-bar {
+  width: 100%;
+  height: 6px;
+  background: #e9ecef;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.course-card__progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #28a745, #20c997);
+  border-radius: 4px;
+  transition: width 0.3s ease;
+}
+
+.course-card__details {
+  margin-bottom: 0.5rem;
+}
+
+.course-card__detail-item {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  margin-bottom: 0.3rem;
+  font-size: 0.7rem;
+  color: #6c757d;
+}
+
+.course-card__detail-item i {
+  width: 12px;
+  color: #007bff;
+}
+
+.course-card__deadline {
+  border-radius: 6px;
+  padding: 8px 12px;
+  font-size: 0.875rem;
+  margin-bottom: 0.5rem;
+}
+
+.course-card__deadline--overdue {
+  background: #f8d7da;
+  border: 1px solid #f5c6cb;
+}
+
+.course-card__deadline--warning {
+  background: #fff3cd;
+  border: 1px solid #ffeaa7;
+}
+
+.course-card__actions {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  flex-wrap: wrap;
+  margin-top: auto;
+  flex-shrink: 0;
+}
+
+.course-card__status-badge-inline {
+  padding: 5px 10px;
+  border-radius: 4px;
+  font-size: 0.875rem;
+}
+
+.course-card__status-badge-inline--blocked {
+  background-color: #dc3545;
+  color: white;
+}
+
+.course-card__status-badge-inline--completed {
+  background: #d4edda;
+  color: #155724;
+}
+
+.course-card__status-badge-inline--pending {
+  background-color: #f39c12;
+  color: white;
+}
+
+.course-card__btn-main {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.25rem 0.5rem;
+  font-size: 0.75rem;
+  text-decoration: none;
+  border-radius: 5px;
+  font-weight: 500;
+  background: #007bff;
+  color: white;
+}
+
+.course-card__btn-main:hover {
+  background: #0056b3;
+  color: white;
+}
+
+.course-card__incident-badge {
+  width: 100%;
+  margin-top: 0.5rem;
+  text-align: center;
+}
+
+.course-card__incident-badge .badge {
+  font-size: 0.75rem;
+  padding: 4px 8px;
+}

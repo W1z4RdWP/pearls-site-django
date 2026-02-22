@@ -1,0 +1,52 @@
+.progress-stats {
+  display: flex;
+  justify-content: space-around;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.progress-stats__item {
+  text-align: center;
+  padding: 0.75rem;
+  background: white;
+  border-radius: 8px;
+  border: 1px solid #e9ecef;
+  min-width: 100px;
+  cursor: pointer;
+  font: inherit;
+}
+
+.progress-stats__number {
+  display: block;
+  font-size: 1.5rem;
+  font-weight: 600;
+  margin-bottom: 0.25rem;
+}
+
+.progress-stats__number--incident {
+  color: #dc3545;
+}
+
+.progress-stats__label {
+  font-size: 0.8rem;
+  color: #6c757d;
+}
+
+.progress-stats__item--completed .progress-stats__number {
+  color: #28a745;
+}
+
+.progress-stats__item--in-progress .progress-stats__number {
+  color: #ffc107;
+}
+
+.progress-stats__item--available .progress-stats__number {
+  color: #6c757d;
+}
+
+.progress-stats__item.filter-btn.active,
+.progress-stats__item.active {
+  border-color: #007bff;
+  color: #007bff;
+  background: #f8f9fa;
+}
