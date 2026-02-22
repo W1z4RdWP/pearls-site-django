@@ -51,7 +51,7 @@ def layout_data(request):
         {'url': '/messenger/chat/rooms', 'label': 'Мессенджер', 'icon': 'fa-solid fa-comments'},
     ]
     nav_staff = [
-        {'url': '/trajectories', 'label': 'Управление траекториями', 'icon': 'fa-solid fa-route'},
+        {'url': '/builder/trajectory-management', 'label': 'Управление траекториями', 'icon': 'fa-solid fa-route'},
         {'url': '/changelog', 'label': 'Список изменений', 'icon': 'fa-solid fa-list-check'},
         {'url': '/builder', 'label': 'Панель управления', 'icon': 'fa-solid fa-cog'},
     ]

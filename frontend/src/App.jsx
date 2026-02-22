@@ -25,6 +25,7 @@ import UserPasswordChangePage from './components/UserManagementApp/UserPasswordC
 import AdminDascoinDashboardPage from './components/UserManagementApp/AdminDascoinDashboardPage/AdminDascoinDashboardPage';
 import AdminUserTransactionsPage from './components/UserManagementApp/AdminUserTransactionsPage/AdminUserTransactionsPage';
 import KnowledgeBasePage from './components/BuilderApp/KnowledgeBasePage/KnowledgeBasePage';
+import TrajectoryManagementPage from './components/BuilderApp/TrajectoryManagementPage/TrajectoryManagementPage';
 import UserCertificatesPage from './components/CoursesApp/UserCertificatesPage/UserCertificatesPage';
 import UserTrajectoryListPage from './components/CoursesApp/UserTrajectoryListPage/UserTrajectoryListPage';
 
@@ -38,6 +39,8 @@ const App = () => {
           <Route path='/changelog' element={<ChangeLogPage />}/>
           <Route path='/builder' element={<DashboardPage />}/>
           <Route path='/builder/content' element={<KnowledgeBasePage />}/>
+          <Route path='/builder/trajectory-management' element={<TrajectoryManagementPage />}/>
+          <Route path='/builder/trajectory-management/' element={<TrajectoryManagementPage />}/>
           
 
           {/* shop */}

@@ -5,7 +5,7 @@ const DASHBOARD_LINKS_ADMIN = [
   { to: '/quizzes/', label: 'Панель управления тестам', icon: 'fa-solid fa-clipboard-question' },
   { to: '/delegation/', label: 'Делегирование', icon: 'fas fa-user-shield' },
   { to: '/builder/ipr/', label: 'ИПР', icon: 'fas fa-user-graduate' },
-  { to: '/builder/trajectory-management/', label: 'Управление траекториями', icon: 'fas fa-route' },
+  { to: '/builder/trajectory-management', label: 'Управление траекториями', icon: 'fas fa-route', isReactRoute: true },
   { to: '/courses/metrics/admin/', label: 'Заполненные метрики', icon: 'fas fa-chart-bar' },
 ];
 
@@ -37,12 +37,19 @@ const DashboardSidebar = ({ usersLabel, showAdminLinks }) => (
         Инциденты
       </a>
       {showAdminLinks &&
-        DASHBOARD_LINKS_ADMIN.map((item) => (
-          <a key={item.to} href={item.to} className="dashboard-page__nav-link">
-            <i className={item.icon} aria-hidden />
-            {item.label}
-          </a>
-        ))}
+        DASHBOARD_LINKS_ADMIN.map((item) =>
+          item.isReactRoute ? (
+            <Link key={item.to} to={item.to} className="dashboard-page__nav-link">
+              <i className={item.icon} aria-hidden />
+              {item.label}
+            </Link>
+          ) : (
+            <a key={item.to} href={item.to} className="dashboard-page__nav-link">
+              <i className={item.icon} aria-hidden />
+              {item.label}
+            </a>
+          )
+        )}
     </nav>
   </div>
 );

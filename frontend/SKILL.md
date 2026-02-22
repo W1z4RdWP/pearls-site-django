@@ -221,3 +221,5 @@ frontend/
 ├── vite.config.js          # Конфигурация Vite
 └── package.json
 ```
+
+Также, при написании компонентов применяй правила Thinking in React: https://react.dev/learn/thinking-in-react

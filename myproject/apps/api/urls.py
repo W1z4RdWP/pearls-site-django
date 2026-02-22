@@ -7,6 +7,7 @@ from .views.views_frontend import views_messenger as messenger_views
 from .views.views_frontend import views_myapp as myapp_views
 from .views.views_frontend import views_user_management as user_management_views
 from .views.views_frontend import views_courses as courses_views
+from .views.views_frontend import views_builder as builder_views
 
 app_name = 'api'
 
@@ -40,6 +41,7 @@ urlpatterns = [
 
     # Дашборд builder (панель управления)
     path('builder/dashboard/', views_frontend.dashboard_data, name='api_builder_dashboard'),
+    path('builder/trajectory-management/', builder_views.api_trajectory_management, name='api_builder_trajectory_management'),
     path('changelog/', views_frontend.changelog_data, name='api_changelog'),
 
     # MyApp API — история изменений для React
