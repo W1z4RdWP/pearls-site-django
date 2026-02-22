@@ -85,6 +85,18 @@
   min-height: 200px;
 }
 
+.create-lesson-form__editor {
+  min-height: 200px;
+}
+
+.ck-editor__editable {
+  min-height: 300px;
+}
+
+.create-lesson-form__editor--invalid .ck.ck-editor__editable:not(.ck-editor__nested-editable) {
+  border-color: #dc3545;
+}
+
 .create-lesson-form__select--multiple {
   min-height: 120px;
 }

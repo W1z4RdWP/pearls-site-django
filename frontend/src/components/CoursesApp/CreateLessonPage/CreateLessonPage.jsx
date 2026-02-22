@@ -1,7 +1,219 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { CKEditor } from '@ckeditor/ckeditor5-react';
+import {
+  ClassicEditor,
+  Essentials,
+  Paragraph,
+  Bold,
+  Italic,
+  Underline,
+  Strikethrough,
+  Code,
+  Subscript,
+  Superscript,
+  Heading,
+  Indent,
+  IndentBlock,
+  List,
+  TodoList,
+  ListProperties,
+  BlockQuote,
+  Link,
+  CodeBlock,
+  Highlight,
+  FontSize,
+  FontFamily,
+  FontColor,
+  FontBackgroundColor,
+  RemoveFormat,
+  Image,
+  ImageUpload,
+  ImageInsert,
+  ImageStyle,
+  ImageToolbar,
+  ImageCaption,
+  ImageResize,
+  Table,
+  TableToolbar,
+  TableProperties,
+  TableCellProperties,
+  HtmlEmbed,
+  SimpleUploadAdapter,
+} from 'ckeditor5';
+import 'ckeditor5/ckeditor5.css';
 import { fetchCreateLessonPageData, createLesson } from '../../../api/courses_api';
 import './CreateLessonPage.css';
+
+// Палитра цветов как в base.py (CKEDITOR_5_CONFIGS extends → table)
+const customColorPalette = [
+  { color: 'hsl(4, 90%, 58%)', label: 'Red' },
+  { color: 'hsl(340, 82%, 52%)', label: 'Pink' },
+  { color: 'hsl(291, 64%, 42%)', label: 'Purple' },
+  { color: 'hsl(262, 52%, 47%)', label: 'Deep Purple' },
+  { color: 'hsl(231, 48%, 48%)', label: 'Indigo' },
+  { color: 'hsl(207, 90%, 54%)', label: 'Blue' },
+];
+
+function getCsrfToken() {
+  if (typeof document === 'undefined') return '';
+  const match = document.cookie.match(/\bcsrftoken=([^;]+)/);
+  return match ? match[1] : '';
+}
+
+const editorConfig = {
+  licenseKey: 'GPL',
+  language: 'ru',
+  toolbar: {
+    items: [
+      '|',
+      'heading',
+      '|',
+      'outdent',
+      'indent',
+      '|',
+      'bold',
+      'italic',
+      'underline',
+      'strikethrough',
+      'code',
+      'subscript',
+      'superscript',
+      'highlight',
+      '|',
+      'codeBlock',
+      'insertImage',
+      'bulletedList',
+      'numberedList',
+      'todoList',
+      '|',
+      'blockQuote',
+      '|',
+      'fontSize',
+      'fontFamily',
+      'fontColor',
+      'fontBackgroundColor',
+      'removeFormat',
+      'insertTable',
+      '|',
+      'htmlEmbed',
+      'link',
+      'undo',
+      'redo',
+    ],
+    shouldNotGroupWhenFull: true,
+  },
+  image: {
+    toolbar: [
+      '|',
+      'imageTextAlternative',
+      '|',
+      'imageStyle:alignLeft',
+      'imageStyle:alignRight',
+      'imageStyle:alignCenter',
+      'imageStyle:side',
+      '|',
+      'toggleImageCaption',
+      '|',
+    ],
+    styles: ['full', 'side', 'alignLeft', 'alignRight', 'alignCenter'],
+  },
+  table: {
+    contentToolbar: [
+      'tableColumn',
+      'tableRow',
+      'mergeTableCells',
+      'tableProperties',
+      'tableCellProperties',
+      'toggleTableCaption',
+    ],
+    tableProperties: {
+      borderColors: customColorPalette,
+      backgroundColors: customColorPalette,
+      defaultProperties: {
+        width: '100%',
+        borderWidth: '1px',
+      },
+    },
+    tableCellProperties: {
+      borderColors: customColorPalette,
+      backgroundColors: customColorPalette,
+      defaultProperties: {
+        width: 'auto',
+        height: 'auto',
+      },
+    },
+  },
+  list: {
+    properties: {
+      styles: true,
+      startIndex: true,
+      reversed: true,
+    },
+  },
+  fontSize: {
+    options: [9, 10, 11, 12, 13, 14, 15, 16, 'default', 18, 20, 22, 24, 28, 32, 36],
+    supportAllValues: true,
+  },
+  htmlSupport: {
+    allow: [
+      { name: 'img', attributes: { class: true, style: true } },
+      { name: 'span', attributes: { style: true } },
+      { name: 'table', attributes: ['style', 'width', 'height', 'border'] },
+      { name: 'td', attributes: ['style', 'width', 'height', 'colspan', 'rowspan'] },
+      { name: 'th', attributes: ['style', 'width', 'height', 'colspan', 'rowspan'] },
+    ],
+  },
+  simpleUpload: {
+    uploadUrl:
+      typeof window !== 'undefined'
+        ? new URL('/ckeditor5/image_upload/', window.location.origin).href
+        : '',
+    headers: {
+      'X-CSRFToken': getCsrfToken(),
+    },
+    withCredentials: true,
+  },
+  plugins: [
+    Essentials,
+    Paragraph,
+    Bold,
+    Italic,
+    Underline,
+    Strikethrough,
+    Code,
+    Subscript,
+    Superscript,
+    Highlight,
+    Heading,
+    Indent,
+    IndentBlock,
+    CodeBlock,
+    Image,
+    ImageUpload,
+    ImageInsert,
+    ImageStyle,
+    ImageToolbar,
+    ImageCaption,
+    ImageResize,
+    List,
+    TodoList,
+    ListProperties,
+    BlockQuote,
+    FontSize,
+    FontFamily,
+    FontColor,
+    FontBackgroundColor,
+    RemoveFormat,
+    Table,
+    TableToolbar,
+    TableProperties,
+    TableCellProperties,
+    HtmlEmbed,
+    Link,
+    SimpleUploadAdapter,
+  ],
+};
 
 const CreateLessonPage = () => {
   const { courseSlug } = useParams();
@@ -154,15 +366,17 @@ const CreateLessonPage = () => {
             <label htmlFor="lesson-content" className="create-lesson-form__label">
               Содержание
             </label>
-            <textarea
-              id="lesson-content"
-              className="create-lesson-form__textarea"
-              rows={12}
-              placeholder="Текст урока (поддерживается HTML)"
-              value={content}
-              onChange={(e) => setContent(e.target.value)}
+            <div
+              className={`create-lesson-form__editor ${fieldErrors.content ? 'create-lesson-form__editor--invalid' : ''}`}
               aria-invalid={Boolean(fieldErrors.content)}
-            />
+            >
+              <CKEditor
+                editor={ClassicEditor}
+                config={editorConfig}
+                data={content}
+                onChange={(event, editor) => setContent(editor.getData())}
+              />
+            </div>
             {fieldErrors.content && (
               <div className="create-lesson-form__field-error">
                 {fieldErrors.content[0]}
