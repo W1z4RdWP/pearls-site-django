@@ -525,3 +525,53 @@
   box-shadow: 0 0 0 2px rgba(77, 124, 255, 0.13);
   outline: none;
 }
+
+/* Сортируемые заголовки таблицы */
+.table thead th.sortable {
+  cursor: pointer;
+  user-select: none;
+  position: relative;
+  padding-right: 22px;
+  transition: background-color 0.15s;
+}
+
+.table thead th.sortable:hover {
+  background-color: #ebeef3;
+}
+
+.table thead th.sortable .sort-icon {
+  display: inline-flex;
+  flex-direction: column;
+  vertical-align: middle;
+  margin-left: 4px;
+  font-size: 0.55em;
+  line-height: 1;
+  color: #bbb;
+  position: absolute;
+  right: 4px;
+  top: 50%;
+  transform: translateY(-50%);
+  gap: 1px;
+}
+
+.table thead th.sortable .sort-icon .sort-asc,
+.table thead th.sortable .sort-icon .sort-desc {
+  transition: color 0.15s;
+}
+
+.table thead th.sortable.sorted-asc .sort-icon .sort-asc {
+  color: #4d7cff;
+}
+
+.table thead th.sortable.sorted-desc .sort-icon .sort-desc {
+  color: #4d7cff;
+}
+
+.table thead th.sortable:hover .sort-icon {
+  color: #888;
+}
+
+.table thead th.sortable.sorted-asc:hover .sort-icon .sort-asc,
+.table thead th.sortable.sorted-desc:hover .sort-icon .sort-desc {
+  color: #2356b3;
+}

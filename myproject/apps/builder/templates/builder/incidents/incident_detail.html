@@ -113,15 +113,14 @@
             <thead>
                 <tr>
                     <th style="width: 5%;">№</th>
-                    <th style="width: 10%;">Дата назначения</th>
-                    <th style="width: 20%;">Название инцидента</th>
-                    <th style="width: 15%;">Назначено</th>
-                    <th style="width: 15%;">Подразделение</th>
-                    <th style="width: 10%;">Нарушитель</th>
-                    <!-- <th style="width: 10%;">Дедлайн</th> -->
-                    <th style="width: 10%;">Ответственный</th>
-                    <th style="width: 10%;">Дедлайн</th>
-                    <th style="width: 10%;">Статус</th>
+                    <th style="width: 10%;" class="sortable" data-sort-type="date-dot" data-sort-col="1">Дата назначения<span class="sort-icon"><span class="sort-asc">&#9650;</span><span class="sort-desc">&#9660;</span></span></th>
+                    <th style="width: 20%;" class="sortable" data-sort-type="text" data-sort-col="2">Название инцидента<span class="sort-icon"><span class="sort-asc">&#9650;</span><span class="sort-desc">&#9660;</span></span></th>
+                    <th style="width: 15%;" class="sortable" data-sort-type="text" data-sort-col="3">Назначено<span class="sort-icon"><span class="sort-asc">&#9650;</span><span class="sort-desc">&#9660;</span></span></th>
+                    <th style="width: 15%;" class="sortable" data-sort-type="text" data-sort-col="4">Подразделение<span class="sort-icon"><span class="sort-asc">&#9650;</span><span class="sort-desc">&#9660;</span></span></th>
+                    <th style="width: 10%;" class="sortable" data-sort-type="text" data-sort-col="5">Нарушитель<span class="sort-icon"><span class="sort-asc">&#9650;</span><span class="sort-desc">&#9660;</span></span></th>
+                    <th style="width: 10%;" class="sortable" data-sort-type="text" data-sort-col="6">Ответственный<span class="sort-icon"><span class="sort-asc">&#9650;</span><span class="sort-desc">&#9660;</span></span></th>
+                    <th style="width: 10%;" class="sortable" data-sort-type="datetime-dot" data-sort-col="7">Дедлайн<span class="sort-icon"><span class="sort-asc">&#9650;</span><span class="sort-desc">&#9660;</span></span></th>
+                    <th style="width: 10%;" class="sortable" data-sort-type="text" data-sort-col="8">Статус<span class="sort-icon"><span class="sort-asc">&#9650;</span><span class="sort-desc">&#9660;</span></span></th>
                     <th style="width: 5%;">Действия</th>
                 </tr>
             </thead>
@@ -211,13 +210,20 @@
         localStorage.setItem(COLUMN_TITLES_STORAGE_KEY, JSON.stringify(titles));
     }
 
+    function getColumnName(th) {
+        const clone = th.cloneNode(true);
+        const sortIcon = clone.querySelector('.sort-icon');
+        if (sortIcon) sortIcon.remove();
+        return clone.textContent.trim();
+    }
+
     // Функция для применения сохраненных title к столбцам
     function applySavedColumnTitles() {
         const savedTitles = getSavedColumnTitles();
         const tableHeaders = document.querySelectorAll('.table thead th');
         
         tableHeaders.forEach((th, index) => {
-            const columnName = th.textContent.trim();
+            const columnName = getColumnName(th);
             if (savedTitles[columnName]) {
                 th.setAttribute('title', savedTitles[columnName]);
             }
@@ -237,7 +243,7 @@
         
         // Создаем поля для каждого столбца
         tableHeaders.forEach((th) => {
-            const columnName = th.textContent.trim();
+            const columnName = getColumnName(th);
             const currentTitle = savedTitles[columnName] || th.getAttribute('title') || '';
             
             const row = document.createElement('div');
@@ -290,6 +296,94 @@
         if (columnCommentsModal) {
             columnCommentsModal.style.display = 'none';
         }
+    }
+
+    function initTableSorting() {
+        const table = document.querySelector('.incidents-table-responsive .table');
+        if (!table) return;
+
+        const headers = table.querySelectorAll('thead th.sortable');
+        const tbody = table.querySelector('tbody');
+        if (!tbody) return;
+
+        function parseDateDot(str) {
+            str = str.trim();
+            if (!str || str === '—' || str === 'Без срока') return null;
+            const parts = str.match(/(\d{2})\.(\d{2})\.(\d{4})/);
+            if (!parts) return null;
+            return new Date(parts[3], parts[2] - 1, parts[1]);
+        }
+
+        function parseDatetimeDot(str) {
+            str = str.trim();
+            if (!str || str === '—' || str === 'Без срока') return null;
+            const parts = str.match(/(\d{2})\.(\d{2})\.(\d{4})\s+(\d{2}):(\d{2})/);
+            if (parts) return new Date(parts[3], parts[2] - 1, parts[1], parts[4], parts[5]);
+            return parseDateDot(str);
+        }
+
+        function getSortValue(cell, type) {
+            const text = cell.textContent.trim();
+            switch (type) {
+                case 'number':
+                    return parseFloat(text) || 0;
+                case 'date-dot':
+                    return parseDateDot(text);
+                case 'datetime-dot':
+                    return parseDatetimeDot(text);
+                case 'text':
+                default:
+                    return text.toLowerCase();
+            }
+        }
+
+        function compareValues(a, b, type) {
+            if (a === null && b === null) return 0;
+            if (a === null) return 1;
+            if (b === null) return -1;
+
+            if (type === 'number') return a - b;
+            if (type === 'date-dot' || type === 'datetime-dot') return a - b;
+            return a < b ? -1 : a > b ? 1 : 0;
+        }
+
+        headers.forEach(function(header) {
+            header.addEventListener('click', function() {
+                const colIdx = parseInt(this.dataset.sortCol);
+                const sortType = this.dataset.sortType || 'text';
+
+                let direction = 'asc';
+                if (this.classList.contains('sorted-asc')) {
+                    direction = 'desc';
+                } else if (this.classList.contains('sorted-desc')) {
+                    direction = 'asc';
+                }
+
+                headers.forEach(function(h) {
+                    h.classList.remove('sorted-asc', 'sorted-desc');
+                });
+                this.classList.add(direction === 'asc' ? 'sorted-asc' : 'sorted-desc');
+
+                const rows = Array.from(tbody.querySelectorAll('tr.incident-user-row'));
+                if (rows.length === 0) return;
+
+                rows.sort(function(rowA, rowB) {
+                    const cellA = rowA.children[colIdx];
+                    const cellB = rowB.children[colIdx];
+                    if (!cellA || !cellB) return 0;
+
+                    const valA = getSortValue(cellA, sortType);
+                    const valB = getSortValue(cellB, sortType);
+                    const cmp = compareValues(valA, valB, sortType);
+                    return direction === 'asc' ? cmp : -cmp;
+                });
+
+                rows.forEach(function(row, index) {
+                    tbody.appendChild(row);
+                    row.children[0].textContent = index + 1;
+                });
+            });
+        });
     }
 
     document.addEventListener('DOMContentLoaded', function() {
@@ -404,6 +498,9 @@
             });
         }
         
+        // --- Сортировка таблицы по клику на заголовки ---
+        initTableSorting();
+
         // Обработчики для строк таблицы и кнопки "Отменить"
         const incidentUserRows = document.querySelectorAll('.incident-user-row');
         let selectedRow = null;
