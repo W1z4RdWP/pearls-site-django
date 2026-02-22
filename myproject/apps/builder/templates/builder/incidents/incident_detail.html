@@ -69,15 +69,20 @@
                         </label>
                     </div>
                 {% endfor %}
-                <div class="col-md-auto">
-                    <select class="form-select" id="department_filter" name="department_filter">
-                        <option value="">Все подразделения</option>
+                <div class="col-md-auto dropdown">
+                    <button class="btn btn-outline-secondary dropdown-toggle department-dropdown-toggle" type="button" id="departmentDropdown" data-bs-toggle="dropdown" aria-expanded="false" style="min-width: 200px; text-align: left;">
+                        <span class="department-dropdown-label">{% if selected_department_filters %}{{ selected_department_filters|length }} выбрано{% else %}Все подразделения{% endif %}</span>
+                    </button>
+                    <ul class="dropdown-menu department-dropdown-menu" aria-labelledby="departmentDropdown" style="max-height: 280px; overflow-y: auto;">
                         {% for department in departments %}
-                            <option value="{{ department.name }}" {% if department_filter == department.name %}selected{% endif %}>
-                                {{ department.name }}
-                            </option>
+                            <li class="dropdown-item-text px-2 py-1" style="margin-left: 10%;">
+                                <label class="d-flex align-items-center gap-2 mb-0 cursor-pointer w-100 py-1">
+                                    <input type="checkbox" class="form-check-input department-checkbox" name="department_filter" value="{{ department.name }}" {% if department.name in selected_department_filters %}checked{% endif %}>
+                                    <span>{{ department.name }}</span>
+                                </label>
+                            </li>
                         {% endfor %}
-                    </select>
+                    </ul>
                 </div>
                 <div class="form-check">
                     <input class="form-check-input" type="checkbox" id="only_overdue" name="only_overdue" {% if only_overdue %}checked{% endif %}>
@@ -380,6 +385,24 @@
         
         // Применяем сохраненные title к столбцам при загрузке страницы
         applySavedColumnTitles();
+        
+        // Выпадающий список подразделений: не закрывать при клике по чекбоксам, обновлять подпись
+        const departmentDropdownMenu = document.querySelector('.department-dropdown-menu');
+        const departmentDropdownToggle = document.querySelector('.department-dropdown-toggle');
+        const departmentDropdownLabel = document.querySelector('.department-dropdown-label');
+        if (departmentDropdownMenu) {
+            departmentDropdownMenu.addEventListener('click', function(e) {
+                e.stopPropagation();
+            });
+        }
+        if (departmentDropdownMenu && departmentDropdownLabel) {
+            departmentDropdownMenu.querySelectorAll('.department-checkbox').forEach(function(cb) {
+                cb.addEventListener('change', function() {
+                    const checked = departmentDropdownMenu.querySelectorAll('.department-checkbox:checked');
+                    departmentDropdownLabel.textContent = checked.length ? checked.length + ' выбрано' : 'Все подразделения';
+                });
+            });
+        }
         
         // Обработчики для строк таблицы и кнопки "Отменить"
         const incidentUserRows = document.querySelectorAll('.incident-user-row');

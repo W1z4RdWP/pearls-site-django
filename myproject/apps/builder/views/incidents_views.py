@@ -1070,11 +1070,13 @@ class IncidentDetailListView(ListView):
             context['violator_filter'] = 'all'
             context['violator_filter_locked'] = False
             context['department_filter'] = ''
+            context['selected_department_filters'] = []
             context['only_overdue'] = False
         else:
             date_from = self.request.GET.get('date_from', '')
             date_to = self.request.GET.get('date_to', '')
-            department_filter = self.request.GET.get('department_filter', '')
+            selected_department_filters = self.request.GET.getlist('department_filter')
+            department_filter = self.request.GET.get('department_filter', '')  # для обратной совместимости
             only_overdue = self.request.GET.get('only_overdue', '') == 'on'
 
             
@@ -1091,6 +1093,7 @@ class IncidentDetailListView(ListView):
             # Статусы, выбранные в фильтре (чекбоксы)
             context['selected_statuses'] = self.request.GET.getlist('status', [])
             context['department_filter'] = department_filter
+            context['selected_department_filters'] = selected_department_filters
             context['only_overdue'] = only_overdue
             
             try:
@@ -1105,7 +1108,7 @@ class IncidentDetailListView(ListView):
         incident_user_list = []
         selected_user_id = context['selected_user_id']
         violator_filter = context['violator_filter']
-        department_filter = (context.get('department_filter') or '').strip()
+        selected_department_filters = context.get('selected_department_filters') or []
         only_overdue = context.get('only_overdue', False)
         now = context['now']
         
@@ -1114,12 +1117,12 @@ class IncidentDetailListView(ListView):
             violators = incident.violators.all()
             
             for user in assigned_users:
-                # Фильтр по подразделению
-                if department_filter:
+                # Фильтр по подразделению (множественный выбор)
+                if selected_department_filters:
                     user_department_name = None
                     if hasattr(user, 'profile') and user.profile and user.profile.department:
                         user_department_name = user.profile.department.name
-                    if user_department_name != department_filter:
+                    if user_department_name not in selected_department_filters:
                         continue
 
                 # Фильтр по назначенному пользователю
@@ -1223,12 +1226,12 @@ class IncidentDetailListView(ListView):
                     # Проверяем фильтры: если они не пропускают expert, добавляем его в список
                     should_add_expert = True
                     
-                    # Фильтр по подразделению
-                    if department_filter:
+                    # Фильтр по подразделению (множественный выбор)
+                    if selected_department_filters:
                         expert_department_name = None
                         if hasattr(expert, 'profile') and expert.profile and expert.profile.department:
                             expert_department_name = expert.profile.department.name
-                        if expert_department_name != department_filter:
+                        if expert_department_name not in selected_department_filters:
                             should_add_expert = False
                     
                     # Фильтр по назначенному пользователю

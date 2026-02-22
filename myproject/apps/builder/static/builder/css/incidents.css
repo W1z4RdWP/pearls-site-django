@@ -64,6 +64,13 @@
   color: var(--incidents-doc-link-hover);
 }
 
+.department-dropdown-menu .dropdown-item-text {
+  cursor: default;
+}
+.department-dropdown-menu label.cursor-pointer {
+  cursor: pointer;
+}
+
 .table th, .table td {
   vertical-align: middle !important;
   font-size: var(--incidents-table-th-font-size);
