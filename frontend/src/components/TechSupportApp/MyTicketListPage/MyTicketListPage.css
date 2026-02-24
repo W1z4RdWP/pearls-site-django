@@ -1,5 +1,6 @@
 .my-ticket-list-page__container {
   padding: 1rem 0;
+  width: 100%;
 }
 
 .my-ticket-list-page__header {
@@ -31,14 +32,24 @@
   background: var(--color-card-bg);
   border-radius: 0.375rem;
   box-shadow: var(--color-card-shadow);
+  width: 100%;
 }
 
 .my-ticket-list-page__table-wrap {
   overflow-x: auto;
+  width: 100%;
 }
 
 .my-ticket-list-page__table {
   margin-bottom: 0;
+  width: 100%;
+  table-layout: fixed;
+}
+
+.my-ticket-list-page__table th,
+.my-ticket-list-page__table td {
+  vertical-align: middle;
+  text-align: center;
 }
 
 .my-ticket-list-page__link {

@@ -59,6 +59,15 @@ const MyTicketListPage = () => {
           <div className="my-ticket-list-page__card card">
             <div className="my-ticket-list-page__table-wrap table-responsive">
               <table className="my-ticket-list-page__table table align-middle mb-0">
+                <colgroup>
+                  <col className="my-ticket-list-page__col-num" />
+                  <col className="my-ticket-list-page__col-title" />
+                  <col className="my-ticket-list-page__col-status" />
+                  <col className="my-ticket-list-page__col-priority" />
+                  <col className="my-ticket-list-page__col-category" />
+                  <col className="my-ticket-list-page__col-created" />
+                  <col className="my-ticket-list-page__col-actions" />
+                </colgroup>
                 <thead>
                   <tr>
                     <th>#</th>
