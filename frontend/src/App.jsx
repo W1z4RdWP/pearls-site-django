@@ -27,6 +27,7 @@ import AdminUserTransactionsPage from './components/UserManagementApp/AdminUserT
 import KnowledgeBasePage from './components/BuilderApp/KnowledgeBasePage/KnowledgeBasePage';
 import TrajectoryManagementPage from './components/BuilderApp/TrajectoryManagementPage/TrajectoryManagementPage';
 import CourseListPage from './components/BuilderApp/CourseListPage/CourseListPage';
+import LessonFormPage from './components/BuilderApp/LessonFormPage/LessonFormPage';
 import UserCertificatesPage from './components/CoursesApp/UserCertificatesPage/UserCertificatesPage';
 import UserTrajectoryListPage from './components/CoursesApp/UserTrajectoryListPage/UserTrajectoryListPage';
 import CreateCoursePage from './components/CoursesApp/CreateCoursePage/CreateCoursePage';
@@ -50,6 +51,10 @@ const App = () => {
           <Route path='/builder/trajectory-management/' element={<TrajectoryManagementPage />}/>
           <Route path='/builder/courses' element={<CourseListPage />}/>
           <Route path='/builder/courses/' element={<CourseListPage />}/>
+          <Route path='/builder/add' element={<LessonFormPage />}/>
+          <Route path='/builder/add/' element={<LessonFormPage />}/>
+          <Route path='/builder/add/:categoryId' element={<LessonFormPage />}/>
+          <Route path='/builder/lesson/:pk/edit' element={<LessonFormPage />}/>
 
 
           {/* shop */}

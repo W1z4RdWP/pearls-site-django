@@ -2,15 +2,22 @@
 API-представления приложения builder для React-фронтенда.
 """
 
+import json
 from django.http import JsonResponse
 from django.views.decorators.http import require_http_methods
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import Group, User
 from django.core.paginator import Paginator
-from django.db.models import Q, Count
+from django.db.models import Q, Count, Max
+from django.shortcuts import get_object_or_404
+from django.utils import timezone
+from django.urls import reverse
 
 from courses.models import Course, Lesson, Trajectory
 from quizzes.models import Quiz
+from builder.models import CategoryName, LessonVersion
+from builder.audit_logger import log_create, log_update, serialize_model_data
+from builder.utils import get_responsible_user_for_lesson
 
 PAGINATE_BY = 15
 
@@ -103,7 +110,7 @@ def api_trajectory_management(request):
         'recent_quizzes': [_serialize_quiz(q) for q in recent_quizzes],
         'all_groups': [{'id': g.id, 'name': g.name} for g in all_groups],
         'urls': {
-            'lesson_master': '/builder/content/',
+            'lesson_master': '/builder/add/',
             'course_list': '/builder/courses/',
             'incident_course_list': '/builder/incident-courses/',
             'trajectory_list': '/builder/trajectories/',
@@ -210,3 +217,268 @@ def api_course_delete(request, slug):
         return JsonResponse({'error': 'not_found'}, status=404)
     course.delete()
     return JsonResponse({'success': True})
+
+
+def _builder_staff_required(request):
+    """Проверка прав: только staff/superuser для форм урока."""
+    if not request.user.is_authenticated:
+        return False
+    return request.user.is_staff or request.user.is_superuser
+
+
+def _flat_categories_choices():
+    """Список категорий для select: [{id, name}], name с путём (Родитель — Дочерняя)."""
+    root_cats = CategoryName.objects.filter(parent__isnull=True).order_by('order', 'name')
+
+    def collect_flat(cat, prefix=''):
+        name = f"{prefix}{cat.name}" if prefix else cat.name
+        result = [{'id': cat.id, 'name': name}]
+        for sub in cat.subcategories.all().order_by('order', 'name'):
+            result.extend(collect_flat(sub, prefix=f"{name} — "))
+        return result
+
+    flat = []
+    for root in root_cats:
+        flat.extend(collect_flat(root))
+    return flat
+
+
+# ---------------------------------------------------------------------------
+#  Builder Lesson Form API (форма урока: добавление / редактирование)
+# ---------------------------------------------------------------------------
+
+@login_required
+@require_http_methods(['GET', 'POST'])
+def api_lesson_form_create(request, category_id=None):
+    """API: GET — данные формы добавления урока (категории, курсы, тесты, preselected_category); POST — создание урока."""
+    if not _builder_staff_required(request):
+        return JsonResponse({'error': 'Доступ разрешён только администраторам.'}, status=403)
+
+    preselected_category = None
+    if category_id is not None:
+        preselected_category = get_object_or_404(CategoryName, pk=category_id)
+
+    if request.method == 'GET':
+        categories = _flat_categories_choices()
+        courses_list = list(Course.objects.filter(is_incident=False).order_by('title').values('id', 'title'))
+        quizzes_list = list(Quiz.objects.all().order_by('name').values('id', 'name'))
+        data = {
+            'categories': categories,
+            'courses': courses_list,
+            'quizzes': quizzes_list,
+            'preselected_category': (
+                {'id': preselected_category.id, 'name': preselected_category.name}
+                if preselected_category else None
+            ),
+            'cancel_url': '/builder/content/',
+        }
+        return JsonResponse(data)
+
+    # POST — создание урока
+    try:
+        data = json.loads(request.body) if request.body else {}
+    except json.JSONDecodeError:
+        return JsonResponse({'error': 'Некорректный JSON'}, status=400)
+
+    title = (data.get('title') or '').strip()
+    if not title:
+        return JsonResponse({'errors': {'title': ['Укажите название урока']}}, status=400)
+
+    content = data.get('content') or ''
+    required_time = data.get('required_time')
+    if required_time is None:
+        required_time = 7
+    try:
+        required_time = max(1, min(999, int(required_time)))
+    except (TypeError, ValueError):
+        required_time = 7
+
+    category_id_val = data.get('category_id')
+    category = None
+    if category_id_val is not None and category_id_val != '':
+        try:
+            category = CategoryName.objects.get(pk=int(category_id_val))
+        except (ValueError, TypeError, CategoryName.DoesNotExist):
+            pass
+    if preselected_category and not category:
+        category = preselected_category
+
+    course_ids = data.get('course_ids')
+    if not course_ids or not isinstance(course_ids, list):
+        course_ids = []
+    else:
+        try:
+            course_ids = [int(x) for x in course_ids]
+        except (TypeError, ValueError):
+            course_ids = []
+    existing_course_ids = set(Course.objects.filter(id__in=course_ids, is_incident=False).values_list('id', flat=True))
+    course_ids = [i for i in course_ids if i in existing_course_ids]
+
+    final_quiz_id = data.get('final_quiz_id')
+    if final_quiz_id is not None and final_quiz_id != '':
+        try:
+            final_quiz_id = int(final_quiz_id)
+            if not Quiz.objects.filter(pk=final_quiz_id).exists():
+                final_quiz_id = None
+        except (ValueError, TypeError):
+            final_quiz_id = None
+    else:
+        final_quiz_id = None
+
+    if category:
+        max_order = Lesson.objects.filter(category=category).aggregate(Max('order'))['order__max'] or 0
+    else:
+        max_order = Lesson.objects.filter(category__isnull=True).aggregate(Max('order'))['order__max'] or 0
+    order = max_order + 1
+
+    lesson = Lesson(
+        title=title,
+        content=content,
+        order=order,
+        category=category,
+        required_time=required_time,
+        final_quiz_id=final_quiz_id,
+    )
+    lesson.save()
+    if course_ids:
+        lesson.courses.set(course_ids)
+
+    log_create(request.user, lesson, request, comment='Создан новый урок')
+
+    today = timezone.now().date()
+    lesson_version = LessonVersion.objects.create(
+        lesson=lesson,
+        version=1,
+        title=lesson.title,
+        content=lesson.content,
+        video_id=lesson.video_id,
+        updated_by=request.user,
+        next_update=today + timezone.timedelta(days=90),
+        update_period_days=90,
+    )
+    log_create(request.user, lesson_version, request, comment='Создана первая версия урока')
+
+    return_url = data.get('return_url') or request.GET.get('return_url')
+    if return_url:
+        from urllib.parse import unquote
+        redirect_url = unquote(return_url)
+    else:
+        redirect_url = f"{reverse('builder:lesson_master')}?new_lesson={lesson.id}"
+    return JsonResponse({'success': True, 'lesson_id': lesson.id, 'redirect_url': redirect_url})
+
+
+@login_required
+@require_http_methods(['GET', 'POST'])
+def api_lesson_form_edit(request, pk):
+    """API: GET — данные формы редактирования урока; POST — сохранение урока."""
+    if not _builder_staff_required(request):
+        return JsonResponse({'error': 'Доступ разрешён только администраторам.'}, status=403)
+
+    lesson = get_object_or_404(Lesson, pk=pk)
+
+    if request.method == 'GET':
+        categories = _flat_categories_choices()
+        courses_choices = list(Course.objects.filter(is_incident=False).order_by('title').values_list('id', 'title'))
+        quizzes_list = list(Quiz.objects.all().order_by('name').values('id', 'name'))
+        return JsonResponse({
+            'lesson': {
+                'id': lesson.id,
+                'title': lesson.title,
+                'content': lesson.content or '',
+                'order': lesson.order,
+                'required_time': lesson.required_time or 7,
+                'category_id': lesson.category_id,
+                'course_ids': list(lesson.courses.values_list('id', flat=True)),
+                'final_quiz_id': lesson.final_quiz_id,
+            },
+            'categories': categories,
+            'courses_choices': [{'id': i, 'title': t} for i, t in courses_choices],
+            'quizzes': quizzes_list,
+            'cancel_url': '/builder/content/',
+        })
+
+    # POST — сохранение
+    try:
+        data = json.loads(request.body)
+    except (json.JSONDecodeError, TypeError):
+        return JsonResponse({'error': 'Неверный формат тела запроса.'}, status=400)
+
+    old_values = serialize_model_data(lesson)
+
+    title = (data.get('title') or '').strip()
+    if not title:
+        return JsonResponse({'errors': {'title': ['Укажите название урока']}}, status=400)
+
+    content = data.get('content') or ''
+    order = data.get('order')
+    try:
+        order = max(1, int(order)) if order is not None else lesson.order
+    except (TypeError, ValueError):
+        order = lesson.order
+    required_time = data.get('required_time')
+    try:
+        required_time = max(1, min(999, int(required_time))) if required_time is not None else (lesson.required_time or 7)
+    except (TypeError, ValueError):
+        required_time = lesson.required_time or 7
+
+    category_id_val = data.get('category_id')
+    category = None
+    if category_id_val is not None and category_id_val != '':
+        try:
+            category = CategoryName.objects.get(pk=int(category_id_val))
+        except (ValueError, TypeError, CategoryName.DoesNotExist):
+            pass
+
+    course_ids = data.get('course_ids')
+    if isinstance(course_ids, list) and course_ids:
+        try:
+            course_ids = [int(x) for x in course_ids]
+            existing = set(Course.objects.filter(id__in=course_ids, is_incident=False).values_list('id', flat=True))
+            course_ids = [i for i in course_ids if i in existing]
+        except (TypeError, ValueError):
+            course_ids = list(lesson.courses.values_list('id', flat=True))
+    else:
+        course_ids = list(lesson.courses.values_list('id', flat=True))
+
+    final_quiz_id = data.get('final_quiz_id')
+    if final_quiz_id is not None and final_quiz_id != '':
+        try:
+            final_quiz_id = int(final_quiz_id)
+            if not Quiz.objects.filter(pk=final_quiz_id).exists():
+                final_quiz_id = None
+        except (ValueError, TypeError):
+            final_quiz_id = None
+    else:
+        final_quiz_id = None
+
+    lesson.title = title
+    lesson.content = content
+    lesson.order = order
+    lesson.required_time = required_time
+    lesson.category = category
+    lesson.final_quiz_id = final_quiz_id
+    lesson.save()
+    lesson.courses.set(course_ids)
+
+    log_update(request.user, lesson, old_values, request, comment='Обновлен урок')
+
+    last_version = LessonVersion.objects.filter(lesson=lesson).order_by('-version').first()
+    next_version = (last_version.version + 1) if last_version else 1
+    today = timezone.now().date()
+    period = last_version.update_period_days if last_version else 90
+    responsible_user = get_responsible_user_for_lesson(last_version) if last_version else request.user
+    LessonVersion.objects.create(
+        lesson=lesson,
+        version=next_version,
+        title=lesson.title,
+        content=lesson.content,
+        video_id=lesson.video_id,
+        updated_by=responsible_user,
+        next_update=today + timezone.timedelta(days=period),
+        update_period_days=period,
+    )
+    log_create(request.user, LessonVersion.objects.filter(lesson=lesson).order_by('-version').first(), request,
+               comment=f'Создана версия {next_version} при обновлении урока')
+
+    redirect_url = data.get('return_url') or f"{reverse('builder:lesson_master')}?edited_lesson={lesson.id}"
+    return JsonResponse({'success': True, 'redirect_url': redirect_url})
