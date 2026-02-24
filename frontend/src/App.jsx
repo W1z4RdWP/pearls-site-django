@@ -36,6 +36,9 @@ import CourseDetailPage from './components/CoursesApp/CourseDetailPage/CourseDet
 import EditCoursePage from './components/CoursesApp/EditCoursePage/EditCoursePage';
 import EditLessonPage from './components/CoursesApp/EditLessonPage/EditLessonPage';
 import AddLessonPage from './components/CoursesApp/AddLessonPage/AddLessonPage';
+import SupportChatPage from './components/TechSupportApp/SupportChatPage/SupportChatPage';
+import MyTicketListPage from './components/TechSupportApp/MyTicketListPage/MyTicketListPage';
+import TicketListPage from './components/TechSupportApp/TicketListPage/TicketListPage';
 
 const App = () => {
   return (
@@ -85,6 +88,14 @@ const App = () => {
           {/* messenger */}
           <Route path='/messenger/chat/rooms' element={<MessengerPage />}/>
           <Route path='/messenger/chat/room/:roomId' element={<ChatRoomPage />}/>
+
+          {/* tech support */}
+          <Route path='/tech_support/chat' element={<SupportChatPage />}/>
+          {/* <Route path='/tech_support/chat/' element={<SupportChatPage />}/> */}
+          <Route path='/tech_support/my/tickets' element={<MyTicketListPage />} />
+          {/* <Route path='/tech_support/my/tickets/' element={<MyTicketListPage />} /> */}
+          <Route path='/tech_support/tickets' element={<TicketListPage />} />
+          <Route path='/tech_support/tickets/' element={<TicketListPage />} />
 
           {/* user management */}
           <Route path='/user_management/users' element={<UserListPage />} />

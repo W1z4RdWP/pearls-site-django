@@ -8,6 +8,7 @@ from .views.views_frontend import views_myapp as myapp_views
 from .views.views_frontend import views_user_management as user_management_views
 from .views.views_frontend import views_courses as courses_views
 from .views.views_frontend import views_builder as builder_views
+from .views.views_frontend import views_tech_support as tech_support_views
 from builder.views.api_views import api_search_users
 from quizzes.views import search_quizzes_ajax
 
@@ -107,4 +108,9 @@ urlpatterns = [
     path('messenger/chat_room/create/', messenger_views.api_chat_room_create, name='api_messenger_chat_room_create'),
     path('messenger/chat_room/<str:room_id>/', messenger_views.api_chat_room_data, name='api_messenger_chat_room_data'),
     path('messenger/chat_room/<str:room_id>/send/', messenger_views.api_chat_room_send_message, name='api_messenger_chat_room_send_message'),
+
+    # Tech Support API — обращение в поддержку (React)
+    path('tech_support/chat/', tech_support_views.api_ticket_create, name='api_tech_support_ticket_create'),
+    path('tech_support/my/tickets/', tech_support_views.api_my_ticket_list, name='api_tech_support_my_ticket_list'),
+    path('tech_support/tickets/', tech_support_views.api_ticket_list_staff, name='api_tech_support_ticket_list_staff'),
 ]

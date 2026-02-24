@@ -71,7 +71,7 @@ const Layout = () => {
 
       {/* Кнопка поддержки */}
       {isAuthenticated && (
-        <a href="/support/chat/" className="layout__support-btn" title="Служба поддержки">
+        <a href="/tech_support/chat/" className="layout__support-btn" title="Служба поддержки">
           <div className="layout__support-pulse" />
           <i className="fas fa-question" />
         </a>
