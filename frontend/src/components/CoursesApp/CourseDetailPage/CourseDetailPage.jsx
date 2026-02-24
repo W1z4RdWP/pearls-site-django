@@ -115,6 +115,7 @@ const CourseDetailPage = () => {
                 userCourseStatus={userCourse?.status}
                 hasMaterials={course.has_materials}
                 onStartCourse={handleStartCourse}
+                onMaterialsReordered={loadData}
               />
             </div>
             <div className="course-detail-page__aside">

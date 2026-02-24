@@ -633,6 +633,40 @@ def api_start_course(request, slug):
     return JsonResponse({'success': False, 'error': 'Курс уже начат или завершён.'})
 
 
+@login_required
+@require_http_methods(['POST'])
+def api_reorder_materials(request, slug):
+    """API: сохранить новый порядок материалов курса (уроки и тесты). Только staff."""
+    if not (request.user.is_staff or request.user.is_superuser):
+        return JsonResponse({'error': 'Доступ запрещён'}, status=403)
+    course = get_object_or_404(Course, slug=slug)
+    try:
+        data = json.loads(request.body)
+        materials_order = data.get('materials_order', [])
+        for index, material_data in enumerate(materials_order):
+            material_type = material_data.get('type')
+            material_id = material_data.get('id')
+            new_order = index + 1
+            if material_type == 'lesson':
+                lesson = Lesson.objects.filter(id=material_id, courses=course).first()
+                if lesson:
+                    lesson.order = new_order
+                    lesson.save()
+            elif material_type == 'quiz':
+                quiz = Quiz.objects.filter(id=material_id, courses=course).first()
+                if quiz:
+                    quiz.order = new_order
+                    quiz.save()
+            elif material_type == 'homework':
+                homework = Homework.objects.filter(id=material_id, courses=course).first()
+                if homework:
+                    homework.order = new_order
+                    homework.save()
+        return JsonResponse({'success': True})
+    except (json.JSONDecodeError, KeyError, TypeError) as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=400)
+
+
 # ---------------------------------------------------------------------------
 #  Create Course API (React)
 # ---------------------------------------------------------------------------

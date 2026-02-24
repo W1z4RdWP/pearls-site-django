@@ -38,6 +38,19 @@ export function startCourse(slug) {
 }
 
 /**
+ * Сохранить новый порядок материалов курса (уроки, тесты, задания). Только staff.
+ * @param {string} slug — slug курса
+ * @param {Array<{type: string, id: number}>} materialsOrder — массив { type: 'lesson'|'quiz'|'homework', id }
+ * @returns {Promise<{success: boolean}>}
+ */
+export function reorderMaterials(slug, materialsOrder) {
+  return request(`/courses/course/${encodeURIComponent(slug)}/reorder-materials/`, {
+    method: 'POST',
+    body: JSON.stringify({ materials_order: materialsOrder }),
+  });
+}
+
+/**
  * Данные страницы редактирования курса (форма: курс, группы, course_detail_url).
  * @param {string} slug — slug курса
  * @returns {Promise<{ course: object, groups: Array, course_detail_url: string }>}

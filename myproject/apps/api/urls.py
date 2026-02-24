@@ -64,6 +64,7 @@ urlpatterns = [
     path('courses/create-course/', courses_views.api_create_course, name='api_courses_create_course'),
     path('courses/course/<slug:slug>/', courses_views.api_course_detail, name='api_courses_course_detail'),
     path('courses/course/<slug:slug>/start/', courses_views.api_start_course, name='api_courses_start_course'),
+    path('courses/course/<slug:slug>/reorder-materials/', courses_views.api_reorder_materials, name='api_courses_reorder_materials'),
     path('courses/lesson/<int:lesson_id>/edit/', courses_views.api_edit_lesson, name='api_courses_edit_lesson'),
     path('courses/course/<slug:slug>/edit/', courses_views.api_course_edit, name='api_courses_course_edit'),
     path('courses/course/<slug:slug>/create-lesson/', courses_views.api_create_lesson, name='api_courses_create_lesson'),
