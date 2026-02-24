@@ -40,6 +40,7 @@ import SupportChatPage from './components/TechSupportApp/SupportChatPage/Support
 import MyTicketListPage from './components/TechSupportApp/MyTicketListPage/MyTicketListPage';
 import TicketListPage from './components/TechSupportApp/TicketListPage/TicketListPage';
 import StaffDashboardPage from './components/TechSupportApp/StaffDashboardPage/StaffDashboardPage';
+import TicketReportsPage from './components/TechSupportApp/TicketReportsPage/TicketReportsPage';
 
 const App = () => {
   return (
@@ -92,6 +93,8 @@ const App = () => {
           <Route path='/tech_support/chat' element={<SupportChatPage />}/>
           <Route path='/tech_support/my/tickets' element={<MyTicketListPage />} />
           <Route path='/tech_support/tickets' element={<TicketListPage />} />
+          <Route path='/tech_support/reports' element={<TicketReportsPage />} />
+          <Route path='/tech_support/reports/' element={<TicketReportsPage />} />
 
           {/* user management */}
           <Route path='/user_management/users' element={<UserListPage />} />

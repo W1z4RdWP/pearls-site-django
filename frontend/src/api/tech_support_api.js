@@ -45,3 +45,12 @@ export function fetchTicketListStaff(params = {}) {
 export function fetchStaffDashboard() {
   return request('/tech_support/dashboard/');
 }
+
+/**
+ * Отчёты по тикетам за период.
+ * @param {string} period — 'week' | 'month' | 'year'
+ * @returns {Promise<{ period, tickets_by_period, performer_stats, avg_resolution_time, avg_rating, total_resolved }>}
+ */
+export function fetchTicketReports(period = 'month') {
+  return request(`/tech_support/reports/?period=${encodeURIComponent(period)}`);
+}

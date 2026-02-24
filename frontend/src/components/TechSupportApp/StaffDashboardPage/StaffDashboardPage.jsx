@@ -101,9 +101,9 @@ const StaffDashboardPage = () => {
             <Link to={ticketsLink} className="btn btn-primary me-2">
               <i className="fas fa-list me-2" aria-hidden />Все тикеты
             </Link>
-            <a href="/tech_support/reports/" className="btn btn-outline-primary">
+            <Link to="/tech_support/reports" className="btn btn-outline-primary">
               <i className="fas fa-chart-bar me-2" aria-hidden />Отчеты
-            </a>
+            </Link>
           </div>
         </header>
 

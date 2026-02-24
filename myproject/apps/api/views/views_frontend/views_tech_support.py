@@ -2,7 +2,7 @@
 API-представления для приложения tech_support (React-фронтенд).
 """
 import json
-from datetime import datetime, time
+from datetime import datetime, time, timedelta
 
 from django.http import JsonResponse
 from django.views.decorators.http import require_http_methods
@@ -269,4 +269,86 @@ def api_staff_dashboard(request):
         'recent_tickets': recent_tickets,
         'overdue_tickets_list': overdue_tickets_list,
         'status_in_progress_id': in_progress_status_id,
+    })
+
+
+@login_required
+@require_http_methods(['GET'])
+def api_ticket_reports(request):
+    """API: отчёты по тикетам за период (week/month/year). Доступно только is_staff или is_superuser."""
+    if not (request.user.is_staff or request.user.is_superuser):
+        return JsonResponse({'error': 'Доступ запрещён'}, status=403)
+
+    period = request.GET.get('period', 'month')
+    if period == 'week':
+        start_date = timezone.now() - timedelta(days=7)
+    elif period == 'month':
+        start_date = timezone.now() - timedelta(days=30)
+    else:
+        period = 'year'
+        start_date = timezone.now() - timedelta(days=365)
+
+    tickets_by_period_qs = (
+        Ticket.objects.filter(created_at__gte=start_date)
+        .extra(select={'day': 'date(created_at)'})
+        .values('day')
+        .annotate(count=Count('id'))
+        .order_by('day')
+    )
+    tickets_by_period = []
+    for row in tickets_by_period_qs:
+        day = row['day']
+        tickets_by_period.append({
+            'day': day.isoformat() if hasattr(day, 'isoformat') else str(day),
+            'count': row['count'],
+        })
+
+    performer_stats_qs = (
+        Ticket.objects.filter(assigned_to__isnull=False, created_at__gte=start_date)
+        .values('assigned_to__username')
+        .annotate(
+            total=Count('id'),
+            resolved=Count('id', filter=Q(status__name='Решена')),
+            avg_rating=Avg('rating'),
+        )
+        .order_by('-total')
+    )
+    performer_stats = []
+    for row in performer_stats_qs:
+        ar = row['avg_rating']
+        performer_stats.append({
+            'assigned_to__username': row['assigned_to__username'] or '',
+            'total': row['total'],
+            'resolved': row['resolved'],
+            'avg_rating': round(float(ar), 1) if ar is not None else None,
+        })
+
+    resolved_tickets = Ticket.objects.filter(
+        status__name='Решена',
+        resolved_at__isnull=False,
+        created_at__gte=start_date,
+    )
+
+    avg_resolution_time = 0
+    if resolved_tickets.exists():
+        total_time = sum(
+            (t.resolved_at - t.created_at).total_seconds() / 3600
+            for t in resolved_tickets
+        )
+        avg_resolution_time = round(total_time / resolved_tickets.count(), 1)
+
+    avg_rating_result = Ticket.objects.filter(rating__isnull=False).aggregate(
+        avg_rating=Avg('rating')
+    )
+    avg_rating = round(float(avg_rating_result['avg_rating'] or 0), 1)
+
+    total_resolved = resolved_tickets.count()
+
+    return JsonResponse({
+        'period': period,
+        'tickets_by_period': tickets_by_period,
+        'performer_stats': performer_stats,
+        'avg_resolution_time': avg_resolution_time,
+        'avg_rating': avg_rating,
+        'total_resolved': total_resolved,
     })

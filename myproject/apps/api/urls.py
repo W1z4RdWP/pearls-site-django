@@ -114,4 +114,5 @@ urlpatterns = [
     path('tech_support/my/tickets/', tech_support_views.api_my_ticket_list, name='api_tech_support_my_ticket_list'),
     path('tech_support/tickets/', tech_support_views.api_ticket_list_staff, name='api_tech_support_ticket_list_staff'),
     path('tech_support/dashboard/', tech_support_views.api_staff_dashboard, name='api_tech_support_staff_dashboard'),
+    path('tech_support/reports/', tech_support_views.api_ticket_reports, name='api_tech_support_ticket_reports'),
 ]
