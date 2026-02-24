@@ -242,10 +242,6 @@ const CourseSidebar = ({
             <i className="fa fa-plus" aria-hidden="true" />
             <span className="course-sidebar__mini-btn-text">Добавить</span>
           </a>
-          <a href={`/courses/course/${course.slug}/create-lesson`} className="course-sidebar__mini-btn course-sidebar__mini-btn--add" title="Создать урок">
-            <i className="fa fa-file-text-o" aria-hidden="true" />
-            <span className="course-sidebar__mini-btn-text">Создать урок</span>
-          </a>
           {course.is_incident && incident ? (
             <>
               <a href="/builder/incidents/" className="course-sidebar__mini-btn">Инциденты</a>

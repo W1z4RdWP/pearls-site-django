@@ -1,0 +1,123 @@
+.category-tree-item {
+  margin-bottom: 0;
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.category-tree-item__header {
+  display: flex;
+  align-items: flex-start;
+  padding: 3px 16px;
+  background: transparent;
+  border-bottom: none;
+  margin-bottom: 3px;
+  min-height: 22px;
+  font-size: 0.98em;
+  line-height: 1.1;
+  cursor: pointer;
+  transition: border-color 0.2s ease, background-color 0.2s ease;
+}
+
+.category-tree-item__header:hover {
+  background-color: rgba(77, 124, 255, 0.08);
+  border-radius: 4px;
+}
+
+.category-tree-item__header--selected {
+  background: rgba(77, 124, 255, 0.12);
+  color: #232a3a;
+  border-radius: 6px;
+}
+
+.category-tree-item__title {
+  flex: 1;
+  font-weight: 500;
+  font-size: 1em;
+  color: #232a3a;
+  white-space: normal;
+  word-wrap: break-word;
+  padding-right: 8px;
+  line-height: 1.1;
+}
+
+.category-tree-item__arrow {
+  margin-left: 10px;
+  font-size: 1.1em;
+  font-weight: bold;
+  cursor: pointer;
+  user-select: none;
+  color: #888;
+  padding: 2px 6px;
+  display: inline-block;
+  min-width: 24px;
+  text-align: center;
+  line-height: 1;
+}
+
+.category-tree-item__arrow:hover {
+  color: #4d7cff;
+}
+
+.category-tree-item__lesson-list,
+.category-tree-item__subcategory-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  margin-left: 16px;
+  margin-top: 2px;
+}
+
+.category-tree-item__lesson {
+  display: flex;
+  align-items: center;
+  padding: 4px 12px;
+  margin-bottom: 2px;
+  font-size: 0.97em;
+  min-height: 24px;
+  line-height: 1.2;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+  border-radius: 4px;
+}
+
+.category-tree-item__lesson:hover {
+  background-color: rgba(77, 124, 255, 0.08);
+}
+
+.category-tree-item__lesson--selected {
+  background: #4d7cff;
+  color: #fff;
+}
+
+.category-tree-item__lesson-link {
+  flex: 1;
+  color: #9b9b9b;
+  text-decoration: none;
+  white-space: normal;
+  word-wrap: break-word;
+  padding-right: 8px;
+  line-height: 1.1;
+  font-size: calc(1em - 1px);
+}
+
+.category-tree-item__lesson--selected .category-tree-item__lesson-link {
+  color: #fff;
+}
+
+.category-tree-item__mirror-label {
+  color: #ff4d4f;
+  font-size: 0.9em;
+}
+
+.category-tree-item__lesson--selected .category-tree-item__mirror-label {
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.category-tree-item__highlight {
+  background-color: #fff3cd;
+  color: #856404;
+  padding: 1px 2px;
+  border-radius: 2px;
+  font-weight: bold;
+}

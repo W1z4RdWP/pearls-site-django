@@ -45,6 +45,18 @@
   transition: all 0.2s;
 }
 
+.materials-list__btn--add {
+  background: #6f42c1;
+  color: #fff;
+  border-color: #6f42c1;
+}
+
+.materials-list__btn--add:hover {
+  background: #5a32a3;
+  border-color: #5a32a3;
+  color: #fff;
+}
+
 .materials-list__btn--edit {
   background: #e9ecef;
   color: #495057;

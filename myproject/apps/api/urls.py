@@ -67,6 +67,7 @@ urlpatterns = [
     path('courses/lesson/<int:lesson_id>/edit/', courses_views.api_edit_lesson, name='api_courses_edit_lesson'),
     path('courses/course/<slug:slug>/edit/', courses_views.api_course_edit, name='api_courses_course_edit'),
     path('courses/course/<slug:slug>/create-lesson/', courses_views.api_create_lesson, name='api_courses_create_lesson'),
+    path('courses/course/<slug:slug>/add-lesson/', courses_views.api_add_lesson, name='api_courses_add_lesson'),
 
     # Builder/Quizzes — поиск для форм (create course и др.)
     path('builder/users/search/', api_search_users, name='api_builder_search_users'),

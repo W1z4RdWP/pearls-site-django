@@ -21,8 +21,9 @@ from courses.forms import CourseForm, LessonForm
 from courses.utils import get_user_certificates
 from courses.views import get_user_trajectories_queryset, get_trajectory_list_context
 from myapp.models import UserCourse, UserProgress, QuizResult
-from myapp.views import is_author_or_admin
-from quizzes.models import HomeworkSubmission
+from myapp.views import is_author_or_admin, is_admin
+from quizzes.models import HomeworkSubmission, Quiz, Homework
+from builder.models import CategoryName
 
 
 def _serialize_course_certificate(cert):
@@ -902,3 +903,134 @@ def api_course_edit(request, slug):
         'slug': course.slug,
         'redirect_url': reverse('courses:course_detail', kwargs={'slug': course.slug}),
     })
+
+
+# ---------------------------------------------------------------------------
+#  Add Lesson / Materials to Course (React — выбор существующих материалов)
+# ---------------------------------------------------------------------------
+
+def _add_lesson_get_categories_with_lessons():
+    """Дерево категорий с уроками для API add-lesson (как в AddLessonView)."""
+    categories = CategoryName.objects.filter(parent=None).prefetch_related(
+        'subcategories', 'lessons', 'mirrored_lessons__lesson'
+    ).order_by('order', 'name')
+
+    def process_category(cat):
+        lessons = list(cat.lessons.all())
+        for mirror in cat.mirrored_lessons.all():
+            if mirror.lesson not in lessons:
+                lessons.append(mirror.lesson)
+        subcategories = [process_category(subcat) for subcat in cat.subcategories.all()]
+        return {
+            'id': cat.id,
+            'name': cat.name,
+            'lessons': [
+                {
+                    'id': l.id,
+                    'title': l.title,
+                    'is_mirror': getattr(l, '_is_mirror', False),
+                    'mirror_id': getattr(l, '_mirror_id', None),
+                    'has_mirrors': getattr(l, '_has_mirrors', False),
+                    'category_id': cat.id,
+                }
+                for l in lessons
+            ],
+            'subcategories': subcategories,
+        }
+    return [process_category(cat) for cat in categories]
+
+
+@login_required
+@require_http_methods(['GET', 'POST'])
+def api_add_lesson(request, slug):
+    """API: GET — данные для модалки добавления материалов в курс; POST — добавление выбранных материалов."""
+    course = get_object_or_404(Course, slug=slug)
+    if not is_admin(request.user):
+        return JsonResponse({'error': 'Доступ разрешён только администраторам.'}, status=403)
+
+    if request.method == 'GET':
+        uncategorized = Lesson.objects.filter(category__isnull=True).order_by('order', 'title')
+        quizzes = Quiz.objects.all().order_by('name')
+        homeworks = Homework.objects.all().order_by('name')
+        return JsonResponse({
+            'course': {'id': course.id, 'title': course.title, 'slug': course.slug},
+            'categories_data': _add_lesson_get_categories_with_lessons(),
+            'uncategorized_lessons': [{'id': l.id, 'title': l.title} for l in uncategorized],
+            'all_quizzes': [{'id': q.id, 'name': q.name} for q in quizzes],
+            'all_homeworks': [{'id': h.id, 'title': h.title} for h in homeworks],
+        })
+
+    # POST — добавление выбранных материалов
+    try:
+        body = json.loads(request.body) if request.body else {}
+    except json.JSONDecodeError:
+        return JsonResponse({'error': 'Некорректный JSON'}, status=400)
+    raw = body.get('selected_items')
+    if raw is None:
+        return JsonResponse({'error': 'Укажите selected_items'}, status=400)
+    if isinstance(raw, list):
+        selected_items = [str(x).strip() for x in raw if x]
+    else:
+        selected_items = [x.strip() for x in str(raw).split(',') if x.strip()]
+
+    max_order = course.lessons.aggregate(Max('order'))['order__max'] or 0
+    current_order = max_order + 1
+
+    def get_all_lessons_in_category(category_id):
+        category = CategoryName.objects.get(id=category_id)
+        lessons = set(category.lessons.all())
+        lessons.update(mirror.lesson for mirror in category.mirrored_lessons.all())
+        for subcat in category.subcategories.all():
+            lessons.update(get_all_lessons_in_category(subcat.id))
+        return list(lessons)
+
+    def count_lessons_in_category(item_id):
+        cid = item_id.replace('category_', '')
+        lessons = get_all_lessons_in_category(cid)
+        return len([l for l in lessons if course not in l.courses.all()])
+
+    for item_id in selected_items:
+        if item_id.startswith('category_'):
+            cid = item_id.replace('category_', '')
+            lessons = get_all_lessons_in_category(cid)
+            for lesson in lessons:
+                if course not in lesson.courses.all():
+                    lesson.courses.add(course)
+                    lesson.order = current_order
+                    lesson.save()
+                    current_order += 1
+        elif item_id.startswith('lesson_'):
+            lid = item_id.replace('lesson_', '')
+            lesson = get_object_or_404(Lesson, id=lid)
+            if course not in lesson.courses.all():
+                lesson.courses.add(course)
+                lesson.order = current_order
+                lesson.save()
+                current_order += 1
+        elif item_id.startswith('uncategorized_'):
+            lid = item_id.replace('uncategorized_', '')
+            lesson = get_object_or_404(Lesson, id=lid)
+            if course not in lesson.courses.all():
+                lesson.courses.add(course)
+                lesson.order = current_order
+                lesson.save()
+                current_order += 1
+        elif item_id.startswith('quiz_'):
+            qid = item_id.replace('quiz_', '')
+            quiz = get_object_or_404(Quiz, id=qid)
+            if course not in quiz.courses.all():
+                quiz.courses.add(course)
+                quiz.order = current_order
+                quiz.save()
+                current_order += 1
+        elif item_id.startswith('homework_'):
+            hid = item_id.replace('homework_', '')
+            homework = get_object_or_404(Homework, id=hid)
+            if course not in homework.courses.all():
+                homework.courses.add(course)
+                homework.order = current_order
+                homework.save()
+                current_order += 1
+
+    redirect_url = reverse('courses:course_detail', kwargs={'slug': course.slug})
+    return JsonResponse({'success': True, 'redirect_url': redirect_url})

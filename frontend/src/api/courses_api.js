@@ -118,6 +118,28 @@ export function createLesson(slug, data) {
 }
 
 /**
+ * Данные для модалки/страницы добавления материалов в курс (категории, уроки без категории, тесты, задания).
+ * @param {string} slug — slug курса
+ * @returns {Promise<{ course: object, categories_data: Array, uncategorized_lessons: Array, all_quizzes: Array, all_homeworks: Array }>}
+ */
+export function fetchAddLessonData(slug) {
+  return request(`/courses/course/${encodeURIComponent(slug)}/add-lesson/`);
+}
+
+/**
+ * Добавить выбранные материалы в курс (уроки, категории, тесты, задания).
+ * @param {string} slug — slug курса
+ * @param {string[]} selectedItems — массив id вида 'category_1', 'lesson_2', 'quiz_3', 'homework_4', 'uncategorized_5'
+ * @returns {Promise<{ success: boolean, redirect_url: string }>}
+ */
+export function addLessonMaterials(slug, selectedItems) {
+  return request(`/courses/course/${encodeURIComponent(slug)}/add-lesson/`, {
+    method: 'POST',
+    body: JSON.stringify({ selected_items: selectedItems }),
+  });
+}
+
+/**
  * Данные страницы создания курса: группы, флаг is_incident.
  * @param {boolean} [isIncident=false]
  * @returns {Promise<{ groups: Array<{id: number, name: string}>, is_incident: boolean }>}

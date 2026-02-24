@@ -34,6 +34,7 @@ import CreateLessonPage from './components/CoursesApp/CreateLessonPage/CreateLes
 import CourseDetailPage from './components/CoursesApp/CourseDetailPage/CourseDetailPage';
 import EditCoursePage from './components/CoursesApp/EditCoursePage/EditCoursePage';
 import EditLessonPage from './components/CoursesApp/EditLessonPage/EditLessonPage';
+import AddLessonPage from './components/CoursesApp/AddLessonPage/AddLessonPage';
 
 const App = () => {
   return (
@@ -65,6 +66,7 @@ const App = () => {
           <Route path='/courses/create-course/' element={<CreateCoursePage />} />
           <Route path='/courses/course/:courseSlug/create-lesson' element={<CreateLessonPage />} />
           <Route path='/courses/course/:slug/edit' element={<EditCoursePage />} />
+          <Route path='/courses/course/:slug/add-lesson' element={<AddLessonPage />} />
           <Route path='/courses/course/:slug' element={<CourseDetailPage />} />
           <Route path='/courses/lesson/:lessonId/edit' element={<EditLessonPage />} />
 

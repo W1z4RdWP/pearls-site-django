@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom';
 import MaterialItem from '../MaterialItem/MaterialItem';
 import './MaterialsList.css';
 
@@ -9,14 +10,16 @@ const MaterialsList = ({ materials, isStaff, courseSlug, userCourseStatus, hasMa
           <h3 className="materials-list__title">Материалы курса</h3>
           <div className="materials-list__actions">
             {isStaff && (
-              <a
-                href={`/courses/course/${courseSlug}/reorder/`}
-                className="materials-list__btn materials-list__btn--edit"
-                title="Изменить порядок"
-              >
-                <i className="fa fa-sort" aria-hidden="true" />
-                <span className="materials-list__btn-text">Изменить порядок</span>
-              </a>
+              <>
+                <a
+                  href={`/courses/course/${courseSlug}/reorder/`}
+                  className="materials-list__btn materials-list__btn--edit"
+                  title="Изменить порядок"
+                >
+                  <i className="fa fa-sort" aria-hidden="true" />
+                  <span className="materials-list__btn-text">Изменить порядок</span>
+                </a>
+              </>
             )}
             {userCourseStatus === 'available' && !isStaff && (
               <button
