@@ -1,18 +1,25 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { fetchTicketListStaff } from '../../../api/tech_support_api';
 import './TicketListPage.css';
 
 const TicketListPage = () => {
+  const [searchParams] = useSearchParams();
   const [tickets, setTickets] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
+  const queryString = searchParams.toString();
+
   const loadTickets = useCallback(async () => {
     setLoading(true);
     setError(null);
+    const params = {};
+    searchParams.forEach((value, key) => {
+      params[key] = value;
+    });
     try {
-      const data = await fetchTicketListStaff();
+      const data = await fetchTicketListStaff(params);
       setTickets(data.tickets || []);
     } catch (err) {
       setError(err.message || 'Ошибка загрузки списка тикетов');
@@ -20,7 +27,7 @@ const TicketListPage = () => {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [queryString]);
 
   useEffect(() => {
     loadTickets();

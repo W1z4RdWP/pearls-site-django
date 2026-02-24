@@ -89,6 +89,12 @@ def _get_staff_ticket_queryset(request):
             qs = qs.filter(status__is_active=True, deadline__lt=timezone.now())
         else:
             qs = qs.filter(Q(title__icontains=s) | Q(description__icontains=s) | Q(ticket_number__icontains=s))
+    active_param = request.GET.get('active')
+    if active_param and str(active_param).lower() in ('1', 'true', 'yes'):
+        qs = qs.filter(status__is_active=True)
+    resolved_param = request.GET.get('resolved')
+    if resolved_param and str(resolved_param).lower() in ('1', 'true', 'yes'):
+        qs = qs.filter(status__name='Решена')
     date_from = request.GET.get('date_from')
     date_to = request.GET.get('date_to')
     start_dt = end_dt = None

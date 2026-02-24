@@ -46,6 +46,9 @@ const StaffDashboardPage = () => {
   const ticketsActiveChats = data?.status_in_progress_id
     ? `${ticketsLink}?status=${data.status_in_progress_id}`
     : ticketsLink;
+  const ticketsFilterActive = `${ticketsLink}?active=1`;
+  const ticketsFilterResolved = `${ticketsLink}?resolved=1`;
+  const ticketsFilterOverdue = `${ticketsLink}?search=просрочен`;
 
   if (loading) {
     return (
@@ -106,7 +109,7 @@ const StaffDashboardPage = () => {
 
         <section className="staff-dashboard-page__stats" aria-label="Статистика">
           <div className="staff-dashboard-page__stats-grid">
-            <div className="staff-dashboard-page__stats-card">
+            <Link to={ticketsLink} className="staff-dashboard-page__stats-card staff-dashboard-page__stats-card--link">
               <div className="staff-dashboard-page__stats-inner">
                 <div>
                   <div className="staff-dashboard-page__stats-number">{total_tickets}</div>
@@ -114,8 +117,8 @@ const StaffDashboardPage = () => {
                 </div>
                 <i className="fas fa-ticket-alt staff-dashboard-page__stats-icon" aria-hidden />
               </div>
-            </div>
-            <div className="staff-dashboard-page__stats-card staff-dashboard-page__stats-card--warning">
+            </Link>
+            <Link to={ticketsFilterActive} className="staff-dashboard-page__stats-card staff-dashboard-page__stats-card--warning staff-dashboard-page__stats-card--link">
               <div className="staff-dashboard-page__stats-inner">
                 <div>
                   <div className="staff-dashboard-page__stats-number">{active_tickets}</div>
@@ -123,8 +126,8 @@ const StaffDashboardPage = () => {
                 </div>
                 <i className="fas fa-clock staff-dashboard-page__stats-icon" aria-hidden />
               </div>
-            </div>
-            <div className="staff-dashboard-page__stats-card staff-dashboard-page__stats-card--success">
+            </Link>
+            <Link to={ticketsFilterResolved} className="staff-dashboard-page__stats-card staff-dashboard-page__stats-card--success staff-dashboard-page__stats-card--link">
               <div className="staff-dashboard-page__stats-inner">
                 <div>
                   <div className="staff-dashboard-page__stats-number">{resolved_tickets}</div>
@@ -132,8 +135,8 @@ const StaffDashboardPage = () => {
                 </div>
                 <i className="fas fa-check-circle staff-dashboard-page__stats-icon" aria-hidden />
               </div>
-            </div>
-            <div className="staff-dashboard-page__stats-card staff-dashboard-page__stats-card--info">
+            </Link>
+            <Link to={ticketsFilterOverdue} className="staff-dashboard-page__stats-card staff-dashboard-page__stats-card--info staff-dashboard-page__stats-card--link">
               <div className="staff-dashboard-page__stats-inner">
                 <div>
                   <div className="staff-dashboard-page__stats-number">{overdue_tickets}</div>
@@ -141,7 +144,7 @@ const StaffDashboardPage = () => {
                 </div>
                 <i className="fas fa-exclamation-triangle staff-dashboard-page__stats-icon" aria-hidden />
               </div>
-            </div>
+            </Link>
           </div>
         </section>
 
