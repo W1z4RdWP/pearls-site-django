@@ -37,3 +37,11 @@ export function fetchTicketListStaff(params = {}) {
   const query = searchParams.toString();
   return request(`/tech_support/tickets/${query ? `?${query}` : ''}`.trim());
 }
+
+/**
+ * Данные дашборда поддержки для staff.
+ * @returns {Promise<{ total_tickets, active_tickets, resolved_tickets, overdue_tickets, priority_stats, type_stats, avg_rating, recent_tickets, overdue_tickets_list, status_in_progress_id }>}
+ */
+export function fetchStaffDashboard() {
+  return request('/tech_support/dashboard/');
+}

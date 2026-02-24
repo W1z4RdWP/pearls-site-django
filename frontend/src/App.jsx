@@ -39,6 +39,7 @@ import AddLessonPage from './components/CoursesApp/AddLessonPage/AddLessonPage';
 import SupportChatPage from './components/TechSupportApp/SupportChatPage/SupportChatPage';
 import MyTicketListPage from './components/TechSupportApp/MyTicketListPage/MyTicketListPage';
 import TicketListPage from './components/TechSupportApp/TicketListPage/TicketListPage';
+import StaffDashboardPage from './components/TechSupportApp/StaffDashboardPage/StaffDashboardPage';
 
 const App = () => {
   return (
@@ -51,11 +52,8 @@ const App = () => {
           <Route path='/builder' element={<DashboardPage />}/>
           <Route path='/builder/content' element={<KnowledgeBasePage />}/>
           <Route path='/builder/trajectory-management' element={<TrajectoryManagementPage />}/>
-          <Route path='/builder/trajectory-management/' element={<TrajectoryManagementPage />}/>
           <Route path='/builder/courses' element={<CourseListPage />}/>
-          <Route path='/builder/courses/' element={<CourseListPage />}/>
           <Route path='/builder/add' element={<LessonFormPage />}/>
-          <Route path='/builder/add/' element={<LessonFormPage />}/>
           <Route path='/builder/add/:categoryId' element={<LessonFormPage />}/>
           <Route path='/builder/lesson/:pk/edit' element={<LessonFormPage />}/>
 
@@ -71,7 +69,6 @@ const App = () => {
           <Route path='/courses/trajectories' element={<UserTrajectoryListPage />} />
           <Route path='/courses/user-certificates' element={<UserCertificatesPage />} />
           <Route path='/courses/create-course' element={<CreateCoursePage />} />
-          <Route path='/courses/create-course/' element={<CreateCoursePage />} />
           <Route path='/courses/course/:courseSlug/create-lesson' element={<CreateLessonPage />} />
           <Route path='/courses/course/:slug/edit' element={<EditCoursePage />} />
           <Route path='/courses/course/:slug/add-lesson' element={<AddLessonPage />} />
@@ -90,12 +87,11 @@ const App = () => {
           <Route path='/messenger/chat/room/:roomId' element={<ChatRoomPage />}/>
 
           {/* tech support */}
+          <Route path='/tech_support/dashboard' element={<StaffDashboardPage />} />
+          <Route path='/tech_support/dashboard/' element={<StaffDashboardPage />} />
           <Route path='/tech_support/chat' element={<SupportChatPage />}/>
-          {/* <Route path='/tech_support/chat/' element={<SupportChatPage />}/> */}
           <Route path='/tech_support/my/tickets' element={<MyTicketListPage />} />
-          {/* <Route path='/tech_support/my/tickets/' element={<MyTicketListPage />} /> */}
           <Route path='/tech_support/tickets' element={<TicketListPage />} />
-          <Route path='/tech_support/tickets/' element={<TicketListPage />} />
 
           {/* user management */}
           <Route path='/user_management/users' element={<UserListPage />} />
