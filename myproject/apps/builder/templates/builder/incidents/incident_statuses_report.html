@@ -13,15 +13,19 @@
     </div>
     
     <!-- Форма выбора диапазона дат -->
-    <form method="get" class="mb-3">
+    <form method="get" class="mb-3" id="incident-statuses-report-form">
         <div class="row g-2 align-items-end">
-            <div class="col-md-auto">
-                <!-- <label for="date_from" class="form-label mb-1">С:</label> -->
-                <input type="date" class="form-control date-input-compact" id="date_from" name="date_from" value="{{ date_from }}" />
-            </div>
-            <div class="col-md-auto">
-                <!-- <label for="date_to" class="form-label mb-1">По:</label> -->
-                <input type="date" class="form-control date-input-compact" id="date_to" name="date_to" value="{{ date_to }}" />
+            <div class="col-md-auto d-flex align-items-center gap-1" id="date-filter-wrap">
+                <div>
+                    <input type="date" class="form-control date-input-compact" id="date_from" name="date_from" value="{{ date_from }}" />
+                </div>
+                <div>
+                    <input type="date" class="form-control date-input-compact" id="date_to" name="date_to" value="{{ date_to }}" />
+                </div>
+                <div class="date-quick-buttons d-flex flex-column gap-1">
+                    <button type="button" class="btn btn-sm btn-outline-secondary date-quick-btn" id="date-btn-last-week" title="Инциденты за прошлую неделю">-1нед.</button>
+                    <button type="button" class="btn btn-sm btn-outline-secondary date-quick-btn" id="date-btn-reset" title="Весь период, сбросить фильтр по дате">&lt;-&gt;</button>
+                </div>
             </div>
 
             <!-- Фильтр по подразделению -->
@@ -86,6 +90,7 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+    const form = document.getElementById('incident-statuses-report-form');
     const dateFrom = document.getElementById('date_from');
     const dateTo = document.getElementById('date_to');
     if (!dateFrom || !dateTo) return;
@@ -114,6 +119,62 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
     applyMinDateTo();
+
+    function updateDateFilterAppliedState() {
+        const btnLastWeek = document.getElementById('date-btn-last-week');
+        const btnReset = document.getElementById('date-btn-reset');
+        [btnLastWeek, btnReset].forEach(function(btn) {
+            if (btn) btn.classList.remove('date-quick-btn-active');
+        });
+        const params = new URLSearchParams(window.location.search);
+        const dateFromVal = params.get('date_from') || '';
+        const dateToVal = params.get('date_to') || '';
+        if (!dateFromVal && !dateToVal) {
+            if (btnReset) btnReset.classList.add('date-quick-btn-active');
+            return;
+        }
+        var today = new Date();
+        var todayStr = today.toISOString().split('T')[0];
+        var weekAgo = new Date(today);
+        weekAgo.setDate(weekAgo.getDate() - 7);
+        var weekAgoStr = weekAgo.toISOString().split('T')[0];
+        if (dateFromVal === weekAgoStr && dateToVal === todayStr && btnLastWeek) {
+            btnLastWeek.classList.add('date-quick-btn-active');
+        }
+    }
+    updateDateFilterAppliedState();
+
+    // Кнопка «-1нед.» — последние 7 дней
+    var btnLastWeek = document.getElementById('date-btn-last-week');
+    if (btnLastWeek && form) {
+        btnLastWeek.addEventListener('click', function() {
+            var today = new Date();
+            var dateToVal = new Date(today);
+            var dateFromVal = new Date(today);
+            dateFromVal.setDate(dateFromVal.getDate() - 7);
+            dateFrom.value = dateFromVal.toISOString().split('T')[0];
+            dateTo.value = dateToVal.toISOString().split('T')[0];
+            dateTo.min = dateFrom.value;
+            form.submit();
+        });
+    }
+
+    // Кнопка «<-->» — сброс фильтра по дате
+    var btnResetDate = document.getElementById('date-btn-reset');
+    if (btnResetDate && form) {
+        btnResetDate.addEventListener('click', function() {
+            dateFrom.value = '';
+            dateFrom.removeAttribute('min');
+            dateTo.value = '';
+            dateTo.removeAttribute('min');
+            var params = new URLSearchParams(new FormData(form));
+            params.delete('date_from');
+            params.delete('date_to');
+            var baseUrl = "{% url 'builder:incident_statuses_report' %}";
+            var query = params.toString();
+            window.location.href = query ? baseUrl + '?' + query : baseUrl;
+        });
+    }
 });
 </script>
 {% endblock %}
