@@ -71,6 +71,30 @@
   cursor: pointer;
 }
 
+/* Кнопки быстрого выбора периода по дате (инциденты) */
+#date-filter-wrap {
+  flex-wrap: nowrap;
+}
+#date-filter-wrap > div:not(.date-quick-buttons) {
+  min-width: 8.5rem;
+}
+.date-quick-buttons {
+  flex-shrink: 0;
+}
+.date-quick-buttons .date-quick-btn {
+  padding: 2px 6px;
+  font-size: 0.7rem;
+  line-height: 1.2;
+  min-height: unset;
+  white-space: nowrap;
+}
+/* Выделение только активной кнопки быстрого фильтра */
+.date-quick-buttons .date-quick-btn.date-quick-btn-active {
+  border-color: var(--incidents-doc-link);
+  color: var(--incidents-doc-link);
+  background-color: #f0f5ff;
+}
+
 .table th, .table td {
   vertical-align: middle !important;
   font-size: var(--incidents-table-th-font-size);

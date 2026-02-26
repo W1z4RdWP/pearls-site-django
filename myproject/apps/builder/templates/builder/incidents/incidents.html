@@ -13,11 +13,17 @@
         <form method="get" id="incidents-filter-form" class="mb-4">
             <div class="row mb-2 g-2 align-items-center">
                 <!-- Фильтр по дате -->
-                <div class="col-md-3 col-lg-2">
-                    <input type="date" class="form-control date-input-compact" id="date_from" name="date_from" value="{{ date_from }}">
-                </div>
-                <div class="col-md-3 col-lg-2">
-                    <input type="date" class="form-control date-input-compact" id="date_to" name="date_to" value="{{ date_to }}">
+                <div class="col-md-auto d-flex align-items-center gap-1" id="date-filter-wrap">
+                    <div>
+                        <input type="date" class="form-control date-input-compact" id="date_from" name="date_from" value="{{ date_from }}">
+                    </div>
+                    <div>
+                        <input type="date" class="form-control date-input-compact" id="date_to" name="date_to" value="{{ date_to }}">
+                    </div>
+                    <div class="date-quick-buttons d-flex flex-column gap-1">
+                        <button type="button" class="btn btn-sm btn-outline-secondary date-quick-btn" id="date-btn-last-week" title="Инциденты за прошлую неделю">-1нед.</button>
+                        <button type="button" class="btn btn-sm btn-outline-secondary date-quick-btn" id="date-btn-reset" title="Весь период, сбросить фильтр по дате">&lt;-&gt;</button>
+                    </div>
                 </div>
                 <!-- Фильтр по типу -->
                 <div class="col-md-3 col-lg-2">
@@ -30,7 +36,7 @@
                 </div>
                 {% if not readonly %}
                     <!-- Кнопка добавления -->
-                    <div class="col-md-3 col-lg-6 text-end">
+                    <div class="col-md-3 col-lg-6 text-end ms-auto">
                         <a href="{% url 'builder:incidents_export_excel_report' %}" class="btn btn-outline-success">
                             <i class="fas fa-file-excel me-1"></i>Excel
                         </a>
@@ -404,12 +410,69 @@ function initDateRangeValidation() {
     applyMinDateTo();
 }
 
+function updateDateFilterAppliedState() {
+    const btnLastWeek = document.getElementById('date-btn-last-week');
+    const btnReset = document.getElementById('date-btn-reset');
+    [btnLastWeek, btnReset].forEach(function(btn) {
+        if (btn) btn.classList.remove('date-quick-btn-active');
+    });
+    const params = new URLSearchParams(window.location.search);
+    const dateFrom = params.get('date_from') || '';
+    const dateTo = params.get('date_to') || '';
+    if (!dateFrom && !dateTo) {
+        if (btnReset) btnReset.classList.add('date-quick-btn-active');
+        return;
+    }
+    var today = new Date();
+    var todayStr = today.toISOString().split('T')[0];
+    var weekAgo = new Date(today);
+    weekAgo.setDate(weekAgo.getDate() - 7);
+    var weekAgoStr = weekAgo.toISOString().split('T')[0];
+    if (dateFrom === weekAgoStr && dateTo === todayStr && btnLastWeek) {
+        btnLastWeek.classList.add('date-quick-btn-active');
+    }
+}
+
 document.addEventListener('DOMContentLoaded', function() {
     const statusCheckboxes = document.querySelectorAll('.status-checkbox');
     const dateFromInput = document.getElementById('date_from');
     const dateToInput = document.getElementById('date_to');
+    const form = document.getElementById('incidents-filter-form');
 
     initDateRangeValidation();
+    updateDateFilterAppliedState();
+
+    // Кнопка «-1нед.» — прошлая неделя (последние 7 дней)
+    const btnLastWeek = document.getElementById('date-btn-last-week');
+    if (btnLastWeek && form) {
+        btnLastWeek.addEventListener('click', function() {
+            const today = new Date();
+            const dateTo = new Date(today);
+            const dateFrom = new Date(today);
+            dateFrom.setDate(dateFrom.getDate() - 7);
+            dateFromInput.value = dateFrom.toISOString().split('T')[0];
+            dateToInput.value = dateTo.toISOString().split('T')[0];
+            dateToInput.min = dateFromInput.value;
+            form.submit();
+        });
+    }
+
+    // Кнопка «<-->» — сброс фильтра по дате, весь период
+    const btnResetDate = document.getElementById('date-btn-reset');
+    if (btnResetDate && form) {
+        btnResetDate.addEventListener('click', function() {
+            dateFromInput.value = '';
+            dateFromInput.removeAttribute('min');
+            dateToInput.value = '';
+            dateToInput.removeAttribute('min');
+            const params = new URLSearchParams(new FormData(form));
+            params.delete('date_from');
+            params.delete('date_to');
+            const baseUrl = "{% url 'builder:incidents' %}";
+            const query = params.toString();
+            window.location.href = query ? baseUrl + '?' + query : baseUrl;
+        });
+    }
 
     // Статусы, которые нужно блокировать при выборе завершен/отклонен
     const blockedStatuses = ['new', 'accepted', 'assigned', 'studies_completed'];
