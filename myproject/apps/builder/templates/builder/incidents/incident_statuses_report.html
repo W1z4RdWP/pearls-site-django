@@ -83,4 +83,37 @@
         </table>
     </div>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const dateFrom = document.getElementById('date_from');
+    const dateTo = document.getElementById('date_to');
+    if (!dateFrom || !dateTo) return;
+
+    function applyMinDateTo() {
+        if (dateFrom.value) {
+            dateTo.min = dateFrom.value;
+            if (dateTo.value && dateTo.value < dateFrom.value) {
+                dateTo.value = dateFrom.value;
+            }
+        } else {
+            dateTo.removeAttribute('min');
+        }
+    }
+
+    dateFrom.addEventListener('change', applyMinDateTo);
+    dateFrom.addEventListener('input', applyMinDateTo);
+    dateTo.addEventListener('change', function() {
+        if (dateFrom.value && dateTo.value && dateTo.value < dateFrom.value) {
+            dateTo.value = dateFrom.value;
+        }
+    });
+    dateTo.addEventListener('input', function() {
+        if (dateFrom.value && dateTo.value && dateTo.value < dateFrom.value) {
+            dateTo.value = dateFrom.value;
+        }
+    });
+    applyMinDateTo();
+});
+</script>
 {% endblock %}

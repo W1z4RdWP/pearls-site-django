@@ -373,11 +373,44 @@ function initTableSorting() {
     });
 }
 
+function initDateRangeValidation() {
+    const dateFrom = document.getElementById('date_from');
+    const dateTo = document.getElementById('date_to');
+    if (!dateFrom || !dateTo) return;
+
+    function applyMinDateTo() {
+        if (dateFrom.value) {
+            dateTo.min = dateFrom.value;
+            if (dateTo.value && dateTo.value < dateFrom.value) {
+                dateTo.value = dateFrom.value;
+            }
+        } else {
+            dateTo.removeAttribute('min');
+        }
+    }
+
+    dateFrom.addEventListener('change', applyMinDateTo);
+    dateFrom.addEventListener('input', applyMinDateTo);
+    dateTo.addEventListener('change', function() {
+        if (dateFrom.value && dateTo.value && dateTo.value < dateFrom.value) {
+            dateTo.value = dateFrom.value;
+        }
+    });
+    dateTo.addEventListener('input', function() {
+        if (dateFrom.value && dateTo.value && dateTo.value < dateFrom.value) {
+            dateTo.value = dateFrom.value;
+        }
+    });
+    applyMinDateTo();
+}
+
 document.addEventListener('DOMContentLoaded', function() {
     const statusCheckboxes = document.querySelectorAll('.status-checkbox');
     const dateFromInput = document.getElementById('date_from');
     const dateToInput = document.getElementById('date_to');
-    
+
+    initDateRangeValidation();
+
     // Статусы, которые нужно блокировать при выборе завершен/отклонен
     const blockedStatuses = ['new', 'accepted', 'assigned', 'studies_completed'];
     const completedStatuses = ['resolved', 'declined'];
@@ -401,7 +434,8 @@ document.addEventListener('DOMContentLoaded', function() {
             
             dateFromInput.value = dateFrom.toISOString().split('T')[0];
             dateToInput.value = dateTo.toISOString().split('T')[0];
-            
+            dateToInput.min = dateFromInput.value;
+
             // Блокируем чекбоксы для новых, принятых, назначенных
             statusCheckboxes.forEach(checkbox => {
                 if (blockedStatuses.includes(checkbox.value)) {
@@ -433,6 +467,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 const today = new Date();
                 dateToInput.value = today.toISOString().split('T')[0];
                 dateFromInput.value = '2025-01-01';
+                dateToInput.min = dateFromInput.value;
             }
         }
     }
