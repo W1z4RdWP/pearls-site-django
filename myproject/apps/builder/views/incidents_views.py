@@ -1,7 +1,9 @@
 from datetime import datetime, timedelta
+from django.contrib import messages
 from django.contrib.auth import login
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import Group, User
+from django.core.cache import cache
 from django.db.models import Count, Q, F
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
@@ -30,15 +32,65 @@ logger = logging.getLogger(__name__)
 audit_logger = logging.getLogger('audit')
 
 
+# Время жизни кэша страниц инцидентов (секунды)
+INCIDENTS_PAGE_CACHE_TIMEOUT = 3600  # 60 минут
+
+
+def _get_user_cache_version(user_id: int) -> int:
+    """
+    Возвращает текущую версию кэша для пользователя.
+    Используется для namespacing ключей кэша, чтобы можно было «очищать» кэш,
+    просто увеличивая версию.
+    """
+    return cache.get(f"user_cache_version:{user_id}", 1)
+
+
+@login_required
+def clear_user_cache(request):
+    """
+    Сбрасывает версию кэша для текущего пользователя.
+    Все старые записи с предыдущей версией перестают использоваться.
+    """
+    user_id = request.user.pk
+    version_key = f"user_cache_version:{user_id}"
+    current_version = cache.get(version_key, 1)
+    cache.set(version_key, current_version + 1, None)
+
+    messages.success(request, "Кэш страниц для вашего профиля был очищен.")
+
+    redirect_url = request.META.get("HTTP_REFERER") or reverse("home")
+    return redirect(redirect_url)
+
 
 class IncidentListView(ListView):
     """
     Список инцидентов с фильтрацией и быстрым просмотром.
+    Ответ кэшируется по пользователю и полному URL (включая GET-параметры).
     """
     model = Incident
     template_name = 'builder/incidents/incidents.html'
     context_object_name = 'incidents'
     ordering = ['-created_at']
+
+    def get(self, request, *args, **kwargs):
+        if request.user.is_authenticated:
+            user_part = request.user.pk
+            version = _get_user_cache_version(user_part)
+            cache_key = f"incidents_page:user_{user_part}:v{version}:{request.get_full_path()}"
+        else:
+            user_part = 'anon'
+            cache_key = f"incidents_page:user_{user_part}:{request.get_full_path()}"
+        cached_content = cache.get(cache_key)
+        if cached_content is not None:
+            return HttpResponse(cached_content, content_type='text/html; charset=utf-8')
+
+        response = super().get(request, *args, **kwargs)
+        if response.status_code == 200:
+            content_type = response.get('Content-Type', '')
+            if content_type.startswith('text/html'):
+                response.render()  # TemplateResponse рендерится лениво — нужен явный render()
+                cache.set(cache_key, response.content, timeout=INCIDENTS_PAGE_CACHE_TIMEOUT)
+        return response
 
     def dispatch(self, request, *args, **kwargs):
         # Только staff/superuser
@@ -986,12 +1038,33 @@ class CreateCourseFromIncidentView(View):
 
 class IncidentDetailListView(ListView):
     """
-    Список по прогрессу пользователей по всем инцидентам
+    Список по прогрессу пользователей по всем инцидентам.
+    Ответ кэшируется по пользователю и полному URL (включая GET-параметры).
     """
     model = Incident
     template_name = 'builder/incidents/incident_detail.html'
     context_object_name = 'incidents'
     ordering = ['-created_at']
+
+    def get(self, request, *args, **kwargs):
+        if request.user.is_authenticated:
+            user_part = request.user.pk
+            version = _get_user_cache_version(user_part)
+            cache_key = f"incident_detail_page:user_{user_part}:v{version}:{request.get_full_path()}"
+        else:
+            user_part = 'anon'
+            cache_key = f"incident_detail_page:user_{user_part}:{request.get_full_path()}"
+        cached_content = cache.get(cache_key)
+        if cached_content is not None:
+            return HttpResponse(cached_content, content_type='text/html; charset=utf-8')
+
+        response = super().get(request, *args, **kwargs)
+        if response.status_code == 200:
+            content_type = response.get('Content-Type', '')
+            if content_type.startswith('text/html'):
+                response.render()
+                cache.set(cache_key, response.content, timeout=INCIDENTS_PAGE_CACHE_TIMEOUT)
+        return response
 
     def dispatch(self, request, *args, **kwargs):
         if not request.user.is_authenticated or not (request.user.is_staff or request.user.is_superuser or request.user.profile.is_mentor_user):

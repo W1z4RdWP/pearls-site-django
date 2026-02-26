@@ -35,12 +35,12 @@ DATABASES = {
 #     }
 # }
 
-CACHES = {
-    'default': {
-        'BACKEND': 'django.core.cache.backends.filebased.FileBasedCache',
-        'LOCATION': '/tmp/django_cache'
-    }
-}
+# CACHES = {
+#     'default': {
+#         'BACKEND': 'django.core.cache.backends.filebased.FileBasedCache',
+#         'LOCATION': '/tmp/django_cache'
+#     }
+# }
 
 
 # CACHE_MIDDLEWARE_ALIAS  = 'default' # cache alias

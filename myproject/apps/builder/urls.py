@@ -24,7 +24,7 @@ from builder.views.categories_views import (
 from builder.views.incidents_views import (
                     CreateCourseFromIncidentView, IncidentDeclineView, IncidentDetailListView, 
                     IncidentListView, IncidentCreateView, IncidentStatusesReportView, IncidentUpdateView, UnassignIncidentUserView, 
-                    incidents_export_excel_report
+                    clear_user_cache, incidents_export_excel_report
                 )
 from builder.views.ipr_views import (
                     IPRCreateView, IPRListView, IPRModuleCompleteView, IPRModuleCreateView, IPRModuleDetailView, 
@@ -81,6 +81,7 @@ urlpatterns = [
     path('incidents/statuses-report/', IncidentStatusesReportView.as_view(), name='incident_statuses_report'),
     path('incidents/<int:incident_id>/unassign-user/<int:user_id>/', UnassignIncidentUserView.as_view(), name='incident_unassign_user'),
     path('incident/export_excel_report/', incidents_export_excel_report, name='incidents_export_excel_report'),
+    path('incidents/clear-user-cache/', clear_user_cache, name='clear_user_cache'),
 
     # Поиск/реордеры/клипборд
     path('search/', ajax_search_tree, name='search_tree'),
