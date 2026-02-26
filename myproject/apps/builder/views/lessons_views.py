@@ -1,23 +1,25 @@
 import json
 
+from django.core.cache import cache
 from django.db.models import Max
 from django.shortcuts import get_object_or_404, render, redirect
 from django.urls import reverse, reverse_lazy
 from django.utils.decorators import method_decorator
 from django.contrib.auth.decorators import login_required
 from django.views.generic import CreateView, DeleteView, ListView, TemplateView, UpdateView
+from django.contrib import messages
+from django.http import HttpResponse, JsonResponse
 
 from builder.audit_logger import AuditLoggerMixin, log_actualize, log_create, serialize_model_data
 from builder.models import CategoryName, DictionarySection, LessonVersion, LessonDraft
 from builder.utils import (filter_categories_and_lessons_for_user, get_category_tree_data, 
                             get_compact_fio, get_responsible_user_for_lesson, user_has_category_access)
+from builder.views.incidents_views import _get_user_cache_version, INCIDENTS_PAGE_CACHE_TIMEOUT
 from courses.models import Lesson, UserLessonTrajectory
 from myapp.models import UserCourse
 from users.models import Role
 from courses.forms import LessonForm
 from builder.forms import LessonDraftForm
-from django.contrib import messages
-from django.http import JsonResponse
 import difflib
 from html import escape
 
@@ -170,14 +172,17 @@ class LessonMasterDetailView(TemplateView):
             context['today'] = None
             context['user_is_responsible_for_lesson'] = False
         return context
-
+    
     def get(self, request, *args, **kwargs):
-        context = self.get_context_data(**kwargs)
+        """
+        GET:
+        - При ?ajax=1 отдаёт detail-блок урока (без кэширования).
+        - В остальных случаях кэширует полный HTML главной страницы БЗ по пользователю, версии и полному URL.
+        """
+        # AJAX-блок детализации урока — НЕ кэшируем, всегда собираем свежий контекст
         if request.GET.get('ajax') == '1':
             from django.template.loader import render_to_string
-            from django.http import HttpResponse
-            import json
-            # detail-блок для AJAX: передаём lesson=selected_lesson, lesson_versions
+            context = self.get_context_data(**kwargs)
             ajax_context = {
                 'lesson': context.get('selected_lesson'),
                 'lesson_versions': context.get('lesson_versions'),
@@ -194,8 +199,30 @@ class LessonMasterDetailView(TemplateView):
                 'user_is_responsible_for_lesson': context.get('user_is_responsible_for_lesson', False),
                 'pending_draft': context.get('pending_draft'),
             }
-            return HttpResponse(render_to_string('builder/includes/_lesson_detail_block.html', ajax_context, request=request))
-        return self.render_to_response(context)
+            return HttpResponse(
+                render_to_string('builder/includes/_lesson_detail_block.html', ajax_context, request=request)
+            )
+
+        # Полная страница БЗ — кэшируем по пользователю, версии и полному URL
+        if request.user.is_authenticated:
+            user_id = request.user.pk
+            version = _get_user_cache_version(user_id)
+            cache_key = f"lesson_master_page:user_{user_id}:v{version}:{request.get_full_path()}"
+        else:
+            cache_key = f"lesson_master_page:user_anon:{request.get_full_path()}"
+
+        cached_content = cache.get(cache_key)
+        if cached_content is not None:
+            return HttpResponse(cached_content, content_type='text/html; charset=utf-8')
+
+        # Кэш-мисс: рендерим страницу и сохраняем HTML в кэш
+        response = super().get(request, *args, **kwargs)
+        if response.status_code == 200:
+            content_type = response.get('Content-Type', '')
+            if content_type.startswith('text/html'):
+                response.render()
+                cache.set(cache_key, response.content, timeout=INCIDENTS_PAGE_CACHE_TIMEOUT)
+        return response
 
 
 
