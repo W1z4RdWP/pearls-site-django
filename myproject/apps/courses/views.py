@@ -9,6 +9,7 @@ from django.contrib.auth.decorators import login_required, user_passes_test
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.views.decorators.http import require_POST, require_http_methods
 from django.http import JsonResponse, HttpResponse, HttpRequest, HttpResponseForbidden
+from django.core.cache import cache
 from django.template.loader import render_to_string
 from weasyprint import HTML
 from datetime import datetime, timedelta
@@ -23,6 +24,7 @@ from django.utils.decorators import method_decorator
 from gamification.utils import award_dascoin_points, award_course_badge, award_trajectory_badge, award_first_lesson_badge
 from .utils import issue_certificate, get_user_certificates
 from quizzes.models import Quiz, HomeworkSubmission
+from builder.views.incidents_views import _get_user_cache_version, INCIDENTS_PAGE_CACHE_TIMEOUT
 
 
 
@@ -1805,6 +1807,30 @@ class UserCourseTrajectoryListView(ListView):
     model = UserCourseTrajectory
     template_name = 'courses/user_course_trajectory_list.html'
     context_object_name = 'user_trajectories'
+
+    def get(self, request, *args, **kwargs):
+        """
+        Кэширует полный HTML-ответ страницы со списком траекторий и прогрессом по курсам.
+        Ключ кэша зависит от пользователя, версии кэша и полного URL (включая GET-параметры).
+        """
+        if request.user.is_authenticated:
+            user_id = request.user.pk
+            version = _get_user_cache_version(user_id)
+            cache_key = f"user_course_trajectory_list_page:user_{user_id}:v{version}:{request.get_full_path()}"
+        else:
+            cache_key = f"user_course_trajectory_list_page:user_anon:{request.get_full_path()}"
+
+        cached_content = cache.get(cache_key)
+        if cached_content is not None:
+            return HttpResponse(cached_content, content_type='text/html; charset=utf-8')
+
+        response = super().get(request, *args, **kwargs)
+        if response.status_code == 200:
+            content_type = response.get('Content-Type', '')
+            if content_type.startswith('text/html'):
+                response.render()
+                cache.set(cache_key, response.content, timeout=INCIDENTS_PAGE_CACHE_TIMEOUT)
+        return response
 
     def get_queryset(self):
         user = self.request.user
