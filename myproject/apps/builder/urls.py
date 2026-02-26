@@ -17,7 +17,7 @@ from builder.views.lessons_views import (
                     LessonDraftHistoryListView, LessonDraftHistoryDetailView
 )
 from builder.views.categories_views import (
-                    CategoryCreateView, CategoryDeleteView, CategoryListView, CategoryUpdateView, 
+                    CategoryDeleteView, CategoryListView, 
                     ajax_add_root_category, ajax_add_subcategory, 
                     ajax_rename_category, reorder_categories
 )
@@ -65,8 +65,6 @@ urlpatterns = [
 
     # Категории
     path('categories/', CategoryListView.as_view(), name='category_list'),
-    path('categories/add/', CategoryCreateView.as_view(), name='category_add'),
-    path('categories/<int:pk>/edit/', CategoryUpdateView.as_view(), name='category_edit'),
     path('categories/<int:pk>/delete/', CategoryDeleteView.as_view(), name='category_delete'),
     path('categories/ajax_add_root/', ajax_add_root_category, name='category_ajax_add_root'),
     path('categories/ajax_add_sub/', ajax_add_subcategory, name='category_ajax_add_sub'),
@@ -74,7 +72,6 @@ urlpatterns = [
     path('categories/reorder/', reorder_categories, name='reorder_categories'),
 
     # Документы и инциденты
-    # path('documents/', views.DocumentListView.as_view(), name='documents'),
     path('incidents/', IncidentListView.as_view(), name='incidents'),
     path('incidents/add/', IncidentCreateView.as_view(), name='incident_add'),
     path('incidents/<int:pk>/edit/', IncidentUpdateView.as_view(), name='incident_edit'),

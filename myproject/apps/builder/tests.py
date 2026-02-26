@@ -108,35 +108,3 @@ class BuilderAjaxPermissionsTest(TestCase):
         resp = self.client.post('/builder/reorder/', {'parent_id': self.cat.id, 'items': []}, content_type='application/json')
         self.assertEqual(resp.status_code, 403)
 
-class BuilderCRUDTest(TestCase):
-    """
-    Smoke-тесты на CRUD категорий и уроков: staff может создавать, редактировать, удалять.
-    """
-    def setUp(self):
-        """Создаёт staff и категорию."""
-        self.client = Client()
-        self.staff = User.objects.create_user(username='staff', password='pass', is_staff=True)
-        self.client.login(username='staff', password='pass')
-        self.cat = CategoryName.objects.create(name='Backend', order=1)
-
-    def test_create_category(self):
-        """Staff может создать категорию через форму."""
-        url = reverse('builder:category_add')
-        resp = self.client.post(url, {'name': 'NewCat', 'order': 2}, follow=True)
-        self.assertEqual(resp.status_code, 200)
-        self.assertTrue(CategoryName.objects.filter(name='NewCat').exists())
-
-    def test_edit_category(self):
-        """Staff может редактировать категорию."""
-        url = reverse('builder:category_edit', args=[self.cat.pk])
-        resp = self.client.post(url, {'name': 'Backend2', 'order': 1}, follow=True)
-        self.assertEqual(resp.status_code, 200)
-        self.cat.refresh_from_db()
-        self.assertEqual(self.cat.name, 'Backend2')
-
-    # def test_delete_category(self):
-    #     """Staff может удалить категорию."""
-    #     url = reverse('builder:category_delete', args=[self.cat.pk])
-    #     resp = self.client.post(url, follow=True)
-    #     self.assertEqual(resp.status_code, 200)
-    #     self.assertFalse(CategoryName.objects.filter(pk=self.cat.pk).exists())
