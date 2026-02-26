@@ -312,7 +312,7 @@
             <!-- Дублированный логотип для мобильных устройств -->
             <img src="{% static 'global/imgs/logo_light_theme.png' %}" alt="Logo" class='footer-logo-mobile' id="footerlogomobile">
             {% if user.is_authenticated %}
-            <form action="{% url 'builder:clear_user_cache' %}" method="post" class="d-inline-block ml-3">
+            <form action="{% url 'clear_user_cache' %}" method="post" class="d-inline-block ml-3">
                 {% csrf_token %}
                 <button type="submit" class="btn btn-sm btn-outline-dark">
                     Сбросить кэш страниц

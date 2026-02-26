@@ -45,21 +45,21 @@ def _get_user_cache_version(user_id: int) -> int:
     return cache.get(f"user_cache_version:{user_id}", 1)
 
 
-@login_required
-def clear_user_cache(request):
-    """
-    Сбрасывает версию кэша для текущего пользователя.
-    Все старые записи с предыдущей версией перестают использоваться.
-    """
-    user_id = request.user.pk
-    version_key = f"user_cache_version:{user_id}"
-    current_version = cache.get(version_key, 1)
-    cache.set(version_key, current_version + 1, None)
+# @login_required
+# def clear_user_cache(request):
+#     """
+#     Сбрасывает версию кэша для текущего пользователя.
+#     Все старые записи с предыдущей версией перестают использоваться.
+#     """
+#     user_id = request.user.pk
+#     version_key = f"user_cache_version:{user_id}"
+#     current_version = cache.get(version_key, 1)
+#     cache.set(version_key, current_version + 1, None)
 
-    messages.success(request, "Кэш страниц для вашего профиля был очищен.")
+#     messages.success(request, "Кэш страниц для вашего профиля был очищен.")
 
-    redirect_url = request.META.get("HTTP_REFERER") or reverse("home")
-    return redirect(redirect_url)
+#     redirect_url = request.META.get("HTTP_REFERER") or reverse("home")
+#     return redirect(redirect_url)
 
 
 class IncidentListView(ListView):
