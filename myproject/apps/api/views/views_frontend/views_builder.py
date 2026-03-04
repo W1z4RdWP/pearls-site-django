@@ -19,7 +19,7 @@ from myapp.models import UserCourse
 from quizzes.models import Quiz
 from users.models import Role
 from builder.models import CategoryName, LessonVersion, LessonDraft, DictionarySection, LessonCategoryMirror
-from builder.audit_logger import log_create, log_update, serialize_model_data
+from builder.audit_logger import log_create, log_update, log_delete, serialize_model_data
 from builder.utils import (
     get_responsible_user_for_lesson,
     get_category_tree_data,
@@ -922,4 +922,46 @@ def api_delete_category(request):
         _move_category_content_to_none(cat)
     else:
         _delete_category_recursive(cat)
+    return JsonResponse({'success': True})
+
+
+@login_required
+@require_http_methods(['POST'])
+def api_lesson_delete_info(request):
+    """API: данные урока для диалога удаления. POST JSON: { id }. Возвращает { title }."""
+    if not (request.user.is_staff or request.user.is_superuser):
+        return JsonResponse({'error': 'forbidden'}, status=403)
+    try:
+        body = json.loads(request.body) if request.body else {}
+    except json.JSONDecodeError:
+        return JsonResponse({'error': 'invalid json'}, status=400)
+    lesson_id = body.get('id')
+    if lesson_id is None:
+        return JsonResponse({'error': 'empty id'}, status=400)
+    try:
+        lesson = Lesson.objects.get(pk=lesson_id)
+    except (ValueError, TypeError, Lesson.DoesNotExist):
+        return JsonResponse({'error': 'not found'}, status=404)
+    return JsonResponse({'title': lesson.title})
+
+
+@login_required
+@require_http_methods(['POST'])
+def api_lesson_delete(request):
+    """API: удаление урока. POST JSON: { id }. Логика как в LessonDeleteView (аудит и delete)."""
+    if not (request.user.is_staff or request.user.is_superuser):
+        return JsonResponse({'error': 'forbidden'}, status=403)
+    try:
+        body = json.loads(request.body) if request.body else {}
+    except json.JSONDecodeError:
+        return JsonResponse({'error': 'invalid json'}, status=400)
+    lesson_id = body.get('id')
+    if lesson_id is None:
+        return JsonResponse({'error': 'empty id'}, status=400)
+    try:
+        lesson = Lesson.objects.get(pk=lesson_id)
+    except (ValueError, TypeError, Lesson.DoesNotExist):
+        return JsonResponse({'error': 'not found'}, status=404)
+    log_delete(request.user, lesson, request, comment='Удален урок через API')
+    lesson.delete()
     return JsonResponse({'success': True})

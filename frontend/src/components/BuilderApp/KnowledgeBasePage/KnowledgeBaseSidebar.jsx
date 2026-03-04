@@ -2,7 +2,7 @@ import { useState, useMemo, useRef, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import CategoryTree from './CategoryTree';
 import KnowledgeBaseContextMenu from './KnowledgeBaseContextMenu';
-import { createRootCategory, createSubcategory, renameCategory, deleteCategory, fetchCategoryDeleteStats } from '../../../api/builder_api';
+import { createRootCategory, createSubcategory, renameCategory, deleteCategory, fetchCategoryDeleteStats, fetchLessonDeleteInfo, deleteLesson } from '../../../api/builder_api';
 
 const TAB_CATEGORIES = 'categories';
 const TAB_UNCAT = 'uncat';
@@ -52,6 +52,14 @@ const KnowledgeBaseSidebar = ({
     categoryId: null,
     name: '',
     stats: null,
+    loading: false,
+    error: null,
+  });
+  /** Модальное окно удаления урока: { open, lessonId, title, loading, error } */
+  const [deleteLessonModal, setDeleteLessonModal] = useState({
+    open: false,
+    lessonId: null,
+    title: '',
     loading: false,
     error: null,
   });
@@ -416,6 +424,50 @@ const KnowledgeBaseSidebar = ({
     setDeleteCategoryModal({ open: false, categoryId: null, name: '', stats: null, loading: false, error: null });
   }, []);
 
+  const openDeleteLessonModal = useCallback(() => {
+    if (!selectedLessonId) return;
+    setDeleteLessonModal({
+      open: true,
+      lessonId: selectedLessonId,
+      title: '',
+      loading: true,
+      error: null,
+    });
+    fetchLessonDeleteInfo(selectedLessonId)
+      .then((data) => {
+        setDeleteLessonModal((prev) => ({
+          ...prev,
+          title: data.title ?? '',
+          loading: false,
+          error: null,
+        }));
+      })
+      .catch((e) => {
+        setDeleteLessonModal((prev) => ({
+          ...prev,
+          loading: false,
+          error: e.message || 'Не удалось загрузить данные',
+        }));
+      });
+  }, [selectedLessonId]);
+
+  const closeDeleteLessonModal = useCallback(() => {
+    setDeleteLessonModal({ open: false, lessonId: null, title: '', loading: false, error: null });
+  }, []);
+
+  const handleConfirmDeleteLesson = async () => {
+    const { lessonId } = deleteLessonModal;
+    if (!lessonId) return;
+    try {
+      await deleteLesson(lessonId);
+      closeDeleteLessonModal();
+      navigate('/builder/content');
+      onCategoriesUpdated?.();
+    } catch (e) {
+      window.alert(e.message || 'Ошибка удаления урока');
+    }
+  };
+
   const handleDeleteCategoryAction = async (action) => {
     const { categoryId } = deleteCategoryModal;
     if (!categoryId) return;
@@ -438,9 +490,7 @@ const KnowledgeBaseSidebar = ({
       return;
     }
     if (selectedLessonId) {
-      if (window.confirm('Удалить урок?')) {
-        window.location.href = `/builder/lesson/${selectedLessonId}/delete/`;
-      }
+      openDeleteLessonModal();
       return;
     }
     window.alert('Выделите категорию или урок!');
@@ -756,6 +806,49 @@ const KnowledgeBaseSidebar = ({
                     type="button"
                     className="kb-delete-category-modal__btn kb-delete-category-modal__btn--secondary"
                     onClick={closeDeleteCategoryModal}
+                  >
+                    Отмена
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      )}
+
+      {deleteLessonModal.open && (
+        <div className="kb-delete-category-modal" role="dialog" aria-modal="true" aria-labelledby="kb-delete-lesson-title">
+          <div className="kb-delete-category-modal__backdrop" onClick={closeDeleteLessonModal} aria-hidden="true" />
+          <div className="kb-delete-category-modal__box">
+            <h2 id="kb-delete-lesson-title" className="kb-delete-category-modal__title">
+              Удалить урок «{deleteLessonModal.title || '…'}»?
+            </h2>
+            {deleteLessonModal.loading && (
+              <p className="kb-delete-category-modal__loading">Загрузка…</p>
+            )}
+            {deleteLessonModal.error && (
+              <div className="kb-delete-category-modal__error">
+                {deleteLessonModal.error}
+                <button type="button" className="kb-delete-category-modal__btn kb-delete-category-modal__btn--secondary" onClick={closeDeleteLessonModal}>
+                  Закрыть
+                </button>
+              </div>
+            )}
+            {!deleteLessonModal.loading && !deleteLessonModal.error && (
+              <>
+                <p className="kb-delete-category-modal__hint">Это действие нельзя будет отменить.</p>
+                <div className="kb-delete-category-modal__actions">
+                  <button
+                    type="button"
+                    className="kb-delete-category-modal__btn kb-delete-category-modal__btn--danger"
+                    onClick={handleConfirmDeleteLesson}
+                  >
+                    Подтвердить удаление
+                  </button>
+                  <button
+                    type="button"
+                    className="kb-delete-category-modal__btn kb-delete-category-modal__btn--secondary"
+                    onClick={closeDeleteLessonModal}
                   >
                     Отмена
                   </button>

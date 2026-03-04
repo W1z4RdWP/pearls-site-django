@@ -44,6 +44,30 @@ export function fetchLessonDetail(pk) {
 }
 
 /**
+ * Данные урока для диалога удаления (название).
+ * @param {number} id — ID урока
+ * @returns {Promise<{ title: string }>}
+ */
+export function fetchLessonDeleteInfo(id) {
+  return request('/builder/lesson/delete/info/', {
+    method: 'POST',
+    body: JSON.stringify({ id: Number(id) }),
+  });
+}
+
+/**
+ * Удаление урока (как в Django LessonDeleteView: аудит и delete).
+ * @param {number} id — ID урока
+ * @returns {Promise<{ success: boolean }>}
+ */
+export function deleteLesson(id) {
+  return request('/builder/lesson/delete/', {
+    method: 'POST',
+    body: JSON.stringify({ id: Number(id) }),
+  });
+}
+
+/**
  * Создание корневой категории (inline в сайдбаре базы знаний).
  * @param {string} name — название категории
  * @returns {Promise<{ id: number, name: string, order: number }>}
