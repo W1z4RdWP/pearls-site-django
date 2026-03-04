@@ -43,6 +43,31 @@ export function fetchLessonDetail(pk) {
   return request(`/builder/lesson/${pk}/`);
 }
 
+/**
+ * Создание корневой категории (inline в сайдбаре базы знаний).
+ * @param {string} name — название категории
+ * @returns {Promise<{ id: number, name: string, order: number }>}
+ */
+export function createRootCategory(name) {
+  return request('/builder/categories/root/', {
+    method: 'POST',
+    body: JSON.stringify({ name: (name || '').trim() }),
+  });
+}
+
+/**
+ * Создание подкатегории (inline в сайдбаре базы знаний).
+ * @param {number} parentId — ID родительской категории
+ * @param {string} name — название подкатегории
+ * @returns {Promise<{ id: number, name: string, order: number, parent: number }>}
+ */
+export function createSubcategory(parentId, name) {
+  return request('/builder/categories/sub/', {
+    method: 'POST',
+    body: JSON.stringify({ parent_id: parentId, name: (name || '').trim() }),
+  });
+}
+
 // ---------------------------------------------------------------------------
 // Управление траекториями, курсы, формы уроков
 // ---------------------------------------------------------------------------

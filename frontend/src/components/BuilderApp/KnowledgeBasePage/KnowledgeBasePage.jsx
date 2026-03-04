@@ -82,6 +82,7 @@ const KnowledgeBasePage = () => {
           urls={data.urls || {}}
           searchQuery={searchQuery}
           onSearchChange={setSearchQuery}
+          onCategoriesUpdated={loadData}
         />
         <div className="kb-page__detail" id="detail">
           {data.selected_lesson ? (

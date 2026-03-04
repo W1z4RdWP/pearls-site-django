@@ -52,6 +52,8 @@ urlpatterns = [
     path('builder/add/', builder_views.api_lesson_form_create, name='api_builder_lesson_add'),
     path('builder/add/<int:category_id>/', builder_views.api_lesson_form_create, name='api_builder_lesson_add_with_category'),
     path('builder/lesson/<int:pk>/edit/', builder_views.api_lesson_form_edit, name='api_builder_lesson_edit'),
+    path('builder/categories/root/', builder_views.api_add_root_category, name='api_builder_category_add_root'),
+    path('builder/categories/sub/', builder_views.api_add_subcategory, name='api_builder_category_add_sub'),
     path('changelog/', views_frontend.changelog_data, name='api_changelog'),
 
     # MyApp API — история изменений для React

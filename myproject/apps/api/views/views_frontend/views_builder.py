@@ -749,3 +749,50 @@ def api_lesson_detail(request, pk):
     }
     _inject_lesson_detail(request, payload, int(pk), user, is_readonly)
     return JsonResponse(payload)
+
+
+@login_required
+@require_http_methods(['POST'])
+def api_add_root_category(request):
+    """API: создание корневой категории (React inline). POST JSON: { name }."""
+    if not (request.user.is_staff or request.user.is_superuser):
+        return JsonResponse({'error': 'forbidden'}, status=403)
+    try:
+        body = json.loads(request.body) if request.body else {}
+    except json.JSONDecodeError:
+        return JsonResponse({'error': 'invalid json'}, status=400)
+    name = (body.get('name') or '').strip()
+    if not name:
+        return JsonResponse({'error': 'empty name'}, status=400)
+    max_order = CategoryName.objects.filter(parent__isnull=True).aggregate(Max('order'))['order__max'] or 0
+    cat = CategoryName.objects.create(name=name, parent=None, order=max_order + 1)
+    log_create(request.user, cat, request, comment='Создана корневая категория через API')
+    return JsonResponse({'id': cat.id, 'name': cat.name, 'order': cat.order})
+
+
+@login_required
+@require_http_methods(['POST'])
+def api_add_subcategory(request):
+    """API: создание подкатегории (React inline). POST JSON: { name, parent_id }."""
+    if not (request.user.is_staff or request.user.is_superuser):
+        return JsonResponse({'error': 'forbidden'}, status=403)
+    try:
+        body = json.loads(request.body) if request.body else {}
+    except json.JSONDecodeError:
+        return JsonResponse({'error': 'invalid json'}, status=400)
+    name = (body.get('name') or '').strip()
+    parent_id = body.get('parent_id')
+    if not name or parent_id is None:
+        return JsonResponse({'error': 'empty name or parent'}, status=400)
+    try:
+        parent = CategoryName.objects.get(pk=parent_id)
+    except (ValueError, TypeError, CategoryName.DoesNotExist):
+        return JsonResponse({'error': 'parent not found'}, status=404)
+    max_order = parent.subcategories.aggregate(Max('order'))['order__max'] or 0
+    cat = CategoryName.objects.create(name=name, parent=parent, order=max_order + 1)
+    log_create(
+        request.user, cat, request,
+        extra_data={'parent_category': str(parent)},
+        comment='Создана подкатегория через API',
+    )
+    return JsonResponse({'id': cat.id, 'name': cat.name, 'order': cat.order, 'parent': parent.id})

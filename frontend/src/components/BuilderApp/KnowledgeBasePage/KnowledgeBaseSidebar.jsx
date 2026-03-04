@@ -2,6 +2,7 @@ import { useState, useMemo, useRef, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import CategoryTree from './CategoryTree';
 import KnowledgeBaseContextMenu from './KnowledgeBaseContextMenu';
+import { createRootCategory, createSubcategory } from '../../../api/builder_api';
 
 const TAB_CATEGORIES = 'categories';
 const TAB_UNCAT = 'uncat';
@@ -28,6 +29,7 @@ const KnowledgeBaseSidebar = ({
   urls = {},
   searchQuery,
   onSearchChange,
+  onCategoriesUpdated,
 }) => {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState(TAB_CATEGORIES);
@@ -78,26 +80,12 @@ const KnowledgeBaseSidebar = ({
   const submitRootCategory = async (name) => {
     if (!name?.trim()) return;
     try {
-      const response = await fetch('/builder/categories/ajax_add_root/', {
-        method: 'POST',
-        headers: {
-          'X-CSRFToken': getCsrfToken(),
-          'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8',
-        },
-        body: new URLSearchParams({ name: name.trim() }),
-      });
-      const data = await response.json();
-      if (data.error) {
-        window.alert(`Ошибка: ${data.error}`);
-        return;
-      }
-      if (data.id && window.sessionStorage) {
-        window.sessionStorage.setItem('new_category_id', String(data.id));
-      }
+      await createRootCategory(name.trim());
       setInlineAddMode(null);
-      window.location.reload();
+      onCategoriesUpdated?.();
     } catch (e) {
-      window.alert('Ошибка сети');
+      window.alert(e.message || 'Ошибка сети');
+      if (rootCategoryInputRef.current) rootCategoryInputRef.current.disabled = false;
     }
   };
 
@@ -147,29 +135,11 @@ const KnowledgeBaseSidebar = ({
   const handleSubmitSubcategory = async (parentId, name) => {
     if (!name?.trim()) return;
     try {
-      const response = await fetch('/builder/categories/ajax_add_sub/', {
-        method: 'POST',
-        headers: {
-          'X-CSRFToken': getCsrfToken(),
-          'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8',
-        },
-        body: new URLSearchParams({
-          name: name.trim(),
-          parent_id: String(parentId),
-        }),
-      });
-      const data = await response.json();
-      if (data.error) {
-        window.alert(`Ошибка: ${data.error}`);
-        return;
-      }
-      if (data.id && window.sessionStorage) {
-        window.sessionStorage.setItem('new_category_id', String(data.id));
-      }
+      await createSubcategory(parentId, name.trim());
       setInlineAddMode(null);
-      window.location.reload();
+      onCategoriesUpdated?.();
     } catch (e) {
-      window.alert('Ошибка сети');
+      window.alert(e.message || 'Ошибка сети');
       setInlineAddMode(null);
     }
   };
