@@ -2,7 +2,7 @@ import { useState, useMemo, useRef, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import CategoryTree from './CategoryTree';
 import KnowledgeBaseContextMenu from './KnowledgeBaseContextMenu';
-import { createRootCategory, createSubcategory } from '../../../api/builder_api';
+import { createRootCategory, createSubcategory, renameCategory } from '../../../api/builder_api';
 
 const TAB_CATEGORIES = 'categories';
 const TAB_UNCAT = 'uncat';
@@ -44,6 +44,8 @@ const KnowledgeBaseSidebar = ({
   const [mirrorSourceLessonId, setMirrorSourceLessonId] = useState(null);
   /** ID урока для фильтра «Показать все зеркала»; null = не фильтровать */
   const [mirrorsFilterLessonId, setMirrorsFilterLessonId] = useState(null);
+  /** ID категории в режиме инлайн-редактирования названия */
+  const [editingCategoryId, setEditingCategoryId] = useState(null);
 
   const filteredUncategorized = useMemo(() => {
     const q = (searchQuery || '').trim().toLowerCase();
@@ -57,12 +59,14 @@ const KnowledgeBaseSidebar = ({
     return dictionarySections.filter((s) => s.name && s.name.toLowerCase().includes(q));
   }, [dictionarySections, searchQuery]);
 
-  const handleSelectLesson = (lessonId) => {
-    navigate(`/builder/lesson/${lessonId}`);
-  };
-
   const handleCategorySelect = (categoryId) => {
     setSelectedCategoryId(categoryId);
+    navigate('/builder/content');
+  };
+
+  const handleLessonSelect = (lessonId) => {
+    setSelectedCategoryId(null);
+    navigate(`/builder/lesson/${lessonId}`);
   };
 
   const getCsrfToken = () => {
@@ -343,7 +347,7 @@ const KnowledgeBaseSidebar = ({
     closeContextMenu();
   }, [closeContextMenu]);
 
-  const handleEditCategoryOrLesson = async () => {
+  const handleEditCategoryOrLesson = () => {
     if (selectedLessonId) {
       navigate(`/builder/lesson/${selectedLessonId}/edit`);
       return;
@@ -352,31 +356,22 @@ const KnowledgeBaseSidebar = ({
       window.alert('Выделите категорию или урок!');
       return;
     }
-    const cat = findCategoryById(selectedCategoryId);
-    const oldName = (cat && cat.name) || '';
-    const newName = window.prompt('Новое название категории:', oldName);
-    if (!newName || newName.trim() === oldName.trim()) return;
+    setEditingCategoryId(selectedCategoryId);
+  };
+
+  const handleRenameCategory = async (categoryId, newName) => {
+    if (!newName?.trim()) return;
     try {
-      const response = await fetch('/builder/categories/ajax_rename/', {
-        method: 'POST',
-        headers: {
-          'X-CSRFToken': getCsrfToken(),
-          'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8',
-        },
-        body: new URLSearchParams({
-          id: String(selectedCategoryId),
-          name: newName.trim(),
-        }),
-      });
-      const data = await response.json();
-      if (data.error) {
-        window.alert(`Ошибка: ${data.error}`);
-        return;
-      }
-      window.location.reload();
+      await renameCategory(categoryId, newName);
+      setEditingCategoryId(null);
+      onCategoriesUpdated?.();
     } catch (e) {
-      window.alert('Ошибка сети');
+      window.alert(e.message || 'Ошибка сети');
     }
+  };
+
+  const handleCancelEditCategory = () => {
+    setEditingCategoryId(null);
   };
 
   const handleDeleteCategoryOrLesson = () => {
@@ -496,9 +491,13 @@ const KnowledgeBaseSidebar = ({
                   searchQuery={searchQuery || ''}
                   selectedCategoryId={selectedCategoryId}
                   onCategorySelect={handleCategorySelect}
+                  onLessonSelect={handleLessonSelect}
                   inlineAddParentId={inlineAddMode?.parentId ?? null}
                   onSubmitSubcategory={handleSubmitSubcategory}
                   onCancelSubcategory={() => setInlineAddMode(null)}
+                  editingCategoryId={editingCategoryId}
+                  onRenameCategory={handleRenameCategory}
+                  onCancelEditCategory={handleCancelEditCategory}
                 />
               ))}
             </ul>
@@ -521,7 +520,7 @@ const KnowledgeBaseSidebar = ({
                   <button
                     type="button"
                     className="kb-sidebar__lesson-link"
-                    onClick={() => handleSelectLesson(lesson.id)}
+                    onClick={() => handleLessonSelect(lesson.id)}
                     title={lesson.title}
                   >
                     {lesson.title}
@@ -584,8 +583,8 @@ const KnowledgeBaseSidebar = ({
             type="button"
             className="kb-sidebar__category-actions-btn"
             onClick={handleEditCategoryOrLesson}
-            title="Изменить название категории или открыть редактирование урока"
-            disabled={!selectedLessonId}
+            title="Редактировать категорию (название) или открыть редактирование урока"
+            disabled={!selectedCategoryId && !selectedLessonId}
           >
             v
           </button>

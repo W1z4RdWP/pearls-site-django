@@ -796,3 +796,28 @@ def api_add_subcategory(request):
         comment='Создана подкатегория через API',
     )
     return JsonResponse({'id': cat.id, 'name': cat.name, 'order': cat.order, 'parent': parent.id})
+
+
+@login_required
+@require_http_methods(['POST'])
+def api_rename_category(request):
+    """API: инлайн-переименование категории. POST JSON: { id, name }. Возвращает { id, name }."""
+    if not (request.user.is_staff or request.user.is_superuser):
+        return JsonResponse({'error': 'forbidden'}, status=403)
+    try:
+        body = json.loads(request.body) if request.body else {}
+    except json.JSONDecodeError:
+        return JsonResponse({'error': 'invalid json'}, status=400)
+    cat_id = body.get('id')
+    name = (body.get('name') or '').strip()
+    if cat_id is None or not name:
+        return JsonResponse({'error': 'empty id or name'}, status=400)
+    try:
+        cat = CategoryName.objects.get(pk=cat_id)
+    except (ValueError, TypeError, CategoryName.DoesNotExist):
+        return JsonResponse({'error': 'not found'}, status=404)
+    old_values = {'name': cat.name}
+    cat.name = name
+    cat.save(update_fields=['name'])
+    log_update(request.user, cat, old_values, request, comment='Переименована категория через API')
+    return JsonResponse({'id': cat.id, 'name': cat.name})

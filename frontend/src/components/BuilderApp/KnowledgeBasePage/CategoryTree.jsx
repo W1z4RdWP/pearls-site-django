@@ -27,9 +27,13 @@ const LessonIcon = () => (
  * @param {string} [searchQuery] — фильтр по названию (подсветка/скрытие)
  * @param {number|null} [selectedCategoryId] — ID выбранной категории
  * @param {(id: number) => void} [onCategorySelect] — колбэк выбора категории
+ * @param {(lessonId: number) => void} [onLessonSelect] — колбэк выбора урока (сбрасывает категорию)
  * @param {number|null} [inlineAddParentId] — ID категории, для которой показывается inline-добавление подкатегории
  * @param {(parentId: number, name: string) => Promise<void>} [onSubmitSubcategory]
  * @param {() => void} [onCancelSubcategory]
+ * @param {number|null} [editingCategoryId] — ID категории в режиме инлайн-редактирования
+ * @param {(id: number, name: string) => void} [onRenameCategory]
+ * @param {() => void} [onCancelEditCategory]
  */
 const CategoryTree = ({
   category,
@@ -37,13 +41,19 @@ const CategoryTree = ({
   searchQuery = '',
   selectedCategoryId,
   onCategorySelect,
+  onLessonSelect,
   inlineAddParentId = null,
   onSubmitSubcategory,
   onCancelSubcategory,
+  editingCategoryId = null,
+  onRenameCategory,
+  onCancelEditCategory,
 }) => {
   const navigate = useNavigate();
   const inputRef = useRef(null);
+  const editInputRef = useRef(null);
   const isAddingSubcategory = inlineAddParentId === category?.id;
+  const isEditing = editingCategoryId === category?.id;
   const [expanded, setExpanded] = useState(() =>
     selectedLessonId ? categoryContainsLesson(category, selectedLessonId) : false,
   );
@@ -54,6 +64,13 @@ const CategoryTree = ({
     }
   }, [isAddingSubcategory]);
 
+  useEffect(() => {
+    if (isEditing && editInputRef.current) {
+      editInputRef.current.focus();
+      editInputRef.current.select();
+    }
+  }, [isEditing]);
+
   if (!category) return null;
 
   const { id, name, subcategories = [], lessons = [] } = category;
@@ -63,7 +80,11 @@ const CategoryTree = ({
   const isSelected = selectedCategoryId === id;
 
   const handleSelectLesson = (lessonId) => {
-    navigate(`/builder/lesson/${lessonId}`);
+    if (onLessonSelect) {
+      onLessonSelect(lessonId);
+    } else {
+      navigate(`/builder/lesson/${lessonId}`);
+    }
   };
 
   const visibleLessons = q
@@ -77,6 +98,7 @@ const CategoryTree = ({
   if (!showNode && q) return null;
 
   const handleHeaderClick = () => {
+    if (isEditing) return;
     if (onCategorySelect) {
       onCategorySelect(id);
     }
@@ -120,19 +142,55 @@ const CategoryTree = ({
     }
   };
 
+  const handleEditSubmit = () => {
+    const value = editInputRef.current?.value?.trim();
+    if (value && value !== name && onRenameCategory) {
+      onRenameCategory(id, value);
+    } else {
+      onCancelEditCategory?.();
+    }
+  };
+
+  const handleEditKeyDown = (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      handleEditSubmit();
+    }
+    if (e.key === 'Escape') {
+      onCancelEditCategory?.();
+    }
+  };
+
+  const handleEditBlur = () => {
+    handleEditSubmit();
+  };
+
   return (
     <li className="kb-sidebar__category" data-id={id}>
       <div
         className={`kb-sidebar__category-header ${
           isSelected ? 'kb-sidebar__category-header--selected' : ''
-        }`}
+        } ${isEditing ? 'kb-sidebar__category-header--editing' : ''}`}
         onClick={handleHeaderClick}
-        role={hasChildren ? 'button' : undefined}
+        role={hasChildren && !isEditing ? 'button' : undefined}
         aria-expanded={hasChildren ? expanded : undefined}
       >
-        <span className="kb-sidebar__category-title" title={name}>
-          {name}
-        </span>
+        {isEditing ? (
+          <input
+            ref={editInputRef}
+            type="text"
+            className="kb-sidebar__inline-input kb-sidebar__category-title-edit"
+            defaultValue={name}
+            onKeyDown={handleEditKeyDown}
+            onBlur={handleEditBlur}
+            onClick={(e) => e.stopPropagation()}
+            aria-label="Название категории"
+          />
+        ) : (
+          <span className="kb-sidebar__category-title" title={name}>
+            {name}
+          </span>
+        )}
         {hasChildren && (
           <span className={`kb-sidebar__toggle ${expanded ? 'kb-sidebar__toggle--open' : ''}`} aria-hidden="true">
             {expanded ? '−' : '+'}
@@ -191,9 +249,13 @@ const CategoryTree = ({
                   searchQuery={searchQuery}
                   selectedCategoryId={selectedCategoryId}
                   onCategorySelect={onCategorySelect}
+                  onLessonSelect={onLessonSelect}
                   inlineAddParentId={inlineAddParentId}
                   onSubmitSubcategory={onSubmitSubcategory}
                   onCancelSubcategory={onCancelSubcategory}
+                  editingCategoryId={editingCategoryId}
+                  onRenameCategory={onRenameCategory}
+                  onCancelEditCategory={onCancelEditCategory}
                 />
               ))}
             </ul>

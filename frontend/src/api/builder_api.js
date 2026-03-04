@@ -68,6 +68,19 @@ export function createSubcategory(parentId, name) {
   });
 }
 
+/**
+ * Переименование категории (инлайн в сайдбаре базы знаний).
+ * @param {number} id — ID категории
+ * @param {string} name — новое название
+ * @returns {Promise<{ id: number, name: string }>}
+ */
+export function renameCategory(id, name) {
+  return request('/builder/categories/rename/', {
+    method: 'POST',
+    body: JSON.stringify({ id: Number(id), name: (name || '').trim() }),
+  });
+}
+
 // ---------------------------------------------------------------------------
 // Управление траекториями, курсы, формы уроков
 // ---------------------------------------------------------------------------
