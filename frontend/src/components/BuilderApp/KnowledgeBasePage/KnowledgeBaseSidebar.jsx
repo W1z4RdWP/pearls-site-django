@@ -1,6 +1,7 @@
-import { useState, useMemo } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useState, useMemo, useRef, useEffect, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import CategoryTree from './CategoryTree';
+import KnowledgeBaseContextMenu from './KnowledgeBaseContextMenu';
 
 const TAB_CATEGORIES = 'categories';
 const TAB_UNCAT = 'uncat';
@@ -32,6 +33,15 @@ const KnowledgeBaseSidebar = ({
   const [activeTab, setActiveTab] = useState(TAB_CATEGORIES);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [selectedCategoryId, setSelectedCategoryId] = useState(null);
+  /** null | 'root' | { parentId: number } — режим inline-добавления категории */
+  const [inlineAddMode, setInlineAddMode] = useState(null);
+  const rootCategoryInputRef = useRef(null);
+  /** Контекстное меню: { visible, x, y, target: { type, id, hasMirrors?, isMirror? } } */
+  const [contextMenu, setContextMenu] = useState({ visible: false, x: 0, y: 0, target: null });
+  const [clipboardData, setClipboardData] = useState(null);
+  const [mirrorSourceLessonId, setMirrorSourceLessonId] = useState(null);
+  /** ID урока для фильтра «Показать все зеркала»; null = не фильтровать */
+  const [mirrorsFilterLessonId, setMirrorsFilterLessonId] = useState(null);
 
   const filteredUncategorized = useMemo(() => {
     const q = (searchQuery || '').trim().toLowerCase();
@@ -59,9 +69,14 @@ const KnowledgeBaseSidebar = ({
     return input ? input.value : '';
   };
 
-  const handleAddRootCategory = async () => {
-    const name = window.prompt('Введите название новой категории:');
-    if (!name) return;
+  useEffect(() => {
+    if (inlineAddMode === 'root' && rootCategoryInputRef.current) {
+      rootCategoryInputRef.current.focus();
+    }
+  }, [inlineAddMode]);
+
+  const submitRootCategory = async (name) => {
+    if (!name?.trim()) return;
     try {
       const response = await fetch('/builder/categories/ajax_add_root/', {
         method: 'POST',
@@ -79,19 +94,58 @@ const KnowledgeBaseSidebar = ({
       if (data.id && window.sessionStorage) {
         window.sessionStorage.setItem('new_category_id', String(data.id));
       }
+      setInlineAddMode(null);
       window.location.reload();
     } catch (e) {
       window.alert('Ошибка сети');
     }
   };
 
-  const handleAddSubcategory = async () => {
+  const handleAddRootCategory = () => {
+    setInlineAddMode('root');
+  };
+
+  const handleRootInlineKeyDown = (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      const name = rootCategoryInputRef.current?.value?.trim();
+      if (name) {
+        rootCategoryInputRef.current.disabled = true;
+        submitRootCategory(name);
+      } else {
+        setInlineAddMode(null);
+      }
+    }
+    if (e.key === 'Escape') {
+      setInlineAddMode(null);
+    }
+  };
+
+  const handleRootInlineBlur = () => {
+    if (rootCategoryInputRef.current?.disabled) return;
+    const name = rootCategoryInputRef.current?.value?.trim();
+    if (!name) {
+      setInlineAddMode(null);
+      return;
+    }
+    if (window.confirm('Создать категорию «' + name + '»?')) {
+      rootCategoryInputRef.current.disabled = true;
+      submitRootCategory(name);
+    } else {
+      setInlineAddMode(null);
+    }
+  };
+
+  const handleAddSubcategory = () => {
     if (!selectedCategoryId) {
       window.alert('Выделите категорию!');
       return;
     }
-    const name = window.prompt('Введите название подкатегории:');
-    if (!name) return;
+    setInlineAddMode({ parentId: selectedCategoryId });
+  };
+
+  const handleSubmitSubcategory = async (parentId, name) => {
+    if (!name?.trim()) return;
     try {
       const response = await fetch('/builder/categories/ajax_add_sub/', {
         method: 'POST',
@@ -101,7 +155,7 @@ const KnowledgeBaseSidebar = ({
         },
         body: new URLSearchParams({
           name: name.trim(),
-          parent_id: String(selectedCategoryId),
+          parent_id: String(parentId),
         }),
       });
       const data = await response.json();
@@ -112,9 +166,11 @@ const KnowledgeBaseSidebar = ({
       if (data.id && window.sessionStorage) {
         window.sessionStorage.setItem('new_category_id', String(data.id));
       }
+      setInlineAddMode(null);
       window.location.reload();
     } catch (e) {
       window.alert('Ошибка сети');
+      setInlineAddMode(null);
     }
   };
 
@@ -126,6 +182,196 @@ const KnowledgeBaseSidebar = ({
     }
     return null;
   };
+
+  const categoryContainsLesson = useCallback((cat, lessonId) => {
+    if (!cat) return false;
+    const lessons = cat.lessons || [];
+    if (lessons.some((l) => l.id === lessonId)) return true;
+    const subcategories = cat.subcategories || [];
+    return subcategories.some((sub) => categoryContainsLesson(sub, lessonId));
+  }, []);
+
+  const filterCategoriesToLesson = useCallback((list, lessonId) => {
+    return list
+      .map((cat) => {
+        const subFiltered = filterCategoriesToLesson(cat.subcategories || [], lessonId);
+        const hasInSubs = subFiltered.length > 0;
+        const lessons = (cat.lessons || []).filter((l) => l.id === lessonId);
+        const hasHere = lessons.length > 0;
+        if (!hasHere && !hasInSubs) return null;
+        return {
+          ...cat,
+          subcategories: subFiltered,
+          lessons: hasHere ? lessons : [],
+        };
+      })
+      .filter(Boolean);
+  }, []);
+
+  const displayCategories = useMemo(() => {
+    if (!mirrorsFilterLessonId) return categories;
+    return filterCategoriesToLesson(categories, mirrorsFilterLessonId);
+  }, [categories, mirrorsFilterLessonId, filterCategoriesToLesson]);
+
+  useEffect(() => {
+    if (isReadonly) return;
+    fetch('/builder/clipboard/')
+      .then((r) => r.json())
+      .then((data) => {
+        setClipboardData(data.empty ? null : data);
+      })
+      .catch(() => setClipboardData(null));
+  }, [isReadonly]);
+
+  const handleContextMenu = (e) => {
+    if (isReadonly) return;
+    const li = e.target.closest('li');
+    if (!li) return;
+    const categoryEl = li.closest('.kb-sidebar__category');
+    const lessonItemEl = li.classList?.contains('kb-sidebar__lesson-item') ? li : null;
+    let target = null;
+    if (categoryEl && categoryEl === li) {
+      const id = categoryEl.getAttribute('data-id');
+      if (id) target = { type: 'category', id: String(id) };
+    } else if (lessonItemEl) {
+      const lessonId = lessonItemEl.getAttribute('data-lesson-id');
+      const uncatId = lessonItemEl.getAttribute('data-id');
+      const hasMirrors = lessonItemEl.hasAttribute('data-has-mirrors');
+      const id = lessonId || (uncatId && uncatId.startsWith('uncat-') ? uncatId.replace('uncat-', '') : null);
+      const parentCat = lessonItemEl.closest('.kb-sidebar__category');
+      const parentCategoryId = parentCat ? parentCat.getAttribute('data-id') || '' : '';
+      if (id) target = { type: 'lesson', id: String(id), parentCategoryId, hasMirrors: !!hasMirrors, isMirror: false };
+    }
+    if (target) {
+      e.preventDefault();
+      e.stopPropagation();
+      setContextMenu({ visible: true, x: e.pageX, y: e.pageY, target });
+    }
+  };
+
+  const closeContextMenu = useCallback(() => setContextMenu((c) => ({ ...c, visible: false })), []);
+
+  const apiPost = (url, body) => {
+    return fetch(url, {
+      method: 'POST',
+      headers: {
+        'X-CSRFToken': getCsrfToken(),
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(body),
+    }).then((r) => r.json());
+  };
+
+  const handleCopy = useCallback(() => {
+    if (!contextMenu.target) return;
+    const { type, id } = contextMenu.target;
+    apiPost('/builder/copy/', { id, type }).then((data) => {
+      if (data.error) {
+        window.alert('Ошибка: ' + data.error);
+        return;
+      }
+      setClipboardData({ id, type, action: 'copy' });
+      closeContextMenu();
+    }).catch(() => window.alert('Ошибка сети'));
+  }, [contextMenu.target, closeContextMenu]);
+
+  const handleCut = useCallback(() => {
+    if (!contextMenu.target) return;
+    const { type, id } = contextMenu.target;
+    apiPost('/builder/cut/', { id, type }).then((data) => {
+      if (data.error) {
+        window.alert('Ошибка: ' + data.error);
+        return;
+      }
+      setClipboardData({ id, type, action: 'cut' });
+      closeContextMenu();
+    }).catch(() => window.alert('Ошибка сети'));
+  }, [contextMenu.target, closeContextMenu]);
+
+  const handlePaste = useCallback(() => {
+    if (!clipboardData || !contextMenu.target) return;
+    const { type, id, parentCategoryId } = contextMenu.target;
+    let targetCategory = type === 'category' ? id : (parentCategoryId || '');
+    if (clipboardData.type === 'category' && (type === 'lesson' || !targetCategory)) {
+      if (!window.confirm('Категория будет создана в корне дерева. Продолжить?')) {
+        closeContextMenu();
+        return;
+      }
+      targetCategory = '';
+    }
+    apiPost('/builder/paste/', { target_category: targetCategory }).then((data) => {
+      if (data.error) {
+        window.alert('Ошибка: ' + data.error);
+        return;
+      }
+      setClipboardData(null);
+      closeContextMenu();
+      window.location.reload();
+    }).catch(() => window.alert('Ошибка сети'));
+  }, [clipboardData, contextMenu.target, closeContextMenu]);
+
+  const handleMirror = useCallback(() => {
+    if (!contextMenu.target || contextMenu.target.type !== 'lesson') return;
+    setMirrorSourceLessonId(contextMenu.target.id);
+    closeContextMenu();
+    window.alert('Теперь выберите категорию, куда вставить зеркало, через контекстное меню!');
+  }, [contextMenu.target, closeContextMenu]);
+
+  const handleMirrorHere = useCallback(() => {
+    if (!contextMenu.target || contextMenu.target.type !== 'category' || !mirrorSourceLessonId) return;
+    apiPost('/builder/mirror/', {
+      lesson_id: mirrorSourceLessonId,
+      category_id: contextMenu.target.id,
+    }).then((data) => {
+      if (data.error) {
+        window.alert('Ошибка: ' + data.error);
+        return;
+      }
+      setMirrorSourceLessonId(null);
+      closeContextMenu();
+      window.alert('Зеркало создано!');
+      window.location.reload();
+    }).catch(() => window.alert('Ошибка сети'));
+  }, [contextMenu.target, mirrorSourceLessonId, closeContextMenu]);
+
+  const openAssignmentModal = useCallback((lessonIds, categoryName) => {
+    const url = '/user_management/';
+    const params = new URLSearchParams({ assign_lessons: lessonIds.join(','), from: 'builder' });
+    window.open(`${url}?${params}`, '_blank', 'noopener');
+  }, []);
+
+  const handleAssign = useCallback(() => {
+    if (!contextMenu.target) return;
+    const { type, id } = contextMenu.target;
+    closeContextMenu();
+    if (type === 'lesson') {
+      openAssignmentModal([id]);
+      return;
+    }
+    if (type === 'category') {
+      fetch(`/builder/api/categories/${id}/lessons/`)
+        .then((r) => r.json())
+        .then((data) => {
+          if (data.error || !data.lesson_ids?.length) {
+            window.alert(data.error || 'В категории нет уроков');
+            return;
+          }
+          openAssignmentModal(data.lesson_ids, data.category_name);
+        })
+        .catch(() => window.alert('Ошибка загрузки уроков'));
+    }
+  }, [contextMenu.target, closeContextMenu, openAssignmentModal]);
+
+  const handleShowAllMirrors = useCallback(() => {
+    if (!contextMenu.target || contextMenu.target.type !== 'lesson') return;
+    setMirrorsFilterLessonId(contextMenu.target.id);
+    closeContextMenu();
+  }, [contextMenu.target, closeContextMenu]);
+
+  const handleHideMirrors = useCallback(() => {
+    setMirrorsFilterLessonId(null);
+    closeContextMenu();
+  }, [closeContextMenu]);
 
   const handleEditCategoryOrLesson = async () => {
     if (selectedLessonId) {
@@ -242,11 +488,37 @@ const KnowledgeBaseSidebar = ({
         />
       </div>
 
-      <div className="kb-sidebar__content">
+      <div className="kb-sidebar__content" onContextMenu={handleContextMenu}>
+        {mirrorsFilterLessonId && (
+          <div className="kb-sidebar__mirrors-filter-hint">
+            <button
+              type="button"
+              className="kb-sidebar__mirrors-filter-reset"
+              onClick={() => setMirrorsFilterLessonId(null)}
+            >
+              Сбросить фильтр зеркал
+            </button>
+          </div>
+        )}
         {activeTab === TAB_CATEGORIES && (
           <div className="kb-sidebar__scroll">
             <ul className="kb-sidebar__category-list" role="list">
-              {categories.map((cat) => (
+              {inlineAddMode === 'root' && (
+                <li className="kb-sidebar__category kb-sidebar__category--inline-add">
+                  <div className="kb-sidebar__category-header">
+                    <input
+                      ref={rootCategoryInputRef}
+                      type="text"
+                      className="kb-sidebar__inline-input"
+                      placeholder="Название категории..."
+                      onKeyDown={handleRootInlineKeyDown}
+                      onBlur={handleRootInlineBlur}
+                      aria-label="Название категории"
+                    />
+                  </div>
+                </li>
+              )}
+              {displayCategories.map((cat) => (
                 <CategoryTree
                   key={cat.id}
                   category={cat}
@@ -254,10 +526,13 @@ const KnowledgeBaseSidebar = ({
                   searchQuery={searchQuery || ''}
                   selectedCategoryId={selectedCategoryId}
                   onCategorySelect={handleCategorySelect}
+                  inlineAddParentId={inlineAddMode?.parentId ?? null}
+                  onSubmitSubcategory={handleSubmitSubcategory}
+                  onCancelSubcategory={() => setInlineAddMode(null)}
                 />
               ))}
             </ul>
-            {categories.length === 0 && (
+            {displayCategories.length === 0 && !inlineAddMode && (
               <p className="kb-sidebar__empty">Нет категорий</p>
             )}
           </div>
@@ -270,6 +545,8 @@ const KnowledgeBaseSidebar = ({
                 <li
                   key={lesson.id}
                   className={`kb-sidebar__lesson-item ${selectedLessonId === lesson.id ? 'kb-sidebar__lesson-item--active' : ''}`}
+                  data-id={`uncat-${lesson.id}`}
+                  data-has-mirrors={lesson.has_mirrors ? '1' : undefined}
                 >
                   <button
                     type="button"
@@ -318,7 +595,7 @@ const KnowledgeBaseSidebar = ({
         <div className="kb-sidebar__category-actions" aria-label="Управление категориями и уроками">
           <button
             type="button"
-            className="kb-sidebar__category-actions-btn"
+            className="kb-sidebar__category-actions-btn kb-sidebar__category-actions-btn--primary"
             onClick={handleAddRootCategory}
             title="Добавить корневую категорию"
           >
@@ -329,6 +606,7 @@ const KnowledgeBaseSidebar = ({
             className="kb-sidebar__category-actions-btn"
             onClick={handleAddSubcategory}
             title="Добавить подкатегорию"
+            disabled={!selectedCategoryId}
           >
             +
           </button>
@@ -337,6 +615,7 @@ const KnowledgeBaseSidebar = ({
             className="kb-sidebar__category-actions-btn"
             onClick={handleEditCategoryOrLesson}
             title="Изменить название категории или открыть редактирование урока"
+            disabled={!selectedLessonId}
           >
             v
           </button>
@@ -345,12 +624,13 @@ const KnowledgeBaseSidebar = ({
             className="kb-sidebar__category-actions-btn"
             onClick={handleDeleteCategoryOrLesson}
             title="Удалить категорию или урок"
+            disabled={!selectedCategoryId && !selectedLessonId}
           >
             x
           </button>
           <button
             type="button"
-            className="kb-sidebar__category-actions-btn"
+            className="kb-sidebar__category-actions-btn kb-sidebar__category-actions-btn--primary"
             onClick={handleAddLesson}
             title="Добавить урок"
           >
@@ -367,6 +647,26 @@ const KnowledgeBaseSidebar = ({
             </a>
           )}
         </div>
+      )}
+
+      {!isReadonly && (
+        <KnowledgeBaseContextMenu
+          visible={contextMenu.visible}
+          position={{ x: contextMenu.x, y: contextMenu.y }}
+          target={contextMenu.target}
+          clipboardData={clipboardData}
+          mirrorSourceLessonId={mirrorSourceLessonId}
+          mirrorsFilterActive={!!mirrorsFilterLessonId}
+          onClose={closeContextMenu}
+          onCopy={handleCopy}
+          onCut={handleCut}
+          onPaste={handlePaste}
+          onMirror={handleMirror}
+          onMirrorHere={handleMirrorHere}
+          onAssign={handleAssign}
+          onShowAllMirrors={handleShowAllMirrors}
+          onHideMirrors={handleHideMirrors}
+        />
       )}
     </aside>
   );

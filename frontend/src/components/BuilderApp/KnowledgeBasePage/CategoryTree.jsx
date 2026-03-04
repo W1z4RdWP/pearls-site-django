@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 
 const categoryContainsLesson = (category, lessonId) => {
   if (!category || !lessonId) return false;
@@ -9,7 +10,6 @@ const categoryContainsLesson = (category, lessonId) => {
   const subcategories = category.subcategories || [];
   return subcategories.some((sub) => categoryContainsLesson(sub, lessonId));
 };
-import { useNavigate } from 'react-router-dom';
 
 const LessonIcon = () => (
   <svg width="16" height="16" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
@@ -27,6 +27,9 @@ const LessonIcon = () => (
  * @param {string} [searchQuery] — фильтр по названию (подсветка/скрытие)
  * @param {number|null} [selectedCategoryId] — ID выбранной категории
  * @param {(id: number) => void} [onCategorySelect] — колбэк выбора категории
+ * @param {number|null} [inlineAddParentId] — ID категории, для которой показывается inline-добавление подкатегории
+ * @param {(parentId: number, name: string) => Promise<void>} [onSubmitSubcategory]
+ * @param {() => void} [onCancelSubcategory]
  */
 const CategoryTree = ({
   category,
@@ -34,11 +37,22 @@ const CategoryTree = ({
   searchQuery = '',
   selectedCategoryId,
   onCategorySelect,
+  inlineAddParentId = null,
+  onSubmitSubcategory,
+  onCancelSubcategory,
 }) => {
   const navigate = useNavigate();
+  const inputRef = useRef(null);
+  const isAddingSubcategory = inlineAddParentId === category?.id;
   const [expanded, setExpanded] = useState(() =>
     selectedLessonId ? categoryContainsLesson(category, selectedLessonId) : false,
   );
+
+  useEffect(() => {
+    if (isAddingSubcategory && inputRef.current) {
+      inputRef.current.focus();
+    }
+  }, [isAddingSubcategory]);
 
   if (!category) return null;
 
@@ -71,6 +85,41 @@ const CategoryTree = ({
     }
   };
 
+  const showExpanded = expanded || isAddingSubcategory;
+
+  const handleInlineSubcategorySubmit = () => {
+    const name = inputRef.current?.value?.trim();
+    if (!name || !onSubmitSubcategory) return;
+    inputRef.current.disabled = true;
+    onSubmitSubcategory(id, name).finally(() => {
+      onCancelSubcategory?.();
+    });
+  };
+
+  const handleInlineSubcategoryKeyDown = (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      handleInlineSubcategorySubmit();
+    }
+    if (e.key === 'Escape') {
+      onCancelSubcategory?.();
+    }
+  };
+
+  const handleInlineSubcategoryBlur = () => {
+    if (inputRef.current?.disabled) return;
+    const name = inputRef.current?.value?.trim();
+    if (!name) {
+      onCancelSubcategory?.();
+      return;
+    }
+    if (window.confirm('Создать категорию «' + name + '»?')) {
+      handleInlineSubcategorySubmit();
+    } else {
+      onCancelSubcategory?.();
+    }
+  };
+
   return (
     <li className="kb-sidebar__category" data-id={id}>
       <div
@@ -85,10 +134,12 @@ const CategoryTree = ({
           {name}
         </span>
         {hasChildren && (
-          <span className={`kb-sidebar__toggle ${expanded ? 'kb-sidebar__toggle--open' : ''}`}>+</span>
+          <span className={`kb-sidebar__toggle ${expanded ? 'kb-sidebar__toggle--open' : ''}`} aria-hidden="true">
+            {expanded ? '−' : '+'}
+          </span>
         )}
       </div>
-      {hasChildren && expanded && (
+      {(hasChildren || isAddingSubcategory) && showExpanded && (
         <>
           {visibleLessons.length > 0 && (
             <ul className="kb-sidebar__lesson-list" role="list">
@@ -98,9 +149,6 @@ const CategoryTree = ({
                   className={`kb-sidebar__lesson-item ${selectedLessonId === lesson.id ? 'kb-sidebar__lesson-item--active' : ''}`}
                   data-lesson-id={lesson.id}
                 >
-                  {/* <span className="kb-sidebar__lesson-icon" aria-hidden="true">
-                    <LessonIcon />
-                  </span> */}
                   <button
                     type="button"
                     className="kb-sidebar__lesson-link"
@@ -118,8 +166,23 @@ const CategoryTree = ({
               ))}
             </ul>
           )}
-          {visibleSubcategories.length > 0 && (
+          {(visibleSubcategories.length > 0 || isAddingSubcategory) && (
             <ul className="kb-sidebar__subcategory-list" role="list">
+              {isAddingSubcategory && (
+                <li className="kb-sidebar__category kb-sidebar__category--inline-add">
+                  <div className="kb-sidebar__category-header">
+                    <input
+                      ref={inputRef}
+                      type="text"
+                      className="kb-sidebar__inline-input"
+                      placeholder="Название подкатегории..."
+                      onKeyDown={handleInlineSubcategoryKeyDown}
+                      onBlur={handleInlineSubcategoryBlur}
+                      aria-label="Название подкатегории"
+                    />
+                  </div>
+                </li>
+              )}
               {visibleSubcategories.map((sub) => (
                 <CategoryTree
                   key={sub.id}
@@ -128,6 +191,9 @@ const CategoryTree = ({
                   searchQuery={searchQuery}
                   selectedCategoryId={selectedCategoryId}
                   onCategorySelect={onCategorySelect}
+                  inlineAddParentId={inlineAddParentId}
+                  onSubmitSubcategory={onSubmitSubcategory}
+                  onCancelSubcategory={onCancelSubcategory}
                 />
               ))}
             </ul>
