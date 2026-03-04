@@ -88,6 +88,21 @@ def api_some_endpoint(request):
 7. **Ошибки** — возвращать `JsonResponse({'error': 'текст'}, status=код)`
 8. **Права доступа staff** — проверять через `request.user.is_staff or request.user.is_superuser`
 
+
+### Сериализация для фронтенда
+
+Сериализация объектов для ответов API (для React-фронтенда) должна:
+
+1. **Размещаться** в едином файле: `myproject/apps/api/serializers.py`.
+2. **Соответствовать Best Practice DRF** (Django REST Framework):
+   - использовать `ModelSerializer` для моделей;
+   - явно указывать `fields` (избегать `fields = '__all__'` без необходимости);
+   - вложенные объекты — через вложенные сериализаторы;
+   - вычисляемые/дополнительные поля — через `SerializerMethodField`;
+   - у каждого сериализатора — понятный docstring.
+
+Новые сериализаторы добавляются в `serializers.py`; в представлениях используются через вызов сериализатора (например, `SomeSerializer(instance).data` или `SomeSerializer(queryset, many=True).data`).
+
 ### Стандартный формат пагинации
 
 ```python
