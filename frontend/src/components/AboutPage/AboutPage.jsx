@@ -2,22 +2,6 @@ import { useEffect, useState } from "react";
 import './AboutPage.css';
 
 const AboutPage = () => {
-    const [loading, setLoading] = useState(true);
-
-    // useEffect(() => {
-    //     const loadData = async () => {
-    //       try {
-    //         const data = await fetchAboutPageData();
-    //         setData(data || {username: '', first_name: '', user_courses: []});
-    //       } catch (err) {
-    //         console.error('Ошибка загрузки данных about:', err);
-    //       } finally {
-    //         setLoading(false);
-    //       }
-    //     };
-    
-    //     loadData();
-    //   }, []);
 
     return (
         <div className="about-page">

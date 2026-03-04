@@ -41,6 +41,7 @@ import MyTicketListPage from './components/TechSupportApp/MyTicketListPage/MyTic
 import TicketListPage from './components/TechSupportApp/TicketListPage/TicketListPage';
 import StaffDashboardPage from './components/TechSupportApp/StaffDashboardPage/StaffDashboardPage';
 import TicketReportsPage from './components/TechSupportApp/TicketReportsPage/TicketReportsPage';
+import NotFound from './pages/NotFound';
 
 const App = () => {
   return (
@@ -48,6 +49,7 @@ const App = () => {
       <Routes>
         <Route element={<Layout />}>
           <Route index element={<HomePage />} />
+          <Route path='*' element={<NotFound />} />
           <Route path='/about' element={<AboutPage />}/>
           <Route path='/changelog' element={<ChangeLogPage />}/>
           <Route path='/builder' element={<DashboardPage />}/>
