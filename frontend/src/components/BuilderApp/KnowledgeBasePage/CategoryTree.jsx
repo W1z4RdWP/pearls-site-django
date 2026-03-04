@@ -102,8 +102,12 @@ const CategoryTree = ({
     if (onCategorySelect) {
       onCategorySelect(id);
     }
+  };
+
+  const handleToggleClick = (e) => {
+    e.stopPropagation();
     if (hasChildren) {
-      setExpanded((e) => !e);
+      setExpanded((prev) => !prev);
     }
   };
 
@@ -172,7 +176,7 @@ const CategoryTree = ({
           isSelected ? 'kb-sidebar__category-header--selected' : ''
         } ${isEditing ? 'kb-sidebar__category-header--editing' : ''}`}
         onClick={handleHeaderClick}
-        role={hasChildren && !isEditing ? 'button' : undefined}
+        role={!isEditing ? 'button' : undefined}
         aria-expanded={hasChildren ? expanded : undefined}
       >
         {isEditing ? (
@@ -192,9 +196,15 @@ const CategoryTree = ({
           </span>
         )}
         {hasChildren && (
-          <span className={`kb-sidebar__toggle ${expanded ? 'kb-sidebar__toggle--open' : ''}`} aria-hidden="true">
+          <button
+            type="button"
+            className={`kb-sidebar__toggle ${expanded ? 'kb-sidebar__toggle--open' : ''}`}
+            onClick={handleToggleClick}
+            aria-label={expanded ? 'Свернуть' : 'Развернуть'}
+            aria-expanded={expanded}
+          >
             {expanded ? '−' : '+'}
-          </span>
+          </button>
         )}
       </div>
       {(hasChildren || isAddingSubcategory) && showExpanded && (

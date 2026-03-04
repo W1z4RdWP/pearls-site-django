@@ -300,6 +300,10 @@
   width: 28px;
   height: 28px;
   margin-left: 0;
+  padding: 0;
+  border: none;
+  background: none;
+  cursor: pointer;
   display: inline-flex;
   align-items: center;
   justify-content: center;
