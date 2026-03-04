@@ -1,5 +1,52 @@
 import { request } from './api';
 
+// ---------------------------------------------------------------------------
+// База знаний (содержание, мастер-деталь)
+// ---------------------------------------------------------------------------
+
+/**
+ * Данные страницы «Содержание базы знаний»: дерево категорий, уроки без категории, словарь, флаги доступа.
+ * При передаче lessonId в ответ добавляются данные выбранного урока (деталь, версии, актуализация, черновик).
+ * @param {number|null} [lessonId] — опциональный ID урока для блока детали
+ * @returns {Promise<{
+ *   categories: Array<{ id, name, order, subcategories, lessons }>,
+ *   uncategorized_lessons: Array<{ id, title, has_mirrors }>,
+ *   dictionary_sections: Array<{ id, name }>,
+ *   is_readonly: boolean,
+ *   roles: Array<{ id, name }>,
+ *   urls: { update_control, lesson_draft_create, lesson_draft_edit, lesson_draft_review },
+ *   selected_lesson?: { id, title, content, video_id }|null,
+ *   lesson_versions?: Array<{ version, title, content, video_id }>,
+ *   actualization_history?: Array,
+ *   actualization_info?: { next_update, responsible_role }|null,
+ *   today?: string|null,
+ *   user_is_responsible_for_lesson?: boolean,
+ *   responsible_id_default?: number|null,
+ *   previous_role_id?: number|null,
+ *   previous_role_name?: string|null,
+ *   pending_draft?: { id, lesson_id, edit_url, review_url }|null,
+ *   is_mentor_only?: boolean
+ * }>}
+ */
+export function fetchMasterDetailContent(lessonId = null) {
+  const url = lessonId != null ? `/builder/content/?lesson_id=${lessonId}` : '/builder/content/';
+  return request(url);
+}
+
+/**
+ * Данные страницы «Содержание базы знаний» с выбранным уроком по ID из URL (аналог /builder/lesson/<pk>/).
+ * Возвращает те же поля, что и fetchMasterDetailContent(lessonId), с заполненным блоком детали урока.
+ * @param {number} pk — ID урока
+ * @returns {Promise<object>} — тот же формат, что и fetchMasterDetailContent с lesson_id
+ */
+export function fetchLessonDetail(pk) {
+  return request(`/builder/lesson/${pk}/`);
+}
+
+// ---------------------------------------------------------------------------
+// Управление траекториями, курсы, формы уроков
+// ---------------------------------------------------------------------------
+
 /**
  * Данные страницы «Управление траекториями»: статистика, последние уроки/курсы/траектории/тесты, группы, URL.
  * Только для staff/superuser.

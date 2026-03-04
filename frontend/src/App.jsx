@@ -54,6 +54,7 @@ const App = () => {
           <Route path='/changelog' element={<ChangeLogPage />}/>
           <Route path='/builder' element={<DashboardPage />}/>
           <Route path='/builder/content' element={<KnowledgeBasePage />}/>
+          <Route path='/builder/lesson/:pk' element={<KnowledgeBasePage />}/>
           <Route path='/builder/trajectory-management' element={<TrajectoryManagementPage />}/>
           <Route path='/builder/courses' element={<CourseListPage />}/>
           <Route path='/builder/add' element={<LessonFormPage />}/>

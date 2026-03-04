@@ -1,9 +1,10 @@
 from rest_framework import serializers
 from django.contrib.auth.models import User, Group
-from courses.models import Course
+from courses.models import Course, Lesson
 from myapp.models import ChangeLog, UserCourse
 from messenger.models import ChatRoom, RoomMessage, RoomMessageAttachment
 from shop.models import InternalProduct, ProductOrder
+from users.models import Role
 
 
 class GroupSerializer(serializers.ModelSerializer):
@@ -118,9 +119,31 @@ class UserBasicSerializer(serializers.ModelSerializer):
 
 class MessengerChatRoomSerializer(serializers.ModelSerializer):
     """Сериализатор комнаты чата для API."""
-    
+
     created_by = UserBasicSerializer(read_only=True)
-    
+
     class Meta:
         model = ChatRoom
         fields = '__all__'
+
+
+# ---------------------------------------------------------------------------
+#  Builder API — база знаний (master_detail, lesson detail block)
+# ---------------------------------------------------------------------------
+
+class BuilderLessonDetailSerializer(serializers.ModelSerializer):
+    """Сериализатор урока для блока деталей базы знаний (содержание, видео)."""
+
+    video_id = serializers.CharField(allow_null=True, required=False)
+
+    class Meta:
+        model = Lesson
+        fields = ('id', 'title', 'content', 'video_id')
+
+
+class BuilderRoleSerializer(serializers.ModelSerializer):
+    """Сериализатор должности для блока актуализации и выбора ответственного."""
+
+    class Meta:
+        model = Role
+        fields = ('id', 'name')

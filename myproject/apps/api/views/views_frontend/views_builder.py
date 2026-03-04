@@ -13,11 +13,21 @@ from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from django.urls import reverse
 
-from courses.models import Course, Lesson, Trajectory
+from courses.models import Course, Lesson, Trajectory, UserLessonTrajectory
+from courses.models import UserLesson as UserLessonAssignment
+from myapp.models import UserCourse
 from quizzes.models import Quiz
-from builder.models import CategoryName, LessonVersion
+from users.models import Role
+from builder.models import CategoryName, LessonVersion, LessonDraft, DictionarySection
 from builder.audit_logger import log_create, log_update, serialize_model_data
-from builder.utils import get_responsible_user_for_lesson
+from builder.utils import (
+    get_responsible_user_for_lesson,
+    get_category_tree_data,
+    filter_categories_and_lessons_for_user,
+    get_compact_fio,
+    user_has_category_access,
+)
+from api.serializers import BuilderLessonDetailSerializer, BuilderRoleSerializer
 
 PAGINATE_BY = 15
 
@@ -482,3 +492,260 @@ def api_lesson_form_edit(request, pk):
 
     redirect_url = data.get('return_url') or f"{reverse('builder:lesson_master')}?edited_lesson={lesson.id}"
     return JsonResponse({'success': True, 'redirect_url': redirect_url})
+
+
+# ---------------------------------------------------------------------------
+#  Builder Master Detail API — база знаний (содержание, блок детали урока)
+# ---------------------------------------------------------------------------
+
+def _normalize_category_tree(cat_data):
+    """
+    Приводит дерево категорий к единому формату для React:
+    всегда ключи 'subcategories' и 'lessons'. Для readonly приходит
+    filtered_subcategories / filtered_lessons — переименовываем.
+    """
+    if not cat_data:
+        return None
+    out = {
+        'id': cat_data['id'],
+        'name': cat_data['name'],
+        'order': cat_data.get('order', 0),
+        'subcategories': [],
+        'lessons': [],
+    }
+    subs = cat_data.get('filtered_subcategories') or cat_data.get('subcategories') or []
+    less = cat_data.get('filtered_lessons') or cat_data.get('lessons') or []
+    out['subcategories'] = [_normalize_category_tree(s) for s in subs]
+    out['subcategories'] = [s for s in out['subcategories'] if s is not None]
+    out['lessons'] = less
+    return out
+
+
+def _lesson_can_be_seen_by_user(request, lesson):
+    """Проверка доступа к уроку для readonly пользователя (курсы, назначения, группы)."""
+    user = request.user
+    if user.is_staff or user.is_superuser:
+        return True
+    allowed_lesson_ids = set()
+    user_courses = UserCourse.objects.filter(user=user).select_related('course')
+    allowed_courses = [uc.course for uc in user_courses if uc.status in ['available', 'started', 'completed']]
+    for course in allowed_courses:
+        trajectory = UserLessonTrajectory.objects.filter(user=user, course=course).first()
+        if trajectory:
+            allowed_lesson_ids.update(trajectory.lessons.values_list('id', flat=True))
+        else:
+            allowed_lesson_ids.update(course.lessons.values_list('id', flat=True))
+    assigned_lesson_ids = UserLessonAssignment.objects.filter(user=user).values_list('lesson_id', flat=True)
+    allowed_lesson_ids.update(assigned_lesson_ids)
+    cat = lesson.category
+    while cat:
+        if user_has_category_access(user, cat):
+            return True
+        cat = cat.parent
+    return lesson.id in allowed_lesson_ids
+
+
+@login_required
+@require_http_methods(['GET'])
+def api_master_detail_content(request):
+    """
+    API: данные страницы «Содержание базы знаний» (master_detail).
+    GET: опционально lesson_id — данные сайдбара и при наличии lesson_id — блок детали урока.
+    """
+    if not request.user.is_authenticated:
+        return JsonResponse({'error': 'Требуется авторизация'}, status=403)
+
+    user = request.user
+    is_readonly = not (user.is_staff or user.is_superuser)
+
+    root_cats = CategoryName.objects.filter(parent__isnull=True).order_by('order', 'name')
+    categories_raw = [get_category_tree_data(cat.id) for cat in root_cats]
+    uncategorized_lessons = Lesson.objects.filter(category__isnull=True).order_by('order', 'title')
+
+    if is_readonly:
+        categories_raw, uncategorized_lessons = filter_categories_and_lessons_for_user(
+            user, categories_raw, uncategorized_lessons
+        )
+
+    categories = [_normalize_category_tree(c) for c in categories_raw if c]
+    categories = [c for c in categories if c is not None]
+
+    uncat_list = [
+        {'id': les.id, 'title': les.title, 'has_mirrors': les.mirrors.exists()}
+        for les in uncategorized_lessons
+    ]
+    dictionary_sections = list(
+        DictionarySection.objects.all().order_by('order', 'name').values('id', 'name')
+    )
+    roles = Role.objects.all().order_by('name')
+    roles_data = BuilderRoleSerializer(roles, many=True).data
+
+    payload = {
+        'categories': categories,
+        'uncategorized_lessons': uncat_list,
+        'dictionary_sections': dictionary_sections,
+        'is_readonly': is_readonly,
+        'roles': roles_data,
+        'urls': {
+            'update_control': '/builder/update_control/',
+            'lesson_draft_create': '/builder/lesson/{id}/draft/create/',
+            'lesson_draft_edit': '/builder/lesson/draft/{id}/edit/',
+            'lesson_draft_review': '/builder/lesson/draft/{id}/review/',
+        },
+    }
+
+    lesson_id = request.GET.get('lesson_id')
+    try:
+        lesson_id = int(lesson_id) if lesson_id else None
+    except (ValueError, TypeError):
+        lesson_id = None
+
+    _inject_lesson_detail(request, payload, lesson_id, user, is_readonly)
+    return JsonResponse(payload)
+
+
+def _inject_lesson_detail(request, payload, lesson_id, user, is_readonly):
+    """Дополняет payload данными выбранного урока (actualization, versions, draft)."""
+    if lesson_id:
+        try:
+            selected_lesson = Lesson.objects.get(pk=lesson_id)
+        except Lesson.DoesNotExist:
+            selected_lesson = None
+        if selected_lesson and is_readonly and not _lesson_can_be_seen_by_user(request, selected_lesson):
+            selected_lesson = None
+
+        if selected_lesson:
+            lesson_versions = list(
+                selected_lesson.versions.order_by('-version')
+            )
+            versions_data = [
+                {'version': v.version, 'title': v.title, 'content': v.content or '', 'video_id': v.video_id or ''}
+                for v in lesson_versions
+            ]
+            latest_version = lesson_versions[0] if lesson_versions else None
+            actualization_history = []
+            for v in lesson_versions:
+                role = getattr(getattr(v.updated_by, 'profile', None), 'role', None) if v.updated_by else None
+                actualization_history.append({
+                    'version': v.version,
+                    'created_at': v.updated_at.date().isoformat() if v.updated_at else None,
+                    'next_update': v.next_update.isoformat() if v.next_update else None,
+                    'update_period_days': v.update_period_days,
+                    'responsible_role': BuilderRoleSerializer(role).data if role else None,
+                    'responsible_fio': get_compact_fio(v.updated_by) if v.updated_by else None,
+                })
+            actualization_info = None
+            if latest_version:
+                role = getattr(getattr(latest_version.updated_by, 'profile', None), 'role', None)
+                actualization_info = {
+                    'next_update': latest_version.next_update.isoformat() if latest_version.next_update else None,
+                    'responsible_role': BuilderRoleSerializer(role).data if role else None,
+                }
+            responsible_id_default = latest_version.updated_by.id if (latest_version and latest_version.updated_by) else None
+            user_is_responsible = (
+                latest_version and latest_version.updated_by and latest_version.updated_by == user
+            )
+            previous_role_id = None
+            previous_role_name = None
+            if latest_version and latest_version.updated_by and getattr(latest_version.updated_by, 'profile', None):
+                prof = latest_version.updated_by.profile
+                if getattr(prof, 'role', None):
+                    previous_role_id = prof.role.id
+                    previous_role_name = prof.role.name
+            today = timezone.now().date().isoformat()
+            pending_draft = LessonDraft.objects.filter(lesson=selected_lesson, status='pending').first()
+            pending_draft_data = None
+            if pending_draft:
+                pending_draft_data = {
+                    'id': pending_draft.id,
+                    'lesson_id': selected_lesson.id,
+                    'edit_url': f"/builder/lesson/draft/{pending_draft.id}/edit/",
+                    'review_url': f"/builder/lesson/draft/{pending_draft.id}/review/",
+                }
+
+            payload['selected_lesson'] = BuilderLessonDetailSerializer(selected_lesson).data
+            payload['lesson_versions'] = versions_data
+            payload['actualization_history'] = actualization_history
+            payload['actualization_info'] = actualization_info
+            payload['today'] = today
+            payload['user_is_responsible_for_lesson'] = user_is_responsible
+            payload['responsible_id_default'] = responsible_id_default
+            payload['previous_role_id'] = previous_role_id
+            payload['previous_role_name'] = previous_role_name
+            payload['pending_draft'] = pending_draft_data
+            payload['is_mentor_only'] = is_readonly and getattr(getattr(user, 'profile', None), 'is_mentor_user', False)
+        else:
+            payload['selected_lesson'] = None
+            payload['lesson_versions'] = []
+            payload['actualization_history'] = []
+            payload['actualization_info'] = None
+            payload['today'] = None
+            payload['user_is_responsible_for_lesson'] = False
+            payload['responsible_id_default'] = None
+            payload['previous_role_id'] = None
+            payload['previous_role_name'] = None
+            payload['pending_draft'] = None
+            payload['is_mentor_only'] = False
+    else:
+        payload['selected_lesson'] = None
+        payload['lesson_versions'] = []
+        payload['actualization_history'] = []
+        payload['actualization_info'] = None
+        payload['today'] = None
+        payload['user_is_responsible_for_lesson'] = False
+        payload['responsible_id_default'] = None
+        payload['previous_role_id'] = None
+        payload['previous_role_name'] = None
+        payload['pending_draft'] = None
+        payload['is_mentor_only'] = False
+
+
+@login_required
+@require_http_methods(['GET'])
+def api_lesson_detail(request, pk):
+    """
+    API: данные страницы «Содержание базы знаний» с выбранным уроком по pk из URL.
+    Эквивалент Django path('lesson/<int:pk>/', ...) — возвращает те же данные, что и content/?lesson_id=<pk>.
+    """
+    if not request.user.is_authenticated:
+        return JsonResponse({'error': 'Требуется авторизация'}, status=403)
+
+    user = request.user
+    is_readonly = not (user.is_staff or user.is_superuser)
+
+    root_cats = CategoryName.objects.filter(parent__isnull=True).order_by('order', 'name')
+    categories_raw = [get_category_tree_data(cat.id) for cat in root_cats]
+    uncategorized_lessons = Lesson.objects.filter(category__isnull=True).order_by('order', 'title')
+
+    if is_readonly:
+        categories_raw, uncategorized_lessons = filter_categories_and_lessons_for_user(
+            user, categories_raw, uncategorized_lessons
+        )
+
+    categories = [_normalize_category_tree(c) for c in categories_raw if c]
+    categories = [c for c in categories if c is not None]
+    uncat_list = [
+        {'id': les.id, 'title': les.title, 'has_mirrors': les.mirrors.exists()}
+        for les in uncategorized_lessons
+    ]
+    dictionary_sections = list(
+        DictionarySection.objects.all().order_by('order', 'name').values('id', 'name')
+    )
+    roles = Role.objects.all().order_by('name')
+    roles_data = BuilderRoleSerializer(roles, many=True).data
+
+    payload = {
+        'categories': categories,
+        'uncategorized_lessons': uncat_list,
+        'dictionary_sections': dictionary_sections,
+        'is_readonly': is_readonly,
+        'roles': roles_data,
+        'urls': {
+            'update_control': '/builder/update_control/',
+            'lesson_draft_create': '/builder/lesson/{id}/draft/create/',
+            'lesson_draft_edit': '/builder/lesson/draft/{id}/edit/',
+            'lesson_draft_review': '/builder/lesson/draft/{id}/review/',
+        },
+    }
+    _inject_lesson_detail(request, payload, int(pk), user, is_readonly)
+    return JsonResponse(payload)
