@@ -2,7 +2,7 @@ import { useState, useMemo, useRef, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import CategoryTree from './CategoryTree';
 import KnowledgeBaseContextMenu from './KnowledgeBaseContextMenu';
-import { createRootCategory, createSubcategory, renameCategory } from '../../../api/builder_api';
+import { createRootCategory, createSubcategory, renameCategory, deleteCategory, fetchCategoryDeleteStats } from '../../../api/builder_api';
 
 const TAB_CATEGORIES = 'categories';
 const TAB_UNCAT = 'uncat';
@@ -46,6 +46,15 @@ const KnowledgeBaseSidebar = ({
   const [mirrorsFilterLessonId, setMirrorsFilterLessonId] = useState(null);
   /** ID категории в режиме инлайн-редактирования названия */
   const [editingCategoryId, setEditingCategoryId] = useState(null);
+  /** Модальное окно удаления категории: { open, categoryId, name, stats, loading, error } */
+  const [deleteCategoryModal, setDeleteCategoryModal] = useState({
+    open: false,
+    categoryId: null,
+    name: '',
+    stats: null,
+    loading: false,
+    error: null,
+  });
 
   const filteredUncategorized = useMemo(() => {
     const q = (searchQuery || '').trim().toLowerCase();
@@ -374,11 +383,58 @@ const KnowledgeBaseSidebar = ({
     setEditingCategoryId(null);
   };
 
+  const openDeleteCategoryModal = useCallback(() => {
+    if (!selectedCategoryId) return;
+    setDeleteCategoryModal({
+      open: true,
+      categoryId: selectedCategoryId,
+      name: '',
+      stats: null,
+      loading: true,
+      error: null,
+    });
+    fetchCategoryDeleteStats(selectedCategoryId)
+      .then((data) => {
+        setDeleteCategoryModal((prev) => ({
+          ...prev,
+          name: data.name ?? '',
+          stats: data,
+          loading: false,
+          error: null,
+        }));
+      })
+      .catch((e) => {
+        setDeleteCategoryModal((prev) => ({
+          ...prev,
+          loading: false,
+          error: e.message || 'Не удалось загрузить данные',
+        }));
+      });
+  }, [selectedCategoryId]);
+
+  const closeDeleteCategoryModal = useCallback(() => {
+    setDeleteCategoryModal({ open: false, categoryId: null, name: '', stats: null, loading: false, error: null });
+  }, []);
+
+  const handleDeleteCategoryAction = async (action) => {
+    const { categoryId } = deleteCategoryModal;
+    if (!categoryId) return;
+    if (action === 'delete_all' && !window.confirm('Точно удалить? Это действие нельзя будет отменить. Всё содержимое категории будет удалено безвозвратно.')) {
+      return;
+    }
+    try {
+      await deleteCategory(categoryId, action);
+      if (selectedCategoryId === categoryId) setSelectedCategoryId(null);
+      closeDeleteCategoryModal();
+      onCategoriesUpdated?.();
+    } catch (e) {
+      window.alert(e.message || 'Ошибка удаления категории');
+    }
+  };
+
   const handleDeleteCategoryOrLesson = () => {
     if (selectedCategoryId && !selectedLessonId) {
-      if (window.confirm('Удалить категорию?')) {
-        window.location.href = `/builder/categories/${selectedCategoryId}/delete/`;
-      }
+      openDeleteCategoryModal();
       return;
     }
     if (selectedLessonId) {
@@ -636,6 +692,78 @@ const KnowledgeBaseSidebar = ({
           onShowAllMirrors={handleShowAllMirrors}
           onHideMirrors={handleHideMirrors}
         />
+      )}
+
+      {deleteCategoryModal.open && (
+        <div className="kb-delete-category-modal" role="dialog" aria-modal="true" aria-labelledby="kb-delete-category-title">
+          <div className="kb-delete-category-modal__backdrop" onClick={closeDeleteCategoryModal} aria-hidden="true" />
+          <div className="kb-delete-category-modal__box">
+            <h2 id="kb-delete-category-title" className="kb-delete-category-modal__title">
+              Удалить категорию «{deleteCategoryModal.name || '…'}»?
+            </h2>
+            {deleteCategoryModal.loading && (
+              <p className="kb-delete-category-modal__loading">Загрузка…</p>
+            )}
+            {deleteCategoryModal.error && (
+              <div className="kb-delete-category-modal__error">
+                {deleteCategoryModal.error}
+                <button type="button" className="kb-delete-category-modal__btn kb-delete-category-modal__btn--secondary" onClick={closeDeleteCategoryModal}>
+                  Закрыть
+                </button>
+              </div>
+            )}
+            {!deleteCategoryModal.loading && !deleteCategoryModal.error && deleteCategoryModal.stats && (
+              <>
+                {deleteCategoryModal.stats.total_items > 0 && (
+                  <div className="kb-delete-category-modal__warning">
+                    <strong>Внимание!</strong> При удалении категории все внутренние категории и уроки перемещаются во вкладку «Без категории» или удаляются безвозвратно.
+                    <ul className="kb-delete-category-modal__stats">
+                      {deleteCategoryModal.stats.subcategories_count > 0 && (
+                        <li>Подкатегорий: <strong>{deleteCategoryModal.stats.subcategories_count}</strong></li>
+                      )}
+                      {deleteCategoryModal.stats.lessons_count > 0 && (
+                        <li>Уроков: <strong>{deleteCategoryModal.stats.lessons_count}</strong></li>
+                      )}
+                      {deleteCategoryModal.stats.mirrors_count > 0 && (
+                        <li>Зеркал уроков: <strong>{deleteCategoryModal.stats.mirrors_count}</strong></li>
+                      )}
+                    </ul>
+                  </div>
+                )}
+                <div className="kb-delete-category-modal__actions">
+                  <p className="kb-delete-category-modal__actions-title"><strong>Выберите действие:</strong></p>
+                  <button
+                    type="button"
+                    className="kb-delete-category-modal__btn kb-delete-category-modal__btn--warning"
+                    onClick={() => handleDeleteCategoryAction('move_to_none')}
+                  >
+                    Переместить в «Без категории»
+                  </button>
+                  <small className="kb-delete-category-modal__hint">
+                    Все подкатегории и уроки станут корневыми. Зеркала уроков будут удалены.
+                  </small>
+                  <button
+                    type="button"
+                    className="kb-delete-category-modal__btn kb-delete-category-modal__btn--danger"
+                    onClick={() => handleDeleteCategoryAction('delete_all')}
+                  >
+                    Удалить безвозвратно
+                  </button>
+                  <small className="kb-delete-category-modal__hint">
+                    Все подкатегории, уроки и зеркала будут удалены навсегда. Это действие нельзя отменить!
+                  </small>
+                  <button
+                    type="button"
+                    className="kb-delete-category-modal__btn kb-delete-category-modal__btn--secondary"
+                    onClick={closeDeleteCategoryModal}
+                  >
+                    Отмена
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
       )}
     </aside>
   );

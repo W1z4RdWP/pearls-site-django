@@ -327,6 +327,115 @@
   background: rgba(77, 124, 255, 0.12);
 }
 
+.kb-delete-category-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+}
+
+.kb-delete-category-modal__backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+}
+
+.kb-delete-category-modal__box {
+  position: relative;
+  max-width: 480px;
+  width: 100%;
+  max-height: 90vh;
+  overflow: auto;
+  background: #fff;
+  border-radius: 8px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+  padding: 1.5rem;
+  color: #212529;
+}
+
+.kb-delete-category-modal__title {
+  margin: 0 0 1rem;
+  font-size: 1.25rem;
+}
+
+.kb-delete-category-modal__loading,
+.kb-delete-category-modal__error {
+  margin: 0.5rem 0;
+}
+
+.kb-delete-category-modal__warning {
+  background: #fff3cd;
+  border: 1px solid #ffc107;
+  border-radius: 6px;
+  padding: 1rem;
+  margin-bottom: 1rem;
+  font-size: 0.9rem;
+}
+
+.kb-delete-category-modal__stats {
+  margin: 0.5rem 0 0 1rem;
+  padding-left: 0.5rem;
+}
+
+.kb-delete-category-modal__actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.kb-delete-category-modal__actions-title {
+  margin: 0 0 0.25rem;
+}
+
+.kb-delete-category-modal__btn {
+  padding: 0.6rem 1rem;
+  border-radius: 6px;
+  font-size: 0.95rem;
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition: background 0.2s, border-color 0.2s;
+}
+
+.kb-delete-category-modal__btn--warning {
+  background: #ffc107;
+  color: #212529;
+  border-color: #e0a800;
+}
+
+.kb-delete-category-modal__btn--warning:hover {
+  background: #e0a800;
+}
+
+.kb-delete-category-modal__btn--danger {
+  background: #dc3545;
+  color: #fff;
+  border-color: #c82333;
+}
+
+.kb-delete-category-modal__btn--danger:hover {
+  background: #c82333;
+}
+
+.kb-delete-category-modal__btn--secondary {
+  background: #6c757d;
+  color: #fff;
+  border-color: #5a6268;
+}
+
+.kb-delete-category-modal__btn--secondary:hover {
+  background: #5a6268;
+}
+
+.kb-delete-category-modal__hint {
+  display: block;
+  color: #6c757d;
+  font-size: 0.8rem;
+  margin: 0 0 0.5rem;
+}
+
 .kb-sidebar__lesson-list {
   padding-left: 1rem;
 }

@@ -55,6 +55,8 @@ urlpatterns = [
     path('builder/categories/root/', builder_views.api_add_root_category, name='api_builder_category_add_root'),
     path('builder/categories/sub/', builder_views.api_add_subcategory, name='api_builder_category_add_sub'),
     path('builder/categories/rename/', builder_views.api_rename_category, name='api_builder_category_rename'),
+    path('builder/categories/delete/stats/', builder_views.api_category_delete_stats, name='api_builder_category_delete_stats'),
+    path('builder/categories/delete/', builder_views.api_delete_category, name='api_builder_category_delete'),
     path('changelog/', views_frontend.changelog_data, name='api_changelog'),
 
     # MyApp API — история изменений для React

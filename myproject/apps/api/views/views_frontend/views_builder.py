@@ -18,7 +18,7 @@ from courses.models import UserLesson as UserLessonAssignment
 from myapp.models import UserCourse
 from quizzes.models import Quiz
 from users.models import Role
-from builder.models import CategoryName, LessonVersion, LessonDraft, DictionarySection
+from builder.models import CategoryName, LessonVersion, LessonDraft, DictionarySection, LessonCategoryMirror
 from builder.audit_logger import log_create, log_update, serialize_model_data
 from builder.utils import (
     get_responsible_user_for_lesson,
@@ -821,3 +821,105 @@ def api_rename_category(request):
     cat.save(update_fields=['name'])
     log_update(request.user, cat, old_values, request, comment='Переименована категория через API')
     return JsonResponse({'id': cat.id, 'name': cat.name})
+
+
+def _get_category_stats(category):
+    """Рекурсивно подсчитывает подкатегории, уроки и зеркала в категории."""
+    subcategories = 0
+    lessons = category.lessons.count()
+    mirrors = category.mirrored_lessons.count()
+    for subcategory in category.subcategories.all():
+        subcategories += 1
+        substats = _get_category_stats(subcategory)
+        subcategories += substats['subcategories']
+        lessons += substats['lessons']
+        mirrors += substats['mirrors']
+    return {
+        'subcategories': subcategories,
+        'lessons': lessons,
+        'mirrors': mirrors,
+        'total': subcategories + lessons + mirrors,
+    }
+
+
+def _move_category_content_to_none(category):
+    """
+    Перемещает подкатегории в корень, уроки — в «Без категории», удаляет зеркала и саму категорию.
+    """
+    for subcategory in category.subcategories.all():
+        subcategory.parent = None
+        subcategory.save(update_fields=['parent'])
+    for lesson in category.lessons.all():
+        lesson.category = None
+        lesson.save(update_fields=['category'])
+    category.mirrored_lessons.all().delete()
+    category.delete()
+
+
+def _delete_category_recursive(category):
+    """Рекурсивно удаляет категорию и всё содержимое (подкатегории, уроки без зеркал, зеркала)."""
+    for subcategory in category.subcategories.all():
+        _delete_category_recursive(subcategory)
+    for lesson in category.lessons.all():
+        other_mirrors = lesson.mirrors.exclude(category=category)
+        if other_mirrors.exists() or lesson.category != category:
+            if lesson.category == category:
+                lesson.category = None
+                lesson.save(update_fields=['category'])
+        else:
+            lesson.delete()
+    category.delete()
+
+
+@login_required
+@require_http_methods(['POST'])
+def api_category_delete_stats(request):
+    """API: статистика категории для диалога удаления. POST JSON: { id }. Возвращает name, subcategories_count, lessons_count, mirrors_count, total_items."""
+    if not (request.user.is_staff or request.user.is_superuser):
+        return JsonResponse({'error': 'forbidden'}, status=403)
+    try:
+        body = json.loads(request.body) if request.body else {}
+    except json.JSONDecodeError:
+        return JsonResponse({'error': 'invalid json'}, status=400)
+    cat_id = body.get('id')
+    if cat_id is None:
+        return JsonResponse({'error': 'empty id'}, status=400)
+    try:
+        cat = CategoryName.objects.get(pk=cat_id)
+    except (ValueError, TypeError, CategoryName.DoesNotExist):
+        return JsonResponse({'error': 'not found'}, status=404)
+    stats = _get_category_stats(cat)
+    return JsonResponse({
+        'name': cat.name,
+        'subcategories_count': stats['subcategories'],
+        'lessons_count': stats['lessons'],
+        'mirrors_count': stats['mirrors'],
+        'total_items': stats['total'],
+    })
+
+
+@login_required
+@require_http_methods(['POST'])
+def api_delete_category(request):
+    """API: удаление категории. POST JSON: { id, action?: 'move_to_none'|'delete_all' }. move_to_none — по умолчанию."""
+    if not (request.user.is_staff or request.user.is_superuser):
+        return JsonResponse({'error': 'forbidden'}, status=403)
+    try:
+        body = json.loads(request.body) if request.body else {}
+    except json.JSONDecodeError:
+        return JsonResponse({'error': 'invalid json'}, status=400)
+    cat_id = body.get('id')
+    action = (body.get('action') or 'move_to_none').strip()
+    if cat_id is None:
+        return JsonResponse({'error': 'empty id'}, status=400)
+    if action not in ('move_to_none', 'delete_all'):
+        return JsonResponse({'error': 'invalid action'}, status=400)
+    try:
+        cat = CategoryName.objects.get(pk=cat_id)
+    except (ValueError, TypeError, CategoryName.DoesNotExist):
+        return JsonResponse({'error': 'not found'}, status=404)
+    if action == 'move_to_none':
+        _move_category_content_to_none(cat)
+    else:
+        _delete_category_recursive(cat)
+    return JsonResponse({'success': True})

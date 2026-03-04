@@ -81,6 +81,31 @@ export function renameCategory(id, name) {
   });
 }
 
+/**
+ * Статистика категории для диалога удаления.
+ * @param {number} id — ID категории
+ * @returns {Promise<{ name: string, subcategories_count: number, lessons_count: number, mirrors_count: number, total_items: number }>}
+ */
+export function fetchCategoryDeleteStats(id) {
+  return request('/builder/categories/delete/stats/', {
+    method: 'POST',
+    body: JSON.stringify({ id: Number(id) }),
+  });
+}
+
+/**
+ * Удаление категории.
+ * @param {number} id — ID категории
+ * @param {'move_to_none'|'delete_all'} [action] — move_to_none: перенести в «Без категории»; delete_all: удалить безвозвратно
+ * @returns {Promise<{ success: boolean }>}
+ */
+export function deleteCategory(id, action = 'move_to_none') {
+  return request('/builder/categories/delete/', {
+    method: 'POST',
+    body: JSON.stringify({ id: Number(id), action }),
+  });
+}
+
 // ---------------------------------------------------------------------------
 // Управление траекториями, курсы, формы уроков
 // ---------------------------------------------------------------------------
