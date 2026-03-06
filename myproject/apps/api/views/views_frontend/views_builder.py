@@ -9,7 +9,7 @@ from django.views.decorators.http import require_http_methods
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import Group, User
 from django.core.paginator import Paginator
-from django.db.models import Q, Count, Max, F
+from django.db.models import Q, Count, Max, F, Prefetch
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from django.urls import reverse
@@ -19,7 +19,7 @@ from courses.models import UserLesson as UserLessonAssignment
 from myapp.models import UserCourse, UserProgress
 from myapp.models import QuizResult
 from quizzes.models import Quiz
-from users.models import Role
+from users.models import Role, Department
 from builder.models import CategoryName, LessonVersion, LessonDraft, DictionarySection, LessonCategoryMirror, Incident
 from builder.audit_logger import log_create, log_update, log_delete, serialize_model_data
 from builder.utils import (
@@ -1231,9 +1231,13 @@ def api_incident_decline(request, pk):
 
 
 def _get_incident_detail_queryset(request):
-    """Кверисет для страницы «Детали инцидентов» (поиск, даты; без фильтра по статусу)."""
+    """Кверисет для страницы «Детали инцидентов» (поиск, даты, статусы)."""
+    assigned_prefetch = User.objects.select_related('profile__department')
     queryset = (
-        Incident.objects.prefetch_related('assigned_to', 'violators')
+        Incident.objects.prefetch_related(
+            Prefetch('assigned_to', queryset=assigned_prefetch),
+            'violators',
+        )
         .select_related('user', 'responsible_mentor', 'expert', 'course')
         .order_by('-created_at')
     )
@@ -1253,22 +1257,36 @@ def _get_incident_detail_queryset(request):
         date_to_parsed = dt.datetime.strptime(date_to, '%Y-%m-%d').date()
         date_to_datetime = timezone.make_aware(dt.datetime.combine(date_to_parsed, dt.time.max))
         queryset = queryset.filter(created_at__lte=date_to_datetime)
+    selected_statuses = request.GET.getlist('status')
+    if selected_statuses:
+        queryset = queryset.filter(status__in=selected_statuses)
     return queryset
 
 
-def _build_incident_user_list(incidents, selected_user_id, violator_filter):
+def _build_incident_user_list(incidents, selected_user_id, violator_filter, selected_department_filters=None, only_overdue=False, now=None):
     """Строит список назначений incident_user_list как в IncidentDetailListView.get_context_data."""
+    if now is None:
+        now = timezone.now()
+    selected_department_filters = selected_department_filters or []
     result = []
     for incident in incidents:
         assigned_users = list(incident.assigned_to.all())
         violators = set(incident.violators.all())
         for user in assigned_users:
+            if selected_department_filters:
+                user_department_name = None
+                if getattr(user, 'profile', None) and getattr(user.profile, 'department', None):
+                    user_department_name = user.profile.department.name
+                if user_department_name not in selected_department_filters:
+                    continue
             if selected_user_id and user.id != selected_user_id:
                 continue
             is_violator = user in violators
             if violator_filter == 'yes' and not is_violator:
                 continue
             if violator_filter == 'no' and is_violator:
+                continue
+            if only_overdue and not incident.course:
                 continue
             if incident.course and not UserCourse.objects.filter(user=user, course=incident.course).exists():
                 continue
@@ -1304,6 +1322,12 @@ def _build_incident_user_list(incidents, selected_user_id, violator_filter):
                 total_materials = total_lessons + total_quizzes
                 completed_materials = completed_lessons + completed_quizzes
                 progress_percent = int((completed_materials / total_materials) * 100) if total_materials > 0 else 0
+                if only_overdue:
+                    if not course_deadline or course_deadline >= now or course_status == 'completed' or incident.status == 'declined':
+                        continue
+            user_department = None
+            if getattr(user, 'profile', None) and getattr(user.profile, 'department', None):
+                user_department = user.profile.department.name
             result.append({
                 'incident': {
                     'id': incident.id,
@@ -1320,6 +1344,7 @@ def _build_incident_user_list(incidents, selected_user_id, violator_filter):
                     'full_name': user.get_full_name() or user.username,
                     'username': user.username,
                     'groups': [g.name for g in user.groups.all()],
+                    'department': user_department,
                 },
                 'is_violator': is_violator,
                 'is_expert': False,
@@ -1327,13 +1352,23 @@ def _build_incident_user_list(incidents, selected_user_id, violator_filter):
                 'course_deadline': course_deadline.strftime('%d.%m.%Y %H:%M') if course_deadline else None,
                 'course_status': course_status,
                 'course_status_display': user_course.get_status_display() if user_course else None,
+                'incident_status': incident.status,
+                'incident_status_display': incident.get_status_display(),
             })
         if incident.expert and incident.expert not in assigned_users:
             expert = incident.expert
             should_add = True
+            if selected_department_filters:
+                expert_department_name = None
+                if getattr(expert, 'profile', None) and getattr(expert.profile, 'department', None):
+                    expert_department_name = expert.profile.department.name
+                if expert_department_name not in selected_department_filters:
+                    should_add = False
             if selected_user_id and expert.id != selected_user_id:
                 should_add = False
             if violator_filter == 'yes':
+                should_add = False
+            if only_overdue and not incident.course:
                 should_add = False
             if incident.course and not UserCourse.objects.filter(user=expert, course=incident.course).exists():
                 should_add = False
@@ -1370,30 +1405,40 @@ def _build_incident_user_list(incidents, selected_user_id, violator_filter):
                     total_materials = total_lessons + total_quizzes
                     completed_materials = completed_lessons + completed_quizzes
                     progress_percent = int((completed_materials / total_materials) * 100) if total_materials > 0 else 0
-                result.append({
-                    'incident': {
-                        'id': incident.id,
-                        'title': incident.title,
-                        'created_at': incident.created_at.strftime('%d.%m.%Y'),
-                        'responsible_mentor': (
-                            (incident.responsible_mentor.get_full_name() or incident.responsible_mentor.username)
-                            if incident.responsible_mentor else None
-                        ),
-                        'course': incident.course_id is not None,
-                    },
-                    'user': {
-                        'id': expert.id,
-                        'full_name': expert.get_full_name() or expert.username,
-                        'username': expert.username,
-                        'groups': [g.name for g in expert.groups.all()],
-                    },
-                    'is_violator': False,
-                    'is_expert': True,
-                    'progress_percent': progress_percent,
-                    'course_deadline': course_deadline.strftime('%d.%m.%Y %H:%M') if course_deadline else None,
-                    'course_status': course_status,
-                    'course_status_display': user_course.get_status_display() if user_course else None,
-                })
+                    if only_overdue:
+                        if not course_deadline or course_deadline >= now or course_status == 'completed' or incident.status == 'declined':
+                            should_add = False
+                if should_add:
+                    expert_department = None
+                    if getattr(expert, 'profile', None) and getattr(expert.profile, 'department', None):
+                        expert_department = expert.profile.department.name
+                    result.append({
+                        'incident': {
+                            'id': incident.id,
+                            'title': incident.title,
+                            'created_at': incident.created_at.strftime('%d.%m.%Y'),
+                            'responsible_mentor': (
+                                (incident.responsible_mentor.get_full_name() or incident.responsible_mentor.username)
+                                if incident.responsible_mentor else None
+                            ),
+                            'course': incident.course_id is not None,
+                        },
+                        'user': {
+                            'id': expert.id,
+                            'full_name': expert.get_full_name() or expert.username,
+                            'username': expert.username,
+                            'groups': [g.name for g in expert.groups.all()],
+                            'department': expert_department,
+                        },
+                        'is_violator': False,
+                        'is_expert': True,
+                        'progress_percent': progress_percent,
+                        'course_deadline': course_deadline.strftime('%d.%m.%Y %H:%M') if course_deadline else None,
+                        'course_status': course_status,
+                        'course_status_display': user_course.get_status_display() if user_course else None,
+                        'incident_status': incident.status,
+                        'incident_status_display': incident.get_status_display(),
+                    })
     return result
 
 
@@ -1429,8 +1474,22 @@ def api_incident_detail(request):
         except (ValueError, TypeError):
             selected_user_id = None
         violator_filter_locked = (violator_filter == 'yes')
+    selected_statuses = request.GET.getlist('status')
+    selected_department_filters = request.GET.getlist('department_filter')
+    only_overdue = request.GET.get('only_overdue', '') == 'on'
+    if not request.GET:
+        selected_statuses = []
+        selected_department_filters = []
+        only_overdue = False
+    now = timezone.now()
     users = User.objects.filter(is_active=True).order_by('last_name', 'first_name')
-    incident_user_list = _build_incident_user_list(queryset, selected_user_id, violator_filter)
+    incident_user_list = _build_incident_user_list(
+        queryset, selected_user_id, violator_filter,
+        selected_department_filters=selected_department_filters,
+        only_overdue=only_overdue,
+        now=now,
+    )
+    departments = Department.objects.all().order_by('name')
     data = {
         'users': [{'id': u.id, 'full_name': u.get_full_name() or u.username, 'username': u.username} for u in users],
         'incident_user_list': incident_user_list,
@@ -1440,6 +1499,11 @@ def api_incident_detail(request):
         'selected_user_id': selected_user_id,
         'violator_filter': violator_filter,
         'violator_filter_locked': violator_filter_locked,
+        'status_choices': list(Incident.STATUS_CHOICES),
+        'selected_statuses': selected_statuses,
+        'departments': [{'name': d.name} for d in departments],
+        'selected_department_filters': selected_department_filters,
+        'only_overdue': only_overdue,
     }
     return JsonResponse(data)
 

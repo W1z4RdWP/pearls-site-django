@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { fetchIncidentDetail, unassignIncidentUser } from '../../../api/builder_api';
 import './IncidentDetailPage.css';
@@ -10,7 +10,7 @@ function getDefaultDateTo() {
   return new Date().toISOString().split('T')[0];
 }
 
-/** Форматирует дедлайн как в incident_detail.html: дата и время (время меньшим шрифтом). */
+/** Форматирует дедлайн: дата и время (время меньшим шрифтом). */
 function formatDeadlineCell(hasCourse, courseDeadlineStr) {
   if (!hasCourse) return '—';
   if (!courseDeadlineStr) return 'Без срока';
@@ -27,14 +27,14 @@ function formatDeadlineCell(hasCourse, courseDeadlineStr) {
 
 const COLUMN_HEADERS = [
   { key: 'num', label: '№' },
-  { key: 'date', label: 'Дата назначения' },
-  { key: 'title', label: 'Название инцидента' },
-  { key: 'assigned', label: 'Назначено' },
-  { key: 'group', label: 'Группа' },
-  { key: 'violator', label: 'Нарушитель' },
-  { key: 'responsible', label: 'Ответственный' },
-  { key: 'deadline', label: 'Дедлайн' },
-  { key: 'status', label: 'Статус' },
+  { key: 'date', label: 'Дата назначения', sortType: 'date-dot', sortCol: 1 },
+  { key: 'title', label: 'Название инцидента', sortType: 'text', sortCol: 2 },
+  { key: 'assigned', label: 'Назначено', sortType: 'text', sortCol: 3 },
+  { key: 'department', label: 'Подразделение', sortType: 'text', sortCol: 4 },
+  { key: 'violator', label: 'Нарушитель', sortType: 'text', sortCol: 5 },
+  { key: 'responsible', label: 'Ответственный', sortType: 'text', sortCol: 6 },
+  { key: 'deadline', label: 'Дедлайн', sortType: 'datetime-dot', sortCol: 7 },
+  { key: 'status', label: 'Статус', sortType: 'text', sortCol: 8 },
   { key: 'actions', label: 'Действия' },
 ];
 
@@ -51,6 +51,19 @@ function saveColumnTitles(titles) {
   localStorage.setItem(COLUMN_TITLES_STORAGE_KEY, JSON.stringify(titles));
 }
 
+function parseDateDot(str) {
+  if (!str || str === '—' || str === 'Без срока') return null;
+  const m = str.trim().match(/(\d{2})\.(\d{2})\.(\d{4})/);
+  return m ? new Date(Number(m[3]), Number(m[2]) - 1, Number(m[1])) : null;
+}
+
+function parseDatetimeDot(str) {
+  if (!str || str === '—' || str === 'Без срока') return null;
+  const m = str.trim().match(/(\d{2})\.(\d{2})\.(\d{4})\s+(\d{2}):(\d{2})/);
+  if (m) return new Date(Number(m[3]), Number(m[2]) - 1, Number(m[1]), Number(m[4]), Number(m[5]));
+  return parseDateDot(str);
+}
+
 const IncidentDetailPage = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const [data, setData] = useState(null);
@@ -62,11 +75,17 @@ const IncidentDetailPage = () => {
     date_to: getDefaultDateTo(),
     assigned_user: '',
     violator_filter: 'all',
+    status: [],
+    department_filter: [],
+    only_overdue: false,
   });
   const [columnTitles, setColumnTitles] = useState(getSavedColumnTitles);
   const [columnModalOpen, setColumnModalOpen] = useState(false);
   const [columnForm, setColumnForm] = useState({});
   const [unassignLoading, setUnassignLoading] = useState(null);
+  const [sortState, setSortState] = useState({ col: null, dir: 'asc' });
+  const [departmentDropdownOpen, setDepartmentDropdownOpen] = useState(false);
+  const { col: sortCol, dir: sortDir } = sortState;
 
   const loadData = useCallback(async (params) => {
     setLoading(true);
@@ -79,6 +98,9 @@ const IncidentDetailPage = () => {
         date_to: query.date_to || undefined,
         assigned_user: query.assigned_user || undefined,
         violator_filter: query.violator_filter || undefined,
+        status: Array.isArray(query.status) && query.status.length ? query.status : undefined,
+        department_filter: Array.isArray(query.department_filter) && query.department_filter.length ? query.department_filter : undefined,
+        only_overdue: query.only_overdue === true ? true : undefined,
       });
       setData(res);
       setFilters({
@@ -87,6 +109,9 @@ const IncidentDetailPage = () => {
         date_to: res.date_to ?? getDefaultDateTo(),
         assigned_user: res.selected_user_id != null ? String(res.selected_user_id) : '',
         violator_filter: res.violator_filter ?? 'all',
+        status: res.selected_statuses ?? [],
+        department_filter: res.selected_department_filters ?? [],
+        only_overdue: res.only_overdue ?? false,
       });
     } catch (err) {
       setError(err.message || 'Ошибка загрузки данных');
@@ -96,17 +121,37 @@ const IncidentDetailPage = () => {
     }
   }, []);
 
-  useEffect(() => {
-    const fromUrl = {
+  const buildParamsFromUrl = useCallback(() => {
+    return {
       search: searchParams.get('search') ?? '',
       date_from: searchParams.get('date_from') ?? DEFAULT_DATE_FROM,
       date_to: searchParams.get('date_to') ?? getDefaultDateTo(),
       assigned_user: searchParams.get('assigned_user') ?? '',
       violator_filter: searchParams.get('violator_filter') ?? 'all',
+      status: searchParams.getAll('status'),
+      department_filter: searchParams.getAll('department_filter'),
+      only_overdue: searchParams.get('only_overdue') === 'on',
     };
+  }, [searchParams]);
+
+  useEffect(() => {
+    const fromUrl = buildParamsFromUrl();
     setFilters(fromUrl);
     loadData(fromUrl);
   }, [searchParams]);
+
+  const applyFiltersToUrl = useCallback((q) => {
+    const params = new URLSearchParams();
+    if (q.search) params.set('search', q.search);
+    if (q.date_from) params.set('date_from', q.date_from);
+    if (q.date_to) params.set('date_to', q.date_to);
+    if (q.assigned_user) params.set('assigned_user', q.assigned_user);
+    if (q.violator_filter) params.set('violator_filter', q.violator_filter);
+    (q.status || []).forEach((s) => params.append('status', s));
+    (q.department_filter || []).forEach((d) => params.append('department_filter', d));
+    if (q.only_overdue) params.set('only_overdue', 'on');
+    setSearchParams(params);
+  }, [setSearchParams]);
 
   const handleApplyFilters = useCallback((e) => {
     e?.preventDefault();
@@ -116,13 +161,12 @@ const IncidentDetailPage = () => {
       date_to: filters.date_to || undefined,
       assigned_user: filters.assigned_user || undefined,
       violator_filter: filters.violator_filter || undefined,
+      status: filters.status?.length ? filters.status : undefined,
+      department_filter: filters.department_filter?.length ? filters.department_filter : undefined,
+      only_overdue: filters.only_overdue || undefined,
     };
-    setSearchParams(
-      Object.fromEntries(
-        Object.entries(q).filter(([, v]) => v != null && v !== '')
-      )
-    );
-  }, [filters, setSearchParams]);
+    applyFiltersToUrl(q);
+  }, [filters, applyFiltersToUrl]);
 
   const handleReset = useCallback(() => {
     if (data?.violator_filter_locked) {
@@ -132,8 +176,11 @@ const IncidentDetailPage = () => {
         date_to: data.date_to ?? getDefaultDateTo(),
         assigned_user: '',
         violator_filter: 'yes',
+        status: [],
+        department_filter: [],
+        only_overdue: false,
       };
-      setSearchParams({ violator_filter: 'yes', date_from: q.date_from, date_to: q.date_to });
+      applyFiltersToUrl(q);
       setFilters(q);
       loadData(q);
     } else {
@@ -143,12 +190,46 @@ const IncidentDetailPage = () => {
         date_to: getDefaultDateTo(),
         assigned_user: '',
         violator_filter: 'all',
+        status: [],
+        department_filter: [],
+        only_overdue: false,
       };
       setSearchParams({});
       setFilters(q);
       loadData(q);
     }
-  }, [data?.violator_filter_locked, data?.date_from, data?.date_to, loadData, setSearchParams]);
+  }, [data?.violator_filter_locked, data?.date_from, data?.date_to, loadData, setSearchParams, applyFiltersToUrl]);
+
+  const handleDateLastWeek = useCallback(() => {
+    const today = new Date();
+    const dateTo = today.toISOString().split('T')[0];
+    const dateFrom = new Date(today);
+    dateFrom.setDate(dateFrom.getDate() - 7);
+    const dateFromStr = dateFrom.toISOString().split('T')[0];
+    setFilters((f) => ({ ...f, date_from: dateFromStr, date_to: dateTo }));
+    applyFiltersToUrl({ ...filters, date_from: dateFromStr, date_to: dateTo });
+    loadData({ ...filters, date_from: dateFromStr, date_to: dateTo });
+  }, [filters, loadData, applyFiltersToUrl]);
+
+  const handleDateReset = useCallback(() => {
+    setFilters((f) => ({ ...f, date_from: '', date_to: '' }));
+    const q = { ...filters, date_from: '', date_to: '' };
+    applyFiltersToUrl(q);
+    loadData(q);
+  }, [filters, loadData, applyFiltersToUrl]);
+
+  const dateQuickActive = useMemo(() => {
+    const from = filters.date_from || '';
+    const to = filters.date_to || '';
+    if (!from && !to) return 'reset';
+    const today = new Date();
+    const todayStr = today.toISOString().split('T')[0];
+    const weekAgo = new Date(today);
+    weekAgo.setDate(weekAgo.getDate() - 7);
+    const weekAgoStr = weekAgo.toISOString().split('T')[0];
+    if (from === weekAgoStr && to === todayStr) return 'lastWeek';
+    return null;
+  }, [filters.date_from, filters.date_to]);
 
   const handleUnassign = useCallback(async (incidentId, userId) => {
     if (!window.confirm('Вы уверены, что хотите отменить назначение этого пользователя на инцидент?')) return;
@@ -173,9 +254,7 @@ const IncidentDetailPage = () => {
     setColumnModalOpen(true);
   }, []);
 
-  const closeColumnModal = useCallback(() => {
-    setColumnModalOpen(false);
-  }, []);
+  const closeColumnModal = useCallback(() => setColumnModalOpen(false), []);
 
   const handleColumnFormChange = useCallback((label, value) => {
     setColumnForm((prev) => ({ ...prev, [label]: value }));
@@ -189,6 +268,50 @@ const IncidentDetailPage = () => {
   }, [columnForm, closeColumnModal]);
 
   const getColumnTitle = useCallback((label) => columnTitles[label] || '', [columnTitles]);
+
+  const handleSort = useCallback((sortColIdx) => {
+    setSortState((prev) => ({
+      col: sortColIdx,
+      dir: prev.col === sortColIdx ? (prev.dir === 'asc' ? 'desc' : 'asc') : 'asc',
+    }));
+  }, []);
+
+  const sortedList = useMemo(() => {
+    const list = data?.incident_user_list ?? [];
+    if (sortCol == null || sortCol === 0 || sortCol === 9) return list;
+    const header = COLUMN_HEADERS.find((h) => h.sortCol === sortCol);
+    if (!header) return list;
+    const type = header.sortType || 'text';
+    const getVal = (item) => {
+      let text = '';
+      switch (sortCol) {
+        case 1: text = item.incident.created_at; break;
+        case 2: text = item.incident.title; break;
+        case 3: text = item.user.full_name; break;
+        case 4: text = item.user.department ?? '—'; break;
+        case 5: text = item.is_violator ? 'Да' : 'Нет'; break;
+        case 6: text = item.incident.responsible_mentor ?? '—'; break;
+        case 7: text = item.course_deadline ?? (item.incident.course ? 'Без срока' : '—'); break;
+        case 8: text = item.incident_status_display ?? '—'; break;
+        default: return '';
+      }
+      if (type === 'date-dot') return parseDateDot(text);
+      if (type === 'datetime-dot') return parseDatetimeDot(text);
+      return (text || '').toLowerCase();
+    };
+    const arr = [...list].sort((a, b) => {
+      const va = getVal(a);
+      const vb = getVal(b);
+      let cmp = 0;
+      if (va === null && vb === null) cmp = 0;
+      else if (va === null) cmp = 1;
+      else if (vb === null) cmp = -1;
+      else if (type === 'text') cmp = va < vb ? -1 : va > vb ? 1 : 0;
+      else cmp = va - vb;
+      return sortDir === 'asc' ? cmp : -cmp;
+    });
+    return arr;
+  }, [data?.incident_user_list, sortCol, sortDir]);
 
   if (loading && !data) {
     return (
@@ -211,8 +334,10 @@ const IncidentDetailPage = () => {
     );
   }
 
-  const list = data?.incident_user_list ?? [];
+  const list = sortedList;
   const users = data?.users ?? [];
+  const statusChoices = data?.status_choices ?? [];
+  const departments = data?.departments ?? [];
   const violatorFilterLocked = data?.violator_filter_locked ?? false;
 
   return (
@@ -220,7 +345,10 @@ const IncidentDetailPage = () => {
       <div className="incident-detail__card">
         <div className="incident-detail__header">
           <h2 className="incident-detail__title">Детали инцидентов</h2>
-          <Link to="/builder/incidents" className="incident-detail__back">← Назад к списку</Link>
+          <div className="incident-detail__header-actions">
+            <a href="/builder/incidents/statuses-report/" className="incident-detail__btn incident-detail__btn--primary">Отчёт</a>
+            <Link to="/builder/incidents" className="incident-detail__back">← Назад к списку</Link>
+          </div>
         </div>
 
         <form className="incident-detail__filters" onSubmit={handleApplyFilters}>
@@ -233,20 +361,27 @@ const IncidentDetailPage = () => {
               onChange={(e) => setFilters((f) => ({ ...f, search: e.target.value }))}
               aria-label="Поиск по названию"
             />
-            <input
-              type="date"
-              className="incident-detail__input incident-detail__input--date"
-              value={filters.date_from}
-              onChange={(e) => setFilters((f) => ({ ...f, date_from: e.target.value }))}
-              aria-label="Дата с"
-            />
-            <input
-              type="date"
-              className="incident-detail__input incident-detail__input--date"
-              value={filters.date_to}
-              onChange={(e) => setFilters((f) => ({ ...f, date_to: e.target.value }))}
-              aria-label="Дата по"
-            />
+            <div className="incident-detail__date-wrap">
+              <input
+                type="date"
+                className="incident-detail__input incident-detail__input--date"
+                value={filters.date_from}
+                onChange={(e) => setFilters((f) => ({ ...f, date_from: e.target.value }))}
+                aria-label="Дата с"
+              />
+              <input
+                type="date"
+                className="incident-detail__input incident-detail__input--date"
+                value={filters.date_to}
+                min={filters.date_from || undefined}
+                onChange={(e) => setFilters((f) => ({ ...f, date_to: e.target.value }))}
+                aria-label="Дата по"
+              />
+              <div className="incident-detail__date-quick">
+                <button type="button" className={`incident-detail__btn incident-detail__btn--outline incident-detail__date-quick-btn ${dateQuickActive === 'lastWeek' ? 'incident-detail__date-quick-btn--active' : ''}`} onClick={handleDateLastWeek} title="Инциденты за прошлую неделю">-1нед.</button>
+                <button type="button" className={`incident-detail__btn incident-detail__btn--outline incident-detail__date-quick-btn ${dateQuickActive === 'reset' ? 'incident-detail__date-quick-btn--active' : ''}`} onClick={handleDateReset} title="Весь период, сбросить фильтр по дате">&lt;-&gt;</button>
+              </div>
+            </div>
             <select
               className="incident-detail__select"
               value={filters.assigned_user}
@@ -255,9 +390,7 @@ const IncidentDetailPage = () => {
             >
               <option value="">Все пользователи</option>
               {users.map((u) => (
-                <option key={u.id} value={u.id}>
-                  {u.full_name}
-                </option>
+                <option key={u.id} value={u.id}>{u.full_name}</option>
               ))}
             </select>
             <select
@@ -273,21 +406,72 @@ const IncidentDetailPage = () => {
               <option value="no">Только не нарушители</option>
             </select>
           </div>
+          <div className="incident-detail__filters-status-row">
+            <div className="incident-detail__status-filters">
+              {statusChoices.map(([value, label]) => (
+                <label key={value} className="incident-detail__checkbox-label">
+                  <input
+                    type="checkbox"
+                    className="incident-detail__checkbox"
+                    checked={filters.status?.includes(value)}
+                    onChange={(e) => {
+                      const next = e.target.checked
+                        ? [...(filters.status || []), value]
+                        : (filters.status || []).filter((s) => s !== value);
+                      setFilters((f) => ({ ...f, status: next }));
+                    }}
+                  />
+                  {label}
+                </label>
+              ))}
+            </div>
+            <div className="incident-detail__department-dropdown">
+              <button
+                type="button"
+                className="incident-detail__btn incident-detail__btn--outline incident-detail__department-toggle"
+                onClick={() => setDepartmentDropdownOpen((o) => !o)}
+                aria-expanded={departmentDropdownOpen}
+                aria-haspopup="true"
+              >
+                {filters.department_filter?.length ? `${filters.department_filter.length} выбрано` : 'Все подразделения'}
+              </button>
+              {departmentDropdownOpen && (
+                <ul className="incident-detail__department-menu" role="menu">
+                  {departments.map((d) => (
+                    <li key={d.name} className="incident-detail__department-item">
+                      <label className="incident-detail__checkbox-label">
+                        <input
+                          type="checkbox"
+                          className="incident-detail__checkbox"
+                          checked={filters.department_filter?.includes(d.name)}
+                          onChange={(e) => {
+                            const next = e.target.checked
+                              ? [...(filters.department_filter || []), d.name]
+                              : (filters.department_filter || []).filter((x) => x !== d.name);
+                            setFilters((f) => ({ ...f, department_filter: next }));
+                          }}
+                        />
+                        {d.name}
+                      </label>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+            <label className="incident-detail__checkbox-label">
+              <input
+                type="checkbox"
+                className="incident-detail__checkbox"
+                checked={filters.only_overdue}
+                onChange={(e) => setFilters((f) => ({ ...f, only_overdue: e.target.checked }))}
+              />
+              Только просроченные
+            </label>
+          </div>
           <div className="incident-detail__filters-actions">
-            <button type="submit" className="incident-detail__btn incident-detail__btn--primary">
-              Применить фильтры
-            </button>
-            <button type="button" className="incident-detail__btn incident-detail__btn--secondary" onClick={handleReset}>
-              Сбросить
-            </button>
-            <button
-              type="button"
-              className="incident-detail__btn incident-detail__btn--secondary"
-              onClick={openColumnModal}
-              title="Комментарий к столбцам"
-            >
-              К
-            </button>
+            <button type="submit" className="incident-detail__btn incident-detail__btn--primary">Применить фильтры</button>
+            <button type="button" className="incident-detail__btn incident-detail__btn--secondary" onClick={handleReset}>Сбросить</button>
+            <button type="button" className="incident-detail__btn incident-detail__btn--secondary" onClick={openColumnModal} title="Комментарий к столбцам">К</button>
           </div>
         </form>
 
@@ -297,9 +481,21 @@ const IncidentDetailPage = () => {
           <table className="incident-detail__table">
             <thead>
               <tr>
-                {COLUMN_HEADERS.map(({ key, label }) => (
-                  <th key={key} title={getColumnTitle(label)} style={key === 'num' ? { width: '5%' } : key === 'date' ? { width: '10%' } : key === 'title' ? { width: '20%' } : key === 'assigned' || key === 'responsible' ? { width: '15%' } : key === 'group' ? { width: '15%' } : key === 'violator' || key === 'deadline' || key === 'status' ? { width: '10%' } : { width: '5%' }}>
+                {COLUMN_HEADERS.map(({ key, label, sortType, sortCol: colIdx }) => (
+                  <th
+                    key={key}
+                    title={getColumnTitle(label)}
+                    className={colIdx != null ? 'incident-detail__th sortable' : ''}
+                    style={key === 'num' ? { width: '5%' } : key === 'date' ? { width: '10%' } : key === 'title' ? { width: '20%' } : key === 'assigned' || key === 'responsible' ? { width: '15%' } : key === 'department' ? { width: '15%' } : key === 'violator' || key === 'deadline' || key === 'status' ? { width: '10%' } : { width: '5%' }}
+                    onClick={colIdx != null ? () => handleSort(colIdx) : undefined}
+                  >
                     {label}
+                    {colIdx != null && (
+                      <span className="incident-detail__sort-icon">
+                        <span className={sortCol === colIdx && sortDir === 'asc' ? 'incident-detail__sort-active' : ''}>&#9650;</span>
+                        <span className={sortCol === colIdx && sortDir === 'desc' ? 'incident-detail__sort-active' : ''}>&#9660;</span>
+                      </span>
+                    )}
                   </th>
                 ))}
               </tr>
@@ -307,9 +503,7 @@ const IncidentDetailPage = () => {
             <tbody>
               {list.length === 0 ? (
                 <tr>
-                  <td colSpan={COLUMN_HEADERS.length} className="incident-detail__empty">
-                    Нет назначенных пользователей
-                  </td>
+                  <td colSpan={COLUMN_HEADERS.length} className="incident-detail__empty">Нет назначенных пользователей</td>
                 </tr>
               ) : (
                 list.map((item, index) => (
@@ -318,9 +512,7 @@ const IncidentDetailPage = () => {
                     <td>{item.incident.created_at}</td>
                     <td>{item.incident.title}</td>
                     <td>{item.user.full_name}</td>
-                    <td style={{ whiteSpace: 'normal', wordWrap: 'break-word' }}>
-                      {item.user.groups?.length ? item.user.groups.join(', ') : 'Без групп'}
-                    </td>
+                    <td style={{ whiteSpace: 'normal', wordWrap: 'break-word' }}>{item.user.department ?? '—'}</td>
                     <td>
                       {item.is_violator ? (
                         <span className="incident-detail__badge incident-detail__badge--danger">Да</span>
@@ -332,23 +524,17 @@ const IncidentDetailPage = () => {
                     <td className="incident-detail__deadline-cell">
                       {formatDeadlineCell(item.incident.course, item.course_deadline)}
                     </td>
-                    <td style={{ textAlign: 'center' }}>
-                      {item.course_status_display ? (
-                        <span className={`incident-detail__status incident-detail__status--${item.course_status}`}>
-                          {item.course_status_display.charAt(0).toUpperCase() + item.course_status_display.slice(1)}
-                        </span>
-                      ) : (
-                        '—'
-                      )}
+                    <td
+                      className={item.incident_status ? `incident-detail__status-cell incident-detail__status-cell--${item.incident_status}` : ''}
+                      style={{ textAlign: 'center' }}
+                    >
+                      {item.incident_status_display ? (item.incident_status_display.charAt(0).toUpperCase() + item.incident_status_display.slice(1)) : '—'}
                     </td>
                     <td style={{ textAlign: 'center' }}>
                       <button
                         type="button"
                         className="incident-detail__unassign-btn"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleUnassign(item.incident.id, item.user.id);
-                        }}
+                        onClick={(e) => { e.stopPropagation(); handleUnassign(item.incident.id, item.user.id); }}
                         disabled={unassignLoading === `${item.incident.id}-${item.user.id}`}
                         title="Отменить назначение"
                         aria-label="Отменить назначение"
@@ -373,23 +559,13 @@ const IncidentDetailPage = () => {
                 {COLUMN_HEADERS.map(({ label }) => (
                   <div key={label} className="incident-detail__modal-field">
                     <label htmlFor={`col-${label}`}>{label}</label>
-                    <textarea
-                      id={`col-${label}`}
-                      value={columnForm[label] ?? ''}
-                      onChange={(e) => handleColumnFormChange(label, e.target.value)}
-                      rows={3}
-                      className="incident-detail__textarea"
-                    />
+                    <textarea id={`col-${label}`} value={columnForm[label] ?? ''} onChange={(e) => handleColumnFormChange(label, e.target.value)} rows={3} className="incident-detail__textarea" />
                   </div>
                 ))}
               </div>
               <div className="incident-detail__modal-actions">
-                <button type="button" className="incident-detail__btn incident-detail__btn--secondary" onClick={closeColumnModal}>
-                  Отмена
-                </button>
-                <button type="submit" className="incident-detail__btn incident-detail__btn--primary">
-                  Сохранить
-                </button>
+                <button type="button" className="incident-detail__btn incident-detail__btn--secondary" onClick={closeColumnModal}>Отмена</button>
+                <button type="submit" className="incident-detail__btn incident-detail__btn--primary">Сохранить</button>
               </div>
             </form>
           </div>

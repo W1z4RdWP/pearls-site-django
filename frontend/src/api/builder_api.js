@@ -286,6 +286,13 @@ export function fetchIncidentDetail(params = {}) {
   if (params.date_to != null && params.date_to !== '') searchParams.set('date_to', params.date_to);
   if (params.assigned_user != null && params.assigned_user !== '') searchParams.set('assigned_user', params.assigned_user);
   if (params.violator_filter != null && params.violator_filter !== '') searchParams.set('violator_filter', params.violator_filter);
+  if (params.status != null && Array.isArray(params.status)) {
+    params.status.forEach((s) => searchParams.append('status', s));
+  }
+  if (params.department_filter != null && Array.isArray(params.department_filter)) {
+    params.department_filter.forEach((d) => searchParams.append('department_filter', d));
+  }
+  if (params.only_overdue === true) searchParams.set('only_overdue', 'on');
   const qs = searchParams.toString();
   return request(`/builder/incidents/detail/${qs ? `?${qs}` : ''}`);
 }

@@ -1897,37 +1897,47 @@ class UserCourseTrajectoryListView(ListView):
         # Если курс не завершен, скрываем специализированные траектории
         return not intro_course_completed
 
-
-def _is_course_available_in_trajectory(user, course):
-    """
-    Проверяет, доступен ли курс в траектории для пользователя.
-    Курс доступен, если он первый в траектории или предыдущий завершён.
-    """
-    user_trajectories = UserCourseTrajectory.objects.filter(
-        user=user,
-        trajectory__courses=course
-    )
-    for ut in user_trajectories:
-        tc = TrajectoryCourse.objects.filter(
-            trajectory=ut.trajectory,
-            course=course
-        ).first()
-        if not tc:
-            continue
-        if tc.order == 1:
-            return True
-        prev_tc = TrajectoryCourse.objects.filter(
-            trajectory=ut.trajectory,
-            order=tc.order - 1
-        ).first()
-        if prev_tc:
-            prev_uc = UserCourse.objects.filter(
-                user=user,
-                course=prev_tc.course
+    def _is_course_available_in_trajectory(self, user, course):
+        """
+        Проверяет, доступен ли курс в траектории для пользователя.
+        Курс доступен, если он первый в траектории или предыдущий завершён.
+        """
+        # Получаем все траектории пользователя, содержащие этот курс
+        user_trajectories = UserCourseTrajectory.objects.filter(
+            user=user,
+            trajectory__courses=course
+        )
+        
+        for ut in user_trajectories:
+            # Получаем порядок курса в траектории
+            tc = TrajectoryCourse.objects.filter(
+                trajectory=ut.trajectory,
+                course=course
             ).first()
-            if prev_uc and prev_uc.status == 'completed':
+            
+            if not tc:
+                continue
+                
+            # Если курс первый в траектории, он доступен
+            if tc.order == 1:
                 return True
-    return False
+                
+            # Проверяем, завершен ли предыдущий курс
+            prev_tc = TrajectoryCourse.objects.filter(
+                trajectory=ut.trajectory,
+                order=tc.order - 1
+            ).first()
+            
+            if prev_tc:
+                prev_uc = UserCourse.objects.filter(
+                    user=user,
+                    course=prev_tc.course
+                ).first()
+                
+                if prev_uc and prev_uc.status == 'completed':
+                    return True
+        
+        return False
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -2047,6 +2057,291 @@ def _is_course_available_in_trajectory(user, course):
                         user_course.status = 'blocked'
                         user_course.save(update_fields=['status'])
 
+            # Определяем статус курса
+            # Если курс заблокирован, используем статус blocked
+            if user_course.status == 'blocked':
+                status = 'blocked'
+                final_quiz_status = None
+                quiz_passed = False
+            else:
+                final_quiz_status = None
+                quiz_passed = None
+                if course.final_quiz:
+                    quiz_passed = QuizResult.objects.filter(
+                        user=user,
+                        course=course,
+                        quiz_title=course.final_quiz.name,
+                        passed=True
+                    ).exists()
+                    
+                    # Получаем статус финального теста (pending/reviewed/completed)
+                    latest_final_quiz_result = QuizResult.objects.filter(
+                        user=user,
+                        course=course,
+                        quiz_title=course.final_quiz.name
+                    ).order_by('-completed_at').first()
+                    
+                    if latest_final_quiz_result:
+                        final_quiz_status = latest_final_quiz_result.status
+                
+                    # Получаем статус финального теста (pending/reviewed/completed)
+                    latest_final_quiz_result = QuizResult.objects.filter(
+                        user=user,
+                        course=course,
+                        quiz_title=course.final_quiz.name
+                    ).order_by('-completed_at').first()
+                
+                    if latest_final_quiz_result:
+                        final_quiz_status = latest_final_quiz_result.status
+                
+                    # Курс считается завершенным только если все материалы пройдены И финальный тест пройден
+                    if total_materials > 0 and completed_materials >= total_materials and quiz_passed:
+                        status = 'completed'
+                    elif completed_materials > 0 or user_course.status in ['started', 'in_progress']:
+                        status = 'in_progress'
+                    else:
+                        status = 'available'
+                else:
+                    # Если нет финального теста, курс завершен когда все материалы пройдены
+                    if total_materials > 0 and completed_materials >= total_materials:
+                        status = 'completed'
+                    elif completed_materials > 0 or user_course.status in ['started', 'in_progress']:
+                        status = 'in_progress'
+                    else:
+                        status = 'available'
+                
+                # Создаем course_data для всех курсов (и с финальным тестом, и без)
+                course_data = {
+                    'course': course,
+                    'user_course': user_course,
+                    'completed_lessons': completed_lessons,
+                    'completed_quizzes': completed_quizzes,
+                    'completed_homeworks': completed_homeworks,
+                    'total_lessons': total_lessons,
+                    'total_quizzes': total_quizzes,
+                    'total_homeworks': total_homeworks,
+                    'completed_materials': completed_materials,
+                    'total_materials': total_materials,
+                    'percent': percent,
+                    'status': status,
+                    'quiz_passed': quiz_passed if course.final_quiz else None,
+                    'final_quiz_status': final_quiz_status,
+                    'deadline': deadline,
+                    'is_deadline_overdue': is_deadline_overdue
+                }
+                
+                courses_data.append(course_data)
+        
+        # Сохраняем общие значения ДО фильтрации
+        total_courses_all = len(courses_data)
+        completed_courses_all = len([c for c in courses_data if c['status'] == 'completed'])
+        in_progress_courses_all = len([c for c in courses_data if c['status'] == 'in_progress'])
+        available_courses_all = len([c for c in courses_data if c['status'] == 'available'])
+        incident_courses_all = len([c for c in courses_data if c['course'].is_incident])
+        
+        # Поиск по названию курса
+        search_query = self.request.GET.get('search', '').strip()
+        if search_query:
+            courses_data = [course for course in courses_data 
+                          if search_query.lower() in course['course'].title.lower()]
+        
+        # Фильтрация по статусу
+        status_filter = self.request.GET.get('status', 'all')
+        if status_filter != 'all':
+            courses_data = [course for course in courses_data if course['status'] == status_filter]
+        
+        # Фильтрация по инцидентам
+        incident_filter = self.request.GET.get('incident', 'all')
+        if incident_filter == 'true':
+            courses_data = [course for course in courses_data if course['course'].is_incident]
+        elif incident_filter == 'false':
+            courses_data = [course for course in courses_data if not course['course'].is_incident]
+        
+        # Добавляем данные о курсах в контекст
+        context.update({
+            'courses_data': courses_data,
+            'status_filter': status_filter,
+            'incident_filter': incident_filter,
+            'search_query': search_query,
+            'total_courses': len(courses_data),
+            'completed_courses': len([c for c in courses_data if c['status'] == 'completed']),
+            'in_progress_courses': len([c for c in courses_data if c['status'] == 'in_progress']),
+            'available_courses': len([c for c in courses_data if c['status'] == 'available']),
+            # Общие значения (не изменяются при фильтрации)
+            'total_courses_all': total_courses_all,
+            'completed_courses_all': completed_courses_all,
+            'in_progress_courses_all': in_progress_courses_all,
+            'available_courses_all': available_courses_all,
+            'incident_courses_all': incident_courses_all,
+        })
+        
+        return context
+
+
+
+
+def should_hide_specialized_trajectories(user):
+    """
+    Проверяет, нужно ли скрывать специализированные траектории для пользователя.
+    Скрывает, если пользователь состоит в группе "Медсестра/ассистент" И в специализированной группе,
+    но еще не завершил курс "Внедрение м/с и асс. День 6."
+    """
+    nurse_assistant_group = user.groups.filter(name="Медсестра/ассистент").first()
+    if not nurse_assistant_group:
+        return False
+    specialized_groups = [
+        "Медицинская сестра/ассистент в хирургии",
+        "Медицинская сестра/ассистент в терапии",
+        "Медицинская сестра/ассистент в ортопедии",
+        "Медицинская сестра/ассистент в ортодонтии"
+    ]
+    user_specialized_groups = user.groups.filter(name__in=specialized_groups)
+    if not user_specialized_groups.exists():
+        return False
+    intro_course_completed = UserCourse.objects.filter(
+        user=user,
+        course__title__icontains="Внедрение м/с и асс. День 6",
+        status='completed'
+    ).exists()
+    return not intro_course_completed
+
+
+
+
+def is_course_available_in_trajectory(user, course):
+    """
+    Проверяет, доступен ли курс в траектории для пользователя.
+    Курс доступен, если он первый в траектории или предыдущий завершён.
+    """
+    user_trajectories = UserCourseTrajectory.objects.filter(
+        user=user,
+        trajectory__courses=course
+    )
+    for ut in user_trajectories:
+        tc = TrajectoryCourse.objects.filter(
+            trajectory=ut.trajectory,
+            course=course
+        ).first()
+        if not tc:
+            continue
+        if tc.order == 1:
+            return True
+        prev_tc = TrajectoryCourse.objects.filter(
+            trajectory=ut.trajectory,
+            order=tc.order - 1
+        ).first()
+        if prev_tc:
+            prev_uc = UserCourse.objects.filter(
+                user=user,
+                course=prev_tc.course
+            ).first()
+            if prev_uc and prev_uc.status == 'completed':
+                return True
+    return False
+
+
+
+
+def get_user_trajectories_queryset(user):
+    """Возвращает queryset траекторий пользователя для списка."""
+    user_trajectories = UserCourseTrajectory.objects.filter(
+        user=user,
+        trajectory__isnull=False
+    ).select_related('trajectory')
+    if should_hide_specialized_trajectories(user):
+        specialized_groups = [
+            "Медицинская сестра/ассистент в хирургии",
+            "Медицинская сестра/ассистент в терапии",
+            "Медицинская сестра/ассистент в ортопедии",
+            "Медицинская сестра/ассистент в ортодонтии"
+        ]
+        user_specialized_groups = user.groups.filter(name__in=specialized_groups)
+        if user_specialized_groups.exists():
+            specialized_trajectories = Trajectory.objects.filter(
+                groups__in=user_specialized_groups
+            )
+            user_trajectories = user_trajectories.exclude(
+                trajectory__in=specialized_trajectories
+            )
+    return user_trajectories
+
+
+def get_trajectory_list_context(request, skip_filters=False):
+    """
+    Строит контекст для страницы списка траекторий и курсов.
+    Используется представлением и API. Возвращает dict без 'user' и без 'user_trajectories'
+    (user_trajectories добавляется из get_queryset в представлении).
+    При skip_filters=True (для API) фильтры не применяются, возвращаются все курсы и all-статистика.
+    """
+    from myapp.models import ManualCourseUnassignment
+
+    user = request.user
+    available_courses = Course.objects.available_for_user(user)
+    filtered_courses = []
+    for course in available_courses:
+        course_available_via_groups = course.allowed_groups.filter(id__in=user.groups.all()).exists()
+        course_in_trajectories = TrajectoryCourse.objects.filter(
+            trajectory__usercoursetrajectory__user=user,
+            course=course
+        ).exists()
+        if course_available_via_groups:
+            filtered_courses.append(course)
+        elif course_in_trajectories:
+            if is_course_available_in_trajectory(user, course):
+                filtered_courses.append(course)
+        else:
+            filtered_courses.append(course)
+
+    user_courses = []
+    for course in filtered_courses:
+        manual_unassignment = ManualCourseUnassignment.objects.filter(
+            user=user,
+            course=course
+        ).first()
+        if not manual_unassignment:
+            user_course, _ = UserCourse.objects.get_or_create(
+                user=user,
+                course=course,
+                defaults={'status': 'available'}
+            )
+            user_courses.append(user_course)
+
+    courses_data = []
+    for user_course in user_courses:
+        course = user_course.course
+        completed_lessons = UserProgress.objects.filter(
+            user=user,
+            course=course,
+            completed=True
+        ).count()
+        trajectory = UserLessonTrajectory.objects.filter(user=user, course=course).first()
+        total_lessons = trajectory.lessons.count() if trajectory else course.lessons.count()
+        completed_quizzes = QuizResult.objects.filter(
+            user=user,
+            course=course,
+            quiz_title__in=[quiz.name for quiz in course.quizzes.all()],
+            passed=True
+        ).values('quiz_title').distinct().count()
+        total_quizzes = course.quizzes.count()
+        completed_homeworks = HomeworkSubmission.objects.filter(
+            user=user,
+            course=course,
+            homework__in=course.homeworks,
+            status='correct'
+        ).values('homework_id').distinct().count()
+        total_homeworks = course.homeworks.count()
+        completed_materials = completed_lessons + completed_quizzes + completed_homeworks
+        total_materials = total_lessons + total_quizzes + total_homeworks
+        percent = int((completed_materials / total_materials) * 100) if total_materials else 0
+
+        deadline = user_course.deadline
+        is_deadline_overdue = False
+        if deadline:
+            if timezone.now() > deadline and user_course.status not in ['completed', 'blocked']:
+                user_course.status = 'blocked'
+                user_course.save(update_fields=['status'])
+            is_deadline_overdue = timezone.now() > deadline
+
         if user_course.status == 'blocked':
             status = 'blocked'
             final_quiz_status = None
@@ -2142,23 +2437,6 @@ def _is_course_available_in_trajectory(user, course):
     }
 
 
-@method_decorator(login_required, name='dispatch')
-class UserCourseTrajectoryListView(ListView):
-    """
-    Список всех траекторий пользователя и прогресс по курсам.
-    """
-    model = UserCourseTrajectory
-    template_name = 'courses/user_course_trajectory_list.html'
-    context_object_name = 'user_trajectories'
-
-    def get_queryset(self):
-        return get_user_trajectories_queryset(self.request.user)
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        context['user'] = self.request.user
-        context.update(get_trajectory_list_context(self.request))
-        return context
 
 
 class IncidentCoursesListView(LoginRequiredMixin, UserPassesTestMixin, ListView):

@@ -26,6 +26,12 @@
   font-size: 1.2rem;
 }
 
+.incident-detail__header-actions {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
 .incident-detail__back {
   color: #4d7cff;
   text-decoration: none;
@@ -34,6 +40,17 @@
 .incident-detail__back:hover {
   color: #2356b3;
   text-decoration: underline;
+}
+
+.incident-detail__btn--outline {
+  background: transparent;
+  color: #495057;
+  border-color: #dee2e6;
+}
+
+.incident-detail__btn--outline:hover {
+  background: #e9ecef;
+  border-color: #adb5bd;
 }
 
 .incident-detail__filters {
@@ -65,6 +82,98 @@
 
 .incident-detail__input--date {
   max-width: 180px;
+}
+
+.incident-detail__date-wrap {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.incident-detail__date-quick {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex-shrink: 0;
+  justify-content: center;
+}
+
+.incident-detail__date-quick-btn {
+  padding: 2px 6px;
+  font-size: 0.7rem;
+  line-height: 1.2;
+  min-height: unset;
+  white-space: nowrap;
+}
+
+.incident-detail__date-quick-btn.incident-detail__date-quick-btn--active {
+  border-color: #4d7cff;
+  color: #4d7cff;
+  background-color: #f0f5ff;
+}
+
+.incident-detail__filters-status-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 0.5rem;
+}
+
+.incident-detail__status-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1rem;
+  align-items: center;
+}
+
+.incident-detail__checkbox-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin: 0;
+  cursor: pointer;
+  font-size: 0.9em;
+}
+
+.incident-detail__checkbox {
+  margin: 0;
+}
+
+.incident-detail__department-dropdown {
+  position: relative;
+}
+
+.incident-detail__department-toggle {
+  min-width: 200px;
+  text-align: left;
+}
+
+.incident-detail__department-menu {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  z-index: 10;
+  margin: 4px 0 0;
+  padding: 0.5rem;
+  list-style: none;
+  background: #fff;
+  border: 1px solid #e3e8f0;
+  border-radius: 6px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  max-height: 280px;
+  overflow-y: auto;
+  min-width: 200px;
+}
+
+.incident-detail__department-item {
+  padding: 0.25rem 0;
+}
+
+.incident-detail__department-item .incident-detail__checkbox-label {
+  width: 100%;
+  padding: 2px 0;
 }
 
 .incident-detail__select {
@@ -144,6 +253,26 @@
   font-size: 0.9em;
 }
 
+.incident-detail__table thead th.sortable {
+  cursor: pointer;
+  user-select: none;
+}
+
+.incident-detail__table thead th.sortable:hover {
+  background: #eef0f4;
+}
+
+.incident-detail__sort-icon {
+  margin-left: 4px;
+  font-size: 0.7em;
+  opacity: 0.5;
+}
+
+.incident-detail__sort-icon .incident-detail__sort-active {
+  opacity: 1;
+  color: #4d7cff;
+}
+
 .incident-detail__table tbody td {
   padding: 6px 6px;
   border-bottom: 1px solid #e3e8f0;
@@ -201,24 +330,64 @@
   color: #495057;
 }
 
-.incident-detail__status {
+/* Ячейка статуса — цвет всей ячейки (как в incident_detail.html) */
+.incident-detail__table tbody td.incident-detail__status-cell {
   font-weight: 600;
+  text-align: center;
 }
 
-.incident-detail__status--available {
-  color: #007bff;
+.incident-detail__table tbody td.incident-detail__status-cell--new {
+  background-color: #fff9e6 !important;
+  color: #856404 !important;
 }
 
-.incident-detail__status--started {
-  color: #ffc107;
+.incident-detail__table tbody td.incident-detail__status-cell--accepted {
+  background-color: #e6f7e6 !important;
+  color: #155724 !important;
 }
 
-.incident-detail__status--completed {
-  color: #28a745;
+.incident-detail__table tbody td.incident-detail__status-cell--assigned {
+  background-color: #e6f0ff !important;
+  color: #004085 !important;
 }
 
-.incident-detail__status--blocked {
-  color: #6c757d;
+.incident-detail__table tbody td.incident-detail__status-cell--studies_completed {
+  background-color: #d1ecf1 !important;
+  color: #0c5460 !important;
+}
+
+.incident-detail__table tbody td.incident-detail__status-cell--resolved {
+  background-color: #d4edda !important;
+  color: #155724 !important;
+}
+
+.incident-detail__table tbody td.incident-detail__status-cell--declined {
+  background-color: #f8d7da !important;
+  color: #721c24 !important;
+}
+
+.incident-detail__table tbody tr:hover td.incident-detail__status-cell--new {
+  background-color: #fff3cc !important;
+}
+
+.incident-detail__table tbody tr:hover td.incident-detail__status-cell--accepted {
+  background-color: #d4f0d4 !important;
+}
+
+.incident-detail__table tbody tr:hover td.incident-detail__status-cell--assigned {
+  background-color: #cce0ff !important;
+}
+
+.incident-detail__table tbody tr:hover td.incident-detail__status-cell--studies_completed {
+  background-color: #bee5eb !important;
+}
+
+.incident-detail__table tbody tr:hover td.incident-detail__status-cell--resolved {
+  background-color: #c3e6cb !important;
+}
+
+.incident-detail__table tbody tr:hover td.incident-detail__status-cell--declined {
+  background-color: #f5c6cb !important;
 }
 
 .incident-detail__unassign-btn {
