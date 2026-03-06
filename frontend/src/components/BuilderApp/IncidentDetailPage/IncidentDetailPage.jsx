@@ -346,7 +346,7 @@ const IncidentDetailPage = () => {
         <div className="incident-detail__header">
           <h2 className="incident-detail__title">Детали инцидентов</h2>
           <div className="incident-detail__header-actions">
-            <a href="/builder/incidents/statuses-report/" className="incident-detail__btn incident-detail__btn--primary">Отчёт</a>
+            <Link to="/builder/incidents/statuses-report/" className="incident-detail__btn incident-detail__btn--primary">Отчёт</Link>
             <Link to="/builder/incidents" className="incident-detail__back">← Назад к списку</Link>
           </div>
         </div>

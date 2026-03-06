@@ -1,0 +1,195 @@
+.incident-statuses-report {
+  padding: 2rem 0;
+  min-height: 100vh;
+}
+
+.incident-statuses-report__card {
+  background: var(--incidents-card-bg, #fff);
+  border-radius: var(--incidents-card-radius, 10px);
+  box-shadow: var(--incidents-card-shadow, 0 2px 16px #e3e8f0);
+  padding: 2rem;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.incident-statuses-report__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+}
+
+.incident-statuses-report__title {
+  margin: 0;
+  color: var(--incidents-card-title, #232a3a);
+  font-weight: 700;
+  font-size: 1.2rem;
+}
+
+.incident-statuses-report__back {
+  color: var(--incidents-doc-link, #4d7cff);
+  text-decoration: none;
+}
+
+.incident-statuses-report__back:hover {
+  color: var(--incidents-doc-link-hover, #2356b3);
+  text-decoration: underline;
+}
+
+.incident-statuses-report__form {
+  margin-bottom: 1.5rem;
+}
+
+.incident-statuses-report__filters-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: flex-end;
+}
+
+.incident-statuses-report__date-wrap {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  flex-wrap: nowrap;
+}
+
+.incident-statuses-report__input {
+  border: 1px solid #e3e8f0;
+  border-radius: 6px;
+  padding: 8px 12px;
+  font-size: 0.95em;
+  font-family: inherit;
+  min-width: 8.5rem;
+}
+
+.incident-statuses-report__quick-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.incident-statuses-report__quick-btn {
+  padding: 4px 8px;
+  font-size: 0.85rem;
+  border: 1px solid #dee2e6;
+  border-radius: 4px;
+  background: transparent;
+  color: #495057;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.incident-statuses-report__quick-btn:hover {
+  background: #e9ecef;
+  border-color: #adb5bd;
+}
+
+.incident-statuses-report__quick-btn--active {
+  background: #e7f1ff;
+  border-color: #4d7cff;
+  color: #2356b3;
+}
+
+.incident-statuses-report__department-wrap {
+  min-width: 180px;
+}
+
+.incident-statuses-report__select {
+  border: 1px solid #e3e8f0;
+  border-radius: 6px;
+  padding: 8px 12px;
+  font-size: 0.95em;
+  font-family: inherit;
+  width: 100%;
+}
+
+.incident-statuses-report__submit {
+  padding: 8px 16px;
+  font-size: 0.95em;
+  border-radius: 6px;
+  border: none;
+  background: #4d7cff;
+  color: #fff;
+  cursor: pointer;
+  font-weight: 500;
+}
+
+.incident-statuses-report__submit:hover {
+  background: #2356b3;
+}
+
+.incident-statuses-report__table-wrap {
+  overflow-x: auto;
+}
+
+.incident-statuses-report__table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.95em;
+}
+
+.incident-statuses-report__table th {
+  background: var(--incidents-table-header-bg, #f8f9fa);
+  border: 1px solid var(--incidents-table-header-border, #eaeaea);
+  padding: 8px 10px;
+  text-align: left;
+  font-weight: 600;
+}
+
+.incident-statuses-report__table td {
+  border: 1px solid #eaeaea;
+  padding: 8px 10px;
+}
+
+.incident-statuses-report__table tbody tr:hover {
+  background: var(--incidents-table-row-hover-bg, #f2f6ff);
+}
+
+.incident-statuses-report__cell--center {
+  text-align: center;
+}
+
+.incident-statuses-report__badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-weight: 600;
+  font-size: 0.9em;
+}
+
+.incident-statuses-report__badge--danger {
+  background: #dc3545;
+  color: #fff;
+}
+
+.incident-statuses-report__empty {
+  text-align: center;
+  color: #6c757d;
+  padding: 1.5rem;
+}
+
+.incident-statuses-report__loading,
+.incident-statuses-report__error {
+  padding: 2rem;
+  text-align: center;
+}
+
+.incident-statuses-report__error {
+  color: #dc3545;
+}
+
+@media (max-width: 768px) {
+  .incident-statuses-report__filters-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .incident-statuses-report__date-wrap {
+    flex-wrap: wrap;
+  }
+
+  .incident-statuses-report__department-wrap {
+    min-width: 0;
+  }
+}

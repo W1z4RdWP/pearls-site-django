@@ -1509,6 +1509,86 @@ def api_incident_detail(request):
 
 
 @login_required
+@require_http_methods(['GET'])
+def api_incident_statuses_report(request):
+    """API: отчёт по инцидентам — статистика по пользователям (назначено, просрочено, завершено, обучение завершено)."""
+    if not request.user.is_authenticated or not (
+        request.user.is_staff or request.user.is_superuser or
+        getattr(request.user, 'profile', None) and getattr(request.user.profile, 'is_mentor_user', False)
+    ):
+        return JsonResponse({'error': 'forbidden'}, status=403)
+    now = timezone.now()
+    date_from_str = (request.GET.get('date_from') or '').strip()
+    date_to_str = (request.GET.get('date_to') or '').strip()
+    department_filter = request.GET.get('department_filter', '')
+    date_from = None
+    date_to = None
+    if date_from_str:
+        date_from = timezone.make_aware(dt.datetime.combine(
+            dt.datetime.strptime(date_from_str, '%Y-%m-%d').date(),
+            dt.time.min
+        ))
+    if date_to_str:
+        date_to = timezone.make_aware(dt.datetime.combine(
+            dt.datetime.strptime(date_to_str, '%Y-%m-%d').date(),
+            dt.time.max
+        ))
+    incidents = Incident.objects.all().prefetch_related('assigned_to', 'violators', 'course').select_related('course')
+    if date_from is not None:
+        incidents = incidents.filter(created_at__gte=date_from)
+    if date_to is not None:
+        incidents = incidents.filter(created_at__lte=date_to)
+    users_with_incidents = set()
+    for incident in incidents:
+        users_with_incidents.update(incident.assigned_to.all())
+        users_with_incidents.update(incident.violators.all())
+        if incident.expert:
+            users_with_incidents.add(incident.expert)
+    report_data = []
+    for user in users_with_incidents:
+        if not getattr(user, 'profile', None) or not user.profile:
+            continue
+        if department_filter:
+            user_department = user.profile.department.name if user.profile.department else '—'
+            if user_department != department_filter:
+                continue
+        user_incidents = incidents.filter(
+            Q(assigned_to=user) | Q(violators=user) | Q(expert=user)
+        ).distinct()
+        assigned_count = user_incidents.filter(status='assigned').count()
+        resolved_count = user_incidents.filter(status='resolved').count()
+        studies_completed_count = user_incidents.filter(status='studies_completed').count()
+        overdue_count = 0
+        for incident in user_incidents:
+            if incident.course:
+                user_course = UserCourse.objects.filter(
+                    user=user,
+                    course=incident.course
+                ).first()
+                if user_course and user_course.deadline:
+                    if user_course.deadline < now and user_course.status != 'completed':
+                        overdue_count += 1
+        report_data.append({
+            'full_name': user.get_full_name() or user.username,
+            'department': user.profile.department.name if user.profile.department else '—',
+            'assigned_count': assigned_count,
+            'overdue_count': overdue_count,
+            'resolved_count': resolved_count,
+            'studies_completed_count': studies_completed_count,
+        })
+    report_data.sort(key=lambda x: x['full_name'])
+    departments = Department.objects.all().order_by('name')
+    data = {
+        'date_from': date_from_str,
+        'date_to': date_to_str,
+        'department_filter': department_filter,
+        'departments': [{'name': d.name} for d in departments],
+        'report_data': report_data,
+    }
+    return JsonResponse(data)
+
+
+@login_required
 @require_http_methods(['POST'])
 def api_incident_unassign_user(request, incident_id, user_id):
     """API: отмена назначения пользователя на инцидент. POST. Возвращает success."""

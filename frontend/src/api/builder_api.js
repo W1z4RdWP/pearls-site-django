@@ -309,3 +309,17 @@ export function unassignIncidentUser(incidentId, userId) {
     body: JSON.stringify({}),
   });
 }
+
+/**
+ * Отчёт по инцидентам: статистика по пользователям (назначено, просрочено, завершено, обучение завершено).
+ * @param {Object} params — date_from, date_to, department_filter
+ * @returns {Promise<{ date_from: string, date_to: string, department_filter: string, departments: Array<{ name: string }>, report_data: Array<{ full_name, department, assigned_count, overdue_count, resolved_count, studies_completed_count }> }>}
+ */
+export function fetchIncidentStatusesReport(params = {}) {
+  const searchParams = new URLSearchParams();
+  if (params.date_from != null && params.date_from !== '') searchParams.set('date_from', params.date_from);
+  if (params.date_to != null && params.date_to !== '') searchParams.set('date_to', params.date_to);
+  if (params.department_filter != null && params.department_filter !== '') searchParams.set('department_filter', params.department_filter);
+  const qs = searchParams.toString();
+  return request(`/builder/incidents/statuses-report/${qs ? `?${qs}` : ''}`);
+}

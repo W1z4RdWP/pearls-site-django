@@ -28,6 +28,7 @@ import AdminUserTransactionsPage from './components/UserManagementApp/AdminUserT
 import KnowledgeBasePage from './components/BuilderApp/KnowledgeBasePage/KnowledgeBasePage';
 import IncidentsPage from './components/BuilderApp/IncidentsPage/IncidentsPage';
 import IncidentDetailPage from './components/BuilderApp/IncidentDetailPage/IncidentDetailPage';
+import IncidentStatusesReportPage from './components/BuilderApp/IncidentStatusesReportPage/IncidentStatusesReportPage';
 import TrajectoryManagementPage from './components/BuilderApp/TrajectoryManagementPage/TrajectoryManagementPage';
 import CourseListPage from './components/BuilderApp/CourseListPage/CourseListPage';
 import IncidentCourseListPage from './components/BuilderApp/IncidentCourseListPage/IncidentCourseListPage';
@@ -61,6 +62,8 @@ const App = () => {
           <Route path='/builder/incidents' element={<IncidentsPage />}/>
           <Route path='/builder/incidents/detail/' element={<IncidentDetailPage />}/>
           <Route path='/builder/incidents/detail' element={<IncidentDetailPage />}/>
+          <Route path='/builder/incidents/statuses-report' element={<IncidentStatusesReportPage />}/>
+          <Route path='/builder/incidents/statuses-report/' element={<IncidentStatusesReportPage />}/>
           <Route path='/builder/content' element={<KnowledgeBasePage />}/>
           <Route path='/builder/lesson/:pk' element={<KnowledgeBasePage />}/>
           <Route path='/builder/trajectory-management' element={<TrajectoryManagementPage />}/>

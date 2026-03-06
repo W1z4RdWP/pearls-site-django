@@ -64,6 +64,7 @@ urlpatterns = [
     path('builder/categories/delete/', builder_views.api_delete_category, name='api_builder_category_delete'),
     path('builder/incidents/', builder_views.api_incidents_list, name='api_builder_incidents'),
     path('builder/incidents/detail/', builder_views.api_incident_detail, name='api_builder_incident_detail'),
+    path('builder/incidents/statuses-report/', builder_views.api_incident_statuses_report, name='api_builder_incident_statuses_report'),
     path('builder/incidents/<int:incident_id>/unassign-user/<int:user_id>/', builder_views.api_incident_unassign_user, name='api_builder_incident_unassign_user'),
     path('builder/incidents/<int:pk>/decline/', builder_views.api_incident_decline, name='api_builder_incident_decline'),
     path('changelog/', views_frontend.changelog_data, name='api_changelog'),
