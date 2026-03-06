@@ -39,7 +39,7 @@ const DashboardPage = () => {
 
   return (
     <div className="dashboard-page">
-      <DashboardSidebar usersLabel={usersLabel} showAdminLinks={showAdminLinks} />
+      <DashboardSidebar usersLabel={usersLabel} showAdminLinks={showAdminLinks} currentPage="dashboard" />
 
       <div className="dashboard-page__main">
         <div className="dashboard-page__card">

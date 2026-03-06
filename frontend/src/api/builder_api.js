@@ -170,6 +170,32 @@ export function deleteCourse(slug) {
 }
 
 /**
+ * Список курсов-инцидентов с пагинацией и фильтрами.
+ * @param {Object} params - search, author, group, page
+ * @returns {Promise<{ items, pagination, total_courses, total_lessons, total_authors, authors, groups, urls }>}
+ */
+export function fetchIncidentCourseList(params = {}) {
+  const searchParams = new URLSearchParams();
+  if (params.search != null && params.search !== '') searchParams.set('search', params.search);
+  if (params.author != null && params.author !== '') searchParams.set('author', params.author);
+  if (params.group != null && params.group !== '') searchParams.set('group', params.group);
+  if (params.page != null && params.page > 1) searchParams.set('page', params.page);
+  const qs = searchParams.toString();
+  return request(`/builder/incident-courses/${qs ? `?${qs}` : ''}`);
+}
+
+/**
+ * Удаление курса-инцидента по slug.
+ * @param {string} slug
+ * @returns {Promise<{ success: boolean }>}
+ */
+export function deleteIncidentCourse(slug) {
+  return request(`/builder/incident-courses/course/${encodeURIComponent(slug)}/delete/`, {
+    method: 'POST',
+  });
+}
+
+/**
  * Данные формы добавления урока (категории, курсы, тесты, preselected_category).
  * @param {number|null} [categoryId] — опциональный ID категории для предзаполнения
  * @returns {Promise<{ categories, courses, quizzes, preselected_category, cancel_url }>}
@@ -212,5 +238,38 @@ export function updateLesson(pk, data) {
   return request(`/builder/lesson/${pk}/edit/`, {
     method: 'POST',
     body: JSON.stringify(data),
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Инциденты
+// ---------------------------------------------------------------------------
+
+/**
+ * Список инцидентов с фильтрами (даты, статусы, тип).
+ * @param {Object} params — date_from, date_to, status[] (массив), incident_type
+ * @returns {Promise<{ incidents, status_choices, incident_type_choices, date_from, date_to, selected_statuses, selected_incident_type, readonly }>}
+ */
+export function fetchIncidents(params = {}) {
+  const searchParams = new URLSearchParams();
+  if (params.date_from != null && params.date_from !== '') searchParams.set('date_from', params.date_from);
+  if (params.date_to != null && params.date_to !== '') searchParams.set('date_to', params.date_to);
+  if (params.incident_type != null && params.incident_type !== '') searchParams.set('incident_type', params.incident_type);
+  if (params.status != null && Array.isArray(params.status)) {
+    params.status.forEach((s) => searchParams.append('status', s));
+  }
+  const qs = searchParams.toString();
+  return request(`/builder/incidents/${qs ? `?${qs}` : ''}`);
+}
+
+/**
+ * Отклонить или возобновить инцидент (toggle). POST.
+ * @param {number} pk — ID инцидента
+ * @returns {Promise<{ success: boolean, status: string, status_display: string }>}
+ */
+export function declineIncident(pk) {
+  return request(`/builder/incidents/${pk}/decline/`, {
+    method: 'POST',
+    body: JSON.stringify({}),
   });
 }

@@ -1,0 +1,250 @@
+/* BEM: префикс homework-check-dashboard */
+
+.homework-check-dashboard {
+  padding: 1rem 0;
+}
+
+.homework-check-dashboard__container {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 0 1rem;
+}
+
+.homework-check-dashboard__loading,
+.homework-check-dashboard__error {
+  text-align: center;
+  padding: 2rem;
+  color: var(--color-text-secondary);
+}
+
+.homework-check-dashboard__error {
+  color: var(--color-text);
+}
+
+.homework-check-dashboard__header {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.homework-check-dashboard__title-wrap {
+  flex: 1 1 auto;
+}
+
+.homework-check-dashboard__title {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: var(--color-text);
+  margin: 0 0 0.25rem 0;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.homework-check-dashboard__title .fa-clipboard-check {
+  color: var(--color-accent);
+}
+
+.homework-check-dashboard__subtitle {
+  margin: 0;
+  font-size: 0.875rem;
+  color: var(--color-text-secondary);
+}
+
+.homework-check-dashboard__actions {
+  flex: 0 0 auto;
+}
+
+.homework-check-dashboard__btn-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.4rem 0.75rem;
+  font-size: 0.9rem;
+  color: var(--color-text-secondary);
+  background: var(--color-card-bg);
+  border: 1px solid var(--color-card-border);
+  border-radius: 6px;
+  text-decoration: none;
+  transition: color 0.15s, border-color 0.15s, background 0.15s;
+}
+
+.homework-check-dashboard__btn-back:hover {
+  color: var(--color-accent);
+  border-color: var(--color-accent);
+  background: var(--color-bg);
+}
+
+.homework-check-dashboard__stats {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.homework-check-dashboard__stat-card {
+  text-decoration: none;
+  color: inherit;
+  background: var(--color-card-bg);
+  border-radius: 8px;
+  box-shadow: var(--color-card-shadow);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.homework-check-dashboard__stat-card--hover:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+}
+
+.homework-check-dashboard__stat-body {
+  padding: 1.25rem;
+  text-align: center;
+}
+
+.homework-check-dashboard__stat-icon {
+  font-size: 2rem;
+  margin-bottom: 0.75rem;
+  display: block;
+}
+
+.homework-check-dashboard__stat-icon--primary {
+  color: var(--color-accent);
+}
+
+.homework-check-dashboard__stat-icon--success {
+  color: #28a745;
+}
+
+.homework-check-dashboard__stat-icon--info {
+  color: #17a2b8;
+}
+
+.homework-check-dashboard__stat-icon--warning {
+  color: #ffc107;
+}
+
+.homework-check-dashboard__stat-value {
+  font-size: 1.75rem;
+  font-weight: 600;
+  margin: 0 0 0.25rem 0;
+  color: var(--color-text);
+}
+
+.homework-check-dashboard__stat-label {
+  margin: 0;
+  font-size: 0.9rem;
+  color: var(--color-text-secondary);
+}
+
+.homework-check-dashboard__stat-meta {
+  display: block;
+  margin-top: 0.35rem;
+  font-size: 0.8rem;
+  color: var(--color-text-secondary);
+}
+
+.homework-check-dashboard__card {
+  background: var(--color-card-bg);
+  border-radius: 8px;
+  box-shadow: var(--color-card-shadow);
+  overflow: hidden;
+}
+
+.homework-check-dashboard__card-header {
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid var(--color-card-border);
+}
+
+.homework-check-dashboard__card-title {
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin: 0 0 0.25rem 0;
+  color: var(--color-text);
+}
+
+.homework-check-dashboard__card-desc {
+  margin: 0;
+  font-size: 0.875rem;
+  color: var(--color-text-secondary);
+}
+
+.homework-check-dashboard__card-body {
+  padding: 0;
+}
+
+.homework-check-dashboard__table-wrap {
+  overflow-x: auto;
+}
+
+.homework-check-dashboard__table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+
+.homework-check-dashboard__th {
+  text-align: left;
+  padding: 0.75rem 1rem;
+  font-weight: 600;
+  color: var(--color-text);
+  background: var(--color-bg);
+  border-bottom: 1px solid var(--color-card-border);
+}
+
+.homework-check-dashboard__th--n {
+  width: 5%;
+}
+
+.homework-check-dashboard__td {
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid var(--color-card-border);
+  color: var(--color-text);
+}
+
+.homework-check-dashboard__td--muted {
+  color: var(--color-text-secondary);
+}
+
+.homework-check-dashboard__td--empty {
+  text-align: center;
+  padding: 2rem 1rem;
+  color: var(--color-text-secondary);
+}
+
+.homework-check-dashboard__empty-icon {
+  font-size: 2rem;
+  margin-bottom: 0.5rem;
+  display: inline-block;
+}
+
+.homework-check-dashboard__row--clickable {
+  cursor: pointer;
+  transition: background-color 0.15s;
+}
+
+.homework-check-dashboard__row--clickable:hover {
+  background-color: var(--color-bg);
+}
+
+@media (max-width: 768px) {
+  .homework-check-dashboard__stats {
+    grid-template-columns: 1fr;
+  }
+
+  .homework-check-dashboard__header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .homework-check-dashboard__table-wrap {
+    font-size: 0.85rem;
+  }
+
+  .homework-check-dashboard__th,
+  .homework-check-dashboard__td {
+    padding: 0.5rem 0.75rem;
+  }
+}

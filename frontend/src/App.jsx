@@ -25,8 +25,10 @@ import UserPasswordChangePage from './components/UserManagementApp/UserPasswordC
 import AdminDascoinDashboardPage from './components/UserManagementApp/AdminDascoinDashboardPage/AdminDascoinDashboardPage';
 import AdminUserTransactionsPage from './components/UserManagementApp/AdminUserTransactionsPage/AdminUserTransactionsPage';
 import KnowledgeBasePage from './components/BuilderApp/KnowledgeBasePage/KnowledgeBasePage';
+import IncidentsPage from './components/BuilderApp/IncidentsPage/IncidentsPage';
 import TrajectoryManagementPage from './components/BuilderApp/TrajectoryManagementPage/TrajectoryManagementPage';
 import CourseListPage from './components/BuilderApp/CourseListPage/CourseListPage';
+import IncidentCourseListPage from './components/BuilderApp/IncidentCourseListPage/IncidentCourseListPage';
 import LessonFormPage from './components/BuilderApp/LessonFormPage/LessonFormPage';
 import UserCertificatesPage from './components/CoursesApp/UserCertificatesPage/UserCertificatesPage';
 import UserTrajectoryListPage from './components/CoursesApp/UserTrajectoryListPage/UserTrajectoryListPage';
@@ -36,6 +38,7 @@ import CourseDetailPage from './components/CoursesApp/CourseDetailPage/CourseDet
 import EditCoursePage from './components/CoursesApp/EditCoursePage/EditCoursePage';
 import EditLessonPage from './components/CoursesApp/EditLessonPage/EditLessonPage';
 import AddLessonPage from './components/CoursesApp/AddLessonPage/AddLessonPage';
+import HomeworkCheckDashboardPage from './components/ReportsApp/HomeworkCheckDashboardPage/HomeworkCheckDashboardPage';
 import SupportChatPage from './components/TechSupportApp/SupportChatPage/SupportChatPage';
 import MyTicketListPage from './components/TechSupportApp/MyTicketListPage/MyTicketListPage';
 import TicketListPage from './components/TechSupportApp/TicketListPage/TicketListPage';
@@ -53,14 +56,19 @@ const App = () => {
           <Route path='/about' element={<AboutPage />}/>
           <Route path='/changelog' element={<ChangeLogPage />}/>
           <Route path='/builder' element={<DashboardPage />}/>
+          <Route path='/builder/incidents' element={<IncidentsPage />}/>
           <Route path='/builder/content' element={<KnowledgeBasePage />}/>
           <Route path='/builder/lesson/:pk' element={<KnowledgeBasePage />}/>
           <Route path='/builder/trajectory-management' element={<TrajectoryManagementPage />}/>
           <Route path='/builder/courses' element={<CourseListPage />}/>
+          <Route path='/builder/incident-courses' element={<IncidentCourseListPage />}/>
           <Route path='/builder/add' element={<LessonFormPage />}/>
           <Route path='/builder/add/:categoryId' element={<LessonFormPage />}/>
           <Route path='/builder/lesson/:pk/edit' element={<LessonFormPage />}/>
 
+          {/* reports */}
+          <Route path='/reports/homework-check-dashboard' element={<HomeworkCheckDashboardPage />} />
+          <Route path='/reports/homework-check-dashboard/' element={<HomeworkCheckDashboardPage />} />
 
           {/* shop */}
           <Route path='/shop/catalog' element={<ShopPage />}/>

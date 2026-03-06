@@ -9,13 +9,13 @@ const DASHBOARD_LINKS_ADMIN = [
   { to: '/courses/metrics/admin/', label: 'Заполненные метрики', icon: 'fas fa-chart-bar' },
 ];
 
-const DashboardSidebar = ({ usersLabel, showAdminLinks }) => (
+const DashboardSidebar = ({ usersLabel, showAdminLinks, currentPage = 'dashboard' }) => (
   <div className="dashboard-page__sidebar">
     <nav className="dashboard-page__nav" aria-label="Навигация панели управления">
       <Link
         to="/builder"
-        className="dashboard-page__nav-link dashboard-page__nav-link--active"
-        aria-current="page"
+        className={`dashboard-page__nav-link ${currentPage === 'dashboard' ? 'dashboard-page__nav-link--active' : ''}`}
+        aria-current={currentPage === 'dashboard' ? 'page' : undefined}
       >
         <i className="fas fa-tachometer-alt" aria-hidden />
         Панель управления
@@ -24,18 +24,22 @@ const DashboardSidebar = ({ usersLabel, showAdminLinks }) => (
         <i className="fas fa-users" aria-hidden />
         {usersLabel}
       </a>
-      <a href="/reports/homework-check-dashboard/" className="dashboard-page__nav-link">
+      <Link to="/reports/homework-check-dashboard" className="dashboard-page__nav-link">
         <i className="fas fa-clipboard-check" aria-hidden />
         Проверка заданий
-      </a>
+      </Link>
       <a href="/builder/lesson/draft/history/" className="dashboard-page__nav-link">
         <i className="fas fa-history" aria-hidden />
         История правок
       </a>
-      <a href="/builder/incidents/" className="dashboard-page__nav-link">
+      <Link
+        to="/builder/incidents"
+        className={`dashboard-page__nav-link ${currentPage === 'incidents' ? 'dashboard-page__nav-link--active' : ''}`}
+        aria-current={currentPage === 'incidents' ? 'page' : undefined}
+      >
         <i className="fas fa-exclamation-triangle" aria-hidden />
         Инциденты
-      </a>
+      </Link>
       {showAdminLinks &&
         DASHBOARD_LINKS_ADMIN.map((item) =>
           item.isReactRoute ? (

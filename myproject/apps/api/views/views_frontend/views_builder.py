@@ -8,7 +8,7 @@ from django.views.decorators.http import require_http_methods
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import Group, User
 from django.core.paginator import Paginator
-from django.db.models import Q, Count, Max
+from django.db.models import Q, Count, Max, F
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from django.urls import reverse
@@ -18,7 +18,7 @@ from courses.models import UserLesson as UserLessonAssignment
 from myapp.models import UserCourse
 from quizzes.models import Quiz
 from users.models import Role
-from builder.models import CategoryName, LessonVersion, LessonDraft, DictionarySection, LessonCategoryMirror
+from builder.models import CategoryName, LessonVersion, LessonDraft, DictionarySection, LessonCategoryMirror, Incident
 from builder.audit_logger import log_create, log_update, log_delete, serialize_model_data
 from builder.utils import (
     get_responsible_user_for_lesson,
@@ -223,6 +223,101 @@ def api_course_delete(request, slug):
     if not (request.user.is_staff or request.user.is_superuser):
         return JsonResponse({'error': 'forbidden'}, status=403)
     course = Course.objects.filter(slug=slug).exclude(is_incident=True).first()
+    if not course:
+        return JsonResponse({'error': 'not_found'}, status=404)
+    course.delete()
+    return JsonResponse({'success': True})
+
+
+@login_required
+@require_http_methods(['GET'])
+def api_incident_course_list(request):
+    """API: список курсов-инцидентов с пагинацией и фильтрами — для страницы «Все курсы-инциденты»."""
+    if not (request.user.is_staff or request.user.is_superuser):
+        return JsonResponse({'error': 'forbidden'}, status=403)
+
+    queryset = (
+        Course.objects.filter(is_incident=True)
+        .select_related('author')
+        .prefetch_related('course_lessons')
+        .order_by('-created_at')
+    )
+
+    search_query = request.GET.get('search', '').strip()
+    if search_query:
+        queryset = queryset.filter(
+            Q(title__icontains=search_query)
+            | Q(description__icontains=search_query)
+            | Q(slug__icontains=search_query)
+        )
+
+    author_id = request.GET.get('author', '').strip()
+    if author_id:
+        try:
+            queryset = queryset.filter(author_id=int(author_id))
+        except (ValueError, TypeError):
+            pass
+
+    group_id = request.GET.get('group', '').strip()
+    if group_id:
+        try:
+            group = Group.objects.get(id=int(group_id))
+            queryset = queryset.filter(trajectory__groups=group).distinct()
+        except (ValueError, TypeError, Group.DoesNotExist):
+            pass
+
+    paginator = Paginator(queryset, PAGINATE_BY)
+    page_num = request.GET.get('page', 1)
+    try:
+        page_num = max(1, int(page_num))
+    except (ValueError, TypeError):
+        page_num = 1
+    page_obj = paginator.get_page(page_num)
+
+    total_courses = Course.objects.filter(is_incident=True).count()
+    total_lessons = (
+        Course.objects.filter(is_incident=True).aggregate(t=Count('course_lessons'))['t'] or 0
+    )
+    total_authors = User.objects.filter(authored_courses__is_incident=True).distinct().count()
+
+    authors = User.objects.filter(
+        authored_courses__is_incident=True
+    ).distinct().order_by('first_name', 'last_name', 'username')
+    groups = Group.objects.all().order_by('name')
+
+    data = {
+        'items': [_serialize_course_for_list(c) for c in page_obj],
+        'pagination': {
+            'page': page_obj.number,
+            'num_pages': paginator.num_pages,
+            'has_previous': page_obj.has_previous(),
+            'has_next': page_obj.has_next(),
+            'previous_page_number': page_obj.previous_page_number() if page_obj.has_previous() else None,
+            'next_page_number': page_obj.next_page_number() if page_obj.has_next() else None,
+            'start_index': page_obj.start_index(),
+        },
+        'total_courses': total_courses,
+        'total_lessons': total_lessons,
+        'total_authors': total_authors,
+        'authors': [{'id': u.id, 'name': u.get_full_name() or u.username} for u in authors],
+        'groups': [{'id': g.id, 'name': g.name} for g in groups],
+        'urls': {
+            'create_course': '/courses/create-course/?is_incident=1',
+            'course_detail': '/courses/course/',
+            'edit_course': '/courses/course/',
+            'add_lesson': '/courses/course/',
+        },
+    }
+    return JsonResponse(data)
+
+
+@login_required
+@require_http_methods(['POST'])
+def api_incident_course_delete(request, slug):
+    """API: удаление курса-инцидента по slug. Только staff/superuser."""
+    if not (request.user.is_staff or request.user.is_superuser):
+        return JsonResponse({'error': 'forbidden'}, status=403)
+    course = Course.objects.filter(slug=slug, is_incident=True).first()
     if not course:
         return JsonResponse({'error': 'not_found'}, status=404)
     course.delete()
@@ -965,3 +1060,169 @@ def api_lesson_delete(request):
     log_delete(request.user, lesson, request, comment='Удален урок через API')
     lesson.delete()
     return JsonResponse({'success': True})
+
+
+# ---------------------------------------------------------------------------
+# Инциденты (список, отклонение/возобновление)
+# ---------------------------------------------------------------------------
+
+def _get_incidents_queryset(request):
+    """Повторяет логику IncidentListView.get_queryset()."""
+    import datetime as dt
+    from builder.signals import check_and_update_incident_studies_completed_status
+
+    queryset = (
+        Incident.objects.prefetch_related('assigned_to', 'violators')
+        .select_related('user')
+        .order_by('-created_at')
+    )
+
+    date_from = request.GET.get('date_from')
+    date_to = request.GET.get('date_to')
+    date_from_datetime = None
+    date_to_datetime = None
+
+    if not request.GET:
+        date_from = '2025-01-01'
+        date_to = timezone.now().date().strftime('%Y-%m-%d')
+
+    if date_from:
+        date_from_parsed = dt.datetime.strptime(date_from, '%Y-%m-%d').date()
+        date_from_datetime = timezone.make_aware(dt.datetime.combine(date_from_parsed, dt.time.min))
+        queryset = queryset.filter(created_at__gte=date_from_datetime)
+    if date_to:
+        date_to_parsed = dt.datetime.strptime(date_to, '%Y-%m-%d').date()
+        date_to_datetime = timezone.make_aware(dt.datetime.combine(date_to_parsed, dt.time.max))
+        queryset = queryset.filter(created_at__lte=date_to_datetime)
+
+    statuses = request.GET.getlist('status')
+    if not request.GET:
+        statuses = ['new', 'accepted', 'assigned', 'studies_completed']
+    if statuses:
+        queryset = queryset.filter(status__in=statuses)
+
+    incident_type = request.GET.get('incident_type')
+    if incident_type:
+        queryset = queryset.filter(incident_type=incident_type)
+
+    queryset = queryset.annotate(
+        assigned_users_count=Count(
+            'assigned_to',
+            distinct=True,
+            filter=Q(
+                course__isnull=False,
+                assigned_to__is_staff=False,
+                assigned_to__is_superuser=False,
+            ) & ~Q(assigned_to=F('course__author')),
+        ),
+        completed_users_count=Count(
+            'assigned_to',
+            distinct=True,
+            filter=Q(
+                course__isnull=False,
+                course__usercourse__status='completed',
+                course__usercourse__user=F('assigned_to'),
+                assigned_to__is_staff=False,
+                assigned_to__is_superuser=False,
+            ) & ~Q(assigned_to=F('course__author')),
+        ),
+    )
+
+    incidents_to_check = Incident.objects.filter(
+        course__isnull=False,
+        status__in=['new', 'accepted', 'assigned', 'studies_completed'],
+    )
+    if date_from_datetime:
+        incidents_to_check = incidents_to_check.filter(created_at__gte=date_from_datetime)
+    if date_to_datetime:
+        incidents_to_check = incidents_to_check.filter(created_at__lte=date_to_datetime)
+    for incident in incidents_to_check:
+        try:
+            check_and_update_incident_studies_completed_status(incident)
+        except Exception:
+            pass
+
+    return queryset
+
+
+def _serialize_incident(inc):
+    """Сериализация инцидента для списка."""
+    has_course = inc.course_id is not None
+    return {
+        'pk': inc.pk,
+        'title': inc.title,
+        'created_at': inc.created_at.strftime('%d.%m.%Y'),
+        'incident_type': inc.incident_type,
+        'incident_type_display': inc.get_incident_type_display(),
+        'user_name': inc.user.get_full_name() or inc.user.username,
+        'course': has_course,
+        'assigned_users_count': getattr(inc, 'assigned_users_count', 0) or 0,
+        'completed_users_count': getattr(inc, 'completed_users_count', 0) or 0,
+        'status': inc.status,
+        'status_display': inc.get_status_display(),
+        'description': inc.description or '—',
+    }
+
+
+@login_required
+@require_http_methods(['GET'])
+def api_incidents_list(request):
+    """API: список инцидентов с фильтрами — для React-страницы инцидентов."""
+    if not request.user.is_authenticated or not (
+        request.user.is_staff or request.user.is_superuser or getattr(request.user, 'profile', None) and getattr(request.user.profile, 'is_mentor_user', False)
+    ):
+        return JsonResponse({'error': 'forbidden'}, status=403)
+
+    queryset = _get_incidents_queryset(request)
+    readonly = bool(getattr(request.user, 'profile', None) and getattr(request.user.profile, 'is_mentor_user', False) and not request.user.is_staff and not request.user.is_superuser)
+
+    if not request.GET:
+        selected_statuses = ['new', 'accepted', 'assigned', 'studies_completed']
+        selected_incident_type = ''
+        date_from = '2025-01-01'
+        date_to = timezone.now().date().strftime('%Y-%m-%d')
+    else:
+        selected_statuses = request.GET.getlist('status', [])
+        selected_incident_type = request.GET.get('incident_type', '')
+        date_from = request.GET.get('date_from', '')
+        date_to = request.GET.get('date_to', '')
+
+    data = {
+        'incidents': [_serialize_incident(inc) for inc in queryset],
+        'status_choices': list(Incident.STATUS_CHOICES),
+        'incident_type_choices': list(Incident.INCIDENT_TYPE_CHOICES),
+        'date_from': date_from,
+        'date_to': date_to,
+        'selected_statuses': selected_statuses,
+        'selected_incident_type': selected_incident_type,
+        'readonly': readonly,
+    }
+    return JsonResponse(data)
+
+
+@login_required
+@require_http_methods(['POST'])
+def api_incident_decline(request, pk):
+    """API: отклонение или возобновление инцидента (toggle). POST без тела. Возвращает новый статус."""
+    if not (request.user.is_staff or request.user.is_superuser):
+        return JsonResponse({'error': 'forbidden'}, status=403)
+    incident = get_object_or_404(Incident, pk=pk)
+    old_values = serialize_model_data(incident)
+
+    if incident.status == 'declined':
+        if incident.previous_status:
+            incident.status = incident.previous_status
+            incident.previous_status = None
+            comment = f"Инцидент возобновлён. Статус изменён на '{incident.get_status_display()}'"
+        else:
+            incident.status = 'new'
+            incident.previous_status = None
+            comment = "Инцидент возобновлён. Статус изменён на 'Новый'"
+    else:
+        previous_status_display = dict(Incident.STATUS_CHOICES).get(incident.status, incident.status)
+        incident.previous_status = incident.status
+        incident.status = 'declined'
+        comment = f"Инцидент отклонён. Предыдущий статус: '{previous_status_display}'"
+    incident.save(update_fields=['status', 'previous_status', 'updated_at'])
+    log_update(request.user, incident, old_values, request, comment=comment)
+    return JsonResponse({'success': True, 'status': incident.status, 'status_display': incident.get_status_display()})

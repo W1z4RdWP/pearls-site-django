@@ -9,6 +9,7 @@ from .views.views_frontend import views_user_management as user_management_views
 from .views.views_frontend import views_courses as courses_views
 from .views.views_frontend import views_builder as builder_views
 from .views.views_frontend import views_tech_support as tech_support_views
+from .views.views_frontend import views_reports as reports_views
 from builder.views.api_views import api_search_users
 from quizzes.views import search_quizzes_ajax
 
@@ -49,6 +50,8 @@ urlpatterns = [
     path('builder/trajectory-management/', builder_views.api_trajectory_management, name='api_builder_trajectory_management'),
     path('builder/courses/', builder_views.api_course_list, name='api_builder_course_list'),
     path('builder/course/<slug:slug>/delete/', builder_views.api_course_delete, name='api_builder_course_delete'),
+    path('builder/incident-courses/', builder_views.api_incident_course_list, name='api_builder_incident_course_list'),
+    path('builder/incident-courses/course/<slug:slug>/delete/', builder_views.api_incident_course_delete, name='api_builder_incident_course_delete'),
     path('builder/add/', builder_views.api_lesson_form_create, name='api_builder_lesson_add'),
     path('builder/add/<int:category_id>/', builder_views.api_lesson_form_create, name='api_builder_lesson_add_with_category'),
     path('builder/lesson/<int:pk>/edit/', builder_views.api_lesson_form_edit, name='api_builder_lesson_edit'),
@@ -59,6 +62,8 @@ urlpatterns = [
     path('builder/categories/rename/', builder_views.api_rename_category, name='api_builder_category_rename'),
     path('builder/categories/delete/stats/', builder_views.api_category_delete_stats, name='api_builder_category_delete_stats'),
     path('builder/categories/delete/', builder_views.api_delete_category, name='api_builder_category_delete'),
+    path('builder/incidents/', builder_views.api_incidents_list, name='api_builder_incidents'),
+    path('builder/incidents/<int:pk>/decline/', builder_views.api_incident_decline, name='api_builder_incident_decline'),
     path('changelog/', views_frontend.changelog_data, name='api_changelog'),
 
     # MyApp API — история изменений для React
@@ -117,6 +122,9 @@ urlpatterns = [
     path('messenger/chat_room/create/', messenger_views.api_chat_room_create, name='api_messenger_chat_room_create'),
     path('messenger/chat_room/<str:room_id>/', messenger_views.api_chat_room_data, name='api_messenger_chat_room_data'),
     path('messenger/chat_room/<str:room_id>/send/', messenger_views.api_chat_room_send_message, name='api_messenger_chat_room_send_message'),
+
+    # Reports API — проверка заданий для React
+    path('reports/homework-check-dashboard/', reports_views.api_homework_check_dashboard, name='api_reports_homework_check_dashboard'),
 
     # Tech Support API — обращение в поддержку (React)
     path('tech_support/chat/', tech_support_views.api_ticket_create, name='api_tech_support_ticket_create'),
