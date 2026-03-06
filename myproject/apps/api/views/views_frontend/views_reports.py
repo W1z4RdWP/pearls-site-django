@@ -8,12 +8,15 @@ from django.http import JsonResponse
 from django.views.decorators.http import require_http_methods
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User, Group
-from django.db.models import Q
+from django.db.models import Q, Count, Case, When, FloatField, F, Sum
+from django.core.paginator import Paginator
 from django.utils import timezone
 
 from courses.models import Course, Lesson
 from myapp.models import UserProgress, QuizResult
 from quizzes.models import Quiz, Homework
+
+PAGINATE_BY_COURSES_PROGRESS = 20
 
 
 def _reports_access_ok(request):
@@ -170,4 +173,109 @@ def api_homework_check_dashboard(request):
         'is_admin': is_admin,
         'recent_completions': recent_completions,
         'pending_tests_count': pending_tests_count,
+    })
+
+
+@login_required
+@require_http_methods(['GET'])
+def api_courses_progress(request):
+    """API: отчёт по прогрессу курсов — список курсов с процентами завершения, пагинация и поиск."""
+    if not _reports_access_ok(request):
+        return JsonResponse({'error': 'Доступ запрещён'}, status=403)
+
+    assignments_filter = (
+        Q(usercourse__user__profile__is_approved=True)
+        & ~Q(usercourse__user__is_superuser=True)
+        & ~Q(usercourse__user__is_staff=True)
+    )
+
+    base_queryset = (
+        Course.objects.annotate(
+            total_assignments=Count('usercourse', filter=assignments_filter),
+            completed_assignments=Count(
+                'usercourse',
+                filter=assignments_filter & Q(usercourse__status='completed')
+            ),
+            in_progress_assignments=Count(
+                'usercourse',
+                filter=assignments_filter & Q(usercourse__status='started')
+            ),
+            available_assignments=Count(
+                'usercourse',
+                filter=assignments_filter & Q(usercourse__status='available')
+            ),
+            assigned_users=Count(
+                'usercourse__user',
+                filter=assignments_filter,
+                distinct=True
+            ),
+        )
+        .annotate(
+            learning_percentage=Case(
+                When(total_assignments=0, then=0.0),
+                default=F('completed_assignments') * 100.0 / F('total_assignments'),
+                output_field=FloatField()
+            )
+        )
+        .filter(total_assignments__gt=0)
+    )
+
+    # Сводная статистика всегда по всем курсам (без учёта поиска)
+    totals = base_queryset.aggregate(
+        total_courses=Count('id'),
+        completed=Sum('completed_assignments'),
+        in_progress=Sum('in_progress_assignments'),
+        available=Sum('available_assignments'),
+    )
+    total_courses = totals['total_courses'] or 0
+    completed = totals['completed'] or 0
+    in_progress = totals['in_progress'] or 0
+    available = totals['available'] or 0
+    total_assignments = completed + in_progress + available
+    overall_learning_percentage = round((completed / total_assignments) * 100, 1) if total_assignments else 0
+
+    # Поиск и пагинация применяются только к списку курсов в таблице
+    search_query = (request.GET.get('search') or '').strip()
+    filtered_queryset = base_queryset
+    if search_query:
+        filtered_queryset = filtered_queryset.filter(title__icontains=search_query)
+    filtered_queryset = filtered_queryset.order_by('-learning_percentage', 'title')
+
+    paginator = Paginator(filtered_queryset, PAGINATE_BY_COURSES_PROGRESS)
+    page_number = request.GET.get('page', 1)
+    try:
+        page_number = max(1, int(page_number))
+    except (TypeError, ValueError):
+        page_number = 1
+    page_obj = paginator.get_page(page_number)
+
+    items = []
+    for course in page_obj:
+        lp = getattr(course, 'learning_percentage', 0) or 0
+        items.append({
+            'id': course.id,
+            'title': course.title,
+            'assigned_users': getattr(course, 'assigned_users', 0) or 0,
+            'learning_percentage': round(float(lp), 1),
+            'completed_assignments': getattr(course, 'completed_assignments', 0) or 0,
+            'in_progress_assignments': getattr(course, 'in_progress_assignments', 0) or 0,
+            'available_assignments': getattr(course, 'available_assignments', 0) or 0,
+        })
+
+    return JsonResponse({
+        'total_courses': total_courses,
+        'overall_learning_percentage': overall_learning_percentage,
+        'completed_assignments_total': completed,
+        'in_progress_assignments_total': in_progress,
+        'available_assignments_total': available,
+        'search_query': search_query,
+        'items': items,
+        'pagination': {
+            'page': page_obj.number,
+            'num_pages': paginator.num_pages,
+            'has_previous': page_obj.has_previous(),
+            'has_next': page_obj.has_next(),
+            'previous_page_number': page_obj.previous_page_number() if page_obj.has_previous() else None,
+            'next_page_number': page_obj.next_page_number() if page_obj.has_next() else None,
+        },
     })

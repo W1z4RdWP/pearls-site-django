@@ -44,6 +44,7 @@ import EditCoursePage from './components/CoursesApp/EditCoursePage/EditCoursePag
 import EditLessonPage from './components/CoursesApp/EditLessonPage/EditLessonPage';
 import AddLessonPage from './components/CoursesApp/AddLessonPage/AddLessonPage';
 import HomeworkCheckDashboardPage from './components/ReportsApp/HomeworkCheckDashboardPage/HomeworkCheckDashboardPage';
+import CoursesProgressPage from './components/ReportsApp/CoursesProgressPage/CoursesProgressPage';
 import SupportChatPage from './components/TechSupportApp/SupportChatPage/SupportChatPage';
 import MyTicketListPage from './components/TechSupportApp/MyTicketListPage/MyTicketListPage';
 import TicketListPage from './components/TechSupportApp/TicketListPage/TicketListPage';
@@ -82,6 +83,8 @@ const App = () => {
           {/* reports */}
           <Route path='/reports/homework-check-dashboard' element={<HomeworkCheckDashboardPage />} />
           <Route path='/reports/homework-check-dashboard/' element={<HomeworkCheckDashboardPage />} />
+          <Route path='/reports/courses-progress' element={<CoursesProgressPage />} />
+          <Route path='/reports/courses-progress/' element={<CoursesProgressPage />} />
 
           {/* shop */}
           <Route path='/shop/catalog' element={<ShopPage />}/>

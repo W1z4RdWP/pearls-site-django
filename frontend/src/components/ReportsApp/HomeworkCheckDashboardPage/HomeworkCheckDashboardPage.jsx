@@ -74,7 +74,7 @@ const HomeworkCheckDashboardPage = () => {
         </header>
 
         <section className="homework-check-dashboard__stats" aria-label="Статистика">
-          <a href="/reports/courses-progress/" className="homework-check-dashboard__stat-card">
+          <Link to="/reports/courses-progress" className="homework-check-dashboard__stat-card">
             <div className="homework-check-dashboard__stat-body">
               <i className="fas fa-file-alt homework-check-dashboard__stat-icon homework-check-dashboard__stat-icon--primary" aria-hidden />
               <h3 className="homework-check-dashboard__stat-value">{data.total_materials}</h3>
@@ -85,7 +85,7 @@ const HomeworkCheckDashboardPage = () => {
                 {data.total_lessons} уроков + {data.total_quizzes} тестов
               </small>
             </div>
-          </a>
+          </Link>
           <a href="/reports/users-with-learning/" className="homework-check-dashboard__stat-card homework-check-dashboard__stat-card--hover">
             <div className="homework-check-dashboard__stat-body">
               <i className="fas fa-user homework-check-dashboard__stat-icon homework-check-dashboard__stat-icon--success" aria-hidden />

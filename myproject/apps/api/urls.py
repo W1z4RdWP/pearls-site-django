@@ -141,8 +141,9 @@ urlpatterns = [
     path('messenger/chat_room/<str:room_id>/', messenger_views.api_chat_room_data, name='api_messenger_chat_room_data'),
     path('messenger/chat_room/<str:room_id>/send/', messenger_views.api_chat_room_send_message, name='api_messenger_chat_room_send_message'),
 
-    # Reports API — проверка заданий для React
+    # Reports API — проверка заданий и прогресс курсов для React
     path('reports/homework-check-dashboard/', reports_views.api_homework_check_dashboard, name='api_reports_homework_check_dashboard'),
+    path('reports/courses-progress/', reports_views.api_courses_progress, name='api_reports_courses_progress'),
 
     # Tech Support API — обращение в поддержку (React)
     path('tech_support/chat/', tech_support_views.api_ticket_create, name='api_tech_support_ticket_create'),
