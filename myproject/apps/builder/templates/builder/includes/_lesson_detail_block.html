@@ -20,7 +20,7 @@
                             {% endif %}
                         {% endif %}
                         {% if user.is_staff or user.is_superuser %}
-                            {% if pending_draft %}
+                            {% if pending_draft and pending_draft.saved_at_least_once %}
                                 <a href="{% url 'builder:lesson_draft_review' pending_draft.id %}" class="btn btn-warning btn-sm" title="Рассмотреть черновик">Рассмотреть черновик</a>
                             {% endif %}
                         {% endif %}

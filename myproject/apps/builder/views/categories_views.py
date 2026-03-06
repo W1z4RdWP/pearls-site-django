@@ -1,3 +1,4 @@
+import json
 from django.contrib.auth.decorators import login_required
 from django.db.models import Max
 from django.http import Http404, JsonResponse
@@ -21,51 +22,6 @@ class CategoryListView(ListView):
         if not request.user.is_authenticated or not (request.user.is_staff or request.user.is_superuser):
             return render(request, '403.html', status=403)
         return super().dispatch(request, *args, **kwargs)
-
-
-
-
-class CategoryCreateView(CreateView, AuditLoggerMixin):
-    model = CategoryName
-    fields = ['name', 'parent', 'order', 'allowed_groups']
-    template_name = 'builder/category_form.html'
-    success_url = reverse_lazy('builder:lesson_master')
-
-    def dispatch(self, request, *args, **kwargs):
-        if not request.user.is_authenticated or not (request.user.is_staff or request.user.is_superuser):
-            return render(request, '403.html', status=403)
-        return super().dispatch(request, *args, **kwargs)
-    
-    def form_valid(self, form):
-        response = super().form_valid(form)
-        # Логируем создание категории
-        self.log_create_action(self.object, "Создана новая категория")
-        return response
-
-
-
-
-class CategoryUpdateView(UpdateView, AuditLoggerMixin):
-    model = CategoryName
-    fields = ['name', 'parent', 'order', 'allowed_groups']
-    template_name = 'builder/category_form.html'
-    success_url = reverse_lazy('builder:lesson_master')
-
-    def dispatch(self, request, *args, **kwargs):
-        if not request.user.is_authenticated or not (request.user.is_staff or request.user.is_superuser):
-            return render(request, '403.html', status=403)
-        return super().dispatch(request, *args, **kwargs)
-    
-    def get_object(self, queryset=None):
-        """Сохраняем старые значения для аудита"""
-        obj = super().get_object(queryset)
-        self.old_values = serialize_model_data(obj)
-        return obj
-    
-    def form_valid(self, form):
-        # Логируем изменения категории
-        self.log_update_action(self.object, self.old_values, "Обновлена категория")
-        return super().form_valid(form)
 
 
 

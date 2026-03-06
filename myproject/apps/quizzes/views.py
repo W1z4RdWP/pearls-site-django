@@ -10,7 +10,7 @@ from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.contrib.auth.models import User
 
 from myapp.models import QuizResult, UserCourse, UserAnswer, UserProgress
-from courses.models import Course, Lesson
+from courses.models import Course, Lesson, UserCourseTrajectory
 from .models import Quiz, Question, Answer, QuizAttempt, Homework, HomeworkSubmission
 from .utils import DataMixin
 from gamification.utils import award_dascoin_points, award_achievement, award_course_badge
@@ -128,6 +128,9 @@ def get_questions(request, quiz_id: int = None, is_start: bool = False) -> HttpR
                     # Получаем UserCourse для проверки статуса
                     user_course = UserCourse.objects.filter(user=request.user, course=course).first()
                     if not user_course:
+                        # Курсы из траекторий назначаются только после завершения предыдущего — не создаём запись здесь
+                        if UserCourseTrajectory.objects.filter(user=request.user, trajectory__trajectorycourse__course=course).exists():
+                            return redirect('courses:course_detail', slug=course.slug)
                         # Проверяем, не был ли курс отменен вручную
                         from myapp.models import ManualCourseUnassignment
                         manual_unassignment = ManualCourseUnassignment.objects.filter(
@@ -173,6 +176,9 @@ def get_questions(request, quiz_id: int = None, is_start: bool = False) -> HttpR
                         for course in related_courses:
                             user_course = UserCourse.objects.filter(user=request.user, course=course).first()
                             if not user_course:
+                                # Курсы из траекторий назначаются только после завершения предыдущего — не создаём запись здесь
+                                if UserCourseTrajectory.objects.filter(user=request.user, trajectory__trajectorycourse__course=course).exists():
+                                    continue
                                 # Проверяем, не был ли курс отменен вручную
                                 manual_unassignment = ManualCourseUnassignment.objects.filter(
                                     user=request.user, 

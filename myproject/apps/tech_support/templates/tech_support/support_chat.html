@@ -32,6 +32,126 @@
     /* Секции второго шага */
     .step-section { display: none; }
     .step-section.active { display: block; }
+    
+    /* Выделение полей с ошибками */
+    .form-control.is-invalid,
+    .form-select.is-invalid {
+        border-color: #dc3545;
+        background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12' width='12' height='12' fill='none' stroke='%23dc3545'%3e%3ccircle cx='6' cy='6' r='4.5'/%3e%3cpath d='m5.8 3.6 .4.4.4-.4M6 8.4V6'/%3e%3c/svg%3e");
+        background-repeat: no-repeat;
+        background-position: right calc(0.375em + 0.1875rem) center;
+        background-size: calc(0.75em + 0.375rem) calc(0.75em + 0.375rem);
+        padding-right: calc(1.5em + 0.75rem);
+    }
+
+     /* Окно добавления вложения */
+    .file-input-wrapper {
+        position: relative;
+        display: inline-block;
+        width: 100%;
+    }
+    .file-input-wrapper input[type=file] {
+        position: absolute;
+        left: -9999px;
+    }
+    .file-input-label {
+        display: block;
+        padding: 20px 16px;
+        background: #f8f9fa;
+        border: 2px dashed #dee2e6;
+        border-radius: 8px;
+        text-align: center;
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+    .file-input-label:hover {
+        background: #e9ecef;
+        border-color: #0d6efd;
+    }
+    .file-input-label.drag-over {
+        background: #e7f3ff;
+        border-color: #0d6efd;
+    }
+    .file-input-label i {
+        font-size: 1.5rem;
+        color: #6c757d;
+        margin-bottom: 8px;
+    }
+    
+    /* Список загруженных файлов */
+    .attachments-list {
+        margin-top: 16px;
+        display: none;
+    }
+    .attachments-list.has-files {
+        display: block;
+    }
+    .attachment-item {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 12px;
+        background: #f8f9fa;
+        border-radius: 8px;
+        margin-bottom: 8px;
+        transition: all 0.2s ease;
+    }
+    .attachment-item:hover {
+        background: #e9ecef;
+    }
+    .attachment-preview {
+        width: 60px;
+        height: 60px;
+        object-fit: cover;
+        border-radius: 6px;
+        flex-shrink: 0;
+    }
+    .attachment-icon {
+        width: 60px;
+        height: 60px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: #e9ecef;
+        border-radius: 6px;
+        flex-shrink: 0;
+        font-size: 1.5rem;
+        color: #6c757d;
+    }
+    .attachment-info {
+        flex: 1;
+        min-width: 0;
+    }
+    .attachment-name {
+        font-weight: 500;
+        color: #212529;
+        margin-bottom: 4px;
+        word-break: break-word;
+    }
+    .attachment-size {
+        font-size: 0.875rem;
+        color: #6c757d;
+    }
+    .attachment-remove {
+        background: none;
+        border: none;
+        color: #dc3545;
+        cursor: pointer;
+        padding: 4px 8px;
+        border-radius: 4px;
+        transition: all 0.2s ease;
+        flex-shrink: 0;
+    }
+    .attachment-remove:hover {
+        background: #dc3545;
+        color: #fff;
+    }
+    .file-error {
+        color: #dc3545;
+        font-size: 0.875rem;
+        margin-top: 4px;
+    }
+
 </style>
 {% endblock %}
 
@@ -58,6 +178,34 @@
                 Опишите суть проблемы как можно конкретнее. После отправки вам откроется созданный тикет.
             </div>
 
+            {% if form.errors %}
+                <div class="alert alert-warning alert-dismissible fade show" role="alert">
+                    <h5 class="alert-heading">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        Тикет не создан из-за ошибок в форме
+                    </h5>
+                    <hr>
+                    <p class="mb-2"><strong>Пожалуйста, исправьте следующие ошибки:</strong></p>
+                    <ul class="mb-0">
+                        {% if form.non_field_errors %}
+                            {% for error in form.non_field_errors %}
+                                <li>{{ error }}</li>
+                            {% endfor %}
+                        {% endif %}
+                        {% if form.title.errors %}
+                            <li><strong>Заголовок:</strong> {{ form.title.errors|striptags }}</li>
+                        {% endif %}
+                        {% if form.description.errors %}
+                            <li><strong>Описание:</strong> {{ form.description.errors|striptags }}</li>
+                        {% endif %}
+                        {% if form.ticket_type.errors %}
+                            <li><strong>Тип обращения:</strong> {{ form.ticket_type.errors|striptags }}</li>
+                        {% endif %}
+                    </ul>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            {% endif %}
+
             <div class="support-form-card p-4">
                 <div class="stepper" id="stepper">
                     <div class="step" data-step="1">1</div>
@@ -65,12 +213,8 @@
                     <div class="step" data-step="2">2</div>
                 </div>
 
-                <form method="post" novalidate id="ticketForm">
+                <form method="post" enctype="multipart/form-data" novalidate id="ticketForm">
                     {% csrf_token %}
-
-                    {% if form.non_field_errors %}
-                        <div class="alert alert-danger">{{ form.non_field_errors }}</div>
-                    {% endif %}
 
                     <!-- Шаг 1: выбор типа обращения -->
                     <div id="step1" class="step-section active">
@@ -184,6 +328,31 @@
                                     <div class="form-help" id="helpDescription">Добавьте скриншоты/детали позже в самом тикете, если потребуется.</div>
                                 {% endif %}
                             </div>
+
+                            <!-- Вложения -->
+                            <div class="col-12">
+                                <label class="form-label">Вложения (опционально)</label>
+                                <div class="file-input-wrapper">
+                                    <label for="id_attachments" class="file-input-label" id="fileInputLabel">
+                                        <i class="fas fa-cloud-upload-alt"></i>
+                                        <div>Нажмите для выбора файлов или перетащите их сюда</div>
+                                        <small class="text-muted">JPG, PNG, PDF, DOC, TXT и другие (максимум 10MB на файл)</small>
+                                    </label>
+                                    <input type="file" name="attachments" id="id_attachments" multiple
+                                           accept=".jpg,.jpeg,.png,.gif,.pdf,.doc,.docx,.txt,.log">
+                                </div>
+                                <div class="form-help mt-2">Можно загрузить несколько файлов. Максимальный размер одного файла: 10MB</div>
+                                
+                                <!-- Список загруженных файлов -->
+                                <div class="attachments-list" id="attachmentsList">
+                                    <div class="d-flex justify-content-between align-items-center mb-2">
+                                        <strong>Загруженные файлы:</strong>
+                                        <span class="badge bg-primary" id="filesCount">0</span>
+                                    </div>
+                                    <div id="attachmentsContainer"></div>
+                                </div>
+                            </div>
+
 
                             <!-- Дополнительные поля (динамические, не из модели) -->
                             <div class="col-12" id="extraFieldsContainer"></div>
@@ -337,12 +506,52 @@
     // Если сервер вернул ошибки или тип уже выбран (ре-рендер формы) — сразу открыть шаг 2
     window.addEventListener('DOMContentLoaded', () => {
         const preset = ticketTypeSelect ? ticketTypeSelect.value : '';
-        if (preset) {
-            // отметим карточку визуально, если есть
-            const preCard = document.querySelector(`.type-card[data-type-value="${preset}"]`);
-            if (preCard) { preCard.classList.add('selected'); toStep2Btn.disabled = false; }
-            applyTypeUI(preset);
+        const hasErrors = document.querySelector('.alert-warning') !== null;
+        
+        // Если есть ошибки валидации, переходим на шаг 2
+        if (hasErrors || preset) {
+            if (preset) {
+                // отметим карточку визуально, если есть
+                const preCard = document.querySelector(`.type-card[data-type-value="${preset}"]`);
+                if (preCard) { preCard.classList.add('selected'); toStep2Btn.disabled = false; }
+                applyTypeUI(preset);
+            } else if (hasErrors) {
+                // Если есть ошибки, но тип не выбран, выбираем первый доступный тип
+                const firstCard = document.querySelector('.type-card');
+                if (firstCard && ticketTypeSelect) {
+                    const typeValue = firstCard.getAttribute('data-type-value');
+                    firstCard.classList.add('selected');
+                    ticketTypeSelect.value = typeValue;
+                    toStep2Btn.disabled = false;
+                    applyTypeUI(typeValue);
+                }
+            }
             setStep(2);
+            
+            // Добавляем визуальное выделение полей с ошибками
+            const titleField = document.getElementById('id_title');
+            const descField = document.getElementById('id_description');
+            const typeField = document.getElementById('id_ticket_type');
+            
+            if (titleField && titleField.parentElement.querySelector('.text-danger')) {
+                titleField.classList.add('is-invalid');
+            }
+            if (descField && descField.parentElement.querySelector('.text-danger')) {
+                descField.classList.add('is-invalid');
+            }
+            if (typeField && typeField.parentElement.querySelector('.text-danger')) {
+                typeField.classList.add('is-invalid');
+            }
+            
+            // Прокручиваем к предупреждающему сообщению, если оно есть
+            if (hasErrors) {
+                const alertElement = document.querySelector('.alert-warning');
+                if (alertElement) {
+                    setTimeout(() => {
+                        alertElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    }, 100);
+                }
+            }
         } else {
             setStep(1);
         }
@@ -374,4 +583,5 @@
     });
 })();
 </script>
+<script src="{% static 'tech_support/js/tech_support_scripts.js' %}"></script>
 {% endblock %}

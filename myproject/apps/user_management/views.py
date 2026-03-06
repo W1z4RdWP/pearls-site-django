@@ -5,7 +5,7 @@ from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User, Group
 from django.db.models import Q, Count, Max, F, Sum, Subquery, OuterRef
-from users.models import Profile, Role
+from users.models import Department, Profile, Role
 from users.permissions import MentorRequiredMixin
 from django import forms
 from django.urls import reverse_lazy
@@ -345,6 +345,41 @@ def roles_all_json(request):
     return JsonResponse({'roles': roles_data})
 
 
+
+def department_manage(request):
+    if not request.user.is_staff:
+        raise PermissionDenied
+    if request.method == 'POST':
+        name = request.POST.get('new_department', '').strip()
+        if name:
+            Department.objects.get_or_create(name=name)
+            messages.success(request, f'Подразделение "{name}" добавлено.')
+        return redirect(request.META.get('HTTP_REFERER', reverse('user_management:user_list')))
+    return redirect('user_management:user_list')
+
+
+@require_POST
+def department_delete(request, department_id):
+    if not request.user.is_staff:
+        raise PermissionDenied
+    Department.objects.filter(id=department_id).delete()
+    messages.success(request, 'Подразделение удалено.')
+    return redirect(request.META.get('HTTP_REFERER', reverse('user_management:user_list')))
+
+
+@require_POST
+def department_edit(request, department_id):
+    if not request.user.is_staff:
+        raise PermissionDenied
+    new_name = request.POST.get('new_name', '').strip()
+    if new_name:
+        Department.objects.filter(id=department_id).update(name=new_name)
+        messages.success(request, f'Подразделение переименовано в "{new_name}".')
+    else:
+        messages.error(request, 'Название не может быть пустым.')
+    return redirect(request.META.get('HTTP_REFERER', reverse('user_management:user_list')))
+
+
 def lesson_allowed_roles_json(request, lesson_id):
     """
     Возвращает список разрешенных должностей для урока в JSON формате
@@ -523,6 +558,7 @@ class UserEditDetailedView(UpdateView):
             context['profile_form'] = UserProfileForm(instance=user.profile, user_instance=user)
         context['readonly'] = getattr(self, 'readonly', False)
         context['roles'] = Role.objects.all()
+        context['departments'] = Department.objects.all()
         
         # Данные для вкладки прогресса (из UserProgressDashboardView)
         from myapp.models import ManualCourseUnassignment
@@ -535,6 +571,10 @@ class UserEditDetailedView(UpdateView):
             if user_course:
                 user_courses.append(user_course)
             else:
+                # Курсы из траекторий назначаются только последовательно (после завершения предыдущего).
+                # Не создаём UserCourse здесь — он будет создан сигналом assign_next_trajectory_course_on_completion.
+                if UserCourseTrajectory.objects.filter(user=user, trajectory__trajectorycourse__course=course).exists():
+                    continue
                 # Проверяем, не был ли курс отменен вручную
                 manual_unassignment = ManualCourseUnassignment.objects.filter(
                     user=user, 
@@ -542,7 +582,7 @@ class UserEditDetailedView(UpdateView):
                 ).first()
                 
                 if not manual_unassignment:
-                    # Создаём UserCourse только если не было ручной отмены
+                    # Создаём UserCourse только если не было ручной отмены (для курсов из групп и т.п.)
                     user_course = UserCourse.objects.create(user=user, course=course, status='available')
                     user_courses.append(user_course)
                 # Если была ручная отмена, просто пропускаем этот курс
@@ -857,6 +897,10 @@ class UserProgressDashboardView(DetailView):
             if user_course:
                 user_courses.append(user_course)
             else:
+                # Курсы из траекторий назначаются только последовательно (после завершения предыдущего).
+                # Не создаём UserCourse здесь — он будет создан сигналом assign_next_trajectory_course_on_completion.
+                if UserCourseTrajectory.objects.filter(user=user, trajectory__trajectorycourse__course=course).exists():
+                    continue
                 # Проверяем, не был ли курс отменен вручную
                 manual_unassignment = ManualCourseUnassignment.objects.filter(
                     user=user, 
@@ -864,7 +908,7 @@ class UserProgressDashboardView(DetailView):
                 ).first()
                 
                 if not manual_unassignment:
-                    # Создаем UserCourse если его нет (для курсов из траекторий)
+                    # Создаем UserCourse если его нет (для курсов из групп и т.п.)
                     user_course = UserCourse.objects.create(user=user, course=course, status='available')
                     user_courses.append(user_course)
                 # Если была ручная отмена, просто пропускаем этот курс

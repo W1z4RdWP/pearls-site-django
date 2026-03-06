@@ -18,6 +18,7 @@
             {{ form.last_name.label_tag }}{{ form.last_name }}
             {{ form.middle_name.label_tag }}{{ form.middle_name }}
             {{ form.role.label_tag }}{{ form.role }}
+            {{ form.department.label_tag }}{{ form.department }}
             <label for="id_groups">Группы пользователя</label>
             <div class="um-user-groups-checkboxes">
                 {% for group in form.groups.field.queryset %}

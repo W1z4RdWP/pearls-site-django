@@ -111,7 +111,8 @@ class IncidentCourseTest(TestCase):
         self.assertIsNotNone(incident.course)
         self.assertEqual(incident.course.title, 'Test Incident')
         self.assertTrue(incident.course.is_incident)
-        self.assertEqual(incident.status, 'assigned')
+        # Статус остается 'accepted', так как курс еще не назначен сотрудникам
+        self.assertEqual(incident.status, 'accepted')
         self.assertEqual(incident.course.author, self.staff)
 
     def test_2_add_users_to_assigned_to(self):
@@ -187,8 +188,12 @@ class IncidentCourseTest(TestCase):
             is_incident=True
         )
         incident.course = course
-        incident.status = 'assigned'
+        # Статус остается 'accepted', так как курс еще не назначен сотрудникам
+        incident.status = 'accepted'
         incident.save()
+        
+        # Проверяем начальный статус
+        self.assertEqual(incident.status, 'accepted')
         
         # Проверяем, что курс еще не назначен пользователям
         self.assertFalse(UserCourse.objects.filter(user=self.user1, course=course).exists())
@@ -201,6 +206,10 @@ class IncidentCourseTest(TestCase):
         
         response_data = json.loads(response.content)
         self.assertTrue(response_data['success'])
+        
+        # Проверяем, что статус инцидента изменился на 'assigned'
+        incident.refresh_from_db()
+        self.assertEqual(incident.status, 'assigned')
         
         # Проверяем, что курс назначен пользователям
         self.assertTrue(UserCourse.objects.filter(user=self.user1, course=course).exists())
@@ -332,8 +341,12 @@ class IncidentCourseTest(TestCase):
             is_incident=True
         )
         incident.course = course
-        incident.status = 'assigned'
+        # Статус остается 'accepted', так как курс еще не назначен сотрудникам
+        incident.status = 'accepted'
         incident.save()
+        
+        # Проверяем начальный статус
+        self.assertEqual(incident.status, 'accepted')
         
         # Проверяем, что курс еще не назначен expert
         self.assertFalse(UserCourse.objects.filter(user=self.expert, course=course).exists())
@@ -345,6 +358,10 @@ class IncidentCourseTest(TestCase):
         
         response_data = json.loads(response.content)
         self.assertTrue(response_data['success'])
+        
+        # Проверяем, что статус остался 'accepted' (не меняется при назначении руководителю)
+        incident.refresh_from_db()
+        self.assertEqual(incident.status, 'accepted')
         
         # Проверяем, что курс назначен expert
         self.assertTrue(UserCourse.objects.filter(user=self.expert, course=course).exists())
@@ -379,8 +396,12 @@ class IncidentCourseTest(TestCase):
             is_incident=True
         )
         incident.course = course
-        incident.status = 'assigned'
+        # Статус остается 'accepted', так как курс еще не назначен сотрудникам
+        incident.status = 'accepted'
         incident.save()
+        
+        # Проверяем начальный статус
+        self.assertEqual(incident.status, 'accepted')
         
         # Проверяем, что курс НЕ назначен никому до клика на кнопки
         self.assertFalse(UserCourse.objects.filter(user=self.expert, course=course).exists())
@@ -392,6 +413,10 @@ class IncidentCourseTest(TestCase):
         response = self.client.post(assign_expert_url, HTTP_X_REQUESTED_WITH='XMLHttpRequest')
         self.assertEqual(response.status_code, 200)
         
+        # Проверяем, что статус остался 'accepted' (не меняется при назначении руководителю)
+        incident.refresh_from_db()
+        self.assertEqual(incident.status, 'accepted')
+        
         # Проверяем, что курс назначен только expert, но не назначенным пользователям
         self.assertTrue(UserCourse.objects.filter(user=self.expert, course=course).exists())
         self.assertFalse(UserCourse.objects.filter(user=self.user1, course=course).exists())
@@ -402,7 +427,99 @@ class IncidentCourseTest(TestCase):
         response = self.client.post(assign_assigned_url, HTTP_X_REQUESTED_WITH='XMLHttpRequest')
         self.assertEqual(response.status_code, 200)
         
+        # Проверяем, что статус изменился на 'assigned' после назначения сотрудникам
+        incident.refresh_from_db()
+        self.assertEqual(incident.status, 'assigned')
+        
         # Проверяем, что теперь курс назначен всем
         self.assertTrue(UserCourse.objects.filter(user=self.expert, course=course).exists())
         self.assertTrue(UserCourse.objects.filter(user=self.user1, course=course).exists())
         self.assertTrue(UserCourse.objects.filter(user=self.user2, course=course).exists())
+
+    def test_7_auto_assign_course_to_assigned_after_expert_completion(self):
+        """
+        Тест 7: При завершении курса-инцидента руководителем (expert),
+        автоматически происходит назначение курса сотрудникам из assigned_to
+        и статус инцидента меняется на "Назначен" (assigned).
+        """
+        self._login(self.staff)
+        
+        # Создаем инцидент с руководителем и назначенными сотрудниками
+        incident = Incident.objects.create(
+            title='Test Incident',
+            description='Test description',
+            incident_type='educational',
+            user=self.staff,
+            status='accepted',
+            expert=self.expert
+        )
+        incident.assigned_to.add(self.user1, self.user2)
+        
+        # Создаем курс-инцидент
+        course = Course.objects.create(
+            title=incident.title,
+            description='',
+            author=self.staff,
+            is_incident=True
+        )
+        incident.course = course
+        incident.status = 'accepted'
+        incident.save()
+        
+        # Проверяем начальный статус инцидента
+        self.assertEqual(incident.status, 'accepted')
+        
+        # Проверяем, что курс еще не назначен никому
+        self.assertFalse(UserCourse.objects.filter(user=self.expert, course=course).exists())
+        self.assertFalse(UserCourse.objects.filter(user=self.user1, course=course).exists())
+        self.assertFalse(UserCourse.objects.filter(user=self.user2, course=course).exists())
+        
+        # Назначаем курс руководителю
+        user_course_expert = UserCourse.objects.create(
+            user=self.expert,
+            course=course,
+            status='available'
+        )
+        
+        # Проверяем, что курс назначен руководителю
+        self.assertTrue(UserCourse.objects.filter(user=self.expert, course=course).exists())
+        self.assertEqual(user_course_expert.status, 'available')
+        
+        # Проверяем, что курс еще не назначен сотрудникам
+        self.assertFalse(UserCourse.objects.filter(user=self.user1, course=course).exists())
+        self.assertFalse(UserCourse.objects.filter(user=self.user2, course=course).exists())
+        
+        # Завершаем курс руководителем (меняем статус на 'completed')
+        # Это должно вызвать сигнал, который автоматически назначит курс сотрудникам
+        user_course_expert.status = 'completed'
+        user_course_expert.save()
+        
+        # Обновляем инцидент из базы данных
+        incident.refresh_from_db()
+        
+        # Проверяем, что статус инцидента изменился на 'assigned'
+        self.assertEqual(
+            incident.status,
+            'assigned',
+            "Статус инцидента должен измениться на 'assigned' после автоматического назначения курса сотрудникам"
+        )
+        
+        # Проверяем, что курс автоматически назначен сотрудникам
+        self.assertTrue(
+            UserCourse.objects.filter(user=self.user1, course=course).exists(),
+            "Курс должен быть автоматически назначен первому сотруднику"
+        )
+        self.assertTrue(
+            UserCourse.objects.filter(user=self.user2, course=course).exists(),
+            "Курс должен быть автоматически назначен второму сотруднику"
+        )
+        
+        # Проверяем статусы назначенных курсов сотрудникам
+        user_course1 = UserCourse.objects.get(user=self.user1, course=course)
+        user_course2 = UserCourse.objects.get(user=self.user2, course=course)
+        self.assertEqual(user_course1.status, 'available')
+        self.assertEqual(user_course2.status, 'available')
+        
+        # Проверяем, что курс руководителя остался завершенным
+        user_course_expert.refresh_from_db()
+        self.assertEqual(user_course_expert.status, 'completed')

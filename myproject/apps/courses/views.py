@@ -9,6 +9,7 @@ from django.contrib.auth.decorators import login_required, user_passes_test
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.views.decorators.http import require_POST, require_http_methods
 from django.http import JsonResponse, HttpResponse, HttpRequest, HttpResponseForbidden
+from django.core.cache import cache
 from django.template.loader import render_to_string
 from weasyprint import HTML
 from datetime import datetime, timedelta
@@ -23,6 +24,7 @@ from django.utils.decorators import method_decorator
 from gamification.utils import award_dascoin_points, award_course_badge, award_trajectory_badge, award_first_lesson_badge
 from .utils import issue_certificate, get_user_certificates
 from quizzes.models import Quiz, HomeworkSubmission
+from builder.views.incidents_views import _get_user_cache_version, INCIDENTS_PAGE_CACHE_TIMEOUT
 
 
 
@@ -233,8 +235,9 @@ class CourseDetailView(DetailView):
             user_course = UserCourse.objects.filter(user=user, course=course).first()
             
             # Проверяем deadline и блокируем курс, если срок истек
+            # Для курс-инцидентов блокировка не применяется (обрабатывается ниже)
             if user_course and user_course.deadline and user_course.status not in ['completed', 'blocked']:
-                if timezone.now() > user_course.deadline:
+                if timezone.now() > user_course.deadline and not course.is_incident:
                     user_course.status = 'blocked'
                     user_course.save(update_fields=['status'])
 
@@ -545,13 +548,26 @@ class CourseDetailView(DetailView):
         if hasattr(request.user, 'profile') and request.user.profile:
             user_country = request.user.profile.country or ''
 
-        # Проверяем deadline и блокируем курс, если срок истек
+        # Проверяем deadline.
+        # Для обычных курсов по-прежнему блокируем курс при просрочке.
+        # Для курсов-инцидентов доступ не блокируем, но помечаем просрочку и шлем уведомление один раз.
         is_deadline_overdue = False
         if user_course and user_course.deadline:
-            if timezone.now() > user_course.deadline and user_course.status not in ['completed', 'blocked']:
-                user_course.status = 'blocked'
-                user_course.save(update_fields=['status'])
             is_deadline_overdue = timezone.now() > user_course.deadline
+            if is_deadline_overdue:
+                if course.is_incident:
+                    # Отправляем единоразовое уведомление о просроченном курсе-инциденте
+                    from notifications.models import Notification
+                    last_overdue = Notification.objects.filter(
+                        user=user,
+                        related_course=course,
+                        notification_type='incident_course_overdue',
+                    ).order_by('-created_at').first()
+                    if not last_overdue:
+                        Notification.create_incident_course_overdue_notification(user, course)
+                elif user_course.status not in ['completed', 'blocked']:
+                    user_course.status = 'blocked'
+                    user_course.save(update_fields=['status'])
         
         # Получаем инцидент, связанный с курсом (если курс-инцидент)
         incident = None
@@ -727,6 +743,9 @@ class LessonDetailView(DetailView):
         # Получаем UserCourse для проверки статуса
         user_course = UserCourse.objects.filter(user=request.user, course=course).first()
         if not user_course:
+            # Курсы из траекторий назначаются только после завершения предыдущего — не создаём запись здесь
+            if UserCourseTrajectory.objects.filter(user=request.user, trajectory__trajectorycourse__course=course).exists():
+                return redirect('courses:course_detail', slug=course.slug)
             # Проверяем, не был ли курс отменен вручную
             from myapp.models import ManualCourseUnassignment
             manual_unassignment = ManualCourseUnassignment.objects.filter(
@@ -1504,6 +1523,9 @@ def complete_lesson(request, course_slug, lesson_id):
     # Получаем UserCourse
     user_course = UserCourse.objects.filter(user=user, course=course).first()
     if not user_course:
+        # Курсы из траекторий назначаются только после завершения предыдущего — не создаём запись здесь
+        if UserCourseTrajectory.objects.filter(user=user, trajectory__trajectorycourse__course=course).exists():
+            return redirect('courses:course_detail', slug=course.slug)
         # Проверяем, не был ли курс отменен вручную
         from myapp.models import ManualCourseUnassignment
         manual_unassignment = ManualCourseUnassignment.objects.filter(
@@ -1777,30 +1799,103 @@ def complete_course(request, course_id):
 
 
 
-def _should_hide_specialized_trajectories(user):
+@method_decorator(login_required, name='dispatch')
+class UserCourseTrajectoryListView(ListView):
     """
-    Проверяет, нужно ли скрывать специализированные траектории для пользователя.
-    Скрывает, если пользователь состоит в группе "Медсестра/ассистент" И в специализированной группе,
-    но еще не завершил курс "Внедрение м/с и асс. День 6."
+    Список всех траекторий пользователя и прогресс по курсам.
     """
-    nurse_assistant_group = user.groups.filter(name="Медсестра/ассистент").first()
-    if not nurse_assistant_group:
-        return False
-    specialized_groups = [
-        "Медицинская сестра/ассистент в хирургии",
-        "Медицинская сестра/ассистент в терапии",
-        "Медицинская сестра/ассистент в ортопедии",
-        "Медицинская сестра/ассистент в ортодонтии"
-    ]
-    user_specialized_groups = user.groups.filter(name__in=specialized_groups)
-    if not user_specialized_groups.exists():
-        return False
-    intro_course_completed = UserCourse.objects.filter(
-        user=user,
-        course__title__icontains="Внедрение м/с и асс. День 6",
-        status='completed'
-    ).exists()
-    return not intro_course_completed
+    model = UserCourseTrajectory
+    template_name = 'courses/user_course_trajectory_list.html'
+    context_object_name = 'user_trajectories'
+
+    def get(self, request, *args, **kwargs):
+        """
+        Кэширует полный HTML-ответ страницы со списком траекторий и прогрессом по курсам.
+        Ключ кэша зависит от пользователя, версии кэша и полного URL (включая GET-параметры).
+        """
+        if request.user.is_authenticated:
+            user_id = request.user.pk
+            version = _get_user_cache_version(user_id)
+            cache_key = f"user_course_trajectory_list_page:user_{user_id}:v{version}:{request.get_full_path()}"
+        else:
+            cache_key = f"user_course_trajectory_list_page:user_anon:{request.get_full_path()}"
+
+        cached_content = cache.get(cache_key)
+        if cached_content is not None:
+            return HttpResponse(cached_content, content_type='text/html; charset=utf-8')
+
+        response = super().get(request, *args, **kwargs)
+        if response.status_code == 200:
+            content_type = response.get('Content-Type', '')
+            if content_type.startswith('text/html'):
+                response.render()
+                cache.set(cache_key, response.content, timeout=INCIDENTS_PAGE_CACHE_TIMEOUT)
+        return response
+
+    def get_queryset(self):
+        user = self.request.user
+        user_trajectories = UserCourseTrajectory.objects.filter(
+            user=user,
+            trajectory__isnull=False
+        ).select_related('trajectory')
+        
+        # Проверяем, нужно ли скрывать специализированные траектории
+        if self._should_hide_specialized_trajectories(user):
+            # Специализированные группы для медсестер/ассистентов
+            specialized_groups = [
+                "Медицинская сестра/ассистент в хирургии",
+                "Медицинская сестра/ассистент в терапии", 
+                "Медицинская сестра/ассистент в ортопедии",
+                "Медицинская сестра/ассистент в ортодонтии"
+            ]
+            
+            # Исключаем траектории, доступные только для специализированных групп
+            user_specialized_groups = user.groups.filter(name__in=specialized_groups)
+            if user_specialized_groups.exists():
+                specialized_trajectories = Trajectory.objects.filter(
+                    groups__in=user_specialized_groups
+                )
+                
+                user_trajectories = user_trajectories.exclude(
+                    trajectory__in=specialized_trajectories
+                )
+        
+        return user_trajectories
+    
+    def _should_hide_specialized_trajectories(self, user):
+        """
+        Проверяет, нужно ли скрывать специализированные траектории для пользователя.
+        Скрывает, если пользователь состоит в группе "Медсестра/ассистент" И в специализированной группе,
+        но еще не завершил курс "Внедрение м/с и асс. День 6."
+        """
+        # Проверяем, состоит ли пользователь в группе "Медсестра/ассистент"
+        nurse_assistant_group = user.groups.filter(name="Медсестра/ассистент").first()
+        if not nurse_assistant_group:
+            return False
+        
+        # Специализированные группы для медсестер/ассистентов
+        specialized_groups = [
+            "Медицинская сестра/ассистент в хирургии",
+            "Медицинская сестра/ассистент в терапии", 
+            "Медицинская сестра/ассистент в ортопедии",
+            "Медицинская сестра/ассистент в ортодонтии"
+        ]
+        
+        # Проверяем, состоит ли пользователь в какой-либо из специализированных групп
+        user_specialized_groups = user.groups.filter(name__in=specialized_groups)
+        if not user_specialized_groups.exists():
+            return False
+        
+        # Проверяем, завершил ли пользователь курс "Внедрение м/с и асс. День 6."
+        from myapp.models import UserCourse
+        intro_course_completed = UserCourse.objects.filter(
+            user=user,
+            course__title__icontains="Внедрение м/с и асс. День 6",
+            status='completed'
+        ).exists()
+        
+        # Если курс не завершен, скрываем специализированные траектории
+        return not intro_course_completed
 
 
 def _is_course_available_in_trajectory(user, course):
@@ -1834,106 +1929,123 @@ def _is_course_available_in_trajectory(user, course):
                 return True
     return False
 
-
-def get_user_trajectories_queryset(user):
-    """Возвращает queryset траекторий пользователя для списка."""
-    user_trajectories = UserCourseTrajectory.objects.filter(
-        user=user,
-        trajectory__isnull=False
-    ).select_related('trajectory')
-    if _should_hide_specialized_trajectories(user):
-        specialized_groups = [
-            "Медицинская сестра/ассистент в хирургии",
-            "Медицинская сестра/ассистент в терапии",
-            "Медицинская сестра/ассистент в ортопедии",
-            "Медицинская сестра/ассистент в ортодонтии"
-        ]
-        user_specialized_groups = user.groups.filter(name__in=specialized_groups)
-        if user_specialized_groups.exists():
-            specialized_trajectories = Trajectory.objects.filter(
-                groups__in=user_specialized_groups
-            )
-            user_trajectories = user_trajectories.exclude(
-                trajectory__in=specialized_trajectories
-            )
-    return user_trajectories
-
-
-def get_trajectory_list_context(request, skip_filters=False):
-    """
-    Строит контекст для страницы списка траекторий и курсов.
-    Используется представлением и API. Возвращает dict без 'user' и без 'user_trajectories'
-    (user_trajectories добавляется из get_queryset в представлении).
-    При skip_filters=True (для API) фильтры не применяются, возвращаются все курсы и all-статистика.
-    """
-    from myapp.models import ManualCourseUnassignment
-
-    user = request.user
-    available_courses = Course.objects.available_for_user(user)
-    filtered_courses = []
-    for course in available_courses:
-        course_available_via_groups = course.allowed_groups.filter(id__in=user.groups.all()).exists()
-        course_in_trajectories = TrajectoryCourse.objects.filter(
-            trajectory__usercoursetrajectory__user=user,
-            course=course
-        ).exists()
-        if course_available_via_groups:
-            filtered_courses.append(course)
-        elif course_in_trajectories:
-            if _is_course_available_in_trajectory(user, course):
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['user'] = self.request.user
+        
+        # Получаем прогресс по курсам
+        user = self.request.user
+        available_courses = Course.objects.available_for_user(user)
+        
+        # Фильтруем курсы: исключаем курсы из траекторий, которые еще не доступны, и курсы-инциденты
+        filtered_courses = []
+        for course in available_courses:
+            # Исключаем курсы-инциденты
+            # if course.is_incident:
+            #     continue
+            
+            # Проверяем, доступен ли курс через группы пользователя напрямую (не через траекторию)
+            course_available_via_groups = course.allowed_groups.filter(id__in=user.groups.all()).exists()
+            
+            # Проверяем, есть ли курс в траекториях пользователя
+            course_in_trajectories = TrajectoryCourse.objects.filter(
+                trajectory__usercoursetrajectory__user=user,
+                course=course
+            ).exists()
+            
+            if course_available_via_groups:
+                # Если курс доступен через группы напрямую, он всегда отображается
                 filtered_courses.append(course)
-        else:
-            filtered_courses.append(course)
-
-    user_courses = []
-    for course in filtered_courses:
-        manual_unassignment = ManualCourseUnassignment.objects.filter(
-            user=user,
-            course=course
-        ).first()
-        if not manual_unassignment:
-            user_course, _ = UserCourse.objects.get_or_create(
+            elif course_in_trajectories:
+                # Если курс в траектории, проверяем его доступность
+                if self._is_course_available_in_trajectory(user, course):
+                    filtered_courses.append(course)
+            else:
+                # Если курс не в траектории и не через группы, он доступен (назначен напрямую пользователю)
+                filtered_courses.append(course)
+        
+        # Получаем UserCourse для каждого отфильтрованного курса
+        from myapp.models import ManualCourseUnassignment
+        
+        user_courses = []
+        for course in filtered_courses:
+            user_course = UserCourse.objects.filter(user=user, course=course).first()
+            if user_course:
+                user_courses.append(user_course)
+                continue
+            # Курсы из траекторий назначаются только после завершения предыдущего — не создаём запись здесь
+            if UserCourseTrajectory.objects.filter(user=user, trajectory__trajectorycourse__course=course).exists():
+                continue
+            # Проверяем, не был ли курс отменен вручную
+            manual_unassignment = ManualCourseUnassignment.objects.filter(
+                user=user, 
+                course=course
+            ).first()
+            
+            if not manual_unassignment:
+                user_course, created = UserCourse.objects.get_or_create(
+                    user=user, 
+                    course=course, 
+                    defaults={'status': 'available'}
+                )
+                user_courses.append(user_course)
+            # Если была ручная отмена, просто пропускаем этот курс
+        
+        # Подготавливаем данные для каждого курса
+        courses_data = []
+        for user_course in user_courses:
+            course = user_course.course
+            
+            # Подсчет завершенных уроков
+            completed_lessons = UserProgress.objects.filter(
                 user=user,
                 course=course,
-                defaults={'status': 'available'}
-            )
-            user_courses.append(user_course)
+                completed=True
+            ).count()
 
-    courses_data = []
-    for user_course in user_courses:
-        course = user_course.course
-        completed_lessons = UserProgress.objects.filter(
-            user=user,
-            course=course,
-            completed=True
-        ).count()
-        trajectory = UserLessonTrajectory.objects.filter(user=user, course=course).first()
-        total_lessons = trajectory.lessons.count() if trajectory else course.lessons.count()
-        completed_quizzes = QuizResult.objects.filter(
-            user=user,
-            course=course,
-            quiz_title__in=[quiz.name for quiz in course.quizzes.all()],
-            passed=True
-        ).values('quiz_title').distinct().count()
-        total_quizzes = course.quizzes.count()
-        completed_homeworks = HomeworkSubmission.objects.filter(
-            user=user,
-            course=course,
-            homework__in=course.homeworks,
-            status='correct'
-        ).values('homework_id').distinct().count()
-        total_homeworks = course.homeworks.count()
-        completed_materials = completed_lessons + completed_quizzes + completed_homeworks
-        total_materials = total_lessons + total_quizzes + total_homeworks
-        percent = int((completed_materials / total_materials) * 100) if total_materials else 0
+            trajectory = UserLessonTrajectory.objects.filter(user=user, course=course).first()
+            total_lessons = trajectory.lessons.count() if trajectory else course.lessons.count()
+            
+            # Подсчет завершенных тестов в рамках этого курса (только уникальные по quiz_title)
+            completed_quizzes = QuizResult.objects.filter(
+                user=user,
+                course=course,
+                quiz_title__in=[quiz.name for quiz in course.quizzes.all()],
+                passed=True
+            ).values('quiz_title').distinct().count()
+            total_quizzes = course.quizzes.count()
+            
+            # Подсчет выполненных заданий в рамках этого курса
+            completed_homeworks = HomeworkSubmission.objects.filter(
+                user=user,
+                course=course,
+                homework__in=course.homeworks,
+                status='correct'
+            ).values('homework_id').distinct().count()
+            total_homeworks = course.homeworks.count()
+            
+            # Общий подсчет материалов (задания считаются как тесты)
+            completed_materials = completed_lessons + completed_quizzes + completed_homeworks
+            total_materials = total_lessons + total_quizzes + total_homeworks
+            
+            # Если у курса нет материалов, считаем его доступным
+            if total_materials == 0:
+                percent = 0
+            else:
+                percent = int((completed_materials / total_materials) * 100)
 
-        deadline = user_course.deadline
-        is_deadline_overdue = False
-        if deadline:
-            if timezone.now() > deadline and user_course.status not in ['completed', 'blocked']:
-                user_course.status = 'blocked'
-                user_course.save(update_fields=['status'])
-            is_deadline_overdue = timezone.now() > deadline
+            # Проверяем deadline и блокируем курс, если срок истек
+            # Для курс-инцидентов блокировка не применяется
+            deadline = user_course.deadline
+            is_deadline_overdue = False
+            if deadline:
+                from django.utils import timezone
+                is_deadline_overdue = timezone.now() > deadline
+                if is_deadline_overdue and user_course.status not in ['completed', 'blocked']:
+                    # Проверяем, является ли курс курс-инцидентом
+                    if not user_course.course.is_incident:
+                        user_course.status = 'blocked'
+                        user_course.save(update_fields=['status'])
 
         if user_course.status == 'blocked':
             status = 'blocked'
@@ -3060,12 +3172,24 @@ class AssignCourseToExpertView(View):
             
             if not incident.expert:
                 return JsonResponse({'success': False, 'error': 'Руководитель не назначен в инциденте'}, status=400)
-            
+                        
+                        # Определяем дедлайн:
+            # 1) приоритет у incident.expert_time_to_complete (если задано и > 0),
+            # 2) затем используем course.default_deadline_days (если задано и > 0),
+            # 3) иначе берём значение по умолчанию (3 дня).
+            time_to_complete_for_experts = incident.expert_time_to_complete
+            if not time_to_complete_for_experts or time_to_complete_for_experts <= 0:
+                if course.default_deadline_days and course.default_deadline_days > 0:
+                    time_to_complete_for_experts = course.default_deadline_days
+                else:
+                    time_to_complete_for_experts = 3
+            deadline = timezone.now() + timedelta(days=time_to_complete_for_experts)
+
             # Назначаем курс руководителю
             user_course, created = UserCourse.objects.get_or_create(
                 user=incident.expert,
                 course=course,
-                defaults={'status': 'available'}
+                defaults={'status': 'available', 'deadline': deadline}
             )
             
             if created:
@@ -3083,6 +3207,12 @@ class AssignCourseToExpertView(View):
                     logger.info(f"Отправлено email уведомление о курсе-инциденте {course.title} руководителю {incident.expert.email}")
                 except Exception as e:
                     logger.error(f"Ошибка отправки email уведомления о курсе-инциденте {course.title}: {e}")
+            
+            # При назначении руководителю статус должен быть 'accepted' (если еще не 'assigned')
+            # Статус 'assigned' устанавливается только когда курс назначен сотрудникам
+            if incident.status not in ['assigned', 'studies_completed', 'resolved', 'declined']:
+                incident.status = 'accepted'
+                incident.save(update_fields=['status', 'updated_at'])
             
             return JsonResponse({
                 'success': True, 
@@ -3116,11 +3246,19 @@ class AssignCourseToAssignedView(View):
                 return JsonResponse({'success': False, 'error': 'Нет назначенных пользователей в инциденте'}, status=400)
             
             assigned_count = 0
-            # Определяем дедлайн: приоритет у course.default_deadline_days, иначе используем incident.deadline
-            if course.default_deadline_days and course.default_deadline_days > 0:
-                deadline = timezone.now() + timedelta(days=course.default_deadline_days)
-            else:
-                deadline = incident.deadline
+            # Определяем дедлайн:
+            # 1) приоритет у incident.assigned_to_time_to_complete (если задано и > 0),
+            # 2) затем используем course.default_deadline_days (если задано и > 0),
+            # 3) иначе берём значение по умолчанию (3 дня).
+            time_to_complete = incident.assigned_to_time_to_complete
+            if not time_to_complete or time_to_complete <= 0:
+                if course.default_deadline_days and course.default_deadline_days > 0:
+                    time_to_complete = course.default_deadline_days
+                else:
+                    time_to_complete = 3
+            deadline = timezone.now() + timedelta(days=time_to_complete)
+            
+
             
             # Назначаем курс всем назначенным пользователям
             for user in incident.assigned_to.all():
@@ -3146,6 +3284,11 @@ class AssignCourseToAssignedView(View):
                         logger.info(f"Отправлено email уведомление о курсе-инциденте {course.title} пользователю {user.email}")
                     except Exception as e:
                         logger.error(f"Ошибка отправки email уведомления о курсе-инциденте {course.title}: {e}")
+            
+            # Меняем статус инцидента на 'assigned', так как курс назначен сотрудникам
+            if assigned_count > 0 and incident.status != 'assigned':
+                incident.status = 'assigned'
+                incident.save(update_fields=['status', 'updated_at'])
             
             return JsonResponse({
                 'success': True, 

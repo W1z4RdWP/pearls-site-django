@@ -13,11 +13,17 @@
         <form method="get" id="incidents-filter-form" class="mb-4">
             <div class="row mb-2 g-2 align-items-center">
                 <!-- Фильтр по дате -->
-                <div class="col-md-3 col-lg-2">
-                    <input type="date" class="form-control date-input-compact" id="date_from" name="date_from" value="{{ date_from }}">
-                </div>
-                <div class="col-md-3 col-lg-2">
-                    <input type="date" class="form-control date-input-compact" id="date_to" name="date_to" value="{{ date_to }}">
+                <div class="col-md-auto d-flex align-items-center gap-1" id="date-filter-wrap">
+                    <div>
+                        <input type="date" class="form-control date-input-compact" id="date_from" name="date_from" value="{{ date_from }}">
+                    </div>
+                    <div>
+                        <input type="date" class="form-control date-input-compact" id="date_to" name="date_to" value="{{ date_to }}">
+                    </div>
+                    <div class="date-quick-buttons d-flex flex-column gap-1">
+                        <button type="button" class="btn btn-sm btn-outline-secondary date-quick-btn" id="date-btn-last-week" title="Инциденты за прошлую неделю">-1нед.</button>
+                        <button type="button" class="btn btn-sm btn-outline-secondary date-quick-btn" id="date-btn-reset" title="Весь период, сбросить фильтр по дате">&lt;-&gt;</button>
+                    </div>
                 </div>
                 <!-- Фильтр по типу -->
                 <div class="col-md-3 col-lg-2">
@@ -30,7 +36,7 @@
                 </div>
                 {% if not readonly %}
                     <!-- Кнопка добавления -->
-                    <div class="col-md-3 col-lg-6 text-end">
+                    <div class="col-md-3 col-lg-6 text-end ms-auto">
                         <a href="{% url 'builder:incidents_export_excel_report' %}" class="btn btn-outline-success">
                             <i class="fas fa-file-excel me-1"></i>Excel
                         </a>
@@ -96,16 +102,14 @@
             <table class="table">
                 <thead>
                     <tr>
-                        <th style="width: 8%;" title="Дата">Дата</th>
-                        <th style="width: 18%;" title="Описание">Описание</th>
-                        <th style="width: 12%;" title="Тип инцидента">Тип инцидента</th>
-                        <th style="width: 12%;" title="Кто зафиксировал">Кто зафиксировал</th>
-                        <!-- <th style="width: 15%;" title="Ответственный за инцидент">Ответственный за инцидент</th> -->
-                        <!-- <th style="width: 8%;" title="Дедлайн">Дедлайн</th> -->
-                        <th style="width: 7%;" title="Всего обучающихся">Всего обучающихся</th>
-                        <th style="width: 7%;" title="Завершили обуч.">Завершили обуч.</th>
-                        <th style="width: 8%;" title="Статус">Статус</th>
-                        <th style="width: 5%;" class="comment-column" title="Комментарий (опционально)">Комментарий (опционально)</th>
+                        <th style="width: 8%;" class="sortable" data-sort-type="date-dot" data-sort-col="0" title="Дата">Дата<span class="sort-icon"><span class="sort-asc">&#9650;</span><span class="sort-desc">&#9660;</span></span></th>
+                        <th style="width: 18%;" class="sortable" data-sort-type="text" data-sort-col="1" title="Описание">Описание<span class="sort-icon"><span class="sort-asc">&#9650;</span><span class="sort-desc">&#9660;</span></span></th>
+                        <th style="width: 12%;" class="sortable" data-sort-type="text" data-sort-col="2" title="Тип инцидента">Тип инцидента<span class="sort-icon"><span class="sort-asc">&#9650;</span><span class="sort-desc">&#9660;</span></span></th>
+                        <th style="width: 12%;" class="sortable" data-sort-type="text" data-sort-col="3" title="Кто зафиксировал">Кто зафиксировал<span class="sort-icon"><span class="sort-asc">&#9650;</span><span class="sort-desc">&#9660;</span></span></th>
+                        <th style="width: 7%;" class="sortable" data-sort-type="number" data-sort-col="4" title="Всего обучающихся">Всего обучающихся<span class="sort-icon"><span class="sort-asc">&#9650;</span><span class="sort-desc">&#9660;</span></span></th>
+                        <th style="width: 7%;" class="sortable" data-sort-type="number" data-sort-col="5" title="Завершили обуч.">Завершили обуч.<span class="sort-icon"><span class="sort-asc">&#9650;</span><span class="sort-desc">&#9660;</span></span></th>
+                        <th style="width: 8%;" class="sortable" data-sort-type="text" data-sort-col="6" title="Статус">Статус<span class="sort-icon"><span class="sort-asc">&#9650;</span><span class="sort-desc">&#9660;</span></span></th>
+                        <th style="width: 5%;" class="comment-column sortable" data-sort-type="text" data-sort-col="7" title="Комментарий (опционально)">Комментарий (опционально)<span class="sort-icon"><span class="sort-asc">&#9650;</span><span class="sort-desc">&#9660;</span></span></th>
                     </tr>
                 </thead>
                 <tbody>
@@ -211,13 +215,20 @@ function saveColumnTitles(titles) {
     localStorage.setItem(COLUMN_TITLES_STORAGE_KEY, JSON.stringify(titles));
 }
 
+function getColumnName(th) {
+    const clone = th.cloneNode(true);
+    const sortIcon = clone.querySelector('.sort-icon');
+    if (sortIcon) sortIcon.remove();
+    return clone.textContent.trim();
+}
+
 // Функция для применения сохраненных title к столбцам
 function applySavedColumnTitles() {
     const savedTitles = getSavedColumnTitles();
     const tableHeaders = document.querySelectorAll('.table thead th');
     
     tableHeaders.forEach((th, index) => {
-        const columnName = th.textContent.trim();
+        const columnName = getColumnName(th);
         if (savedTitles[columnName]) {
             th.setAttribute('title', savedTitles[columnName]);
         }
@@ -237,7 +248,7 @@ function openColumnCommentsModal() {
     
     // Создаем поля для каждого столбца
     tableHeaders.forEach((th) => {
-        const columnName = th.textContent.trim();
+        const columnName = getColumnName(th);
         const currentTitle = savedTitles[columnName] || th.getAttribute('title') || '';
         
         const row = document.createElement('div');
@@ -292,11 +303,177 @@ function closeColumnCommentsModal() {
     }
 }
 
+function initTableSorting() {
+    const table = document.querySelector('.incidents-table-responsive .table');
+    if (!table) return;
+
+    const headers = table.querySelectorAll('thead th.sortable');
+    const tbody = table.querySelector('tbody');
+    if (!tbody) return;
+
+    function parseDateDot(str) {
+        str = str.trim();
+        if (!str || str === '—' || str === 'Без срока') return null;
+        const parts = str.match(/(\d{2})\.(\d{2})\.(\d{4})/);
+        if (!parts) return null;
+        return new Date(parts[3], parts[2] - 1, parts[1]);
+    }
+
+    function getSortValue(cell, type) {
+        const text = cell.textContent.trim();
+        switch (type) {
+            case 'number':
+                return parseFloat(text) || (text === '—' ? null : 0);
+            case 'date-dot':
+                return parseDateDot(text);
+            case 'text':
+            default:
+                return text.toLowerCase();
+        }
+    }
+
+    function compareValues(a, b, type) {
+        if (a === null && b === null) return 0;
+        if (a === null) return 1;
+        if (b === null) return -1;
+        if (type === 'number') return a - b;
+        if (type === 'date-dot') return a - b;
+        return a < b ? -1 : a > b ? 1 : 0;
+    }
+
+    headers.forEach(function(header) {
+        header.addEventListener('click', function() {
+            const colIdx = parseInt(this.dataset.sortCol);
+            const sortType = this.dataset.sortType || 'text';
+
+            let direction = 'asc';
+            if (this.classList.contains('sorted-asc')) {
+                direction = 'desc';
+            } else if (this.classList.contains('sorted-desc')) {
+                direction = 'asc';
+            }
+
+            headers.forEach(function(h) {
+                h.classList.remove('sorted-asc', 'sorted-desc');
+            });
+            this.classList.add(direction === 'asc' ? 'sorted-asc' : 'sorted-desc');
+
+            const rows = Array.from(tbody.querySelectorAll('tr.incident-row'));
+            if (rows.length === 0) return;
+
+            rows.sort(function(rowA, rowB) {
+                const cellA = rowA.children[colIdx];
+                const cellB = rowB.children[colIdx];
+                if (!cellA || !cellB) return 0;
+
+                const valA = getSortValue(cellA, sortType);
+                const valB = getSortValue(cellB, sortType);
+                const cmp = compareValues(valA, valB, sortType);
+                return direction === 'asc' ? cmp : -cmp;
+            });
+
+            rows.forEach(function(row) {
+                tbody.appendChild(row);
+            });
+        });
+    });
+}
+
+function initDateRangeValidation() {
+    const dateFrom = document.getElementById('date_from');
+    const dateTo = document.getElementById('date_to');
+    if (!dateFrom || !dateTo) return;
+
+    function applyMinDateTo() {
+        if (dateFrom.value) {
+            dateTo.min = dateFrom.value;
+            if (dateTo.value && dateTo.value < dateFrom.value) {
+                dateTo.value = dateFrom.value;
+            }
+        } else {
+            dateTo.removeAttribute('min');
+        }
+    }
+
+    dateFrom.addEventListener('change', applyMinDateTo);
+    dateFrom.addEventListener('input', applyMinDateTo);
+    dateTo.addEventListener('change', function() {
+        if (dateFrom.value && dateTo.value && dateTo.value < dateFrom.value) {
+            dateTo.value = dateFrom.value;
+        }
+    });
+    dateTo.addEventListener('input', function() {
+        if (dateFrom.value && dateTo.value && dateTo.value < dateFrom.value) {
+            dateTo.value = dateFrom.value;
+        }
+    });
+    applyMinDateTo();
+}
+
+function updateDateFilterAppliedState() {
+    const btnLastWeek = document.getElementById('date-btn-last-week');
+    const btnReset = document.getElementById('date-btn-reset');
+    [btnLastWeek, btnReset].forEach(function(btn) {
+        if (btn) btn.classList.remove('date-quick-btn-active');
+    });
+    const params = new URLSearchParams(window.location.search);
+    const dateFrom = params.get('date_from') || '';
+    const dateTo = params.get('date_to') || '';
+    if (!dateFrom && !dateTo) {
+        if (btnReset) btnReset.classList.add('date-quick-btn-active');
+        return;
+    }
+    var today = new Date();
+    var todayStr = today.toISOString().split('T')[0];
+    var weekAgo = new Date(today);
+    weekAgo.setDate(weekAgo.getDate() - 7);
+    var weekAgoStr = weekAgo.toISOString().split('T')[0];
+    if (dateFrom === weekAgoStr && dateTo === todayStr && btnLastWeek) {
+        btnLastWeek.classList.add('date-quick-btn-active');
+    }
+}
+
 document.addEventListener('DOMContentLoaded', function() {
     const statusCheckboxes = document.querySelectorAll('.status-checkbox');
     const dateFromInput = document.getElementById('date_from');
     const dateToInput = document.getElementById('date_to');
-    
+    const form = document.getElementById('incidents-filter-form');
+
+    initDateRangeValidation();
+    updateDateFilterAppliedState();
+
+    // Кнопка «-1нед.» — прошлая неделя (последние 7 дней)
+    const btnLastWeek = document.getElementById('date-btn-last-week');
+    if (btnLastWeek && form) {
+        btnLastWeek.addEventListener('click', function() {
+            const today = new Date();
+            const dateTo = new Date(today);
+            const dateFrom = new Date(today);
+            dateFrom.setDate(dateFrom.getDate() - 7);
+            dateFromInput.value = dateFrom.toISOString().split('T')[0];
+            dateToInput.value = dateTo.toISOString().split('T')[0];
+            dateToInput.min = dateFromInput.value;
+            form.submit();
+        });
+    }
+
+    // Кнопка «<-->» — сброс фильтра по дате, весь период
+    const btnResetDate = document.getElementById('date-btn-reset');
+    if (btnResetDate && form) {
+        btnResetDate.addEventListener('click', function() {
+            dateFromInput.value = '';
+            dateFromInput.removeAttribute('min');
+            dateToInput.value = '';
+            dateToInput.removeAttribute('min');
+            const params = new URLSearchParams(new FormData(form));
+            params.delete('date_from');
+            params.delete('date_to');
+            const baseUrl = "{% url 'builder:incidents' %}";
+            const query = params.toString();
+            window.location.href = query ? baseUrl + '?' + query : baseUrl;
+        });
+    }
+
     // Статусы, которые нужно блокировать при выборе завершен/отклонен
     const blockedStatuses = ['new', 'accepted', 'assigned', 'studies_completed'];
     const completedStatuses = ['resolved', 'declined'];
@@ -320,7 +497,8 @@ document.addEventListener('DOMContentLoaded', function() {
             
             dateFromInput.value = dateFrom.toISOString().split('T')[0];
             dateToInput.value = dateTo.toISOString().split('T')[0];
-            
+            dateToInput.min = dateFromInput.value;
+
             // Блокируем чекбоксы для новых, принятых, назначенных
             statusCheckboxes.forEach(checkbox => {
                 if (blockedStatuses.includes(checkbox.value)) {
@@ -352,6 +530,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 const today = new Date();
                 dateToInput.value = today.toISOString().split('T')[0];
                 dateFromInput.value = '2025-01-01';
+                dateToInput.min = dateFromInput.value;
             }
         }
     }
@@ -363,6 +542,9 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Инициализация при загрузке
     updateFilters();
+
+    // Сортировка таблицы по клику на заголовки
+    initTableSorting();
     
     // Инициализация кнопки "Нарушители" с правильным URL
     const violatorsButton = document.getElementById('violators_details-button');

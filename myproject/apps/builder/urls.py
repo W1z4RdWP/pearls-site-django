@@ -17,13 +17,14 @@ from builder.views.lessons_views import (
                     LessonDraftHistoryListView, LessonDraftHistoryDetailView
 )
 from builder.views.categories_views import (
-                    CategoryCreateView, CategoryDeleteView, CategoryListView, CategoryUpdateView, 
+                    CategoryDeleteView, CategoryListView, 
                     ajax_add_root_category, ajax_add_subcategory, 
                     ajax_rename_category, reorder_categories
 )
 from builder.views.incidents_views import (
                     CreateCourseFromIncidentView, IncidentDeclineView, IncidentDetailListView, 
-                    IncidentListView, IncidentCreateView, IncidentUpdateView, UnassignIncidentUserView, incidents_export_excel_report
+                    IncidentListView, IncidentCreateView, IncidentStatusesReportView, IncidentUpdateView, UnassignIncidentUserView, 
+                    incidents_export_excel_report
                 )
 from builder.views.ipr_views import (
                     IPRCreateView, IPRListView, IPRModuleCompleteView, IPRModuleCreateView, IPRModuleDetailView, 
@@ -64,8 +65,6 @@ urlpatterns = [
 
     # Категории
     path('categories/', CategoryListView.as_view(), name='category_list'),
-    path('categories/add/', CategoryCreateView.as_view(), name='category_add'),
-    path('categories/<int:pk>/edit/', CategoryUpdateView.as_view(), name='category_edit'),
     path('categories/<int:pk>/delete/', CategoryDeleteView.as_view(), name='category_delete'),
     path('categories/ajax_add_root/', ajax_add_root_category, name='category_ajax_add_root'),
     path('categories/ajax_add_sub/', ajax_add_subcategory, name='category_ajax_add_sub'),
@@ -73,13 +72,13 @@ urlpatterns = [
     path('categories/reorder/', reorder_categories, name='reorder_categories'),
 
     # Документы и инциденты
-    # path('documents/', views.DocumentListView.as_view(), name='documents'),
     path('incidents/', IncidentListView.as_view(), name='incidents'),
     path('incidents/add/', IncidentCreateView.as_view(), name='incident_add'),
     path('incidents/<int:pk>/edit/', IncidentUpdateView.as_view(), name='incident_edit'),
     path('incidents/<int:pk>/decline/', IncidentDeclineView.as_view(), name='incident_decline'),
     path('incidents/<int:pk>/create-course/', CreateCourseFromIncidentView.as_view(), name='incident_create_course'),
     path('incidents/detail/', IncidentDetailListView.as_view(), name='incident_detail'),
+    path('incidents/statuses-report/', IncidentStatusesReportView.as_view(), name='incident_statuses_report'),
     path('incidents/<int:incident_id>/unassign-user/<int:user_id>/', UnassignIncidentUserView.as_view(), name='incident_unassign_user'),
     path('incident/export_excel_report/', incidents_export_excel_report, name='incidents_export_excel_report'),
 

@@ -33,7 +33,15 @@ class DocumentAdmin(admin.ModelAdmin):
     search_fields = ('title',)
 
 
-admin.site.register(Incident)
+@admin.register(Incident)
+class IncidentAdmin(admin.ModelAdmin):
+    """
+    Админка инцидентов
+    """
+    list_display = ('title', 'incident_type', 'status', 'created_at')
+    list_filter = ('created_at',)
+    search_fields = ('title',)
+
 
 admin.site.register(IPR)
 
@@ -42,8 +50,6 @@ admin.site.register(IPRModule)
 admin.site.register(DictionaryTerm)
 
 admin.site.register(DictionarySection)
-
-
 
 
 @admin.register(LessonAllowedRole)

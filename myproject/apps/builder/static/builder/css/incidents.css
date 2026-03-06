@@ -64,6 +64,37 @@
   color: var(--incidents-doc-link-hover);
 }
 
+.department-dropdown-menu .dropdown-item-text {
+  cursor: default;
+}
+.department-dropdown-menu label.cursor-pointer {
+  cursor: pointer;
+}
+
+/* Кнопки быстрого выбора периода по дате (инциденты) */
+#date-filter-wrap {
+  flex-wrap: nowrap;
+}
+#date-filter-wrap > div:not(.date-quick-buttons) {
+  min-width: 8.5rem;
+}
+.date-quick-buttons {
+  flex-shrink: 0;
+}
+.date-quick-buttons .date-quick-btn {
+  padding: 2px 6px;
+  font-size: 0.7rem;
+  line-height: 1.2;
+  min-height: unset;
+  white-space: nowrap;
+}
+/* Выделение только активной кнопки быстрого фильтра */
+.date-quick-buttons .date-quick-btn.date-quick-btn-active {
+  border-color: var(--incidents-doc-link);
+  color: var(--incidents-doc-link);
+  background-color: #f0f5ff;
+}
+
 .table th, .table td {
   vertical-align: middle !important;
   font-size: var(--incidents-table-th-font-size);
@@ -295,6 +326,11 @@
   color: #721c24 !important;
   font-weight: 600;
 }
+.incidents-card .table tbody td.status-studies_completed {
+  background-color: #d1ecf1 !important;
+  color: #0c5460 !important;
+  font-weight: 600;
+}
 
 /* Hover-эффекты для ячеек со статусом */
 .incidents-card .table tbody tr:hover td.status-new {
@@ -311,6 +347,9 @@
 }
 .incidents-card .table tbody tr:hover td.status-declined {
   background-color: #f5c6cb !important;
+}
+.incidents-card .table tbody tr:hover td.status-studies_completed {
+  background-color: #bee5eb !important;
 }
 
 /* Стиль для просроченного дедлайна */
@@ -421,7 +460,8 @@
 .incident-row.row-selected td.status-accepted,
 .incident-row.row-selected td.status-assigned,
 .incident-row.row-selected td.status-resolved,
-.incident-row.row-selected td.status-declined {
+.incident-row.row-selected td.status-declined,
+.incident-row.row-selected td.status-studies_completed {
   background-color: inherit !important;
 }
 
@@ -508,4 +548,54 @@
   border: 1.5px solid #4d7cff;
   box-shadow: 0 0 0 2px rgba(77, 124, 255, 0.13);
   outline: none;
+}
+
+/* Сортируемые заголовки таблицы */
+.table thead th.sortable {
+  cursor: pointer;
+  user-select: none;
+  position: relative;
+  padding-right: 22px;
+  transition: background-color 0.15s;
+}
+
+.table thead th.sortable:hover {
+  background-color: #ebeef3;
+}
+
+.table thead th.sortable .sort-icon {
+  display: inline-flex;
+  flex-direction: column;
+  vertical-align: middle;
+  margin-left: 4px;
+  font-size: 0.55em;
+  line-height: 1;
+  color: #bbb;
+  position: absolute;
+  right: 4px;
+  top: 50%;
+  transform: translateY(-50%);
+  gap: 1px;
+}
+
+.table thead th.sortable .sort-icon .sort-asc,
+.table thead th.sortable .sort-icon .sort-desc {
+  transition: color 0.15s;
+}
+
+.table thead th.sortable.sorted-asc .sort-icon .sort-asc {
+  color: #4d7cff;
+}
+
+.table thead th.sortable.sorted-desc .sort-icon .sort-desc {
+  color: #4d7cff;
+}
+
+.table thead th.sortable:hover .sort-icon {
+  color: #888;
+}
+
+.table thead th.sortable.sorted-asc:hover .sort-icon .sort-asc,
+.table thead th.sortable.sorted-desc:hover .sort-icon .sort-desc {
+  color: #2356b3;
 }

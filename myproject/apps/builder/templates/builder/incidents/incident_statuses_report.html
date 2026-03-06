@@ -1,0 +1,180 @@
+{% extends 'layout.html' %}
+{% load static %}
+{% block title %}Отчет за неделю{% endblock %}
+{% block specific_styles %}
+    <link rel="stylesheet" href="{% static 'builder/css/incidents.css' %}">
+{% endblock %}
+{% block content %}
+{% csrf_token %}
+<div class="incidents-card mb-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h2 class="mb-0">Отчет по инцидентам</h2>
+        <a href="{% url 'builder:incident_detail' %}" class="btn btn-secondary">← Назад к деталям</a>
+    </div>
+    
+    <!-- Форма выбора диапазона дат -->
+    <form method="get" class="mb-3" id="incident-statuses-report-form">
+        <div class="row g-2 align-items-end">
+            <div class="col-md-auto d-flex align-items-center gap-1" id="date-filter-wrap">
+                <div>
+                    <input type="date" class="form-control date-input-compact" id="date_from" name="date_from" value="{{ date_from }}" />
+                </div>
+                <div>
+                    <input type="date" class="form-control date-input-compact" id="date_to" name="date_to" value="{{ date_to }}" />
+                </div>
+                <div class="date-quick-buttons d-flex flex-column gap-1">
+                    <button type="button" class="btn btn-sm btn-outline-secondary date-quick-btn" id="date-btn-last-week" title="Инциденты за прошлую неделю">-1нед.</button>
+                    <button type="button" class="btn btn-sm btn-outline-secondary date-quick-btn" id="date-btn-reset" title="Весь период, сбросить фильтр по дате">&lt;-&gt;</button>
+                </div>
+            </div>
+
+            <!-- Фильтр по подразделению -->
+            <div class="col-md-auto">
+                <select class="form-select" id="department_filter" name="department_filter">
+                    <option value="">Все подразделения</option>
+                    {% for department in departments %}
+                        <option value="{{ department.name }}" {% if department_filter == department.name %}selected{% endif %}>
+                            {{ department.name }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-auto">
+                <button type="submit" class="btn btn-primary">Применить</button>
+            </div>
+        </div>
+    </form>
+    
+    
+    <div class="incidents-table-responsive">
+        <table class="table">
+            <thead>
+                <tr>
+                    <th style="width: 5%;">№</th>
+                    <th style="width: 20%;">ФИО</th>
+                    <th style="width: 20%;">Подразделение</th>
+                    <th style="width: 15%;">Назначено</th>
+                    <th style="width: 15%;">Просрочено</th>
+                    <th style="width: 15%;">Завершено</th>
+                    <th style="width: 15%;">Обучение завершено</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% if report_data %}
+                    {% for item in report_data %}
+                    <tr>
+                        <td>{{ forloop.counter }}</td>
+                        <td>{{ item.full_name }}</td>
+                        <td>{{ item.department }}</td>
+                        <td style="text-align: center;">{{ item.assigned_count }}</td>
+                        <td style="text-align: center;">
+                            {% if item.overdue_count > 0 %}
+                                <span class="badge bg-danger">{{ item.overdue_count }}</span>
+                            {% else %}
+                                {{ item.overdue_count }}
+                            {% endif %}
+                        </td>
+                        <td style="text-align: center;">{{ item.resolved_count }}</td>
+                        <td style="text-align: center;">{{ item.studies_completed_count }}</td>
+                    </tr>
+                    {% endfor %}
+                {% else %}
+                    <tr>
+                        <td colspan="7" class="text-center">Нет данных за указанный период</td>
+                    </tr>
+                {% endif %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.getElementById('incident-statuses-report-form');
+    const dateFrom = document.getElementById('date_from');
+    const dateTo = document.getElementById('date_to');
+    if (!dateFrom || !dateTo) return;
+
+    function applyMinDateTo() {
+        if (dateFrom.value) {
+            dateTo.min = dateFrom.value;
+            if (dateTo.value && dateTo.value < dateFrom.value) {
+                dateTo.value = dateFrom.value;
+            }
+        } else {
+            dateTo.removeAttribute('min');
+        }
+    }
+
+    dateFrom.addEventListener('change', applyMinDateTo);
+    dateFrom.addEventListener('input', applyMinDateTo);
+    dateTo.addEventListener('change', function() {
+        if (dateFrom.value && dateTo.value && dateTo.value < dateFrom.value) {
+            dateTo.value = dateFrom.value;
+        }
+    });
+    dateTo.addEventListener('input', function() {
+        if (dateFrom.value && dateTo.value && dateTo.value < dateFrom.value) {
+            dateTo.value = dateFrom.value;
+        }
+    });
+    applyMinDateTo();
+
+    function updateDateFilterAppliedState() {
+        const btnLastWeek = document.getElementById('date-btn-last-week');
+        const btnReset = document.getElementById('date-btn-reset');
+        [btnLastWeek, btnReset].forEach(function(btn) {
+            if (btn) btn.classList.remove('date-quick-btn-active');
+        });
+        const params = new URLSearchParams(window.location.search);
+        const dateFromVal = params.get('date_from') || '';
+        const dateToVal = params.get('date_to') || '';
+        if (!dateFromVal && !dateToVal) {
+            if (btnReset) btnReset.classList.add('date-quick-btn-active');
+            return;
+        }
+        var today = new Date();
+        var todayStr = today.toISOString().split('T')[0];
+        var weekAgo = new Date(today);
+        weekAgo.setDate(weekAgo.getDate() - 7);
+        var weekAgoStr = weekAgo.toISOString().split('T')[0];
+        if (dateFromVal === weekAgoStr && dateToVal === todayStr && btnLastWeek) {
+            btnLastWeek.classList.add('date-quick-btn-active');
+        }
+    }
+    updateDateFilterAppliedState();
+
+    // Кнопка «-1нед.» — последние 7 дней
+    var btnLastWeek = document.getElementById('date-btn-last-week');
+    if (btnLastWeek && form) {
+        btnLastWeek.addEventListener('click', function() {
+            var today = new Date();
+            var dateToVal = new Date(today);
+            var dateFromVal = new Date(today);
+            dateFromVal.setDate(dateFromVal.getDate() - 7);
+            dateFrom.value = dateFromVal.toISOString().split('T')[0];
+            dateTo.value = dateToVal.toISOString().split('T')[0];
+            dateTo.min = dateFrom.value;
+            form.submit();
+        });
+    }
+
+    // Кнопка «<-->» — сброс фильтра по дате
+    var btnResetDate = document.getElementById('date-btn-reset');
+    if (btnResetDate && form) {
+        btnResetDate.addEventListener('click', function() {
+            dateFrom.value = '';
+            dateFrom.removeAttribute('min');
+            dateTo.value = '';
+            dateTo.removeAttribute('min');
+            var params = new URLSearchParams(new FormData(form));
+            params.delete('date_from');
+            params.delete('date_to');
+            var baseUrl = "{% url 'builder:incident_statuses_report' %}";
+            var query = params.toString();
+            window.location.href = query ? baseUrl + '?' + query : baseUrl;
+        });
+    }
+});
+</script>
+{% endblock %}

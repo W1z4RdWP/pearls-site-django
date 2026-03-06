@@ -1,11 +1,14 @@
-from datetime import datetime
+from datetime import datetime, timedelta
+from django.contrib import messages
 from django.contrib.auth import login
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import Group, User
+from django.core.cache import cache
 from django.db.models import Count, Q, F
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse, reverse_lazy
+from django.utils import timezone
 from django.utils.decorators import method_decorator
 from django.views.generic import CreateView, ListView, UpdateView, View
 from openpyxl import Workbook
@@ -20,7 +23,8 @@ from builder.forms import IncidentForm
 from builder.models import Incident
 from builder.utils import get_total_incidents_students
 from courses.models import Course, UserLessonTrajectory
-from myapp.models import UserCourse, UserProgress
+from myapp.models import UserCourse, UserProgress, ManualCourseUnassignment
+from users.models import Department
 
 import logging
 
@@ -28,15 +32,65 @@ logger = logging.getLogger(__name__)
 audit_logger = logging.getLogger('audit')
 
 
+# Время жизни кэша страниц инцидентов (секунды)
+INCIDENTS_PAGE_CACHE_TIMEOUT = 3600  # 60 минут
+
+
+def _get_user_cache_version(user_id: int) -> int:
+    """
+    Возвращает текущую версию кэша для пользователя.
+    Используется для namespacing ключей кэша, чтобы можно было «очищать» кэш,
+    просто увеличивая версию.
+    """
+    return cache.get(f"user_cache_version:{user_id}", 1)
+
+
+# @login_required
+# def clear_user_cache(request):
+#     """
+#     Сбрасывает версию кэша для текущего пользователя.
+#     Все старые записи с предыдущей версией перестают использоваться.
+#     """
+#     user_id = request.user.pk
+#     version_key = f"user_cache_version:{user_id}"
+#     current_version = cache.get(version_key, 1)
+#     cache.set(version_key, current_version + 1, None)
+
+#     messages.success(request, "Кэш страниц для вашего профиля был очищен.")
+
+#     redirect_url = request.META.get("HTTP_REFERER") or reverse("home")
+#     return redirect(redirect_url)
+
 
 class IncidentListView(ListView):
     """
     Список инцидентов с фильтрацией и быстрым просмотром.
+    Ответ кэшируется по пользователю и полному URL (включая GET-параметры).
     """
     model = Incident
-    template_name = 'builder/incidents.html'
+    template_name = 'builder/incidents/incidents.html'
     context_object_name = 'incidents'
     ordering = ['-created_at']
+
+    def get(self, request, *args, **kwargs):
+        if request.user.is_authenticated:
+            user_part = request.user.pk
+            version = _get_user_cache_version(user_part)
+            cache_key = f"incidents_page:user_{user_part}:v{version}:{request.get_full_path()}"
+        else:
+            user_part = 'anon'
+            cache_key = f"incidents_page:user_{user_part}:{request.get_full_path()}"
+        cached_content = cache.get(cache_key)
+        if cached_content is not None:
+            return HttpResponse(cached_content, content_type='text/html; charset=utf-8')
+
+        response = super().get(request, *args, **kwargs)
+        if response.status_code == 200:
+            content_type = response.get('Content-Type', '')
+            if content_type.startswith('text/html'):
+                response.render()  # TemplateResponse рендерится лениво — нужен явный render()
+                cache.set(cache_key, response.content, timeout=INCIDENTS_PAGE_CACHE_TIMEOUT)
+        return response
 
     def dispatch(self, request, *args, **kwargs):
         # Только staff/superuser
@@ -212,6 +266,68 @@ def incidents_export_excel_report(request):
     ws_summary = wb.active
     ws_summary.title = "Общая сводка"
     
+    # Статистика за последнюю неделю
+    from django.utils import timezone
+    now = timezone.now()
+    week_ago = now - timedelta(days=7)
+    
+    # Инциденты, созданные за последнюю неделю
+    incidents_last_week = incidents.filter(created_at__gte=week_ago)
+    total_last_week = incidents_last_week.count()
+    
+    # Сколько из них в статусе "Назначен" (назначен курс-инцидент)
+    assigned_last_week = incidents_last_week.filter(status='assigned').count()
+    
+    # Сколько из них в статусе "Принят" и "Новый"
+    accepted_and_new_last_week = incidents_last_week.filter(status__in=['accepted', 'new']).count()
+
+    # Сколько из них в статусе "Обуч. завершено" и "Завершено"
+    completed_last_week = incidents_last_week.filter(status__in=['studies_completed', 'resolved']).count()
+    
+    # Количество назначений курсов-инцидентов для инцидентов за последнюю неделю
+    incidents_with_course_last_week = incidents_last_week.filter(course__isnull=False)
+    course_ids_last_week = incidents_with_course_last_week.values_list('course_id', flat=True).distinct()
+    course_assignments_last_week = UserCourse.objects.filter(
+        course_id__in=course_ids_last_week
+    ).count()
+    
+
+    # Добавляем статистику за последнюю неделю в начало листа
+    ws_summary.append(["Статистика за последнюю неделю"])
+    # Применяем стиль только к первому столбцу первой строки
+    header_cell = ws_summary.cell(row=1, column=1)
+    header_cell.fill = PatternFill(start_color="366092", end_color="366092", fill_type="solid")
+    header_cell.font = Font(bold=True, size=12, color="FFFFFF")
+    
+    week_stats_headers = [
+        "Создано за неделю",
+        "Назначено курс (статус 'Назначен')",
+        "В статусе 'Принят' и 'Новый'",
+        "Обуч. завершено и завершено",
+        "Назначений курсов-инцидентов"
+    ]
+    ws_summary.append(week_stats_headers)
+    week_stats_header_row = ws_summary.max_row
+    _apply_header_style(ws_summary, 2, len(week_stats_headers))
+    ws_summary.row_dimensions[week_stats_header_row].height = 30
+    for col_num in range(1, len(week_stats_headers) + 1):
+        cell = ws_summary.cell(row=week_stats_header_row, column=col_num)
+        cell.alignment = Alignment(horizontal='center', vertical='center', wrap_text=True)
+    _set_column_widths(ws_summary, [40, 30, 30, 30, 30, 25, 20])
+
+    # _set_column_widths(ws_summary, [45, 40, 40, 40, 40, 25, 20])
+    
+    ws_summary.append([
+        total_last_week,
+        assigned_last_week,
+        accepted_and_new_last_week,
+        completed_last_week,
+        course_assignments_last_week
+    ])
+    
+    # Отступ перед общей сводкой
+    ws_summary.append([])
+    
     # Подсчёт данных
     total_incidents = incidents.count()
     info_incidents_count = incidents.filter(incident_type='informational').count()
@@ -250,8 +366,9 @@ def incidents_export_excel_report(request):
         "Всего назначений", "Уникальных назначений", "Завершено обучений"
     ]
     ws_summary.append(summary_headers)
-    _apply_header_style(ws_summary, 1, len(summary_headers))
-    _set_column_widths(ws_summary, [50, 30, 30, 20, 22, 22])
+    # Применяем стиль к строке 5 (после статистики за неделю: строка 1, строка 2, строка 3, строка 4 пустая, строка 5 - заголовки)
+    _apply_header_style(ws_summary, ws_summary.max_row, len(summary_headers))
+    # _set_column_widths(ws_summary, [50, 30, 30, 20, 22, 22])
     
     ws_summary.append([
         total_incidents, info_incidents_count, edu_incidents_count,
@@ -261,34 +378,38 @@ def incidents_export_excel_report(request):
     # Отступ и статусы инцидентов
     ws_summary.append([])
     ws_summary.append(["Статусы инцидентов"])
-    ws_summary.cell(row=4, column=1).font = Font(bold=True)
+    # Применяем стиль только к первому столбцу строки со статусами
+    status_title_row = ws_summary.max_row
+    status_title_cell = ws_summary.cell(row=status_title_row, column=1)
+    status_title_cell.fill = PatternFill(start_color="366092", end_color="366092", fill_type="solid")
+    status_title_cell.font = Font(bold=True, color="FFFFFF")
     
     status_headers = ["Новый", "Принят", "Назначен", "Обучение завершено", "Завершён", "Отклонён"]
     ws_summary.append(status_headers)
-    _apply_header_style(ws_summary, 5, len(status_headers))
+    # Применяем стиль к заголовкам статусов (строка после "Статусы инцидентов")
+    _apply_header_style(ws_summary, ws_summary.max_row, len(status_headers))
     
     ws_summary.append([
         status_counts['new'], status_counts['accepted'], status_counts['assigned'],
         status_counts['studies_completed'], status_counts['resolved'], status_counts['declined']
     ])
 
-    # Группы и инциденты для блоков «Просрочены дедлайны» и «По подразделениям»
-    groups_involved = list(
-        Group.objects.filter(user__id__in=unique_assigned_users)
+    # Подразделения и инциденты для блоков «Просрочены дедлайны» и «По подразделениям»
+    departments_involved = list(
+        Department.objects.filter(profile__user__id__in=unique_assigned_users)
         .values_list('name', flat=True)
         .distinct()
     )
     incidents_prefetched = incidents.prefetch_related('assigned_to', 'violators')
 
     # Просрочены дедлайны по подразделениям: считаем по UserCourse.deadline (срок курса у пользователя), не по Incident.deadline
-    from django.utils import timezone
-    now = timezone.now()
+    # now уже определен выше для статистики за неделю
     incidents_with_course = [inc for inc in incidents_prefetched if inc.course_id is not None]
-    # По группе: (group_name, set(user_ids) просрочивших, set(incident_ids) просроченных для группы)
-    overdue_by_group = {}
-    for group_name in groups_involved:
-        group_user_ids = set(
-            User.objects.filter(groups__name=group_name)
+    # По подразделению: (department_name, set(user_ids) просрочивших, set(incident_ids) просроченных для подразделения)
+    overdue_by_department = {}
+    for department_name in departments_involved:
+        department_user_ids = set(
+            User.objects.filter(profile__department__name=department_name)
             .filter(id__in=unique_assigned_users)
             .values_list('id', flat=True)
         )
@@ -297,13 +418,13 @@ def incidents_export_excel_report(request):
         for inc in incidents_with_course:
             assigned_ids = set(inc.assigned_to.values_list('id', flat=True))
             violator_ids = set(inc.violators.values_list('id', flat=True))
-            in_group = (assigned_ids | violator_ids) & group_user_ids
-            if not in_group:
+            in_department = (assigned_ids | violator_ids) & department_user_ids
+            if not in_department:
                 continue
             # Просрочили: у пользователя есть UserCourse по курсу инцидента с дедлайном < now и статус не 'completed'
             overdue_user_ids_for_inc = set(
                 UserCourse.objects.filter(
-                    user_id__in=in_group,
+                    user_id__in=in_department,
                     course_id=inc.course_id,
                     deadline__isnull=False,
                     deadline__lt=now,
@@ -312,12 +433,12 @@ def incidents_export_excel_report(request):
             if overdue_user_ids_for_inc:
                 overdue_incident_ids.add(inc.id)
                 overdue_user_ids |= overdue_user_ids_for_inc
-        overdue_by_group[group_name] = (len(overdue_user_ids), len(overdue_incident_ids))
-    # Сортируем группы по количеству просроченных инцидентов (убывание)
+        overdue_by_department[department_name] = (len(overdue_user_ids), len(overdue_incident_ids))
+    # Сортируем подразделения по количеству просроченных инцидентов (убывание)
     overdue_rows = [
-        [group_name, num_employees, num_incidents]
-        for group_name, (num_employees, num_incidents) in sorted(
-            overdue_by_group.items(), key=lambda x: -x[1][1]
+        [department_name, num_employees, num_incidents]
+        for department_name, (num_employees, num_incidents) in sorted(
+            overdue_by_department.items(), key=lambda x: -x[1][1]
         )
     ]
 
@@ -331,58 +452,58 @@ def incidents_export_excel_report(request):
     ws_summary.append(['По подразделениям'])
     _apply_header_style(ws_summary, ws_summary.max_row, 1)
 
-    groups_headers = ["Подразделение", "Всего", "Обучающие", "Информационные", "Завершены", "Не завершены", "Повторяющиеся"]
-    ws_summary.append(groups_headers)
+    departments_headers = ["Подразделение", "Всего", "Обучающие", "Информационные", "Завершены", "Не завершены", "Повторяющиеся"]
+    ws_summary.append(departments_headers)
     _apply_header_style(ws_summary, ws_summary.max_row, 8)
 
     start_row = ws_summary.max_row + 1
-    for idx, group_name in enumerate(groups_involved):
-        group_user_ids = set(
-            User.objects.filter(groups__name=group_name)
+    for idx, department_name in enumerate(departments_involved):
+        department_user_ids = set(
+            User.objects.filter(profile__department__name=department_name)
             .filter(id__in=unique_assigned_users)
             .values_list('id', flat=True)
         )
-        if not group_user_ids:
-            ws_summary.append([group_name, 0, 0, 0, 0, 0, "Не выявлено"])
+        if not department_user_ids:
+            ws_summary.append([department_name, 0, 0, 0, 0, 0, "Не выявлено"])
             row_num = start_row + idx
             for col in range(1,8):
                 ws_summary.cell(row=row_num, column=col).alignment = Alignment(wrap_text=True)
             continue
 
-        group_total = 0
-        group_edu = 0
-        group_info = 0
+        department_total = 0
+        department_edu = 0
+        department_info = 0
         titles_list = []
 
         for inc in incidents_prefetched:
             assigned_ids = set(inc.assigned_to.values_list('id', flat=True))
             violator_ids = set(inc.violators.values_list('id', flat=True))
-            in_group = (assigned_ids | violator_ids) & group_user_ids
-            n = len(in_group)
+            in_department = (assigned_ids | violator_ids) & department_user_ids
+            n = len(in_department)
             if n == 0:
                 continue
-            group_total += n
+            department_total += n
             if inc.incident_type == 'educational':
-                group_edu += n
+                department_edu += n
             else:
-                group_info += n
+                department_info += n
             titles_list.append(inc.title)
 
         completed = UserCourse.objects.filter(
-            user_id__in=group_user_ids,
+            user_id__in=department_user_ids,
             course__in=incident_courses,
             status='completed'
         ).count()
-        not_completed = max(0, group_total - completed)
+        not_completed = max(0, department_total - completed)
         
         has_duplicate_titles = len(titles_list) != len(set(titles_list))
         repeat_value = "Выявлено" if has_duplicate_titles else "Не выявлено"
 
         ws_summary.append([
-            group_name,
-            group_total,
-            group_edu,
-            group_info,
+            department_name,
+            department_total,
+            department_edu,
+            department_info,
             completed,
             not_completed,
             repeat_value,
@@ -537,7 +658,128 @@ def incidents_export_excel_report(request):
             incident.course.title if incident.course else "—",
             incident.created_at.strftime('%Y-%m-%d %H:%M') if incident.created_at else "—"
         ])
-    
+
+    # ================== ЛИСТ 6: Моё подразделение ==================
+    ws_my_dept = wb.create_sheet("Моё подразделение")
+
+    # Пользователи из подразделения текущего пользователя
+    my_department = None
+    if hasattr(request.user, 'profile') and request.user.profile and request.user.profile.department:
+        my_department = request.user.profile.department
+        my_department_user_ids = set(
+            User.objects.filter(profile__department=my_department).values_list('id', flat=True)
+        )
+    else:
+        my_department_user_ids = set()
+
+    # Первая таблица: назначения курсов-инцидентов по подразделению
+    table1_headers = [
+        "Дата назначения (курса-инцидента)", "ФИО (кому назначено)", "Подразделение",
+        "Дедлайн", "Статус", "Название инцидента"
+    ]
+    ws_my_dept.append(table1_headers)
+    _apply_header_style(ws_my_dept, 1, len(table1_headers))
+    _set_column_widths(ws_my_dept, [28, 35, 30, 22, 22, 45])
+
+    if my_department_user_ids:
+        incident_courses = Course.objects.filter(is_incident=True)
+        user_courses_list = (
+            UserCourse.objects.filter(
+                user_id__in=my_department_user_ids,
+                course__in=incident_courses,
+            )
+            .select_related('user', 'course')
+            .order_by('-start_date')
+        )
+        incidents_by_course = {
+            inc.course_id: inc
+            for inc in Incident.objects.filter(course_id__isnull=False).select_related('course')
+        }
+        for uc in user_courses_list:
+            incident = incidents_by_course.get(uc.course_id)
+            if not incident:
+                continue
+            user = uc.user
+            fio = f"{user.last_name or ''} {user.first_name or ''}".strip() or user.username
+            subdivision = user.profile.department.name if (hasattr(user, 'profile') and user.profile and user.profile.department) else "—"
+            status_display = dict(Incident.STATUS_CHOICES).get(incident.status, incident.status)
+            ws_my_dept.append([
+                uc.start_date.strftime('%Y-%m-%d %H:%M') if uc.start_date else "—",
+                fio,
+                subdivision,
+                uc.deadline.strftime('%Y-%m-%d %H:%M') if uc.deadline else "—",
+                status_display,
+                incident.title,
+            ])
+
+    # Пустая строка и вторая таблица: сводка по ФИО
+    ws_my_dept.append([])
+    table2_headers = [
+        "ФИО",
+        "Количество просроченных курсов-инцидентов",
+        "Количество завершенных",
+        "Количество назначенных",
+        "Количество в статусе «Принят»/«Новый»",
+        "Всего инцидентов",
+    ]
+    ws_my_dept.append(table2_headers)
+    table2_header_row = ws_my_dept.max_row
+    _apply_header_style(ws_my_dept, table2_header_row, len(table2_headers))
+    # Высота строки в 2 раза и перенос по словам для заголовков второй таблицы
+    default_height = 15
+    ws_my_dept.row_dimensions[table2_header_row].height = default_height * 2
+    for col_num in range(1, len(table2_headers) + 1):
+        cell = ws_my_dept.cell(row=table2_header_row, column=col_num)
+        cell.alignment = Alignment(horizontal='center', vertical='center', wrap_text=True)
+    _set_column_widths(ws_my_dept, [35, 30, 42, 28, 28, 42])
+
+    if my_department_user_ids:
+        incident_courses = Course.objects.filter(is_incident=True)
+        now = timezone.now()
+        # Всего инцидентов по пользователям (assigned_to + violators + expert), уникально
+        total_incident_ids_by_user = {}
+        for inc in Incident.objects.prefetch_related('assigned_to', 'violators').select_related('expert'):
+            for u in list(inc.assigned_to.all()) + list(inc.violators.all()):
+                total_incident_ids_by_user.setdefault(u.id, set()).add(inc.id)
+            if inc.expert_id:
+                total_incident_ids_by_user.setdefault(inc.expert_id, set()).add(inc.id)
+        total_incidents_by_user = {uid: len(s) for uid, s in total_incident_ids_by_user.items()}
+
+        # Количество инцидентов в статусе Принят/Новый по пользователям (assigned_to + violators)
+        incidents_prefetch = Incident.objects.prefetch_related('assigned_to', 'violators').filter(
+            status__in=['accepted', 'new']
+        )
+        accepted_new_by_user = {}
+        for inc in incidents_prefetch:
+            for u in list(inc.assigned_to.all()) + list(inc.violators.all()):
+                accepted_new_by_user[u.id] = accepted_new_by_user.get(u.id, 0) + 1
+
+        for user in User.objects.filter(id__in=my_department_user_ids).prefetch_related('profile').order_by('last_name', 'first_name'):
+            fio = f"{user.last_name or ''} {user.first_name or ''}".strip() or user.username
+            total_incidents = total_incidents_by_user.get(user.id, 0)
+            ucs = list(
+                UserCourse.objects.filter(
+                    user=user,
+                    course__in=incident_courses,
+                ).select_related('course')
+            )
+            assigned_count = len(ucs)
+            completed_count = sum(1 for uc in ucs if uc.status == 'completed')
+            overdue_count = sum(
+                1 for uc in ucs
+                if uc.status != 'completed' and uc.deadline and uc.deadline < now
+            )
+            accepted_new_count = accepted_new_by_user.get(user.id, 0)
+            if total_incidents > 0 or assigned_count > 0 or accepted_new_count > 0:
+                ws_my_dept.append([
+                    fio,
+                    overdue_count,
+                    completed_count,
+                    assigned_count,
+                    accepted_new_count,
+                    total_incidents,
+                ])
+
     # Сохраняем файл
     response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
     filename = f"incidents_{datetime.now().strftime('%Y%m%d_%H%M')}.xlsx"
@@ -561,7 +803,7 @@ class IncidentCreateView(CreateView, AuditLoggerMixin):
     """
     model = Incident
     form_class = IncidentForm
-    template_name = 'builder/incident_form.html'
+    template_name = 'builder/incidents/incident_form.html'
 
     def dispatch(self, request, *args, **kwargs):
         if not request.user.is_authenticated or not (request.user.is_staff or request.user.is_superuser):
@@ -594,7 +836,7 @@ class IncidentUpdateView(UpdateView, AuditLoggerMixin):
     """
     model = Incident
     form_class = IncidentForm
-    template_name = 'builder/incident_form.html'
+    template_name = 'builder/incidents/incident_form.html'
     success_url = reverse_lazy('builder:incidents')
 
     def dispatch(self, request, *args, **kwargs):
@@ -625,11 +867,23 @@ class IncidentUpdateView(UpdateView, AuditLoggerMixin):
                 UserCourse.objects.filter(user=user, course=course).delete()
             
             # Назначаем курс новым пользователям
+            # Определяем дедлайн:
+            # 1) приоритет у incident.assigned_to_time_to_complete (если задано и > 0),
+            # 2) затем используем course.default_deadline_days (если задано и > 0),
+            # 3) иначе берём значение по умолчанию (3 дня).
+            time_to_complete = self.object.assigned_to_time_to_complete
+            if not time_to_complete or time_to_complete <= 0:
+                if course.default_deadline_days and course.default_deadline_days > 0:
+                    time_to_complete = course.default_deadline_days
+                else:
+                    time_to_complete = 3
+            deadline = timezone.now() + timedelta(days=time_to_complete)
+            
             for user in added_users:
                 UserCourse.objects.get_or_create(
                     user=user,
                     course=course,
-                    defaults={'status': 'available', 'deadline': self.object.deadline}
+                    defaults={'status': 'available', 'deadline': deadline}
                 )
         
         # Логируем обновление инцидента
@@ -667,13 +921,58 @@ class IncidentDeclineView(View, AuditLoggerMixin):
                 incident.status = 'new'
                 incident.previous_status = None
                 comment = "Инцидент возобновлён. Статус изменён на 'Новый'"
+            
+            # Если у инцидента есть связанный курс-инцидент, назначаем его снова всем пользователям из assigned_to
+            if incident.course:
+                course = incident.course
+                # Получаем всех пользователей, назначенных на инцидент
+                assigned_users = incident.assigned_to.all()
+                
+                # Определяем дедлайн:
+                # 1) приоритет у incident.assigned_to_time_to_complete (если задано и > 0),
+                # 2) затем используем course.default_deadline_days (если задано и > 0),
+                # 3) иначе берём значение по умолчанию (3 дня).
+                time_to_complete = incident.assigned_to_time_to_complete
+                if not time_to_complete or time_to_complete <= 0:
+                    if course.default_deadline_days and course.default_deadline_days > 0:
+                        time_to_complete = course.default_deadline_days
+                    else:
+                        time_to_complete = 3
+                deadline = timezone.now() + timedelta(days=time_to_complete)
+                
+                for user in assigned_users:
+                    # Удаляем запись из ManualCourseUnassignment, если она есть
+                    ManualCourseUnassignment.objects.filter(
+                        user=user,
+                        course=course
+                    ).delete()
+                    
+                    # Назначаем курс пользователю
+                    UserCourse.objects.get_or_create(
+                        user=user,
+                        course=course,
+                        defaults={'status': 'available', 'deadline': deadline}
+                    )
         else:
             # Отклоняем инцидент - сохраняем текущий статус и устанавливаем 'declined'
             previous_status_display = dict(Incident.STATUS_CHOICES).get(incident.status, incident.status)
             incident.previous_status = incident.status
             incident.status = 'declined'
             comment = f"Инцидент отклонён. Предыдущий статус: '{previous_status_display}'"
-        
+
+            if incident.course:
+                user_courses = list(UserCourse.objects.filter(course=incident.course))
+                for user_course in user_courses:
+                    ManualCourseUnassignment.objects.get_or_create(
+                        user=user_course.user,
+                        course=incident.course,
+                        defaults={
+                            'unassigned_by': request.user,
+                            'reason': f'Инцидент "{incident.title}" переведен в статус "Отклонен".'
+                        }
+                    )
+                    user_course.delete()
+
         incident.save(update_fields=['status', 'previous_status', 'updated_at'])
         
         # Логируем действие
@@ -713,14 +1012,13 @@ class CreateCourseFromIncidentView(View):
                 mentors_time_to_check=incident.mentors_time_to_check or 2
             )
             
-            # Связываем инцидент с курсом и обновляем статус
+            # Связываем инцидент с курсом
+            # Статус остается 'accepted', так как курс еще не назначен сотрудникам
             incident.course = course
-            incident.status = 'assigned'
+            # Если статус был 'new', меняем на 'accepted'
+            if incident.status == 'new':
+                incident.status = 'accepted'
             incident.save(update_fields=['course', 'status', 'updated_at'])
-
-            if incident.course and not incident.status == 'assigned':
-                incident.status = 'assigned'
-                incident.save(update_fields=['course', 'status', 'updated_at'])
             
             # Автоназначение курса отключено - назначение происходит вручную через кнопки в деталке курса
             
@@ -740,12 +1038,33 @@ class CreateCourseFromIncidentView(View):
 
 class IncidentDetailListView(ListView):
     """
-    Список по прогрессу пользователей по всем инцидентам
+    Список по прогрессу пользователей по всем инцидентам.
+    Ответ кэшируется по пользователю и полному URL (включая GET-параметры).
     """
     model = Incident
-    template_name = 'builder/incident_detail.html'
+    template_name = 'builder/incidents/incident_detail.html'
     context_object_name = 'incidents'
     ordering = ['-created_at']
+
+    def get(self, request, *args, **kwargs):
+        if request.user.is_authenticated:
+            user_part = request.user.pk
+            version = _get_user_cache_version(user_part)
+            cache_key = f"incident_detail_page:user_{user_part}:v{version}:{request.get_full_path()}"
+        else:
+            user_part = 'anon'
+            cache_key = f"incident_detail_page:user_{user_part}:{request.get_full_path()}"
+        cached_content = cache.get(cache_key)
+        if cached_content is not None:
+            return HttpResponse(cached_content, content_type='text/html; charset=utf-8')
+
+        response = super().get(request, *args, **kwargs)
+        if response.status_code == 200:
+            content_type = response.get('Content-Type', '')
+            if content_type.startswith('text/html'):
+                response.render()
+                cache.set(cache_key, response.content, timeout=INCIDENTS_PAGE_CACHE_TIMEOUT)
+        return response
 
     def dispatch(self, request, *args, **kwargs):
         if not request.user.is_authenticated or not (request.user.is_staff or request.user.is_superuser or request.user.profile.is_mentor_user):
@@ -784,6 +1103,11 @@ class IncidentDetailListView(ListView):
             date_to_datetime = timezone.make_aware(datetime.datetime.combine(date_to_parsed, datetime.time.max))
             queryset = queryset.filter(created_at__lte=date_to_datetime)
         
+        # Фильтр по статусу инцидента
+        selected_statuses = self.request.GET.getlist('status', [])
+        if selected_statuses:
+            queryset = queryset.filter(status__in=selected_statuses)
+        
         return queryset
 
     def get_context_data(self, **kwargs):
@@ -803,6 +1127,13 @@ class IncidentDetailListView(ListView):
         selected_user_id = self.request.GET.get('assigned_user', '')
         violator_filter = self.request.GET.get('violator_filter', 'all')  # 'all', 'yes', 'no'
         
+        # Фильтр по статусу инцидента
+        status_choices = Incident.STATUS_CHOICES
+        context['status_choices'] = status_choices
+
+        departments = Department.objects.all().order_by('name')
+        context['departments'] = departments
+        
         # Если нет параметров в GET запросе (первичная загрузка), устанавливаем дефолтные значения
         if not self.request.GET:
             context['date_from'] = '2025-01-01'
@@ -811,9 +1142,16 @@ class IncidentDetailListView(ListView):
             context['selected_user_id'] = None
             context['violator_filter'] = 'all'
             context['violator_filter_locked'] = False
+            context['department_filter'] = ''
+            context['selected_department_filters'] = []
+            context['only_overdue'] = False
         else:
             date_from = self.request.GET.get('date_from', '')
             date_to = self.request.GET.get('date_to', '')
+            selected_department_filters = self.request.GET.getlist('department_filter')
+            department_filter = self.request.GET.get('department_filter', '')  # для обратной совместимости
+            only_overdue = self.request.GET.get('only_overdue', '') == 'on'
+
             
             # Если violator_filter=yes и даты не указаны, устанавливаем последние 30 дней
             if violator_filter == 'yes' and not date_from and not date_to:
@@ -825,6 +1163,12 @@ class IncidentDetailListView(ListView):
             context['date_from'] = date_from
             context['date_to'] = date_to
             context['search'] = search
+            # Статусы, выбранные в фильтре (чекбоксы)
+            context['selected_statuses'] = self.request.GET.getlist('status', [])
+            context['department_filter'] = department_filter
+            context['selected_department_filters'] = selected_department_filters
+            context['only_overdue'] = only_overdue
+            
             try:
                 context['selected_user_id'] = int(selected_user_id) if selected_user_id else None
             except (ValueError, TypeError):
@@ -837,12 +1181,23 @@ class IncidentDetailListView(ListView):
         incident_user_list = []
         selected_user_id = context['selected_user_id']
         violator_filter = context['violator_filter']
+        selected_department_filters = context.get('selected_department_filters') or []
+        only_overdue = context.get('only_overdue', False)
+        now = context['now']
         
         for incident in context['incidents']:
             assigned_users = incident.assigned_to.all()
             violators = incident.violators.all()
             
             for user in assigned_users:
+                # Фильтр по подразделению (множественный выбор)
+                if selected_department_filters:
+                    user_department_name = None
+                    if hasattr(user, 'profile') and user.profile and user.profile.department:
+                        user_department_name = user.profile.department.name
+                    if user_department_name not in selected_department_filters:
+                        continue
+
                 # Фильтр по назначенному пользователю
                 if selected_user_id and user.id != selected_user_id:
                     continue
@@ -855,10 +1210,15 @@ class IncidentDetailListView(ListView):
                 if violator_filter == 'no' and is_violator:
                     continue
                 
+                # Если фильтр "только просроченные" включен, показываем только инциденты с курсами
+                if only_overdue and not incident.course:
+                    continue
+                
                 # Проверяем, назначен ли курс пользователю (если у инцидента есть курс)
                 if incident.course:
-                    # Если курс не назначен пользователю, пропускаем этого пользователя
-                    if not UserCourse.objects.filter(user=user, course=incident.course).exists():
+                    user_course_qs = UserCourse.objects.filter(user=user, course=incident.course)
+                    # Если подходящего UserCourse нет, пропускаем пользователя
+                    if not user_course_qs.exists():
                         continue
                 
                 # Вычисляем прогресс курса, если он есть
@@ -870,11 +1230,17 @@ class IncidentDetailListView(ListView):
                 if incident.course:
                     course = incident.course
                     
-                    # Получаем UserCourse для получения дедлайна
+                    # Получаем UserCourse для получения дедлайна (с учетом уже примененного фильтра по статусу выше)
                     user_course = UserCourse.objects.filter(user=user, course=course).first()
                     if user_course:
                         course_deadline = user_course.deadline
                         course_status = user_course.status
+                    
+                    # Фильтр по просроченным курсам
+                    if only_overdue:
+                        # Показываем только просроченные курсы: есть дедлайн, он просрочен и курс не завершен
+                        if not course_deadline or course_deadline >= now or course_status == 'completed' or incident.status == 'declined':
+                            continue
                     
                     # Получаем траекторию пользователя для этого курса
                     trajectory = UserLessonTrajectory.objects.filter(user=user, course=course).first()
@@ -921,8 +1287,8 @@ class IncidentDetailListView(ListView):
                     'is_expert': False,
                     'progress_percent': progress_percent,
                     'course_deadline': course_deadline,
-                    'course_status': course_status,
-                    'course_status_display': user_course.get_status_display() if user_course else None
+                    'incident_status': incident.status,
+                    'incident_status_display': incident.get_status_display(),
                 })
             
             # Добавляем expert, если он существует и не находится в assigned_to
@@ -933,6 +1299,14 @@ class IncidentDetailListView(ListView):
                     # Проверяем фильтры: если они не пропускают expert, добавляем его в список
                     should_add_expert = True
                     
+                    # Фильтр по подразделению (множественный выбор)
+                    if selected_department_filters:
+                        expert_department_name = None
+                        if hasattr(expert, 'profile') and expert.profile and expert.profile.department:
+                            expert_department_name = expert.profile.department.name
+                        if expert_department_name not in selected_department_filters:
+                            should_add_expert = False
+                    
                     # Фильтр по назначенному пользователю
                     if selected_user_id and expert.id != selected_user_id:
                         should_add_expert = False
@@ -942,10 +1316,15 @@ class IncidentDetailListView(ListView):
                     if violator_filter == 'yes':
                         should_add_expert = False
                     
+                    # Если фильтр "только просроченные" включен, показываем только инциденты с курсами
+                    if only_overdue and not incident.course:
+                        should_add_expert = False
+                    
                     # Проверяем, назначен ли курс expert (если у инцидента есть курс)
                     if incident.course:
+                        expert_course_qs = UserCourse.objects.filter(user=expert, course=incident.course)
                         # Если курс не назначен expert, пропускаем его
-                        if not UserCourse.objects.filter(user=expert, course=incident.course).exists():
+                        if not expert_course_qs.exists():
                             should_add_expert = False
                     
                     if should_add_expert:
@@ -957,11 +1336,16 @@ class IncidentDetailListView(ListView):
                         if incident.course:
                             course = incident.course
                             
-                            # Получаем UserCourse для получения дедлайна
+                            # Получаем UserCourse для получения дедлайна (с учетом уже примененного фильтра по статусу выше)
                             user_course = UserCourse.objects.filter(user=expert, course=course).first()
                             if user_course:
                                 course_deadline = user_course.deadline
                                 course_status = user_course.status
+                            
+                            # Фильтр по просроченным курсам
+                            if only_overdue:
+                                if not course_deadline or course_deadline >= now or course_status == 'completed' or incident.status == 'declined':
+                                    should_add_expert = False
                             
                             # Получаем траекторию пользователя для этого курса
                             trajectory = UserLessonTrajectory.objects.filter(user=expert, course=course).first()
@@ -1001,16 +1385,17 @@ class IncidentDetailListView(ListView):
                             completed_materials = completed_lessons + completed_quizzes
                             progress_percent = int((completed_materials / total_materials) * 100) if total_materials > 0 else 0
                         
-                        incident_user_list.append({
-                            'incident': incident,
-                            'user': expert,
-                            'is_violator': False,  # Expert никогда не является нарушителем
-                            'is_expert': True,  # Флаг, что это expert
-                            'progress_percent': progress_percent,
-                            'course_deadline': course_deadline,
-                            'course_status': course_status,
-                            'course_status_display': user_course.get_status_display() if user_course else None
-                        })
+                        if should_add_expert:
+                            incident_user_list.append({
+                                'incident': incident,
+                                'user': expert,
+                                'is_violator': False,  # Expert никогда не является нарушителем
+                                'is_expert': True,  # Флаг, что это expert
+                                'progress_percent': progress_percent,
+                                'course_deadline': course_deadline,
+                                'incident_status': incident.status,
+                                'incident_status_display': incident.get_status_display(),
+                            })
         
         context['incident_user_list'] = incident_user_list
         return context
@@ -1071,3 +1456,153 @@ class UnassignIncidentUserView(View, AuditLoggerMixin):
             redirect_url += '?' + urlencode(query_params)
         
         return redirect(redirect_url)
+
+
+@method_decorator(login_required, name='dispatch')
+class IncidentStatusesReportView(ListView):
+    """
+    Отчет за последнюю неделю по инцидентам.
+    Показывает статистику по каждому пользователю:
+    - ФИО
+    - Подразделение
+    - Назначено (количество инцидентов со статусом 'assigned')
+    - Просрочено (количество инцидентов с просроченным дедлайном курса)
+    - Завершено (количество инцидентов со статусом 'resolved')
+    - Обучение завершено (количество инцидентов со статусом 'studies_completed')
+    """
+    template_name = 'builder/incidents/incident_statuses_report.html'
+    context_object_name = 'report_data'
+
+    def dispatch(self, request, *args, **kwargs):
+        if not request.user.is_authenticated or not (request.user.is_staff or request.user.is_superuser or request.user.profile.is_mentor_user):
+            return render(request, '403.html', status=403)
+        return super().dispatch(request, *args, **kwargs)
+
+    def get_queryset(self):
+        from django.contrib.auth import get_user_model
+        from django.db.models import Q
+        import datetime as dt
+        
+        User = get_user_model()
+        now = timezone.now()
+        
+        # Получаем параметры дат из GET запроса
+        date_from_str = self.request.GET.get('date_from')
+        date_to_str = self.request.GET.get('date_to')
+        department_filter = self.request.GET.get('department_filter')
+
+
+        # Если даты не указаны, устанавливаем диапазон с начала месяца
+        if not date_from_str or not date_to_str:
+            today = now.date()
+            # Начало текущего месяца
+            month_start = dt.date(today.year, today.month, 1)
+            date_from_str = month_start.strftime('%Y-%m-%d')
+            date_to_str = today.strftime('%Y-%m-%d')
+        
+        # Преобразуем строки в datetime объекты
+        date_from = timezone.make_aware(dt.datetime.combine(
+            dt.datetime.strptime(date_from_str, '%Y-%m-%d').date(),
+            dt.time.min
+        ))
+        date_to = timezone.make_aware(dt.datetime.combine(
+            dt.datetime.strptime(date_to_str, '%Y-%m-%d').date(),
+            dt.time.max
+        ))
+        
+        # Получаем все инциденты за выбранный период
+        incidents = Incident.objects.filter(
+            created_at__gte=date_from,
+            created_at__lte=date_to
+        ).prefetch_related('assigned_to', 'violators', 'course').select_related('course')
+        
+        # Собираем уникальных пользователей, которые были назначены на инциденты
+        users_with_incidents = set()
+        for incident in incidents:
+            users_with_incidents.update(incident.assigned_to.all())
+            users_with_incidents.update(incident.violators.all())
+            if incident.expert:
+                users_with_incidents.add(incident.expert)
+        
+        # Формируем отчет для каждого пользователя
+        report_data = []
+        for user in users_with_incidents:
+            # Получаем профиль пользователя
+            if not hasattr(user, 'profile') or not user.profile:
+                continue
+            
+            # Применяем фильтр по подразделению, если он указан
+            if department_filter:
+                user_department = user.profile.department.name if user.profile.department else '—'
+                if user_department != department_filter:
+                    continue
+            
+            # Фильтруем инциденты для этого пользователя
+            user_incidents = incidents.filter(
+                Q(assigned_to=user) | Q(violators=user) | Q(expert=user)
+            ).distinct()
+            
+            # Подсчитываем статистику
+            assigned_count = user_incidents.filter(status='assigned').count()
+            resolved_count = user_incidents.filter(status='resolved').count()
+            studies_completed_count = user_incidents.filter(status='studies_completed').count()
+            
+            # Подсчитываем просроченные инциденты
+            overdue_count = 0
+            for incident in user_incidents:
+                if incident.course:
+                    # Проверяем, есть ли у пользователя UserCourse для этого курса
+                    user_course = UserCourse.objects.filter(
+                        user=user,
+                        course=incident.course
+                    ).first()
+                    
+                    if user_course and user_course.deadline:
+                        # Проверяем, просрочен ли дедлайн и не завершен ли курс
+                        if user_course.deadline < now and user_course.status != 'completed':
+                            overdue_count += 1
+            
+            report_data.append({
+                'user': user,
+                'full_name': user.get_full_name() or user.username,
+                'department': user.profile.department.name if user.profile.department else '—',
+                'assigned_count': assigned_count,
+                'overdue_count': overdue_count,
+                'resolved_count': resolved_count,
+                'studies_completed_count': studies_completed_count,
+            })
+        
+        # Сортируем по ФИО
+        report_data.sort(key=lambda x: x['full_name'])
+        
+        return report_data
+
+    def get_context_data(self, **kwargs):
+        import datetime as dt
+        
+        context = super().get_context_data(**kwargs)
+        now = timezone.now()
+        
+        # Получаем параметры дат из GET запроса
+        date_from_str = self.request.GET.get('date_from')
+        date_to_str = self.request.GET.get('date_to')
+        department_filter = self.request.GET.get('department_filter', '')
+        
+        # Если даты не указаны, устанавливаем диапазон с начала месяца
+        if not date_from_str or not date_to_str:
+            today = now.date()
+            # Начало текущего месяца
+            month_start = dt.date(today.year, today.month, 1)
+            date_from_str = month_start.strftime('%Y-%m-%d')
+            date_to_str = today.strftime('%Y-%m-%d')
+        
+        # Получаем список всех подразделений для выпадающего списка
+        departments = Department.objects.all().order_by('name')
+        
+        context['date_from'] = date_from_str
+        context['date_to'] = date_to_str
+        context['week_start'] = dt.datetime.strptime(date_from_str, '%Y-%m-%d').date()
+        context['week_end'] = dt.datetime.strptime(date_to_str, '%Y-%m-%d').date()
+        context['departments'] = departments
+        context['department_filter'] = department_filter
+        return context

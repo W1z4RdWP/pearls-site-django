@@ -24,7 +24,12 @@
 
 {% block content %}
 <div class="container" style="max-width: 800px; margin-top: 48px;">
-    <h2>Редактировать черновик урока</h2>
+    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; margin-bottom: 20px;">
+        <h2 style="margin-bottom: 0;">Редактировать черновик урока</h2>
+        {% if object and object.saved_at_least_once and user.is_staff or object and object.saved_at_least_once and user.is_superuser %}
+        <a href="{% url 'builder:lesson_draft_review' object.id %}" class="btn btn-info">Просмотреть изменения</a>
+        {% endif %}
+    </div>
     
     <div class="draft-info">
         <strong>Черновик урока:</strong> {{ object.lesson.title }}<br>
@@ -63,6 +68,67 @@
                         {% endif %}
                     </div>
                 {% endif %}
+            {% elif field.name == "content_element_status" or field.name == "video_element_status" or field.name == "links_element_status" %}
+                {# Матрица статусов выводится одним блоком перед комментарием #}
+            {% elif field.name == "submit_comment" %}
+                {# Матрица: выбор по каждому элементу — «Готово» или «Нужно доработать» #}
+                <div class="mb-3">
+                    <label class="form-label">Оценка элементов контента</label>
+                    <p class="form-text text-muted mb-2">Для каждого элемента выберите один вариант.</p>
+                    <table class="table table-bordered" style="color: black;">
+                        <thead>
+                            <tr>
+                                <th>Элемент</th>
+                                <th>Готово (актуально сейчас)</th>
+                                <th>Нужно доработать</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>Текст</td>
+                                <td class="text-center">
+                                    <input type="radio" name="content_element_status" value="actual" id="id_content_element_status_0" {% if form.content_element_status.value == 'actual' %}checked{% endif %} class="form-check-input" required>
+                                </td>
+                                <td class="text-center">
+                                    <input type="radio" name="content_element_status" value="needs_work" id="id_content_element_status_1" {% if form.content_element_status.value == 'needs_work' %}checked{% endif %} class="form-check-input" required>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>Видео</td>
+                                <td class="text-center">
+                                    <input type="radio" name="video_element_status" value="actual" id="id_video_element_status_0" {% if form.video_element_status.value == 'actual' %}checked{% endif %} class="form-check-input" required>
+                                </td>
+                                <td class="text-center">
+                                    <input type="radio" name="video_element_status" value="needs_work" id="id_video_element_status_1" {% if form.video_element_status.value == 'needs_work' %}checked{% endif %} class="form-check-input" required>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>Ссылки</td>
+                                <td class="text-center">
+                                    <input type="radio" name="links_element_status" value="actual" id="id_links_element_status_0" {% if form.links_element_status.value == 'actual' %}checked{% endif %} class="form-check-input" required>
+                                </td>
+                                <td class="text-center">
+                                    <input type="radio" name="links_element_status" value="needs_work" id="id_links_element_status_1" {% if form.links_element_status.value == 'needs_work' %}checked{% endif %} class="form-check-input" required>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                    {% for error in form.content_element_status.errors %}
+                        <div class="text-danger">{{ error }}</div>
+                    {% endfor %}
+                    {% for error in form.video_element_status.errors %}
+                        <div class="text-danger">{{ error }}</div>
+                    {% endfor %}
+                    {% for error in form.links_element_status.errors %}
+                        <div class="text-danger">{{ error }}</div>
+                    {% endfor %}
+                </div>
+                <div class="mb-3">
+                    {{ field|as_crispy_field }}
+                    {% if field.disabled %}
+                    <small class="form-text text-muted" style="color: #6c757d; font-style: italic;">Это поле недоступно для редактирования</small>
+                    {% endif %}
+                </div>
             {% else %}
                 <div class="mb-3">
                     {{ field|as_crispy_field }}
@@ -76,7 +142,11 @@
             <button type="submit" class="btn btn-primary">Сохранить черновик</button>
             <a href="{% url 'builder:lesson_master' %}?lesson_id={{ object.lesson.id }}" class="btn btn-secondary">Отмена</a>
             {% if user.is_staff or user.is_superuser %}
+            {% if object.saved_at_least_once %}
             <a href="{% url 'builder:lesson_draft_review' object.id %}" class="btn btn-info">Просмотреть изменения</a>
+            {% else %}
+            <span class="btn btn-info disabled" title="Сначала сохраните черновик">Просмотреть изменения</span>
+            {% endif %}
             {% endif %}
         </div>
     </form>

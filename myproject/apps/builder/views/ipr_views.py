@@ -19,7 +19,7 @@ class IPRListView(ListView):
     Список ИПР с информацией о пользователях и их курсах.
     """
     model = IPR
-    template_name = 'builder/ipr_list.html'
+    template_name = 'builder/ipr/ipr_list.html'
     context_object_name = 'iprs'
     ordering = ['-created_at']
 
@@ -31,6 +31,7 @@ class IPRListView(ListView):
 
     def get_queryset(self):
         queryset = super().get_queryset()
+        # pyright: reportUnreachable=false
         queryset = queryset.select_related('user', 'user__profile', 'user__profile__department')
         
         # Фильтр по статусу (множественный выбор)
@@ -80,7 +81,7 @@ class IPRCreateView(CreateView, AuditLoggerMixin):
     """
     model = IPR
     form_class = IPRForm
-    template_name = 'builder/ipr_form.html'
+    template_name = 'builder/ipr/ipr_form.html'
 
     def dispatch(self, request, *args, **kwargs):
         if not request.user.is_authenticated or not (request.user.is_staff or request.user.is_superuser):
@@ -109,7 +110,7 @@ class IPRUpdateView(UpdateView, AuditLoggerMixin):
     """
     model = IPR
     form_class = IPRForm
-    template_name = 'builder/ipr_form.html'
+    template_name = 'builder/ipr/ipr_form.html'
     success_url = reverse_lazy('builder:ipr_list')
 
     def dispatch(self, request, *args, **kwargs):
@@ -131,7 +132,7 @@ class IPRModuleListView(ListView):
     Список модулей ИПР для конкретного пользователя.
     """
     model = IPRModule
-    template_name = 'builder/ipr_module_list.html'
+    template_name = 'builder/ipr/ipr_module_list.html'
     context_object_name = 'modules'
     ordering = ['-created_at']
 
@@ -178,7 +179,7 @@ class IPRModuleCreateView(CreateView, AuditLoggerMixin):
     """
     model = IPRModule
     form_class = IPRModuleForm
-    template_name = 'builder/ipr_module_form.html'
+    template_name = 'builder/ipr/ipr_module_form.html'
 
     def dispatch(self, request, *args, **kwargs):
         if not request.user.is_authenticated or not (request.user.is_staff or request.user.is_superuser):
@@ -268,7 +269,7 @@ class IPRModuleUpdateView(UpdateView, AuditLoggerMixin):
     """
     model = IPRModule
     form_class = IPRModuleForm
-    template_name = 'builder/ipr_module_form.html'
+    template_name = 'builder/ipr/ipr_module_form.html'
 
     def dispatch(self, request, *args, **kwargs):
         if not request.user.is_authenticated or not (request.user.is_staff or request.user.is_superuser):
@@ -317,7 +318,7 @@ class IPRModuleDetailView(DetailView):
     Страница с информацией по модулю ИПР.
     """
     model = IPRModule
-    template_name = 'builder/ipr_module_info.html'
+    template_name = 'builder/ipr/ipr_module_info.html'
     context_object_name = 'module'
 
     def dispatch(self, request, *args, **kwargs):
