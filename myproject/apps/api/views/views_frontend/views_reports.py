@@ -19,6 +19,7 @@ from quizzes.models import Quiz, Homework
 
 PAGINATE_BY_COURSES_PROGRESS = 20
 PAGINATE_BY_COURSE_ASSIGNMENTS = 25
+PAGINATE_BY_USERS_WITH_LEARNING = 20
 
 
 def _reports_access_ok(request):
@@ -175,6 +176,121 @@ def api_homework_check_dashboard(request):
         'is_admin': is_admin,
         'recent_completions': recent_completions,
         'pending_tests_count': pending_tests_count,
+    })
+
+
+@login_required
+@require_http_methods(['GET'])
+def api_groups_progress(request):
+    """API: прогресс групп — список групп с обученностью, фильтр по группе, общая статистика и круговая диаграмма."""
+    if not _reports_access_ok(request):
+        return JsonResponse({'error': 'Доступ запрещён'}, status=403)
+
+    is_admin = request.user.is_superuser or request.user.is_staff
+
+    if is_admin:
+        queryset = Group.objects.all().prefetch_related('user_set')
+    else:
+        mentor_groups = request.user.groups.all()
+        if mentor_groups.exists():
+            queryset = Group.objects.filter(id__in=mentor_groups).prefetch_related('user_set')
+        else:
+            queryset = Group.objects.none()
+
+    group_filter = request.GET.get('group', '').strip()
+    if group_filter:
+        try:
+            queryset = queryset.filter(id=int(group_filter))
+        except (TypeError, ValueError):
+            pass
+
+    queryset = queryset.order_by('name')
+    groups_list = list(queryset)
+
+    for group in groups_list:
+        group_users = group.user_set.filter(
+            started_courses__isnull=False,
+            profile__is_approved=True,
+        ).exclude(
+            Q(is_superuser=True) | Q(is_staff=True)
+        ).distinct()
+
+        group_courses = UserCourse.objects.filter(user__in=group_users)
+        total_courses = group_courses.count()
+        completed_courses = group_courses.filter(status='completed').count()
+        in_progress_courses = group_courses.filter(status='started').count()
+        available_courses = group_courses.filter(status='available').count()
+        learning_percentage = round((completed_courses / total_courses) * 100, 1) if total_courses > 0 else 0
+
+        group.total_users = group_users.count()
+        group.total_courses = total_courses
+        group.completed_courses = completed_courses
+        group.in_progress_courses = in_progress_courses
+        group.available_courses = available_courses
+        group.learning_percentage = learning_percentage
+
+    groups_list.sort(key=lambda x: x.learning_percentage, reverse=True)
+
+    all_groups = groups_list
+    all_users = []
+    for group in all_groups:
+        group_users = group.user_set.filter(
+            started_courses__isnull=False,
+            profile__is_approved=True,
+        ).exclude(
+            Q(is_superuser=True) | Q(is_staff=True)
+        ).distinct()
+        all_users.extend(group_users)
+
+    all_courses = UserCourse.objects.filter(user__in=all_users)
+    total_courses = all_courses.count()
+    completed_courses = all_courses.filter(status='completed').count()
+    in_progress_courses = all_courses.filter(status='started').count()
+    available_courses = all_courses.filter(status='available').count()
+    overall_learning_percentage = round((completed_courses / total_courses) * 100, 1) if total_courses > 0 else 0
+
+    if is_admin:
+        all_available_groups = list(Group.objects.all().order_by('name').values('id', 'name'))
+    else:
+        mentor_groups = request.user.groups.all()
+        if mentor_groups.exists():
+            all_available_groups = list(
+                Group.objects.filter(id__in=mentor_groups).order_by('name').values('id', 'name')
+            )
+        else:
+            all_available_groups = []
+
+    learning_data = [
+        {'label': 'Завершено', 'value': completed_courses, 'color': '#28a745'},
+        {'label': 'В процессе', 'value': in_progress_courses, 'color': '#ffc107'},
+        {'label': 'Не начато', 'value': available_courses, 'color': '#6c757d'},
+    ]
+
+    groups_payload = [
+        {
+            'id': g.id,
+            'name': g.name,
+            'total_users': getattr(g, 'total_users', 0),
+            'total_courses': getattr(g, 'total_courses', 0),
+            'completed_courses': getattr(g, 'completed_courses', 0),
+            'in_progress_courses': getattr(g, 'in_progress_courses', 0),
+            'available_courses': getattr(g, 'available_courses', 0),
+            'learning_percentage': getattr(g, 'learning_percentage', 0),
+        }
+        for g in groups_list
+    ]
+
+    return JsonResponse({
+        'is_admin': is_admin,
+        'all_available_groups': all_available_groups,
+        'selected_group': group_filter,
+        'groups': groups_payload,
+        'total_courses': total_courses,
+        'completed_courses': completed_courses,
+        'in_progress_courses': in_progress_courses,
+        'available_courses': available_courses,
+        'overall_learning_percentage': overall_learning_percentage,
+        'learning_data': learning_data,
     })
 
 
@@ -354,6 +470,228 @@ def api_course_assignments_detail(request, course_id):
         'blocked_assignments': blocked,
         'learning_percentage': learning_percentage,
         'items': items,
+        'pagination': {
+            'page': page_obj.number,
+            'num_pages': paginator.num_pages,
+            'has_previous': page_obj.has_previous(),
+            'has_next': page_obj.has_next(),
+            'previous_page_number': page_obj.previous_page_number() if page_obj.has_previous() else None,
+            'next_page_number': page_obj.next_page_number() if page_obj.has_next() else None,
+        },
+    })
+
+
+PAGINATE_BY_GROUP_STUDENTS = 20
+
+
+def _group_students_access_ok(request, group_id):
+    """Проверка доступа к прогрессу группы: staff/superuser или наставник этой группы."""
+    if not request.user.is_authenticated:
+        return False
+    if request.user.is_superuser or request.user.is_staff:
+        return True
+    try:
+        if request.user.profile.is_mentor_user:
+            return request.user.groups.filter(id=group_id).exists()
+    except Exception:
+        pass
+    return False
+
+
+@login_required
+@require_http_methods(['GET'])
+def api_group_students_progress(request, group_id):
+    """API: прогресс студентов группы — список студентов с курсами и процентами, пагинация."""
+    if not _group_students_access_ok(request, group_id):
+        return JsonResponse({'error': 'Доступ запрещён'}, status=403)
+
+    group = get_object_or_404(Group, id=group_id)
+
+    queryset = (
+        User.objects.filter(
+            groups=group,
+            started_courses__isnull=False,
+            profile__is_approved=True,
+        )
+        .exclude(Q(is_superuser=True) | Q(is_staff=True))
+        .annotate(
+            total_courses=Count('started_courses'),
+            completed_courses=Count('started_courses', filter=Q(started_courses__status='completed')),
+            in_progress_courses=Count('started_courses', filter=Q(started_courses__status='started')),
+            learning_percentage=Case(
+                When(total_courses=0, then=0.0),
+                default=F('completed_courses') * 100.0 / F('total_courses'),
+                output_field=FloatField(),
+            ),
+        )
+        .distinct()
+        .order_by('-learning_percentage', 'last_name', 'first_name')
+    )
+
+    paginator = Paginator(queryset, PAGINATE_BY_GROUP_STUDENTS)
+    page_number = request.GET.get('page', 1)
+    try:
+        page_number = max(1, int(page_number))
+    except (TypeError, ValueError):
+        page_number = 1
+    page_obj = paginator.get_page(page_number)
+
+    items = []
+    for user in page_obj:
+        full_name = (user.get_full_name() or '').strip() or user.username
+        lp = getattr(user, 'learning_percentage', 0) or 0
+        items.append({
+            'id': user.id,
+            'full_name': full_name,
+            'email': user.email or '',
+            'completed_courses': getattr(user, 'completed_courses', 0) or 0,
+            'total_courses': getattr(user, 'total_courses', 0) or 0,
+            'in_progress_courses': getattr(user, 'in_progress_courses', 0) or 0,
+            'learning_percentage': round(float(lp), 1),
+        })
+
+    return JsonResponse({
+        'group': {
+            'id': group.id,
+            'name': group.name,
+        },
+        'items': items,
+        'pagination': {
+            'page': page_obj.number,
+            'num_pages': paginator.num_pages,
+            'has_previous': page_obj.has_previous(),
+            'has_next': page_obj.has_next(),
+            'previous_page_number': page_obj.previous_page_number() if page_obj.has_previous() else None,
+            'next_page_number': page_obj.next_page_number() if page_obj.has_next() else None,
+        },
+    })
+
+
+@login_required
+@require_http_methods(['GET'])
+def api_users_with_learning(request):
+    """API: список пользователей с назначенным обучением — статистика, фильтры, пагинация."""
+    if not _reports_access_ok(request):
+        return JsonResponse({'error': 'Доступ запрещён'}, status=403)
+
+    is_admin = request.user.is_superuser or request.user.is_staff
+    search_query = (request.GET.get('search') or '').strip()
+    group_filter = (request.GET.get('group') or '').strip()
+    page_number = request.GET.get('page', 1)
+    try:
+        page_number = max(1, int(page_number))
+    except (TypeError, ValueError):
+        page_number = 1
+
+    if is_admin:
+        base_qs = (
+            User.objects.filter(
+                started_courses__isnull=False,
+                profile__is_approved=True,
+            )
+            .exclude(Q(is_superuser=True) | Q(is_staff=True))
+            .distinct()
+        )
+        groups_qs = Group.objects.all().order_by('name')
+    else:
+        mentor_groups = request.user.groups.all()
+        if mentor_groups.exists():
+            base_qs = (
+                User.objects.filter(
+                    groups__in=mentor_groups,
+                    started_courses__isnull=False,
+                    profile__is_approved=True,
+                )
+                .exclude(Q(is_superuser=True) | Q(is_staff=True))
+                .distinct()
+            )
+            groups_qs = request.user.groups.all().order_by('name')
+        else:
+            base_qs = User.objects.none()
+            groups_qs = Group.objects.none()
+
+    if search_query:
+        base_qs = base_qs.filter(
+            Q(first_name__icontains=search_query)
+            | Q(last_name__icontains=search_query)
+            | Q(profile__middle_name__icontains=search_query)
+        )
+    if group_filter:
+        base_qs = base_qs.filter(groups__id=group_filter)
+
+    base_qs = (
+        base_qs.annotate(
+            total_courses=Count('started_courses'),
+            completed_courses=Count(
+                'started_courses',
+                filter=Q(started_courses__status='completed'),
+            ),
+        )
+        .filter(total_courses__gt=0)
+        .order_by('last_name', 'first_name')
+        .select_related('profile')
+        .prefetch_related('groups')
+    )
+
+    user_ids = list(base_qs.values_list('id', flat=True))
+    user_courses = UserCourse.objects.filter(user_id__in=user_ids)
+    total_courses = user_courses.count()
+    if total_courses > 0:
+        completed_courses = user_courses.filter(status='completed').count()
+        in_progress_courses = user_courses.filter(status='started').count()
+        available_courses = user_courses.filter(status='available').count()
+        learning_percentage = round((completed_courses / total_courses) * 100, 1)
+        learning_data = [
+            {'label': 'Завершено', 'value': completed_courses, 'color': '#28a745'},
+            {'label': 'В процессе', 'value': in_progress_courses, 'color': '#ffc107'},
+            {'label': 'Не начато', 'value': available_courses, 'color': '#6c757d'},
+        ]
+    else:
+        completed_courses = in_progress_courses = available_courses = 0
+        learning_percentage = 0.0
+        learning_data = []
+
+    paginator = Paginator(base_qs, PAGINATE_BY_USERS_WITH_LEARNING)
+    page_obj = paginator.get_page(page_number)
+
+    users_list = []
+    for user in page_obj:
+        full_name = (user.get_full_name() or '').strip() or user.email or ''
+        is_fully_completed = (
+            user.completed_courses == user.total_courses if user.total_courses else False
+        )
+        group_names = [g.name for g in user.groups.all()]
+        users_list.append({
+            'id': user.id,
+            'full_name': full_name,
+            'email': user.email or '',
+            'groups': group_names,
+            'total_courses': user.total_courses,
+            'completed_courses': user.completed_courses,
+            'is_fully_completed': is_fully_completed,
+        })
+
+    users_list.sort(
+        key=lambda u: (
+            (u['completed_courses'] / u['total_courses'] * 100) if u['total_courses'] else 0
+        ),
+        reverse=True,
+    )
+
+    groups_data = [{'id': g.id, 'name': g.name} for g in groups_qs]
+
+    return JsonResponse({
+        'is_admin': is_admin,
+        'groups': groups_data,
+        'search_query': search_query,
+        'selected_group': group_filter,
+        'learning_percentage': learning_percentage,
+        'completed_courses': completed_courses,
+        'in_progress_courses': in_progress_courses,
+        'available_courses': available_courses,
+        'total_courses': total_courses,
+        'learning_data': learning_data,
+        'users': users_list,
         'pagination': {
             'page': page_obj.number,
             'num_pages': paginator.num_pages,

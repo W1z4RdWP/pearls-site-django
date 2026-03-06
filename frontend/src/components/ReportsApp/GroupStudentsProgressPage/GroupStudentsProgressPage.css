@@ -1,0 +1,286 @@
+/* BEM: префикс group-students-progress-page */
+
+.group-students-progress-page {
+  padding: 1rem 0;
+}
+
+.group-students-progress-page__container {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 0 1rem;
+}
+
+.group-students-progress-page__loading,
+.group-students-progress-page__error {
+  text-align: center;
+  padding: 2rem;
+  color: var(--color-text-secondary);
+}
+
+.group-students-progress-page__error {
+  color: var(--color-text);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+}
+
+.group-students-progress-page__header {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.group-students-progress-page__title-wrap {
+  flex: 1 1 auto;
+}
+
+.group-students-progress-page__title {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: var(--color-text);
+  margin: 0 0 0.25rem 0;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.group-students-progress-page__title .fa-user-graduate {
+  color: var(--color-accent);
+}
+
+.group-students-progress-page__subtitle {
+  margin: 0;
+  font-size: 0.875rem;
+  color: var(--color-text-secondary);
+}
+
+.group-students-progress-page__actions {
+  flex-shrink: 0;
+}
+
+.group-students-progress-page__btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.5rem 1rem;
+  font-size: 0.9rem;
+  border-radius: 6px;
+  border: 1px solid transparent;
+  cursor: pointer;
+  text-decoration: none;
+  transition: background-color 0.15s, border-color 0.15s, color 0.15s;
+  background: none;
+  font-family: inherit;
+}
+
+.group-students-progress-page__btn--secondary {
+  background: var(--color-bg);
+  color: var(--color-text);
+  border-color: var(--color-card-border);
+}
+
+.group-students-progress-page__btn--secondary:hover {
+  color: var(--color-accent);
+  border-color: var(--color-accent);
+}
+
+.group-students-progress-page__card {
+  background: var(--color-card-bg);
+  border-radius: 8px;
+  box-shadow: var(--color-card-shadow);
+  overflow: hidden;
+  margin-bottom: 1.5rem;
+}
+
+.group-students-progress-page__card-header {
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid var(--color-card-border);
+}
+
+.group-students-progress-page__card-title {
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin: 0;
+  color: var(--color-text);
+}
+
+.group-students-progress-page__card-body {
+  padding: 1rem 1.25rem;
+}
+
+.group-students-progress-page__table-wrap {
+  overflow-x: auto;
+}
+
+.group-students-progress-page__table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+
+.group-students-progress-page__th {
+  text-align: left;
+  padding: 0.75rem 1rem;
+  font-weight: 600;
+  color: var(--color-text);
+  background: var(--color-bg);
+  border-bottom: 1px solid var(--color-card-border);
+}
+
+.group-students-progress-page__th--student {
+  width: 22%;
+}
+
+.group-students-progress-page__th--email {
+  width: 25%;
+}
+
+.group-students-progress-page__th--courses {
+  width: 10%;
+}
+
+.group-students-progress-page__th--progress {
+  width: 43%;
+}
+
+.group-students-progress-page__td {
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid var(--color-card-border);
+  color: var(--color-text);
+  vertical-align: middle;
+}
+
+.group-students-progress-page__td--center {
+  text-align: center;
+}
+
+.group-students-progress-page__courses-num {
+  font-size: 0.85rem;
+}
+
+.group-students-progress-page__row--clickable {
+  cursor: pointer;
+  transition: background-color 0.15s;
+}
+
+.group-students-progress-page__row--clickable:hover {
+  background-color: var(--color-bg);
+}
+
+.group-students-progress-page__row--clickable:focus {
+  outline: 2px solid var(--color-accent);
+  outline-offset: -2px;
+}
+
+.group-students-progress-page__progress {
+  height: 20px;
+  width: 100%;
+  background: var(--color-bg);
+  border-radius: 4px;
+  overflow: hidden;
+  margin-bottom: 0.25rem;
+}
+
+.group-students-progress-page__progress-bar {
+  height: 100%;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 0;
+  transition: width 0.2s;
+}
+
+.group-students-progress-page__progress-bar--success {
+  background: #28a745;
+  color: #fff;
+}
+
+.group-students-progress-page__progress-bar--warning {
+  background: #ffc107;
+  color: #212529;
+}
+
+.group-students-progress-page__progress-bar--danger {
+  background: #dc3545;
+  color: #fff;
+}
+
+.group-students-progress-page__progress-text {
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.group-students-progress-page__progress-legend {
+  display: block;
+  font-size: 0.7rem;
+  line-height: 1.2;
+  color: var(--color-text-secondary);
+}
+
+.group-students-progress-page__icon-success {
+  color: #28a745;
+}
+
+.group-students-progress-page__icon-warning {
+  color: #ffc107;
+}
+
+.group-students-progress-page__empty {
+  padding: 1.5rem;
+  text-align: center;
+  color: var(--color-text-secondary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.group-students-progress-page__pagination {
+  margin-top: 1rem;
+}
+
+.group-students-progress-page__pagination-list {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  gap: 0.25rem;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.group-students-progress-page__pagination-item {
+  margin: 0;
+}
+
+.group-students-progress-page__pagination-link {
+  padding: 0.4rem 0.75rem;
+  font-size: 0.9rem;
+  border: 1px solid var(--color-card-border);
+  border-radius: 6px;
+  background: var(--color-bg);
+  color: var(--color-text);
+  cursor: pointer;
+  font-family: inherit;
+  transition: background-color 0.15s, border-color 0.15s;
+}
+
+.group-students-progress-page__pagination-link:hover {
+  border-color: var(--color-accent);
+  color: var(--color-accent);
+}
+
+.group-students-progress-page__pagination-item--current {
+  padding: 0 0.5rem;
+}
+
+.group-students-progress-page__pagination-current {
+  font-size: 0.9rem;
+  color: var(--color-text-secondary);
+}

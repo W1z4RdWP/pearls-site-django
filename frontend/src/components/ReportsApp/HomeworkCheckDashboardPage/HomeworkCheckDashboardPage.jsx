@@ -86,7 +86,7 @@ const HomeworkCheckDashboardPage = () => {
               </small>
             </div>
           </Link>
-          <a href="/reports/users-with-learning/" className="homework-check-dashboard__stat-card homework-check-dashboard__stat-card--hover">
+          <Link to="/reports/users-with-learning" className="homework-check-dashboard__stat-card homework-check-dashboard__stat-card--hover">
             <div className="homework-check-dashboard__stat-body">
               <i className="fas fa-user homework-check-dashboard__stat-icon homework-check-dashboard__stat-icon--success" aria-hidden />
               <h3 className="homework-check-dashboard__stat-value">{data.active_users}</h3>
@@ -94,8 +94,8 @@ const HomeworkCheckDashboardPage = () => {
                 {isAdmin ? 'пользователей' : 'студентов в ваших группах'}
               </p>
             </div>
-          </a>
-          <a href="/reports/groups-progress/" className="homework-check-dashboard__stat-card homework-check-dashboard__stat-card--hover">
+          </Link>
+          <Link to="/reports/groups-progress" className="homework-check-dashboard__stat-card homework-check-dashboard__stat-card--hover">
             <div className="homework-check-dashboard__stat-body">
               <i className="fas fa-users homework-check-dashboard__stat-icon homework-check-dashboard__stat-icon--info" aria-hidden />
               <h3 className="homework-check-dashboard__stat-value">{data.total_groups}</h3>
@@ -103,7 +103,7 @@ const HomeworkCheckDashboardPage = () => {
                 {isAdmin ? 'групп' : 'ваших групп'}
               </p>
             </div>
-          </a>
+          </Link>
           <a href="/quizzes/pending/" className="homework-check-dashboard__stat-card homework-check-dashboard__stat-card--hover">
             <div className="homework-check-dashboard__stat-body">
               <i className="fas fa-clipboard-check homework-check-dashboard__stat-icon homework-check-dashboard__stat-icon--warning" aria-hidden />

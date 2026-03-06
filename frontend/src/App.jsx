@@ -44,8 +44,11 @@ import EditCoursePage from './components/CoursesApp/EditCoursePage/EditCoursePag
 import EditLessonPage from './components/CoursesApp/EditLessonPage/EditLessonPage';
 import AddLessonPage from './components/CoursesApp/AddLessonPage/AddLessonPage';
 import HomeworkCheckDashboardPage from './components/ReportsApp/HomeworkCheckDashboardPage/HomeworkCheckDashboardPage';
+import UsersWithLearningPage from './components/ReportsApp/UsersWithLearningPage/UsersWithLearningPage';
+import GroupsProgressPage from './components/ReportsApp/GroupsProgressPage/GroupsProgressPage';
 import CoursesProgressPage from './components/ReportsApp/CoursesProgressPage/CoursesProgressPage';
 import CourseAssignmentsDetailPage from './components/ReportsApp/CourseAssignmentsDetailPage/CourseAssignmentsDetailPage';
+import GroupStudentsProgressPage from './components/ReportsApp/GroupStudentsProgressPage/GroupStudentsProgressPage';
 import SupportChatPage from './components/TechSupportApp/SupportChatPage/SupportChatPage';
 import MyTicketListPage from './components/TechSupportApp/MyTicketListPage/MyTicketListPage';
 import TicketListPage from './components/TechSupportApp/TicketListPage/TicketListPage';
@@ -84,10 +87,16 @@ const App = () => {
           {/* reports */}
           <Route path='/reports/homework-check-dashboard' element={<HomeworkCheckDashboardPage />} />
           <Route path='/reports/homework-check-dashboard/' element={<HomeworkCheckDashboardPage />} />
+          <Route path='/reports/users-with-learning' element={<UsersWithLearningPage />} />
+          <Route path='/reports/users-with-learning/' element={<UsersWithLearningPage />} />
+          <Route path='/reports/groups-progress' element={<GroupsProgressPage />} />
+          <Route path='/reports/groups-progress/' element={<GroupsProgressPage />} />
           <Route path='/reports/courses-progress' element={<CoursesProgressPage />} />
           <Route path='/reports/courses-progress/' element={<CoursesProgressPage />} />
           <Route path='/reports/courses-progress/:courseId' element={<CourseAssignmentsDetailPage />} />
           <Route path='/reports/courses-progress/:courseId/' element={<CourseAssignmentsDetailPage />} />
+          <Route path='/reports/groups/:groupId/students-progress' element={<GroupStudentsProgressPage />} />
+          <Route path='/reports/groups/:groupId/students-progress/' element={<GroupStudentsProgressPage />} />
 
           {/* shop */}
           <Route path='/shop/catalog' element={<ShopPage />}/>

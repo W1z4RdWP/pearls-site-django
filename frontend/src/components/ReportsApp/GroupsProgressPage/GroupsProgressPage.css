@@ -1,0 +1,480 @@
+/* BEM: префикс groups-progress-page */
+
+.groups-progress-page {
+  padding: 1rem 0;
+}
+
+.groups-progress-page__container {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 0 1rem;
+}
+
+.groups-progress-page__loading,
+.groups-progress-page__error {
+  text-align: center;
+  padding: 2rem;
+  color: var(--color-text-secondary);
+}
+
+.groups-progress-page__error {
+  color: var(--color-text);
+}
+
+.groups-progress-page__header {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.groups-progress-page__title-wrap {
+  flex: 1 1 auto;
+}
+
+.groups-progress-page__title {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: var(--color-text);
+  margin: 0 0 0.25rem 0;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.groups-progress-page__title .fa-users {
+  color: var(--color-accent);
+}
+
+.groups-progress-page__subtitle {
+  margin: 0;
+  font-size: 0.875rem;
+  color: var(--color-text-secondary);
+}
+
+.groups-progress-page__actions {
+  flex-shrink: 0;
+}
+
+.groups-progress-page__btn-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.5rem 1rem;
+  font-size: 0.9rem;
+  border-radius: 6px;
+  border: 1px solid var(--color-card-border);
+  background: var(--color-bg);
+  color: var(--color-text);
+  text-decoration: none;
+  transition: background-color 0.15s, border-color 0.15s;
+}
+
+.groups-progress-page__btn-back:hover {
+  border-color: var(--color-accent);
+  color: var(--color-accent);
+}
+
+.groups-progress-page__card {
+  background: var(--color-card-bg);
+  border-radius: 8px;
+  box-shadow: var(--color-card-shadow);
+  overflow: hidden;
+  margin-bottom: 1.5rem;
+}
+
+.groups-progress-page__card-header {
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid var(--color-card-border);
+}
+
+.groups-progress-page__card-header--flex {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.groups-progress-page__card-title {
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin: 0 0 0.25rem 0;
+  color: var(--color-text);
+}
+
+.groups-progress-page__card-desc {
+  margin: 0;
+  font-size: 0.875rem;
+  color: var(--color-text-secondary);
+}
+
+.groups-progress-page__badge {
+  display: inline-block;
+  padding: 0.35rem 0.75rem;
+  font-size: 0.9rem;
+  font-weight: 500;
+  background: var(--color-accent);
+  color: #fff;
+  border-radius: 6px;
+}
+
+.groups-progress-page__card-body {
+  padding: 1rem 1.25rem;
+}
+
+.groups-progress-page__filter-form {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 1rem;
+}
+
+.groups-progress-page__filter-wrap {
+  flex: 1 1 auto;
+  min-width: 200px;
+  max-width: 400px;
+}
+
+.groups-progress-page__filter-label {
+  display: block;
+  margin-bottom: 0.35rem;
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--color-text);
+}
+
+.groups-progress-page__filter-label .fa-filter {
+  margin-right: 0.35rem;
+  color: var(--color-text-secondary);
+}
+
+.groups-progress-page__select {
+  width: 100%;
+  padding: 0.5rem 0.75rem;
+  font-size: 1rem;
+  border: 1px solid var(--color-card-border);
+  border-radius: 6px;
+  background: var(--color-bg);
+  color: var(--color-text);
+}
+
+.groups-progress-page__btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.5rem 1rem;
+  font-size: 0.9rem;
+  border-radius: 6px;
+  border: 1px solid transparent;
+  cursor: pointer;
+  text-decoration: none;
+  transition: background-color 0.15s, border-color 0.15s, color 0.15s;
+}
+
+.groups-progress-page__btn--secondary {
+  background: var(--color-bg);
+  color: var(--color-text-secondary);
+  border-color: var(--color-card-border);
+}
+
+.groups-progress-page__btn--secondary:hover {
+  color: var(--color-accent);
+  border-color: var(--color-accent);
+}
+
+/* Общая статистика: круговая диаграмма + цифры */
+.groups-progress-page__stats-body {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 2rem;
+}
+
+.groups-progress-page__chart-wrap {
+  position: relative;
+  flex-shrink: 0;
+  width: 200px;
+  height: 200px;
+}
+
+.groups-progress-page__chart {
+  display: block;
+}
+
+.groups-progress-page__chart-empty {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1rem;
+  color: var(--color-text-secondary);
+  background: var(--color-bg);
+  border-radius: 50%;
+  margin: 14px;
+}
+
+.groups-progress-page__chart-center {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  text-align: center;
+  pointer-events: none;
+}
+
+.groups-progress-page__chart-value {
+  display: block;
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--color-accent);
+}
+
+.groups-progress-page__chart-label {
+  display: block;
+  font-size: 0.8rem;
+  color: var(--color-text-secondary);
+}
+
+.groups-progress-page__stats-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1rem;
+  flex: 1 1 300px;
+}
+
+.groups-progress-page__stat-item {
+  text-align: center;
+  padding: 0.75rem;
+  background: var(--color-bg);
+  border-radius: 6px;
+}
+
+.groups-progress-page__stat-value {
+  display: block;
+  font-size: 1.5rem;
+  font-weight: 600;
+  margin-bottom: 0.25rem;
+  color: var(--color-text);
+}
+
+.groups-progress-page__stat-value--success {
+  color: #28a745;
+}
+
+.groups-progress-page__stat-value--warning {
+  color: #ffc107;
+}
+
+.groups-progress-page__stat-value--secondary {
+  color: var(--color-text-secondary);
+}
+
+.groups-progress-page__stat-value--info {
+  color: #17a2b8;
+}
+
+.groups-progress-page__stat-label {
+  font-size: 0.875rem;
+  color: var(--color-text-secondary);
+}
+
+/* Таблица */
+.groups-progress-page__table-wrap {
+  overflow-x: auto;
+}
+
+.groups-progress-page__table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+
+.groups-progress-page__th {
+  text-align: left;
+  padding: 0.75rem 1rem;
+  font-weight: 600;
+  color: var(--color-text);
+  background: var(--color-bg);
+  border-bottom: 1px solid var(--color-card-border);
+}
+
+.groups-progress-page__th--n {
+  width: 3%;
+}
+
+.groups-progress-page__th--name {
+  width: 25%;
+}
+
+.groups-progress-page__th--users,
+.groups-progress-page__th--courses {
+  width: 10%;
+}
+
+.groups-progress-page__th--progress {
+  width: 52%;
+}
+
+.groups-progress-page__td {
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid var(--color-card-border);
+  color: var(--color-text);
+  vertical-align: middle;
+}
+
+.groups-progress-page__td--muted {
+  color: var(--color-text-secondary);
+}
+
+.groups-progress-page__row-link {
+  color: var(--color-text);
+  text-decoration: none;
+}
+
+.groups-progress-page__row-link:hover {
+  color: var(--color-accent);
+  text-decoration: underline;
+}
+
+.groups-progress-page__row--clickable {
+  transition: background-color 0.15s;
+}
+
+.groups-progress-page__row--clickable:hover {
+  background-color: var(--color-bg);
+}
+
+.groups-progress-page__stat-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.2rem 0.5rem;
+  font-size: 0.9rem;
+  border-radius: 4px;
+}
+
+.groups-progress-page__stat-badge--users {
+  background: rgba(23, 162, 184, 0.15);
+  color: #17a2b8;
+}
+
+.groups-progress-page__stat-badge--courses {
+  background: rgba(40, 167, 69, 0.15);
+  color: #28a745;
+}
+
+.groups-progress-page__progress {
+  height: 20px;
+  width: 100%;
+  background: var(--color-bg);
+  border-radius: 4px;
+  overflow: hidden;
+  margin-bottom: 0.25rem;
+}
+
+.groups-progress-page__progress-bar {
+  height: 100%;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 0;
+  transition: width 0.2s ease;
+}
+
+.groups-progress-page__progress-bar--success {
+  background: #28a745;
+}
+
+.groups-progress-page__progress-bar--warning {
+  background: #ffc107;
+  color: #333;
+}
+
+.groups-progress-page__progress-bar--danger {
+  background: #dc3545;
+}
+
+.groups-progress-page__progress-text {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #fff;
+  text-shadow: 0 0 1px rgba(0, 0, 0, 0.5);
+}
+
+.groups-progress-page__progress-bar--warning .groups-progress-page__progress-text {
+  color: #333;
+}
+
+.groups-progress-page__progress-legend {
+  font-size: 0.7rem;
+  line-height: 1.4;
+  color: var(--color-text-secondary);
+}
+
+.groups-progress-page__icon-success {
+  color: #28a745;
+}
+
+.groups-progress-page__empty {
+  padding: 2rem;
+  text-align: center;
+  color: var(--color-text-secondary);
+}
+
+.groups-progress-page__empty-icon {
+  font-size: 3rem;
+  margin-bottom: 1rem;
+  opacity: 0.6;
+}
+
+.groups-progress-page__empty-title {
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin: 0 0 0.5rem 0;
+  color: var(--color-text);
+}
+
+.groups-progress-page__empty-desc {
+  margin: 0;
+  font-size: 0.9rem;
+}
+
+@media (max-width: 768px) {
+  .groups-progress-page__header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .groups-progress-page__stats-body {
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .groups-progress-page__stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+    width: 100%;
+  }
+
+  .groups-progress-page__filter-wrap {
+    max-width: none;
+  }
+
+  .groups-progress-page__th--n,
+  .groups-progress-page__th--name,
+  .groups-progress-page__th--users,
+  .groups-progress-page__th--courses,
+  .groups-progress-page__th--progress {
+    width: auto;
+  }
+
+  .groups-progress-page__td,
+  .groups-progress-page__th {
+    padding: 0.5rem 0.75rem;
+    font-size: 0.85rem;
+  }
+}

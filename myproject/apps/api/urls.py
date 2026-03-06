@@ -143,8 +143,11 @@ urlpatterns = [
 
     # Reports API — проверка заданий и прогресс курсов для React
     path('reports/homework-check-dashboard/', reports_views.api_homework_check_dashboard, name='api_reports_homework_check_dashboard'),
+    path('reports/users-with-learning/', reports_views.api_users_with_learning, name='api_reports_users_with_learning'),
+    path('reports/groups-progress/', reports_views.api_groups_progress, name='api_reports_groups_progress'),
     path('reports/courses-progress/', reports_views.api_courses_progress, name='api_reports_courses_progress'),
     path('reports/courses-progress/<int:course_id>/', reports_views.api_course_assignments_detail, name='api_reports_course_assignments_detail'),
+    path('reports/groups/<int:group_id>/students-progress/', reports_views.api_group_students_progress, name='api_reports_group_students_progress'),
 
     # Tech Support API — обращение в поддержку (React)
     path('tech_support/chat/', tech_support_views.api_ticket_create, name='api_tech_support_ticket_create'),
