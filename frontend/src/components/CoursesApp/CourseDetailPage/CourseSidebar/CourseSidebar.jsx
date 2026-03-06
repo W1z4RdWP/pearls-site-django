@@ -1,3 +1,5 @@
+import { useState } from 'react';
+import { assignCourseToExpert, assignCourseToAssigned } from '../../../../api/courses_api';
 import './CourseSidebar.css';
 
 const CourseSidebar = ({
@@ -5,6 +7,8 @@ const CourseSidebar = ({
   finalQuiz, nextMaterialLink, nextCourseInTrajectory, incident,
 }) => {
   const status = userCourse?.status;
+  const [assignExpertLoading, setAssignExpertLoading] = useState(false);
+  const [assignAssignedLoading, setAssignAssignedLoading] = useState(false);
 
   const renderDeadlineAlert = () => {
     if (!userCourse?.deadline || isStaff) return null;
@@ -206,24 +210,76 @@ const CourseSidebar = ({
         </h6>
         <div className="course-sidebar__admin-buttons course-sidebar__admin-buttons--col">
           {incident.has_expert && (
-            <a
-              href={`/courses/course/${course.slug}/assign-expert/`}
+            <button
+              type="button"
               className="course-sidebar__mini-btn course-sidebar__mini-btn--add"
               title={`Назначить курс руководителю ${incident.expert_name}`}
+              disabled={assignExpertLoading}
+              onClick={async () => {
+                setAssignExpertLoading(true);
+                try {
+                  const data = await assignCourseToExpert(course.slug);
+                  if (data.success) {
+                    window.alert(data.message);
+                  } else {
+                    window.alert('Ошибка: ' + (data.error || 'Неизвестная ошибка'));
+                  }
+                } catch (err) {
+                  console.error('Error:', err);
+                  window.alert(err?.message ? `Ошибка при назначении курса: ${err.message}` : 'Ошибка при назначении курса');
+                } finally {
+                  setAssignExpertLoading(false);
+                }
+              }}
             >
-              <i className="fa fa-user-tie" aria-hidden="true" />
-              <span>Назначить руководителю</span>
-            </a>
+              {assignExpertLoading ? (
+                <>
+                  <i className="fa fa-spinner fa-spin" aria-hidden="true" />
+                  <span>Назначение...</span>
+                </>
+              ) : (
+                <>
+                  <i className="fa fa-user-tie" aria-hidden="true" />
+                  <span>Назначить руководителю</span>
+                </>
+              )}
+            </button>
           )}
           {incident.has_assigned && (
-            <a
-              href={`/courses/course/${course.slug}/assign-assigned/`}
+            <button
+              type="button"
               className="course-sidebar__mini-btn course-sidebar__mini-btn--add"
               title="Назначить курс назначенным пользователям"
+              disabled={assignAssignedLoading}
+              onClick={async () => {
+                setAssignAssignedLoading(true);
+                try {
+                  const data = await assignCourseToAssigned(course.slug);
+                  if (data.success) {
+                    window.alert(data.message);
+                  } else {
+                    window.alert('Ошибка: ' + (data.error || 'Неизвестная ошибка'));
+                  }
+                } catch (err) {
+                  console.error('Error:', err);
+                  window.alert(err?.message ? `Ошибка при назначении курса: ${err.message}` : 'Ошибка при назначении курса');
+                } finally {
+                  setAssignAssignedLoading(false);
+                }
+              }}
             >
-              <i className="fa fa-users" aria-hidden="true" />
-              <span>Назначить сотрудникам</span>
-            </a>
+              {assignAssignedLoading ? (
+                <>
+                  <i className="fa fa-spinner fa-spin" aria-hidden="true" />
+                  <span>Назначение...</span>
+                </>
+              ) : (
+                <>
+                  <i className="fa fa-users" aria-hidden="true" />
+                  <span>Назначить сотрудникам</span>
+                </>
+              )}
+            </button>
           )}
         </div>
       </div>

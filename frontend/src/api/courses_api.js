@@ -209,3 +209,27 @@ export function searchQuizzes(q = '') {
   const qs = new URLSearchParams(params).toString();
   return request(`/quizzes/search/${qs ? `?${qs}` : ''}`);
 }
+
+/**
+ * Назначить курс-инцидент руководителю (expert). POST на API.
+ * @param {string} slug — slug курса
+ * @returns {Promise<{ success: boolean, message?: string, error?: string }>}
+ */
+export function assignCourseToExpert(slug) {
+  return request(`/courses/course/${encodeURIComponent(slug)}/assign-to-expert/`, {
+    method: 'POST',
+    body: JSON.stringify({}),
+  });
+}
+
+/**
+ * Назначить курс-инцидент назначенным сотрудникам (assigned_to). POST на API.
+ * @param {string} slug — slug курса
+ * @returns {Promise<{ success: boolean, message?: string, error?: string }>}
+ */
+export function assignCourseToAssigned(slug) {
+  return request(`/courses/course/${encodeURIComponent(slug)}/assign-to-assigned/`, {
+    method: 'POST',
+    body: JSON.stringify({}),
+  });
+}

@@ -615,6 +615,28 @@ def api_course_detail(request, slug):
 
 @login_required
 @require_http_methods(['POST'])
+def api_assign_course_to_expert(request, slug):
+    """API: назначить курс-инцидент руководителю (для React, прокси к courses.views)."""
+    if not (request.user.is_staff or request.user.is_superuser):
+        return JsonResponse({'success': False, 'error': 'Доступ запрещён'}, status=403)
+    from courses.views import AssignCourseToExpertView
+    view = AssignCourseToExpertView.as_view()
+    return view(request, slug=slug)
+
+
+@login_required
+@require_http_methods(['POST'])
+def api_assign_course_to_assigned(request, slug):
+    """API: назначить курс-инцидент назначенным сотрудникам (для React, прокси к courses.views)."""
+    if not (request.user.is_staff or request.user.is_superuser):
+        return JsonResponse({'success': False, 'error': 'Доступ запрещён'}, status=403)
+    from courses.views import AssignCourseToAssignedView
+    view = AssignCourseToAssignedView.as_view()
+    return view(request, slug=slug)
+
+
+@login_required
+@require_http_methods(['POST'])
 def api_start_course(request, slug):
     """API: начать курс (аналог POST на course_detail)."""
     course = get_object_or_404(Course, slug=slug)
