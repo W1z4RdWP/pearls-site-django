@@ -2,6 +2,7 @@
 API-представления приложения builder для React-фронтенда.
 """
 
+import datetime as dt
 import json
 from django.http import JsonResponse
 from django.views.decorators.http import require_http_methods
@@ -15,7 +16,8 @@ from django.urls import reverse
 
 from courses.models import Course, Lesson, Trajectory, UserLessonTrajectory
 from courses.models import UserLesson as UserLessonAssignment
-from myapp.models import UserCourse
+from myapp.models import UserCourse, UserProgress
+from myapp.models import QuizResult
 from quizzes.models import Quiz
 from users.models import Role
 from builder.models import CategoryName, LessonVersion, LessonDraft, DictionarySection, LessonCategoryMirror, Incident
@@ -1226,3 +1228,237 @@ def api_incident_decline(request, pk):
     incident.save(update_fields=['status', 'previous_status', 'updated_at'])
     log_update(request.user, incident, old_values, request, comment=comment)
     return JsonResponse({'success': True, 'status': incident.status, 'status_display': incident.get_status_display()})
+
+
+def _get_incident_detail_queryset(request):
+    """Кверисет для страницы «Детали инцидентов» (поиск, даты; без фильтра по статусу)."""
+    queryset = (
+        Incident.objects.prefetch_related('assigned_to', 'violators')
+        .select_related('user', 'responsible_mentor', 'expert', 'course')
+        .order_by('-created_at')
+    )
+    search = request.GET.get('search', '').strip()
+    if search:
+        queryset = queryset.filter(title__icontains=search)
+    date_from = request.GET.get('date_from')
+    date_to = request.GET.get('date_to')
+    if not request.GET:
+        date_from = '2025-01-01'
+        date_to = timezone.now().date().strftime('%Y-%m-%d')
+    if date_from:
+        date_from_parsed = dt.datetime.strptime(date_from, '%Y-%m-%d').date()
+        date_from_datetime = timezone.make_aware(dt.datetime.combine(date_from_parsed, dt.time.min))
+        queryset = queryset.filter(created_at__gte=date_from_datetime)
+    if date_to:
+        date_to_parsed = dt.datetime.strptime(date_to, '%Y-%m-%d').date()
+        date_to_datetime = timezone.make_aware(dt.datetime.combine(date_to_parsed, dt.time.max))
+        queryset = queryset.filter(created_at__lte=date_to_datetime)
+    return queryset
+
+
+def _build_incident_user_list(incidents, selected_user_id, violator_filter):
+    """Строит список назначений incident_user_list как в IncidentDetailListView.get_context_data."""
+    result = []
+    for incident in incidents:
+        assigned_users = list(incident.assigned_to.all())
+        violators = set(incident.violators.all())
+        for user in assigned_users:
+            if selected_user_id and user.id != selected_user_id:
+                continue
+            is_violator = user in violators
+            if violator_filter == 'yes' and not is_violator:
+                continue
+            if violator_filter == 'no' and is_violator:
+                continue
+            if incident.course and not UserCourse.objects.filter(user=user, course=incident.course).exists():
+                continue
+            progress_percent = None
+            course_deadline = None
+            course_status = None
+            user_course = None
+            if incident.course:
+                course = incident.course
+                user_course = UserCourse.objects.filter(user=user, course=course).first()
+                if user_course:
+                    course_deadline = user_course.deadline
+                    course_status = user_course.status
+                trajectory = UserLessonTrajectory.objects.filter(user=user, course=course).first()
+                if trajectory:
+                    lessons = trajectory.lessons.all().order_by('order')
+                    total_lessons = lessons.count()
+                    lesson_ids = list(lessons.values_list('id', flat=True))
+                    completed_lessons = UserProgress.objects.filter(
+                        user=user, course=course, completed=True, lesson_id__in=lesson_ids
+                    ).count()
+                else:
+                    lessons = course.lessons.all().order_by('order')
+                    total_lessons = lessons.count()
+                    completed_lessons = UserProgress.objects.filter(
+                        user=user, course=course, completed=True
+                    ).count()
+                quiz_names = list(course.quizzes.all().values_list('name', flat=True))
+                completed_quizzes = QuizResult.objects.filter(
+                    user=user, course=course, quiz_title__in=quiz_names, passed=True
+                ).values('quiz_title').distinct().count()
+                total_quizzes = course.quizzes.count()
+                total_materials = total_lessons + total_quizzes
+                completed_materials = completed_lessons + completed_quizzes
+                progress_percent = int((completed_materials / total_materials) * 100) if total_materials > 0 else 0
+            result.append({
+                'incident': {
+                    'id': incident.id,
+                    'title': incident.title,
+                    'created_at': incident.created_at.strftime('%d.%m.%Y'),
+                    'responsible_mentor': (
+                        (incident.responsible_mentor.get_full_name() or incident.responsible_mentor.username)
+                        if incident.responsible_mentor else None
+                    ),
+                    'course': incident.course_id is not None,
+                },
+                'user': {
+                    'id': user.id,
+                    'full_name': user.get_full_name() or user.username,
+                    'username': user.username,
+                    'groups': [g.name for g in user.groups.all()],
+                },
+                'is_violator': is_violator,
+                'is_expert': False,
+                'progress_percent': progress_percent,
+                'course_deadline': course_deadline.strftime('%d.%m.%Y %H:%M') if course_deadline else None,
+                'course_status': course_status,
+                'course_status_display': user_course.get_status_display() if user_course else None,
+            })
+        if incident.expert and incident.expert not in assigned_users:
+            expert = incident.expert
+            should_add = True
+            if selected_user_id and expert.id != selected_user_id:
+                should_add = False
+            if violator_filter == 'yes':
+                should_add = False
+            if incident.course and not UserCourse.objects.filter(user=expert, course=incident.course).exists():
+                should_add = False
+            if should_add:
+                progress_percent = None
+                course_deadline = None
+                course_status = None
+                user_course = None
+                if incident.course:
+                    course = incident.course
+                    user_course = UserCourse.objects.filter(user=expert, course=course).first()
+                    if user_course:
+                        course_deadline = user_course.deadline
+                        course_status = user_course.status
+                    trajectory = UserLessonTrajectory.objects.filter(user=expert, course=course).first()
+                    if trajectory:
+                        lessons = trajectory.lessons.all().order_by('order')
+                        total_lessons = lessons.count()
+                        lesson_ids = list(lessons.values_list('id', flat=True))
+                        completed_lessons = UserProgress.objects.filter(
+                            user=expert, course=course, completed=True, lesson_id__in=lesson_ids
+                        ).count()
+                    else:
+                        lessons = course.lessons.all().order_by('order')
+                        total_lessons = lessons.count()
+                        completed_lessons = UserProgress.objects.filter(
+                            user=expert, course=course, completed=True
+                        ).count()
+                    quiz_names = list(course.quizzes.all().values_list('name', flat=True))
+                    completed_quizzes = QuizResult.objects.filter(
+                        user=expert, course=course, quiz_title__in=quiz_names, passed=True
+                    ).values('quiz_title').distinct().count()
+                    total_quizzes = course.quizzes.count()
+                    total_materials = total_lessons + total_quizzes
+                    completed_materials = completed_lessons + completed_quizzes
+                    progress_percent = int((completed_materials / total_materials) * 100) if total_materials > 0 else 0
+                result.append({
+                    'incident': {
+                        'id': incident.id,
+                        'title': incident.title,
+                        'created_at': incident.created_at.strftime('%d.%m.%Y'),
+                        'responsible_mentor': (
+                            (incident.responsible_mentor.get_full_name() or incident.responsible_mentor.username)
+                            if incident.responsible_mentor else None
+                        ),
+                        'course': incident.course_id is not None,
+                    },
+                    'user': {
+                        'id': expert.id,
+                        'full_name': expert.get_full_name() or expert.username,
+                        'username': expert.username,
+                        'groups': [g.name for g in expert.groups.all()],
+                    },
+                    'is_violator': False,
+                    'is_expert': True,
+                    'progress_percent': progress_percent,
+                    'course_deadline': course_deadline.strftime('%d.%m.%Y %H:%M') if course_deadline else None,
+                    'course_status': course_status,
+                    'course_status_display': user_course.get_status_display() if user_course else None,
+                })
+    return result
+
+
+@login_required
+@require_http_methods(['GET'])
+def api_incident_detail(request):
+    """API: данные страницы «Детали инцидентов» — пользователи для фильтра, список назначений, фильтры."""
+    if not request.user.is_authenticated or not (
+        request.user.is_staff or request.user.is_superuser or
+        getattr(request.user, 'profile', None) and getattr(request.user.profile, 'is_mentor_user', False)
+    ):
+        return JsonResponse({'error': 'forbidden'}, status=403)
+    queryset = _get_incident_detail_queryset(request)
+    search = request.GET.get('search', '').strip()
+    selected_user_id = request.GET.get('assigned_user', '')
+    violator_filter = request.GET.get('violator_filter', 'all')
+    if not request.GET:
+        date_from = '2025-01-01'
+        date_to = timezone.now().date().strftime('%Y-%m-%d')
+        search = ''
+        selected_user_id = None
+        violator_filter = 'all'
+        violator_filter_locked = False
+    else:
+        date_from = request.GET.get('date_from', '')
+        date_to = request.GET.get('date_to', '')
+        if violator_filter == 'yes' and not date_from and not date_to:
+            today = timezone.now().date()
+            date_from = (today - dt.timedelta(days=30)).strftime('%Y-%m-%d')
+            date_to = today.strftime('%Y-%m-%d')
+        try:
+            selected_user_id = int(selected_user_id) if selected_user_id else None
+        except (ValueError, TypeError):
+            selected_user_id = None
+        violator_filter_locked = (violator_filter == 'yes')
+    users = User.objects.filter(is_active=True).order_by('last_name', 'first_name')
+    incident_user_list = _build_incident_user_list(queryset, selected_user_id, violator_filter)
+    data = {
+        'users': [{'id': u.id, 'full_name': u.get_full_name() or u.username, 'username': u.username} for u in users],
+        'incident_user_list': incident_user_list,
+        'date_from': date_from,
+        'date_to': date_to,
+        'search': search,
+        'selected_user_id': selected_user_id,
+        'violator_filter': violator_filter,
+        'violator_filter_locked': violator_filter_locked,
+    }
+    return JsonResponse(data)
+
+
+@login_required
+@require_http_methods(['POST'])
+def api_incident_unassign_user(request, incident_id, user_id):
+    """API: отмена назначения пользователя на инцидент. POST. Возвращает success."""
+    if not request.user.is_authenticated or not (
+        request.user.is_staff or request.user.is_superuser or
+        getattr(request.user, 'profile', None) and getattr(request.user.profile, 'is_mentor_user', False)
+    ):
+        return JsonResponse({'error': 'forbidden'}, status=403)
+    incident = get_object_or_404(Incident, pk=incident_id)
+    user = get_object_or_404(User, pk=user_id)
+    if user not in incident.assigned_to.all():
+        return JsonResponse({'error': 'Пользователь не назначен на этот инцидент'}, status=400)
+    old_values = serialize_model_data(incident)
+    incident.assigned_to.remove(user)
+    comment = f"Отменено назначение пользователя {user.get_full_name() or user.username} на инцидент"
+    log_update(request.user, incident, old_values, request, comment=comment)
+    return JsonResponse({'success': True})

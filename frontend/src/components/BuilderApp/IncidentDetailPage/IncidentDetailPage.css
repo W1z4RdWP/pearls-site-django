@@ -1,0 +1,361 @@
+.incident-detail {
+  padding: 2rem 0;
+  min-height: 100vh;
+}
+
+.incident-detail__card {
+  background: var(--incidents-card-bg, #fff);
+  border-radius: var(--incidents-card-radius, 10px);
+  box-shadow: var(--incidents-card-shadow, 0 2px 16px #e3e8f0);
+  padding: 2rem;
+  max-width: 1600px;
+  margin: 0 auto;
+}
+
+.incident-detail__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+}
+
+.incident-detail__title {
+  margin: 0;
+  color: var(--incidents-card-title, #232a3a);
+  font-weight: 700;
+  font-size: 1.2rem;
+}
+
+.incident-detail__back {
+  color: #4d7cff;
+  text-decoration: none;
+}
+
+.incident-detail__back:hover {
+  color: #2356b3;
+  text-decoration: underline;
+}
+
+.incident-detail__filters {
+  margin-bottom: 1.5rem;
+}
+
+.incident-detail__filters-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+  margin-bottom: 0.5rem;
+}
+
+.incident-detail__input,
+.incident-detail__select {
+  border: 1px solid #e3e8f0;
+  border-radius: 6px;
+  padding: 8px 12px;
+  font-size: 0.95em;
+  font-family: inherit;
+}
+
+.incident-detail__input {
+  min-width: 200px;
+  flex: 1;
+  max-width: 280px;
+}
+
+.incident-detail__input--date {
+  max-width: 180px;
+}
+
+.incident-detail__select {
+  min-width: 140px;
+  max-width: 200px;
+  background: #fff;
+}
+
+.incident-detail__filters-actions {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+  margin-top: 0.5rem;
+}
+
+.incident-detail__btn {
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-size: 0.95em;
+  cursor: pointer;
+  border: 1px solid transparent;
+  font-family: inherit;
+}
+
+.incident-detail__btn--primary {
+  background: #4d7cff;
+  color: #fff;
+  border-color: #4d7cff;
+}
+
+.incident-detail__btn--primary:hover {
+  background: #3d6ae6;
+  border-color: #3d6ae6;
+}
+
+.incident-detail__btn--secondary {
+  background: #f0f2f5;
+  color: #232a3a;
+  border-color: #e3e8f0;
+}
+
+.incident-detail__btn--secondary:hover {
+  background: #e3e8f0;
+}
+
+.incident-detail__subtitle {
+  margin: 0 0 1rem;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #232a3a;
+}
+
+.incident-detail__table-wrap {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.incident-detail__table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85em;
+  table-layout: fixed;
+  min-width: 1100px;
+}
+
+.incident-detail__table thead th {
+  background: #f7f8fa;
+  color: #232a3a;
+  font-weight: 600;
+  padding: 6px 6px;
+  border-bottom: 2px solid #e3e8f0;
+  text-align: left;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: 0.9em;
+}
+
+.incident-detail__table tbody td {
+  padding: 6px 6px;
+  border-bottom: 1px solid #e3e8f0;
+  vertical-align: middle;
+  color: #232a3a;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: 0.9em;
+}
+
+.incident-detail__row {
+  cursor: default;
+  transition: background-color 0.2s;
+}
+
+.incident-detail__row:hover td {
+  background-color: #f5f7fa;
+}
+
+/* Дедлайн: дата и время как в incident_detail.html */
+.incident-detail__deadline-cell {
+  text-align: center;
+}
+
+.incident-detail__deadline-date {
+  white-space: nowrap;
+}
+
+.incident-detail__deadline-time {
+  font-size: calc(1em - 3px);
+  white-space: nowrap;
+}
+
+.incident-detail__empty {
+  text-align: center;
+  padding: 2rem;
+  color: #6c757d;
+}
+
+.incident-detail__badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 0.85em;
+  font-weight: 500;
+}
+
+.incident-detail__badge--danger {
+  background: #f8d7da;
+  color: #721c24;
+}
+
+.incident-detail__badge--secondary {
+  background: #e9ecef;
+  color: #495057;
+}
+
+.incident-detail__status {
+  font-weight: 600;
+}
+
+.incident-detail__status--available {
+  color: #007bff;
+}
+
+.incident-detail__status--started {
+  color: #ffc107;
+}
+
+.incident-detail__status--completed {
+  color: #28a745;
+}
+
+.incident-detail__status--blocked {
+  color: #6c757d;
+}
+
+.incident-detail__unassign-btn {
+  padding: 4px 8px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  color: #dc3545;
+  font-size: 1.2em;
+  line-height: 1;
+  border-radius: 4px;
+}
+
+.incident-detail__unassign-btn:hover:not(:disabled) {
+  background: #f8d7da;
+}
+
+.incident-detail__unassign-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.incident-detail__unassign-icon {
+  font-weight: bold;
+}
+
+.incident-detail__loading,
+.incident-detail__error {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 2rem;
+  text-align: center;
+}
+
+.incident-detail__error p {
+  color: #721c24;
+  margin-bottom: 1rem;
+}
+
+/* Modal */
+.incident-detail__modal {
+  position: fixed;
+  z-index: 99999;
+  left: 0;
+  top: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0, 0, 0, 0.35);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.incident-detail__modal-content {
+  background: #fff;
+  color: #232a3a;
+  padding: 2rem;
+  border-radius: 12px;
+  box-shadow: 0 2px 16px rgba(0, 0, 0, 0.07);
+  min-width: 500px;
+  max-width: 95vw;
+  max-height: 90vh;
+  overflow-y: auto;
+  text-align: left;
+}
+
+.incident-detail__modal-title {
+  margin: 0 0 1.5rem;
+  font-size: 1.35em;
+  font-weight: 700;
+}
+
+.incident-detail__modal-body {
+  margin-bottom: 1.5rem;
+}
+
+.incident-detail__modal-field {
+  margin-bottom: 1rem;
+}
+
+.incident-detail__modal-field label {
+  display: block;
+  margin-bottom: 6px;
+  font-weight: 500;
+  color: #232a3a;
+}
+
+.incident-detail__textarea {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid #c3c8d0;
+  border-radius: 6px;
+  font-size: 0.95em;
+  font-family: inherit;
+  min-height: 80px;
+  resize: vertical;
+  box-sizing: border-box;
+}
+
+.incident-detail__textarea:focus {
+  border-color: #4d7cff;
+  box-shadow: 0 0 0 2px rgba(77, 124, 255, 0.13);
+  outline: none;
+}
+
+.incident-detail__modal-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+}
+
+@media (max-width: 768px) {
+  .incident-detail__card {
+    padding: 1rem;
+    max-width: 100%;
+  }
+
+  .incident-detail__filters-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .incident-detail__input,
+  .incident-detail__input--date,
+  .incident-detail__select {
+    max-width: none;
+  }
+}
+
+@media (max-width: 600px) {
+  .incident-detail__table {
+    min-width: 800px;
+    font-size: 0.85em;
+  }
+
+  .incident-detail__table thead th,
+  .incident-detail__table tbody td {
+    padding: 8px 4px;
+  }
+}

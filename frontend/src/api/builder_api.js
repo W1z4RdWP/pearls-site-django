@@ -273,3 +273,32 @@ export function declineIncident(pk) {
     body: JSON.stringify({}),
   });
 }
+
+/**
+ * Данные страницы «Детали инцидентов»: пользователи для фильтра, список назначений, фильтры.
+ * @param {Object} params — search, date_from, date_to, assigned_user, violator_filter
+ * @returns {Promise<{ users, incident_user_list, date_from, date_to, search, selected_user_id, violator_filter, violator_filter_locked }>}
+ */
+export function fetchIncidentDetail(params = {}) {
+  const searchParams = new URLSearchParams();
+  if (params.search != null && params.search !== '') searchParams.set('search', params.search);
+  if (params.date_from != null && params.date_from !== '') searchParams.set('date_from', params.date_from);
+  if (params.date_to != null && params.date_to !== '') searchParams.set('date_to', params.date_to);
+  if (params.assigned_user != null && params.assigned_user !== '') searchParams.set('assigned_user', params.assigned_user);
+  if (params.violator_filter != null && params.violator_filter !== '') searchParams.set('violator_filter', params.violator_filter);
+  const qs = searchParams.toString();
+  return request(`/builder/incidents/detail/${qs ? `?${qs}` : ''}`);
+}
+
+/**
+ * Отменить назначение пользователя на инцидент. POST.
+ * @param {number} incidentId — ID инцидента
+ * @param {number} userId — ID пользователя
+ * @returns {Promise<{ success: boolean }>}
+ */
+export function unassignIncidentUser(incidentId, userId) {
+  return request(`/builder/incidents/${incidentId}/unassign-user/${userId}/`, {
+    method: 'POST',
+    body: JSON.stringify({}),
+  });
+}
