@@ -28,7 +28,7 @@ const HomeworkCheckDashboardPage = () => {
   }, [loadData]);
 
   const handleRowClick = (userId) => {
-    navigate(`/user_management/users/${userId}/progress/`);
+    navigate(`/user_management/users/${userId}/progress`);
   };
 
   if (loading) {

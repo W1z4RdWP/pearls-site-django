@@ -3,7 +3,7 @@ import logging
 
 from django.contrib.auth.models import User, Group
 from django.db.models import Q, F, Sum, OuterRef, Subquery
-from django.core.paginator import Paginator
+from django.core.paginator import Paginator, PageNotAnInteger, EmptyPage
 from django.http import JsonResponse
 from django.views.decorators.http import require_http_methods
 from django.contrib.auth.decorators import login_required
@@ -15,6 +15,9 @@ from users.forms import UserRegisterNoCaptchaForm
 from user_management.forms import UserProfileForm
 from user_management.utils import send_user_credentials_email
 from gamification.models import DascoinTransaction
+from myapp.models import ManualCourseUnassignment, UserProgress, UserCourse, QuizResult, UserAnswer
+from courses.models import Course, UserLessonTrajectory
+from quizzes.models import HomeworkSubmission
 
 audit_logger = logging.getLogger('api_audit')
 
@@ -1006,5 +1009,266 @@ def api_admin_user_transactions(request, user_id):
             'total_count': paginator.count,
             'start_index': page_obj.start_index(),
             'end_index': page_obj.end_index(),
+        },
+    })
+
+
+PROGRESS_COURSES_PAGE_SIZE = 4
+
+
+def _serialize_lessons_detail(lessons_detail, request):
+    """Сериализация списка materials_detail для API."""
+    out = []
+    for md in lessons_detail:
+        item = {
+            'type': md['type'],
+            'title': md['title'],
+            'order': md['order'],
+            'completed': md['completed'],
+            'completed_at': md['completed_at'].strftime('%d.%m.%Y %H:%M') if md.get('completed_at') else None,
+        }
+        if md['type'] == 'quiz':
+            item['attempts_count'] = md.get('attempts_count', 0)
+            item['best_attempt_id'] = md['best_attempt'].id if md.get('best_attempt') else None
+        out.append(item)
+    return out
+
+
+def _serialize_course_progress(cp, target_user_badges_by_course, request):
+    """Сериализация одного элемента course_progress для API."""
+    course = cp['course']
+    user_course = cp['user_course']
+    course_title = course.title
+    badges_for_course = target_user_badges_by_course.get(course_title, [])
+    return {
+        'course': {
+            'title': course.title,
+            'points': getattr(course, 'points', 0) or 0,
+            'is_incident': getattr(course, 'is_incident', False),
+            'final_quiz': {'name': course.final_quiz.name} if course.final_quiz else None,
+        },
+        'user_course': {
+            'status': user_course.status,
+            'start_date': user_course.start_date.strftime('%d.%m.%Y') if user_course.start_date else None,
+            'end_date': user_course.end_date.strftime('%d.%m.%Y') if user_course.end_date else None,
+        },
+        'total_lessons': cp['total_lessons'],
+        'completed_lessons': cp['completed_lessons'],
+        'total_quizzes': cp['total_quizzes'],
+        'completed_quizzes': cp['completed_quizzes'],
+        'progress_percent': cp['progress_percent'],
+        'quiz_passed': cp['quiz_passed'],
+        'best_attempt_id': cp['best_attempt'].id if cp.get('best_attempt') else None,
+        'lessons_detail': _serialize_lessons_detail(cp['lessons_detail'], request),
+        'course_badges': badges_for_course,
+    }
+
+
+@login_required
+@require_http_methods(["GET"])
+def api_user_progress_dashboard(request, pk):
+    """API: данные дашборда прогресса пользователя для React (staff/superuser/mentor)."""
+    if not (
+            request.user.is_authenticated
+            and (
+                request.user.is_staff
+                or request.user.is_superuser
+                or (hasattr(request.user, 'profile') and request.user.profile.is_mentor_user)
+            )
+    ):
+        return JsonResponse({'error': 'У вас нет доступа к управлению пользователями.'}, status=403)
+
+    user = get_object_or_404(User.objects.select_related('profile').prefetch_related('groups'), pk=pk)
+    profile = getattr(user, 'profile', None)
+
+    available_courses = Course.objects.available_for_user(user)
+    user_courses = []
+    for course in available_courses:
+        user_course = UserCourse.objects.filter(user=user, course=course).first()
+        if user_course:
+            user_courses.append(user_course)
+        else:
+            manual_unassignment = ManualCourseUnassignment.objects.filter(
+                user=user, course=course
+            ).first()
+            if not manual_unassignment:
+                user_course = UserCourse.objects.create(user=user, course=course, status='available')
+                user_courses.append(user_course)
+
+    quiz_results = list(QuizResult.objects.filter(user=user).order_by('-completed_at'))
+    courses_progress = []
+
+    for user_course in user_courses:
+        course = user_course.course
+        trajectory = UserLessonTrajectory.objects.filter(user=user, course=course).first()
+        if trajectory:
+            lessons = list(trajectory.lessons.all().order_by('order'))
+            total_lessons = len(lessons)
+            lesson_ids = [l.id for l in lessons]
+            completed_lessons = UserProgress.objects.filter(
+                user=user, course=course, completed=True, lesson_id__in=lesson_ids
+            ).count()
+        else:
+            lessons = list(course.lessons.all().order_by('order'))
+            total_lessons = len(lessons)
+            completed_lessons = UserProgress.objects.filter(
+                user=user, course=course, completed=True
+            ).count()
+
+        quiz_names = [q.name for q in course.quizzes.all()]
+        completed_quizzes = QuizResult.objects.filter(
+            user=user, course=course, quiz_title__in=quiz_names, passed=True
+        ).values('quiz_title').distinct().count()
+        total_quizzes = course.quizzes.count()
+        completed_homeworks = HomeworkSubmission.objects.filter(
+            user=user, course=course,
+            homework__in=course.homeworks, status='correct'
+        ).values('homework_id').distinct().count()
+        total_homeworks = course.homeworks.count()
+        total_materials = total_lessons + total_quizzes + total_homeworks
+        completed_materials = completed_lessons + completed_quizzes + completed_homeworks
+        progress_percent = int((completed_materials / total_materials) * 100) if total_materials > 0 else 0
+
+        quiz_passed = False
+        if course.final_quiz:
+            quiz_passed = QuizResult.objects.filter(
+                user=user, course=course, quiz_title=course.final_quiz.name, passed=True
+            ).exists()
+
+        materials_detail = []
+        for lesson in lessons:
+            progress = UserProgress.objects.filter(
+                user=user, course=course, lesson=lesson, completed=True
+            ).first()
+            materials_detail.append({
+                'type': 'lesson',
+                'title': lesson.title,
+                'order': lesson.order,
+                'completed': progress is not None,
+                'completed_at': progress.completed_at if progress else None,
+            })
+        for quiz in course.quizzes.all():
+            quiz_attempts = list(QuizResult.objects.filter(
+                user=user, course=course, quiz_title=quiz.name
+            ).order_by('-completed_at'))
+            quiz_result = next((a for a in quiz_attempts if a.passed), None)
+            best_attempt = max(quiz_attempts, key=lambda x: (x.percent, x.completed_at)) if quiz_attempts else None
+            materials_detail.append({
+                'type': 'quiz',
+                'title': quiz.name,
+                'order': quiz.order,
+                'completed': quiz_result is not None,
+                'completed_at': quiz_result.completed_at if quiz_result else None,
+                'attempts_count': len(quiz_attempts),
+                'best_attempt': best_attempt,
+            })
+        materials_detail.sort(key=lambda x: x['order'])
+
+        best_attempt = None
+        if course.final_quiz:
+            attempts = [qr for qr in quiz_results if qr.quiz_title == course.final_quiz.name]
+            if attempts:
+                best_attempt = max(attempts, key=lambda x: (x.percent, x.completed_at))
+
+        courses_progress.append({
+            'course': course,
+            'user_course': user_course,
+            'total_lessons': total_lessons,
+            'completed_lessons': completed_lessons,
+            'total_quizzes': total_quizzes,
+            'completed_quizzes': completed_quizzes,
+            'total_homeworks': total_homeworks,
+            'completed_homeworks': completed_homeworks,
+            'total_materials': total_materials,
+            'completed_materials': completed_materials,
+            'progress_percent': progress_percent,
+            'quiz_passed': quiz_passed,
+            'lessons_detail': materials_detail,
+            'best_attempt': best_attempt,
+        })
+
+    total_courses = len(courses_progress)
+    completed_courses = len([cp for cp in courses_progress if cp['user_course'].status == 'completed'])
+    started_courses = len([cp for cp in courses_progress if cp['user_course'].status == 'started'])
+    total_lessons_completed = sum(cp['completed_lessons'] for cp in courses_progress)
+    total_lessons_available = sum(cp['total_lessons'] for cp in courses_progress)
+    total_materials_available = sum(cp['total_materials'] for cp in courses_progress)
+    total_materials_completed = sum(cp['completed_materials'] for cp in courses_progress)
+    overall_progress = int((total_materials_completed / total_materials_available) * 100) if total_materials_available > 0 else 0
+
+    course_filter = request.GET.get('course_filter', 'completed')
+    if course_filter == 'completed':
+        courses_progress = [cp for cp in courses_progress if cp['user_course'].status == 'completed']
+    elif course_filter == 'started':
+        courses_progress = [cp for cp in courses_progress if cp['user_course'].status == 'started']
+
+    target_user_badges_by_course = {}
+    if profile:
+        for ub in profile.get_badges():
+            badge = ub.badge
+            if badge.badge_type == 'course' and badge.name.startswith('Курс: '):
+                course_name = badge.name.replace('Курс: ', '', 1)
+                if course_name not in target_user_badges_by_course:
+                    target_user_badges_by_course[course_name] = []
+                target_user_badges_by_course[course_name].append({
+                    'name': badge.name,
+                    'icon_url': badge.icon.url if badge.icon else None,
+                    'earned_at': ub.earned_at.strftime('%d.%m.%Y') if ub.earned_at else None,
+                })
+
+    paginator_courses = Paginator(courses_progress, PROGRESS_COURSES_PAGE_SIZE)
+    page_number_courses = request.GET.get('courses_page', 1)
+    try:
+        page_number_courses = int(page_number_courses)
+        if page_number_courses < 1:
+            page_number_courses = 1
+    except (ValueError, TypeError):
+        page_number_courses = 1
+    try:
+        page_obj_courses = paginator_courses.page(page_number_courses)
+    except PageNotAnInteger:
+        page_obj_courses = paginator_courses.page(1)
+    except EmptyPage:
+        page_obj_courses = paginator_courses.page(paginator_courses.num_pages)
+
+    items = []
+    for cp in page_obj_courses:
+        items.append(_serialize_course_progress(cp, target_user_badges_by_course, request))
+
+    image_url = None
+    if profile and profile.image:
+        try:
+            image_url = request.build_absolute_uri(profile.image.url)
+        except Exception:
+            image_url = profile.image.url if hasattr(profile.image, 'url') else None
+
+    target_user_data = {
+        'id': user.id,
+        'full_name': user.get_full_name() or user.username,
+        'username': user.username,
+        'email': user.email,
+        'groups': [g.name for g in user.groups.all()],
+        'is_staff': user.is_staff,
+        'is_superuser': user.is_superuser,
+        'profile': {'image_url': image_url},
+    }
+
+    return JsonResponse({
+        'target_user': target_user_data,
+        'overall_progress': overall_progress,
+        'total_lessons_completed': total_lessons_completed,
+        'total_lessons_available': total_lessons_available,
+        'total_courses': total_courses,
+        'completed_courses': completed_courses,
+        'started_courses': started_courses,
+        'course_filter': course_filter,
+        'items': items,
+        'pagination': {
+            'page': page_obj_courses.number,
+            'num_pages': paginator_courses.num_pages,
+            'has_previous': page_obj_courses.has_previous(),
+            'has_next': page_obj_courses.has_next(),
+            'previous_page_number': page_obj_courses.previous_page_number() if page_obj_courses.has_previous() else None,
+            'next_page_number': page_obj_courses.next_page_number() if page_obj_courses.has_next() else None,
         },
     })

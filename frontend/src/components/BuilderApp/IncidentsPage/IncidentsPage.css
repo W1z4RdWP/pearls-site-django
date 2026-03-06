@@ -13,6 +13,7 @@
   --incidents-status-declined: #721c24;
   --incidents-row-selected-bg: #e3f2fd;
   --incidents-row-selected-border: #2196f3;
+  margin-bottom: 1.5rem;
 }
 
 .incidents-page__card {

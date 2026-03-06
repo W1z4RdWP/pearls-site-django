@@ -1,0 +1,586 @@
+/* UserProgressDashboardPage — дашборд прогресса пользователя */
+
+.user-progress-dashboard {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 20px;
+}
+
+.user-progress-dashboard__wrapper {
+  font-family: var(--primary-font, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif);
+}
+
+.user-progress-dashboard__loading,
+.user-progress-dashboard__error {
+  text-align: center;
+  padding: 2rem;
+  color: var(--color-text-secondary);
+}
+
+.user-progress-dashboard__error {
+  color: var(--color-text);
+}
+
+.user-progress-dashboard__error p {
+  margin-bottom: 1rem;
+}
+
+.user-progress-dashboard__link {
+  color: var(--color-link);
+}
+
+.user-progress-dashboard__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.user-progress-dashboard__title {
+  font-size: 1.25rem;
+  font-weight: 600;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.user-progress-dashboard__actions {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+}
+
+.user-progress-dashboard__btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  font-weight: 500;
+  font-size: 0.875rem;
+  text-decoration: none;
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: background-color 0.2s, transform 0.2s;
+}
+
+.user-progress-dashboard__btn--success {
+  background: #198754;
+  color: #fff;
+}
+
+.user-progress-dashboard__btn--success:hover {
+  background: #157347;
+}
+
+.user-progress-dashboard__btn--secondary {
+  background: transparent;
+  color: var(--color-text-secondary);
+  border-color: #dee2e6;
+}
+
+.user-progress-dashboard__btn--secondary:hover {
+  background: #f8f9fa;
+}
+
+.user-progress-dashboard__btn--outline {
+  background: transparent;
+  color: #0dcaf0;
+  border-color: #0dcaf0;
+  margin-left: 0.75rem;
+}
+
+.user-progress-dashboard__btn--sm {
+  padding: 0.25rem 0.5rem;
+  font-size: 0.75rem;
+  margin-left: 0.5rem;
+}
+
+/* Карточка пользователя */
+.user-progress-dashboard__user-card {
+  background: #f8f9fa;
+  border-radius: 12px;
+  padding: 20px;
+  margin-bottom: 30px;
+  border: 1px solid #dee2e6;
+  position: relative;
+}
+
+.user-progress-dashboard__user-row {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+
+.user-progress-dashboard__user-avatar-wrap {
+  flex-shrink: 0;
+}
+
+.user-progress-dashboard__user-avatar {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.user-progress-dashboard__user-avatar--placeholder {
+  background: #e9ecef;
+}
+
+.user-progress-dashboard__user-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.user-progress-dashboard__admin-badge {
+  position: absolute;
+  top: 15px;
+  right: 20px;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  background: #ffc107;
+  color: #212529;
+}
+
+.user-progress-dashboard__user-name {
+  margin: 0 0 0.25rem 0;
+  font-size: 1.25rem;
+  font-weight: 600;
+}
+
+.user-progress-dashboard__user-email {
+  margin: 0 0 0.25rem 0;
+  color: var(--color-text-secondary);
+  font-size: 0.875rem;
+}
+
+.user-progress-dashboard__user-groups {
+  margin: 0;
+  font-size: 0.875rem;
+}
+
+.user-progress-dashboard__badge {
+  display: inline-block;
+  padding: 0.2rem 0.5rem;
+  margin-right: 0.25rem;
+  margin-bottom: 0.25rem;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  background: var(--color-accent);
+  color: #fff;
+}
+
+.user-progress-dashboard__muted {
+  color: var(--color-text-secondary);
+}
+
+/* Статистика */
+.user-progress-dashboard__stats {
+  margin-bottom: 2.5rem;
+}
+
+.user-progress-dashboard__stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 20px;
+}
+
+.user-progress-dashboard__stat-card {
+  background: var(--color-card-bg);
+  padding: 24px;
+  border-radius: 12px;
+  box-shadow: var(--color-card-shadow);
+  border: 2px solid transparent;
+  text-align: center;
+  cursor: pointer;
+  transition: transform 0.2s, box-shadow 0.2s;
+  font: inherit;
+}
+
+.user-progress-dashboard__stat-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.user-progress-dashboard__stat-card--active {
+  border-color: #007bff;
+  background-color: #f8f9ff;
+}
+
+.user-progress-dashboard__stat-card h3 {
+  margin: 0 0 12px 0;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--color-card-title);
+}
+
+.user-progress-dashboard__stat-value {
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--color-text);
+  margin-bottom: 0.5rem;
+}
+
+.user-progress-dashboard__stat-desc {
+  font-size: 0.875rem;
+  color: var(--color-text-secondary);
+  line-height: 1.4;
+}
+
+/* Курсы */
+.user-progress-dashboard__courses {
+  margin-top: 2rem;
+}
+
+.user-progress-dashboard__courses-title {
+  margin-bottom: 1.5rem;
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.user-progress-dashboard__course-card {
+  background: var(--color-card-bg);
+  border-radius: 12px;
+  box-shadow: var(--color-card-shadow);
+  border: 1px solid var(--color-card-border);
+  margin-bottom: 24px;
+  overflow: hidden;
+}
+
+.user-progress-dashboard__course-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 24px;
+  background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+  border-bottom: 1px solid var(--color-card-border);
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.user-progress-dashboard__course-title {
+  margin: 0 0 8px 0;
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.user-progress-dashboard__course-meta {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.user-progress-dashboard__course-status {
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.user-progress-dashboard__course-status--completed {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.user-progress-dashboard__course-status--started {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.user-progress-dashboard__course-status--available {
+  background: #e0e7ff;
+  color: #3730a3;
+}
+
+.user-progress-dashboard__course-date {
+  font-size: 0.875rem;
+  color: var(--color-text-secondary);
+}
+
+.user-progress-dashboard__course-stats {
+  text-align: right;
+}
+
+.user-progress-dashboard__course-progress {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.user-progress-dashboard__progress-bar {
+  width: 120px;
+  height: 8px;
+  background: #e5e7eb;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.user-progress-dashboard__progress-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #10b981 0%, #059669 100%);
+  border-radius: 4px;
+  transition: width 0.3s ease;
+}
+
+.user-progress-dashboard__progress-percent {
+  font-size: 1rem;
+  font-weight: 600;
+  min-width: 40px;
+}
+
+.user-progress-dashboard__lessons-count {
+  font-size: 0.875rem;
+  color: var(--color-text-secondary);
+}
+
+/* Финальный тест */
+.user-progress-dashboard__quiz-info {
+  padding: 20px 24px;
+  background: #f9fafb;
+  border-bottom: 1px solid var(--color-card-border);
+}
+
+.user-progress-dashboard__quiz-info h4 {
+  margin: 0 0 8px 0;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.user-progress-dashboard__quiz-status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.user-progress-dashboard__quiz-passed {
+  color: #059669;
+  font-weight: 600;
+}
+
+.user-progress-dashboard__quiz-not-passed {
+  color: #dc2626;
+  font-weight: 600;
+}
+
+/* Материалы курса */
+.user-progress-dashboard__lessons-detail {
+  padding: 24px;
+}
+
+.user-progress-dashboard__lessons-detail h4 {
+  margin: 0 0 16px 0;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.user-progress-dashboard__lessons-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.user-progress-dashboard__lesson-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  background: #f9fafb;
+  border-radius: 8px;
+  border: 1px solid #e5e7eb;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.user-progress-dashboard__lesson-item--completed {
+  background: #f0fdf4;
+  border-color: #bbf7d0;
+}
+
+.user-progress-dashboard__lesson-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.user-progress-dashboard__lesson-order {
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  min-width: 20px;
+}
+
+.user-progress-dashboard__lesson-title {
+  font-weight: 500;
+}
+
+.user-progress-dashboard__lesson-status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.user-progress-dashboard__lesson-badge {
+  color: #9ca3af;
+  font-size: 1rem;
+}
+
+.user-progress-dashboard__lesson-badge--done {
+  color: #059669;
+  font-weight: bold;
+}
+
+.user-progress-dashboard__lesson-date {
+  font-size: 0.75rem;
+  color: var(--color-text-secondary);
+}
+
+.user-progress-dashboard__quiz-attempts {
+  margin-top: 0.25rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.user-progress-dashboard__attempts-count {
+  color: var(--color-text-secondary);
+  font-size: 0.75rem;
+  font-weight: 500;
+  background: #f9fafb;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  border: 1px solid #e5e7eb;
+}
+
+/* Награды */
+.user-progress-dashboard__rewards {
+  padding: 20px 24px;
+  background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+  border-top: 1px solid var(--color-card-border);
+}
+
+.user-progress-dashboard__rewards h4 {
+  margin: 0 0 12px 0;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #92400e;
+}
+
+.user-progress-dashboard__rewards-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 15px;
+}
+
+.user-progress-dashboard__reward-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.user-progress-dashboard__reward-icon {
+  font-size: 1.25rem;
+}
+
+.user-progress-dashboard__reward-text {
+  font-weight: 600;
+  color: #92400e;
+}
+
+.user-progress-dashboard__reward-date {
+  font-size: 0.75rem;
+  color: var(--color-text-secondary);
+  margin-left: auto;
+}
+
+.user-progress-dashboard__badge-icon {
+  width: 24px;
+  height: 24px;
+  object-fit: contain;
+}
+
+/* Нет курсов */
+.user-progress-dashboard__no-courses {
+  text-align: center;
+  padding: 40px;
+  background: var(--color-card-bg);
+  border-radius: 12px;
+  box-shadow: var(--color-card-shadow);
+  border: 1px solid var(--color-card-border);
+}
+
+.user-progress-dashboard__no-courses p {
+  margin: 0;
+  font-size: 1rem;
+  color: var(--color-text-secondary);
+}
+
+/* Пагинация */
+.user-progress-dashboard__pagination {
+  margin-top: 1.5rem;
+  display: flex;
+  justify-content: center;
+}
+
+.user-progress-dashboard__pagination-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.user-progress-dashboard__page-link {
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--color-card-border);
+  background: var(--color-card-bg);
+  border-radius: 4px;
+  cursor: pointer;
+  font: inherit;
+  color: var(--color-text);
+  text-decoration: none;
+  transition: background 0.2s;
+}
+
+.user-progress-dashboard__page-link:hover {
+  background: #f8f9fa;
+}
+
+.user-progress-dashboard__page-link--active {
+  background: var(--color-accent);
+  color: #fff;
+  border-color: var(--color-accent);
+}
+
+@media (max-width: 768px) {
+  .user-progress-dashboard__header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .user-progress-dashboard__course-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .user-progress-dashboard__course-stats {
+    text-align: left;
+  }
+
+  .user-progress-dashboard__stats-grid {
+    grid-template-columns: 1fr;
+  }
+}

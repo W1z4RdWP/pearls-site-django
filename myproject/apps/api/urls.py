@@ -110,6 +110,9 @@ urlpatterns = [
     path('user_management/roles/<int:role_id>/users/', user_management_views.api_role_users, name='api_user_management_role_users'),
     path('user_management/users/<int:pk>/password/', user_management_views.api_user_password_change, name='api_user_management_user_password_change'),
 
+    # User Management API — прогресс пользователя
+    path('user_management/users/<int:pk>/progress/', user_management_views.api_user_progress_dashboard, name='api_user_management_user_progress'),
+
     # User Management API — административная панель DASCOIN
     path('user_management/admin/dascoin_dashboard/', user_management_views.api_admin_dascoin_dashboard, name='api_user_management_admin_dascoin_dashboard'),
     path('user_management/admin/user/<int:user_id>/transactions/', user_management_views.api_admin_user_transactions, name='api_user_management_admin_user_transactions'),

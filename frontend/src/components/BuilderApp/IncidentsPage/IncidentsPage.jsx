@@ -1,8 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { useOutletContext } from 'react-router-dom';
 import { fetchIncidents, declineIncident } from '../../../api/builder_api';
-import DashboardSidebar from '../../DashboardPage/DashboardSidebar';
-import '../../DashboardPage/DashboardPage.css';
 import './IncidentsPage.css';
 
 const COLUMN_TITLES_STORAGE_KEY = 'incidents_table_column_titles';
@@ -55,14 +52,10 @@ const COLUMN_HEADERS = [
 ];
 
 const IncidentsPage = () => {
-  const { user } = useOutletContext();
-  const isMentorOnly = user?.is_mentor && !user?.is_staff && !user?.is_superuser;
-  const usersLabel = isMentorOnly ? 'Моя группа' : 'Пользователи';
-  const showAdminLinks = !isMentorOnly;
-
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  /** Текущие значения формы фильтров (как в get_context_data: date_from, date_to, selected_statuses, selected_incident_type) */
   const [filters, setFilters] = useState({
     date_from: DEFAULT_DATE_FROM,
     date_to: getDefaultDateTo(),
@@ -76,42 +69,49 @@ const IncidentsPage = () => {
   const [declineLoading, setDeclineLoading] = useState(false);
   const clickTimeoutRef = useRef(null);
 
-  const loadData = useCallback(async () => {
+  /**
+   * Загрузка данных. Как в IncidentListView:
+   * - params === undefined: использовать текущие filters (после применения или после decline).
+   * - params === null или пустой: первый заход / сброс — запрос без GET, бэкенд подставляет дефолты.
+   * - params объект: передать как GET-параметры.
+   */
+  const loadData = useCallback(async (params) => {
     setLoading(true);
     setError(null);
     try {
-      const params = {};
-      if (filters.date_from) params.date_from = filters.date_from;
-      if (filters.date_to) params.date_to = filters.date_to;
-      if (filters.incident_type) params.incident_type = filters.incident_type;
-      if (filters.status && filters.status.length) params.status = filters.status;
-      const res = await fetchIncidents(params);
+      const queryParams = params === undefined ? filters : params === null ? {} : params;
+      const res = await fetchIncidents(queryParams);
       setData(res);
+      setFilters({
+        date_from: res.date_from ?? DEFAULT_DATE_FROM,
+        date_to: res.date_to ?? getDefaultDateTo(),
+        incident_type: res.selected_incident_type ?? '',
+        status: res.selected_statuses ?? DEFAULT_STATUSES,
+      });
     } catch (err) {
       setError(err.message || 'Ошибка загрузки инцидентов');
       setData(null);
     } finally {
       setLoading(false);
     }
-  }, [filters.date_from, filters.date_to, filters.incident_type, filters.status]);
+  }, [filters]);
 
+  /** Первая загрузка: без GET (бэкенд сам подставляет дефолты). */
   useEffect(() => {
-    loadData();
-  }, [loadData]);
+    loadData(null);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
+  /** Применить фильтры: отправить текущие значения формы как GET. */
   const handleApplyFilters = (e) => {
     e.preventDefault();
-    loadData();
+    loadData(filters);
   };
 
+  /** Сбросить: запрос без GET (как ссылка на builder:incidents без query). */
   const handleResetFilters = () => {
-    setFilters({
-      date_from: DEFAULT_DATE_FROM,
-      date_to: getDefaultDateTo(),
-      incident_type: '',
-      status: DEFAULT_STATUSES,
-    });
     setSelectedIncident(null);
+    loadData(null);
   };
 
   const handleRowClick = (incident, e) => {
@@ -178,16 +178,14 @@ const IncidentsPage = () => {
   const incidents = data?.incidents ?? [];
   const statusChoices = data?.status_choices ?? [];
   const incidentTypeChoices = data?.incident_type_choices ?? [];
-  const selectedStatuses = filters.status.length ? filters.status : (data?.selected_statuses ?? DEFAULT_STATUSES);
+  const selectedStatuses = filters.status;
 
   const truncatedTitle = (title, max = 30) =>
     title && title.length > max ? `${title.slice(0, max)}...` : title || '';
 
   return (
-    <div className="dashboard-page">
-      <DashboardSidebar usersLabel={usersLabel} showAdminLinks={showAdminLinks} currentPage="incidents" />
-      <div className="dashboard-page__main" onClick={handleContainerClick}>
-        <div className="incidents-page__card">
+    <div className="incidents-page" onClick={handleContainerClick}>
+      <div className="incidents-page__card">
         <form className="incidents-page__form mb-4" onSubmit={handleApplyFilters} id="incidents-filter-form">
           <div className="incidents-page__form-row">
             <input
@@ -372,7 +370,6 @@ const IncidentsPage = () => {
             </table>
           </div>
         )}
-        </div>
       </div>
 
       {columnModalOpen && (

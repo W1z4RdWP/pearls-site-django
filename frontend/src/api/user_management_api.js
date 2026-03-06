@@ -258,3 +258,18 @@ export function fetchAdminUserTransactions(userId, page = 1, type = '') {
   if (type && type.trim()) params.set('type', type.trim());
   return request(`/user_management/admin/user/${userId}/transactions/?${params.toString()}`);
 }
+
+/**
+ * Дашборд прогресса пользователя (staff/superuser/mentor).
+ * @param {number} userId — ID пользователя
+ * @param {string} [courseFilter='completed'] — фильтр курсов (all, completed, started)
+ * @param {number} [coursesPage=1] — страница списка курсов
+ * @returns {Promise<{target_user: object, overall_progress: number, total_lessons_completed: number, total_lessons_available: number, total_courses: number, completed_courses: number, started_courses: number, course_filter: string, items: Array, pagination: object}>}
+ */
+export function fetchUserProgressDashboard(userId, courseFilter = 'completed', coursesPage = 1) {
+  const params = new URLSearchParams();
+  if (courseFilter) params.set('course_filter', courseFilter);
+  if (coursesPage > 1) params.set('courses_page', String(coursesPage));
+  const query = params.toString();
+  return request(`/user_management/users/${userId}/progress${query ? `?${query}` : ''}`);
+}

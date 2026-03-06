@@ -22,6 +22,7 @@ import UserCreateStep1Page from './components/UserManagementApp/UserCreateStep1P
 import UserCreateStep2Page from './components/UserManagementApp/UserCreateStep2Page/UserCreateStep2Page';
 import UserEditPage from './components/UserManagementApp/UserEditPage/UserEditPage';
 import UserPasswordChangePage from './components/UserManagementApp/UserPasswordChangePage/UserPasswordChangePage';
+import UserProgressDashboardPage from './components/UserManagementApp/UserProgressDashboardPage/UserProgressDashboardPage';
 import AdminDascoinDashboardPage from './components/UserManagementApp/AdminDascoinDashboardPage/AdminDascoinDashboardPage';
 import AdminUserTransactionsPage from './components/UserManagementApp/AdminUserTransactionsPage/AdminUserTransactionsPage';
 import KnowledgeBasePage from './components/BuilderApp/KnowledgeBasePage/KnowledgeBasePage';
@@ -112,6 +113,7 @@ const App = () => {
           <Route path='/user_management/users/add/step1' element={<UserCreateStep1Page />} />
           <Route path='/user_management/users/add/step2' element={<UserCreateStep2Page />} />
           <Route path='/user_management/users/:userId/edit' element={<UserEditPage />} />
+          <Route path='/user_management/users/:userId/progress' element={<UserProgressDashboardPage />} />
           <Route path='/user_management/user/:userId/password' element={<UserPasswordChangePage />} />
           <Route path='/user_management/admin/dascoin_dashboard/' element={<AdminDascoinDashboardPage />} />
           <Route path='/user_management/admin/user/:userId/transactions/' element={<AdminUserTransactionsPage />} />
