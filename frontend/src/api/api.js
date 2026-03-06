@@ -43,6 +43,7 @@ export async function request(url, options = {}) {
     const errorData = await response.json().catch(() => ({}));
     const err = new Error(errorData.error || `HTTP ${response.status}`);
     if (errorData.errors) err.errors = errorData.errors;
+    if (errorData.redirect_url) err.redirect_url = errorData.redirect_url;
     throw err;
   }
 

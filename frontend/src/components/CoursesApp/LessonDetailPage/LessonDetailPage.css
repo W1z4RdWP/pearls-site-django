@@ -1,0 +1,395 @@
+/* LessonDetailPage — BEM с префиксом компонента */
+
+.lesson-detail-page {
+  padding: 1.5rem 0 3rem;
+}
+
+.lesson-detail-page__container {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 0 1rem;
+}
+
+.lesson-detail-page__loading,
+.lesson-detail-page__error {
+  text-align: center;
+  padding: 2rem;
+}
+
+.lesson-detail-page__error {
+  color: var(--color-danger, #dc3545);
+}
+
+.lesson-detail-page__back-btn {
+  display: inline-block;
+  margin-top: 1rem;
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  border: 1px solid #dee2e6;
+  background: #f8f9fa;
+  cursor: pointer;
+  font-size: 1rem;
+}
+
+.lesson-detail-page__nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  align-items: center;
+  margin-bottom: 1.5rem;
+}
+
+.lesson-detail-page__nav-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  font-weight: 500;
+  text-decoration: none;
+  transition: background 0.2s, transform 0.2s;
+}
+
+.lesson-detail-page__nav-btn--secondary {
+  border: 1px solid #6c757d;
+  color: #6c757d;
+  background: transparent;
+}
+
+.lesson-detail-page__nav-btn--secondary:hover {
+  background: #6c757d;
+  color: #fff;
+}
+
+.lesson-detail-page__nav-btn--primary {
+  background: #007bff;
+  border: 1px solid #007bff;
+  color: #fff;
+}
+
+.lesson-detail-page__nav-btn--primary:hover {
+  background: #0056b3;
+  border-color: #0056b3;
+  transform: translateY(-1px);
+}
+
+.lesson-detail-page__nav-btn--success {
+  background: #28a745;
+  border-color: #28a745;
+  color: #fff;
+}
+
+.lesson-detail-page__nav-btn--success:hover {
+  background: #218838;
+  transform: translateY(-1px);
+}
+
+.lesson-detail-page__nav-btn--warning {
+  background: #ffc107;
+  border-color: #ffc107;
+  color: #212529;
+}
+
+.lesson-detail-page__nav-btn--warning:hover {
+  background: #e0a800;
+  transform: translateY(-1px);
+}
+
+.lesson-detail-page__nav-btn--disabled {
+  background: #e9ecef;
+  color: #6c757d;
+  border: 1px solid #dee2e6;
+  cursor: default;
+}
+
+.lesson-detail-page__content-section {
+  margin-bottom: 2rem;
+}
+
+.lesson-detail-page__course-title {
+  font-size: 1.5rem;
+  margin-bottom: 0.25rem;
+  color: #212529;
+}
+
+.lesson-detail-page__lesson-title {
+  font-size: 1.75rem;
+  font-weight: 600;
+  margin-bottom: 1rem;
+  color: #495057;
+}
+
+.lesson-detail-page__alert {
+  padding: 1rem 1.25rem;
+  border-radius: 8px;
+  margin-bottom: 1rem;
+}
+
+.lesson-detail-page__alert--success {
+  background: #d4edda;
+  border: 1px solid #c3e6cb;
+  color: #155724;
+}
+
+.lesson-detail-page__body {
+  margin: 1rem 0;
+}
+
+.lesson-detail-page__content.ck-content {
+  line-height: 1.6;
+}
+
+.lesson-detail-page__content.ck-content video {
+  width: 100%;
+  height: auto;
+  max-width: 100%;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.lesson-detail-page__video-wrapper {
+  margin: 1.5rem 0;
+}
+
+.lesson-detail-page__video-wrapper--16x9 {
+  position: relative;
+  width: 100%;
+  padding-top: 56.25%;
+}
+
+.lesson-detail-page__video-iframe {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  top: 0;
+  left: 0;
+  border: 0;
+}
+
+.lesson-detail-page__rutube iframe {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.lesson-detail-page__confirmation {
+  margin: 2rem 0;
+  padding: 1.25rem;
+  border: 1px solid #dee2e6;
+  border-radius: 8px;
+  background: #f9f9f9;
+}
+
+.lesson-detail-page__confirmation-label {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  cursor: pointer;
+  font-size: 1rem;
+}
+
+.lesson-detail-page__confirmation-input {
+  margin-top: 0.2rem;
+  transform: scale(1.2);
+}
+
+.lesson-detail-page__actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 2rem;
+  margin-top: 2rem;
+}
+
+.lesson-detail-page__btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  font-size: 1.05rem;
+  font-weight: 500;
+  border: none;
+  border-radius: 18px;
+  padding: 12px 32px;
+  min-width: 170px;
+  cursor: pointer;
+  transition: background 0.2s, box-shadow 0.2s, color 0.2s;
+  text-decoration: none;
+  box-shadow: 0 2px 12px rgba(60, 60, 60, 0.08);
+}
+
+.lesson-detail-page__btn--complete {
+  background: linear-gradient(90deg, #43e97b 0%, #38f9d7 100%);
+  color: #fff;
+}
+
+.lesson-detail-page__btn--complete:hover:not(.lesson-detail-page__btn--disabled) {
+  background: linear-gradient(90deg, #38f9d7 0%, #43e97b 100%);
+  box-shadow: 0 4px 16px rgba(67, 233, 123, 0.12);
+}
+
+.lesson-detail-page__btn--delete {
+  background: linear-gradient(90deg, #ff5858 0%, #f09819 100%);
+  color: #fff;
+}
+
+.lesson-detail-page__btn--delete:hover {
+  background: linear-gradient(90deg, #f09819 0%, #ff5858 100%);
+  box-shadow: 0 4px 16px rgba(255, 88, 88, 0.16);
+}
+
+.lesson-detail-page__btn--edit {
+  background: linear-gradient(90deg, #ffb347 0%, #ffcc33 100%);
+  color: #fff;
+}
+
+.lesson-detail-page__btn--edit:hover {
+  background: linear-gradient(90deg, #ffcc33 0%, #ffb347 100%);
+  box-shadow: 0 4px 16px rgba(255, 179, 71, 0.18);
+}
+
+.lesson-detail-page__btn--disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+/* Модальное окно */
+.lesson-detail-page__modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1050;
+  padding: 1rem;
+}
+
+.lesson-detail-page__modal {
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+  max-width: 480px;
+  width: 100%;
+  overflow: hidden;
+}
+
+.lesson-detail-page__modal-header {
+  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+  border-bottom: 1px solid #dee2e6;
+  padding: 1rem 1.5rem;
+}
+
+.lesson-detail-page__modal-title {
+  margin: 0;
+  color: #495057;
+  font-weight: 600;
+  font-size: 1.15rem;
+}
+
+.lesson-detail-page__modal-body {
+  padding: 1.5rem 2rem;
+  text-align: center;
+}
+
+.lesson-detail-page__modal-icon {
+  margin-bottom: 1rem;
+}
+
+.lesson-detail-page__modal-icon i {
+  font-size: 3rem;
+  color: #007bff;
+}
+
+.lesson-detail-page__modal-lead {
+  font-size: 1.1rem;
+  font-weight: 500;
+  margin-bottom: 0.5rem;
+  color: #212529;
+}
+
+.lesson-detail-page__modal-muted {
+  color: #6c757d;
+  font-size: 0.95rem;
+  margin: 0;
+}
+
+.lesson-detail-page__modal-footer {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.75rem;
+  border-top: 1px solid #dee2e6;
+  padding: 1.25rem 2rem;
+}
+
+.lesson-detail-page__modal-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 10px 20px;
+  border-radius: 8px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  border: none;
+}
+
+.lesson-detail-page__modal-btn--secondary {
+  background: transparent;
+  border: 1px solid #6c757d;
+  color: #6c757d;
+}
+
+.lesson-detail-page__modal-btn--secondary:hover:not(:disabled) {
+  background: #6c757d;
+  color: #fff;
+  transform: translateY(-1px);
+}
+
+.lesson-detail-page__modal-btn--primary {
+  background: #007bff;
+  border: 1px solid #007bff;
+  color: #fff;
+}
+
+.lesson-detail-page__modal-btn--primary:hover:not(:disabled) {
+  background: #0056b3;
+  border-color: #0056b3;
+  transform: translateY(-1px);
+}
+
+.lesson-detail-page__modal-btn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+@media (max-width: 768px) {
+  .lesson-detail-page__content.ck-content video {
+    border-radius: 6px;
+  }
+
+  .lesson-detail-page__nav {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .lesson-detail-page__nav-btn {
+    justify-content: center;
+  }
+
+  .lesson-detail-page__actions {
+    flex-direction: column;
+  }
+
+  .lesson-detail-page__btn {
+    width: 100%;
+  }
+}
+
+@media (max-width: 480px) {
+  .lesson-detail-page__content.ck-content video {
+    border-radius: 4px;
+  }
+}

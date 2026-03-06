@@ -18,10 +18,11 @@ from courses.models import (
     Course, Lesson, UserCourseTrajectory, TrajectoryCourse, UserLessonTrajectory,
 )
 from courses.forms import CourseForm, LessonForm
-from courses.utils import get_user_certificates
+from courses.utils import get_user_certificates, issue_certificate
 from courses.views import get_user_trajectories_queryset, get_trajectory_list_context
-from myapp.models import UserCourse, UserProgress, QuizResult
+from myapp.models import UserCourse, UserProgress, QuizResult, ManualCourseUnassignment
 from myapp.views import is_author_or_admin, is_admin
+from gamification.utils import award_dascoin_points, award_course_badge, award_first_lesson_badge
 from quizzes.models import HomeworkSubmission, Quiz, Homework
 from builder.models import CategoryName
 
@@ -653,6 +654,381 @@ def api_start_course(request, slug):
         return JsonResponse({'success': True, 'status': 'started'})
 
     return JsonResponse({'success': False, 'error': 'Курс уже начат или завершён.'})
+
+
+def _get_next_material_after_lesson(user, lesson, course, trajectory):
+    """Следующий материал после урока (урок, тест или задание) для навигации."""
+    materials = course.get_course_materials()
+    completed_lessons_ids = set(
+        UserProgress.objects.filter(
+            user=user, course=course, completed=True
+        ).values_list('lesson_id', flat=True)
+    )
+    completed_quizzes_ids = set(
+        QuizResult.objects.filter(
+            user=user, course=course,
+            quiz_title__in=[q.name for q in course.quizzes],
+            passed=True
+        ).values_list('quiz_title', flat=True)
+    )
+    completed_homework_ids = set(
+        HomeworkSubmission.objects.filter(
+            user=user, course=course, status='correct'
+        ).values_list('homework_id', flat=True)
+    )
+    if trajectory:
+        trajectory_lesson_ids = set(trajectory.lessons.values_list('id', flat=True))
+        materials = [m for m in materials if m['type'] in ('quiz', 'homework') or m['id'] in trajectory_lesson_ids]
+    current_lesson_index = None
+    for i, material in enumerate(materials):
+        if material['type'] == 'lesson' and material['id'] == lesson.id:
+            current_lesson_index = i
+            break
+    if current_lesson_index is None:
+        return None
+    for i in range(current_lesson_index + 1, len(materials)):
+        material = materials[i]
+        if material['type'] == 'lesson':
+            if material['id'] not in completed_lessons_ids:
+                return material
+        elif material['type'] == 'quiz':
+            if material['title'] not in completed_quizzes_ids:
+                return material
+        elif material['type'] == 'homework':
+            if material['id'] not in completed_homework_ids:
+                return material
+    return None
+
+
+@login_required
+@require_http_methods(['GET'])
+def api_lesson_detail(request, course_slug, lesson_id):
+    """API: данные страницы урока для React (аналог LessonDetailView)."""
+    course = get_object_or_404(Course, slug=course_slug)
+    lesson = get_object_or_404(Lesson, id=lesson_id, courses=course)
+    user = request.user
+
+    if not (user.is_staff or user.is_superuser):
+        available_courses = Course.objects.available_for_user(user)
+        if course not in available_courses:
+            return JsonResponse(
+                {'error': 'Доступ запрещён', 'redirect_url': f'/courses/course/{course.slug}/'},
+                status=403
+            )
+
+    user_course = UserCourse.objects.filter(user=user, course=course).first()
+    if not user_course:
+        if UserCourseTrajectory.objects.filter(
+            user=user, trajectory__trajectorycourse__course=course
+        ).exists():
+            return JsonResponse({
+                'error': 'redirect',
+                'redirect_url': f'/courses/course/{course.slug}/',
+            })
+        manual_unassignment = ManualCourseUnassignment.objects.filter(
+            user=user, course=course
+        ).first()
+        if manual_unassignment:
+            return JsonResponse({
+                'error': 'redirect',
+                'redirect_url': f'/courses/course/{course.slug}/',
+            })
+        user_course, _ = UserCourse.objects.get_or_create(
+            user=user, course=course, defaults={'status': 'available'}
+        )
+
+    if not (user.is_staff or user.is_superuser):
+        if user_course.status not in ('started', 'completed'):
+            return JsonResponse({
+                'error': 'redirect',
+                'redirect_url': f'/courses/course/{course.slug}/?highlight_start=1&lesson_blocked={lesson.id}',
+            })
+
+    trajectory = UserLessonTrajectory.objects.filter(user=user, course=course).first()
+    if trajectory and not (user.is_staff or user.is_superuser):
+        if lesson not in trajectory.lessons.all():
+            return JsonResponse({
+                'error': 'Доступ к уроку запрещён траекторией',
+                'redirect_url': f'/courses/course/{course.slug}/',
+            }, status=403)
+
+    UserProgress.objects.get_or_create(
+        user=user, course=course, lesson=lesson, defaults={'completed': False}
+    )
+
+    user_country = ''
+    if hasattr(user, 'profile') and user.profile:
+        user_country = user.profile.country or ''
+
+    if trajectory:
+        trajectory_lessons = trajectory.lessons.all().order_by('order')
+        previous_lesson = trajectory_lessons.filter(
+            order__lt=lesson.order
+        ).order_by('-order').first()
+        next_lesson = trajectory_lessons.filter(
+            order__gt=lesson.order
+        ).order_by('order').first()
+    else:
+        previous_lesson = lesson.get_previous_lesson(course)
+        next_lesson = lesson.get_next_lesson(course)
+
+    is_dental_checkup_course = course.title == 'Чек-ап стоматологической клиники'
+    if is_dental_checkup_course:
+        if user_country == 'Казахстан':
+            if previous_lesson and previous_lesson.title == 'Метрики эффективности стоматологической клиники':
+                previous_lesson = previous_lesson.get_previous_lesson(course)
+            if next_lesson and next_lesson.title == 'Метрики эффективности стоматологической клиники':
+                next_lesson = next_lesson.get_next_lesson(course)
+        else:
+            if previous_lesson and previous_lesson.title == 'KZ Метрики эффективности стоматологической клиники':
+                previous_lesson = previous_lesson.get_previous_lesson(course)
+            if next_lesson and next_lesson.title == 'KZ Метрики эффективности стоматологической клиники':
+                next_lesson = next_lesson.get_next_lesson(course)
+
+    is_first_lesson = False
+    if is_dental_checkup_course and course.lessons.exists():
+        first_lesson = course.lessons.order_by('order').first()
+        is_first_lesson = lesson.id == first_lesson.id
+
+    is_metrics_lesson = lesson.title == 'Метрики эффективности стоматологической клиники'
+    is_metrics_kz_lesson = lesson.title == 'KZ Метрики эффективности стоматологической клиники'
+    is_external_user = user.groups.filter(name='Внешний пользователь').exists()
+    is_last_lesson = next_lesson is None
+
+    next_material = None
+    if not is_last_lesson:
+        next_material = _get_next_material_after_lesson(user, lesson, course, trajectory)
+
+    lesson_quiz = None
+    lesson_quiz_passed = False
+    lesson_quiz_status = None
+    if lesson.final_quiz:
+        lesson_quiz = lesson.final_quiz
+        quiz_result = QuizResult.objects.filter(
+            user=user, course=course, quiz_title=lesson.final_quiz.name, passed=True
+        ).first()
+        if quiz_result:
+            lesson_quiz_passed = True
+            lesson_quiz_status = quiz_result.status
+        else:
+            latest = QuizResult.objects.filter(
+                user=user, course=course, quiz_title=lesson.final_quiz.name
+            ).order_by('-completed_at').first()
+            if latest:
+                lesson_quiz_status = latest.status
+
+    def lesson_display_title(l):
+        if not l:
+            return None
+        if is_dental_checkup_course and l.title == 'KZ Метрики эффективности стоматологической клиники' and user_country == 'Казахстан':
+            return 'Метрики эффективности стоматологической клиники'
+        return l.title
+
+    quiz_just_completed = request.GET.get('quiz_completed') == '1'
+
+    payload = {
+        'course': {
+            'id': course.id,
+            'title': course.title,
+            'slug': course.slug,
+        },
+        'lesson': {
+            'id': lesson.id,
+            'title': lesson_display_title(lesson),
+            'content': lesson.content or '',
+            'video_id': lesson.video_id or '',
+            'order': lesson.order,
+        },
+        'previous_lesson': (
+            {'id': previous_lesson.id, 'title': lesson_display_title(previous_lesson)}
+            if previous_lesson else None
+        ),
+        'next_lesson': (
+            {'id': next_lesson.id, 'title': lesson_display_title(next_lesson)}
+            if next_lesson else None
+        ),
+        'next_material': (
+            {'type': next_material['type'], 'id': next_material['id'], 'title': next_material.get('title', '')}
+            if next_material else None
+        ),
+        'is_dental_checkup_course': is_dental_checkup_course,
+        'is_first_lesson': is_first_lesson,
+        'is_last_lesson': is_last_lesson,
+        'is_metrics_lesson': is_metrics_lesson,
+        'is_metrics_kz_lesson': is_metrics_kz_lesson,
+        'is_external_user': is_external_user,
+        'user_country': user_country,
+        'lesson_quiz': (
+            {'id': lesson_quiz.id, 'name': lesson_quiz.name}
+            if lesson_quiz else None
+        ),
+        'lesson_quiz_passed': lesson_quiz_passed,
+        'lesson_quiz_status': lesson_quiz_status,
+        'quiz_just_completed': quiz_just_completed,
+        'is_staff': user.is_staff or user.is_superuser,
+    }
+    return JsonResponse(payload)
+
+
+@login_required
+@require_http_methods(['POST'])
+def api_complete_lesson(request, course_slug, lesson_id):
+    """API: завершение урока (аналог complete_lesson), возвращает redirect_url для SPA."""
+    try:
+        body = json.loads(request.body) if request.body else {}
+    except json.JSONDecodeError:
+        body = {}
+    return_to_course = body.get('return_to_course') is True
+    go_to_quiz = body.get('go_to_quiz')
+    go_to_homework = body.get('go_to_homework')
+    continue_learning = body.get('continue_learning') is True
+
+    course = get_object_or_404(Course, slug=course_slug)
+    lesson = get_object_or_404(Lesson, id=lesson_id, courses=course)
+    user = request.user
+
+    available_courses = Course.objects.available_for_user(user)
+    if course not in available_courses:
+        return JsonResponse({
+            'redirect_url': f'/courses/course/{course.slug}/',
+        })
+
+    user_course = UserCourse.objects.filter(user=user, course=course).first()
+    if not user_course:
+        if UserCourseTrajectory.objects.filter(user=user, trajectory__trajectorycourse__course=course).exists():
+            return JsonResponse({'redirect_url': f'/courses/course/{course.slug}/'})
+        if ManualCourseUnassignment.objects.filter(user=user, course=course).exists():
+            return JsonResponse({'redirect_url': f'/courses/course/{course.slug}/'})
+        user_course, _ = UserCourse.objects.get_or_create(
+            user=user, course=course, defaults={'status': 'available'}
+        )
+
+    trajectory = UserLessonTrajectory.objects.filter(user=user, course=course).first()
+    if trajectory and lesson not in trajectory.lessons.all():
+        return JsonResponse({'redirect_url': f'/courses/course/{course.slug}/'})
+
+    if lesson.final_quiz:
+        quiz_passed = QuizResult.objects.filter(
+            user=user, course=course, quiz_title=lesson.final_quiz.name, passed=True
+        ).exists()
+        if not quiz_passed:
+            if return_to_course:
+                return JsonResponse({'redirect_url': f'/courses/course/{course.slug}/'})
+            from urllib.parse import urlencode
+            url = reverse('quizzes:quiz_start', kwargs={'quiz_id': lesson.final_quiz.id})
+            params = urlencode({'course_slug': course.slug, 'lesson_id': lesson.id})
+            return JsonResponse({'redirect_url': f'{url}?{params}'})
+
+    progress, _ = UserProgress.objects.get_or_create(
+        user=user, course=course, lesson=lesson, defaults={'completed': False}
+    )
+    from gamification.models import DascoinTransaction
+    lesson_reward_reason = f'Завершение урока {lesson.title}'
+    already_rewarded = DascoinTransaction.objects.filter(
+        user=user, reason=lesson_reward_reason, transaction_type='award'
+    ).exists()
+    if not progress.completed and not already_rewarded and not course.is_incident:
+        award_dascoin_points(user, lesson.points, lesson_reward_reason)
+    award_first_lesson_badge(user)
+    UserProgress.objects.update_or_create(
+        user=user, course=course, lesson=lesson, defaults={'completed': True}
+    )
+
+    total_lessons = trajectory.lessons.count() if trajectory else course.lessons.count()
+    lesson_ids = list(
+        trajectory.lessons.values_list('id', flat=True)
+        if trajectory
+        else course.lessons.values_list('id', flat=True)
+    )
+    completed_lessons = UserProgress.objects.filter(
+        user=user, course=course, completed=True, lesson_id__in=lesson_ids
+    ).count()
+    total_quizzes = course.quizzes.count()
+    total_homeworks = course.homeworks.count()
+    completed_quizzes = QuizResult.objects.filter(
+        user=user, course=course,
+        quiz_title__in=[q.name for q in course.quizzes],
+        passed=True
+    ).count()
+    completed_homeworks = HomeworkSubmission.objects.filter(
+        user=user, course=course, homework__in=course.homeworks, status='correct'
+    ).values('homework_id').distinct().count()
+    all_completed = (
+        completed_lessons >= total_lessons
+        and completed_quizzes >= total_quizzes
+        and completed_homeworks >= total_homeworks
+    )
+    user_course = UserCourse.objects.get(user=user, course=course)
+    if all_completed:
+        if course.final_quiz:
+            final_passed = QuizResult.objects.filter(
+                user=user, course=course, quiz_title=course.final_quiz.name, passed=True
+            ).exists()
+            if not final_passed:
+                return JsonResponse({
+                    'redirect_url': reverse('courses:redir_to_quiz', kwargs={'course_slug': course.slug}),
+                })
+            was_completed = user_course.status == 'completed'
+            if not was_completed:
+                user_course.status = 'completed'
+                user_course.save()
+                if not course.is_incident:
+                    award_dascoin_points(user, course.points, f'Завершение курса {course.title}')
+                    award_course_badge(user, course)
+                    issue_certificate(user, course=course)
+            else:
+                user_course.status = 'completed'
+                user_course.save()
+        else:
+            was_completed = user_course.status == 'completed'
+            if not was_completed:
+                user_course.status = 'completed'
+                user_course.save()
+                if not course.is_incident:
+                    award_dascoin_points(user, course.points, f'Завершение курса {course.title}')
+                    award_course_badge(user, course)
+                    issue_certificate(user, course=course)
+            else:
+                user_course.status = 'completed'
+                user_course.save()
+
+    if return_to_course:
+        return JsonResponse({'redirect_url': f'/courses/course/{course.slug}/'})
+    if go_to_quiz:
+        url = reverse('quizzes:quiz_start', kwargs={'quiz_id': go_to_quiz})
+        from urllib.parse import urlencode
+        return JsonResponse({'redirect_url': f'{url}?{urlencode({"course_slug": course.slug})}'})
+    if go_to_homework:
+        url = reverse('quizzes:homework_submit', kwargs={'homework_id': go_to_homework})
+        from urllib.parse import urlencode
+        return JsonResponse({'redirect_url': f'{url}?{urlencode({"course_slug": course.slug})}'})
+    if continue_learning:
+        if trajectory:
+            next_lesson = trajectory.lessons.filter(order__gt=lesson.order).order_by('order').first()
+        else:
+            next_lesson = lesson.get_next_lesson(course)
+        if next_lesson:
+            return JsonResponse({
+                'redirect_url': f'/courses/course/{course.slug}/lesson/{next_lesson.id}/',
+            })
+    return JsonResponse({'redirect_url': f'/courses/course/{course.slug}/'})
+
+
+@login_required
+@require_http_methods(['POST'])
+def api_delete_lesson(request, lesson_id):
+    """API: удаление урока из курса (только staff). Возвращает redirect_url."""
+    if not is_admin(request.user):
+        return JsonResponse({'error': 'Доступ запрещён'}, status=403)
+    lesson = get_object_or_404(Lesson, id=lesson_id)
+    course = lesson.courses.first()
+    if course:
+        lesson.courses.remove(course)
+        return JsonResponse({
+            'success': True,
+            'redirect_url': f'/courses/course/{course.slug}/',
+        })
+    return JsonResponse({'success': True, 'redirect_url': '/'})
 
 
 @login_required

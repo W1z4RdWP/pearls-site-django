@@ -38,6 +38,44 @@ export function startCourse(slug) {
 }
 
 /**
+ * Данные страницы урока (детальная).
+ * @param {string} courseSlug — slug курса
+ * @param {number} lessonId — id урока
+ * @param {object} [params] — query (quiz_completed=1)
+ * @returns {Promise<object>}
+ */
+export function fetchLessonDetail(courseSlug, lessonId, params = {}) {
+  const qs = new URLSearchParams(params).toString();
+  return request(`/courses/course/${encodeURIComponent(courseSlug)}/lesson/${lessonId}/${qs ? `?${qs}` : ''}`);
+}
+
+/**
+ * Завершить урок. Тело: return_to_course?, go_to_quiz?, go_to_homework?, continue_learning?
+ * @param {string} courseSlug — slug курса
+ * @param {number} lessonId — id урока
+ * @param {object} body
+ * @returns {Promise<{ redirect_url: string }>}
+ */
+export function completeLesson(courseSlug, lessonId, body = {}) {
+  return request(`/courses/course/${encodeURIComponent(courseSlug)}/lesson/${lessonId}/complete/`, {
+    method: 'POST',
+    body: JSON.stringify(body),
+  });
+}
+
+/**
+ * Удалить урок из курса (только staff).
+ * @param {number} lessonId — id урока
+ * @returns {Promise<{ success: boolean, redirect_url: string }>}
+ */
+export function deleteLesson(lessonId) {
+  return request(`/courses/lesson/${lessonId}/delete/`, {
+    method: 'POST',
+    body: JSON.stringify({}),
+  });
+}
+
+/**
  * Сохранить новый порядок материалов курса (уроки, тесты, задания). Только staff.
  * @param {string} slug — slug курса
  * @param {Array<{type: string, id: number}>} materialsOrder — массив { type: 'lesson'|'quiz'|'homework', id }
