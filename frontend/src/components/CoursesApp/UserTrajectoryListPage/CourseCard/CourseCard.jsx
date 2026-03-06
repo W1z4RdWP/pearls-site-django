@@ -1,10 +1,11 @@
+import { Link } from 'react-router-dom';
 import './CourseCard.css';
 
 /**
  * Карточка одного курса: изображение, заголовок, прогресс/детали, дедлайн, кнопки.
  */
 const CourseCard = ({ courseData }) => {
-  const { course, status, percent, completed_materials, total_materials, completed_lessons, total_lessons, completed_quizzes, total_quizzes, completed_homeworks, total_homeworks, deadline, is_deadline_overdue, quiz_passed, final_quiz_status, course_detail_url, final_quiz_start_url } = courseData;
+  const { course, status, percent, completed_materials, total_materials, completed_lessons, total_lessons, completed_quizzes, total_quizzes, completed_homeworks, total_homeworks, deadline, is_deadline_overdue, quiz_passed, final_quiz_status, final_quiz_start_url } = courseData;
   const totalTests = (total_quizzes || 0) + (total_homeworks || 0);
   const completedTests = (completed_quizzes || 0) + (completed_homeworks || 0);
   const isAvailable = status === 'available';
@@ -121,13 +122,13 @@ const CourseCard = ({ courseData }) => {
               </a>
             ) : null
           )}
-          <a href={course_detail_url} className="btn btn-primary btn-sm course-card__btn-main">
+          <Link to={`/courses/course/${course.slug}`} className="btn btn-primary btn-sm course-card__btn-main">
             {isAvailable ? (
               <><i className="fa fa-play" aria-hidden="true" /> Начать курс</>
             ) : (
               <><i className="fa fa-arrow-right" aria-hidden="true" /> Продолжить</>
             )}
-          </a>
+          </Link>
           {course.is_incident && (
             <div className="course-card__incident-badge">
               <span className="badge bg-danger">

@@ -29,7 +29,7 @@ const CourseCarousel = ({ courses }) => {
 
   return (
     <section className="course-carousel" id="courseCarousel">
-      <Link to="/courses/trajectory/" className="course-carousel__all-btn">
+      <Link to="/courses/trajectories/" className="course-carousel__all-btn">
         Все курсы
       </Link>
 
