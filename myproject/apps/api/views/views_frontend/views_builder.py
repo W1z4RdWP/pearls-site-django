@@ -17,10 +17,12 @@ from django.urls import reverse
 from courses.models import Course, Lesson, Trajectory, UserLessonTrajectory
 from courses.models import UserLesson as UserLessonAssignment
 from myapp.models import UserCourse, UserProgress
+from datetime import timedelta
 from myapp.models import QuizResult
 from quizzes.models import Quiz
 from users.models import Role, Department
 from builder.models import CategoryName, LessonVersion, LessonDraft, DictionarySection, LessonCategoryMirror, Incident
+from builder.forms import IncidentForm
 from builder.audit_logger import log_create, log_update, log_delete, serialize_model_data
 from builder.utils import (
     get_responsible_user_for_lesson,
@@ -1606,3 +1608,173 @@ def api_incident_unassign_user(request, incident_id, user_id):
     comment = f"Отменено назначение пользователя {user.get_full_name() or user.username} на инцидент"
     log_update(request.user, incident, old_values, request, comment=comment)
     return JsonResponse({'success': True})
+
+
+def _incident_form_payload(incident):
+    """Сериализация инцидента для формы создания/редактирования (поля формы)."""
+    return {
+        'id': incident.id,
+        'title': incident.title,
+        'incident_type': incident.incident_type,
+        'user_id': incident.user_id,
+        'responsible_mentor_id': incident.responsible_mentor_id,
+        'mentors_time_to_check': incident.mentors_time_to_check or 2,
+        'assigned_to_ids': list(incident.assigned_to.values_list('id', flat=True)),
+        'violators_ids': list(incident.violators.values_list('id', flat=True)),
+        'expert_id': incident.expert_id,
+        'assigned_to_time_to_complete': incident.assigned_to_time_to_complete or 3,
+        'expert_time_to_complete': incident.expert_time_to_complete or 3,
+        'status': incident.status,
+        'description': incident.description or '',
+        'course_slug': incident.course.slug if incident.course else None,
+        'has_course': bool(incident.course_id),
+    }
+
+
+@login_required
+@require_http_methods(['GET'])
+def api_incident_form_data(request):
+    """API: данные для формы создания/редактирования инцидента — choices и при pk — данные инцидента."""
+    if not (request.user.is_staff or request.user.is_superuser):
+        return JsonResponse({'error': 'forbidden'}, status=403)
+    pk = request.GET.get('pk')
+    payload = {
+        'incident_type_choices': list(Incident.INCIDENT_TYPE_CHOICES),
+        'status_choices': list(Incident.STATUS_CHOICES),
+        'defaults': {
+            'mentors_time_to_check': 2,
+            'assigned_to_time_to_complete': 3,
+            'expert_time_to_complete': 3,
+            'status': 'accepted',
+        },
+        'incident': None,
+    }
+    if pk:
+        try:
+            incident = Incident.objects.prefetch_related('assigned_to', 'violators').get(pk=pk)
+        except (Incident.DoesNotExist, ValueError):
+            return JsonResponse({'error': 'Инцидент не найден'}, status=404)
+        payload['incident'] = _incident_form_payload(incident)
+    return JsonResponse(payload)
+
+
+@login_required
+@require_http_methods(['POST'])
+def api_incident_create(request):
+    """API: создание инцидента. POST JSON. Возвращает id и redirect_url на страницу редактирования."""
+    if not (request.user.is_staff or request.user.is_superuser):
+        return JsonResponse({'error': 'forbidden'}, status=403)
+    try:
+        body = json.loads(request.body) if request.body else {}
+    except json.JSONDecodeError:
+        return JsonResponse({'error': 'Некорректный JSON'}, status=400)
+    data = {
+        'title': body.get('title'),
+        'incident_type': body.get('incident_type'),
+        'user': body.get('user_id'),
+        'responsible_mentor': body.get('responsible_mentor_id'),
+        'mentors_time_to_check': body.get('mentors_time_to_check', 2),
+        'assigned_to': body.get('assigned_to_ids') or [],
+        'violators': body.get('violators_ids') or [],
+        'expert': body.get('expert_id'),
+        'assigned_to_time_to_complete': body.get('assigned_to_time_to_complete', 3),
+        'expert_time_to_complete': body.get('expert_time_to_complete', 3),
+        'status': 'accepted',
+        'description': body.get('description') or '',
+    }
+    form = IncidentForm(data=data)
+    if not form.is_valid():
+        return JsonResponse({'error': 'Ошибка валидации', 'errors': form.errors}, status=400)
+    incident = form.save(commit=False)
+    incident.status = 'accepted'
+    incident.save()
+    form.save_m2m()
+    log_create(request.user, incident, request, "Создан новый инцидент")
+    edit_url = reverse('builder:incident_edit', kwargs={'pk': incident.pk})
+    return JsonResponse({'id': incident.id, 'redirect_url': edit_url})
+
+
+@login_required
+@require_http_methods(['PUT', 'PATCH'])
+def api_incident_update(request, pk):
+    """API: обновление инцидента. PUT/PATCH JSON. Синхронизирует назначения курса с assigned_to."""
+    if not (request.user.is_staff or request.user.is_superuser):
+        return JsonResponse({'error': 'forbidden'}, status=403)
+    incident = get_object_or_404(Incident.objects.prefetch_related('assigned_to'), pk=pk)
+    old_values = serialize_model_data(incident)
+    try:
+        body = json.loads(request.body) if request.body else {}
+    except json.JSONDecodeError:
+        return JsonResponse({'error': 'Некорректный JSON'}, status=400)
+    data = {
+        'title': body.get('title', incident.title),
+        'incident_type': body.get('incident_type', incident.incident_type),
+        'user': body.get('user_id', incident.user_id),
+        'responsible_mentor': body.get('responsible_mentor_id', incident.responsible_mentor_id),
+        'mentors_time_to_check': body.get('mentors_time_to_check', incident.mentors_time_to_check),
+        'assigned_to': body.get('assigned_to_ids'),
+        'violators': body.get('violators_ids'),
+        'expert': body.get('expert_id', incident.expert_id),
+        'assigned_to_time_to_complete': body.get('assigned_to_time_to_complete', incident.assigned_to_time_to_complete),
+        'expert_time_to_complete': body.get('expert_time_to_complete', incident.expert_time_to_complete),
+        'status': body.get('status', incident.status),
+        'description': body.get('description', incident.description),
+    }
+    if data['assigned_to'] is None:
+        data['assigned_to'] = list(incident.assigned_to.values_list('id', flat=True))
+    if data['violators'] is None:
+        data['violators'] = list(incident.violators.values_list('id', flat=True))
+    form = IncidentForm(data=data, instance=incident)
+    if not form.is_valid():
+        return JsonResponse({'error': 'Ошибка валидации', 'errors': form.errors}, status=400)
+    old_assigned = set(incident.assigned_to.all())
+    form.save(commit=False)
+    incident.save()
+    form.save_m2m()
+    new_assigned = set(incident.assigned_to.all())
+    removed_users = old_assigned - new_assigned
+    added_users = new_assigned - old_assigned
+    if incident.course:
+        course = incident.course
+        for user in removed_users:
+            UserCourse.objects.filter(user=user, course=course).delete()
+        time_to_complete = incident.assigned_to_time_to_complete or getattr(course, 'default_deadline_days', None) or 3
+        if not time_to_complete or time_to_complete <= 0:
+            time_to_complete = 3
+        deadline = timezone.now() + timedelta(days=time_to_complete)
+        for user in added_users:
+            UserCourse.objects.get_or_create(
+                user=user,
+                course=course,
+                defaults={'status': 'available', 'deadline': deadline}
+            )
+    log_update(request.user, incident, old_values, request, "Инцидент обновлён")
+    return JsonResponse({'id': incident.id, 'success': True})
+
+
+@login_required
+@require_http_methods(['POST'])
+def api_incident_create_course(request, pk):
+    """API: создание курса-инцидента из инцидента. POST. Возвращает redirect_url на страницу курса."""
+    if not (request.user.is_staff or request.user.is_superuser):
+        return JsonResponse({'error': 'forbidden'}, status=403)
+    incident = get_object_or_404(Incident, pk=pk)
+    if incident.course_id:
+        return JsonResponse({
+            'redirect_url': reverse('courses:course_detail', kwargs={'slug': incident.course.slug}),
+        })
+    course = Course.objects.create(
+        title=incident.title,
+        description='',
+        author=request.user,
+        is_incident=True,
+        responsible_mentor=incident.responsible_mentor,
+        mentors_time_to_check=incident.mentors_time_to_check or 2,
+    )
+    incident.course = course
+    if incident.status == 'new':
+        incident.status = 'accepted'
+    incident.save(update_fields=['course', 'status', 'updated_at'])
+    return JsonResponse({
+        'redirect_url': reverse('courses:course_detail', kwargs={'slug': course.slug}),
+    })

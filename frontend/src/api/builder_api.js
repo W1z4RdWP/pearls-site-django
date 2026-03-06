@@ -323,3 +323,106 @@ export function fetchIncidentStatusesReport(params = {}) {
   const qs = searchParams.toString();
   return request(`/builder/incidents/statuses-report/${qs ? `?${qs}` : ''}`);
 }
+
+// ---------------------------------------------------------------------------
+// Форма создания/редактирования инцидента
+// ---------------------------------------------------------------------------
+
+/**
+ * Данные для формы инцидента: choices и при pk — данные инцидента для редактирования.
+ * @param {number|null} [pk] — ID инцидента для режима редактирования
+ * @returns {Promise<{ incident_type_choices, status_choices, defaults, incident?: object }>}
+ */
+export function fetchIncidentFormData(pk = null) {
+  const url = pk != null ? `/builder/incidents/form/data/?pk=${pk}` : '/builder/incidents/form/data/';
+  return request(url);
+}
+
+/**
+ * Создание инцидента. POST.
+ * @param {Object} data — title, incident_type, user_id, responsible_mentor_id, mentors_time_to_check, assigned_to_ids[], violators_ids[], expert_id, assigned_to_time_to_complete, expert_time_to_complete, description
+ * @returns {Promise<{ id: number, redirect_url: string }>}
+ */
+export function createIncident(data) {
+  return request('/builder/incidents/create/', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+}
+
+/**
+ * Обновление инцидента. PUT.
+ * @param {number} pk — ID инцидента
+ * @param {Object} data — те же поля, что и для создания
+ * @returns {Promise<{ id: number, success: boolean }>}
+ */
+export function updateIncident(pk, data) {
+  return request(`/builder/incidents/${pk}/edit/`, {
+    method: 'PUT',
+    body: JSON.stringify(data),
+  });
+}
+
+/**
+ * Создание курса-инцидента из инцидента. POST.
+ * @param {number} pk — ID инцидента
+ * @returns {Promise<{ redirect_url: string }>}
+ */
+export function createIncidentCourse(pk) {
+  return request(`/builder/incidents/${pk}/create-course/`, {
+    method: 'POST',
+    body: JSON.stringify({}),
+  });
+}
+
+/**
+ * Поиск пользователей (для полей user, mentor, expert, assigned).
+ * @param {string} q — поисковый запрос
+ * @param {Object} [opts] — mentor_only: только наставники; exclude_staff: исключить staff
+ * @returns {Promise<{ users: Array<{ id, full_name, username, role? }> }>}
+ */
+export function searchUsers(q, opts = {}) {
+  const params = new URLSearchParams();
+  if (q != null && q !== '') params.set('q', q);
+  if (opts.mentor_only === true) params.set('mentor_only', 'true');
+  if (opts.exclude_staff === true) params.set('exclude_staff', 'true');
+  const qs = params.toString();
+  return request(`/builder/users/search/${qs ? `?${qs}` : ''}`);
+}
+
+/**
+ * Получение пользователей по списку ID.
+ * @param {number[]|string} ids — массив ID или строка через запятую
+ * @returns {Promise<{ users: Array<{ id, full_name, username }> }>}
+ */
+export function getUsersByIds(ids) {
+  const idList = Array.isArray(ids) ? ids : String(ids).split(',').map((s) => s.trim()).filter(Boolean);
+  if (idList.length === 0) return Promise.resolve({ users: [] });
+  const params = new URLSearchParams({ ids: idList.join(',') });
+  return request(`/builder/users/by-ids/?${params.toString()}`);
+}
+
+/**
+ * Список групп.
+ * @param {Object} [opts] — exclude_staff: исключить staff из подсчёта
+ * @returns {Promise<{ groups: Array<{ id, name, user_count }> }>}
+ */
+export function getGroups(opts = {}) {
+  const params = new URLSearchParams();
+  if (opts.exclude_staff !== false) params.set('exclude_staff', 'true');
+  const qs = params.toString();
+  return request(`/builder/groups/${qs ? `?${qs}` : ''}`);
+}
+
+/**
+ * Пользователи группы.
+ * @param {number} groupId
+ * @param {Object} [opts] — exclude_staff
+ * @returns {Promise<{ users: Array<{ id, full_name, username }> }>}
+ */
+export function getGroupUsers(groupId, opts = {}) {
+  const params = new URLSearchParams();
+  if (opts.exclude_staff === true) params.set('exclude_staff', 'true');
+  const qs = params.toString();
+  return request(`/builder/groups/${groupId}/users/${qs ? `?${qs}` : ''}`);
+}

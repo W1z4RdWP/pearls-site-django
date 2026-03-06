@@ -10,7 +10,7 @@ from .views.views_frontend import views_courses as courses_views
 from .views.views_frontend import views_builder as builder_views
 from .views.views_frontend import views_tech_support as tech_support_views
 from .views.views_frontend import views_reports as reports_views
-from builder.views.api_views import api_search_users
+from builder.views.api_views import api_search_users, api_get_users_by_ids, api_get_groups, api_get_group_users
 from quizzes.views import search_quizzes_ajax
 
 app_name = 'api'
@@ -63,6 +63,10 @@ urlpatterns = [
     path('builder/categories/delete/stats/', builder_views.api_category_delete_stats, name='api_builder_category_delete_stats'),
     path('builder/categories/delete/', builder_views.api_delete_category, name='api_builder_category_delete'),
     path('builder/incidents/', builder_views.api_incidents_list, name='api_builder_incidents'),
+    path('builder/incidents/form/data/', builder_views.api_incident_form_data, name='api_builder_incident_form_data'),
+    path('builder/incidents/create/', builder_views.api_incident_create, name='api_builder_incident_create'),
+    path('builder/incidents/<int:pk>/edit/', builder_views.api_incident_update, name='api_builder_incident_update'),
+    path('builder/incidents/<int:pk>/create-course/', builder_views.api_incident_create_course, name='api_builder_incident_create_course'),
     path('builder/incidents/detail/', builder_views.api_incident_detail, name='api_builder_incident_detail'),
     path('builder/incidents/statuses-report/', builder_views.api_incident_statuses_report, name='api_builder_incident_statuses_report'),
     path('builder/incidents/<int:incident_id>/unassign-user/<int:user_id>/', builder_views.api_incident_unassign_user, name='api_builder_incident_unassign_user'),
@@ -91,8 +95,11 @@ urlpatterns = [
     path('courses/course/<slug:slug>/create-lesson/', courses_views.api_create_lesson, name='api_courses_create_lesson'),
     path('courses/course/<slug:slug>/add-lesson/', courses_views.api_add_lesson, name='api_courses_add_lesson'),
 
-    # Builder/Quizzes — поиск для форм (create course и др.)
+    # Builder/Quizzes — поиск и пользователи/группы для форм (инциденты, create course и др.)
     path('builder/users/search/', api_search_users, name='api_builder_search_users'),
+    path('builder/users/by-ids/', api_get_users_by_ids, name='api_builder_users_by_ids'),
+    path('builder/groups/', api_get_groups, name='api_builder_groups'),
+    path('builder/groups/<int:group_id>/users/', api_get_group_users, name='api_builder_group_users'),
     path('quizzes/search/', search_quizzes_ajax, name='api_quizzes_search'),
 
     # Users API — транзакции DASCOIN для React
