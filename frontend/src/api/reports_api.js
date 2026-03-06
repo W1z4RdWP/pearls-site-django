@@ -21,3 +21,17 @@ export function fetchCoursesProgress(params = {}) {
   const path = qs ? `/reports/courses-progress/?${qs}` : '/reports/courses-progress/';
   return request(path);
 }
+
+/**
+ * Детальная страница назначений по курсу: пользователи и статусы (пагинация).
+ * @param {number} courseId - ID курса
+ * @param {Object} params - { page?: number }
+ * @returns {Promise<{ course: { id, title }, total_assignments, completed_assignments, in_progress_assignments, available_assignments, blocked_assignments, learning_percentage, items: Array, pagination: Object }>}
+ */
+export function fetchCourseAssignmentsDetail(courseId, params = {}) {
+  const searchParams = new URLSearchParams();
+  if (params.page != null) searchParams.set('page', String(params.page));
+  const qs = searchParams.toString();
+  const path = qs ? `/reports/courses-progress/${courseId}/?${qs}` : `/reports/courses-progress/${courseId}/`;
+  return request(path);
+}

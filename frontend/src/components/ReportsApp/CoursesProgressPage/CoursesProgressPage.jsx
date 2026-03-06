@@ -1,8 +1,10 @@
 import { useState, useEffect, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { fetchCoursesProgress } from '../../../api/reports_api';
 import './CoursesProgressPage.css';
 
 const CoursesProgressPage = () => {
+  const navigate = useNavigate();
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -45,7 +47,7 @@ const CoursesProgressPage = () => {
   };
 
   const handleRowClick = (courseId) => {
-    window.location.href = `/reports/courses-progress/${courseId}/`;
+    navigate(`/reports/courses-progress/${courseId}`);
   };
 
   const getProgressBarClass = (pct) => {

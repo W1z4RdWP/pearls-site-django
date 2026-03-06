@@ -10,13 +10,15 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User, Group
 from django.db.models import Q, Count, Case, When, FloatField, F, Sum
 from django.core.paginator import Paginator
+from django.shortcuts import get_object_or_404
 from django.utils import timezone
 
 from courses.models import Course, Lesson
-from myapp.models import UserProgress, QuizResult
+from myapp.models import UserProgress, QuizResult, UserCourse
 from quizzes.models import Quiz, Homework
 
 PAGINATE_BY_COURSES_PROGRESS = 20
+PAGINATE_BY_COURSE_ASSIGNMENTS = 25
 
 
 def _reports_access_ok(request):
@@ -269,6 +271,88 @@ def api_courses_progress(request):
         'in_progress_assignments_total': in_progress,
         'available_assignments_total': available,
         'search_query': search_query,
+        'items': items,
+        'pagination': {
+            'page': page_obj.number,
+            'num_pages': paginator.num_pages,
+            'has_previous': page_obj.has_previous(),
+            'has_next': page_obj.has_next(),
+            'previous_page_number': page_obj.previous_page_number() if page_obj.has_previous() else None,
+            'next_page_number': page_obj.next_page_number() if page_obj.has_next() else None,
+        },
+    })
+
+
+@login_required
+@require_http_methods(['GET'])
+def api_course_assignments_detail(request, course_id):
+    """API: детальная страница назначений по курсу — список пользователей и статусы, с пагинацией."""
+    if not _reports_access_ok(request):
+        return JsonResponse({'error': 'Доступ запрещён'}, status=403)
+
+    course = get_object_or_404(Course, id=course_id)
+
+    status_order = Case(
+        When(status='completed', then=0),
+        When(status='started', then=1),
+        When(status='available', then=2),
+        When(status='blocked', then=3),
+        default=4,
+    )
+
+    base_qs = (
+        UserCourse.objects.select_related('user', 'course')
+        .filter(
+            course=course,
+            user__profile__is_approved=True,
+        )
+        .exclude(
+            Q(user__is_superuser=True) | Q(user__is_staff=True)
+        )
+        .order_by(status_order, 'user__last_name', 'user__first_name', 'user__username')
+    )
+
+    total = base_qs.count()
+    completed = base_qs.filter(status='completed').count()
+    started = base_qs.filter(status='started').count()
+    available = base_qs.filter(status='available').count()
+    blocked = base_qs.filter(status='blocked').count()
+    learning_percentage = round((completed / total) * 100, 1) if total else 0
+
+    paginator = Paginator(base_qs, PAGINATE_BY_COURSE_ASSIGNMENTS)
+    page_number = request.GET.get('page', 1)
+    try:
+        page_number = max(1, int(page_number))
+    except (TypeError, ValueError):
+        page_number = 1
+    page_obj = paginator.get_page(page_number)
+
+    items = []
+    for uc in page_obj:
+        user = uc.user
+        full_name = (user.get_full_name() or '').strip() or user.username
+        start_date = uc.start_date
+        end_date = uc.end_date
+        items.append({
+            'user_id': user.id,
+            'user_full_name': full_name,
+            'user_email': user.email or '',
+            'status': uc.status,
+            'start_date': start_date.strftime('%d.%m.%Y %H:%M') if start_date else '',
+            'end_date': end_date.strftime('%d.%m.%Y %H:%M') if end_date else None,
+        })
+
+    return JsonResponse({
+        'course': {
+            'id': course.id,
+            'title': course.title,
+        },
+        'total_assignments': total,
+        'completed_assignments': completed,
+        'in_progress_assignments': started,
+        'available_assignments': available,
+        'blocked_assignments': blocked,
+        'learning_percentage': learning_percentage,
         'items': items,
         'pagination': {
             'page': page_obj.number,
