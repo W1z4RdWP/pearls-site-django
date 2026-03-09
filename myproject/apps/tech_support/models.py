@@ -60,7 +60,7 @@ class Ticket(models.Model):
 
     # Основная информация
     ticket_number = models.CharField(max_length=20, unique=True, verbose_name="Номер тикета")
-    title = models.CharField(max_length=200, verbose_name="Заголовок")
+    title = models.CharField(max_length=70, verbose_name="Заголовок")
     description = models.TextField(verbose_name="Описание проблемы")
     ticket_type = models.CharField(max_length=20, choices=TICKET_TYPES, verbose_name="Тип тикета")
     
