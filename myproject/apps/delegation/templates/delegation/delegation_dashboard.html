@@ -66,8 +66,8 @@
                                     <td><small>{{ delegation.delegated_permissions|truncatechars:30 }}</small></td>
                                     <td>
                                         <small>
-                                            {{ delegation.start_datetime|date:"d.m H:i" }} - 
-                                            {{ delegation.end_datetime|date:"d.m H:i" }}
+                                            {{ delegation.start_datetime|date:"d.m H:i" }} — 
+                                            {% if delegation.end_datetime %}{{ delegation.end_datetime|date:"d.m H:i" }}{% else %}бессрочно{% endif %}
                                         </small>
                                     </td>
                                     <td>
@@ -139,8 +139,8 @@
                                     <td><small>{{ delegation.delegated_permissions|truncatechars:30 }}</small></td>
                                     <td>
                                         <small>
-                                            {{ delegation.start_datetime|date:"d.m H:i" }} - 
-                                            {{ delegation.end_datetime|date:"d.m H:i" }}
+                                            {{ delegation.start_datetime|date:"d.m H:i" }} — 
+                                            {% if delegation.end_datetime %}{{ delegation.end_datetime|date:"d.m H:i" }}{% else %}бессрочно{% endif %}
                                         </small>
                                     </td>
                                     <td>
@@ -222,8 +222,8 @@
                                     <td><small>{{ delegation.delegated_permissions|truncatechars:30 }}</small></td>
                                     <td>
                                         <small>
-                                            {{ delegation.start_datetime|date:"d.m H:i" }} - 
-                                            {{ delegation.end_datetime|date:"d.m H:i" }}
+                                            {{ delegation.start_datetime|date:"d.m H:i" }} — 
+                                            {% if delegation.end_datetime %}{{ delegation.end_datetime|date:"d.m H:i" }}{% else %}бессрочно{% endif %}
                                         </small>
                                     </td>
                                     <td>

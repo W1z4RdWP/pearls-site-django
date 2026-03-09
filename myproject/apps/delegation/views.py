@@ -80,6 +80,7 @@ class DelegationCreateView(LoginRequiredMixin, CreateView):
         delegation = form.save(commit=False)
         delegation.delegator = self.request.user
         delegation.status = 'pending'
+        # end_datetime уже None в cleaned_data при галочке «Бессрочно»
         delegation.save()
         
         messages.success(

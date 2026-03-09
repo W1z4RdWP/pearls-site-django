@@ -153,8 +153,29 @@ function initializeDelegateField() {
     }
 }
 
+// Галочка «Бессрочно»: при включении — отключаем поле даты окончания
+function initEndlessCheckbox() {
+    const endlessCheckbox = document.getElementById('endless_filter');
+    const endDatetimeInput = document.getElementById(endDatetimeInputId);
+    const requiredStar = document.querySelector('.end-datetime-required');
+
+    if (!endlessCheckbox || !endDatetimeInput) return;
+
+    function updateEndDatetimeState() {
+        const isEndless = endlessCheckbox.checked;
+        endDatetimeInput.disabled = isEndless;
+        endDatetimeInput.required = !isEndless;
+        if (requiredStar) requiredStar.style.display = isEndless ? 'none' : '';
+        if (isEndless) endDatetimeInput.value = '';
+    }
+
+    endlessCheckbox.addEventListener('change', updateEndDatetimeState);
+    updateEndDatetimeState();
+}
+
 // Инициализация при загрузке страницы
 document.addEventListener('DOMContentLoaded', function() {
     initializeDelegateField();
+    initEndlessCheckbox();
 });
 
