@@ -4,7 +4,7 @@ from django.shortcuts import get_object_or_404
 from django.views.generic import TemplateView, ListView
 from django.contrib.auth.models import User, Group
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
-from django.db.models import Q, Count, Case, When, FloatField, F
+from django.db.models import Q, Count, Case, When, FloatField, F, Sum
 from django.contrib.auth.decorators import login_required
 from django.http import HttpResponse, HttpResponseForbidden
 from django.utils import timezone
@@ -855,16 +855,14 @@ class CoursesProgressView(LoginRequiredMixin, UserPassesTestMixin, ListView):
         except Exception:
             return False
 
-    def get_queryset(self):
-        """Возвращает курсы с рассчитанной статистикой по завершениям"""
-        # Учитываем только одобренных пользователей, исключая админов/стаф
+    def get_base_queryset(self):
+        """Базовый queryset курсов с аннотациями, без фильтра поиска. Используется для общей статистики."""
         assignments_filter = (
             Q(usercourse__user__profile__is_approved=True)
             & ~Q(usercourse__user__is_superuser=True)
             & ~Q(usercourse__user__is_staff=True)
         )
-
-        queryset = (
+        return (
             Course.objects.annotate(
                 total_assignments=Count('usercourse', filter=assignments_filter),
                 completed_assignments=Count(
@@ -895,41 +893,51 @@ class CoursesProgressView(LoginRequiredMixin, UserPassesTestMixin, ListView):
             .filter(total_assignments__gt=0)
         )
 
+    def get_queryset(self):
+        """Возвращает курсы с рассчитанной статистикой по завершениям (с учётом поиска)."""
+        queryset = self.get_base_queryset()
+
         # Фильтрация по поисковому запросу
         search_query = self.request.GET.get('search', '').strip()
         if search_query:
             queryset = queryset.filter(title__icontains=search_query)
 
-        queryset = queryset.order_by('-learning_percentage', 'title')
-
-        return queryset
+        return queryset.order_by('-learning_percentage', 'title')
 
     def get_context_data(self, **kwargs):
-        """Добавляет агрегированную статистику по всем курсам (не только на текущей странице)"""
+        """Добавляет агрегированную статистику по всем курсам (без учёта поиска/фильтра)."""
         context = super().get_context_data(**kwargs)
-        
-        # Получаем полный queryset до пагинации для расчета суммарной статистики
-        all_courses = list(self.get_queryset())
-        paginated_courses = list(context.get('courses', []))
 
-        # Считаем статистику по всем курсам, а не только по текущей странице
-        total_assignments = sum(getattr(course, 'total_assignments', 0) for course in all_courses)
-        completed = sum(getattr(course, 'completed_assignments', 0) for course in all_courses)
-        in_progress = sum(getattr(course, 'in_progress_assignments', 0) for course in all_courses)
-        available = sum(getattr(course, 'available_assignments', 0) for course in all_courses)
+        # Общая статистика всегда по всем курсам (без поиска)
+        base_qs = self.get_base_queryset()
 
+        assignments_qs = (
+            UserCourse.objects
+            .filter(user__profile__is_approved=True)
+            .exclude(user__is_superuser=True)
+            .exclude(user__is_staff=True)
+        )
+
+        stats = assignments_qs.aggregate(
+            total_courses=Count('id'),
+            total_assignments=Count('id'),
+            completed=Count('id', filter=Q(status='completed')),
+            in_progress=Count('id', filter=Q(status='started')),
+            available=Count('id', filter=Q(status='available')),
+        )
+        total_assignments = stats['total_assignments'] or 0
+        completed = stats['completed'] or 0
         overall_learning_percentage = round((completed / total_assignments) * 100, 1) if total_assignments else 0
 
-        # Получаем поисковый запрос для сохранения в форме
         search_query = self.request.GET.get('search', '').strip()
 
         context.update({
-            'total_courses': len(all_courses),  # Общее количество всех курсов
+            'total_courses': stats['total_courses'] or 0,
             'overall_learning_percentage': overall_learning_percentage,
             'completed_assignments_total': completed,
-            'in_progress_assignments_total': in_progress,
-            'available_assignments_total': available,
-            'search_query': search_query,  # Для сохранения значения в поле поиска
+            'in_progress_assignments_total': stats['in_progress'] or 0,
+            'available_assignments_total': stats['available'] or 0,
+            'search_query': search_query,
         })
 
         return context
