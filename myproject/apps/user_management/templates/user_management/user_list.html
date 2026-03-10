@@ -34,7 +34,7 @@
 {% endblock %}
 
 {% block content %}
-    <a href="{% url 'builder:dashboard' %}" class="btn btn-outline-primary mb-3">← Вернуться в панель управления</a>
+    <a href="{% url 'builder:dashboard' %}" class="btn btn-outline-primary mb-3 btn__back-to-control-panel">← Вернуться в панель управления</a>
     <div class="um-user-list-wrapper">
         <div class="um-user-list-header">
             <h1 class="um-user-list-title">
@@ -45,7 +45,7 @@
                 {% endif %}
             </h1>
             {% if not request.user.profile.is_mentor_user or request.user.is_superuser or request.user.is_staff %}
-                <a href="{% url 'user_management:user_create_step1' %}" class="um-btn">Добавить пользователя</a>
+                <a href="{% url 'user_management:user_create_step1' %}" class="um-btn" style="color: #fff;">Добавить пользователя</a>
             {% endif %}
         </div>
         <form method="get" class="um-user-list-filter">

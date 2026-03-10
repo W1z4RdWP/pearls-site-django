@@ -43,7 +43,6 @@ class DelegationCreateForm(forms.ModelForm):
             'end_datetime': forms.DateTimeInput(attrs={
                 'class': 'form-control',
                 'type': 'datetime-local',
-                'required': True
             }),
             'comment': forms.Select(attrs={
                 'class': 'form-control'
@@ -63,6 +62,7 @@ class DelegationCreateForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         self.delegator = kwargs.pop('delegator', None)
         super().__init__(*args, **kwargs)
+        self.fields['end_datetime'].required = False
         
         # Исключаем текущего пользователя из списка принимающих
         if self.delegator:
@@ -75,10 +75,15 @@ class DelegationCreateForm(forms.ModelForm):
         cleaned_data = super().clean()
         start_datetime = cleaned_data.get('start_datetime')
         end_datetime = cleaned_data.get('end_datetime')
+        endless = self.data.get('endless_filter') == 'on'
         
-        if start_datetime and end_datetime:
-            if end_datetime <= start_datetime:
-                raise forms.ValidationError('Дата окончания должна быть позже даты начала')
+        if endless:
+            cleaned_data['end_datetime'] = None
+        else:
+            if not end_datetime:
+                self.add_error('end_datetime', 'Укажите дату окончания или отметьте «Бессрочно»')
+            elif start_datetime and end_datetime <= start_datetime:
+                self.add_error('end_datetime', 'Дата окончания должна быть позже даты начала')
         
         return cleaned_data
 

@@ -314,7 +314,7 @@
             {% if user.is_authenticated %}
             <form action="{% url 'clear_user_cache' %}" method="post" class="d-inline-block ml-3">
                 {% csrf_token %}
-                <button type="submit" class="btn btn-sm btn-outline-dark" title="Сбросить кэш">
+                <button type="submit" class="btn btn-sm btn-outline-dark" style="background-color: transparent; color: #333;" title="Сбросить кэш">
                   <i class="fa-solid fa-arrows-rotate"></i> Сбросить кэш
                 </button>
             </form>

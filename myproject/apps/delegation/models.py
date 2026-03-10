@@ -74,7 +74,9 @@ class Delegation(models.Model):
     )
     end_datetime = models.DateTimeField(
         verbose_name='Дата и время окончания',
-        help_text='До какого момента права действуют'
+        help_text='До какого момента права действуют',
+        blank=True,
+        null=True
     )
     status = models.CharField(
         max_length=20,
@@ -139,7 +141,7 @@ class Delegation(models.Model):
     
     def save(self, *args, **kwargs):
         # Вызываем full_clean только если объект уже имеет все необходимые поля
-        if self.delegator_id and self.delegate_id and self.start_datetime and self.end_datetime:
+        if self.delegator_id and self.delegate_id and self.start_datetime and (self.end_datetime is not None or self.pk):
             self.clean()
         super().save(*args, **kwargs)
     
@@ -171,14 +173,17 @@ class Delegation(models.Model):
     def is_active(self):
         """Проверка, активно ли делегирование в текущий момент"""
         now = timezone.now()
-        return (
-            self.status == 'active' and 
-            self.start_datetime <= now <= self.end_datetime
-        )
+        if self.status != 'active' or now < self.start_datetime:
+            return False
+        if self.end_datetime is None:
+            return True  # бессрочное
+        return now <= self.end_datetime
     
     def should_be_completed(self):
         """Проверка, должно ли делегирование быть завершено"""
-        return self.status == 'active' and timezone.now() > self.end_datetime
+        if self.status != 'active' or self.end_datetime is None:
+            return False
+        return timezone.now() > self.end_datetime
     
     @classmethod
     def get_active_delegations_for_user(cls, user):
@@ -187,8 +192,9 @@ class Delegation(models.Model):
         return cls.objects.filter(
             delegate=user,
             status='active',
-            start_datetime__lte=now,
-            end_datetime__gte=now
+            start_datetime__lte=now
+        ).filter(
+            Q(end_datetime__gte=now) | Q(end_datetime__isnull=True)
         )
     
     @classmethod

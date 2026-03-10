@@ -93,6 +93,34 @@
     cursor: default;
 }
 
+/* Поле даты окончания и галочка «Бессрочно» в одну строку */
+.delegation-form-card .end-datetime-input-wrap {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.delegation-form-card .end-datetime-input-wrap .form-control {
+    flex: 1;
+    min-width: 0;
+}
+
+.delegation-form-card .endless-checkbox-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin: 0;
+    font-weight: 500;
+    color: #232a3a;
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+.delegation-form-card .endless-checkbox-label input[type="checkbox"] {
+    margin: 0;
+    cursor: pointer;
+}
+
 @media (max-width: 768px) { 
     .delegation-form-card { 
         padding: 20px; 
