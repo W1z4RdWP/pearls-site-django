@@ -12,23 +12,24 @@
                 <img class="rounded-circle account-img" src="{{ user.profile.image.url|default:'https://via.placeholder.com/150' }}" alt="Profile Image">
                 <div class="dascoin-badge">
                     <i class="fa fa-coins"></i>
-                    <span>{{ dascoin_points }}</span>
+                    <span style="font-size: 1.2em; color:red; font-weight: bold;">{{ dascoin_points }}</span>
                 </div>
             </div>
             <div class="profile-main-info">
                 <div class="profile-top-row">
                     
-                    <h2 class="account-heading">{{ user.first_name|default:'-' }} {{ user.last_name|default:'-' }} {% if user.profile.middle_name %}({{ user.last_name|slice:":1" }}{{ user.first_name|slice:":1" }}{{ user.profile.middle_name|slice:":1" }}) {% endif %}</h2>
+                    <h2 class="account-heading">{{ user.first_name|default:'-' }}{% if user.last_name and user.last_name != 'tg_none' %} {{ user.last_name }}{% endif %}</h2>
                     <span class="profile-registered">Дата регистрации: {{ user.date_joined|date:"d.m.Y H:i" }}</span>
                 </div>
                 <div class="profile-details">
-                    <p class="text-secondary">{{ user.email }}</p>
-                    <p class="text-secondary">{{ user.profile.bio|default:'О себе: нет информации' }}</p>
+                    <p class="text-secondary">{% if user.email != user.first_name %}{{ user.email }}{% endif %}</p>
+                    <div class="text-secondary">{{ user.profile.bio|default:'О себе: нет информации'|linebreaks }}</div>
                     <div class="profile-fields">
                         <!-- <span>Имя: <b>{{ user.first_name|default:'-' }}</b></span>
                         <span>Фамилия: <b>{{ user.last_name|default:'-' }}</b></span>
                         <span>Отчество: <b>{{ user.profile.middle_name|default:'Отсутствует' }}</b></span> -->
                         <span>Должность: <b>{{ user.profile.role|default:'Отсутствует' }}</b></span>
+                        <span>Подразделение: <b>{{ user.profile.department|default:'Отсутствует' }}</b></span>
                         <span>Дата рождения: <b>{{ user.profile.date_of_birth|default:'Отсутствует' }}</b></span>
                         <span>Телефон: <b>{{ user.profile.phone_number|default:'Отсутствует' }}</b></span>
                     </div>
@@ -56,98 +57,126 @@
             <button class="btn-modern" id="edit-profile-btn">
                 <i class="fa fa-edit"></i> Редактировать
             </button>
-            <button class="btn-modern" id="toggle-quizzes-btn">
-                <i class="fa fa-list" aria-hidden="true"></i> Показать тесты
-            </button>
-            <button class="btn-modern" id="toggle-courses-btn">
-                <i class="fa fa-graduation-cap"></i> Показать завершенные курсы
-            </button>
-
+            {% with user.groups.all as groups %}
+            {% if "Внешний пользователь" in groups|join:"," %}
+                <a href="https://t.me/das_metrics_bot" target="_blank" class="btn-modern" id="support-btn" style="margin-left: 10px;">
+                    <i class="fa fa-telegram" aria-hidden="true"></i> Отдел заботы
+                </a>
+            {% else %}
+                <a href="https://mail.smileterritory.ru" target="_blank" class="btn-modern" id="mail-btn" style="margin-left: 10px;">
+                    <i class="fa fa-envelope"></i> Почта
+                </a>
+            {% endif %}
+            {% endwith %}
         </div>
 
         
-        <!-- Секция бейджей и достижений -->
-        <div class="gamification-section" id="gamification-section">
-            <!-- Бейджи -->
-            <div class="gamification-card">
-                <div class="card-header">
-                    <h4><i class="fa fa-medal"></i> Бейджи</h4>
-                    <span class="badge-count">{{ total_badges }}</span>
-                </div>
-                <div class="card-content">
-                    {% if recent_badges %}
-                        <div class="badges-grid">
-                            {% for user_badge in recent_badges %}
-                            <div class="badge-item" title="{{ user_badge.badge.description }}">
-                                {% if user_badge.badge.icon %}
-                                    <img src="{{ user_badge.badge.icon.url }}" alt="{{ user_badge.badge.name }}" class="badge-icon">
-                                {% else %}
-                                    <div class="badge-icon-placeholder">
-                                        <i class="fa fa-medal"></i>
-                                    </div>
-                                {% endif %}
-                                <span class="badge-name">{{ user_badge.badge.name }}</span>
-                                <small class="badge-date">{{ user_badge.earned_at|date:"d.m.Y" }}</small>
+        <!-- Проверяем, состоит ли пользователь в группе "Внешний пользователь" -->
+        {% with user.groups.all as groups %}
+        {% if "Внешний пользователь" in groups|join:"," %}
+            <!-- Секция для внешних пользователей - кнопка чек-апа -->
+            <div class="gamification-section" id="external-user-section">
+                <div class="gamification-card">
+                    <div class="card-header">
+                        <h4><i class="fa fa-stethoscope"></i> Чек-ап стоматологической клиники</h4>
+                    </div>
+                    <div class="card-content">
+                        <div class="checkup-info">
+                            <p>Пройдите комплексную оценку вашей стоматологической клиники</p>
+                            <div class="checkup-action">
+                                <a href="{% url 'courses:course_detail' slug='chek-ap-stomatologicheskoi-kliniki' %}" class="btn-modern btn-lg">
+                                    <i class="fa fa-play-circle"></i> Перейти к чек-апу
+                                </a>
                             </div>
-                            {% endfor %}
                         </div>
-                        {% if total_badges > 0 %}
-                            <div class="show-more">
-                                <button class="btn-modern btn-sm" id="show-all-badges">
-                                    <i class="fa fa-eye"></i> Показать все ({{ total_badges }})
-                                </button>
-                            </div>
-                        {% endif %}
-                    {% else %}
-                        <div class="empty-state">
-                            <i class="fa fa-medal fa-2x"></i>
-                            <p>У вас пока нет бейджей</p>
-                            <small>Выполняйте задания и проходите курсы для получения бейджей</small>
-                        </div>
-                    {% endif %}
+                    </div>
                 </div>
             </div>
-            
-            <!-- Достижения -->
-            <div class="gamification-card">
-                <div class="card-header">
-                    <h4><i class="fa fa-trophy"></i> Достижения</h4>
-                    <span class="badge-count">{{ total_achievements }}</span>
-                </div>
-                <div class="card-content">
-                    {% if recent_achievements %}
-                        <div class="achievements-grid">
-                            {% for user_achievement in recent_achievements %}
-                            <div class="achievement-item" title="{{ user_achievement.achievement.description }}">
-                                {% if user_achievement.achievement.icon %}
-                                    <img src="{{ user_achievement.achievement.icon.url }}" alt="{{ user_achievement.achievement.name }}" class="achievement-icon">
-                                {% else %}
-                                    <div class="achievement-icon-placeholder">
-                                        <i class="fa fa-trophy"></i>
-                                    </div>
-                                {% endif %}
-                                <span class="achievement-name">{{ user_achievement.achievement.name }}</span>
-                                <small class="achievement-date">{{ user_achievement.earned_at|date:"d.m.Y" }}</small>
+        {% else %}
+            <!-- Секция бейджей и достижений для обычных пользователей -->
+            <div class="gamification-section" id="gamification-section">
+                <!-- Бейджи -->
+                <div class="gamification-card">
+                    <div class="card-header">
+                        <h4><i class="fa fa-medal"></i> Бейджи</h4>
+                        <span class="badge-count">{{ total_badges }}</span>
+                    </div>
+                    <div class="card-content">
+                        {% if recent_badges %}
+                            <div class="badges-grid">
+                                {% for user_badge in recent_badges %}
+                                <div class="badge-item" title="{{ user_badge.badge.description }}">
+                                    {% if user_badge.badge.icon %}
+                                        <img src="{{ user_badge.badge.icon.url }}" alt="{{ user_badge.badge.name }}" class="badge-icon">
+                                    {% else %}
+                                        <div class="badge-icon-placeholder">
+                                            <i class="fa fa-medal"></i>
+                                        </div>
+                                    {% endif %}
+                                    <span class="badge-name">{{ user_badge.badge.name }}</span>
+                                    <small class="badge-date">{{ user_badge.earned_at|date:"d.m.Y" }}</small>
+                                </div>
+                                {% endfor %}
                             </div>
-                            {% endfor %}
-                        </div>
-                        {% if total_achievements > 0 %}
-                            <div class="show-more">
-                                <button class="btn-modern btn-sm" id="show-all-achievements">
-                                    <i class="fa fa-eye"></i> Показать все ({{ total_achievements }})
-                                </button>
+                            {% if total_badges > 0 %}
+                                <div class="show-more">
+                                    <button class="btn-modern btn-sm" id="show-all-badges">
+                                        <i class="fa fa-eye"></i> Показать все ({{ total_badges }})
+                                    </button>
+                                </div>
+                            {% endif %}
+                        {% else %}
+                            <div class="empty-state">
+                                <i class="fa fa-medal fa-2x"></i>
+                                <p>У вас пока нет бейджей</p>
+                                <small>Выполняйте задания и проходите курсы для получения бейджей</small>
                             </div>
                         {% endif %}
-                    {% else %}
-                        <div class="empty-state">
-                            <i class="fa fa-trophy fa-2x"></i>
-                            <p>У вас пока нет достижений</p>
-                            <small>Особые достижения появятся здесь</small>
-                        </div>
-                    {% endif %}
+                    </div>
+                </div>
+                
+                <!-- Достижения -->
+                <div class="gamification-card">
+                    <div class="card-header">
+                        <h4><i class="fa fa-trophy"></i> Достижения</h4>
+                        <span class="badge-count">{{ total_achievements }}</span>
+                    </div>
+                    <div class="card-content">
+                        {% if recent_achievements %}
+                            <div class="achievements-grid">
+                                {% for user_achievement in recent_achievements %}
+                                <div class="achievement-item" title="{{ user_achievement.achievement.description }}">
+                                    {% if user_achievement.achievement.icon %}
+                                        <img src="{{ user_achievement.achievement.icon.url }}" alt="{{ user_achievement.achievement.name }}" class="achievement-icon">
+                                    {% else %}
+                                        <div class="achievement-icon-placeholder">
+                                            <i class="fa fa-trophy"></i>
+                                        </div>
+                                    {% endif %}
+                                    <span class="achievement-name">{{ user_achievement.achievement.name }}</span>
+                                    <small class="achievement-date">{{ user_achievement.earned_at|date:"d.m.Y" }}</small>
+                                </div>
+                                {% endfor %}
+                            </div>
+                            {% if total_achievements > 0 %}
+                                <div class="show-more">
+                                    <button class="btn-modern btn-sm" id="show-all-achievements">
+                                        <i class="fa fa-eye"></i> Показать все ({{ total_achievements }})
+                                    </button>
+                                </div>
+                            {% endif %}
+                        {% else %}
+                            <div class="empty-state">
+                                <i class="fa fa-trophy fa-2x"></i>
+                                <p>У вас пока нет достижений</p>
+                                <small>Особые достижения появятся здесь</small>
+                            </div>
+                        {% endif %}
+                    </div>
                 </div>
             </div>
-        </div>
+        {% endif %}
+        {% endwith %}
         
         
         <!-- Форма для обновления профиля -->
@@ -157,7 +186,40 @@
                 <fieldset class="form-group">
                     <legend class="border-bottom mb-4">Информация профиля</legend>
                     {{ user_form|crispy }}
-                    {{ profile_form|crispy }}
+                    
+                    <!-- Модифицированное поле для аватара с камерой -->
+                    <div class="form-group">
+                        <label for="id_image">Аватар</label>
+                        <div class="avatar-upload-container">
+                            {{ profile_form.image }}
+                            <div class="mt-2">
+                                <button type="button" class="btn btn-outline-primary btn-sm" id="camera-btn">
+                                    <i class="fa fa-camera"></i> Сделать фото
+                                </button>
+                                <input type="file" id="camera-input" accept="image/*" capture="user" style="display: none;">
+                            </div>
+                            
+                            <!-- Превью снятого фото -->
+                            <div id="camera-preview" style="display: none; margin-top: 10px;">
+                                <img id="camera-preview-img" style="max-width: 150px; max-height: 150px; border-radius: 6px; border: 1px solid #dee2e6;">
+                                <div class="mt-2">
+                                    <button type="button" class="btn btn-success btn-sm" id="use-camera-photo">
+                                        <i class="fa fa-check"></i> Использовать
+                                    </button>
+                                    <button type="button" class="btn btn-secondary btn-sm" id="retake-photo">
+                                        <i class="fa fa-camera"></i> Переснять
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Остальные поля профиля -->
+                    {% for field in profile_form %}
+                        {% if field.name != 'image' %}
+                            {{ field|as_crispy_field }}
+                        {% endif %}
+                    {% endfor %}
                 </fieldset>
                 <div class="form-group">
                     <button class="btn btn-outline-info" type="submit" id="update-profile_info-btn">Обновить</button>
@@ -167,111 +229,6 @@
                     </a>
                 </div>
             </form>
-        </div>
-    </div>
-    <div class="container mt-4">
-        <h2>Ваш прогресс</h2>
-        
-        <!-- Блок для незавершенных курсов -->
-        <div id="unfinished-courses">
-            {% if unfinished_courses %}
-                {% for progress in unfinished_courses %}
-                <div class="card mb-3">
-                    <div class="card-body">
-                        <h5 class="card-title">{{ progress.course.title }}</h5>
-                        <div class="progress">
-                            <div class="progress-bar" 
-                                style="width: {{ progress.percent }}%" 
-                                aria-valuenow="{{ progress.percent }}" 
-                                aria-valuemin="0" 
-                                aria-valuemax="100">
-                                {{ progress.percent }}%
-                            </div>
-                        </div>
-                        <p class="mt-2">
-                            Пройдено уроков: {{ progress.completed }} из {{ progress.total }}
-                        </p>
-
-                        {% if progress.status == 'started' %}
-                            {% if progress.course.final_quiz %}
-                                <div class="quiz-status">
-                                {% if progress.quiz_passed %}
-                                    <span class="badge bg-success">Тест пройден</span>
-                                {% else %}
-                                    <span class="badge bg-warning">Требуется тест</span>
-                                    <a href="{% url 'quizzes:quiz_start' progress.course.final_quiz.id %}" 
-                                    class="btn btn-sm btn-primary">
-                                    Пройти тест</a>
-                                {% endif %}
-                                </div>
-                            {% endif %}
-                        {% endif %}
-                        <div class="btn-group">
-                            <a href="{% url 'courses:course_detail' progress.course.slug %}" 
-                            class="btn btn-primary">
-                                Перейти к курсу
-                            </a>
-                            {% if progress.percent == 100 and finished_courses %}
-                            <span class="btn btn-success disabled">
-                                Курс завершен
-                            </span>
-                            {% endif %}
-                        </div>
-                    </div>
-                </div>
-                {% endfor %}
-            {% else %}
-                <div class="alert alert-info">Вы еще не начали ни одного курса</div>
-            {% endif %}
-        </div>
-
-        <!-- Блок для завершенных курсов (изначально скрыт) -->
-        <div id="finished-courses" style="display: none;">
-            {% if finished_courses %}
-                {% for progress in finished_courses %}
-                <div class="card mb-3">
-                    <div class="card-body">
-                        <h5 class="card-title">{{ progress.course.title }}</h5>
-                        <div class="progress">
-                            <div class="progress-bar" 
-                                 style="width: {{ progress.percent }}%" 
-                                 aria-valuenow="{{ progress.percent }}" 
-                                 aria-valuemin="0" 
-                                 aria-valuemax="100">
-                                {{ progress.percent }}%
-                            </div>
-                        </div>
-                        <p class="mt-2">
-                            Пройдено уроков: {{ progress.completed }} из {{ progress.total }}
-                        </p>
-                        <div class="btn-group">
-                            <a href="{% url 'courses:course_detail' progress.course.slug %}" 
-                               class="btn btn-primary">
-                                Перейти к курсу
-                            </a>
-                            <span class="btn btn-success disabled">
-                                Курс завершен
-                            </span>
-                        </div>
-                    </div>
-                </div>
-                {% endfor %}
-            {% else %}
-                <div class="alert alert-info">Вы еще не завершили ни одного курса</div>
-            {% endif %}
-        </div>
- 
-
-    </div>
-
-    <div class="container mt-4 quiz-history-container" style="display: none;">
-        <h2>История тестов</h2>
-        <div id="quiz-history-content">
-            {% if page_obj %}
-                {% include 'users/includes/_quiz_history.html' %}
-            {% else %}
-                <div class="alert alert-info">Вы еще не проходили тесты</div>
-            {% endif %}
         </div>
     </div>
 </div>

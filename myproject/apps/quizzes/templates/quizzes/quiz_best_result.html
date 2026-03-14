@@ -1,0 +1,73 @@
+{% extends "layout.html" %}
+{% load static %}
+
+{% block specific_styles %}
+    <link rel="stylesheet" href="{% static 'quizzes/css/quiz_styles.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="quiz-container">
+    <div class="quiz-header">
+        <h2>{{ quiz.name }}</h2>
+        <p class="text-muted">Курс: {{ course.title }}</p>
+    </div>
+    
+    <div class="result-summary">
+        {% if passed %}
+            <div class="alert alert-success">
+                <h4><i class="fa fa-check-circle"></i> Тест пройден!</h4>
+                <p><strong>Результат:</strong> {{ best_result.score|floatformat:1 }}/{{ best_result.total_questions }} правильных ответов</p>
+                <p><strong>Ваш результат:</strong> {{ best_result.percent }}%</p>
+                <p><strong>Проходной балл:</strong> {{ pass_threshold }}%</p>
+                <p><strong>Дата сдачи теста:</strong> {{ last_attempt.completed_at|date:"d.m.Y H:i" }}</p>
+            </div>
+        {% elif pending %}
+            <div class="alert alert-info">
+                <h4><i class="fa fa-clock-o"></i> Ожидает проверки наставником</h4>
+                <p><strong>Результат:</strong> {{ display_result.score|floatformat:1 }}/{{ display_result.total_questions }} правильных ответов</p>
+                <p><strong>Ваш результат:</strong> {{ display_percent }}%</p>
+                <p><strong>Проходной балл:</strong> {{ pass_threshold }}%</p>
+                <p><strong>Дата прохождения:</strong> {{ last_attempt.completed_at|date:"d.m.Y H:i" }}</p>
+                <p class="mb-0"><strong>Статус:</strong> Ваш тест отправлен на проверку наставнику. Результат будет доступен после проверки открытых вопросов.</p>
+            </div>
+        {% else %}
+            <div class="alert alert-warning">
+                <h4><i class="fa fa-exclamation-triangle"></i> Тест не пройден</h4>
+                <p><strong>Лучший результат:</strong> {{ best_result.score|floatformat:1 }}/{{ best_result.total_questions }} правильных ответов</p>
+                <p><strong>Ваш результат:</strong> {{ best_result.percent }}%</p>
+                <p><strong>Проходной балл:</strong> {{ pass_threshold }}%</p>
+                <p><strong>Последняя попытка:</strong> {{ last_attempt.completed_at|date:"d.m.Y H:i" }}</p>
+
+            </div>
+        {% endif %}
+        
+        <div class="progress-bar-finish mb-4">
+            <div class="progress-bar-finish__progress" style="width: {% if pending %}{{ display_percent }}{% else %}{{ best_result.percent }}{% endif %}%"></div>
+        </div>
+        
+        {% if has_text_questions and mentor_comment %}
+        <div class="alert alert-info" style="background: #e7f3ff; border: 2px solid #2196F3; border-radius: 8px; padding: 20px; margin-bottom: 20px;">
+            <h5 style="color: #1976D2; margin-top: 0; margin-bottom: 10px;">
+                <i class="fa fa-comment"></i> Комментарий наставника
+            </h5>
+            {% if reviewed_by %}
+            <p style="color: #666; font-size: 0.9em; margin-bottom: 10px;">
+                <strong>Проверил:</strong> {{ reviewed_by.get_full_name|default:reviewed_by.username }}
+            </p>
+            {% endif %}
+            <p style="color: #333; margin-bottom: 0; white-space: pre-line;">{{ mentor_comment }}</p>
+        </div>
+        {% endif %}
+        
+        <div class="d-flex gap-3 justify-content-center">
+            <a href="{% url 'quizzes:quiz_start' quiz_id=quiz.id %}?course_slug={{ course.slug }}" class="btn-quiz">
+                <i class="fa fa-redo"></i> Пройти еще раз
+            </a>
+            
+            <a href="{% url 'courses:course_detail' slug=course.slug %}" class="btn-quiz finish-btn">
+                <i class="fa fa-arrow-left"></i> Вернуться к курсу
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %} 

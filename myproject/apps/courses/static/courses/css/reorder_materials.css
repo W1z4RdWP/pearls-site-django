@@ -1,0 +1,75 @@
+.materials-list {
+    min-height: 200px;
+}
+
+.material-handle {
+    color: #6c757d;
+    cursor: grab;
+    padding: 4px 8px;
+    margin-left: 10px;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    transition: all 0.2s ease;
+}
+
+.material-handle i {
+    font-size: 1.2rem;
+    color: #6c757d;
+}
+
+.material-handle:hover {
+    color: #495057;
+    transform: scale(1.1);
+}
+
+.material-handle:hover i {
+    color: #495057;
+}
+
+.material-handle:active {
+    cursor: grabbing;
+    color: #343a40;
+}
+
+.material-handle:active i {
+    color: #343a40;
+}
+
+/* Sortable.js классы */
+.sortable-ghost {
+    opacity: 0.4;
+    background: #f8f9fa !important;
+    border: 2px dashed #6c757d !important;
+}
+
+.sortable-chosen {
+    background: #e3f2fd !important;
+    border-color: #2196f3 !important;
+    box-shadow: 0 4px 12px rgba(33, 150, 243, 0.2) !important;
+}
+
+.sortable-drag {
+    background: white !important;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.3) !important;
+    transform: rotate(1deg);
+}
+
+/* Адаптивность */
+@media (max-width: 768px) {
+    .material-handle {
+        padding: 4px;
+    }
+}
+
+/* Анимация для статуса сохранения */
+#save-status {
+    min-height: 20px;
+    transition: all 0.3s ease;
+}
+
+/* Кнопка сохранения */
+#save-order:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}

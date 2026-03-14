@@ -1,7 +1,4 @@
 
-
-
-
 function initDictHotTable() {
     if (window._dictSectionData && document.getElementById('dict-hot-table') && window.Handsontable) {
         // Регистрируем русскую локализацию для Handsontable

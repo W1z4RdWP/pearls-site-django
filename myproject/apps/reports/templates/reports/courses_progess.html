@@ -1,0 +1,235 @@
+{% extends 'layout.html' %}
+{% load static %}
+{% load l10n %}
+{% block title %}Прогресс курсов{% endblock %}
+
+{% block specific_styles %}
+<link rel="stylesheet" href="{% static 'reports/css/user_reports.css' %}">
+<style>
+    .clickable-row:hover {
+        background-color: #f8f9fa;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12 d-flex justify-content-between align-items-center mb-4">
+            <div>
+                <h2><i class="fa-solid fa-book-open"></i> Прогресс курсов</h2>
+                <small class="text-muted">Показываются только курсы, назначенные пользователям</small>
+            </div>
+            <div class="badge bg-light text-dark border">
+                <i class="fa-solid fa-signal"></i> Средний процент завершения: <strong>{{ overall_learning_percentage|default:0 }}%</strong>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-3 mb-4">
+        <div class="col-12 col-md-3">
+            <div class="card shadow-sm h-100">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="flex-grow-1">
+                            <p class="text-muted mb-1">Всего курсов</p>
+                            <h4 class="mb-0">{{ total_courses|default:0 }}</h4>
+                        </div>
+                        <span class="badge bg-primary-subtle text-primary"><i class="fa-solid fa-layer-group"></i></span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-12 col-md-3">
+            <div class="card shadow-sm h-100">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="flex-grow-1">
+                            <p class="text-muted mb-1">Завершено назначений</p>
+                            <h4 class="mb-0">{{ completed_assignments_total|default:0 }}</h4>
+                        </div>
+                        <span class="badge bg-success-subtle text-success"><i class="fa-solid fa-check-circle"></i></span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-12 col-md-3">
+            <div class="card shadow-sm h-100">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="flex-grow-1">
+                            <p class="text-muted mb-1">В процессе</p>
+                            <h4 class="mb-0">{{ in_progress_assignments_total|default:0 }}</h4>
+                        </div>
+                        <span class="badge bg-warning-subtle text-warning"><i class="fa-solid fa-spinner"></i></span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-12 col-md-3">
+            <div class="card shadow-sm h-100">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="flex-grow-1">
+                            <p class="text-muted mb-1">Не начато</p>
+                            <h4 class="mb-0">{{ available_assignments_total|default:0 }}</h4>
+                        </div>
+                        <span class="badge bg-secondary-subtle text-secondary"><i class="fa-solid fa-circle"></i></span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body">
+                    <form method="get" action="{% url 'reports:courses_progress' %}" class="d-flex gap-2 align-items-center">
+                        <div class="flex-grow-1">
+                            <input type="text" 
+                                   name="search" 
+                                   class="form-control" 
+                                   placeholder="Поиск по названию курса..." 
+                                   value="{{ search_query|default:'' }}"
+                                   autocomplete="off">
+                        </div>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fa-solid fa-magnifying-glass"></i> Поиск
+                        </button>
+                        {% if search_query %}
+                            <a href="{% url 'reports:courses_progress' %}" class="btn btn-secondary" title="Очистить поиск">
+                                <i class="fa-solid fa-times"></i> Очистить
+                            </a>
+                        {% endif %}
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Курсы ({{ courses|length }})</h5>
+                </div>
+                <div class="card-body">
+                    {% if courses %}
+                        <div class="table-responsive">
+                            <table class="table table-striped table-hover table-compact align-middle">
+                                <thead>
+                                    <tr>
+                                        <th style="width: 30%;">Курс</th>
+                                        <th style="width: 15%;">Назначено</th>
+                                        <th style="width: 40%;">Прогресс завершения</th>
+                                        <th style="width: 15%;">Статусы</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for course in courses %}
+                                        <tr class="clickable-row" data-href="{% url 'reports:courses_progress_detail' course.id %}" style="cursor: pointer;">
+                                            <td>
+                                                <strong>{{ course.title }}</strong><br>
+                                                <small class="text-muted">Назначено пользователям: {{ course.assigned_users|default:0 }}</small>
+                                            </td>
+                                            <td>
+                                                <span class="badge bg-primary">
+                                                    {{ course.assigned_users|default:0 }}
+                                                </span>
+                                                <small class="text-muted d-block">пользователей</small>
+                                            </td>
+                                            <td>
+                                                <div class="progress mb-1" style="height: 20px; width: 100%;" title="{{ course.learning_percentage|floatformat:1 }}% завершено">
+                                                    <div class="progress-bar {% if course.learning_percentage >= 80 %}bg-success{% elif course.learning_percentage >= 50 %}bg-warning{% else %}bg-danger{% endif %}"
+                                                         role="progressbar"
+                                                         data-width="{{ course.learning_percentage|unlocalize }}"
+                                                         aria-valuenow="{{ course.learning_percentage|unlocalize }}"
+                                                         aria-valuemin="0"
+                                                         aria-valuemax="100">
+                                                        <span class="fw-bold" style="font-size: 0.75rem;">{{ course.learning_percentage|floatformat:1 }}%</span>
+                                                    </div>
+                                                </div>
+                                                <small class="text-muted" style="font-size: 0.7rem; line-height: 1;">
+                                                    <i class="fa-solid fa-check-circle text-success"></i> {{ course.completed_assignments|default:0 }}
+                                                    /
+                                                    <i class="fa-solid fa-spinner text-warning"></i> {{ course.in_progress_assignments|default:0 }}
+                                                    /
+                                                    <i class="fa-solid fa-circle text-secondary"></i> {{ course.available_assignments|default:0 }}
+                                                </small>
+                                            </td>
+                                            <td>
+                                                <div class="d-flex flex-column" style="gap: 0.25rem;">
+                                                    <span class="badge bg-success-subtle text-success">Завершено: {{ course.completed_assignments|default:0 }}</span>
+                                                    <span class="badge bg-warning-subtle text-warning">В процессе: {{ course.in_progress_assignments|default:0 }}</span>
+                                                    <span class="badge bg-secondary-subtle text-secondary">Не начато: {{ course.available_assignments|default:0 }}</span>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+
+                        {% if is_paginated %}
+                            <nav aria-label="Навигация по страницам">
+                                <ul class="pagination justify-content-center">
+                                    {% if page_obj.has_previous %}
+                                        <li class="page-item">
+                                            <a class="page-link" href="?page=1{% if search_query %}&search={{ search_query }}{% endif %}">Первая</a>
+                                        </li>
+                                        <li class="page-item">
+                                            <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}">Предыдущая</a>
+                                        </li>
+                                    {% endif %}
+
+                                    <li class="page-item active">
+                                        <span class="page-link">
+                                            Страница {{ page_obj.number }} из {{ page_obj.paginator.num_pages }}
+                                        </span>
+                                    </li>
+
+                                    {% if page_obj.has_next %}
+                                        <li class="page-item">
+                                            <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}">Следующая</a>
+                                        </li>
+                                        <li class="page-item">
+                                            <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}{% if search_query %}&search={{ search_query }}{% endif %}">Последняя</a>
+                                        </li>
+                                    {% endif %}
+                                </ul>
+                            </nav>
+                        {% endif %}
+                    {% else %}
+                        <div class="alert alert-info mb-0" role="alert">
+                            <i class="fas fa-info-circle"></i> Нет курсов с назначениями для отображения.
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block specific_scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Устанавливаем ширину прогресс-баров
+    document.querySelectorAll('.progress-bar[data-width]').forEach(function(bar) {
+        const width = parseFloat(bar.dataset.width) || 0;
+        bar.style.width = width + '%';
+    });
+
+    // Кликабельные строки таблицы
+    document.querySelectorAll('.clickable-row').forEach(function(row) {
+        row.addEventListener('click', function() {
+            const href = this.dataset.href;
+            if (href) {
+                window.location.href = href;
+            }
+        });
+    });
+});
+</script>
+{% endblock %}

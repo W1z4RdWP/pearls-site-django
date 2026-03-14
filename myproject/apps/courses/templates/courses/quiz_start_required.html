@@ -1,0 +1,7 @@
+{% extends 'layout.html' %}
+
+{% block content %}
+  <h1>Доступ запрещен</h1>
+  <p>Чтобы перейти к тесту, сначала начните курс нажав кнопку <b>"Начать"</b> на странице курса.</p>
+  <a href="{% url 'courses:course_detail' course.slug %}" class="btn btn-primary mt-3">Вернуться к курсу</a>
+{% endblock %} 

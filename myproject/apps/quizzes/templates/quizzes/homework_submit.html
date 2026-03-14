@@ -1,0 +1,309 @@
+{% extends "layout.html" %}
+{% load static %}
+
+{% block title %}Задание: {{ homework.title }}{% endblock %}
+
+{% block specific_styles %}
+    <link rel="stylesheet" href="{% static 'courses/css/lesson_custom_buttons.css' %}">
+    <link rel="stylesheet" href="{% static 'quizzes/css/quiz_styles.css' %}">
+    <link rel="stylesheet" href="{% static 'quizzes/css/homework_submit.css' %}">
+{% endblock %}
+
+{% block content %}
+
+    {% if course %}
+    <div class="lesson-navigation">
+        <a href="{% url 'courses:course_detail' slug=course.slug %}" 
+           class="btn btn-outline-secondary" style="margin-right: 10px;">
+            <i class="fa fa-arrow-left"></i> Вернуться к курсу
+        </a>
+        
+        {% if previous_material %}
+            {% if previous_material.type == 'lesson' %}
+                <a href="{% url 'courses:lesson_detail' course_slug=course.slug lesson_id=previous_material.id %}" 
+                   class="btn btn-primary">
+                    ← {{ previous_material.title }}
+                </a>
+            {% elif previous_material.type == 'quiz' %}
+                <a href="{% url 'quizzes:quiz_start' quiz_id=previous_material.id %}?course_slug={{ course.slug }}" 
+                   class="btn btn-success" style="background-color: #28a745; border-color: #28a745;">
+                    <i class="fa fa-graduation-cap"></i> ← {{ previous_material.title }}
+                </a>
+            {% elif previous_material.type == 'homework' %}
+                <a href="{% url 'quizzes:homework_submit' homework_id=previous_material.id %}?course_slug={{ course.slug }}" 
+                   class="btn btn-warning" style="background-color: #ffc107; border-color: #ffc107; color: #212529;">
+                    <i class="fa fa-pencil-alt"></i> ← {{ previous_material.title }}
+                </a>
+            {% endif %}
+        {% else %}
+            <button class="btn btn-secondary" disabled>← Это первый элемент</button>
+        {% endif %}
+        
+        {% if next_material %}
+            {% if next_material.type == 'lesson' %}
+                <a href="{% url 'courses:lesson_detail' course_slug=course.slug lesson_id=next_material.id %}" 
+                   class="btn btn-primary">
+                    {{ next_material.title }} →
+                </a>
+            {% elif next_material.type == 'quiz' %}
+                <a href="{% url 'quizzes:quiz_start' quiz_id=next_material.id %}?course_slug={{ course.slug }}" 
+                   class="btn btn-success" style="background-color: #28a745; border-color: #28a745;">
+                    <i class="fa fa-graduation-cap"></i> {{ next_material.title }} →
+                </a>
+            {% elif next_material.type == 'homework' %}
+                <a href="{% url 'quizzes:homework_submit' homework_id=next_material.id %}?course_slug={{ course.slug }}" 
+                   class="btn btn-warning" style="background-color: #ffc107; border-color: #ffc107; color: #212529;">
+                    <i class="fa fa-pencil-alt"></i> {{ next_material.title }} →
+                </a>
+            {% endif %}
+        {% else %}
+            <button class="btn btn-secondary" disabled>Это последний элемент →</button>
+        {% endif %}
+    </div>
+    {% endif %}
+
+    <div class="content-section">
+        {% if course %}
+        <h1>{{ course.title }}</h1>
+        {% endif %}
+        <h2>{{ homework.title }}</h2>
+        
+        <div class="homework-content">
+        
+            {% if existing_submission %}
+            <div class="existing-submission">
+                <h4>Ваш предыдущий ответ</h4>
+                <span class="status {{ existing_submission.status }}">
+                    {% if existing_submission.status == 'pending' %}
+                        ⏳ Ожидает проверки
+                    {% elif existing_submission.status == 'correct' %}
+                        ✅ Правильно
+                    {% elif existing_submission.status == 'incorrect' %}
+                        ❌ Не засчитано
+                    {% endif %}
+                </span>
+                {% if existing_submission.answer_text %}
+                <div class="existing-answer">
+                    {{ existing_submission.answer_text|safe }}
+                </div>
+                {% endif %}
+                
+                {% if existing_submission.images.exists %}
+                <div class="existing-images" style="margin-top: 15px;">
+                    <p style="color: #555; font-size: 0.9rem; margin-bottom: 10px;">📷 Прикреплённые фото:</p>
+                    {% for image in existing_submission.images.all %}
+                    <img src="{{ image.image.url }}" alt="Изображение {{ forloop.counter }}" onclick="openImageModal(this.src)">
+                    {% endfor %}
+                </div>
+                {% endif %}
+                
+                {% if existing_submission.mentor_feedback %}
+                <div class="mentor-feedback">
+                    {% if existing_submission.reviewed_by %}
+                    <div class="mentor-info">
+                        {% if existing_submission.reviewed_by.profile.image %}
+                            <img src="{{ existing_submission.reviewed_by.profile.image.url }}" 
+                                 alt="{{ existing_submission.reviewed_by.get_full_name|default:existing_submission.reviewed_by.username }}"
+                                 class="mentor-avatar">
+                        {% else %}
+                            <div class="mentor-avatar-placeholder">
+                                <i class="fa fa-user"></i>
+                            </div>
+                        {% endif %}
+                        <div class="mentor-details">
+                            <span class="mentor-name">{{ existing_submission.reviewed_by.get_full_name|default:existing_submission.reviewed_by.username }}</span>
+                            <span class="mentor-label">Наставник</span>
+                        </div>
+                    </div>
+                    {% endif %}
+                    <h5>Комментарий наставника:</h5>
+                    <p style="margin: 0; white-space: pre-line;">{{ existing_submission.mentor_feedback }}</p>
+                </div>
+                {% endif %}
+                
+                {% if existing_submission.status == 'correct' %}
+                <p style="margin-top: 15px; color: #155724;">
+                    <strong>Задание засчитано!</strong> Вам начислено {{ homework.points }} DASCOIN.
+                </p>
+                {% endif %}
+            </div>
+            {% endif %}
+            
+            {% if not existing_submission or existing_submission.status == 'incorrect' %}
+            <div class="answer-section">
+                <h3>{% if existing_submission and existing_submission.status == 'incorrect' %}Отправить новый ответ{% else %}Ваш ответ{% endif %}</h3>
+                
+                <form method="post" enctype="multipart/form-data" id="homework-form">
+                    {% csrf_token %}
+                    {% if course %}
+                    <input type="hidden" name="course_slug" value="{{ course.slug }}">
+                    {% endif %}
+                    
+                    {% if form.non_field_errors %}
+                    <div class="form-errors">
+                        {% for error in form.non_field_errors %}
+                            <p style="margin: 0;">{{ error }}</p>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                    
+                    <div class="text-section">
+                        <label for="id_answer_text" style="display: block; margin-bottom: 8px; color: #2c3e50; font-weight: 500;">
+                            💬 Текст ответа <span style="color: #95a5a6; font-weight: normal;">(необязательно)</span>
+                        </label>
+                        <textarea name="answer_text" id="id_answer_text" class="answer-textarea" 
+                                  placeholder="Введите текст ответа или оставьте пустым, если прикрепляете только фото...">{{ form.answer_text.value|default:'' }}</textarea>
+                        
+                        {% if form.answer_text.errors %}
+                        <div class="error-text" style="color: #e74c3c; font-size: 0.85rem; margin-top: 10px;">
+                            {{ form.answer_text.errors.0 }}
+                        </div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="upload-section">
+                        <h4>Прикрепить фото</h4>
+                        <div class="upload-area" id="upload-area">
+                            <input type="file" name="images" id="images-input" multiple accept="image/*">
+                            <div class="upload-icon">📤</div>
+                            <div class="upload-text">
+                                Перетащите изображения сюда или <span>нажмите для выбора</span>
+                            </div>
+                            <p style="color: #95a5a6; font-size: 0.8rem; margin-top: 10px;">
+                                Можно загрузить несколько фото (JPG, PNG, GIF)
+                            </p>
+                        </div>
+                        <div class="image-previews" id="image-previews"></div>
+                    </div>
+                    
+                    <div class="form-actions">
+                        <button type="submit" class="btn-submit">Отправить на проверку</button>
+                        {% if course %}
+                        <a href="{% url 'courses:course_detail' slug=course.slug %}" class="btn-back">Вернуться к курсу</a>
+                        {% else %}
+                        <a href="{% url 'home' %}" class="btn-back">На главную</a>
+                        {% endif %}
+                    </div>
+                </form>
+            </div>
+            {% else %}
+            <div class="form-actions">
+                {% if course %}
+                <a href="{% url 'courses:course_detail' slug=course.slug %}" class="btn-back">Вернуться к курсу</a>
+                {% else %}
+                <a href="{% url 'home' %}" class="btn-back">На главную</a>
+                {% endif %}
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+<!-- Модальное окно для просмотра изображений -->
+<div class="image-modal" id="imageModal" onclick="closeImageModal()">
+    <span class="close-modal">&times;</span>
+    <img src="" alt="Просмотр изображения" id="modalImage">
+</div>
+{% endblock %}
+
+{% block specific_scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const uploadArea = document.getElementById('upload-area');
+    const fileInput = document.getElementById('images-input');
+    const previewsContainer = document.getElementById('image-previews');
+    
+    if (!uploadArea || !fileInput) return;
+    
+    let selectedFiles = [];
+    
+    // Drag and drop события
+    uploadArea.addEventListener('dragover', function(e) {
+        e.preventDefault();
+        uploadArea.classList.add('dragover');
+    });
+    
+    uploadArea.addEventListener('dragleave', function(e) {
+        e.preventDefault();
+        uploadArea.classList.remove('dragover');
+    });
+    
+    uploadArea.addEventListener('drop', function(e) {
+        e.preventDefault();
+        uploadArea.classList.remove('dragover');
+        
+        const files = e.dataTransfer.files;
+        handleFiles(files);
+    });
+    
+    // Выбор файлов через клик
+    fileInput.addEventListener('change', function(e) {
+        handleFiles(this.files);
+    });
+    
+    function handleFiles(files) {
+        for (let file of files) {
+            if (file.type.startsWith('image/')) {
+                selectedFiles.push(file);
+            }
+        }
+        updatePreviews();
+        updateFileInput();
+    }
+    
+    function updatePreviews() {
+        previewsContainer.innerHTML = '';
+        
+        selectedFiles.forEach((file, index) => {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const preview = document.createElement('div');
+                preview.className = 'image-preview';
+                preview.innerHTML = `
+                    <img src="${e.target.result}" alt="Превью">
+                    <button type="button" class="remove-btn" data-index="${index}">&times;</button>
+                `;
+                previewsContainer.appendChild(preview);
+                
+                // Обработчик удаления
+                preview.querySelector('.remove-btn').addEventListener('click', function() {
+                    const idx = parseInt(this.dataset.index);
+                    selectedFiles.splice(idx, 1);
+                    updatePreviews();
+                    updateFileInput();
+                });
+            };
+            reader.readAsDataURL(file);
+        });
+    }
+    
+    function updateFileInput() {
+        // Создаём новый DataTransfer для обновления input
+        const dt = new DataTransfer();
+        selectedFiles.forEach(file => dt.items.add(file));
+        fileInput.files = dt.files;
+    }
+});
+
+// Функции для модального окна просмотра изображений
+function openImageModal(src) {
+    const modal = document.getElementById('imageModal');
+    const modalImg = document.getElementById('modalImage');
+    modal.classList.add('active');
+    modalImg.src = src;
+    document.body.style.overflow = 'hidden';
+}
+
+function closeImageModal() {
+    const modal = document.getElementById('imageModal');
+    modal.classList.remove('active');
+    document.body.style.overflow = '';
+}
+
+// Закрытие по Escape
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+        closeImageModal();
+    }
+});
+</script>
+{% endblock %}

@@ -15,6 +15,12 @@ APPS_DIR = BASE_DIR / 'apps'
 sys.path.insert(0, str(APPS_DIR))
 
 #SECRET_KEY = os.getenv('SECRET_DJANGO') # DJANGO_SECRET_KEY / SECRET_DJANGO
+
+
+# JWT настройки для Telegram авторизации
+JWT_SECRET_KEY = os.getenv('JWT_SECRET_KEY', 'your-jwt-secret-key-change-in-production')
+JWT_ALGORITHM = 'HS256'
+JWT_EXPIRATION_MINUTES = 1440 # Токен действителен 10 минут
  
 #DEBUG = True
 
@@ -61,10 +67,12 @@ INSTALLED_APPS = [
     'debug_toolbar',
     'qsessions',
     'rangefilter',
+    'rest_framework',
     'widget_tweaks',
-    
+    'channels',
 
     'myapp.apps.MyappConfig',
+    'api.apps.ApiConfig',
     'users.apps.UsersConfig',
     'courses.apps.CoursesConfig',
     'quizzes.apps.QuizzesConfig',
@@ -73,6 +81,10 @@ INSTALLED_APPS = [
     'gamification.apps.GamificationConfig',
     'notifications.apps.NotificationsConfig',
     'tech_support.apps.TechSupportConfig',
+    'reports.apps.ReportsConfig',
+    'delegation.apps.DelegationConfig',
+    'shop.apps.ShopConfig',
+    'messenger.apps.MessengerConfig'
 ]
 
 X_FRAME_OPTIONS = "SAMEORIGIN"              # allows you to use modals insated of popups
@@ -87,8 +99,10 @@ MIDDLEWARE = [
     #'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
+    'myapp.middleware.CSRFDebugMiddleware',  # Отладка CSRF проблем
     'quizzes.middleware.prevent_refresh.PreventRefreshMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
+    'courses.middleware.ExternalUserActivityMiddleware',  # Логирование активности внешних пользователей
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'django.middleware.locale.LocaleMiddleware',
@@ -128,6 +142,7 @@ STORAGES = {
 }
 
 WSGI_APPLICATION = 'myproject.wsgi.application'
+ASGI_APPLICATION = 'myproject.asgi.application'
 
 
 # Database
@@ -179,6 +194,33 @@ WSGI_APPLICATION = 'myproject.wsgi.application'
 # }
 
 
+# Кэширования в оперативной памяти процессов Django
+# CACHES = {
+#     'default': {
+#         'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+#         'LOCATION': 'unique-snowflake',
+#     }
+# }
+
+CACHES = {
+    'default': {
+        'BACKEND': 'django_redis.cache.RedisCache',
+        'LOCATION': os.getenv('REDIS_URL', 'redis://127.0.0.1:6379/1'),
+        'OPTIONS': {
+            'CLIENT_CLASS': 'django_redis.client.DefaultClient',
+            'IGNORE_EXCEPTIONS': True,
+            # Если нужен пароль:
+            # 'PASSWORD': os.getenv('REDIS_PASSWORD'),
+        }
+    }
+}
+
+# Channels configuration
+CHANNEL_LAYERS = {
+    'default': {
+        'BACKEND': 'channels.layers.InMemoryChannelLayer',
+    },
+}
 
 # Password validation
 # https://docs.djangoproject.com/en/5.1/ref/settings/#auth-password-validators
@@ -270,8 +312,18 @@ LOGIN_REDIRECT_URL = 'home'
 LOGOUT_REDIRECT_URL = 'users:login'
 LOGIN_URL = 'users:login'
 
+# Кастомная страница ошибки CSRF
+CSRF_FAILURE_VIEW = 'myapp.views.csrf_failure_view'
+
+# Дополнительные настройки CSRF для стабильной работы
+CSRF_COOKIE_AGE = 31449600  # 1 год
+CSRF_COOKIE_DOMAIN = None  # Автоматическое определение домена
+CSRF_COOKIE_NAME = 'csrftoken'
+CSRF_HEADER_NAME = 'HTTP_X_CSRFTOKEN'
+CSRF_COOKIE_PATH = '/'
+
 CKEDITOR_5_ALLOW_ALL_FILE_TYPES = True
-CKEDITOR_5_UPLOAD_FILE_TYPES = ['jpeg', 'pdf', 'png', 'jpg']
+CKEDITOR_5_UPLOAD_FILE_TYPES = ['jpeg', 'pdf', 'png', 'jpg', 'mp4']
 
 CKEDITOR_5_FILE_STORAGE = "courses.storage.CustomStorage"
 
@@ -293,7 +345,7 @@ CKEDITOR_5_CONFIGS = {
                 '|', 'blockQuote',
                 '|', 'fontSize', 'fontFamily', 'fontColor', 'fontBackgroundColor', 'removeFormat',
                 'insertTable', 
-                '|', 'htmlEmbed', 'link', 
+                '|', 'htmlEmbed', 'link', 'undo', 'redo'
             ],
             'shouldNotGroupWhenFull': True
         },
@@ -450,6 +502,16 @@ LOGGING = {
 }
 
 
+
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': [
+        'rest_framework.authentication.SessionAuthentication',
+        'rest_framework.authentication.BasicAuthentication',
+    ],
+    'DEFAULT_PERMISSION_CLASSES': [
+        'rest_framework.permissions.IsAuthenticated',
+    ],
+}
 
 
 # RECAPTCHA_PUBLIC_KEY = os.getenv('RECAPTCHA_PUBLIC_KEY')

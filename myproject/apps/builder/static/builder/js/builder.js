@@ -12,7 +12,7 @@ function saveCategoryState(categoryId, isOpen) {
     sessionStorage.setItem(`category_${categoryId}_state`, isOpen ? 'open' : 'closed');
 }
 
-function restoreCategoryStates() {
+function restoreCategoryStates() { // TODO: Проблемная функция которая раскрывает первую подкатегорию??
     document.querySelectorAll('.category-block').forEach(categoryBlock => {
         const categoryId = categoryBlock.dataset.id;
         const savedState = sessionStorage.getItem(`category_${categoryId}_state`);
@@ -33,26 +33,27 @@ function toggleSubcat(header) {
     if (!categoryBlock) return;
 
     const categoryId = categoryBlock.dataset.id;
-    const subcatList = categoryBlock.querySelector('.subcategory-list');
-    const lessonList = categoryBlock.querySelector('.lesson-list');
+    const subcatList = categoryBlock.querySelector(':scope > .subcategory-list');
+    const lessonList = categoryBlock.querySelector(':scope > .lesson-list');
     const arrow = header.querySelector('.toggle-arrow');
 
     // Сохраняем состояние
     const isNowOpen = header.classList.contains('open');
     saveCategoryState(categoryId, isNowOpen);
 
-    function toggleDisplay(element) {
-        if (!element) return;
-        const isVisible = element.style.display === 'block';
-        element.style.display = isVisible ? 'none' : 'block';
+    // Показываем/скрываем содержимое категории
+    if (isNowOpen) {
+        // Категория раскрыта - показываем всё содержимое
+        if (subcatList) subcatList.style.display = 'block';
+        if (lessonList) lessonList.style.display = 'block';
+    } else {
+        // Категория закрыта - скрываем всё содержимое
+        if (subcatList) subcatList.style.display = 'none';
+        if (lessonList) lessonList.style.display = 'none';
     }
 
-    toggleDisplay(subcatList);
-    toggleDisplay(lessonList);
-
     if (arrow) {
-        const anyOpen = (subcatList && subcatList.style.display === 'block') || (lessonList && lessonList.style.display === 'block');
-        arrow.innerHTML = anyOpen ? '&#9660;' : '&#9654;'; // ▼ или ▶
+        arrow.innerHTML = isNowOpen ? '−' : '+'; // минус (открыто) или плюс (закрыто)
     }
 }
 
@@ -188,6 +189,8 @@ document.addEventListener('DOMContentLoaded', function() {
                     window._dictSectionData = resp.data;
                     window._dictSectionId = resp.section_id;
                     // тут потом инициализация таблицы
+                    initVersionHistoryDropdown();
+                    if (typeof initActualizationHistoryDropdown === 'function') initActualizationHistoryDropdown();
                     initDictHotTable();
                 })
                 .catch(e => alert('Ошибка загрузки отдела: ' + e.message));
@@ -318,7 +321,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const parentBlock = document.querySelector(`.category-block[data-id='${catId}']`);
         if (!parentBlock) return;
         // Найти или создать ul.subcategory-list
-        let subUl = parentBlock.querySelector('.subcategory-list');
+        let subUl = parentBlock.querySelector(':scope > .subcategory-list');
         if (!subUl) {
             subUl = document.createElement('ul');
             subUl.className = 'subcategory-list';
@@ -394,8 +397,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if (!titleSpan) return;
         // Если уже редактируется — не дублируем
         if (header.querySelector('.inline-cat-rename')) return;
-        const oldName = titleSpan.textContent.replace(/^\d+\.\s*/, '');
-        const order = titleSpan.textContent.match(/^\d+/)?.[0] || '';
+        const oldName = titleSpan.textContent.trim();
         // Скрыть span, вставить input
         titleSpan.style.display = 'none';
         const input = document.createElement('input');
@@ -426,7 +428,7 @@ document.addEventListener('DOMContentLoaded', function() {
             .then(r => r.json())
             .then(data => {
                 if (data.error) { alert('Ошибка: ' + data.error); input.remove(); titleSpan.style.display = ''; return; }
-                titleSpan.textContent = order ? `${order}. ${data.name}` : data.name;
+                titleSpan.textContent = data.name;
                 input.remove();
                 titleSpan.style.display = '';
             })
@@ -639,24 +641,37 @@ document.addEventListener('DOMContentLoaded', function() {
                     if (!r.ok) throw new Error('Ошибка загрузки');
                     return r.text();
                 })
-                            .then(html => {
-                document.getElementById('detail').innerHTML = html;
-                
-                // Выполняем скрипты из загруженного HTML
-                const scripts = document.getElementById('detail').querySelectorAll('script');
-                scripts.forEach(script => {
-                    if (script.textContent) {
-                        try {
-                            eval(script.textContent);
-                        } catch (e) {
-                            console.error('Ошибка выполнения скрипта:', e);
+                .then(html => {
+                    document.getElementById('detail').innerHTML = html;
+                    
+                    // Выполняем скрипты из загруженного HTML
+                    // Пропускаем скрипты с type="application/json" — это данные, а не код
+                    const scripts = document.getElementById('detail').querySelectorAll('script');
+                    scripts.forEach(script => {
+                        if (script.textContent && script.type !== 'application/json') {
+                            try {
+                                eval(script.textContent);
+                            } catch (e) {
+                                console.error('Ошибка выполнения скрипта:', e);
+                            }
                         }
+                    });
+                    
+                    initVersionHistoryDropdown();
+                    if (typeof initActualizationHistoryDropdown === 'function') initActualizationHistoryDropdown();
+                    
+                    // Показываем кнопку прокрутки в начало
+                    const scrollTopContainer = document.getElementById('scroll-to-top-container');
+                    if (scrollTopContainer) {
+                        scrollTopContainer.style.display = 'flex';
+                        // Пересчитываем позицию после показа контейнера
+                        requestAnimationFrame(function() {
+                            if (typeof window.positionScrollTopButton === 'function') {
+                                window.positionScrollTopButton();
+                            }
+                        });
                     }
-                });
-                
-                initVersionHistoryDropdown();
-                if (typeof initActualizationHistoryDropdown === 'function') initActualizationHistoryDropdown();
-            })
+                })
                 .catch(e => {
                     alert('Ошибка загрузки урока: ' + e.message);
                 });
@@ -699,19 +714,32 @@ document.addEventListener('DOMContentLoaded', function() {
                 document.getElementById('detail').innerHTML = html;
                 
                 // Выполняем скрипты из загруженного HTML
-                // const scripts = document.getElementById('detail').querySelectorAll('script');
-                // scripts.forEach(script => {
-                //     if (script.textContent) {
-                //         try {
-                //             eval(script.textContent);
-                //         } catch (e) {
-                //             console.error('Ошибка выполнения скрипта:', e);
-                //         }
-                //     }
-                // });
+                // Пропускаем скрипты с type="application/json" — это данные, а не код
+                const scripts = document.getElementById('detail').querySelectorAll('script');
+                scripts.forEach(script => {
+                    if (script.textContent && script.type !== 'application/json') {
+                        try {
+                            eval(script.textContent);
+                        } catch (e) {
+                            console.error('Ошибка выполнения скрипта:', e);
+                        }
+                    }
+                });
                 
                 initVersionHistoryDropdown();
                 if (typeof initActualizationHistoryDropdown === 'function') initActualizationHistoryDropdown();
+                
+                // Показываем кнопку прокрутки в начало
+                const scrollTopContainer = document.getElementById('scroll-to-top-container');
+                if (scrollTopContainer) {
+                    scrollTopContainer.style.display = 'flex';
+                    // Пересчитываем позицию после показа контейнера
+                    requestAnimationFrame(function() {
+                        if (typeof window.positionScrollTopButton === 'function') {
+                            window.positionScrollTopButton();
+                        }
+                    });
+                }
             })
             .catch(e => {
                 alert('Ошибка загрузки урока: ' + e.message);
@@ -1060,7 +1088,15 @@ document.addEventListener('DOMContentLoaded', function() {
                 method: 'POST',
                 headers: { 'X-CSRFToken': (document.querySelector('[name=csrfmiddlewaretoken]')||{}).value || '', 'Content-Type': 'application/json' },
                 body: JSON.stringify({ target_category: targetCategory })
-            }).then(r => r.json()).then(data => {
+            }).then(r => {
+                const contentType = r.headers.get('content-type');
+                if (!contentType || !contentType.includes('application/json')) {
+                    return r.text().then(text => {
+                        throw new Error('Сервер вернул не JSON ответ. Возможно, произошла ошибка на сервере.');
+                    });
+                }
+                return r.json();
+            }).then(data => {
                 if (data.error) { alert('Ошибка: ' + data.error); return; }
                 if (data.result) {
                     if (clipboardData.action === 'cut') {
@@ -1085,6 +1121,498 @@ document.addEventListener('DOMContentLoaded', function() {
             });
         }
     });
+
+    // Назначить
+    let currentLessonIdsForAssignment = []; // Массив ID уроков для назначения
+    let currentAssignmentType = null; // 'lesson' или 'category'
+    let selectedUsersForAssignment = new Map(); // userId -> {id, full_name, username}
+    let lastSearchResultsForAssignment = [];
+    
+    // Элементы DOM для модального окна назначения
+    const lessonAssignmentModal = document.getElementById('lessonAssignmentModal');
+    const lessonAssignmentModalClose = document.getElementById('lessonAssignmentModalClose');
+    const lessonAssignmentGroupList = document.getElementById('lessonAssignmentGroupList');
+    const lessonAssignmentSearchInput = document.getElementById('lessonAssignmentSearchInput');
+    const lessonAssignmentSearchResultsDropdown = document.getElementById('lessonAssignmentSearchResultsDropdown');
+    const lessonAssignmentSelectedUsersList = document.getElementById('lessonAssignmentSelectedUsersList');
+    const confirmLessonAssignmentBtn = document.getElementById('confirmLessonAssignmentBtn');
+    const cancelLessonAssignmentBtn = document.getElementById('cancelLessonAssignmentBtn');
+    const lessonAssignmentModalTitle = lessonAssignmentModal ? lessonAssignmentModal.querySelector('.responsible-modal-header h3') : null;
+    
+    // Получаем URL из глобальных переменных, определенных в шаблоне
+    const getGroupUsersUrlForAssignment = typeof lessonAssignmentGetGroupUsersUrlTemplate !== 'undefined' 
+        ? lessonAssignmentGetGroupUsersUrlTemplate.replace('/0/', '/{id}/') 
+        : '';
+    
+    const assignmentMenuItem = document.getElementById('assignment-menu-item');
+    if (assignmentMenuItem) {
+        assignmentMenuItem.addEventListener('click', function() {
+            if (!contextTarget) return;
+            let itemId, itemType;
+            
+            // Определяем тип элемента: урок или категория
+            if (contextTarget.dataset.id && contextTarget.dataset.id.startsWith('uncat-')) {
+                // Урок без категории
+                itemType = 'lesson';
+                itemId = contextTarget.dataset.id.replace('uncat-', '');
+            } else if (contextTarget.classList.contains('category-block')) {
+                // Категория
+                itemType = 'category';
+                itemId = contextTarget.dataset.id;
+            } else if (contextTarget.querySelector('.lesson-link')) {
+                // Обычный урок
+                itemType = 'lesson';
+                itemId = contextTarget.querySelector('.lesson-select')?.value;
+            }
+            
+            if (!itemId || !itemType) {
+                alert('Выберите урок или категорию для назначения');
+                return;
+            }
+            
+            // Сохраняем тип назначения
+            currentAssignmentType = itemType;
+            
+            // Очищаем выбранных пользователей
+            selectedUsersForAssignment.clear();
+            
+            // Если это категория, загружаем все уроки из неё
+            if (itemType === 'category') {
+                if (typeof lessonAssignmentGetCategoryLessonsUrlTemplate === 'undefined') {
+                    alert('Ошибка: URL для получения уроков категории не определен');
+                    return;
+                }
+                
+                const url = lessonAssignmentGetCategoryLessonsUrlTemplate.replace('/0/', '/' + itemId + '/');
+                
+                // Показываем загрузку
+                if (lessonAssignmentModal) {
+                    lessonAssignmentModal.style.display = 'block';
+                    if (lessonAssignmentModalTitle) {
+                        lessonAssignmentModalTitle.textContent = 'Загрузка уроков категории...';
+                    }
+                }
+                
+                fetch(url)
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.error) {
+                            alert('Ошибка: ' + data.error);
+                            if (lessonAssignmentModal) {
+                                lessonAssignmentModal.style.display = 'none';
+                            }
+                            return;
+                        }
+                        
+                        if (data.lesson_ids.length === 0) {
+                            alert('В выбранной категории нет уроков');
+                            if (lessonAssignmentModal) {
+                                lessonAssignmentModal.style.display = 'none';
+                            }
+                            return;
+                        }
+                        
+                        // Сохраняем ID всех уроков
+                        currentLessonIdsForAssignment = data.lesson_ids;
+                        
+                        // Обновляем заголовок модального окна
+                        if (lessonAssignmentModalTitle) {
+                            lessonAssignmentModalTitle.textContent = 
+                                `Выберите пользователей для назначения уроков категории "${data.category_name}" (${data.count} уроков)`;
+                        }
+                        
+                        // Загружаем группы и отображаем выбранных пользователей
+                        loadGroupsForAssignment();
+                        displaySelectedUsersForAssignment();
+                        if (lessonAssignmentSearchInput) {
+                            lessonAssignmentSearchInput.value = '';
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Ошибка загрузки уроков категории:', error);
+                        alert('Ошибка загрузки уроков категории: ' + error.message);
+                        if (lessonAssignmentModal) {
+                            lessonAssignmentModal.style.display = 'none';
+                        }
+                    });
+            } else {
+                // Это урок - сохраняем один ID
+                currentLessonIdsForAssignment = [parseInt(itemId)];
+                
+                // Обновляем заголовок модального окна
+                if (lessonAssignmentModalTitle) {
+                    lessonAssignmentModalTitle.textContent = 'Выберите пользователей для назначения урока';
+                }
+                
+                // Открываем модальное окно
+                if (lessonAssignmentModal) {
+                    lessonAssignmentModal.style.display = 'block';
+                    loadGroupsForAssignment();
+                    displaySelectedUsersForAssignment();
+                    if (lessonAssignmentSearchInput) {
+                        lessonAssignmentSearchInput.value = '';
+                    }
+                } else {
+                    alert('Ошибка: модальное окно не найдено');
+                }
+            }
+            
+            // Скрываем контекстное меню
+            const contextMenu = document.getElementById('custom-context-menu');
+            if (contextMenu) {
+                contextMenu.style.display = 'none';
+            }
+        });
+    }
+    
+    // Функция закрытия модального окна с очисткой данных
+    function closeAssignmentModal() {
+        if (lessonAssignmentModal) {
+            lessonAssignmentModal.style.display = 'none';
+        }
+        hideSearchResultsForAssignment();
+        // Очищаем данные при закрытии
+        selectedUsersForAssignment.clear();
+        currentLessonIdsForAssignment = [];
+        currentAssignmentType = null;
+        displaySelectedUsersForAssignment();
+    }
+    
+    // Закрытие модального окна
+    if (lessonAssignmentModalClose) {
+        lessonAssignmentModalClose.addEventListener('click', closeAssignmentModal);
+    }
+    
+    if (cancelLessonAssignmentBtn) {
+        cancelLessonAssignmentBtn.addEventListener('click', closeAssignmentModal);
+    }
+    
+    // Закрытие модального окна при клике вне его
+    if (lessonAssignmentModal) {
+        lessonAssignmentModal.addEventListener('click', function(e) {
+            if (e.target === lessonAssignmentModal) {
+                closeAssignmentModal();
+            }
+        });
+    }
+    
+    // Загрузка списка групп
+    function loadGroupsForAssignment() {
+        if (!lessonAssignmentGroupList || typeof lessonAssignmentGetGroupsUrl === 'undefined') return;
+        
+        lessonAssignmentGroupList.innerHTML = '<div class="group-list-loading">Загрузка групп...</div>';
+        
+        // Исключаем staff и superuser из подсчёта пользователей
+        const url = lessonAssignmentGetGroupsUrl + '?exclude_staff=true';
+        
+        fetch(url)
+            .then(response => response.json())
+            .then(data => {
+                displayGroupsForAssignment(data.groups);
+            })
+            .catch(error => {
+                console.error('Ошибка загрузки групп:', error);
+                if (lessonAssignmentGroupList) {
+                    lessonAssignmentGroupList.innerHTML = '<div class="group-list-error">Ошибка загрузки групп</div>';
+                }
+            });
+    }
+    
+    // Отображение списка групп
+    function displayGroupsForAssignment(groups) {
+        if (!lessonAssignmentGroupList) return;
+        
+        if (groups.length === 0) {
+            lessonAssignmentGroupList.innerHTML = '<div class="group-list-empty">Группы не найдены</div>';
+            return;
+        }
+        
+        let html = '';
+        groups.forEach(function(group) {
+            html += `
+                <div class="group-item" data-group-id="${group.id}">
+                    <div class="group-item-name">${group.name}</div>
+                    <div class="group-item-count">${group.user_count} пользователей</div>
+                </div>
+            `;
+        });
+        
+        lessonAssignmentGroupList.innerHTML = html;
+        
+        // Добавляем обработчики клика на каждую группу
+        const groupItems = lessonAssignmentGroupList.querySelectorAll('.group-item');
+        groupItems.forEach(function(item) {
+            item.addEventListener('click', function() {
+                const groupId = this.getAttribute('data-group-id');
+                addGroupUsersForAssignment(groupId);
+            });
+        });
+    }
+    
+    // Добавление всех пользователей группы
+    function addGroupUsersForAssignment(groupId) {
+        if (!getGroupUsersUrlForAssignment || typeof lessonAssignmentGetGroupUsersUrlTemplate === 'undefined') return;
+        
+        const url = lessonAssignmentGetGroupUsersUrlTemplate.replace('/0/', '/' + groupId + '/') + '?exclude_staff=true';
+        
+        fetch(url)
+            .then(response => response.json())
+            .then(data => {
+                data.users.forEach(function(user) {
+                    if (!selectedUsersForAssignment.has(user.id)) {
+                        selectedUsersForAssignment.set(user.id, user);
+                    }
+                });
+                displaySelectedUsersForAssignment();
+            })
+            .catch(error => {
+                console.error('Ошибка загрузки пользователей группы:', error);
+            });
+    }
+    
+    // Поиск пользователей для добавления в назначенные
+    let assignmentSearchTimeout;
+    
+    if (lessonAssignmentSearchInput) {
+        // Загрузка всех пользователей при фокусе на поле поиска
+        lessonAssignmentSearchInput.addEventListener('focus', function() {
+            if (this.value.trim().length === 0) {
+                searchUsersForAssignment('');
+            }
+        });
+        
+        lessonAssignmentSearchInput.addEventListener('input', function() {
+            clearTimeout(assignmentSearchTimeout);
+            const query = this.value.trim();
+            
+            if (query.length === 0) {
+                searchUsersForAssignment('');
+                return;
+            }
+            
+            assignmentSearchTimeout = setTimeout(function() {
+                searchUsersForAssignment(query);
+            }, 300);
+        });
+        
+        // Обработка клавиши Escape для закрытия выпадающего списка
+        lessonAssignmentSearchInput.addEventListener('keydown', function(event) {
+            if (event.key === 'Escape') {
+                hideSearchResultsForAssignment();
+                this.blur();
+            }
+        });
+    }
+    
+    // Закрытие выпадающего списка при клике вне его
+    document.addEventListener('click', function(event) {
+        if (lessonAssignmentSearchInput && lessonAssignmentSearchResultsDropdown) {
+            if (!lessonAssignmentSearchInput.contains(event.target) && !lessonAssignmentSearchResultsDropdown.contains(event.target)) {
+                hideSearchResultsForAssignment();
+            }
+        }
+    });
+    
+    // Поиск пользователей и отображение результатов
+    function searchUsersForAssignment(query) {
+        if (!lessonAssignmentSearchResultsDropdown || typeof lessonAssignmentSearchUsersUrl === 'undefined') return;
+        
+        lessonAssignmentSearchResultsDropdown.innerHTML = '<div class="search-results-loading">Поиск...</div>';
+        lessonAssignmentSearchResultsDropdown.style.display = 'block';
+        
+        const url = lessonAssignmentSearchUsersUrl + '?q=' + encodeURIComponent(query) + '&exclude_staff=true';
+        
+        fetch(url)
+            .then(response => response.json())
+            .then(data => {
+                lastSearchResultsForAssignment = data.users;
+                displaySearchResultsForAssignment(data.users);
+            })
+            .catch(error => {
+                console.error('Ошибка поиска пользователей:', error);
+                if (lessonAssignmentSearchResultsDropdown) {
+                    lessonAssignmentSearchResultsDropdown.innerHTML = '<div class="search-results-empty">Ошибка поиска</div>';
+                }
+            });
+    }
+    
+    // Отображение результатов поиска
+    function displaySearchResultsForAssignment(users) {
+        if (!lessonAssignmentSearchResultsDropdown) return;
+        
+        if (users.length === 0) {
+            lessonAssignmentSearchResultsDropdown.innerHTML = '<div class="search-results-empty">Пользователи не найдены</div>';
+            return;
+        }
+        
+        let html = '';
+        users.forEach(function(user) {
+            // Пропускаем уже выбранных пользователей
+            if (selectedUsersForAssignment.has(user.id)) {
+                return;
+            }
+            
+            html += `
+                <div class="search-result-item" data-user-id="${user.id}">
+                    <div class="search-result-name">${user.full_name}${user.role ? ' (' + user.role + ')' : ''}</div>
+                </div>
+            `;
+        });
+        
+        if (html === '') {
+            lessonAssignmentSearchResultsDropdown.innerHTML = '<div class="search-results-empty">Все найденные пользователи уже выбраны</div>';
+            return;
+        }
+        
+        lessonAssignmentSearchResultsDropdown.innerHTML = html;
+        
+        // Добавляем обработчики клика на результаты
+        const resultItems = lessonAssignmentSearchResultsDropdown.querySelectorAll('.search-result-item');
+        resultItems.forEach(function(item) {
+            item.addEventListener('click', function() {
+                const userId = parseInt(this.getAttribute('data-user-id'));
+                addUserFromSearchForAssignment(userId);
+            });
+        });
+    }
+    
+    // Добавление пользователя из результатов поиска
+    function addUserFromSearchForAssignment(userId) {
+        const user = lastSearchResultsForAssignment.find(u => u.id === userId);
+        
+        if (user && !selectedUsersForAssignment.has(userId)) {
+            selectedUsersForAssignment.set(userId, user);
+            displaySelectedUsersForAssignment();
+            if (lessonAssignmentSearchInput) {
+                lessonAssignmentSearchInput.value = '';
+            }
+            hideSearchResultsForAssignment();
+        }
+    }
+    
+    // Скрытие выпадающего списка результатов
+    function hideSearchResultsForAssignment() {
+        if (lessonAssignmentSearchResultsDropdown) {
+            lessonAssignmentSearchResultsDropdown.style.display = 'none';
+            lessonAssignmentSearchResultsDropdown.innerHTML = '';
+        }
+    }
+    
+    // Отображение выбранных пользователей
+    function displaySelectedUsersForAssignment() {
+        if (!lessonAssignmentSelectedUsersList) return;
+        
+        if (selectedUsersForAssignment.size === 0) {
+            lessonAssignmentSelectedUsersList.innerHTML = '<div class="selected-users-empty">Пользователи не выбраны</div>';
+            return;
+        }
+        
+        let html = '';
+        selectedUsersForAssignment.forEach(function(user, userId) {
+            html += `
+                <div class="selected-user-item" data-user-id="${userId}">
+                    <div class="selected-user-info">
+                        <div class="selected-user-name">${user.full_name}</div>
+                    </div>
+                    <div class="selected-user-actions">
+                        <span class="selected-user-remove" data-user-id="${userId}" title="Удалить">&times;</span>
+                    </div>
+                </div>
+            `;
+        });
+        
+        lessonAssignmentSelectedUsersList.innerHTML = html;
+        
+        // Добавляем обработчики для удаления пользователей
+        const removeButtons = lessonAssignmentSelectedUsersList.querySelectorAll('.selected-user-remove');
+        removeButtons.forEach(function(btn) {
+            btn.addEventListener('click', function(e) {
+                e.stopPropagation();
+                const userId = parseInt(this.getAttribute('data-user-id'));
+                selectedUsersForAssignment.delete(userId);
+                displaySelectedUsersForAssignment();
+            });
+        });
+    }
+    
+    // Применение назначения урока/уроков
+    if (confirmLessonAssignmentBtn) {
+        confirmLessonAssignmentBtn.addEventListener('click', function() {
+            if (currentLessonIdsForAssignment.length === 0 || selectedUsersForAssignment.size === 0) {
+                alert('Выберите пользователей для назначения');
+                return;
+            }
+            
+            if (typeof lessonAssignmentAssignLessonsUrlTemplate === 'undefined') {
+                alert('Ошибка: URL для назначения не определен');
+                return;
+            }
+            
+            // Отключаем кнопку на время выполнения
+            confirmLessonAssignmentBtn.disabled = true;
+            const lessonCount = currentLessonIdsForAssignment.length;
+            const userCount = selectedUsersForAssignment.size;
+            confirmLessonAssignmentBtn.textContent = `Назначение ${lessonCount} уроков ${userCount} пользователям...`;
+            
+            const userIds = Array.from(selectedUsersForAssignment.keys());
+            let completedRequests = 0;
+            let successCount = 0;
+            let errorCount = 0;
+            const errors = [];
+            
+            // Назначаем все уроки каждому пользователю
+            userIds.forEach(function(userId) {
+                const url = lessonAssignmentAssignLessonsUrlTemplate.replace('/0/', '/' + userId + '/');
+                
+                fetch(url, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': (document.querySelector('[name=csrfmiddlewaretoken]') || {}).value || ''
+                    },
+                    body: JSON.stringify({
+                        lesson_ids: currentLessonIdsForAssignment.map(id => parseInt(id))
+                    })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    completedRequests++;
+                    if (data.success) {
+                        successCount++;
+                    } else {
+                        errorCount++;
+                        errors.push(data.error || 'Неизвестная ошибка');
+                    }
+                    
+                    // Когда все запросы завершены
+                    if (completedRequests === userIds.length) {
+                        confirmLessonAssignmentBtn.disabled = false;
+                        confirmLessonAssignmentBtn.textContent = 'Применить';
+                        
+                        if (errorCount === 0) {
+                            const lessonText = lessonCount === 1 ? 'урок' : (lessonCount < 5 ? 'урока' : 'уроков');
+                            const userText = successCount === 1 ? 'пользователю' : (successCount < 5 ? 'пользователям' : 'пользователям');
+                            alert(`Успешно назначено ${lessonCount} ${lessonText} ${successCount} ${userText}`);
+                            closeAssignmentModal();
+                        } else {
+                            alert(`Назначено: ${successCount}, ошибок: ${errorCount}. ${errors.join(', ')}`);
+                        }
+                    }
+                })
+                .catch(error => {
+                    completedRequests++;
+                    errorCount++;
+                    errors.push('Ошибка сети: ' + error.message);
+                    
+                    if (completedRequests === userIds.length) {
+                        confirmLessonAssignmentBtn.disabled = false;
+                        confirmLessonAssignmentBtn.textContent = 'Применить';
+                        alert(`Ошибки при назначении: ${errors.join(', ')}`);
+                    }
+                });
+            });
+        });
+    }
     
     // Инициализация буфера обмена
     checkClipboard();
@@ -1166,8 +1694,14 @@ document.addEventListener('DOMContentLoaded', function() {
                 const version = cell.getAttribute('data-version');
                 
                 // Ищем версию в массиве
-                const v = (window._lessonVersions||[]).find(x => String(x.version) === String(version));
-                                
+                const v = (window._lessonVersions||[]).find(x => x.version == version);
+                
+                // Проверяем, что версия найдена
+                if (!v) {
+                    console.error('Версия не найдена:', version);
+                    console.log('Доступные версии:', window._lessonVersions);
+                    return;
+                }
                 
                 // Обновляем содержимое урока
                 const titleElement = document.querySelector('h2');
@@ -1298,6 +1832,17 @@ document.addEventListener('DOMContentLoaded', function() {
                                 roleSelect.appendChild(option);
                             });
                             
+                            // Для наставника: если роли нет в списке allowed_roles, добавляем её
+                            if (window.isMentorOnly && window.previousRoleId && window.previousRoleName) {
+                                const roleExists = Array.from(roleSelect.options).some(opt => opt.value == window.previousRoleId);
+                                if (!roleExists) {
+                                    const option = document.createElement('option');
+                                    option.value = window.previousRoleId;
+                                    option.textContent = window.previousRoleName;
+                                    roleSelect.appendChild(option);
+                                }
+                            }
+                            
                             // Автозаполнение роли из предыдущей версии (после загрузки ролей)
                             if (window.previousRoleId && window.previousRoleId !== null) {
                                 roleSelect.value = window.previousRoleId;
@@ -1312,7 +1857,23 @@ document.addEventListener('DOMContentLoaded', function() {
                     })
                     .catch(error => {
                         console.error('Ошибка загрузки разрешенных ролей:', error);
-                        validateActualizeForm();
+                        // Для наставника: если загрузка не удалась, всё равно пытаемся установить роль
+                        if (window.isMentorOnly && window.previousRoleId && window.previousRoleName) {
+                            const roleSelect = document.getElementById('actualize-role');
+                            if (roleSelect) {
+                                roleSelect.innerHTML = '<option value="">— выберите роль —</option>';
+                                const option = document.createElement('option');
+                                option.value = window.previousRoleId;
+                                option.textContent = window.previousRoleName;
+                                roleSelect.appendChild(option);
+                                roleSelect.value = window.previousRoleId;
+                                // Триггерим событие change для загрузки пользователей
+                                const event = new Event('change');
+                                roleSelect.dispatchEvent(event);
+                            }
+                        } else {
+                            validateActualizeForm();
+                        }
                     });
             } else {
                 // Если нет lessonId, все равно вызываем валидацию
@@ -1529,7 +2090,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         header.classList.add('open');
                         // Меняем стрелку
                         const arrow = header.querySelector('.toggle-arrow');
-                        if (arrow) arrow.innerHTML = '&#9660;';
+                        if (arrow) arrow.innerHTML = '−';
                     }
                 }
                 parent = parent.parentElement;
@@ -1580,7 +2141,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     if (header && !header.classList.contains('open')) {
                         header.classList.add('open');
                         const arrow = header.querySelector('.toggle-arrow');
-                        if (arrow) arrow.innerHTML = '&#9660;';
+                        if (arrow) arrow.innerHTML = '−';
                     }
                 }
                 parent = parent.parentElement;
@@ -1595,6 +2156,7 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }, 100);
     }
+    
     // === АВТОВЫДЕЛЕНИЕ только что отредактированного урока ===
     const editedLessonId = sessionStorage.getItem('edited_lesson_id');
     if (editedLessonId) {
@@ -1636,7 +2198,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     if (header && !header.classList.contains('open')) {
                         header.classList.add('open');
                         const arrow = header.querySelector('.toggle-arrow');
-                        if (arrow) arrow.innerHTML = '&#9660;';
+                        if (arrow) arrow.innerHTML = '−';
                     }
                 }
                 parent = parent.parentElement;
@@ -1687,7 +2249,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     if (header && !header.classList.contains('open')) {
                         header.classList.add('open');
                         const arrow = header.querySelector('.toggle-arrow');
-                        if (arrow) arrow.innerHTML = '&#9660;';
+                        if (arrow) arrow.innerHTML = '−';
                     }
                 }
                 parent = parent.parentElement;
@@ -1695,6 +2257,74 @@ document.addEventListener('DOMContentLoaded', function() {
             sessionStorage.removeItem('selected_lesson_id');
             if (li) li.scrollIntoView({ behavior: 'smooth', block: 'center' });
         }, 100);
+    }
+
+    // === Кнопка прокрутки в начало страницы ===
+    const scrollToTopBtn = document.getElementById('scroll-to-top-btn');
+    if (scrollToTopBtn) {
+        scrollToTopBtn.addEventListener('click', function() {
+            window.scrollTo({
+                top: 0,
+                behavior: 'smooth'
+            });
+        });
+        
+        // Функция для позиционирования кнопки относительно sidebar
+        // Кнопка изначально в потоке документа, при скролле становится fixed,
+        // но не опускается ниже bottom границы sidebar (или не ниже bottom: 43%)
+        function positionScrollTopButton() {
+            const sidebar = document.getElementById('sidebar');
+            const scrollTopContainer = document.getElementById('scroll-to-top-container');
+            if (!sidebar || !scrollToTopBtn || !scrollTopContainer) return;
+            
+            // Если контейнер скрыт, не рассчитываем позицию (getBoundingClientRect вернёт нули)
+            if (scrollTopContainer.style.display === 'none' || scrollTopContainer.offsetParent === null) {
+                return;
+            }
+            
+            const sidebarRect = sidebar.getBoundingClientRect();
+            const containerRect = scrollTopContainer.getBoundingClientRect();
+            const buttonHeight = scrollToTopBtn.offsetHeight || 38;
+            const viewportHeight = window.innerHeight;
+            
+            // Целевая позиция bottom: 43% от viewport
+            const targetBottomPercent = 0.43;
+            const targetBottom = viewportHeight * targetBottomPercent;
+            const targetTop = viewportHeight - targetBottom - buttonHeight;
+            
+            // Проверяем, ушла ли кнопка в исходной позиции за пределы видимой области
+            const containerTop = containerRect.top;
+            
+            // Минимальная bottom позиция - не ниже низа sidebar
+            const minBottom = viewportHeight - sidebarRect.bottom + 10;
+            
+            // Если контейнер виден в верхней части экрана - кнопка в потоке
+            if (containerTop >= targetTop) {
+                scrollToTopBtn.classList.remove('fixed-scroll-btn');
+                scrollToTopBtn.style.left = '';
+                scrollToTopBtn.style.bottom = '';
+            } else {
+                // Кнопка должна быть fixed
+                scrollToTopBtn.classList.add('fixed-scroll-btn');
+                
+                // Центрируем по горизонтали относительно sidebar
+                const sidebarCenter = sidebarRect.left + sidebarRect.width / 2;
+                const buttonWidth = scrollToTopBtn.offsetWidth || 120;
+                scrollToTopBtn.style.left = (sidebarCenter - buttonWidth / 2) + 'px';
+                
+                // Ограничиваем bottom: не ниже границы sidebar и не выше 43%
+                const effectiveBottom = Math.max(minBottom, targetBottom);
+                scrollToTopBtn.style.bottom = effectiveBottom + 'px';
+            }
+        }
+        
+        // Экспортируем функцию глобально для вызова после показа контейнера
+        window.positionScrollTopButton = positionScrollTopButton;
+        
+        // Позиционируем кнопку при загрузке и изменении размера окна
+        positionScrollTopButton();
+        window.addEventListener('resize', positionScrollTopButton);
+        window.addEventListener('scroll', positionScrollTopButton);
     }
 });
 

@@ -4,6 +4,7 @@
 
 {% block specific_styles %}
 <link rel="stylesheet" href="{% static 'builder/css/trajectory_managment.css' %}">
+<link rel="stylesheet" href="{% static 'builder/css/incident_form.css' %}">
 <script src="{% static 'admin/js/vendor/jquery/jquery.min.js' %}"></script>
 <script src="{% static 'builder/js/Sortable.min.js' %}"></script>
 <script src="{% static 'builder/js/trajectory_managment.js' %}"></script>
@@ -175,7 +176,7 @@ function reorderCourses(courseOrders) {
                     <p class="text-muted">Порядок прохождения курсов: По дням</p>
                 </div>
                 <div class="d-flex gap-2">
-                    <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#addCourseModal">
+                    <button type="button" class="btn btn-success" id="openAddCourseModalBtn">
                         <i class="fas fa-plus"></i> Добавить курс
                     </button>
                     <a href="{% url 'builder:trajectory_edit' trajectory.id %}" class="btn btn-secondary">
@@ -291,7 +292,7 @@ function reorderCourses(courseOrders) {
                                             <div class="course-info">
                                                 <h6 class="course-title">{{ tc.course.title }}</h6>
                                                 <small class="text-muted">
-                                                    {{ tc.course.lessons.count }} уроков • Автор: {{ tc.course.author.get_full_name|default:tc.course.author.username }}
+                                                    {{ tc.course.lessons.count }} уроков • {{ tc.course.total_time_hours }}ч • Автор: {{ tc.course.author.get_full_name|default:tc.course.author.username }}
                                                 </small>
                                             </div>
                                         </div>
@@ -321,7 +322,7 @@ function reorderCourses(courseOrders) {
                                                     </li>
                                                     <li><hr class="dropdown-divider"></li>
                                                     <li>
-                                                        <a class="dropdown-item text-danger" href="#" onclick="removeCourse({{ tc.course.id }}, '{{ tc.course.title }}')">
+                                                        <a class="dropdown-item text-danger" href="#" onclick="removeCourse({{ tc.course.id }}, '{{ tc.course.title|escapejs }}')">
                                                             <i class="fas fa-trash"></i> Удалить из траектории
                                                         </a>
                                                     </li>
@@ -339,7 +340,7 @@ function reorderCourses(courseOrders) {
                             <i class="fas fa-graduation-cap fa-3x text-gray-300 mb-3"></i>
                             <h5 class="text-gray-500">Курсы не добавлены</h5>
                             <p class="text-muted">Добавьте курсы в траекторию, чтобы начать настройку структуры обучения</p>
-                            <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#addCourseModal">
+                            <button type="button" class="btn btn-success" id="openAddCourseModalBtnEmpty">
                                 <i class="fas fa-plus"></i> Добавить первый курс
                             </button>
                         </div>
@@ -350,72 +351,43 @@ function reorderCourses(courseOrders) {
     </div>
 </div>
 
-<!-- Модальное окно добавления курса -->
-<div class="modal fade" id="addCourseModal" tabindex="-1" role="dialog">
-    <div class="modal-dialog modal-lg" role="document">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">
-                    <i class="fas fa-plus text-success"></i> Добавить курсы в траекторию
-                </h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body">
-                <div class="mb-3">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <span class="text-muted">
-                            <i class="fas fa-info-circle"></i> Выберите курсы для добавления в траекторию
-                        </span>
-                        <span class="badge badge-primary" id="selectedCoursesCount">Выбрано: 0</span>
+<!-- Модальное окно для добавления курсов в траекторию -->
+<div id="addCourseModal" class="responsible-modal">
+    <div class="responsible-modal-content">
+        <div class="responsible-modal-header">
+            <h3>Добавить курсы в траекторию</h3>
+            <span class="responsible-modal-close" id="courseModalClose">&times;</span>
+        </div>
+        <div class="responsible-modal-body">
+            <div class="responsible-columns">
+                <!-- Левая колонка - Группы и курсы -->
+                <div class="responsible-left-column">
+                    <h4>Группы и курсы</h4>
+                    <div id="groupCourseList" class="group-list">
+                        <div class="group-list-loading">Загрузка групп...</div>
                     </div>
                 </div>
-                {% if available_courses %}
-                    <div class="row">
-                        {% for course in available_courses %}
-                        <div class="col-md-6 mb-3">
-                            <div class="card course-card selectable-course" data-course-id="{{ course.id }}">
-                                <div class="card-body">
-                                    <div class="course-selection-overlay">
-                                        <i class="fas fa-check-circle"></i>
-                                    </div>
-                                    <div class="d-flex align-items-center">
-                                        <div class="course-image me-3">
-                                            {% if course.image %}
-                                                <img src="{{ course.image.url }}" alt="{{ course.title }}" class="course-thumbnail-small">
-                                            {% else %}
-                                                <div class="course-placeholder-small">
-                                                    <i class="fas fa-graduation-cap"></i>
-                                                </div>
-                                            {% endif %}
-                                        </div>
-                                        <div class="course-info">
-                                            <h6 class="course-title mb-1">{{ course.title }}</h6>
-                                            <small class="text-muted">
-                                                {{ course.lessons.count }} уроков • {{ course.author.get_full_name|default:course.author.username }}
-                                            </small>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        {% endfor %}
+                
+                <!-- Разделитель -->
+                <div class="responsible-divider"></div>
+                
+                <!-- Правая колонка - Выбранные курсы -->
+                <div class="responsible-right-column">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h4 class="mb-0">Выбранные курсы</h4>
                     </div>
-                {% else %}
-                    <div class="text-center py-4">
-                        <i class="fas fa-info-circle fa-2x text-info mb-3"></i>
-                        <h5>Нет доступных курсов</h5>
-                        <p class="text-muted">Все курсы уже добавлены в траекторию или нет доступных курсов для добавления</p>
-                        <a href="{% url 'courses:create-course' %}" class="btn btn-primary">
-                            <i class="fas fa-plus"></i> Создать новый курс
-                        </a>
+                    <div class="responsible-search-box">
+                        <input type="text" id="courseSearchInput" class="form-control" placeholder="Поиск курса для добавления...">
+                        <div id="courseSearchResultsDropdown" class="search-results-dropdown" style="display: none;"></div>
                     </div>
-                {% endif %}
+                    <div id="selectedCoursesList" class="selected-users-list">
+                        <div class="selected-users-empty">Курсы не выбраны</div>
+                    </div>
+                </div>
             </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Закрыть</button>
-                <button type="button" class="btn btn-success" id="addSelectedCoursesBtn" disabled>
-                    <i class="fas fa-plus"></i> Добавить выбранные курсы (<span id="selectedCount">0</span>)
-                </button>
+            <div class="responsible-modal-footer">
+                <button type="button" class="btn btn-primary" id="confirmCourseAssignmentBtn">Применить</button>
+                <button type="button" class="btn btn-secondary" id="cancelCourseAssignmentBtn">Отмена</button>
             </div>
         </div>
     </div>
@@ -449,113 +421,447 @@ function reorderCourses(courseOrders) {
 <script>
 let currentEditingCourseId = null;
 
-// Глобальные переменные для выбора курсов
-let selectedCourses = new Set();
+// ========== ФУНКЦИИ ДЛЯ ДОБАВЛЕНИЯ КУРСОВ В ТРАЕКТОРИЮ ==========
 
-// Инициализация функциональности выбора курсов
-$(document).ready(function() {
-    // Обработчик клика по карточке курса
-    $(document).on('click', '.selectable-course', function() {
-        const courseId = $(this).data('course-id');
-        toggleCourseSelection(courseId, $(this));
-    });
-    
-    // Обработчик кнопки добавления выбранных курсов
-    $('#addSelectedCoursesBtn').on('click', function() {
-        addSelectedCoursesToTrajectory();
-    });
-    
-    // Сброс выбора при закрытии модального окна
-    $('#addCourseModal').on('hidden.bs.modal', function() {
-        resetCourseSelection();
-    });
-});
+// API endpoints
+const getGroupsWithCoursesUrl = "{% url 'user_management:api_get_groups_with_courses' %}";
+const getGroupCoursesUrlTemplate = "{% url 'user_management:api_get_group_courses' 0 %}";
+const searchCoursesUrl = "{% url 'user_management:api_search_courses' %}";
+const addCoursesToTrajectoryUrl = '/builder/trajectories/{{ trajectory.id }}/courses/add-multiple/';
+const getGroupCoursesUrl = getGroupCoursesUrlTemplate.replace('/0/', '/{id}/');
 
-function toggleCourseSelection(courseId, courseElement) {
-    if (selectedCourses.has(courseId)) {
-        // Убираем из выбора
-        selectedCourses.delete(courseId);
-        courseElement.removeClass('selected');
-    } else {
-        // Добавляем в выбор
-        selectedCourses.add(courseId);
-        courseElement.addClass('selected');
-    }
+// Элементы DOM для добавления курсов (будут инициализированы в DOMContentLoaded)
+let courseModal, courseModalClose, courseSearchInput, courseSearchResultsDropdown;
+let groupCourseList, selectedCoursesList, confirmCourseAssignmentBtn, cancelCourseAssignmentBtn;
+
+// Хранилище выбранных курсов
+let selectedCourses = new Map(); // courseId -> {id, title, description, author}
+
+// Кэш последних результатов поиска
+let lastCourseSearchResults = [];
+
+// Загрузка списка групп с курсами
+function loadGroupsForCourses() {
+    if (!groupCourseList) return;
     
-    updateSelectionUI();
+    groupCourseList.innerHTML = '<div class="group-list-loading">Загрузка групп...</div>';
+    
+    fetch(getGroupsWithCoursesUrl)
+        .then(response => response.json())
+        .then(data => {
+            displayGroupsWithCourses(data.groups);
+        })
+        .catch(error => {
+            console.error('Ошибка загрузки групп:', error);
+            groupCourseList.innerHTML = '<div class="group-list-error">Ошибка загрузки групп</div>';
+        });
 }
 
-function updateSelectionUI() {
-    const count = selectedCourses.size;
+// Отображение списка групп с курсами
+function displayGroupsWithCourses(groups) {
+    if (!groupCourseList) return;
     
-    // Обновляем счетчики
-    $('#selectedCoursesCount').text('Выбрано: ' + count);
-    $('#selectedCount').text(count);
-    
-    // Обновляем состояние кнопки
-    const $btn = $('#addSelectedCoursesBtn');
-    if (count > 0) {
-        $btn.prop('disabled', false);
-    } else {
-        $btn.prop('disabled', true);
-    }
-}
-
-function resetCourseSelection() {
-    selectedCourses.clear();
-    $('.selectable-course').removeClass('selected');
-    updateSelectionUI();
-}
-
-function addSelectedCoursesToTrajectory() {
-    if (selectedCourses.size === 0) {
-        showNotification('Выберите хотя бы один курс', 'warning');
+    if (groups.length === 0) {
+        groupCourseList.innerHTML = '<div class="group-list-empty">Группы не найдены</div>';
         return;
     }
     
-    const courseIds = Array.from(selectedCourses);
-    const $btn = $('#addSelectedCoursesBtn');
-    const originalText = $btn.html();
+    let html = '';
+    groups.forEach(function(group) {
+        html += `
+            <div class="group-item" data-group-id="${group.id}">
+                <div class="group-item-name">${group.name}</div>
+                <div class="group-item-count">${group.courses_count} курсов, ${group.user_count} пользователей</div>
+            </div>
+        `;
+    });
     
-    // Показываем индикатор загрузки
-    $btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Добавление...');
+    groupCourseList.innerHTML = html;
     
-    $.ajax({
-        url: '/builder/trajectories/{{ trajectory.id }}/courses/add-multiple/',
+    // Добавляем обработчики клика на каждую группу
+    const groupItems = groupCourseList.querySelectorAll('.group-item');
+    groupItems.forEach(function(item) {
+        item.addEventListener('click', function() {
+            const groupId = this.getAttribute('data-group-id');
+            addGroupCourses(groupId);
+        });
+    });
+}
+
+// Добавление всех курсов группы
+function addGroupCourses(groupId) {
+    const url = getGroupCoursesUrl.replace('{id}', groupId);
+    
+    fetch(url)
+        .then(response => response.json())
+        .then(data => {
+            data.courses.forEach(function(course) {
+                if (!selectedCourses.has(course.id)) {
+                    selectedCourses.set(course.id, course);
+                }
+            });
+            displaySelectedCourses();
+        })
+        .catch(error => {
+            console.error('Ошибка загрузки курсов группы:', error);
+        });
+}
+
+// Поиск курсов для добавления
+let courseSearchTimeout;
+
+// Закрытие выпадающего списка при клике вне его
+document.addEventListener('click', function(event) {
+    if (courseSearchInput && courseSearchResultsDropdown) {
+        if (!courseSearchInput.contains(event.target) && !courseSearchResultsDropdown.contains(event.target)) {
+            hideCourseSearchResults();
+        }
+    }
+});
+
+// Поиск курсов и отображение результатов
+function searchCourses(query) {
+    if (!courseSearchResultsDropdown) return;
+    
+    courseSearchResultsDropdown.innerHTML = '<div class="search-results-loading">Поиск...</div>';
+    courseSearchResultsDropdown.style.display = 'block';
+    
+    const url = searchCoursesUrl + '?q=' + encodeURIComponent(query);
+    
+    fetch(url)
+        .then(response => response.json())
+        .then(data => {
+            lastCourseSearchResults = data.courses;
+            displayCourseSearchResults(data.courses);
+        })
+        .catch(error => {
+            console.error('Ошибка поиска курсов:', error);
+            courseSearchResultsDropdown.innerHTML = '<div class="search-results-empty">Ошибка поиска</div>';
+        });
+}
+
+// Отображение результатов поиска курсов
+function displayCourseSearchResults(courses) {
+    if (!courseSearchResultsDropdown) return;
+    
+    if (courses.length === 0) {
+        courseSearchResultsDropdown.innerHTML = '<div class="search-results-empty">Курсы не найдены</div>';
+        return;
+    }
+    
+    let html = '';
+    courses.forEach(function(course) {
+        // Пропускаем уже выбранные курсы
+        if (selectedCourses.has(course.id)) {
+            return;
+        }
+        
+        html += `
+            <div class="search-result-item" data-course-id="${course.id}">
+                <div class="search-result-name">${course.title}</div>
+                <div class="search-result-username">${course.author}</div>
+            </div>
+        `;
+    });
+    
+    if (html === '') {
+        courseSearchResultsDropdown.innerHTML = '<div class="search-results-empty">Все найденные курсы уже выбраны</div>';
+        return;
+    }
+    
+    courseSearchResultsDropdown.innerHTML = html;
+    
+    // Добавляем обработчики клика на результаты
+    const resultItems = courseSearchResultsDropdown.querySelectorAll('.search-result-item');
+    resultItems.forEach(function(item) {
+        item.addEventListener('click', function() {
+            const courseId = parseInt(this.getAttribute('data-course-id'));
+            addCourseFromSearch(courseId);
+        });
+    });
+}
+
+// Добавление курса из результатов поиска
+function addCourseFromSearch(courseId) {
+    const course = lastCourseSearchResults.find(c => c.id === courseId);
+    
+    if (course && !selectedCourses.has(courseId)) {
+        selectedCourses.set(courseId, course);
+        displaySelectedCourses();
+        if (courseSearchInput) {
+            courseSearchInput.value = '';
+        }
+        hideCourseSearchResults();
+    }
+}
+
+// Скрытие выпадающего списка результатов
+function hideCourseSearchResults() {
+    if (courseSearchResultsDropdown) {
+        courseSearchResultsDropdown.style.display = 'none';
+        courseSearchResultsDropdown.innerHTML = '';
+    }
+}
+
+// Отображение выбранных курсов
+function displaySelectedCourses() {
+    if (!selectedCoursesList) return;
+    
+    if (selectedCourses.size === 0) {
+        selectedCoursesList.innerHTML = '<div class="selected-users-empty">Курсы не выбраны</div>';
+        return;
+    }
+    
+    let html = '';
+    selectedCourses.forEach(function(course, courseId) {
+        html += `
+            <div class="selected-user-item" data-course-id="${courseId}">
+                <div class="selected-user-info">
+                    <div class="selected-user-name">${course.title}</div>
+                    <div class="selected-user-username">${course.author}</div>
+                </div>
+                <div class="selected-user-actions" style="display: flex; align-items: center; gap: 8px;">
+                    <span class="selected-user-remove" data-course-id="${courseId}" title="Удалить">&times;</span>
+                </div>
+            </div>
+        `;
+    });
+    
+    selectedCoursesList.innerHTML = html;
+    
+    // Добавляем обработчики для удаления курсов
+    const removeButtons = selectedCoursesList.querySelectorAll('.selected-user-remove');
+    removeButtons.forEach(function(btn) {
+        btn.addEventListener('click', function(e) {
+            e.stopPropagation();
+            const courseId = parseInt(this.getAttribute('data-course-id'));
+            selectedCourses.delete(courseId);
+            displaySelectedCourses();
+        });
+    });
+}
+
+// Применение выбора курсов
+function applyCourseAssignment() {
+    const courseIds = Array.from(selectedCourses.keys());
+    
+    if (courseIds.length === 0) {
+        alert('Выберите хотя бы один курс для добавления');
+        return;
+    }
+    
+    // Отключаем кнопку на время выполнения запроса
+    if (confirmCourseAssignmentBtn) {
+        confirmCourseAssignmentBtn.disabled = true;
+        confirmCourseAssignmentBtn.textContent = 'Добавление...';
+    }
+    
+    // Получаем CSRF токен
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+    const csrfToken = getCookie('csrftoken');
+    
+    // Отправляем запрос на сервер
+    fetch(addCoursesToTrajectoryUrl, {
         method: 'POST',
-        data: JSON.stringify({course_ids: courseIds}),
-        contentType: 'application/json',
         headers: {
-            'X-Requested-With': 'XMLHttpRequest',
-            'X-CSRFToken': $('input[name=csrfmiddlewaretoken]').val()
+            'Content-Type': 'application/json',
+            'X-CSRFToken': csrfToken
         },
-        success: function(data) {
-            if (data.success) {
-                showNotification('Курсы успешно добавлены в траекторию', 'success');
+        body: JSON.stringify({
+            course_ids: courseIds
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Формируем сообщение о результате
+            let message = `Добавлено курсов: ${data.added_count || data.message || 'успешно'}`;
+            if (data.skipped_count > 0) {
+                message += `\nУже были добавлены: ${data.skipped_count}`;
+            }
+            
+            if (data.added_count > 0 || data.success) {
+                // Очищаем выбранные курсы
+                selectedCourses.clear();
+                displaySelectedCourses();
+                
+                // Закрываем модальное окно
+                if (courseModal) {
+                    courseModal.style.display = 'none';
+                }
+                hideCourseSearchResults();
+                
+                // Показываем сообщение об успехе
+                if (typeof showNotification === 'function') {
+                    showNotification(message, 'success');
+                } else {
+                    alert(message);
+                }
+                
+                // Перезагружаем страницу для обновления данных
                 setTimeout(function() {
                     location.reload();
                 }, 1000);
             } else {
-                showNotification('Ошибка при добавлении курсов: ' + (data.message || 'Неизвестная ошибка'), 'error');
-                $btn.prop('disabled', false).html(originalText);
+                alert('Все выбранные курсы уже были добавлены в траекторию');
             }
-        },
-        error: function(xhr, status, error) {
-            showNotification('Ошибка при добавлении курсов: ' + error, 'error');
-            $btn.prop('disabled', false).html(originalText);
+        } else {
+            alert('Ошибка: ' + (data.error || 'Неизвестная ошибка'));
+        }
+    })
+    .catch(error => {
+        console.error('Ошибка:', error);
+        alert('Произошла ошибка при добавлении курсов');
+    })
+    .finally(() => {
+        // Включаем кнопку обратно
+        if (confirmCourseAssignmentBtn) {
+            confirmCourseAssignmentBtn.disabled = false;
+            confirmCourseAssignmentBtn.textContent = 'Применить';
         }
     });
 }
 
-// Старая функция для обратной совместимости (если где-то используется)
-function addCourseToTrajectory(courseId) {
-    selectedCourses.add(courseId);
-    $('.selectable-course[data-course-id="' + courseId + '"]').addClass('selected');
-    updateSelectionUI();
-}
+// Инициализация элементов DOM и обработчиков
+document.addEventListener('DOMContentLoaded', function() {
+    // Инициализация элементов DOM
+    courseModal = document.getElementById('addCourseModal');
+    courseModalClose = document.getElementById('courseModalClose');
+    courseSearchInput = document.getElementById('courseSearchInput');
+    courseSearchResultsDropdown = document.getElementById('courseSearchResultsDropdown');
+    groupCourseList = document.getElementById('groupCourseList');
+    selectedCoursesList = document.getElementById('selectedCoursesList');
+    confirmCourseAssignmentBtn = document.getElementById('confirmCourseAssignmentBtn');
+    cancelCourseAssignmentBtn = document.getElementById('cancelCourseAssignmentBtn');
+    
+    // Обработчик кнопки "Добавить курс"
+    const addCourseBtn = document.getElementById('openAddCourseModalBtn');
+    const addCourseBtnEmpty = document.getElementById('openAddCourseModalBtnEmpty');
+    
+    function openAddCourseModal() {
+        if (courseModal) {
+            courseModal.style.display = 'block';
+            loadGroupsForCourses();
+        }
+    }
+    
+    if (addCourseBtn) {
+        addCourseBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            openAddCourseModal();
+        });
+    }
+    
+    if (addCourseBtnEmpty) {
+        addCourseBtnEmpty.addEventListener('click', function(e) {
+            e.preventDefault();
+            openAddCourseModal();
+        });
+    }
+    
+    // Закрытие модального окна
+    if (courseModalClose) {
+        courseModalClose.addEventListener('click', function() {
+            if (courseModal) {
+                courseModal.style.display = 'none';
+            }
+            hideCourseSearchResults();
+        });
+    }
+    
+    if (cancelCourseAssignmentBtn) {
+        cancelCourseAssignmentBtn.addEventListener('click', function() {
+            if (courseModal) {
+                courseModal.style.display = 'none';
+            }
+            hideCourseSearchResults();
+        });
+    }
+    
+    // Закрытие при клике вне модального окна
+    window.addEventListener('click', function(event) {
+        if (event.target == courseModal) {
+            courseModal.style.display = 'none';
+            hideCourseSearchResults();
+        }
+    });
+    
+    // Поиск курсов для добавления
+    if (courseSearchInput) {
+        // Загрузка всех курсов при фокусе на поле поиска
+        courseSearchInput.addEventListener('focus', function() {
+            // Если поле пустое, загружаем все курсы
+            if (this.value.trim().length === 0) {
+                searchCourses('');
+            }
+        });
+        
+        courseSearchInput.addEventListener('input', function() {
+            clearTimeout(courseSearchTimeout);
+            const query = this.value.trim();
+            
+            if (query.length === 0) {
+                // При пустом запросе показываем все курсы
+                searchCourses('');
+                return;
+            }
+            
+            courseSearchTimeout = setTimeout(function() {
+                searchCourses(query);
+            }, 300);
+        });
+    }
+    
+    // Обработка клавиши Escape для закрытия выпадающего списка
+    if (courseSearchInput) {
+        courseSearchInput.addEventListener('keydown', function(event) {
+            if (event.key === 'Escape') {
+                hideCourseSearchResults();
+                this.blur();
+            }
+        });
+    }
+    
+    // Применение выбора курсов
+    if (confirmCourseAssignmentBtn) {
+        confirmCourseAssignmentBtn.addEventListener('click', function() {
+            applyCourseAssignment();
+        });
+    }
+});
 
 function removeCourse(courseId, courseTitle) {
     if (confirm('Вы уверены, что хотите удалить курс "' + courseTitle + '" из траектории?\n\nЭто действие нельзя отменить.')) {
+        // Получаем CSRF токен
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+        const csrfToken = getCookie('csrftoken') || $('input[name=csrfmiddlewaretoken]').val();
+        
         $.ajax({
             url: '/builder/trajectories/{{ trajectory.id }}/courses/remove/',
             method: 'POST',
@@ -563,24 +869,28 @@ function removeCourse(courseId, courseTitle) {
             contentType: 'application/json',
             headers: {
                 'X-Requested-With': 'XMLHttpRequest',
-                'X-CSRFToken': $('input[name=csrfmiddlewaretoken]').val()
+                'X-CSRFToken': csrfToken
             },
-                    success: function(data) {
-            if (data.success) {
-                if (typeof showNotification === 'function') {
-                    showNotification('Курс успешно удален из траектории', 'success');
+            success: function(data) {
+                if (data.success) {
+                    if (typeof showNotification === 'function') {
+                        showNotification('Курс успешно удален из траектории', 'success');
+                    }
+                    setTimeout(function() {
+                        location.reload();
+                    }, 1000);
+                } else {
+                    if (typeof showNotification === 'function') {
+                        showNotification('Ошибка при удалении курса', 'error');
+                    }
                 }
-                setTimeout(function() {
-                    location.reload();
-                }, 1000);
-            } else {
-                if (typeof showNotification === 'function') {
-                    showNotification('Ошибка при удалении курса', 'error');
-                }
-            }
-        },
+            },
             error: function(xhr, status, error) {
-                showNotification('Ошибка при удалении курса: ' + error, 'error');
+                if (typeof showNotification === 'function') {
+                    showNotification('Ошибка при удалении курса: ' + error, 'error');
+                } else {
+                    alert('Ошибка при удалении курса: ' + error);
+                }
             }
         });
     }

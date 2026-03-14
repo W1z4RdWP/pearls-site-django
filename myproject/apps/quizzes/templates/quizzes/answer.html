@@ -1,6 +1,7 @@
 {% extends "layout.html" %}
 {% block title %}Ответ{% endblock %}
 {% load static %}
+{% load quiz_filters %}
 {% block specific_styles %}
 <link rel="stylesheet" href="{% static 'quizzes/css/quiz_styles.css' %}">
 {% endblock %}
@@ -15,10 +16,10 @@
     </div>
     <form method="POST" action="{% url 'quizzes:get-questions' %}">
         {% csrf_token %}
-        <input type="hidden" name="quiz_id" value="{{ correct_answer.question.quiz.id }}">
+        <input type="hidden" name="quiz_id" value="{{ question.quiz.id }}">
         
         <div class="answer-result" style="color: black;">
-            <h3 class="mb-4">{{ correct_answer.question.text }}</h3>
+            <h3 class="mb-4">{{ question.text }}</h3>
 
             {% if question.question_type == 'multiple' %}
                 <div class="card mb-4 {% if is_correct %}border-success{% else %}border-danger{% endif %}">
@@ -35,7 +36,6 @@
                     {% else %}
                     <div class="alert alert-danger">
                         ❌ Неверно!
-                        <p class="mb-0 mt-2">{{ correct_answer.text }}</p>
                     </div>
                     <div class="card-body">
                         <h5>Правильные ответы:</h5>
@@ -47,6 +47,158 @@
                     </div>
                     {% endif %}
 
+                </div>
+            {% elif question.question_type == 'match' %}
+                <div class="card mb-4 {% if is_correct %}border-success{% else %}border-danger{% endif %}">
+                    {% if is_correct %}
+                    <div class="alert alert-success">
+                        ✅ Правильные соответствия!
+                    </div>
+                    {% else %}
+                    <div class="alert alert-danger">
+                        ❌ Неверные соответствия!
+                    </div>
+                    {% endif %}
+
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <h5>Вопросы</h5>
+                                {% for result in match_results %}
+                                    <div class="question-item mb-3 p-3 border rounded {% if result.is_correct %}bg-success bg-opacity-10 border-success{% else %}bg-danger bg-opacity-10 border-danger{% endif %}">
+                                        <div class="question-text mb-2">
+                                            <strong>Вопрос:</strong>
+                                            {% if result.question_image %}
+                                                <div class="mt-2 mb-2">
+                                                    <img src="{{ result.question_image }}" class="img-thumbnail" style="width: 200px; height: 200px; object-fit: contain;">
+                                                </div>
+                                            {% endif %}
+                                            {% if result.question_text %}
+                                                <div>{{ result.question_text }}</div>
+                                            {% endif %}
+                                        </div>
+                                        <hr>
+                                        <div class="user-answer">
+                                            {% if result.user_answer_id %}
+                                                <strong>Ваш ответ:</strong>
+                                                {% if result.user_answer_image %}
+                                                    <div class="mt-2">
+                                                        <img src="{{ result.user_answer_image }}" class="img-thumbnail" style="width: 200px; height: 200px; object-fit: contain;">
+                                                    </div>
+                                                {% endif %}
+                                                {% if result.user_answer_text %}
+                                                    <div>{{ result.user_answer_text }}</div>
+                                                {% endif %}
+                                            {% else %}
+                                                <em class="text-muted">Не отвечено</em>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                {% endfor %}
+                            </div>
+                            <div class="col-md-6">
+                                <h5>Правильные ответы</h5>
+                                {% for result in match_results %}
+                                    <div class="correct-answer-item mb-3 p-3 border border-success rounded bg-success bg-opacity-10">
+                                        <div class="question-text mb-2">
+                                            <strong>Вопрос:</strong>
+                                            {% if result.question_image %}
+                                                <div class="mt-2 mb-2">
+                                                    <img src="{{ result.question_image }}" class="img-thumbnail" style="width: 200px; height: 200px; object-fit: contain;">
+                                                </div>
+                                            {% endif %}
+                                            {% if result.question_text %}
+                                                <div>{{ result.question_text }}</div>
+                                            {% endif %}
+                                        </div>
+                                        <hr>
+                                        <div class="correct-answer">
+                                            <strong>Правильный ответ:</strong>
+                                            {% if result.correct_answer_image %}
+                                                <div class="mt-2">
+                                                    <img src="{{ result.correct_answer_image }}" class="img-thumbnail" style="width: 200px; height: 200px; object-fit: contain;">
+                                                </div>
+                                            {% endif %}
+                                            {% if result.correct_answer_text %}
+                                                <div>{{ result.correct_answer_text }}</div>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            {% elif question.question_type == 'sequence' %}
+                <div class="card mb-4 {% if is_correct %}border-success{% else %}border-warning{% endif %}">
+                    {% if is_correct %}
+                    <div class="alert alert-success">
+                        ✅ Правильная последовательность!
+                    </div>
+                    {% else %}
+                    <div class="alert alert-warning">
+                        ⚠️ Частично правильно! Набрано {{ partial_score }} из {{ correct_sequence|length }} позиций ({{ partial_percent }}%)
+                    </div>
+                    {% endif %}
+
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <h5>Ваша последовательность:</h5>
+                                <div class="sequence-display">
+                                    {% for ans_id in user_sequence %}
+                                        {% with answer=answers|dict_get:ans_id correct_ans_id=correct_sequence|get_item:forloop.counter0 %}
+                                        <div class="sequence-result-item mb-2 p-3 border rounded 
+                                            {% if ans_id == correct_ans_id %}
+                                                bg-success bg-opacity-10 border-success
+                                            {% else %}
+                                                bg-danger bg-opacity-10 border-danger
+                                            {% endif %}">
+                                            <div class="d-flex align-items-center gap-3">
+                                                <span class="sequence-result-number">{{ forloop.counter }}</span>
+                                                <div class="sequence-result-content">
+                                                    {% if answer.image %}
+                                                        <img src="{{ answer.image }}" class="img-thumbnail mb-2" style="max-width: 150px; max-height: 150px; object-fit: contain;">
+                                                    {% endif %}
+                                                    {% if answer.text %}
+                                                        <div>{{ answer.text }}</div>
+                                                    {% endif %}
+                                                </div>
+                                                {% if ans_id == correct_ans_id %}
+                                                    <span class="ms-auto text-success">✓</span>
+                                                {% else %}
+                                                    <span class="ms-auto text-danger">✗</span>
+                                                {% endif %}
+                                            </div>
+                                        </div>
+                                        {% endwith %}
+                                    {% endfor %}
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <h5>Правильная последовательность:</h5>
+                                <div class="sequence-display">
+                                    {% for ans_id in correct_sequence %}
+                                        {% with answer=answers|dict_get:ans_id %}
+                                        <div class="sequence-result-item mb-2 p-3 border border-success rounded bg-success bg-opacity-10">
+                                            <div class="d-flex align-items-center gap-3">
+                                                <span class="sequence-result-number bg-success">{{ forloop.counter }}</span>
+                                                <div class="sequence-result-content">
+                                                    {% if answer.image %}
+                                                        <img src="{{ answer.image }}" class="img-thumbnail mb-2" style="max-width: 150px; max-height: 150px; object-fit: contain;">
+                                                    {% endif %}
+                                                    {% if answer.text %}
+                                                        <div>{{ answer.text }}</div>
+                                                    {% endif %}
+                                                </div>
+                                            </div>
+                                        </div>
+                                        {% endwith %}
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             {% else %}
             <div class="card mb-4 {% if is_correct %}border-success{% elif question.question_type == 'text' %}border-warning{% else %}border-danger{% endif %}">
@@ -68,8 +220,10 @@
                         <br/>
                 {% else %}
                 <div class="alert alert-danger">
-                    ❌ Неверно! Правильный ответ:
-                    <p class="mb-0 mt-2">{{ correct_answer.text }}</p>
+                    ❌ Неверно! Правильные ответы:
+                    {% for answer in correct_answers %}
+                        <p class="mb-0 mt-2">{{ answer.text }}</p>
+                    {% endfor %}
                 </div>
                 {% endif %}
             {% endif %}
@@ -79,4 +233,33 @@
         </div>
     </form>
 </div>
+
+<style>
+.sequence-result-number {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 35px;
+    min-height: 35px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border-radius: 50%;
+    font-weight: bold;
+    font-size: 1.1rem;
+    flex-shrink: 0;
+}
+
+.sequence-result-content {
+    flex-grow: 1;
+}
+
+.sequence-result-item {
+    transition: all 0.2s ease;
+}
+
+.sequence-result-item:hover {
+    transform: translateX(5px);
+}
+</style>
+
 {% endblock %}

@@ -1,18 +1,40 @@
 {% extends 'layout.html' %}
+{% load quiz_filters %}
 {% block content %}
 <div class="container mt-4">
     <h2>Отчёт по тесту: {{ quiz_result.quiz_title }}</h2>
-    <p>Правильных ответов: {{ quiz_result.score }} из {{ quiz_result.total_questions }} ({{ quiz_result.percent|floatformat:0 }}%)</p>
+    <p>Правильных ответов: {{ quiz_result.score|floatformat:1 }} из {{ quiz_result.total_questions }} ({{ quiz_result.percent|floatformat:0 }}%)</p>
     <p>Дата прохождения: {{ quiz_result.completed_at|date:"d.m.Y H:i" }}</p>
+    
+    {% if quiz_result.status == 'pending' %}
+    <div class="alert alert-warning">
+        <i class="fas fa-clock"></i> <strong>Статус:</strong> Ожидает проверки наставником (есть открытые вопросы)
+    </div>
+    {% elif quiz_result.reviewed_by %}
+    <div class="alert alert-info">
+        <i class="fas fa-user-check"></i> <strong>Проверено наставником:</strong> {{ quiz_result.reviewed_by.get_full_name|default:quiz_result.reviewed_by.username }} 
+        ({{ quiz_result.reviewed_at|date:"d.m.Y H:i" }})
+        {% if quiz_result.mentor_comment %}
+        <hr style="margin: 10px 0;">
+        <strong>Комментарий:</strong> <span style="white-space: pre-line;">{{ quiz_result.mentor_comment }}</span>
+        {% endif %}
+    </div>
+    {% endif %}
+    
     <hr>
     <h4>Детализация по вопросам:</h4>
     <div class="list-group">
         {% for question, answers in grouped_answers.items %}
         <div class="list-group-item mb-2
         {% if question.question_type == 'text' %}
-            {% if answers.0.is_correct is None %}list-group-item-warning
-            {% elif answers.0.is_correct %}list-group-item-success
-            {% else %}list-group-item-danger
+            {% if answers.0.score_points is None %}list-group-item-warning
+            {% elif answers.0.score_points == 0 %}list-group-item-danger
+            {% elif answers.0.score_points == 0.5 %}list-group-item-warning
+            {% elif answers.0.score_points == 1 %}list-group-item-success
+            {% endif %}
+        {% elif question.question_type == 'match' or question.question_type == 'sequence' %}
+            {% if answers.0.is_correct %}list-group-item-success
+            {% else %}list-group-item-warning
             {% endif %}
         {% else %}
             {% if answers.0.is_correct %}list-group-item-success
@@ -20,45 +42,152 @@
             {% endif %}
         {% endif %}">
                 <strong>Вопрос {{ forloop.counter }}:</strong> {{ question.text }}<br>
-                <strong>Ваш ответ:</strong>
-                {% if question.question_type == 'multiple' %}
-                    {% for ans in answers %}
-                        {{ ans.selected_answer.text }}{% if not forloop.last %}, {% endif %}
-                    {% endfor %}
-                {% elif question.question_type == 'text' %}
-                    {{ answers.0.answer_text|default:'<em>Нет ответа</em>' }}
-                {% else %}
-                    {{ answers.0.selected_answer.text|default:'<em>Нет ответа</em>' }}
-                {% endif %}
-                <br>
-                {% if question.question_type != 'text' %}
-                    <strong>Правильный ответ:</strong>
-                    {% for correct_ans in question.answer_set.all %}
-                        {% if correct_ans.is_correct %}
-                            {{ correct_ans.text }}{% if not forloop.last %}, {% endif %}
+                
+                {% if question.question_type == 'sequence' %}
+                    <div class="mt-2">
+                        <strong>Тип:</strong> Последовательность<br>
+                        {% if answers.0.answer_text %}
+                            <div class="row mt-2">
+                                <div class="col-md-6">
+                                    <h6>Ответ пользователя:</h6>
+                                    {% with user_seq_ids=answers.0.answer_text|split:',' %}
+                                    {% for ans_id_raw in user_seq_ids %}
+                                        {% with ans_id=ans_id_raw|trim %}
+                                        {% for answer in question.answer_set.all %}
+                                            {% if answer.id|stringformat:"s" == ans_id %}
+                                                <div class="d-flex align-items-center gap-2 p-2 mb-2 border rounded bg-light">
+                                                    <span class="badge bg-secondary" style="min-width: 30px;">{{ forloop.parentloop.counter }}</span>
+                                                    <div>{{ answer.text }}</div>
+                                                </div>
+                                            {% endif %}
+                                        {% endfor %}
+                                        {% endwith %}
+                                    {% endfor %}
+                                    {% endwith %}
+                                </div>
+                                <div class="col-md-6">
+                                    <h6>Правильная последовательность:</h6>
+                                    {% for answer in question.answer_set.all|dictsort:"id" %}
+                                    <div class="d-flex align-items-center gap-2 p-2 mb-2 border border-success rounded bg-success bg-opacity-10">
+                                        <span class="badge bg-success" style="min-width: 30px;">{{ forloop.counter }}</span>
+                                        <div>{{ answer.text }}</div>
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                            <div class="mt-2">
+                                {% if answers.0.is_correct %}
+                                    <span class="badge bg-success">✓ Полностью правильно</span>
+                                {% else %}
+                                    <span class="badge bg-warning text-dark">⚠ Частично правильно или неправильно</span>
+                                {% endif %}
+                            </div>
+                        {% else %}
+                            <em>Нет ответа</em>
                         {% endif %}
-                    {% endfor %}
-                {% endif %}
-                <br>
-                {% if question.question_type == 'text' %}
-                    <form method="post" action="">
-                        {% csrf_token %}
-                        <div class="mt-2">
-                            <label>Оценка администратора:</label>
-                            <select name="text_eval_{{ answers.0.id }}" class="form-select" style="width:auto;display:inline-block;">
-                                <option value="" {% if answers.0.is_correct is None %}selected{% endif %}>Не оценено</option>
-                                <option value="true" {% if answers.0.is_correct %}selected{% endif %}>Правильно</option>
-                                <option value="false" {% if answers.0.is_correct is not None and not answers.0.is_correct %}selected{% endif %}>Неправильно</option>
-                            </select>
-                            <button type="submit" class="btn btn-sm btn-outline-primary">Сохранить</button>
+                    </div>
+                {% elif question.question_type == 'match' %}
+                    <div class="mt-2">
+                        <strong>Тип:</strong> Соответствие<br>
+                        <div class="row mt-2">
+                            <div class="col-md-6">
+                                <h6>Ответы пользователя:</h6>
+                                {% for result in answers.0.match_results %}
+                                    <div class="p-2 mb-2 border rounded {% if result.is_correct %}bg-success bg-opacity-10 border-success{% else %}bg-danger bg-opacity-10 border-danger{% endif %}">
+                                        <strong>Вопрос:</strong>
+                                        {% if result.question_image %}
+                                            <div class="mt-2 mb-2">
+                                                <img src="{{ result.question_image }}" class="img-thumbnail" style="width: 200px; height: 200px; object-fit: contain;">
+                                            </div>
+                                        {% endif %}
+                                        {% if result.question_text %}
+                                            <div>{{ result.question_text }}</div>
+                                        {% endif %}
+                                        <hr>
+                                        <span class="text-muted">Ваш ответ:</span>
+                                        {% if result.user_answer_image %}
+                                            <div class="mt-2">
+                                                <img src="{{ result.user_answer_image }}" class="img-thumbnail" style="width: 200px; height: 200px; object-fit: contain;">
+                                            </div>
+                                        {% endif %}
+                                        {% if result.user_answer_text %}
+                                            <div>{{ result.user_answer_text }}</div>
+                                        {% endif %}
+                                    </div>
+                                {% endfor %}
+                            </div>
+                            <div class="col-md-6">
+                                <h6>Правильные ответы:</h6>
+                                {% for result in answers.0.match_results %}
+                                    <div class="p-2 mb-2 border border-success rounded bg-success bg-opacity-10">
+                                        <strong>Вопрос:</strong>
+                                        {% if result.question_image %}
+                                            <div class="mt-2 mb-2">
+                                                <img src="{{ result.question_image }}" class="img-thumbnail" style="width: 200px; height: 200px; object-fit: contain;">
+                                            </div>
+                                        {% endif %}
+                                        {% if result.question_text %}
+                                            <div>{{ result.question_text }}</div>
+                                        {% endif %}
+                                        <hr>
+                                        <span class="text-muted">Правильный ответ:</span>
+                                        {% if result.correct_answer_image %}
+                                            <div class="mt-2">
+                                                <img src="{{ result.correct_answer_image }}" class="img-thumbnail" style="width: 200px; height: 200px; object-fit: contain;">
+                                            </div>
+                                        {% endif %}
+                                        {% if result.correct_answer_text %}
+                                            <div>{{ result.correct_answer_text }}</div>
+                                        {% endif %}
+                                    </div>
+                                {% endfor %}
+                            </div>
                         </div>
-                    </form>
-                    {% if answers.0.is_correct is None %}
-                        <span class="badge bg-info">Пользователь дал ответ</span>
+                    </div>
+                {% else %}
+                    <strong>Ваш ответ:</strong>
+                    {% if question.question_type == 'multiple' %}
+                        {% for ans in answers %}
+                            {{ ans.selected_answer.text }}{% if not forloop.last %}, {% endif %}
+                        {% endfor %}
+                    {% elif question.question_type == 'text' %}
+                        {{ answers.0.answer_text|default:'<em>Нет ответа</em>' }}
                     {% else %}
-                        <span class="badge {% if answers.0.is_correct %}bg-success{% else %}bg-danger{% endif %}">
-                            {% if answers.0.is_correct %}Верно{% else %}Неверно{% endif %}
-                        </span>
+                        {{ answers.0.selected_answer.text|default:'<em>Нет ответа</em>' }}
+                    {% endif %}
+                    <br>
+                    {% if question.question_type != 'text' %}
+                        <strong>Правильный ответ:</strong>
+                        {% for correct_ans in question.answer_set.all %}
+                            {% if correct_ans.is_correct %}
+                                {{ correct_ans.text }}{% if not forloop.last %}, {% endif %}
+                            {% endif %}
+                        {% endfor %}
+                    {% endif %}
+                    <br>
+                    {% if question.question_type == 'text' %}
+                        <form method="post" action="">
+                            {% csrf_token %}
+                            <div class="mt-2">
+                                <label>Оценка наставника:</label>
+                                <select name="text_eval_{{ answers.0.id }}" class="form-select" style="width:auto;display:inline-block;">
+                                    <option value="" {% if answers.0.score_points is None %}selected{% endif %}>Не оценено</option>
+                                    <option value="0" {% if answers.0.score_points == 0 %}selected{% endif %}>❌ Неверно (0 баллов)</option>
+                                    <option value="0.5" {% if answers.0.score_points == 0.5 %}selected{% endif %}>⚠️ Частично верно (0.5 балла)</option>
+                                    <option value="1" {% if answers.0.score_points == 1 %}selected{% endif %}>✅ Верно (1 балл)</option>
+                                </select>
+                                <button type="submit" class="btn btn-sm btn-outline-primary">Сохранить</button>
+                            </div>
+                        </form>
+                        {% if answers.0.score_points is None %}
+                            <span class="badge bg-warning text-dark">⏳ Ожидает проверки</span>
+                        {% elif answers.0.score_points == 0 %}
+                            <span class="badge bg-danger">❌ Неверно (0 баллов)</span>
+                        {% elif answers.0.score_points == 0.5 %}
+                            <span class="badge bg-warning text-dark">⚠️ Частично верно (0.5 балла)</span>
+                        {% elif answers.0.score_points == 1 %}
+                            <span class="badge bg-success">✅ Верно (1 балл)</span>
+                        {% endif %}
                     {% endif %}
                 {% endif %}
             </div>

@@ -3,14 +3,15 @@
 
 {% block title %}Содержание базы знаний{% endblock %}
 {% block specific_styles %}
-<link rel="stylesheet" href="{% static 'builder/css/builder_style.css' %}">
-<script src="{% static 'builder/js/builder.js' %}" defer></script>
-<script src="{% static 'builder/js/search.js' %}" defer></script>
-<script src="{% static 'builder/js/dictTable.js' %}" defer></script>
-<script src="{% static 'builder/js/ckeditor_target_blank.js' %}" defer></script>
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/handsontable@12.3.3/dist/handsontable.full.min.css">
-<script src="https://cdn.jsdelivr.net/npm/handsontable@12.3.3/dist/handsontable.full.min.js"></script>
-<link rel="stylesheet" href="{% static 'builder/css/dict_table_style.css' %}">
+    <link rel="stylesheet" href="{% static 'builder/css/builder_style.css' %}">
+    <link rel="stylesheet" href="{% static 'builder/css/incident_form.css' %}">
+    <script src="{% static 'builder/js/builder.js' %}" defer></script>
+    <script src="{% static 'builder/js/search.js' %}" defer></script>
+    <script src="{% static 'builder/js/dictTable.js' %}" defer></script>
+    <script src="{% static 'builder/js/ckeditor_target_blank.js' %}" defer></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/handsontable@12.3.3/dist/handsontable.full.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/handsontable@12.3.3/dist/handsontable.full.min.js"></script>
+    <link rel="stylesheet" href="{% static 'builder/css/dict_table_style.css' %}">
 {% endblock %}
 
 {% block content %}
@@ -21,15 +22,17 @@
 <div class="container">
     <div class="master-detail-container">
         <div class="sidebar" id="sidebar">
-            <button id="toggle-sidebar-btn" class="btn btn-outline-secondary mb-2" type="button" title="Скрыть/показать категории">
-                <span id="toggle-sidebar-icon">⮜</span> Скрыть категории
-            </button>
-            <div class="tabs-switcher" style="display: flex; gap: 2px; margin: 0 0 16px 0;">
+            <div class="tabs-switcher">
                 <button id="tab-categories" class="tab-btn active" type="button">Категории</button>
                 <button id="tab-uncat" class="tab-btn" type="button">Без категории</button>
                 <button id="tab-dict" class="tab-btn" type="button">Словарь</button>
             </div>
-            <input type="text" id="tree-search-input" class="search-input builder-input" placeholder="Поиск по категориям и урокам...">
+            <div class="search-container">
+                <button id="toggle-sidebar-btn" class="btn btn-outline-secondary" type="button" title="Скрыть/показать категории">
+                    <span id="toggle-sidebar-icon">⮜</span>
+                </button>
+                <input type="text" id="tree-search-input" class="search-input builder-input" placeholder="Поиск по категориям и урокам..." autocomplete="off">
+            </div>
             <div id="categories-block">
                 <div class="category-scroll">
                     <ul class="category-list">
@@ -86,8 +89,13 @@
                     <button id="delete-category" title="Удалить">x</button>
                     <button id="add-lesson" title="Добавить урок">📄</button>
                 </div>
+            {% endif %}
+            {% if not is_readonly or user.profile.is_mentor_user %}
                 <div class="sidebar-buttons" style="margin: 18px 32px 0 32px;">
                     <a href="/builder/update_control/" id="update-control-btn" class="btn btn-outline-primary" style="width:100%;margin-top:8px;">Контроль обновлений</a>
+                    <div class="sidebar-scroll-top-container" id="scroll-to-top-container" style="display: none;">
+                        <button id="scroll-to-top-btn" class="btn btn-outline-primary" title="Вернуться к началу страницы">↑ В начало</button>
+                    </div>
                 </div>
             {% endif %}
         </div>
@@ -122,12 +130,68 @@
     <div id="paste-menu-item" class="builder-context-menu-item">Вставить</div>
     <div id="mirror-menu-item" class="builder-context-menu-item">Зеркало</div>
     <div id="mirror-here-menu-item" class="builder-context-menu-item">Вставить зеркало</div>
+    <div id="assignment-menu-item" class="builder-context-menu-item">Назначить</div>
     <div id="show-all-mirrors-menu-item" class="builder-context-menu-item">Показать все зеркала</div>
     <div id="hide-mirrors-menu-item" class="builder-context-menu-item" style="display:none;">Скрыть</div>
 </div>
 
+<!-- Модальное окно для выбора назначенных -->
+<div id="lessonAssignmentModal" class="responsible-modal">
+    <div class="responsible-modal-content">
+        <div class="responsible-modal-header">
+            <h3>Выберите пользователей для назначения урока</h3>
+            <span class="responsible-modal-close" id="lessonAssignmentModalClose">&times;</span>
+        </div>
+        <div class="responsible-modal-body">
+            <div class="responsible-columns">
+                <!-- Левая колонка - Группы -->
+                <div class="responsible-left-column">
+                    <h4>Группы</h4>
+                    <div id="lessonAssignmentGroupList" class="group-list">
+                        <div class="group-list-loading">Загрузка групп...</div>
+                    </div>
+                </div>
+                
+                <!-- Разделитель -->
+                <div class="responsible-divider"></div>
+                
+                <!-- Правая колонка - Выбранные пользователи -->
+                <div class="responsible-right-column">
+                    <h4>Выбранные пользователи</h4>
+                    <div class="responsible-search-box">
+                        <input type="text" id="lessonAssignmentSearchInput" class="form-control" placeholder="Поиск пользователя для добавления..." autocomplete="off">
+                        <div id="lessonAssignmentSearchResultsDropdown" class="search-results-dropdown" style="display: none;"></div>
+                    </div>
+                    <div id="lessonAssignmentSelectedUsersList" class="selected-users-list">
+                        <div class="selected-users-empty">Пользователи не выбраны</div>
+                    </div>
+                </div>
+            </div>
+            <div class="responsible-modal-footer">
+                <button type="button" class="btn btn-primary" id="confirmLessonAssignmentBtn">Применить</button>
+                <button type="button" class="btn btn-secondary" id="cancelLessonAssignmentBtn">Отмена</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <script>
     window.IS_READONLY = {{ is_readonly|yesno:"true,false" }};
+    // Показываем кнопку прокрутки в начало, если урок загружен при первоначальной загрузке страницы
+    document.addEventListener('DOMContentLoaded', function() {
+        {% if selected_lesson %}
+        const scrollTopContainer = document.getElementById('scroll-to-top-container');
+        if (scrollTopContainer) {
+            scrollTopContainer.style.display = 'flex';
+            // Пересчитываем позицию после показа контейнера (через requestAnimationFrame для корректных размеров)
+            requestAnimationFrame(function() {
+                if (typeof window.positionScrollTopButton === 'function') {
+                    window.positionScrollTopButton();
+                }
+            });
+        }
+        {% endif %}
+    });
 </script>
 <script>
     // Если есть ?new_lesson=... в query string, кладём в sessionStorage
@@ -154,6 +218,15 @@
             sessionStorage.setItem('selected_lesson_id', lessonId);
         }
     })();
+</script>
+
+<script>
+    // API endpoints для назначения урока
+    const lessonAssignmentSearchUsersUrl = "{% url 'builder:api_search_users' %}";
+    const lessonAssignmentGetGroupsUrl = "{% url 'builder:api_get_groups' %}";
+    const lessonAssignmentGetGroupUsersUrlTemplate = "{% url 'builder:api_get_group_users' 0 %}";
+    const lessonAssignmentAssignLessonsUrlTemplate = "{% url 'user_management:api_assign_lessons_to_user' 0 %}";
+    const lessonAssignmentGetCategoryLessonsUrlTemplate = "{% url 'builder:api_get_category_lessons' 0 %}";
 </script>
 
 {% endblock %}

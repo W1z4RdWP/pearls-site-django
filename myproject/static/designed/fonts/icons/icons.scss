@@ -1,0 +1,48 @@
+@font-face {
+  font-family: "icons";
+  src: url('icons.eot?t=1757942201120'); /* IE9*/
+  src: url('icons.eot?t=1757942201120#iefix') format('embedded-opentype') /* IE6-IE8 */,
+  url('icons.woff2?t=1757942201120') format('woff2'),
+  url('icons.woff?t=1757942201120') format('woff'),
+  url('icons.ttf?t=1757942201120') format('truetype'),
+  url('icons.svg?t=1757942201120') format('svg');
+}
+
+[class^="icon-"], [class*=" icon-"] {
+  font-family: 'icons' !important;font-size: undefined;
+  font-style:normal;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+
+.icon-arrow-rotate::before { content: "\ea01"; }
+.icon-arrow::before { content: "\ea02"; }
+.icon-attachment::before { content: "\ea03"; }
+.icon-burger::before { content: "\ea04"; }
+.icon-check::before { content: "\ea05"; }
+.icon-chevron::before { content: "\ea06"; }
+.icon-clear::before { content: "\ea07"; }
+.icon-cross::before { content: "\ea08"; }
+.icon-mail::before { content: "\ea09"; }
+.icon-max::before { content: "\ea0a"; }
+.icon-phone::before { content: "\ea0b"; }
+.icon-telegram::before { content: "\ea0c"; }
+.icon-vk::before { content: "\ea0d"; }
+.icon-whatsapp::before { content: "\ea0e"; }
+
+
+$icon-arrow-rotate: '\ea01';
+$icon-arrow: '\ea02';
+$icon-attachment: '\ea03';
+$icon-burger: '\ea04';
+$icon-check: '\ea05';
+$icon-chevron: '\ea06';
+$icon-clear: '\ea07';
+$icon-cross: '\ea08';
+$icon-mail: '\ea09';
+$icon-max: '\ea0a';
+$icon-phone: '\ea0b';
+$icon-telegram: '\ea0c';
+$icon-vk: '\ea0d';
+$icon-whatsapp: '\ea0e';

@@ -1,0 +1,267 @@
+{% extends 'layout.html' %}
+{% load static %}
+{% block title %}{% if object %}Редактирование инцидента{% else %}Новый инцидент{% endif %}{% endblock %}
+{% block specific_styles %}
+    <link rel="stylesheet" href="{% static 'builder/css/builder_style.css' %}">
+    <link rel="stylesheet" href="{% static 'builder/css/incident_form.css' %}">
+{% endblock %}
+
+{% block content %}
+
+<div class="incident-form-card">
+    <h2 class="mb-4">{% if object %}Редактирование инцидента{% else %}Новый инцидент{% endif %}</h2>
+    <form method="post" autocomplete="off">
+        {% csrf_token %}
+        
+        <div class="form-group">
+            <label for="{{ form.title.id_for_label }}">{{ form.title.label }}</label>
+            {{ form.title }}
+            {% if form.title.errors %}
+                <div class="text-danger mt-1">{{ form.title.errors }}</div>
+            {% endif %}
+        </div>
+
+        <div class="form-group">
+            <label for="{{ form.incident_type.id_for_label }}">{{ form.incident_type.label }}</label>
+            {{ form.incident_type }}
+            {% if form.incident_type.errors %}
+                <div class="text-danger mt-1">{{ form.incident_type.errors }}</div>
+            {% endif %}
+        </div>
+
+        
+        <div class="form-group">
+            <label for="user-display">{{ form.user.label }}</label>
+            <div class="user-select-field" id="userSelectField">
+                <span id="userDisplayName" class="user-display-name">
+                    {% if form.user.value %}{{ form.instance.user.get_full_name }}{% else %}Выберите пользователя...{% endif %}
+                </span>
+                <span class="user-select-icon">&#9660;</span>
+            </div>
+            {{ form.user }}
+            {% if form.user.errors %}
+                <div class="text-danger mt-1">{{ form.user.errors }}</div>
+            {% endif %}
+        </div>
+
+        <div class="form-group" style="width: 100%; margin-bottom: 3%;">
+            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+                <label for="mentor-display" style="margin: 0;">{{ form.responsible_mentor.label }}</label>
+                <span class="help-icon" tabindex="0" role="button" aria-label="Подсказка" data-tooltip="В списке отображаются сотрудники со статусом «Наставник».&#10;Этот человек отвечает за проверку и подтверждение корректности выполнения теста обучающегося.&#10;Поле обязательное для заполнения, даже если тест не требует проверки — наставник должен быть назначен в любом случае.">?</span>
+            </div>
+            <div style="display: flex; align-items: center; gap: 15px;">
+                <div class="user-select-field" id="mentorSelectField" style="flex: 1;">
+                    <span id="mentorDisplayName" class="user-display-name">
+                        {% if form.responsible_mentor.value %}{{ form.instance.responsible_mentor.get_full_name }}{% else %}Выберите пользователя...{% endif %}
+                    </span>
+                    <span class="user-select-icon">&#9660;</span>
+                </div>
+                <div class="time-counter-wrapper">
+                    <button type="button" class="time-counter-btn" id="timeCounterDecrease">−</button>
+                    <input type="number" id="id_mentors_time_to_check" name="mentors_time_to_check" 
+                           value="{{ form.mentors_time_to_check.value|default:2 }}" 
+                           min="1" class="time-counter-input" readonly>
+                    <button type="button" class="time-counter-btn" id="timeCounterIncrease">+</button>
+                    <span class="help-icon" tabindex="0" role="button" aria-label="Подсказка" data-tooltip="Укажите период, в течение которого наставник должен проверить тест после завершения урока.&#10;По умолчанию — 2 дня после окончания урока, но срок можно увеличить или уменьшить при необходимости.">?</span>
+                </div>
+            </div>
+            {{ form.responsible_mentor }}
+            {% if form.responsible_mentor.errors %}
+                <div class="text-danger mt-1">{{ form.responsible_mentor.errors }}</div>
+            {% endif %}
+            {% if form.mentors_time_to_check.errors %}
+                <div class="text-danger mt-1">{{ form.mentors_time_to_check.errors }}</div>
+            {% endif %}
+        </div>
+
+        <div class="form-group">
+            <label for="assigned-display">Кому назначен</label>
+            <div style="display: flex; align-items: center; gap: 15px;">
+                <div class="assigned-select-field" id="assignedSelectField" style="flex: 1;">
+                    <span id="assignedDisplayText" class="assigned-display-text">
+                        <span id="assignedCount" class="assigned-count">0</span> пользователей выбрано
+                    </span>
+                    <span class="assigned-select-icon">&#9660;</span>
+                </div>
+                <div class="time-counter-wrapper">
+                    <button type="button" class="time-counter-btn" id="assignedTimeCounterDecrease">−</button>
+                    <input type="number" id="id_assigned_to_time_to_complete" name="assigned_to_time_to_complete" 
+                           value="{{ form.assigned_to_time_to_complete.value|default:3 }}" 
+                           min="1" class="time-counter-input" readonly>
+                    <button type="button" class="time-counter-btn" id="assignedTimeCounterIncrease">+</button>
+                    <span class="help-icon" tabindex="0" role="button" aria-label="Подсказка" data-tooltip="Кол-во дней для прохождения курса, начинается отсчет, после прохождения курса ответственным руководителем за актуальность курса">?</span>
+                </div>
+            </div>
+            <div id="assignedToContainer">{{ form.assigned_to }}{{ form.violators }}</div>
+            {% if form.assigned_to.errors %}
+                <div class="text-danger mt-1">{{ form.assigned_to.errors }}</div>
+            {% endif %}
+            {% if form.violators.errors %}
+                <div class="text-danger mt-1">{{ form.violators.errors }}</div>
+            {% endif %}
+            {% if form.assigned_to_time_to_complete.errors %}
+                <div class="text-danger mt-1">{{ form.assigned_to_time_to_complete.errors }}</div>
+            {% endif %}
+        </div>
+
+        <div class="form-group">
+            <label for="{{ form.expert.id_for_label }}">{{ form.expert.label }}</label>
+            <div style="display: flex; align-items: center; gap: 15px;">
+                <div class="user-select-field" id="expertSelectField" style="flex: 1;">
+                    <span id="expertDisplayName" class="user-display-name">
+                        {% if form.expert.value %}{{ form.instance.expert.get_full_name }}{% else %}Выберите пользователя...{% endif %}
+                    </span>
+                    <span class="user-select-icon">&#9660;</span>
+                </div>
+                <div class="time-counter-wrapper">
+                    <button type="button" class="time-counter-btn" id="expertTimeCounterDecrease">−</button>
+                    <input type="number" id="id_expert_time_to_complete" name="expert_time_to_complete" 
+                           value="{{ form.expert_time_to_complete.value|default:3 }}" 
+                           min="1" class="time-counter-input" readonly>
+                    <button type="button" class="time-counter-btn" id="expertTimeCounterIncrease">+</button>
+                    <span class="help-icon" tabindex="0" role="button" aria-label="Подсказка" data-tooltip="Укажите период, в течение которого руководитель должен проверить уроки курса.&#10;По умолчанию — 3 дня, но срок можно увеличить или уменьшить при необходимости.">?</span>
+                </div>
+            </div>
+            {{ form.expert }}
+            {% if form.expert.errors %}
+                <div class="text-danger mt-1">{{ form.expert.errors }}</div>
+            {% endif %}
+        </div>
+
+        <!-- <div class="form-group">
+            <label for="{{ form.deadline.id_for_label }}">{{ form.deadline.label }}</label>
+            {{ form.deadline }}
+            {% if form.deadline.errors %}
+                <div class="text-danger mt-1">{{ form.deadline.errors }}</div>
+            {% endif %}
+        </div> -->
+
+        <div class="form-group">
+            <label for="{{ form.status.id_for_label }}">{{ form.status.label }}</label>
+            {{ form.status }}
+            {# Скрытое поле для передачи значения статуса при отправке формы (так как основное поле disabled) #}
+            {# При создании нового инцидента статус будет установлен в 'accepted' в view, при редактировании - сохраняется текущий #}
+            <input type="hidden" name="status" value="{% if object %}{{ form.status.value|default:'' }}{% else %}accepted{% endif %}" id="status_hidden">
+            {% if form.status.errors %}
+                <div class="text-danger mt-1">{{ form.status.errors }}</div>
+            {% endif %}
+        </div>
+
+        <div class="form-group">
+            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+                <label for="{{ form.description.id_for_label }}" style="margin: 0;">{{ form.description.label }}</label>
+                <span class="help-icon" tabindex="0" role="button" aria-label="Подсказка" data-tooltip="Здесь нужно зафиксировать саму суть ситуации, без общих фраз.&#10;&#10;💡 Отвечай на 4 коротких вопроса:&#10;1. Что произошло? (описать событие, факт — например: &quot;пациент ждал 40 минут&quot;, &quot;в DENT не внесли оплату&quot;).&#10;2. Где произошло? (филиал, кабинет, отдел).&#10;3. С кем / с какой ролью? (администратор, врач, ассистент, техник).&#10;4. Почему или из-за чего? (ошибка, недопонимание, отсутствие стандарта, неисправное оборудование и т.д.).&#10;&#10;❗️Не нужно писать: &quot;виноват админ&quot; или &quot;пациент грубый&quot; — важно зафиксировать факт и контекст, не эмоцию.&#10;&#10;Пример хорошего описания:&#10;&quot;Пациент ожидал приём 35 минут из-за того, что администратор не уведомил врача о прибытии. В расписании была путаница, не было отметки о переносе.&quot;&#10;&#10;Пример плохого описания:&#10;&quot;Админ опять всё перепутал. Пациент злой.&quot;">?</span>
+            </div>
+            {{ form.description }}
+            {% if form.description.errors %}
+                <div class="text-danger mt-1">{{ form.description.errors }}</div>
+            {% endif %}
+        </div>
+
+        <div class="form-actions mt-4" style="display: flex; justify-content: space-between; align-items: center;">
+            <div>
+                <button type="submit" class="btn btn-primary">Сохранить</button>
+                <a href="{% url 'builder:incidents' %}" class="btn btn-secondary">Инциденты</a>
+            </div>
+            {% if object and object.pk %}
+                {% if object.course %}
+                    <a href="{% url 'courses:course_detail' slug=object.course.slug %}" class="btn btn-success">
+                        <i class="fa fa-graduation-cap"></i> Перейти к курсу
+                    </a>
+                {% else %}
+                    <button type="button" class="btn btn-success" onclick="document.getElementById('create-course-form').submit();">
+                        <i class="fa fa-graduation-cap"></i> Сформировать курс
+                    </button>
+                {% endif %}
+            {% else %}
+                <button type="button" class="btn btn-success" disabled>
+                    <i class="fa fa-graduation-cap"></i> Сформировать курс
+                </button>
+            {% endif %}
+        </div>
+    </form>
+    
+    {% if object and object.pk and not object.course %}
+        <form id="create-course-form" method="POST" action="{% url 'builder:incident_create_course' pk=object.pk %}" style="display: none;">
+            {% csrf_token %}
+        </form>
+    {% endif %}
+</div>
+
+<!-- Модальное окно для выбора пользователя -->
+<div id="userModal" class="user-modal">
+    <div class="user-modal-content">
+        <div class="user-modal-header">
+            <h3>Выберите сотрудника</h3>
+            <span class="user-modal-close" id="userModalClose">&times;</span>
+        </div>
+        <div class="user-modal-body">
+            <div class="user-search-box">
+                <input type="text" id="userSearchInput" class="form-control" placeholder="Поиск по имени или фамилии..." autocomplete="off">
+            </div>
+            <div class="user-list-container">
+                <div id="userList" class="user-list">
+                    <div class="user-list-loading">Загрузка...</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Модальное окно для выбора назначенных -->
+<div id="assignedModal" class="responsible-modal">
+    <div class="responsible-modal-content">
+        <div class="responsible-modal-header">
+            <h3>Выберите назначенных</h3>
+            <span class="responsible-modal-close" id="assignedModalClose">&times;</span>
+        </div>
+        <div class="responsible-modal-body">
+            <div class="responsible-columns">
+                <!-- Левая колонка - Группы -->
+                <div class="responsible-left-column">
+                    <h4>Группы</h4>
+                    <div id="groupList" class="group-list">
+                        <div class="group-list-loading">Загрузка групп...</div>
+                    </div>
+                </div>
+                
+                <!-- Разделитель -->
+                <div class="responsible-divider"></div>
+                
+                <!-- Правая колонка - Выбранные пользователи -->
+                <div class="responsible-right-column">
+                    <h4>Выбранные пользователи</h4>
+                    <div class="responsible-search-box">
+                        <input type="text" id="assignedSearchInput" class="form-control" placeholder="Поиск пользователя для добавления..." autocomplete="off">
+                        <div id="searchResultsDropdown" class="search-results-dropdown" style="display: none;"></div>
+                    </div>
+                    <div id="selectedUsersList" class="selected-users-list">
+                        <div class="selected-users-empty">Пользователи не выбраны</div>
+                    </div>
+                </div>
+            </div>
+            <div class="responsible-modal-footer">
+                <button type="button" class="btn btn-primary" id="confirmAssignedBtn">Применить</button>
+                <button type="button" class="btn btn-secondary" id="cancelAssignedBtn">Отмена</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block specific_scripts %}
+
+    <script>
+        // API endpoints для incident_form.js
+        const searchUsersUrl = "{% url 'builder:api_search_users' %}";
+        const getUsersByIdsUrl = "{% url 'builder:api_get_users_by_ids' %}";
+        const getGroupsUrl = "{% url 'builder:api_get_groups' %}";
+        const getGroupUsersUrlTemplate = "{% url 'builder:api_get_group_users' 0 %}";
+        const userInputId = "{{ form.user.id_for_label }}";
+        const mentorInputId = "{{ form.responsible_mentor.id_for_label }}";
+        const expertInputId = "{{ form.expert.id_for_label }}";
+    </script>
+    <script src="{% static 'builder/js/incident_form.js' %}"></script>
+
+{% endblock %} 

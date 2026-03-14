@@ -1,0 +1,53 @@
+{% extends 'layout.html' %}
+{% load static %}
+
+{% block title %}Комнаты чата - УЦ «Территория Улыбки»{% endblock %}
+
+{% block specific_styles %}
+    <link rel="stylesheet" href="{% static 'messenger/css/chat_room_list.css' %}">
+{% endblock %}
+
+{% block content %}
+    <div class="rooms-container">
+        <div class="rooms-header">
+            <h1>Комнаты чата</h1>
+        </div>
+        
+        <div class="create-room-form">
+            <h2>Создать новую комнату</h2>
+            <form method="post" action="{% url 'messenger:chat_room_create' %}">
+                {% csrf_token %}
+                <div class="form-group">
+                    <label for="room-name">Название комнаты (необязательно)</label>
+                    <input type="text" id="room-name" name="name" placeholder="Введите название комнаты" autocomplete="off">
+                </div>
+                <button type="submit" class="btn btn-primary">Создать комнату</button>
+            </form>
+        </div>
+        
+        <div class="rooms-list">
+            {% for room in rooms %}
+            <div class="room-card">
+                <div class="room-card-header">
+                    <div>
+                        <h3 class="room-card-title">{{ room.name|default:"Комната без названия" }}</h3>
+                        <div class="room-card-id">ID: {{ room.room_id }}</div>
+                    </div>
+                </div>
+                <div class="room-card-meta">
+                    <span>Создатель: {{ room.created_by.get_full_name|default:room.created_by.username }}</span>
+                    <span>Создана: {{ room.created_at|date:"d.m.Y H:i" }}</span>
+                </div>
+                <div class="room-card-footer">
+                    <a href="{% url 'messenger:chat_room' room_id=room.room_id %}" class="btn-join">Присоединиться</a>
+                </div>
+            </div>
+            {% empty %}
+            <div class="room-card">
+                <p>Пока нет созданных комнат. Создайте первую комнату выше.</p>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+{% endblock %}
+

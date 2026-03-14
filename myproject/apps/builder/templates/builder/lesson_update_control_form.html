@@ -31,6 +31,7 @@
                 {% endfor %}
             </select>
             <button type="submit" class="btn btn-primary btn-sm" style="margin-left: 8px;">Фильтровать</button>
+            {% if user_role_name %}<a href="?responsible={{ user_role_name|urlencode }}&overdue=1&no_next=1&all_dates=1" class="btn btn-outline-success btn-sm" style="margin-left: 4px; background-color: #218838;" title="Показать уроки моей должности: просроченные и без даты обновления">Мои к актуализации</a>{% endif %}
         </form>
         <table class="update-control-table" id="update-control-table">
             <thead>

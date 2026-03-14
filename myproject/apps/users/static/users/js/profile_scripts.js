@@ -109,6 +109,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const editProfileForm = document.getElementById('edit-profile-form');
     const progressBar = document.querySelector('.progress-bar-user');
     const gamificationSection = document.getElementById('gamification-section');
+    const supportBtn = document.getElementById('support-btn');
+    const mailBtn = document.getElementById('mail-btn');
 
     if (editProfileBtn && cancelEditBtn && editProfileForm) {
         editProfileBtn.addEventListener('click', function() {
@@ -118,6 +120,8 @@ document.addEventListener('DOMContentLoaded', () => {
             if (toggleQuizzesBtn) toggleQuizzesBtn.style.display = 'none';
             if (progressBar) progressBar.style.display = 'none';
             if (gamificationSection) gamificationSection.style.display = 'none';
+            if (supportBtn) supportBtn.style.display = 'none';
+            if (mailBtn) mailBtn.style.display = 'none';
         });
 
         cancelEditBtn.addEventListener('click', function(event) {
@@ -128,6 +132,8 @@ document.addEventListener('DOMContentLoaded', () => {
             if (toggleQuizzesBtn) toggleQuizzesBtn.style.display = 'block';
             if (progressBar) progressBar.style.display = 'block';
             if (gamificationSection) gamificationSection.style.display = 'block';
+            if (supportBtn) supportBtn.style.display = 'block';
+            if (mailBtn) mailBtn.style.display = 'block';
         });
     }
 
@@ -280,4 +286,107 @@ document.addEventListener('DOMContentLoaded', function() {
         btn.innerHTML = shown ? eyeOpen : eyeClosed;
     });
 });
+
+
+// --- Отключение блока прогресса курсов ---
+const toggleCoursesProgressBtn = document.getElementById('toggle-courses-progress-btn');
+const profileCoursesProgress = document.getElementById('profile-courses-progress');
+
+function toggleCoursesProgress() {
+    if (profileCoursesProgress.style.display === 'block') {
+        profileCoursesProgress.style.display = 'none';
+        toggleCoursesProgressBtn.innerHTML = '📁';
+    } else {
+        profileCoursesProgress.style.display = 'block';
+        toggleCoursesProgressBtn.innerHTML = '📂';
+    }
+}
+
+// --- Работа с камерой для аватара (встроенное приложение) ---
+document.addEventListener('DOMContentLoaded', function() {
+    const cameraBtn = document.getElementById('camera-btn');
+    const cameraInput = document.getElementById('camera-input');
+    const imageInput = document.getElementById('id_image');
+    const cameraPreview = document.getElementById('camera-preview');
+    const cameraPreviewImg = document.getElementById('camera-preview-img');
+    const useCameraPhotoBtn = document.getElementById('use-camera-photo');
+    const retakePhotoBtn = document.getElementById('retake-photo');
+
+    // Открытие встроенной камеры устройства
+    if (cameraBtn && cameraInput) {
+        cameraBtn.addEventListener('click', function() {
+            cameraInput.click();
+        });
+    }
+
+    // Обработка выбранного фото с камеры
+    if (cameraInput) {
+        cameraInput.addEventListener('change', function(event) {
+            const file = event.target.files[0];
+            if (file) {
+                // Показываем превью
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    cameraPreviewImg.src = e.target.result;
+                    cameraPreview.style.display = 'block';
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+    }
+
+    // Использование снятого фото
+    if (useCameraPhotoBtn) {
+        useCameraPhotoBtn.addEventListener('click', function() {
+            const file = cameraInput.files[0];
+            if (file) {
+                // Передаем файл в основное поле загрузки
+                const dataTransfer = new DataTransfer();
+                dataTransfer.items.add(file);
+                imageInput.files = dataTransfer.files;
+                
+                // Показываем уведомление
+                showSuccess('Фото с камеры выбрано для загрузки');
+                
+                // Скрываем превью
+                cameraPreview.style.display = 'none';
+            }
+        });
+    }
+
+    // Переснять фото
+    if (retakePhotoBtn) {
+        retakePhotoBtn.addEventListener('click', function() {
+            cameraInput.value = '';
+            cameraPreview.style.display = 'none';
+            cameraInput.click();
+        });
+    }
+
+    // Функция показа успешного сообщения
+    function showSuccess(message) {
+        // Создаем временное уведомление
+        const alert = document.createElement('div');
+        alert.className = 'alert alert-success alert-dismissible fade show';
+        alert.style.position = 'fixed';
+        alert.style.top = '20px';
+        alert.style.right = '20px';
+        alert.style.zIndex = '9999';
+        alert.innerHTML = `
+            ${message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        `;
+        
+        document.body.appendChild(alert);
+        
+        // Автоматически удаляем через 3 секунды
+        setTimeout(() => {
+            if (alert.parentNode) {
+                alert.parentNode.removeChild(alert);
+            }
+        }, 3000);
+    }
+});
+
+
 

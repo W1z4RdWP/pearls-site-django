@@ -1,28 +1,52 @@
-<li class="category-item" data-category-id="{{ category.id }}">
-    <div class="category-header" onclick="selectItem(this, 'category', '{{ category.id }}', '{{ category.name }}')">
-        <span class="category-icon">📁</span>
-        <span class="category-title">{{ category.name }}</span>
+<li class="category-block" data-id="{{ category.id }}">
+    <div class="category-header">
+        <input type="radio" class="category-select" value="{{ category.id }}" style="display: none;">
+        
+        <!-- <span class="category-icon folder-icon svg-folder">
+            <svg width="18" height="18" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                <path class="svg-folder-path" d="M2 5.5A1.5 1.5 0 0 1 3.5 4h3.672a1.5 1.5 0 0 1 1.06.44l1.414 1.414A1.5 1.5 0 0 0 10.707 6H16.5A1.5 1.5 0 0 1 18 7.5v7A1.5 1.5 0 0 1 16.5 16h-13A1.5 1.5 0 0 1 2 14.5v-9z"/>
+            </svg>
+        </span> -->
+        
+        <span class="category-title" title="{{ category.name }}">{{ category.name }}</span>
         {% if category.subcategories or category.lessons %}
-            <span class="toggle-arrow" onclick="event.stopPropagation(); toggleCategory(this.parentElement)">▶</span>
+            <span class="toggle-arrow" onclick="toggleSubcat(this.parentElement)">+</span>
         {% endif %}
     </div>
     
-    {% if category.subcategories %}
-        <ul class="subcategory-list category-tree" style="display: none;">
-            {% for subcategory in category.subcategories %}
-                {% include "courses/includes/_category_tree_item.html" with category=subcategory %}
-            {% endfor %}
-        </ul>
-    {% endif %}
-    
     {% if category.lessons %}
-        <ul class="lesson-list" style="display: none;">
+        <ul class="lesson-list" style='display: none;'>
             {% for lesson in category.lessons %}
-                <li class="lesson-item" data-lesson-id="{{ lesson.id }}" onclick="selectItem(this, 'lesson', '{{ lesson.id }}', '{{ lesson.title }}')">
-                    <span class="lesson-icon">📄</span>
-                    <span class="lesson-title">{{ lesson.title }}</span>
+                <li class="lesson-li{% if lesson.is_mirror %} mirror{% endif %}"
+                    data-lesson-id="{{ lesson.id }}"
+                    {% if lesson.is_mirror %}data-mirror-id="{{ lesson.mirror_id }}"{% endif %}
+                    data-category-id="{{ category.id }}"
+                    {% if lesson.has_mirrors %}data-has-mirrors="1"{% endif %}>
+                    <input type="radio" class="lesson-select" value="{{ lesson.id }}" style="display: none;">
+                    <span class="lesson-icon svg-paper">
+                        <svg width="16" height="16" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                            <rect class="svg-paper-rect" x="4" y="3" width="12" height="14" rx="2"/>
+                            <line class="svg-paper-line" x1="6.5" y1="7.5" x2="13.5" y2="7.5"/>
+                            <line class="svg-paper-line" x1="6.5" y1="10.5" x2="13.5" y2="10.5"/>
+                            <line class="svg-paper-line" x1="6.5" y1="13.5" x2="11.5" y2="13.5"/>
+                        </svg>
+                    </span>
+                    <a class="lesson-link" title="{{ lesson.title }}">
+                     {{ lesson.title }}
+                     {% if lesson.is_mirror or lesson.has_mirrors %}
+                         <span class="mirror-label" title="Зеркало урока">🔗 (зеркало)</span>
+                     {% endif %}
+                 </a>
                 </li>
             {% endfor %}
         </ul>
     {% endif %}
-</li> 
+    
+    {% if category.subcategories %}
+        <ul class="subcategory-list category-list" style="display: none;">
+            {% for subcat in category.subcategories %}
+                {% include "courses/includes/_category_tree_item.html" with category=subcat %}
+            {% endfor %}
+        </ul>
+    {% endif %}
+</li>

@@ -96,45 +96,42 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
 
-// Переключение темы
-document.addEventListener('DOMContentLoaded', function() {
-  const btn = document.getElementById('theme-toggle-btn');
-  const logo = document.getElementById('logopng');
-  const footerLogo = document.getElementById('footerlogo');
-  const footerLogoMobile = document.getElementById('footerlogomobile');
 
-  // Определяем пути к логотипам
-  const darkLogo = "/static/global/imgs/logo_lc.png";
-  const lightLogo = "/static/global/imgs/logo_light_theme.png";
-  
-  function updateLogo() {
-    if (document.body.classList.contains('theme-dark')) {
-      if (logo) logo.src = darkLogo;
-      if (footerLogo) footerLogo.src = darkLogo;
-      if (footerLogoMobile) footerLogoMobile.src = darkLogo;
-    } else {
-      if (logo) logo.src = lightLogo;
-      if (footerLogo) footerLogo.src = lightLogo;
-      if (footerLogoMobile) footerLogoMobile.src = lightLogo;
-    }
-  }
-  
-  if (btn) {
-    btn.addEventListener('click', function() {
-      document.body.classList.toggle('theme-dark');
-      btn.textContent = document.body.classList.contains('theme-dark') ? 'Тёмная тема' : 'Светлая тема';
-      localStorage.setItem('theme', document.body.classList.contains('theme-dark') ? 'dark' : 'light');
-      updateLogo();
-    });
-    
-    // Инициализация при загрузке
-    if (localStorage.getItem('theme') === 'dark') {
-      document.body.classList.add('theme-dark');
-      btn.textContent = 'Тёмная тема';
-    } else {
-      btn.textContent = 'Светлая тема';
-    }
-    updateLogo();
-  }
-});
+// Глобальная подмена "битых" изображений на заглушку
+// Убрал, так как нет необходимости, восстановить если будет картинка
+// document.addEventListener('DOMContentLoaded', () => {
+//   const FALLBACK_SRC = '/static/global/imgs/img-fallback.svg';
 
+//   function applyFallback(img) {
+//     if (!img || img.dataset.fallbackApplied) return;
+//     img.dataset.fallbackApplied = '1';
+//     img.src = FALLBACK_SRC;
+//     img.classList.add('img-fallback');
+//   }
+
+//   function wireImage(img) {
+//     if (!img || img.dataset.fallbackWired) return;
+//     img.dataset.fallbackWired = '1';
+//     img.addEventListener('error', () => applyFallback(img), { once: true });
+//     // Уже сломано к моменту навешивания?
+//     if (img.complete && img.naturalWidth === 0) applyFallback(img);
+//   }
+
+//   // Инициализация на существующих картинках
+//   document.querySelectorAll('img, .lesson-content img, img[data-use-fallback]')
+//     .forEach(wireImage);
+
+//   // Реакция на динамически добавленные изображения (например, из редактора)
+//   const mo = new MutationObserver((mutations) => {
+//     for (const m of mutations) {
+//       m.addedNodes && m.addedNodes.forEach(node => {
+//         if (node && node.tagName === 'IMG') {
+//           wireImage(node);
+//         } else if (node && node.querySelectorAll) {
+//           node.querySelectorAll('img').forEach(wireImage);
+//         }
+//       });
+//     }
+//   });
+//   mo.observe(document.body, { childList: true, subtree: true });
+// });

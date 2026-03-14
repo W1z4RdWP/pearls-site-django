@@ -23,7 +23,7 @@
         </div>
     </div>
 
-    <form id="editQuizForm" method="POST">
+    <form id="editQuizForm" method="POST" enctype="multipart/form-data">
         {% csrf_token %}
         
         <div class="card mb-4">
@@ -38,7 +38,7 @@
                 </div>
                 
                 <div class="row">
-                    <div class="col-md-6">
+                    <div class="col-md-4">
                         <div class="mb-3">
                             <label for="attemptLimit" class="form-label">Ограничение попыток</label>
                             <input type="number" class="form-control" id="attemptLimit" name="attempt_limit" 
@@ -47,13 +47,28 @@
                             <div class="form-text">0 означает неограниченное количество попыток</div>
                         </div>
                     </div>
-                    <div class="col-md-6">
+                    <div class="col-md-4">
                         <div class="mb-3">
                             <label for="passThreshold" class="form-label">Проходной балл (%)</label>
                             <input type="number" class="form-control" id="passThreshold" name="pass_threshold" 
                                    value="{{ object.pass_threshold|default:70 }}" min="1" max="100" required>
                         </div>
                     </div>
+                    <div class="col-md-4">
+                        <div class="mb-3">
+                            <label for="timeLimit" class="form-label">Время на прохождение (минуты)</label>
+                            <input type="number" class="form-control" id="timeLimit" name="time_limit" 
+                                   value="{{ object.time_limit|default:0 }}" min="0">
+                            <div class="form-text">0 = без ограничения по времени</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="alert alert-warning mt-3" role="alert">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <strong>Важно:</strong> При указании ограничения попыток (больше 0) 
+                    не добавляйте этот тест в материалы курса. Такие тесты предназначены 
+                    только для назначения как финальные тесты курса.
                 </div>
             </div>
         </div>
@@ -67,7 +82,8 @@
             </div>
             <div class="card-body">
                 <div id="questionsContainer">
-                    {% for question in questions %}
+                    {% for qdata in questions_with_pairs %}
+                    {% with question=qdata.question %}
                     <div class="question-block" data-question-id="{{ forloop.counter }}">
                         <div class="question-header">
                             <h6>Вопрос {{ forloop.counter }}</h6>
@@ -97,62 +113,178 @@
                             </select>
                         </div>
 
+                        <div class="mb-3 mentor-instruction-field" 
+                             {% if question.question_type != 'text' %}style="display: none;"{% endif %}>
+                            <label class="form-label">Комментарий для наставника</label>
+                            <textarea class="form-control" 
+                                    name="questions[{{ forloop.counter }}][mentor_instruction]" 
+                                    rows="3" 
+                                    placeholder="Введите комментарий, который будет отображаться наставнику при проверке этого вопроса">{{ question.mentor_instruction|default:"" }}</textarea>
+                            <div class="form-text">Этот комментарий будет показан наставнику при наведении на иконку "?" рядом с вопросом</div>
+                        </div>
+
                         <div class="answers-container" 
                              {% if question.question_type == 'text' %}style="display: none;"{% endif %}>
-                            <label class="form-label">Варианты ответов</label>
-                            {% for answer in question.answer_set.all %}
-                            <div class="answer-item">
-                                <input type="text" class="form-control" 
-                                       name="questions[{{ forloop.parentloop.counter }}][answers][{{ forloop.counter }}][text]" 
-                                       value="{{ answer.text }}" 
-                                       placeholder="Текст ответа" 
-                                       {% if question.question_type != 'text' %}required{% endif %}>
-                                <div class="form-check">
-                                    {% if question.question_type == 'single' %}
-                                        <input type="radio" class="form-check-input" 
-                                               name="questions[{{ forloop.parentloop.counter }}][correct_answer]"
-                                               value="{{ forloop.counter }}"
-                                               {% if answer.is_correct %}checked{% endif %}>
-                                    {% else %}
-                                        <input type="checkbox" class="form-check-input" 
-                                               name="questions[{{ forloop.parentloop.counter }}][answers][{{ forloop.counter }}][correct]"
-                                               {% if answer.is_correct %}checked{% endif %}>
-                                    {% endif %}
-                                    <label class="form-check-label">Правильный</label>
+                            {% if question.question_type == 'sequence' %}
+                                <label class="form-label">Элементы последовательности</label>
+                                <div class="alert alert-info">
+                                    <strong>Инструкция:</strong> Добавьте элементы в правильном порядке. Первый добавленный элемент будет первым в правильной последовательности.
                                 </div>
-                                <button type="button" class="remove-btn ms-2" onclick="removeAnswer(this)">
-                                    <i class="fas fa-times"></i>
-                                </button>
-                            </div>
-                            {% empty %}
-                            <div class="answer-item">
-                                <input type="text" class="form-control" 
-                                       name="questions[{{ forloop.counter }}][answers][1][text]" 
-                                       placeholder="Текст ответа" 
-                                       {% if question.question_type != 'text' %}required{% endif %}>
-                                <div class="form-check">
-                                    {% if question.question_type == 'single' %}
-                                        <input type="radio" class="form-check-input" 
-                                               name="questions[{{ forloop.counter }}][correct_answer]"
-                                               value="1">
-                                    {% else %}
-                                        <input type="checkbox" class="form-check-input" 
-                                               name="questions[{{ forloop.counter }}][answers][1][correct]">
-                                    {% endif %}
-                                    <label class="form-check-label">Правильный</label>
+                                {% for answer in question.answer_set.all %}
+                                <div class="answer-item sequence-answer-item">
+                                    <span class="sequence-order-number">{{ forloop.counter }}</span>
+                                    <input type="text" class="form-control" 
+                                           name="questions[{{ forloop.parentloop.counter }}][answers][{{ forloop.counter }}][text]" 
+                                           value="{{ answer.text }}" 
+                                           placeholder="Элемент последовательности" 
+                                           required>
+                                    <button type="button" class="remove-btn" onclick="removeAnswer(this)">
+                                        <i class="fas fa-times"></i>
+                                    </button>
                                 </div>
-                                <button type="button" class="remove-btn ms-2" onclick="removeAnswer(this)">
-                                    <i class="fas fa-times"></i>
+                                {% endfor %}
+                                <button type="button" class="btn-mini primary btn-sm mt-2" 
+                                        onclick="addAnswer(this)">
+                                    <i class="fas fa-plus"></i> Добавить элемент
                                 </button>
-                            </div>
-                            {% endfor %}
-                            
-                            <button type="button" class="btn-mini primary btn-sm mt-2" 
-                                    onclick="addAnswer(this)">
-                                <i class="fas fa-plus"></i> Добавить ответ
-                            </button>
+                            {% elif question.question_type == 'match' %}
+                                <label class="form-label">Пары вопрос-ответ</label>
+                                <div class="alert alert-info">
+                                    <strong>Инструкция:</strong> Для вопроса на соответствие создайте пары вопрос-ответ:<br>
+                                    • Введите текст вопроса в поле "Вопрос"<br>
+                                    • Введите правильный ответ в поле "Ответ"<br>
+                                    • Рекомендуемый размер изображения: 200x200 пикселей
+                                </div>
+                                {% for pair in qdata.match_pairs %}
+                                <div class="match-pair mb-3 p-3 border rounded">
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <label class="form-label">Вопрос {{ pair.pair_number }}</label>
+                                            <div class="form-check mb-2">
+                                                <input type="checkbox" class="form-check-input match-image-toggle" 
+                                                       data-target="question-{{ forloop.parentloop.counter }}-{{ pair.question_index }}"
+                                                       {% if pair.question_answer.image %}checked{% endif %}>
+                                                <label class="form-check-label">Использовать картинку</label>
+                                            </div>
+                                            <input type="text" class="form-control match-text-input mb-2" 
+                                                   id="question-text-{{ forloop.parentloop.counter }}-{{ pair.question_index }}"
+                                                   name="questions[{{ forloop.parentloop.counter }}][answers][{{ pair.question_index }}][text]"
+                                                   value="{{ pair.question_answer.text }}"
+                                                   placeholder="Текст вопроса" 
+                                                   {% if not pair.question_answer.image %}required{% endif %}>
+                                            <div class="match-image-upload" id="question-{{ forloop.parentloop.counter }}-{{ pair.question_index }}" 
+                                                 style="{% if not pair.question_answer.image %}display: none;{% endif %}">
+                                                <input type="file" class="form-control" 
+                                                       name="questions[{{ forloop.parentloop.counter }}][answers][{{ pair.question_index }}][image]"
+                                                       accept="image/*">
+                                                {% if pair.question_answer.image %}
+                                                <div class="mt-2">
+                                                    <img src="{{ pair.question_answer.image.url }}" class="img-thumbnail" style="width: 200px; height: 200px; object-fit: contain;">
+                                                    <input type="hidden" name="questions[{{ forloop.parentloop.counter }}][answers][{{ pair.question_index }}][existing_image]" 
+                                                           value="{{ pair.question_answer.image.url }}">
+                                                </div>
+                                                {% endif %}
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label class="form-label">Ответ {{ pair.pair_number }}</label>
+                                            <div class="form-check mb-2">
+                                                <input type="checkbox" class="form-check-input match-image-toggle" 
+                                                       data-target="answer-{{ forloop.parentloop.counter }}-{{ pair.answer_index }}"
+                                                       {% if pair.answer_answer.image %}checked{% endif %}>
+                                                <label class="form-check-label">Использовать картинку</label>
+                                            </div>
+                                            <input type="text" class="form-control match-text-input mb-2" 
+                                                   id="answer-text-{{ forloop.parentloop.counter }}-{{ pair.answer_index }}"
+                                                   name="questions[{{ forloop.parentloop.counter }}][answers][{{ pair.answer_index }}][text]"
+                                                   value="{{ pair.answer_answer.text }}"
+                                                   placeholder="Текст ответа"
+                                                   {% if not pair.answer_answer.image %}required{% endif %}>
+                                            <div class="match-image-upload" id="answer-{{ forloop.parentloop.counter }}-{{ pair.answer_index }}" 
+                                                 style="{% if not pair.answer_answer.image %}display: none;{% endif %}">
+                                                <input type="file" class="form-control" 
+                                                       name="questions[{{ forloop.parentloop.counter }}][answers][{{ pair.answer_index }}][image]"
+                                                       accept="image/*">
+                                                {% if pair.answer_answer.image %}
+                                                <div class="mt-2">
+                                                    <img src="{{ pair.answer_answer.image.url }}" class="img-thumbnail" style="width: 200px; height: 200px; object-fit: contain;">
+                                                    <input type="hidden" name="questions[{{ forloop.parentloop.counter }}][answers][{{ pair.answer_index }}][existing_image]" 
+                                                           value="{{ pair.answer_answer.image.url }}">
+                                                </div>
+                                                {% endif %}
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <button type="button" class="btn btn-sm btn-outline-danger mt-2" onclick="removeMatchPair(this)">
+                                        <i class="fas fa-times"></i> Удалить пару
+                                    </button>
+                                </div>
+                                {% endfor %}
+                                <button type="button" class="btn-mini primary btn-sm mt-2" 
+                                        onclick="addAnswer(this)">
+                                    <i class="fas fa-plus"></i> Добавить пару
+                                </button>
+                            {% else %}
+                                <label class="form-label">Варианты ответов</label>
+                                {% for answer in question.answer_set.all %}
+                                <div class="answer-item">
+                                    <input type="text" class="form-control" 
+                                           name="questions[{{ forloop.parentloop.counter }}][answers][{{ forloop.counter }}][text]" 
+                                           value="{{ answer.text }}" 
+                                           placeholder="Текст ответа" 
+                                           {% if question.question_type != 'text' %}required{% endif %}>
+                                    {% if question.question_type != 'sequence' %}
+                                    <div class="form-check">
+                                        {% if question.question_type == 'single' %}
+                                            <input type="radio" class="form-check-input" 
+                                                   name="questions[{{ forloop.parentloop.counter }}][correct_answer]"
+                                                   value="{{ forloop.counter }}"
+                                                   {% if answer.is_correct %}checked{% endif %}>
+                                        {% else %}
+                                            <input type="checkbox" class="form-check-input" 
+                                                   name="questions[{{ forloop.parentloop.counter }}][answers][{{ forloop.counter }}][correct]"
+                                                   {% if answer.is_correct %}checked{% endif %}>
+                                        {% endif %}
+                                        <label class="form-check-label">Правильный</label>
+                                    </div>
+                                    {% endif %}
+                                    <button type="button" class="remove-btn ms-2" onclick="removeAnswer(this)">
+                                        <i class="fas fa-times"></i>
+                                    </button>
+                                </div>
+                                {% empty %}
+                                <div class="answer-item">
+                                    <input type="text" class="form-control" 
+                                           name="questions[{{ forloop.counter }}][answers][1][text]" 
+                                           placeholder="Текст ответа" 
+                                           {% if question.question_type != 'text' %}required{% endif %}>
+                                    {% if question.question_type != 'sequence' %}
+                                    <div class="form-check">
+                                        {% if question.question_type == 'single' %}
+                                            <input type="radio" class="form-check-input" 
+                                                   name="questions[{{ forloop.counter }}][correct_answer]"
+                                                   value="1">
+                                        {% else %}
+                                            <input type="checkbox" class="form-check-input" 
+                                                   name="questions[{{ forloop.counter }}][answers][1][correct]">
+                                        {% endif %}
+                                        <label class="form-check-label">Правильный</label>
+                                    </div>
+                                    {% endif %}
+                                    <button type="button" class="remove-btn ms-2" onclick="removeAnswer(this)">
+                                        <i class="fas fa-times"></i>
+                                    </button>
+                                </div>
+                                {% endfor %}
+                                
+                                <button type="button" class="btn-mini primary btn-sm mt-2" 
+                                        onclick="addAnswer(this)">
+                                    <i class="fas fa-plus"></i> Добавить ответ
+                                </button>
+                            {% endif %}
                         </div>
                     </div>
+                    {% endwith %}
                     {% empty %}
                     <!-- Пустое состояние будет обработано JavaScript -->
                     {% endfor %}
@@ -166,10 +298,10 @@
                     <button type="submit" class="btn-mini success btn-lg flex-fill">
                         <i class="fas fa-save"></i> Сохранить изменения
                     </button>
-                    <a href="{% url 'quizzes:quiz_start' quiz_id=object.id %}" 
+                    <!-- <a href="{% url 'quizzes:quiz_start' quiz_id=object.id %}" 
                        class="btn-mini primary btn-lg">
                         <i class="fas fa-play"></i> Протестировать
-                    </a>
+                    </a> -->
                 </div>
             </div>
         </div>

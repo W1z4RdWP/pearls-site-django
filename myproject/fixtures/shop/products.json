@@ -1,0 +1,182 @@
+[
+{
+  "model": "shop.internalproduct",
+  "pk": 1,
+  "fields": {
+    "name": "Пицца на смену",
+    "description": "Кусок пиццы из пекарни",
+    "points_price": 1000,
+    "constraints": "once_a_quarter",
+    "restrictions_text": "1 раз в квартал (ограничение 2 сотрудника в отделении в 1 квартал) - ограничение  по кол-ву заказов в 1 день - 1 заказ",
+    "image": "shop/products/product__pizza.jpg",
+    "is_active": true,
+    "created_at": "2025-11-27T09:18:49.612Z",
+    "updated_at": "2025-11-27T10:36:15.108Z"
+  }
+},
+{
+  "model": "shop.internalproduct",
+  "pk": 2,
+  "fields": {
+    "name": "Форма корпоративная (пижама, блузка) с гравировкой “Территория улыбки”",
+    "description": "",
+    "points_price": 8000,
+    "constraints": "once_every_six_months",
+    "restrictions_text": "1 раз в 6 месяцев (ограничение 2 сотрудника в квартал)",
+    "image": "shop/products/product__uniform.jpg",
+    "is_active": true,
+    "created_at": "2025-11-27T09:21:42.945Z",
+    "updated_at": "2025-11-27T10:37:10.464Z"
+  }
+},
+{
+  "model": "shop.internalproduct",
+  "pk": 3,
+  "fields": {
+    "name": "Место на внешнем курсе/обучении",
+    "description": "",
+    "points_price": 12000,
+    "constraints": "once_a_year",
+    "restrictions_text": "",
+    "image": "",
+    "is_active": true,
+    "created_at": "2025-11-27T09:22:10.784Z",
+    "updated_at": "2025-11-27T09:22:10.784Z"
+  }
+},
+{
+  "model": "shop.internalproduct",
+  "pk": 4,
+  "fields": {
+    "name": "6000 руб. на лечение/протезирование/хирургию/ортодонтию",
+    "description": "",
+    "points_price": 2000,
+    "constraints": "once_a_quarter",
+    "restrictions_text": "",
+    "image": "",
+    "is_active": true,
+    "created_at": "2025-11-27T09:22:30.641Z",
+    "updated_at": "2025-11-27T09:22:30.641Z"
+  }
+},
+{
+  "model": "shop.internalproduct",
+  "pk": 5,
+  "fields": {
+    "name": "8000 руб. на лечение/протезирование/хирургию/ортодонтию",
+    "description": "",
+    "points_price": 3500,
+    "constraints": null,
+    "restrictions_text": "",
+    "image": "",
+    "is_active": true,
+    "created_at": "2025-11-27T09:22:48.465Z",
+    "updated_at": "2025-11-27T09:22:48.465Z"
+  }
+},
+{
+  "model": "shop.internalproduct",
+  "pk": 6,
+  "fields": {
+    "name": "Пробежка с исполнительным директором",
+    "description": "",
+    "points_price": 100,
+    "constraints": null,
+    "restrictions_text": "",
+    "image": "",
+    "is_active": true,
+    "created_at": "2025-11-27T09:22:56.294Z",
+    "updated_at": "2025-11-27T09:22:56.294Z"
+  }
+},
+{
+  "model": "shop.internalproduct",
+  "pk": 7,
+  "fields": {
+    "name": "10000 рублей на счет лечения",
+    "description": "",
+    "points_price": 5000,
+    "constraints": null,
+    "restrictions_text": "",
+    "image": "",
+    "is_active": true,
+    "created_at": "2025-11-27T09:23:09.422Z",
+    "updated_at": "2025-11-27T09:23:09.422Z"
+  }
+},
+{
+  "model": "shop.internalproduct",
+  "pk": 8,
+  "fields": {
+    "name": "11500 рублей на счет лечения",
+    "description": "",
+    "points_price": 5700,
+    "constraints": "once_every_six_months",
+    "restrictions_text": "",
+    "image": "",
+    "is_active": true,
+    "created_at": "2025-11-27T09:23:27.155Z",
+    "updated_at": "2025-11-27T09:23:27.155Z"
+  }
+},
+{
+  "model": "shop.internalproduct",
+  "pk": 9,
+  "fields": {
+    "name": "15000 рублей на счет лечения",
+    "description": "",
+    "points_price": 7000,
+    "constraints": "once_a_year",
+    "restrictions_text": "",
+    "image": "",
+    "is_active": true,
+    "created_at": "2025-11-27T09:24:02.633Z",
+    "updated_at": "2025-11-27T09:24:02.633Z"
+  }
+},
+{
+  "model": "shop.internalproduct",
+  "pk": 10,
+  "fields": {
+    "name": "Билет в театр им И. Слонова (до 1000 руб.)",
+    "description": "",
+    "points_price": 1500,
+    "constraints": "once_a_quarter",
+    "restrictions_text": "",
+    "image": "",
+    "is_active": true,
+    "created_at": "2025-11-27T09:24:20.537Z",
+    "updated_at": "2025-11-27T09:24:20.537Z"
+  }
+},
+{
+  "model": "shop.internalproduct",
+  "pk": 11,
+  "fields": {
+    "name": "Оплата участия в зимнем/летнем корпоративе",
+    "description": "",
+    "points_price": 3000,
+    "constraints": "once_a_year",
+    "restrictions_text": "",
+    "image": "",
+    "is_active": true,
+    "created_at": "2025-11-27T09:24:35.763Z",
+    "updated_at": "2025-11-27T09:24:35.763Z"
+  }
+},
+{
+  "model": "shop.internalproduct",
+  "pk": 12,
+  "fields": {
+    "name": "Новый товар",
+    "description": "Описание от себя тина",
+    "points_price": 5,
+    "constraints": "once_a_quarter",
+    "restrictions_text": "",
+    "image": "",
+    "is_active": true,
+    "created_at": "2025-11-27T14:09:28.320Z",
+    "updated_at": "2025-11-27T15:29:26.303Z"
+  }
+}
+]

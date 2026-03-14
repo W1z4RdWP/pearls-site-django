@@ -5,6 +5,8 @@ import logging
 logger = logging.getLogger(__name__)
 
 
+
+
 def issue_certificate(user: User, course: Course = None, trajectory: Trajectory = None) -> Certificate:
     """
     Выдает сертификат пользователю за завершение курса или траектории.
@@ -20,6 +22,7 @@ def issue_certificate(user: User, course: Course = None, trajectory: Trajectory 
     Raises:
         ValueError: Если не указан ни курс, ни траектория, или указаны оба
     """
+
     if not course and not trajectory:
         raise ValueError("Необходимо указать либо курс, либо траекторию")
     
@@ -68,6 +71,8 @@ def issue_certificate(user: User, course: Course = None, trajectory: Trajectory 
     return certificate
 
 
+
+
 def get_user_certificates(user: User) -> dict:
     """
     Получает все сертификаты пользователя, разделенные по типам.
@@ -78,6 +83,7 @@ def get_user_certificates(user: User) -> dict:
     Returns:
         dict: Словарь с ключами 'course_certificates' и 'trajectory_certificates'
     """
+    
     course_certificates = Certificate.objects.filter(
         user=user,
         certificate_type='course'

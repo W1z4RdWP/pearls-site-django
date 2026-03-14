@@ -3,44 +3,103 @@
 
 {% block specific_styles %}
 <link rel="stylesheet" href="{% static 'user_management/css/user_progress_dashboard.css' %}">
+<style>
+    .user-info-card {
+        background: #f8f9fa;
+        border-radius: 12px;
+        padding: 20px;
+        margin-bottom: 30px;
+        border: 1px solid #dee2e6;
+        position: relative; /* Добавляем для позиционирования дочерних элементов */
+    }
+    
+    .admin-badge-position {
+        position: absolute;
+        top: 15px;
+        right: 20px;
+    }
+    
+    .um-progress-stat-card {
+        cursor: pointer;
+        transition: all 0.3s ease;
+        border: 2px solid transparent;
+    }
+    
+    .um-progress-stat-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    }
+    
+    .um-progress-stat-card.active {
+        border-color: #007bff;
+        background-color: #f8f9ff;
+    }
+</style>
 {% endblock %}
 
 {% block content %}
 <div class="um-progress-dashboard-wrapper">
-    <div class="um-progress-dashboard-header">
-        <div class="um-progress-user-info">
-            <img src="{{ target_user.profile.image.url }}" alt="avatar" class="um-progress-user-avatar">
-            <div class="um-progress-user-details">
-                <h1 class="um-progress-user-name">{{ target_user.get_full_name|default:target_user.username }} {% if target_user.profile.middle_name %}({{ target_user.last_name|slice:":1" }}{{ target_user.first_name|slice:":1" }}{{ target_user.profile.middle_name|slice:":1" }}) {% endif %}</h1>
-                <p class="um-progress-user-email">{{ target_user.email }}</p>
-                <p class="um-progress-user-role">{{ target_user.profile.role }}</p>
-                <p class="um-progress-user-groups">
-                    Группы: {% for group in target_user.groups.all %}{{ group.name }}{% if not forloop.last %}, {% endif %}{% endfor %}
+    <!-- Навигация -->
+    <h1 class="h3 mb-0">
+        <i class="fas fa-chart-line me-2"></i>
+        Прогресс пользователя
+    </h1>
+    <div class="d-flex justify-content-end align-items-center mb-4">
+        <a href="{% url 'user_management:user_progress_export_excel' pk=target_user.id %}" class="btn btn-success">
+            <i class="fas fa-file-excel"></i> Экспорт в Excel
+        </a>
+        <a href="{% url 'user_management:user_list' %}" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left me-2"></i>Вернуться к списку пользователей
+        </a>
+    </div>
+
+    <!-- Информация о пользователе -->
+    <div class="user-info-card">
+        <div class="row align-items-center">
+            <div class="col-md-2">
+                <img src="{{ target_user.profile.image.url }}" alt="avatar" 
+                     class="rounded-circle" style="width: 80px; height: 80px; object-fit: cover;">
+            </div>
+            <div class="col-md-10">
+                <h4 class="mb-1">{{ target_user.get_full_name|default:target_user.username }} </h4>
+                <p class="text-muted mb-1">{{ target_user.email }}</p>
+                <p class="mb-0">
+                    <strong>Группы:</strong> 
+                    {% for group in target_user.groups.all %}
+                        <span class="badge bg-primary me-1">{{ group.name }}</span>
+                    {% empty %}
+                        <span class="text-muted">Не назначены</span>
+                    {% endfor %}
                 </p>
+                {% if target_user.is_staff or target_user.is_superuser %}
+                    <span class="badge bg-warning text-dark me-1 admin-badge-position"><i class="fas fa-user-shield me-1"></i>Администратор УЦ</span>
+                {% endif %}
             </div>
         </div>
-        <a href="{% url 'user_management:user_list' %}" class="um-btn um-btn-secondary">← Назад к списку</a>
     </div>
 
 
     <!-- Общая статистика -->
     <div class="um-progress-overview">
         <div class="um-progress-stats-grid">
-            <div class="um-progress-stat-card">
+            <div class="um-progress-stat-card {% if course_filter == 'all' %}active{% endif %}" 
+                 data-filter="all" onclick="filterCourses('all')">
                 <h3>Общий прогресс</h3>
                 <div class="um-progress-stat-value">{{ overall_progress }}%</div>
                 <div class="um-progress-stat-desc">
                     {{ total_lessons_completed }} из {{ total_lessons_available }} уроков
                 </div>
             </div>
-            <div class="um-progress-stat-card">
+            <div class="um-progress-stat-card {% if course_filter == 'all' %}active{% endif %}" 
+                 data-filter="all" onclick="filterCourses('all')">
                 <h3>Всего курсов</h3>
                 <div class="um-progress-stat-value">{{ total_courses }}</div>
                 <div class="um-progress-stat-desc">
                     {{ completed_courses }} завершено, {{ started_courses }} в процессе
                 </div>
             </div>
-            <div class="um-progress-stat-card">
+            <div class="um-progress-stat-card {% if course_filter == 'completed' %}active{% endif %}" 
+                 data-filter="completed" onclick="filterCourses('completed')">
                 <h3>Завершенные курсы</h3>
                 <div class="um-progress-stat-value">{{ completed_courses }}</div>
                     <div class="um-progress-stat-desc">
@@ -51,7 +110,8 @@
                         {% endif %}
                     </div>
                 </div>
-            <div class="um-progress-stat-card">
+            <div class="um-progress-stat-card {% if course_filter == 'started' %}active{% endif %}" 
+                 data-filter="started" onclick="filterCourses('started')">
                 <h3>Курсы в процессе</h3>
                 <div class="um-progress-stat-value">{{ started_courses }}</div>
                 <div class="um-progress-stat-desc">
@@ -98,7 +158,7 @@
                             <span class="um-progress-percent">{{ course_progress.progress_percent }}%</span>
                         </div>
                         <div class="um-progress-lessons-count">
-                            {{ course_progress.completed_lessons }} из {{ course_progress.total_lessons }} уроков
+                            {{ course_progress.completed_lessons }} из {{ course_progress.total_lessons }} уроков{% if course_progress.total_quizzes > 0 %}, {{ course_progress.completed_quizzes }} из {{ course_progress.total_quizzes }} тестов{% endif %}
                         </div>
                     </div>
                 </div>
@@ -120,24 +180,50 @@
                 </div>
                 {% endif %}
 
-                <!-- Детали по урокам -->
+                <!-- Детали по материалам -->
                 <div class="um-progress-lessons-detail">
-                    <h4>Уроки курса</h4>
+                    <h4>Материалы курса</h4>
                     <div class="um-progress-lessons-list">
-                        {% for lesson_detail in course_progress.lessons_detail %}
-                        <div class="um-progress-lesson-item {% if lesson_detail.completed %}um-lesson-completed{% endif %}">
+                        {% for material_detail in course_progress.lessons_detail %}
+                        <div class="um-progress-lesson-item {% if material_detail.completed %}um-lesson-completed{% endif %}">
                             <div class="um-progress-lesson-info">
-                                <span class="um-progress-lesson-order">{{ lesson_detail.order }}.</span>
-                                <span class="um-progress-lesson-title">{{ lesson_detail.lesson.title }}</span>
+                                <span class="um-progress-lesson-order">{{ material_detail.order }}.</span>
+                                <span class="um-progress-lesson-title">
+                                    {% if material_detail.type == 'lesson' %}
+                                        📄 {{ material_detail.title }}
+                                    {% elif material_detail.type == 'quiz' %}
+                                        🎓 {{ material_detail.title }}
+                                    {% endif %}
+                                </span>
                             </div>
                             <div class="um-progress-lesson-status">
-                                {% if lesson_detail.completed %}
+                                {% if material_detail.completed %}
                                     <span class="um-lesson-completed-badge">✓</span>
                                     <span class="um-lesson-completed-date">
-                                        {{ lesson_detail.completed_at|date:'d.m.Y H:i' }}
+                                        {{ material_detail.completed_at|date:'d.m.Y H:i' }}
                                     </span>
                                 {% else %}
                                     <span class="um-lesson-not-completed-badge">○</span>
+                                {% endif %}
+                                
+                                {% if material_detail.type == 'quiz' and material_detail.attempts_count > 0 %}
+                                    <div class="um-quiz-attempts-info">
+                                        <small class="um-attempts-count">
+                                            {% if material_detail.attempts_count == 1 %}
+                                                {{ material_detail.attempts_count }} попытка
+                                            {% elif material_detail.attempts_count < 5 %}
+                                                {{ material_detail.attempts_count }} попытки
+                                            {% else %}
+                                                {{ material_detail.attempts_count }} попыток
+                                            {% endif %}
+                                        </small>
+                                        {% if material_detail.best_attempt %}
+                                            <a href="{% url 'user_management:user_quiz_report' material_detail.best_attempt.id %}" 
+                                               class="btn btn-sm btn-outline-info ms-2" title="Лучший результат">
+                                                Отчёт
+                                            </a>
+                                        {% endif %}
+                                    </div>
                                 {% endif %}
                             </div>
                         </div>
@@ -146,7 +232,7 @@
                 </div>
 
                 <!-- Информация о наградах -->
-                {% if course_progress.user_course.status == 'completed' %}
+                {% if course_progress.user_course.status == 'completed' and not course_progress.user_course.course.is_incident %}
                 <div class="um-progress-rewards">
                     <h4>Награды за курс</h4>
                     <div class="um-progress-rewards-grid">
@@ -181,19 +267,19 @@
                 <ul class="pagination justify-content-center">
                     {% if page_obj_courses.has_previous %}
                         <li class="page-item">
-                            <a class="page-link" href="?courses_page={{ page_obj_courses.previous_page_number }}">Назад</a>
+                            <a class="page-link" href="?course_filter={{ course_filter }}&courses_page={{ page_obj_courses.previous_page_number }}">Назад</a>
                         </li>
                     {% endif %}
                     {% for num in page_obj_courses.paginator.page_range %}
                         {% if page_obj_courses.has_other_pages %}
                             <li class="page-item {% if page_obj_courses.number == num %}active{% endif %}">
-                                <a class="page-link" href="?courses_page={{ num }}">{{ num }}</a>
+                                <a class="page-link" href="?course_filter={{ course_filter }}&courses_page={{ num }}">{{ num }}</a>
                             </li>
                         {% endif %}
                     {% endfor %}
                     {% if page_obj_courses.has_next %}
                         <li class="page-item">
-                            <a class="page-link" href="?courses_page={{ page_obj_courses.next_page_number }}">Вперед</a>
+                            <a class="page-link" href="?course_filter={{ course_filter }}&courses_page={{ page_obj_courses.next_page_number }}">Вперед</a>
                         </li>
                     {% endif %}
                 </ul>
@@ -205,4 +291,20 @@
         {% endif %}
     </div>
 </div>
+
+<script>
+function filterCourses(filter) {
+    // Получаем текущий URL
+    const url = new URL(window.location);
+    
+    // Устанавливаем параметр фильтра
+    url.searchParams.set('course_filter', filter);
+    
+    // Сбрасываем пагинацию курсов при смене фильтра
+    url.searchParams.delete('courses_page');
+    
+    // Переходим на новый URL
+    window.location.href = url.toString();
+}
+</script>
 {% endblock %} 

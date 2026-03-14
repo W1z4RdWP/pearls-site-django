@@ -82,93 +82,204 @@
     padding: 20px;
 }
 
-.category-tree {
+.category-tree,
+.category-list,
+.subcategory-list,
+.lesson-list {
     list-style: none;
     padding: 0;
     margin: 0;
 }
 
-.category-item {
-    margin-bottom: 5px;
+.category-block {
+    margin-bottom: 0;
 }
 
 .category-header {
     display: flex;
-    align-items: center;
-    padding: 8px 12px;
-    border-radius: 4px;
+    align-items: flex-start;
+    padding: 3px 16px;
+    background: transparent;
+    border-bottom: none;
+    margin-bottom: 3px;
+    min-height: 22px;
+    font-size: 0.98em;
+    line-height: 1.1;
     cursor: pointer;
-    transition: background-color 0.2s;
+    transition: border-color 0.2s ease;
 }
 
-.category-header:hover {
-    background-color: #f5f5f5;
+/* Разделители только для корневых категорий */
+.category-list > .category-block > .category-header {
+    border-bottom: 1px solid #e3e8f0;
+}
+
+.category-list > .category-block > .category-header:hover {
+    border-bottom-color: #d3d8e0;
+}
+
+/* Hover для подкатегорий без разделителей */
+.subcategory-list .category-header:hover {
+    background-color: rgba(77, 124, 255, 0.08);
+    border-radius: 4px;
 }
 
 .category-header.selected {
-    background-color: #e3f2fd;
-    border: 1px solid #bbdefb;
+    background: rgba(77, 124, 255, 0.12) !important;
+    color: #232a3a;
+    border-radius: 6px;
 }
 
-.category-icon {
-    margin-right: 8px;
-    color: #666;
+.category-header.selected .category-title {
+    color: #232a3a;
 }
 
 .category-title {
     flex: 1;
-    font-size: 14px;
+    font-weight: 500;
+    font-size: 1em;
+    color: #232a3a;
+    white-space: normal;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    padding-right: 8px;
+    line-height: 1.1;
 }
 
 .toggle-arrow {
-    color: #666;
-    font-size: 12px;
-    transition: transform 0.2s;
+    margin-left: 10px;
+    font-size: 1.1em;
+    font-weight: bold;
+    cursor: pointer;
+    user-select: none;
+    transition: color 0.2s;
+    color: #888;
+    padding: 2px 6px;
+    display: inline-block;
+    min-width: 24px;
+    text-align: center;
+    line-height: 1;
 }
 
 .toggle-arrow.expanded {
-    transform: rotate(90deg);
+    color: #4d7cff;
 }
 
-.subcategory-list {
-    list-style: none;
-    padding-left: 20px;
-    margin: 5px 0;
+.category-block > .lesson-list,
+.category-block > .subcategory-list {
+    margin-left: 16px;
+    margin-top: 2px;
 }
 
-.lesson-list {
-    list-style: none;
-    padding-left: 20px;
-    margin: 5px 0;
+.category-block > .lesson-list {
+    margin-left: 0;
 }
 
-.lesson-item {
+.lesson-list,
+.lesson-li {
+    padding: 0;
+    margin: 0;
+}
+
+.lesson-list li,
+.lesson-li {
     display: flex;
     align-items: center;
-    padding: 6px 12px;
-    border-radius: 4px;
-    cursor: pointer;
-    transition: background-color 0.2s;
+    justify-content: flex-start;
+    padding: 4px 12px;
     margin-bottom: 2px;
+    background: transparent;
+    border-bottom: none;
+    font-size: 0.97em;
+    min-height: 24px;
+    line-height: 1.2;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
 }
 
-.lesson-item:hover {
-    background-color: #f5f5f5;
+.lesson-list li:hover,
+.lesson-li:hover {
+    background-color: rgba(77, 124, 255, 0.08);
+    border-radius: 4px;
 }
 
-.lesson-item.selected {
-    background-color: #e3f2fd;
-    border: 1px solid #bbdefb;
+.lesson-list li.selected,
+.lesson-li.selected {
+    background: #4d7cff !important;
+    color: #fff;
+}
+
+.lesson-list li.selected .lesson-link,
+.lesson-li.selected .lesson-link {
+    color: #fff;
+}
+
+.lesson-link, .lesson-list a {
+    display: block;
+    color: #9b9b9b;
+    text-decoration: none;
+    padding: 1px 0 1px 8px;
+    border-left: 4px solid transparent;
+    transition: background 0.2s, border-color 0.2s, color 0.2s;
+    font-size: calc(0.95em - 2px);
+    font-weight: 500;
+    font-style: italic;
+}
+
+.lesson-link {
+    flex: 1;
+    color: #9b9b9b;
+    text-decoration: none;
+    white-space: normal;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    padding-right: 8px;
+    line-height: 1.1;
+    font-size: calc(1em - 1px);
+    position: relative;
+}
+
+/* Стили для зеркал уроков */
+.lesson-li.mirror .lesson-link,
+.lesson-li[data-has-mirrors="1"] .lesson-link {
+    color: #ff4d4f;
+}
+
+.category-icon.folder-icon svg {
+    display: inline-block;
+    vertical-align: middle;
+    color: #bbb;
+    width: 18px;
+    height: 18px;
+}
+
+.lesson-icon svg {
+    display: inline-block;
+    vertical-align: middle;
+    color: #bbb;
+    width: 16px;
+    height: 16px;
+}
+
+.category-icon.folder-icon {
+    margin-right: 8px;
 }
 
 .lesson-icon {
     margin-right: 8px;
-    color: #666;
 }
 
-.lesson-title {
-    flex: 1;
-    font-size: 13px;
+.svg-folder-path {
+    fill: currentColor;
+}
+
+.svg-paper-rect {
+    fill: currentColor;
+}
+
+.svg-paper-line {
+    stroke: currentColor;
+    stroke-width: 1.5;
 }
 
 .selected-items {
@@ -325,4 +436,16 @@
 
 .tab-btn.active:hover {
     background-color: #5a32a3;
+}
+
+/* Стили для кнопки создания урока в футере */
+.btn-outline-primary {
+    background-color: white;
+    color: #6f42c1;
+    border: 1px solid #6f42c1;
+}
+
+.btn-outline-primary:hover {
+    background-color: #6f42c1;
+    color: white;
 }

@@ -1,0 +1,172 @@
+{% extends 'layout.html' %}
+{% block title %}Проверка заданий{% endblock %}
+
+{% block specific_styles %}
+<style>
+.um-action-btn { 
+    border: none; 
+    background: none; 
+    padding: 0 4px; 
+    color: #5b3cc4; 
+    font-size: 1.2em; 
+    cursor: pointer; 
+    transition: color 0.15s; 
+    text-decoration: none;
+}
+.um-action-btn:hover { 
+    color: #2dabc4; 
+    text-decoration: none;
+}
+.hover-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+}
+.clickable-row:hover {
+    background-color: #f8f9fa;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <h2><i class="fas fa-clipboard-check"></i> Проверка заданий</h2>
+                    {% if is_admin %}
+                        <small class="text-muted">Общая статистика платформы</small>
+                    {% else %}
+                        <small class="text-muted">Статистика по вашим группам</small>
+                    {% endif %}
+                </div>
+                <div class="btn-group" role="group">
+                    <a href="{% url 'builder:dashboard' %}" class="btn btn-outline-secondary">
+                        <i class="fas fa-arrow-left"></i> Назад к панели
+                    </a>
+                </div>
+            </div>
+
+            <!-- Основная статистика -->
+            <div class="row mb-4">
+                <div class="col-md-3 mb-3">
+                    <a href="{% url 'reports:courses_progress' %}" class="text-decoration-none">
+                        <div class="card text-center">
+                            <div class="card-body">
+                                <i class="fas fa-file-alt fa-3x text-primary mb-3"></i>
+                                <h3 class="card-title">{{ total_materials }}</h3>
+                                <p class="card-text text-muted">
+                                    {% if is_admin %}материала{% else %}материала в ваших группах{% endif %}
+                                </p>
+                                <small class="text-muted">
+                                    {{ total_lessons }} уроков + {{ total_quizzes }} тестов
+                                </small>
+                            </div>
+                        </div>
+                    </a>
+                </div>
+                <div class="col-md-3 mb-3">
+                    <a href="{% url 'reports:users_with_learning' %}" class="text-decoration-none">
+                        <div class="card text-center hover-card" style="cursor: pointer; transition: all 0.3s ease;">
+                            <div class="card-body">
+                                <i class="fas fa-user fa-3x text-success mb-3"></i>
+                                <h3 class="card-title">{{ active_users }}</h3>
+                                <p class="card-text text-muted">
+                                    {% if is_admin %}пользователей{% else %}студентов в ваших группах{% endif %}
+                                </p>
+                            </div>
+                        </div>
+                    </a>
+                </div>
+                <div class="col-md-3 mb-3">
+                    <a href="{% url 'reports:groups_progress' %}" class="text-decoration-none">
+                        <div class="card text-center hover-card" style="cursor: pointer; transition: all 0.3s ease;">
+                            <div class="card-body">
+                                <i class="fas fa-users fa-3x text-info mb-3"></i>
+                                <h3 class="card-title">{{ total_groups }}</h3>
+                                <p class="card-text text-muted">
+                                    {% if is_admin %}групп{% else %}ваших групп{% endif %}
+                                </p>
+                            </div>
+                        </div>
+                    </a>
+                </div>
+                <div class="col-md-3 mb-3">
+                    <a href="{% url 'quizzes:pending_quizzes' %}" class="text-decoration-none">
+                        <div class="card text-center hover-card" style="cursor: pointer; transition: all 0.3s ease;">
+                            <div class="card-body">
+                                <i class="fas fa-clipboard-check fa-3x text-warning mb-3"></i>
+                                <h3 class="card-title">{{ pending_tests_count }}</h3>
+                                <p class="card-text text-muted">
+                                    тестов на проверку
+                                </p>
+                            </div>
+                        </div>
+                    </a>
+                </div>
+            </div>
+
+            <!-- Последние завершения уроков/тестов -->
+            <div class="card">
+                <div class="card-header">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h5 class="mb-0">Последние завершения</h5>
+                            <small class="text-muted">10 последних пользователей, завершивших урок/тест</small>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th style="width: 5%;">#</th>
+                                    <th style="width: 25%;">ФИО</th>
+                                    <th style="width: 25%;">Курс</th>
+                                    <th style="width: 25%;">Урок/Тест</th>
+                                    <th style="width: 20%;">Время завершения</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% if recent_completions %}
+                                    {% for item in recent_completions %}
+                                        <tr class="clickable-row" data-href="{% url 'user_management:user_progress' item.user.id %}" style="cursor: pointer;">
+                                            <td class="text-muted">{{ forloop.counter }}</td>
+                                            <td>{{ item.fio_short }}</td>
+                                            <td>{{ item.course_title|default:"—" }}</td>
+                                            <td>{{ item.material_title|default:"—" }}</td>
+                                            <td>{{ item.completed_at|date:"d.m.Y H:i" }}</td>
+                                        </tr>
+                                    {% endfor %}
+                                {% else %}
+                                    <tr>
+                                        <td colspan="5" class="text-center text-muted py-4">
+                                            <i class="fas fa-clipboard-list fa-2x mb-2"></i><br>
+                                            Нет данных о завершениях
+                                        </td>
+                                    </tr>
+                                {% endif %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block specific_scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Обработчик кликов по строкам таблицы
+    const clickableRows = document.querySelectorAll('.clickable-row');
+    clickableRows.forEach(row => {
+        row.addEventListener('click', function() {
+            window.location.href = this.dataset.href;
+        });
+    });
+});
+</script>
+{% endblock %}

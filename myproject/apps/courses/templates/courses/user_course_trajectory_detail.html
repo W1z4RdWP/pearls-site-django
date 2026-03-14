@@ -11,7 +11,6 @@
     <h2>Траектория: {{ user_trajectory.trajectory.name }}</h2>
     <p class="text-muted">{{ user_trajectory.trajectory.description }}</p>
     
-    {# Кнопка перехода к следующему курсу #}
     {% if next_available_course %}
         <div class="mb-3">
             <a href="{% url 'courses:course_detail' next_available_course.slug %}" class="btn btn-modern btn-lg">
@@ -24,7 +23,7 @@
             {% for item in trajectory_progress %}
             <li class="trajectory-item {% if item.user_course and item.user_course.status == 'completed' %}completed{% elif item.available %}available{% else %}locked{% endif %}">
                 <div class="trajectory-course-title">
-                    <span class="order">#{{ item.order }}</span>
+                    <span class="order">День {{ item.order }}</span>
                     <span>{{ item.course.title }}</span>
                 </div>
                 <div class="trajectory-course-status">
@@ -37,9 +36,7 @@
                     {% endif %}
                 </div>
                 {% if item.available %}
-                    {% if not item.user_course or item.user_course.status != 'completed' %}
-                        <a href="{% url 'courses:course_detail' item.course.slug %}" class="btn btn-modern">Перейти к курсу</a>
-                    {% elif item.user_course and item.user_course.status == 'completed' %}
+                    {% if item.user_course and item.user_course.status == 'completed' %}
                         <span class="text-success">✓ Завершён</span>
                     {% endif %}
                 {% endif %}

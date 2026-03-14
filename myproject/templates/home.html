@@ -4,6 +4,7 @@
 
 {% block content %}
 <section class="hero-landing">
+  
   <div class="hero-landing__left">
     <h1>Найди себя и прокачайся в<br>«Территории Улыбки»</h1>
     <div class="hero-landing__stats">
@@ -12,7 +13,7 @@
         <span class="hero-landing__stat-label">сотрудников обучено</span>
       </div>
       <div>
-        <span class="hero-landing__stat-num">15</span>
+        <span class="hero-landing__stat-num">25</span>
         <span class="hero-landing__stat-label">актуальных курсов</span>
       </div>
       <div>
@@ -21,11 +22,11 @@
       </div>
     </div>
     <div class="hero-landing__categories">
-      <button>Популярное</button>
-      <button>Внутренний регламент</button>
-      <button>Квалификация</button>
-      <button>Психология</button>
-      <button>Все курсы</button>
+      <a href="{% url 'courses:user_course_trajectory_list' %}"><button>Популярное</button></a>
+      <a href="{% url 'courses:user_course_trajectory_list' %}"><button>Внутренний регламент</button></a>
+      <a href="{% url 'courses:user_course_trajectory_list' %}"><button>Квалификация</button></a>
+      <a href="{% url 'courses:user_course_trajectory_list' %}"><button>Психология</button></a>
+      <a href="{% url 'courses:user_course_trajectory_list' %}"><button>Все курсы</button></a>
     </div>
     <a href="{% if user.is_authenticated %}#courseCarousel{% else %}{% url 'users:login' %}{% endif %}" class="hero-landing__cta">Выбрать курс</a>
   </div>
@@ -114,21 +115,7 @@
             </button>
         </div>
     </div>
-
 </section>
-<!-- <section id="section-3">
-    {% comment %} <div class="text-block-2">
-        <h5>Сотрудники клиники обучаются</h5>
-    </div> {% endcomment %}
-    <img src="{% static 'global/imgs/doc1.png' %}" alt="Photo1" id='doc1_image' class='scale_on_hover persons__item scroll-item'>
-    <img src="{% static 'global/imgs/doc3.jpg' %}" alt="Photo2" id='doc2_image' class='scale_on_hover persons__item scroll-item'>
-    <div class="section__inner-text">
-        <p>Lorem ipsum dolor sit amet consectetur adipisicing elit. Fugiat quo asperiores quia eos suscipit doloremque sunt eum laborum,
-             vel perspiciatis optio consequuntur cum, maiores esse. Numquam sit nulla quibusdam rem.</p>
-        <p>Lorem ipsum dolor sit amet consectetur adipisicing elit. Fugiat quo asperiores quia eos suscipit doloremque sunt eum laborum,
-             vel perspiciatis optio consequuntur cum, maiores esse. Numquam sit nulla quibusdam rem.</p>
-    </div>
-</section> -->
 <section>
     <div class="cards-box">
         <div class="box hidden">
@@ -166,7 +153,7 @@
     </div>
 </section>
 {% comment %} <br><br><br> {% endcomment %}
-<a href="{% url 'courses:course_detail_all' %}"><button class= "btn" id='show_all_courses_btn'>Все курсы</button></a>
+<a href="{% url 'courses:user_course_trajectory_list' %}"><button class= "btn" id='show_all_courses_btn'>Все курсы</button></a>
 <div id="courseCarousel" class="carousel slide" data-bs-ride="carousel">
     <div class="carousel-inner">
         {% for course in courses %}

@@ -1,6 +1,6 @@
 from django.contrib import admin
 from django.db.models import Count
-from .models import Quiz, Question, Answer
+from .models import Quiz, Question, Answer, QuizAttempt
 from nested_admin import NestedTabularInline, NestedModelAdmin
 
 
@@ -42,3 +42,11 @@ class AnswerAdmin(admin.ModelAdmin):
     list_filter = ['question', 'is_correct']
     search_fields = ['question__text', 'text']
     autocomplete_fields = ['question']  # Удобный поиск вопросов
+
+
+@admin.register(QuizAttempt)
+class QuizAttemptAdmin(admin.ModelAdmin):
+    list_display = ['user', 'quiz', 'attempt_number', 'started_at', 'completed_at']
+    list_filter = ['user', 'quiz', 'attempt_number', 'started_at', 'completed_at']
+    search_fields = ['user__username', 'quiz__name']
+    autocomplete_fields = ['user', 'quiz']

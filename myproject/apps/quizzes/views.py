@@ -1,14 +1,17 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.http import HttpRequest, HttpResponse, JsonResponse
 from django.views.decorators.http import require_http_methods
-from django.db.models import Count, Exists, OuterRef
-from django.contrib import messages  # Добавлен импорт
-from django.views.generic import DetailView, TemplateView
+from django.db.models import Count, Exists, OuterRef, Max, Q
+from datetime import timedelta
+from django.contrib import messages
+from django.views.generic import DetailView, TemplateView, View, CreateView, UpdateView, DeleteView
+from django.core.paginator import Paginator
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
+from django.contrib.auth.models import User
 
 from myapp.models import QuizResult, UserCourse, UserAnswer, UserProgress
-from courses.models import Course  # Добавлен импорт модели Course
-from .models import Quiz, Question, Answer, QuizAttempt
+from courses.models import Course, Lesson, UserCourseTrajectory
+from .models import Quiz, Question, Answer, QuizAttempt, Homework, HomeworkSubmission
 from .utils import DataMixin
 from gamification.utils import award_dascoin_points, award_achievement, award_course_badge
 from courses.utils import issue_certificate
@@ -32,21 +35,68 @@ class StartQuizView(LoginRequiredMixin, UserPassesTestMixin, DataMixin, Template
     login_url = 'users:login'  # URL для перенаправления неавторизованных пользователей
     permission_denied_message = "Доступ разрешен только администраторам сайта"
 
-    
     def test_func(self):
         """Проверка административных привилегий"""
         return self.request.user.is_authenticated and self.request.user.is_staff
 
-    def get_context_data(self, **kwargs):
-        
-        context = super().get_context_data(**kwargs)
-        return self.get_mixin_context(context, topics=Quiz.objects.annotate(questions_count=Count('question'))) # Добавлено возвращение количества вопросов в каждом тесте
-        # context['topics'] = Quiz.objects.annotate(questions_count=Count('question')) 
-        # return context
 
-# def start_quiz_view(request) -> HttpResponse:
-#     topics = Quiz.objects.annotate(questions_count=Count('question'))
-#     return render(request, 'quizzes/start.html', {'topics': topics})
+    def get_context_data(self, **kwargs):        
+        context = super().get_context_data(**kwargs)
+        quizzes = Quiz.objects.annotate(questions_count=Count('question')).order_by('-id')
+        paginator = Paginator(quizzes, 5)  # Показывать 5 тестов на странице
+        page_number = self.request.GET.get('page', 1)
+        page_obj = paginator.get_page(page_number)
+        context = self.get_mixin_context(context, topics=page_obj)
+        context['page_obj'] = page_obj  # Для управления пагинацией в шаблоне
+        context = self.get_mixin_context(context)
+        
+        # Добавляем задания (homeworks)
+        homeworks = Homework.objects.all().order_by('-id')
+        homeworks_paginator = Paginator(homeworks, 5)
+        homeworks_page_number = self.request.GET.get('hw_page', 1)
+        homeworks_page_obj = homeworks_paginator.get_page(homeworks_page_number)
+        context['homeworks'] = homeworks_page_obj
+        context['homeworks_page_obj'] = homeworks_page_obj
+        
+        return context
+
+
+
+@require_http_methods(["GET"])
+def search_quizzes_ajax(request):
+    """
+    AJAX endpoint для поиска тестов по названию
+    Возвращает JSON с результатами поиска без пагинации
+    При пустом запросе возвращает все тесты (с ограничением в 100)
+    """
+    search_term = request.GET.get('q', '').strip()
+
+    # Поиск по названию (case-insensitive) или все тесты при пустом запросе
+    if search_term:
+        quizzes = Quiz.objects.filter(
+            name__icontains=search_term
+        ).annotate(
+            questions_count=Count('question')
+        ).order_by('-id').values(
+            'id', 'name', 'questions_count', 'attempt_limit', 'pass_threshold'
+        )
+    else:
+        # При пустом запросе возвращаем все тесты с ограничением
+        quizzes = Quiz.objects.all().annotate(
+            questions_count=Count('question')
+        ).order_by('-id').values(
+            'id', 'name', 'questions_count', 'attempt_limit', 'pass_threshold'
+        )[:100]  # Ограничение на 100 тестов
+
+    # Преобразуем QuerySet в список для JSON
+    results = list(quizzes)
+
+    return JsonResponse({
+        'success': True,
+        'results': results,
+        'count': len(results)
+    })
+    
 
 def get_questions(request, quiz_id: int = None, is_start: bool = False) -> HttpResponse:
     """
@@ -55,45 +105,152 @@ def get_questions(request, quiz_id: int = None, is_start: bool = False) -> HttpR
     if request.method == 'POST' or is_start:
         # Если is_start=True, quiz_id берется из URL
         if is_start and not quiz_id:
-            return redirect('quizzes')
+            return redirect('quizzes:quizzes')
+        
+        # Получаем объект quiz для стартового вопроса
+        if is_start:
+            quiz = get_object_or_404(Quiz, id=quiz_id)
         
         # Проверяем ограничения попыток при старте теста
         if is_start and request.user.is_authenticated:
-            quiz = get_object_or_404(Quiz, id=quiz_id)
+            
+            # Проверяем доступ к курсу, если тест связан с курсом
+            course_slug = request.GET.get('course_slug')
+            from_control_panel = request.GET.get('from_control_panel')
+            
+            # Сохраняем параметр from_control_panel в сессии для использования в get_finish
+            if from_control_panel:
+                request.session['from_control_panel'] = True
+            
+            if course_slug:
+                try:
+                    course = Course.objects.get(slug=course_slug)
+                    # Получаем UserCourse для проверки статуса
+                    user_course = UserCourse.objects.filter(user=request.user, course=course).first()
+                    if not user_course:
+                        # Курсы из траекторий назначаются только после завершения предыдущего — не создаём запись здесь
+                        if UserCourseTrajectory.objects.filter(user=request.user, trajectory__trajectorycourse__course=course).exists():
+                            return redirect('courses:course_detail', slug=course.slug)
+                        # Проверяем, не был ли курс отменен вручную
+                        from myapp.models import ManualCourseUnassignment
+                        manual_unassignment = ManualCourseUnassignment.objects.filter(
+                            user=request.user, 
+                            course=course
+                        ).first()
+                        
+                        if not manual_unassignment:
+                            # Создаем UserCourse если его нет
+                            user_course = UserCourse.objects.create(user=request.user, course=course, status='available')
+                        else:
+                            # Если курс был отменён вручную, перенаправляем на главную
+                            return redirect('home')
+                    
+                    # Блокируем доступ к тесту, если курс не начат - редиректим на страницу курса с подсветкой (пропускаем для админов)
+                    if not (request.user.is_staff or request.user.is_superuser):
+                        if user_course.status not in ['started', 'completed']:
+                            from django.urls import reverse
+                            from urllib.parse import urlencode
+                            url = reverse('courses:course_detail', kwargs={'slug': course.slug})
+                            params = urlencode({'highlight_start': '1', 'quiz_blocked': quiz.id})
+                            return redirect(f'{url}?{params}')
+                except Course.DoesNotExist:
+                    pass
+            else:
+                # Если course_slug не передан, проверяем связь теста с курсом через модели
+                # НО НЕ при запуске из панели управления
+                if not from_control_panel:
+                    from django.db import models
+                    # Ищем курсы, связанные с этим тестом
+                    related_courses = Course.objects.filter(
+                        models.Q(final_quiz=quiz) | models.Q(course_quizzes=quiz)
+                    ).distinct()
+                    
+                    if related_courses.exists():
+                        # Берем первый связанный курс для определения контекста
+                        course = related_courses.first()
+                        # Сохраняем курс в сессии для использования в других частях приложения
+                        request.session['course_slug'] = course.slug
+                        
+                        # Проверяем статус курса для пользователя
+                        from myapp.models import ManualCourseUnassignment
+                        for course in related_courses:
+                            user_course = UserCourse.objects.filter(user=request.user, course=course).first()
+                            if not user_course:
+                                # Курсы из траекторий назначаются только после завершения предыдущего — не создаём запись здесь
+                                if UserCourseTrajectory.objects.filter(user=request.user, trajectory__trajectorycourse__course=course).exists():
+                                    continue
+                                # Проверяем, не был ли курс отменен вручную
+                                manual_unassignment = ManualCourseUnassignment.objects.filter(
+                                    user=request.user, 
+                                    course=course
+                                ).first()
+                                
+                                if not manual_unassignment:
+                                    user_course = UserCourse.objects.create(user=request.user, course=course, status='available')
+                                else:
+                                    # Если курс был отменён вручную, пропускаем
+                                    continue
+                            
+                            # Блокируем доступ к тесту, если курс не начат (пропускаем для админов)
+                            if not (request.user.is_staff or request.user.is_superuser):
+                                if user_course.status not in ['started', 'completed']:
+                                    return render(request, 'courses/quiz_start_required.html', {'course': course})
+                else:
+                    # При запуске из панели управления очищаем курс из сессии
+                    if 'course_slug' in request.session:
+                        del request.session['course_slug']
             
             # Проверяем блокировку теста для этого пользователя
-            from .models import QuizLock
-            quiz_lock, created = QuizLock.objects.get_or_create(
-                user=request.user,
-                quiz=quiz,
-                defaults={'is_locked': False}
-            )
-            
-            if quiz_lock.is_locked:
-                return redirect('quizzes:attempt_limit_exceeded', quiz_id=quiz.id)
+            # НО НЕ для администраторов, запускающих тест из панели управления
+            if not from_control_panel:
+                from .models import QuizLock
+                quiz_lock, created = QuizLock.objects.get_or_create(
+                    user=request.user,
+                    quiz=quiz,
+                    defaults={'is_locked': False}
+                )
                 
-            # Создаем новую попытку
-            attempts_count = QuizAttempt.objects.filter(user=request.user, quiz=quiz).count()
-            QuizAttempt.objects.create(
-                user=request.user,
-                quiz=quiz,
-                attempt_number=attempts_count + 1
-            )
+                if quiz_lock.is_locked:
+                    return redirect('quizzes:attempt_limit_exceeded', quiz_id=quiz.id)
+                
+            # Создаем новую попытку, но не для запуска из панели управления
+            if not from_control_panel:
+                attempts_count = QuizAttempt.objects.filter(user=request.user, quiz=quiz).count()
+                QuizAttempt.objects.create(
+                    user=request.user,
+                    quiz=quiz,
+                    attempt_number=attempts_count + 1
+                )
         
         # Если не стартовая страница, получаем quiz_id из сессии
         if not is_start:
             quiz_id = request.session.get('quiz_id')
             current_question_id = request.session.get('current_question_id')
             if not quiz_id or not current_question_id:
-                return redirect('quizzes')
+                return redirect('quizzes:quizzes')
+            
+            # Получаем объект quiz для последующих вопросов
+            quiz_obj = get_object_or_404(Quiz, id=quiz_id)
 
             # Получаем следующий вопрос
             question = _get_subsequent_question(quiz_id, current_question_id)
         else:
+            # Для стартового вопроса quiz_obj уже определен выше как quiz
+            quiz_obj = quiz
+            
             # Сброс сессии при старте нового теста
             request.session['quiz_id'] = quiz_id
             request.session['score'] = 0
             request.session['current_question_id'] = None
+            
+            # Новая логика времени: накапливаем время только на страницах вопросов
+            request.session['quiz_accumulated_time'] = 0  # в секундах
+            request.session['question_start_time'] = None  # будет установлено при загрузке вопроса
+            
+            # Сохраняем course_slug если он передан в GET параметрах
+            course_slug = request.GET.get('course_slug')
+            if course_slug:
+                request.session['course_slug'] = course_slug
             
             # Получаем первый вопрос
             question = _get_first_question(quiz_id)
@@ -115,9 +272,25 @@ def get_questions(request, quiz_id: int = None, is_start: bool = False) -> HttpR
         
         # Обновление сессии
         request.session['current_question_id'] = question.id
-        answers = Answer.objects.filter(question=question)
+        
+        # Убеждаемся что quiz_obj определен (на случай если не попали ни в один блок выше)
+        try:
+            quiz_obj
+        except NameError:
+            quiz_obj = get_object_or_404(Quiz, id=quiz_id)
+        
+        # Для типа MATCH получаем в исходном порядке (пары не должны перемешиваться)
+        # Для типа SEQUENCE получаем в исходном порядке, но потом перемешаем для отображения
+        # Для остальных типов - в случайном порядке
+        if question.question_type == Question.MATCH:
+            answers = Answer.objects.filter(question=question).order_by('id')
+        elif question.question_type == Question.SEQUENCE:
+            answers = Answer.objects.filter(question=question).order_by('id')
+        else:
+            answers = Answer.objects.filter(question=question).order_by('?')
+        
         is_last = not Question.objects.filter(
-            quiz_id=quiz_id, 
+            quiz_id=quiz_id,
             id__gt=question.id
         ).exists()
 
@@ -129,29 +302,124 @@ def get_questions(request, quiz_id: int = None, is_start: bool = False) -> HttpR
         total_questions = len(all_questions_ids)
         progress_percent = int((current_index / total_questions) * 100)
 
-
+        # Подготавливаем данные для типов MATCH и SEQUENCE
+        questions = {}
+        match_answers = {}
+        sequence_answers = {}
         
-        # Получаем информацию о попытках для отображения
-        attempts_info = {}
-        if request.user.is_authenticated:
-            quiz_obj = Quiz.objects.get(id=quiz_id)
-            if quiz_obj.attempt_limit > 0:
-                current_attempts = QuizAttempt.objects.filter(user=request.user, quiz=quiz_obj).count()
-                attempts_info = {
-                    'current_attempts': current_attempts,
-                    'max_attempts': quiz_obj.attempt_limit,
-                    'attempts_left': quiz_obj.attempt_limit - current_attempts
+        if question.question_type == Question.SEQUENCE:
+            # Для типа SEQUENCE получаем ответы и перемешиваем их для отображения
+            answers_list = list(answers)
+            import random
+            shuffled_answers = answers_list.copy()
+            random.shuffle(shuffled_answers)
+            
+            # Формируем словарь с перемешанными ответами
+            for idx, ans in enumerate(shuffled_answers):
+                sequence_answers[str(ans.id)] = {
+                    'text': ans.text,
+                    'image': ans.image.url if ans.image else None,
+                    'display_order': idx + 1
+                }
+            
+            # Переопределяем answers для шаблона
+            answers = sequence_answers
+        elif question.question_type == Question.MATCH:
+            # Группируем ответы по парам (каждые 2 ответа - это пара вопрос-ответ)
+            answers_list = list(answers)
+            
+            # Извлекаем вопросы (четные позиции) и ответы (нечетные позиции)
+            questions_items = []
+            answers_items = []
+            
+            for i in range(0, len(answers_list), 2):
+                if i < len(answers_list):
+                    # Четные элементы - это вопросы
+                    question_answer = answers_list[i]
+                    questions_items.append(question_answer)
+
+                if i + 1 < len(answers_list):
+                    # Нечетные элементы - это ответы
+                    answer_answer = answers_list[i + 1]
+                    answers_items.append(answer_answer)
+            
+            # Рандомизируем только ответы (перетаскиваемые элементы)
+            import random
+            random.shuffle(answers_items)
+            
+            # Формируем словари с информацией о тексте и изображении
+            for q_ans in questions_items:
+                questions[str(q_ans.id)] = {
+                    'text': q_ans.text,
+                    'image': q_ans.image.url if q_ans.image else None
+                }
+            
+            for a_ans in answers_items:
+                match_answers[str(a_ans.id)] = {
+                    'text': a_ans.text,
+                    'image': a_ans.image.url if a_ans.image else None
                 }
 
-        return render(request, 'quizzes/question.html', {
+            # Для типа MATCH переопределяем answers только ответами
+            answers = match_answers
+
+        # Получаем информацию о попытках для отображения
+        attempts_info = {}
+        if request.user.is_authenticated and quiz_obj.attempt_limit > 0:
+            # Считаем неудачные попытки (исключаем те, что помечены как исключенные из лимита)
+            failed_attempts = QuizResult.objects.filter(
+                user=request.user,
+                quiz_title=quiz_obj.name,
+                passed=False,
+                excluded_from_limit=False
+            ).count()
+            attempts_info = {
+                'failed_attempts': failed_attempts,
+                'attempt_limit': quiz_obj.attempt_limit,
+                'attempts_left': quiz_obj.attempt_limit - failed_attempts
+            }
+
+        # Устанавливаем время начала работы над вопросом
+        request.session['question_start_time'] = timezone.now().isoformat()
+        request.session.modified = True
+        
+        # Вычисляем оставшееся время для таймера
+        accumulated_time = request.session.get('quiz_accumulated_time', 0)
+        time_limit_seconds = quiz_obj.time_limit * 60 if quiz_obj.time_limit > 0 else 0
+        remaining_time_seconds = int(max(0, time_limit_seconds - accumulated_time)) if time_limit_seconds > 0 else 0
+        
+        # Отладочный вывод
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.info(f"Timer debug: quiz_id={quiz_obj.id}, time_limit={quiz_obj.time_limit}, "
+                   f"accumulated={accumulated_time}, remaining={remaining_time_seconds}")
+        
+        context = {
             'question': question,
             'answers': answers,
             'is_last': is_last,
             'current_question_number': current_index,
             'total_questions': total_questions,
             'progress_percent': progress_percent,
-            'attempts_info': attempts_info
-        })
+            'attempts_info': attempts_info,
+            'question_type': question.question_type,
+            'quiz': quiz_obj,
+            'remaining_time_seconds': remaining_time_seconds,  # для JS таймера
+            'accumulated_time': accumulated_time,  # для отображения
+        }
+
+        # Добавляем questions только для типа MATCH
+        if question.question_type == Question.MATCH:
+            context['questions'] = questions
+        elif question.question_type == Question.SEQUENCE:
+            # Для SEQUENCE сохраняем правильный порядок в сессии
+            correct_order = list(Answer.objects.filter(question=question).order_by('id').values_list('id', flat=True))
+            if 'sequence_correct_orders' not in request.session:
+                request.session['sequence_correct_orders'] = {}
+            request.session['sequence_correct_orders'][str(question.id)] = correct_order
+            request.session.modified = True
+
+        return render(request, 'quizzes/question.html', context)
     
     return redirect(request.META['HTTP_REFERER'])
 
@@ -173,6 +441,22 @@ def get_answer(request) -> HttpResponse:
         quiz_id = request.session.get('quiz_id')
         question = get_object_or_404(Question, id=current_question_id)
         is_correct = False
+
+        # Накапливаем время, потраченное на текущий вопрос
+        question_start_time_str = request.session.get('question_start_time')
+        if question_start_time_str:
+            from datetime import datetime
+            try:
+                question_start_time = datetime.fromisoformat(question_start_time_str)
+                current_time = timezone.now()
+                time_spent = (current_time - question_start_time).total_seconds()
+                
+                accumulated_time = request.session.get('quiz_accumulated_time', 0)
+                request.session['quiz_accumulated_time'] = accumulated_time + time_spent
+                request.session['question_start_time'] = None  # Сбрасываем
+                request.session.modified = True
+            except (ValueError, TypeError):
+                pass
 
         # Получаем или инициализируем словарь ответов пользователя в сессии
         quiz_answers = request.session.get('quiz_answers', {})
@@ -220,6 +504,188 @@ def get_answer(request) -> HttpResponse:
                 'user_text': user_text,
                 'is_last': is_last,
             }
+        elif question.question_type == Question.SEQUENCE:
+            # Для типа последовательность получаем порядок элементов
+            user_sequence = []
+            sequence_data = request.POST.get('sequence_order', '')
+            
+            if sequence_data:
+                user_sequence = [int(id) for id in sequence_data.split(',') if id.strip()]
+            
+            # Получаем правильную последовательность из сессии
+            correct_sequence = request.session.get('sequence_correct_orders', {}).get(str(question.id), [])
+            
+            # Проверяем правильность последовательности
+            is_correct = (user_sequence == correct_sequence)
+            
+            # Подсчитываем частичную правильность (для статистики)
+            partial_score = 0
+            if len(user_sequence) == len(correct_sequence):
+                for i in range(len(user_sequence)):
+                    if user_sequence[i] == correct_sequence[i]:
+                        partial_score += 1
+            
+            partial_percent = int((partial_score / len(correct_sequence)) * 100) if correct_sequence else 0
+            
+            # Получаем данные ответов для отображения
+            all_answers = Answer.objects.filter(question=question).order_by('id')
+            answers_dict = {ans.id: {'text': ans.text, 'image': ans.image.url if ans.image else None} for ans in all_answers}
+            
+            quiz_answers[str(question.id)] = {
+                'user_sequence': user_sequence,
+                'correct_sequence': correct_sequence,
+                'answers': answers_dict,
+                'is_correct': is_correct,
+                'partial_score': partial_score,
+                'partial_percent': partial_percent,
+                'question_type': 'sequence'
+            }
+            
+            all_questions_ids = list(Question.objects.filter(quiz_id=quiz_id).order_by('id').values_list('id', flat=True))
+            current_index = all_questions_ids.index(question.id) + 1
+            total_questions = len(all_questions_ids)
+            is_last = not Question.objects.filter(quiz_id=quiz_id, id__gt=question.id).exists()
+            
+            context = {
+                'current_question_number': current_index,
+                'total_questions': total_questions,
+                'progress_percent': int((current_index / total_questions) * 100),
+                'is_correct': is_correct,
+                'question': question,
+                'user_sequence': user_sequence,
+                'correct_sequence': correct_sequence,
+                'answers': answers_dict,
+                'partial_score': partial_score,
+                'partial_percent': partial_percent,
+                'is_last': is_last,
+            }
+        elif question.question_type == Question.MATCH:
+            # Для типа соответствие получаем соответствия вопрос-ответ
+            user_matches = {}
+            for key, value in request.POST.items():
+                if key.startswith('match_') and value:
+                    # Формат: match_question_id -> answer_id
+                    question_id = key.replace('match_', '')
+                    answer_id = value
+                    user_matches[question_id] = answer_id
+
+            # Получаем правильные соответствия
+            correct_matches = {}
+            all_answers = Answer.objects.filter(question=question)
+
+            # Вопросы (неперетаскиваемые элементы справа)
+            questions = {}
+            # Ответы (перетаскиваемые элементы слева)
+            answers = {}
+
+            # Группируем ответы по парам (каждые 2 ответа - это пара вопрос-ответ)
+            answers_list = list(all_answers)
+            for i in range(0, len(answers_list), 2):
+                if i < len(answers_list):
+                    # Четные элементы - это вопросы
+                    question_answer = answers_list[i]
+                    question_key = str(question_answer.id)
+                    questions[question_key] = {
+                        'text': question_answer.text,
+                        'image': question_answer.image.url if question_answer.image else None
+                    }
+
+                if i + 1 < len(answers_list):
+                    # Нечетные элементы - это ответы
+                    answer_answer = answers_list[i + 1]
+                    answers[str(answer_answer.id)] = {
+                        'text': answer_answer.text,
+                        'image': answer_answer.image.url if answer_answer.image else None
+                    }
+
+            # Правильные соответствия - группируем ответы по парам (каждые 2 ответа - это пара вопрос-ответ)
+            question_to_answer = {}
+            answers_list = list(all_answers)
+
+            for i in range(0, len(answers_list), 2):
+                if i + 1 < len(answers_list):
+                    question_answer = answers_list[i]
+                    answer_answer = answers_list[i + 1]
+
+                    # Если оба ответа отмечены как правильные, то это правильная пара
+                    if question_answer.is_correct and answer_answer.is_correct:
+                        question_to_answer[str(question_answer.id)] = str(answer_answer.id)
+
+            # Если не нашли пары через is_correct, используем простую логику:
+            # предполагаем, что правильные соответствия - это когда ответ соответствует вопросу
+            if not question_to_answer:
+                for i in range(0, len(answers_list), 2):
+                    if i + 1 < len(answers_list):
+                        question_answer = answers_list[i]
+                        answer_answer = answers_list[i + 1]
+                        question_to_answer[str(question_answer.id)] = str(answer_answer.id)
+
+            correct_matches = question_to_answer
+
+            # Проверяем правильность ответов пользователя
+            is_correct = True
+            for question_id, expected_answer_id in correct_matches.items():
+                user_answer_id = user_matches.get(question_id)
+                if user_answer_id != expected_answer_id:
+                    is_correct = False
+                    break
+
+            quiz_answers[str(question.id)] = {
+                'user_matches': user_matches,
+                'correct_matches': correct_matches,
+                'questions': questions,
+                'answers': answers,
+                'is_correct': is_correct,
+                'question_type': 'match'
+            }
+
+            all_questions_ids = list(Question.objects.filter(quiz_id=quiz_id).order_by('id').values_list('id', flat=True))
+            current_index = all_questions_ids.index(question.id) + 1
+            total_questions = len(all_questions_ids)
+            is_last = not Question.objects.filter(quiz_id=quiz_id, id__gt=question.id).exists()
+            
+            # Получаем данные для отображения результатов
+            ans_data = quiz_answers[str(question.id)]
+            user_matches = ans_data['user_matches']
+            correct_matches = ans_data['correct_matches']
+            questions = ans_data['questions']
+            answers = ans_data['answers']
+
+            # Подготавливаем данные для шаблона - создаем список с полной информацией о каждом вопросе
+            match_results = []
+            for question_id, question_data in questions.items():
+                user_answer_id = user_matches.get(question_id, '')
+                correct_answer_id = correct_matches.get(question_id, '')
+                user_answer_data = answers.get(user_answer_id, {'text': 'Неизвестный ответ', 'image': None})
+                correct_answer_data = answers.get(correct_answer_id, {'text': 'Неизвестный ответ', 'image': None})
+                is_question_correct = (user_answer_id == correct_answer_id)
+                
+                match_results.append({
+                    'question_id': question_id,
+                    'question_text': question_data['text'],
+                    'question_image': question_data['image'],
+                    'user_answer_id': user_answer_id,
+                    'user_answer_text': user_answer_data['text'],
+                    'user_answer_image': user_answer_data['image'],
+                    'correct_answer_id': correct_answer_id,
+                    'correct_answer_text': correct_answer_data['text'],
+                    'correct_answer_image': correct_answer_data['image'],
+                    'is_correct': is_question_correct,
+                })
+
+            context = {
+                'current_question_number': current_index,
+                'total_questions': total_questions,
+                'progress_percent': int((current_index / total_questions) * 100),
+                'is_correct': ans_data['is_correct'],
+                'question': question,
+                'user_matches': user_matches,
+                'correct_matches': correct_matches,
+                'questions': questions,
+                'answers': answers,
+                'match_results': match_results,
+                'is_last': is_last,
+            }
         else:
             submitted_answer_id = request.POST.get('answer_id')
             if submitted_answer_id:
@@ -233,6 +699,9 @@ def get_answer(request) -> HttpResponse:
                     'question_type': 'single'
                 }
 
+                # Получаем правильные ответы (может быть несколько)
+                correct_answers = Answer.objects.filter(question=question, is_correct=True)
+                
                 context = {
                     'current_question_number': list(Question.objects.filter(quiz_id=quiz_id).order_by('id').values_list('id', flat=True)).index(current_question_id) + 1,
                     'total_questions': Question.objects.filter(quiz_id=quiz_id).count(),
@@ -240,11 +709,11 @@ def get_answer(request) -> HttpResponse:
                     'is_correct': is_correct,
                     'question': question,
                     'submitted_answer': submitted_answer,
-                    'correct_answer': Answer.objects.get(question=question, is_correct=True),
+                    'correct_answers': correct_answers,
                     
                 }
             else:
-                return redirect('quizzes')
+                return redirect('quizzes:quizzes')
 
         # Сохраняем обновлённые ответы в сессии
         request.session['quiz_answers'] = quiz_answers
@@ -257,7 +726,7 @@ def get_answer(request) -> HttpResponse:
 
         return render(request, 'quizzes/answer.html', context)
     
-    return redirect('quizzes')
+    return redirect('quizzes:quizzes')
 
 
 
@@ -267,37 +736,67 @@ def get_finish(request) -> HttpResponse:
 
     quiz_id = request.session.get('quiz_id')
     if not quiz_id:
-        return redirect('quizzes')
+        return redirect('quizzes:quizzes')
     
     quiz = get_object_or_404(Quiz, id=quiz_id)
 
+    # Проверяем лимит времени
+    time_exceeded = not _check_time_limit(request, quiz)
+    
     questions_count = Question.objects.filter(quiz=quiz).count() # Количество вопросов в тесте всего
     text_questions_count = Question.objects.filter(question_type='text').filter(quiz=quiz).count() # количество открытых вопросов в тесте
     score = request.session.get('score', 0)
     is_all_question_text = False
+    has_text_questions = text_questions_count > 0
+    
+    # Если в тесте есть открытые вопросы, тест получает статус 'pending' (ожидает проверки)
+    quiz_status = 'pending' if has_text_questions else 'completed'
+    
     if questions_count == text_questions_count:
         is_all_question_text = True
-        percent_score = 100
+        # Для тестов только с открытыми вопросами процент устанавливается в 0 до проверки
+        percent_score = 0
     else: 
-        percent_score = int((score / (questions_count - text_questions_count)) * 100) if questions_count > 0 else 0 # Процент правильных ответов на вопросы, исключая открытые
+        # Исключаем из подсчета только текстовые вопросы (match включаем, т.к. они автоматически проверяются)
+        auto_checkable_questions = questions_count - text_questions_count
+        percent_score = int((score / auto_checkable_questions) * 100) if auto_checkable_questions > 0 else 0
 
-    passed = percent_score >= quiz.pass_threshold # Проходной балл из настроек теста
+    # Для тестов с открытыми вопросами passed устанавливается в False до проверки наставником
+    passed = (percent_score >= quiz.pass_threshold) and not has_text_questions and not time_exceeded # Проходной балл из настроек теста
     
-    # Проверяем, был ли тест уже пройден ранее (ДО создания текущего результата)
+    # Получаем курс для сохранения в результате
+    course_slug = request.session.get('course_slug')
+    from_control_panel = request.session.get('from_control_panel', False)
+    course = None
+    if course_slug:
+        course = Course.objects.filter(slug=course_slug).first()
+    
+    # Проверяем, был ли тест уже пройден ранее в рамках этого курса
     previous_quiz_result = QuizResult.objects.filter(
         user=request.user,
         quiz_title=quiz.name,
+        course=course,
         passed=True
     ).first()
+    
+    # Для тестов с TEXT вопросами сохраняем полное количество вопросов
+    # score будет пересчитан наставником после проверки
+    total_questions_to_save = questions_count if has_text_questions else (questions_count - text_questions_count)
     
     quiz_result = QuizResult.objects.create(
         user=request.user,
         quiz_title=quiz.name,
+        course=course,
         score=score,
-        total_questions=questions_count - text_questions_count, # Всего вопросов без учёта открытых
+        total_questions=total_questions_to_save,
         percent=percent_score,
-        passed=passed
+        passed=passed,
+        status=quiz_status
     )
+    # Запуски из панели управления не идут в лимит попыток
+    if from_control_panel:
+        quiz_result.excluded_from_limit = True
+        quiz_result.save(update_fields=['excluded_from_limit'])
     
     # Отмечаем текущую попытку как завершенную
     if request.user.is_authenticated:
@@ -311,14 +810,18 @@ def get_finish(request) -> HttpResponse:
             current_attempt.save()
     
     # Проверяем, нужно ли заблокировать тест
-    if request.user.is_authenticated and not passed and quiz.attempt_limit > 0:
+    # НО НЕ для администраторов, запускающих тест из панели управления
+    from_control_panel = request.session.get('from_control_panel', False)
+    if request.user.is_authenticated and not passed and quiz.attempt_limit > 0 and not from_control_panel:
         from .models import QuizLock
         
-        # Считаем количество неуспешных попыток
+        # Считаем количество неуспешных попыток в рамках этого курса (исключаем те, что помечены как исключенные из лимита)
         failed_attempts = QuizResult.objects.filter(
             user=request.user,
             quiz_title=quiz.name,
-            passed=False
+            course=course,
+            passed=False,
+            excluded_from_limit=False
         ).count()
         
         # Если достигли лимита - блокируем тест
@@ -332,6 +835,14 @@ def get_finish(request) -> HttpResponse:
                 quiz_lock.is_locked = True
                 quiz_lock.locked_at = timezone.now()
                 quiz_lock.save()
+            
+            # Списываем 15 баллов DASCOIN за блокировку теста
+            from gamification.utils import deduct_dascoin_points
+            deduct_dascoin_points(
+                user=request.user,
+                points=15,
+                reason=f"Блокировка теста '{quiz.name}' за неуспешное прохождение"
+            )
 
     # --- СОХРАНЯЕМ ОТВЕТЫ ПОЛЬЗОВАТЕЛЯ ---
     quiz_answers = request.session.get('quiz_answers', {})
@@ -350,13 +861,45 @@ def get_finish(request) -> HttpResponse:
                     is_correct=ans.is_correct and ans_data['is_correct']
                 )
         elif ans_data['question_type'] == 'text':
+            answer_text = ans_data.get('answer_text', '')
+            # Обрезаем до 2000 символов, если превышает лимит
+            if len(answer_text) > 2000:
+                answer_text = answer_text[:2000]
             UserAnswer.objects.create(
                 user=request.user,
                 quiz_result=quiz_result,
                 question=q,
                 selected_answer=None,
                 is_correct=None,
-                answer_text=ans_data.get('answer_text', '')
+                answer_text=answer_text
+            )
+        elif ans_data['question_type'] == 'match':
+            # Для типа соответствие сохраняем соответствия как текст
+            matches_text = '; '.join([f"{q_id}:{a_id}" for q_id, a_id in ans_data.get('user_matches', {}).items()])
+            # Обрезаем до 2000 символов, если превышает лимит
+            if len(matches_text) > 2000:
+                matches_text = matches_text[:2000]
+            UserAnswer.objects.create(
+                user=request.user,
+                quiz_result=quiz_result,
+                question=q,
+                selected_answer=None,
+                is_correct=ans_data.get('is_correct', False),
+                answer_text=matches_text
+            )
+        elif ans_data['question_type'] == 'sequence':
+            # Для типа последовательность сохраняем порядок элементов как текст
+            sequence_text = ','.join([str(ans_id) for ans_id in ans_data.get('user_sequence', [])])
+            # Обрезаем до 2000 символов, если превышает лимит
+            if len(sequence_text) > 2000:
+                sequence_text = sequence_text[:2000]
+            UserAnswer.objects.create(
+                user=request.user,
+                quiz_result=quiz_result,
+                question=q,
+                selected_answer=None,
+                is_correct=ans_data.get('is_correct', False),
+                answer_text=sequence_text
             )
         else:
             ans = Answer.objects.get(id=ans_data['selected_id'])
@@ -369,88 +912,312 @@ def get_finish(request) -> HttpResponse:
             )
     # --------------------------------------------
 
-    # Обработка привязки к курсу
-    course = None
-    if hasattr(quiz, 'course') and quiz.course:
-        course = quiz.course
-    else:
-        # Проверяем, является ли этот тест финальным для какого-то курса
-        course = Course.objects.filter(final_quiz=quiz).first()
+    # Если тест имеет статус 'pending' (ожидает проверки), не обрабатываем его как пройденный/непройденный
+    # Просто показываем страницу завершения
+    if quiz_status == 'pending':
+        auto_checkable_count = questions_count - text_questions_count
+        context = {
+            'score': score,  # Баллы только за автопроверяемые вопросы
+            'auto_score': score,  # Явно указываем баллы за автопроверяемые
+            'auto_questions_count': auto_checkable_count,  # Количество автопроверяемых вопросов
+            'questions_count': questions_count,  # Всего вопросов (для будущего отображения)
+            'total_questions': questions_count,  # Всего вопросов
+            'text_questions_count': text_questions_count,  # Количество TEXT вопросов
+            'percent_score': percent_score,
+            'quiz_title': quiz.name,
+            'is_all_question_text': is_all_question_text,
+            'has_text_questions': has_text_questions,
+            'quiz_status': quiz_status,
+            'quiz_result': quiz_result,
+            'time_exceeded': time_exceeded,
+            'time_limit': quiz.time_limit if time_exceeded else None,
+        }
+        course_slug = request.session.pop('course_slug', None)
+        request.session.pop('from_control_panel', None)
+        if course_slug:
+            context['course_slug'] = course_slug
+        
+        _reset_quiz(request)
+        return render(request, 'quizzes/finish.html', context)
+
+    # Обработка привязки к курсу (используем уже определенный курс из блока выше)
+    if not course:
+        # Fallback: старая логика если course_slug не указан или курс не найден
+        if hasattr(quiz, 'course') and quiz.course:
+            course = quiz.course
+        else:
+            # Проверяем, является ли этот тест финальным для какого-то курса
+            course = Course.objects.filter(final_quiz=quiz).first()
+            # Если тест используется в нескольких курсах, берем первый попавшийся
+            if not course:
+                course = quiz.courses.first()
     
     if course and passed:
-        # Получаем UserCourse
-        user_course = UserCourse.objects.filter(user=request.user, course=course).first()
-        if not user_course:
-            user_course = UserCourse.objects.create(user=request.user, course=course, status='available')
+        # Получаем UserCourse ТОЛЬКО если пользователь действительно проходит этот курс
+        user_course = UserCourse.objects.filter(user=request.user, course=course, status='started').first()
         
         if user_course:
-            # Начисляем очки за тест только если он не был пройден ранее
-            if not previous_quiz_result:
+            # Проверяем, что все уроки курса завершены
+            completed_lessons = UserProgress.objects.filter(
+                user=request.user,
+                course=course,
+                completed=True
+            ).count()
+            total_lessons = course.lessons.count()
+            
+            # Проверяем, что все тесты курса пройдены в рамках этого курса (только уникальные по quiz_title)
+            completed_quizzes = QuizResult.objects.filter(
+                user=request.user,
+                course=course,
+                quiz_title__in=[q.name for q in course.quizzes.all()],
+                passed=True
+            ).values('quiz_title').distinct().count()
+            total_quizzes = course.quizzes.count()
+            
+            # Завершаем курс только если все уроки И все тесты пройдены
+            if completed_lessons >= total_lessons and completed_quizzes >= total_quizzes:
+                # Начисляем очки за тест только если он не был пройден ранее И тест не запускается из панели управления И курс не является инцидентом
+                if not previous_quiz_result and not from_control_panel and not course.is_incident:
+                    award_dascoin_points(request.user, 10, f"Прохождение теста {quiz.name}")
+                
+                # Проверяем, есть ли финальный тест
+                if course.final_quiz:
+                    # Если есть финальный тест, проверяем, пройден ли он
+                    final_quiz_passed = QuizResult.objects.filter(
+                        user=request.user,
+                        course=course,
+                        quiz_title=course.final_quiz.name,
+                        passed=True
+                    ).exists()
+                    
+                    if final_quiz_passed:
+                        # Финальный тест пройден - завершаем курс
+                        if user_course.status != 'completed':
+                            user_course.status = 'completed'
+                            user_course.save()
+                            # Начисляем баллы за завершение курса только если тест не запускается из панели управления И курс не является инцидентом
+                            if not from_control_panel and not course.is_incident:
+                                award_dascoin_points(request.user, course.points, f"Завершение курса {course.title}")
+                                award_course_badge(request.user, course)
+                                # Выдаем сертификат за курс (если настроено)
+                                issue_certificate(request.user, course=course)
+                    else:
+                        # Финальный тест не пройден - редиректим на страницу с предложением пройти его
+                        if percent_score == 100:
+                            award_achievement(request.user, 'perfect_score', 'Идеальный результат', 'Получили 100% за прохождение теста')
+                        return redirect('courses:redir_to_quiz', course_slug=course.slug)
+                else:
+                    # Финального теста нет - завершаем курс
+                    if user_course.status != 'completed':
+                        user_course.status = 'completed'
+                        user_course.save()
+                        # Начисляем баллы за завершение курса только если тест не запускается из панели управления И курс не является инцидентом
+                        if not from_control_panel and not course.is_incident:
+                            award_dascoin_points(request.user, course.points, f"Завершение курса {course.title}")
+                            award_course_badge(request.user, course)
+                            # Выдаем сертификат за курс (если настроено)
+                            issue_certificate(request.user, course=course)
+                
+                if percent_score == 100:
+                    award_achievement(request.user, 'perfect_score', 'Идеальный результат', 'Получили 100% за прохождение теста')
+                # Если тест запускался из панели управления, возвращаемся туда
+                if from_control_panel:
+                    return redirect('quizzes:quizzes')
+                return redirect('courses:course_detail', slug=course.slug)
+            else:
+                # Если не все уроки завершены, начисляем только очки за тест (если не из панели управления И курс не является инцидентом)
+                if not previous_quiz_result and not from_control_panel and not course.is_incident:
+                    award_dascoin_points(request.user, 10, f"Прохождение теста {quiz.name}")
+                if percent_score == 100:
+                    award_achievement(request.user, 'perfect_score', 'Идеальный результат', 'Получили 100% за прохождение теста')
+                # Если тест запускался из панели управления, возвращаемся туда
+                if from_control_panel:
+                    return redirect('quizzes:quizzes')
+                return redirect('courses:course_detail', slug=course.slug)
+        else:
+            # Если пользователь не проходит этот курс, начисляем только очки за тест (если не из панели управления И курс не является инцидентом)
+            if not previous_quiz_result and not from_control_panel and not course.is_incident:
                 award_dascoin_points(request.user, 10, f"Прохождение теста {quiz.name}")
-            
-            # Завершаем курс и начисляем очки за курс
-            if user_course.status != 'completed':
-                user_course.status = 'completed'
-                user_course.save()
-                award_dascoin_points(request.user, course.points, f"Завершение курса {course.title}")
-                award_course_badge(request.user, course)
-                # Выдаем сертификат за курс (если настроено)
-                issue_certificate(request.user, course=course)
-            
             if percent_score == 100:
                 award_achievement(request.user, 'perfect_score', 'Идеальный результат', 'Получили 100% за прохождение теста')
-            return redirect('courses:course_detail', slug=course.slug)
+            # Если тест запускался из панели управления, возвращаемся туда
+            if from_control_panel:
+                return redirect('quizzes:quizzes')
     elif course and not passed:
+        # Если тест запускается из панели управления - не показываем сообщения об ошибках курса
+        if from_control_panel:
+            return redirect('quizzes:quizzes')
+        
         # Проверяем, является ли этот тест финальным для курса
         if course.final_quiz == quiz:
-            # Сбрасываем прогресс курса - отмечаем все уроки как незавершенные
-            UserProgress.objects.filter(user=request.user, course=course).update(completed=False)
+            # Считаем количество неуспешных попыток для этого теста в рамках курса (исключаем те, что помечены как исключенные из лимита)
+            failed_attempts = QuizResult.objects.filter(
+                user=request.user,
+                course=course,
+                quiz_title=quiz.name,
+                passed=False,
+                excluded_from_limit=False
+            ).count()
             
-            # Также сбрасываем статус курса на "начат"
-            user_course = UserCourse.objects.filter(user=request.user, course=course).first()
-            if user_course and user_course.status == 'completed':
-                user_course.status = 'started'
-                user_course.end_date = None
-                user_course.save()
-            
-            messages.error(request, f"Финальный тест не пройден! Прогресс курса '{course.title}' сброшен. Попробуйте снова!")
+            # Сбрасываем прогресс курса ТОЛЬКО если исчерпаны все попытки
+            if quiz.attempt_limit > 0 and failed_attempts >= quiz.attempt_limit:
+                # Сбрасываем прогресс курса - отмечаем все уроки как незавершенные
+                UserProgress.objects.filter(user=request.user, course=course).update(completed=False)
+                
+                # Также сбрасываем статус курса на "начат"
+                user_course = UserCourse.objects.filter(user=request.user, course=course).first()
+                if user_course and user_course.status == 'completed':
+                    user_course.status = 'started'
+                    user_course.end_date = None
+                    user_course.save()
+                
+                messages.error(request, f"Финальный тест не пройден! Исчерпаны все попытки. Прогресс курса '{course.title}' сброшен. Необходимо повторить материал.")
+                return redirect('quizzes:attempt_limit_exceeded', quiz_id=quiz.id)
+            else:
+                # Обычная неудачная попытка - не сбрасываем прогресс
+                attempts_left = quiz.attempt_limit - failed_attempts if quiz.attempt_limit > 0 else "неограниченно"
+                attempts_text = f"Осталось попыток: {attempts_left}" if quiz.attempt_limit > 0 else "Попыток неограниченно"
+                messages.error(request, f"Финальный тест не пройден! {attempts_text}. Попробуйте снова!")
         else:
             messages.error(request, "Тест не пройден. Попробуйте снова!")
         
         return redirect('quizzes:quiz_start', quiz_id=quiz.id)
     elif passed:
-        # Если тест не привязан к курсу, но пройден - начисляем очки только если не был пройден ранее
-        if not previous_quiz_result:
+        # Если тест не привязан к курсу, но пройден - начисляем очки только если не был пройден ранее И не из панели управления
+        if not previous_quiz_result and not from_control_panel:
             award_dascoin_points(request.user, 10, f"Прохождение теста {quiz.name}")
         if percent_score == 100:
             award_achievement(request.user, 'perfect_score', 'Идеальный результат', 'Получили 100% за прохождение теста')
 
+    # Для completed статуса score уже включает баллы за TEXT (если они были оценены)
+    # total_questions - это полное количество вопросов
     context = {
-        'score': score,
-        'questions_count': questions_count,
-        'percent_score': percent_score,
+        'score': quiz_result.score,  # Используем score из quiz_result (может быть обновлен наставником)
+        'questions_count': quiz_result.total_questions,  # Всего вопросов
+        'total_questions': quiz_result.total_questions,
+        'percent_score': quiz_result.percent,  # Используем percent из quiz_result
         'quiz_title': quiz.name,
         'is_all_question_text': is_all_question_text,
+        'has_text_questions': has_text_questions,
+        'quiz_status': quiz_status,
+        'quiz_result': quiz_result,
+        'time_exceeded': time_exceeded,
+        'time_limit': quiz.time_limit if time_exceeded else None,
     }
     course_slug = request.session.pop('course_slug', None)
+    request.session.pop('from_control_panel', None)  # Очищаем параметр из панели управления
     if course_slug:
         context['course_slug'] = course_slug
     
     _reset_quiz(request)
     return render(request, 'quizzes/finish.html', context)
 
+def _check_time_limit(request, quiz) -> bool:
+    """
+    Проверяет, не превышено ли накопленное время на прохождение теста.
+    Возвращает True если время не превышено, False если превышено.
+    """
+    if quiz.time_limit == 0:
+        return True  # Без ограничения по времени
+    
+    accumulated_time = request.session.get('quiz_accumulated_time', 0)  # в секундах
+    time_limit_seconds = quiz.time_limit * 60  # конвертируем минуты в секунды
+    
+    return accumulated_time <= time_limit_seconds
+
 def _reset_quiz(request) -> HttpRequest:
-    keys = ['quiz_id', 'current_question_id', 'score']
+    keys = ['quiz_id', 'current_question_id', 'score', 'quiz_accumulated_time', 'question_start_time', 'quiz_answers', 'sequence_correct_orders']
     for key in keys:
         if key in request.session:
             del request.session[key]
     return request
 
+
+
+
+def quiz_best_result(request, quiz_id: int) -> HttpResponse:
+    """
+    Отображает лучший результат теста для пользователя в рамках курса.
+    Если тест пройден выше проходного балла - показывает дату сдачи,
+    если ниже - показывает последнюю попытку.
+    """
+    if not request.user.is_authenticated:
+        return redirect('users:login')
+    
+    quiz = get_object_or_404(Quiz, id=quiz_id)
+    course_slug = request.GET.get('course_slug')
+    
+    if not course_slug:
+        return redirect('quizzes:quizzes')
+    
+    course = get_object_or_404(Course, slug=course_slug)
+    
+    # Получаем лучший результат теста для этого пользователя в рамках курса
+    best_result = QuizResult.objects.filter(
+        user=request.user,
+        quiz_title=quiz.name,
+        course=course
+    ).order_by('-percent', '-completed_at').first()
+    
+    if not best_result:
+        # Если результатов нет, перенаправляем на начало теста
+        return redirect('quizzes:quiz_start', quiz_id=quiz_id)
+    
+    # Получаем последнюю попытку для отображения даты
+    last_attempt = QuizResult.objects.filter(
+        user=request.user,
+        quiz_title=quiz.name,
+        course=course
+    ).order_by('-completed_at').first()
+    
+    # Проверяем, есть ли в тесте открытые вопросы
+    has_text_questions = Question.objects.filter(quiz=quiz, question_type=Question.TEXT).exists()
+    
+    # Проверяем, ожидает ли последняя попытка проверки наставником
+    pending = False
+    if has_text_questions and last_attempt and last_attempt.status == 'pending':
+        pending = True
+    
+    # Если тест ожидает проверки, используем last_attempt для отображения
+    display_result = last_attempt if pending else best_result
+    
+    # Для pending статуса пересчитываем процент с учетом открытых вопросов как 0 баллов
+    # Это дает честный процент от общего количества вопросов
+    display_percent = best_result.percent
+    if pending and last_attempt:
+        total_questions = Question.objects.filter(quiz=quiz).count()
+        # score содержит только баллы за автопроверяемые вопросы
+        # открытые вопросы считаются как 0 баллов до проверки
+        if total_questions > 0:
+            display_percent = int((last_attempt.score / total_questions) * 100)
+        else:
+            display_percent = 0
+
+    context = {
+        'quiz': quiz,
+        'course': course,
+        'best_result': best_result,
+        'last_attempt': last_attempt,
+        'display_result': display_result,  # Результат для отображения (last_attempt для pending, best_result для остальных)
+        'display_percent': display_percent,  # Процент для отображения (с учетом открытых вопросов как 0 для pending)
+        'passed': best_result.passed,
+        'pass_threshold': quiz.pass_threshold,
+        'has_text_questions': has_text_questions,
+        'pending': pending,
+        'mentor_comment': best_result.mentor_comment if best_result.mentor_comment else None,
+        'reviewed_by': best_result.reviewed_by if best_result.reviewed_by else None,
+    }
+    
+    return render(request, 'quizzes/quiz_best_result.html', context)
+
+
+
+
 def start_quiz_handler(request):
     if request.method == 'POST':
         quiz_id = request.POST.get('quiz_id')
         if not quiz_id:
-            return redirect('quizzes')
+            return redirect('quizzes:quizzes')
         
         # Сохраняем в сессии и перенаправляем на тест
         request.session['quiz_id'] = int(quiz_id)
@@ -458,7 +1225,7 @@ def start_quiz_handler(request):
         request.session['current_question_id'] = None
         return redirect('quizzes:quiz_start', quiz_id=quiz_id)
     
-    return redirect('quizzes')
+    return redirect('quizzes:quizzes')
 
 
 from django.views.generic import CreateView, UpdateView, DeleteView
@@ -471,7 +1238,7 @@ class QuizCreateView(UserPassesTestMixin, CreateView):
     Создание нового теста с вопросами и ответами.
     """
     model = Quiz
-    fields = ['name', 'attempt_limit', 'pass_threshold']
+    fields = ['name', 'attempt_limit', 'pass_threshold', 'time_limit']
     template_name = 'quizzes/quiz_form.html'
     success_url = '/builder/trajectory-management/'
 
@@ -514,7 +1281,7 @@ class QuizCreateView(UserPassesTestMixin, CreateView):
                         question_num = int(parts[0])
                         
                         if question_num not in questions_dict:
-                            questions_dict[question_num] = {'text': '', 'type': 'single', 'answers': {}, 'correct_answer': None}
+                            questions_dict[question_num] = {'text': '', 'type': 'single', 'answers': {}, 'correct_answer': None, 'mentor_instruction': ''}
                         
                         if len(parts) == 2:
                             if parts[1] == 'text':
@@ -523,6 +1290,8 @@ class QuizCreateView(UserPassesTestMixin, CreateView):
                                 questions_dict[question_num]['type'] = value
                             elif parts[1] == 'correct_answer':
                                 questions_dict[question_num]['correct_answer'] = int(value)
+                            elif parts[1] == 'mentor_instruction':
+                                questions_dict[question_num]['mentor_instruction'] = value
                         elif len(parts) == 4 and parts[1] == 'answers':
                             answer_num = int(parts[2])
                             answer_field = parts[3]
@@ -551,11 +1320,12 @@ class QuizCreateView(UserPassesTestMixin, CreateView):
                     question = Question.objects.create(
                         quiz=quiz,
                         text=question_data['text'],
-                        question_type=question_data['type']
+                        question_type=question_data['type'],
+                        mentor_instruction=question_data.get('mentor_instruction', '') or None
                     )
                     
                     # Создаем ответы (только для вопросов с вариантами ответов)
-                    if question_data['type'] in ['single', 'multiple']:
+                    if question_data['type'] in ['single', 'multiple', 'match', 'sequence']:
                         for answer_num, answer_data in question_data['answers'].items():
                             if answer_data['text'].strip():  # Проверяем, что текст ответа не пустой
                                 # Для single вопросов правильность определяется через correct_answer
@@ -590,7 +1360,7 @@ class QuizEditView(UserPassesTestMixin, UpdateView):
     Редактирование существующего теста с вопросами и ответами.
     """
     model = Quiz
-    fields = ['name', 'attempt_limit', 'pass_threshold']
+    fields = ['name', 'attempt_limit', 'pass_threshold', 'time_limit']
     template_name = 'quizzes/quiz_edit.html'
     success_url = reverse_lazy('quizzes:quizzes')
     pk_url_kwarg = 'quiz_id'
@@ -604,7 +1374,32 @@ class QuizEditView(UserPassesTestMixin, UpdateView):
         
         # Получаем все вопросы с ответами
         questions = Question.objects.filter(quiz=quiz).prefetch_related('answer_set')
+        
+        # Для вопросов типа match подготавливаем пары
+        questions_with_pairs = []
+        for question in questions:
+            question_data = {
+                'question': question,
+                'match_pairs': []
+            }
+            
+            if question.question_type == 'match':
+                answers = list(question.answer_set.all().order_by('id'))
+                # Группируем ответы по парам
+                for i in range(0, len(answers), 2):
+                    if i + 1 < len(answers):
+                        question_data['match_pairs'].append({
+                            'pair_number': (i // 2) + 1,
+                            'question_answer': answers[i],
+                            'answer_answer': answers[i + 1],
+                            'question_index': i + 1,
+                            'answer_index': i + 2
+                        })
+            
+            questions_with_pairs.append(question_data)
+        
         context['questions'] = questions
+        context['questions_with_pairs'] = questions_with_pairs
         context['question_types'] = Question.QUESTION_TYPES
         
         return context
@@ -615,8 +1410,9 @@ class QuizEditView(UserPassesTestMixin, UpdateView):
             try:
                 quiz = form.save()
                 
-                # Удаляем все существующие вопросы и ответы
-                Question.objects.filter(quiz=quiz).delete()
+                # Сохраняем старые вопросы для маппинга с UserAnswer (до удаления!)
+                from myapp.models import UserAnswer
+                old_questions = list(Question.objects.filter(quiz=quiz).order_by('id'))
                 
                 # Обрабатываем новые вопросы и ответы (аналогично созданию)
                 questions_dict = {}
@@ -627,7 +1423,7 @@ class QuizEditView(UserPassesTestMixin, UpdateView):
                             question_num = int(parts[0])
                             
                             if question_num not in questions_dict:
-                                questions_dict[question_num] = {'text': '', 'type': 'single', 'answers': {}, 'correct_answer': None}
+                                questions_dict[question_num] = {'text': '', 'type': 'single', 'answers': {}, 'correct_answer': None, 'mentor_instruction': ''}
                             
                             if len(parts) == 2:
                                 if parts[1] == 'text':
@@ -636,12 +1432,14 @@ class QuizEditView(UserPassesTestMixin, UpdateView):
                                     questions_dict[question_num]['type'] = value
                                 elif parts[1] == 'correct_answer':
                                     questions_dict[question_num]['correct_answer'] = int(value)
+                                elif parts[1] == 'mentor_instruction':
+                                    questions_dict[question_num]['mentor_instruction'] = value
                             elif len(parts) == 4 and parts[1] == 'answers':
                                 answer_num = int(parts[2])
                                 answer_field = parts[3]
                                 
                                 if answer_num not in questions_dict[question_num]['answers']:
-                                    questions_dict[question_num]['answers'][answer_num] = {'text': '', 'correct': False}
+                                    questions_dict[question_num]['answers'][answer_num] = {'text': '', 'correct': False, 'image': None}
                                 
                                 if answer_field == 'text':
                                     questions_dict[question_num]['answers'][answer_num]['text'] = value
@@ -649,19 +1447,37 @@ class QuizEditView(UserPassesTestMixin, UpdateView):
                                     questions_dict[question_num]['answers'][answer_num]['correct'] = True
                         except (ValueError, IndexError):
                             continue
+                
+                # Обрабатываем загруженные файлы
+                for key, file in self.request.FILES.items():
+                    if key.startswith('questions['):
+                        try:
+                            parts = key.replace('questions[', '').replace(']', '').split('[')
+                            if len(parts) == 4 and parts[1] == 'answers' and parts[3] == 'image':
+                                question_num = int(parts[0])
+                                answer_num = int(parts[2])
+                                
+                                if question_num in questions_dict and answer_num in questions_dict[question_num]['answers']:
+                                    questions_dict[question_num]['answers'][answer_num]['image'] = file
+                        except (ValueError, IndexError):
+                            continue
 
                 # Создаем новые вопросы и ответы
-                for question_num, question_data in questions_dict.items():
+                new_questions = []
+                for question_num, question_data in sorted(questions_dict.items()):
                     if question_data['text'].strip():
                         question = Question.objects.create(
                             quiz=quiz,
                             text=question_data['text'],
-                            question_type=question_data['type']
+                            question_type=question_data['type'],
+                            mentor_instruction=question_data.get('mentor_instruction', '') or None
                         )
+                        new_questions.append(question)
                         
-                        if question_data['type'] in ['single', 'multiple']:
+                        if question_data['type'] in ['single', 'multiple', 'match', 'sequence']:
                             for answer_num, answer_data in question_data['answers'].items():
-                                if answer_data['text'].strip():
+                                # Для match и sequence типа текст может быть пустым если есть изображение
+                                if answer_data['text'].strip() or answer_data.get('image'):
                                     # Для single вопросов правильность определяется через correct_answer
                                     is_correct = answer_data['correct']
                                     if question_data['type'] == 'single' and question_data['correct_answer']:
@@ -670,8 +1486,36 @@ class QuizEditView(UserPassesTestMixin, UpdateView):
                                     Answer.objects.create(
                                         question=question,
                                         text=answer_data['text'],
-                                        is_correct=is_correct
+                                        is_correct=is_correct,
+                                        image=answer_data.get('image')
                                     )
+                
+                # Обновляем UserAnswer: сопоставляем старые вопросы с новыми по позиции
+                # Делаем это ДО удаления старых вопросов!
+                if len(old_questions) > 0:
+                    if len(new_questions) > 0:
+                        # Создаем маппинг старых вопросов к новым по позиции
+                        question_mapping = {}
+                        min_count = min(len(old_questions), len(new_questions))
+                        for i in range(min_count):
+                            old_question = old_questions[i]
+                            new_question = new_questions[i]
+                            question_mapping[old_question.id] = new_question
+                        
+                        # Обновляем UserAnswer для сопоставленных вопросов
+                        # Это нужно сделать ДО удаления старых вопросов
+                        for old_question_id, new_question in question_mapping.items():
+                            UserAnswer.objects.filter(question_id=old_question_id).update(question=new_question)
+                    
+                    # Теперь можно безопасно удалить старые вопросы и ответы
+                    # UserAnswer уже обновлены и ссылаются на новые вопросы (если они есть)
+                    old_question_ids = [q.id for q in old_questions]
+                    Question.objects.filter(id__in=old_question_ids).delete()
+                
+                # Для вопросов, которые были удалены (их больше нет в новом тесте),
+                # UserAnswer останутся со ссылками на несуществующие вопросы
+                # Это нормально, так как они будут недоступны, но данные сохранятся
+                # Если нужно, можно удалить такие UserAnswer, но лучше оставить для истории
 
                 return JsonResponse({
                     'success': True,
@@ -712,29 +1556,1055 @@ class AttemptLimitExceededView(LoginRequiredMixin, DetailView):
         context = super().get_context_data(**kwargs)
         quiz = self.get_object()
         
-        # Получаем количество попыток пользователя
-        attempts_count = QuizAttempt.objects.filter(
-            user=self.request.user, 
-            quiz=quiz
+        # Получаем курс из сессии, если он есть
+        course_slug = self.request.session.get('course_slug')
+        course = None
+
+
+        if course_slug:
+            course = Course.objects.filter(slug=course_slug).first()
+        if not course:
+            # Если курс не найден в сессии, ищем через final_quiz (fallback)
+            course = Course.objects.filter(final_quiz=quiz).first()
+        
+        # Проверяем, является ли тест тестом урока (а не финальным тестом курса)
+        from courses.models import Lesson
+        is_lesson_quiz = Lesson.objects.filter(final_quiz=quiz).exists()
+        
+        # Получаем количество неудачных попыток (как в логике блокировки)
+        failed_attempts = QuizResult.objects.filter(
+            user=self.request.user,
+            quiz_title=quiz.name,
+            course=course,
+            passed=False,
+            excluded_from_limit=False
         ).count()
         
-        # Проверяем, является ли этот тест финальным для какого-то курса
-        course = Course.objects.filter(final_quiz=quiz).first()
+        # Используем количество неудачных попыток для отображения
+        attempts_count = failed_attempts
         
         # Если тест финальный и у пользователя есть прогресс по курсу - проверяем сброшен ли он
         course_progress_reset = False
         if course:
             user_course = UserCourse.objects.filter(user=self.request.user, course=course).first()
             if user_course:
-                # Проверяем есть ли проваленные попытки финального теста
+                # Проверяем есть ли проваленные попытки финального теста (исключаем те, что помечены как исключенные из лимита)
                 failed_attempts = QuizResult.objects.filter(
                     user=self.request.user,
                     quiz_title=quiz.name,
-                    passed=False
+                    passed=False,
+                    excluded_from_limit=False
                 ).exists()
                 course_progress_reset = failed_attempts
         
         context['attempts_count'] = attempts_count
         context['course'] = course
         context['course_progress_reset'] = course_progress_reset
+        context['is_lesson_quiz'] = is_lesson_quiz
         return context
+
+
+
+
+class PendingQuizzesView(LoginRequiredMixin, UserPassesTestMixin, TemplateView):
+    """
+    Страница со списком тестов, ожидающих проверки наставником.
+    Доступ только для администраторов и наставников.
+    """
+    template_name = 'quizzes/pending_quizzes.html'
+    login_url = 'users:login'
+    
+    def test_func(self):
+        """Проверка прав доступа"""
+        if not self.request.user.is_authenticated:
+            return False
+        # Доступ для staff/superuser или наставников
+        return (self.request.user.is_staff or 
+                self.request.user.is_superuser or
+                (hasattr(self.request.user, 'profile') and 
+                 self.request.user.profile.is_mentor_user))
+    
+    def get_context_data(self, **kwargs):
+        import datetime
+        context = super().get_context_data(**kwargs)
+        
+        # Получаем фильтр из GET-параметров
+        status_filter = self.request.GET.get('status', 'pending')
+        
+        # Фильтр по дате создания
+        date_from = self.request.GET.get('date_from')
+        date_to = self.request.GET.get('date_to')
+
+        # Фильтр по наставнику
+        mentor_id = self.request.GET.get('mentor', '')
+        
+        # Фильтр по просроченным тестам
+        is_overdue_filter = self.request.GET.get('is_overdue_filter', '')
+        
+        # Если нет параметров в GET запросе (первичная загрузка), устанавливаем дефолтные значения
+        if not self.request.GET:
+            # По умолчанию период с начала 2025 года до сегодняшней даты
+            date_from = '2025-01-01'
+            date_to = timezone.now().date().strftime('%Y-%m-%d')
+            status_filter = 'pending'
+        elif not date_from and not date_to:
+            # Если статус changed, но даты не указаны, устанавливаем дефолтные
+            if status_filter == 'reviewed':
+                # Для проверенных - последние 30 дней
+                date_to = timezone.now().date().strftime('%Y-%m-%d')
+                date_from = (timezone.now().date() - timedelta(days=30)).strftime('%Y-%m-%d')
+            else:
+                # Для ожидающих проверки - с начала 2025 года
+                date_from = '2025-01-01'
+                date_to = timezone.now().date().strftime('%Y-%m-%d')
+        
+        # Фильтруем результаты тестов по статусу
+        if status_filter == 'reviewed':
+            # Только проверенные
+            base_query = QuizResult.objects.filter(
+                status='reviewed'
+            )
+        else:
+            # По умолчанию только ожидающие проверки
+            base_query = QuizResult.objects.filter(
+                status='pending'
+            )
+        
+        # Фильтрация по группам для наставников (не staff/superuser)
+        if (hasattr(self.request.user, 'profile') and 
+            self.request.user.profile.is_mentor_user and 
+            not self.request.user.is_staff and 
+            not self.request.user.is_superuser):
+            # Получаем группы наставника
+            mentor_groups = self.request.user.groups.all()
+            if mentor_groups.exists():
+                # Показываем только результаты тестов пользователей из групп наставника
+                base_query = base_query.filter(user__groups__in=mentor_groups).distinct()
+            else:
+                # Если у наставника нет групп, показываем пустой список
+                base_query = base_query.none()
+        
+        # Фильтр по дате прохождения
+        if date_from:
+            date_from_parsed = datetime.datetime.strptime(date_from, '%Y-%m-%d').date()
+            date_from_datetime = timezone.make_aware(datetime.datetime.combine(date_from_parsed, datetime.time.min))
+            base_query = base_query.filter(completed_at__gte=date_from_datetime)
+        if date_to:
+            date_to_parsed = datetime.datetime.strptime(date_to, '%Y-%m-%d').date()
+            date_to_datetime = timezone.make_aware(datetime.datetime.combine(date_to_parsed, datetime.time.max))
+            base_query = base_query.filter(completed_at__lte=date_to_datetime)
+
+        # Фильтр по наставнику
+        if mentor_id:
+            base_query = base_query.filter(course__responsible_mentor_id=mentor_id)
+
+        # Фильтр по просроченным тестам
+        if is_overdue_filter:
+            # Получаем текущее время
+            now = timezone.now()
+            # Фильтруем результаты, у которых есть курс с mentors_time_to_check и дедлайн просрочен
+            # Дедлайн = completed_at + mentors_time_to_check дней
+            # Получаем все результаты с курсами, у которых есть mentors_time_to_check
+            results_with_courses = base_query.filter(
+                course__isnull=False,
+                course__mentors_time_to_check__isnull=False,
+                course__mentors_time_to_check__gt=0
+            ).select_related('course')
+            
+            # Фильтруем в Python, так как Django ORM не поддерживает умножение F на timedelta напрямую
+            overdue_result_ids = []
+            for result in results_with_courses:
+                if result.completed_at and result.course.mentors_time_to_check:
+                    deadline = result.completed_at + timedelta(days=result.course.mentors_time_to_check)
+                    if deadline < now:
+                        overdue_result_ids.append(result.id)
+            
+            # Применяем фильтр по ID просроченных результатов
+            if overdue_result_ids:
+                base_query = base_query.filter(id__in=overdue_result_ids)
+            else:
+                # Если нет просроченных результатов, возвращаем пустой queryset
+                base_query = base_query.none()
+
+        # Получаем список всех наставников из всех результатов (до фильтрации по наставнику)
+        # Это нужно для того, чтобы в выпадающем списке были все наставники, а не только те, что в текущих результатах
+        all_mentors_query = QuizResult.objects.filter(
+            course__responsible_mentor__isnull=False
+        ).values_list('course__responsible_mentor', flat=True).distinct()
+        
+        # Объекты User наставников
+        mentors = User.objects.filter(id__in=all_mentors_query).order_by('first_name', 'last_name', 'username')
+        
+        # Для наставников (не staff/superuser) ограничиваем список наставников только собой
+        if (hasattr(self.request.user, 'profile') and 
+            self.request.user.profile.is_mentor_user and 
+            not self.request.user.is_staff and 
+            not self.request.user.is_superuser):
+            mentors = mentors.filter(id=self.request.user.id)
+
+        # Получаем только лучшие попытки для каждой комбинации (user, quiz_title, course)
+        # Сначала получаем все результаты, затем фильтруем лучшие попытки
+        # Сортируем по user, quiz_title, затем по course (с учетом NULL), затем по percent и completed_at
+        all_results = base_query.select_related('user', 'course', 'course__responsible_mentor').order_by(
+            'user_id', 'quiz_title', 'course_id', '-percent', '-completed_at'
+        )
+        
+        # Группируем по (user, quiz_title, course) и берем первую (лучшую) попытку
+        seen = set()
+        best_result_ids = []
+        for result in all_results:
+            # Используем None для course_id, если курс не указан
+            course_id = result.course_id if result.course_id else None
+            key = (result.user_id, result.quiz_title, course_id)
+            if key not in seen:
+                seen.add(key)
+                best_result_ids.append(result.id)
+        
+        # Фильтруем только лучшие попытки
+        pending_results = base_query.filter(
+            id__in=best_result_ids
+        ).select_related('user', 'course', 'course__responsible_mentor').order_by('-completed_at')
+        
+        paginator = Paginator(pending_results, 20)
+        page_number = self.request.GET.get('page', 1)
+        page_obj = paginator.get_page(page_number)
+        
+        context['pending_results'] = page_obj
+        context['page_obj'] = page_obj
+        context['status_filter'] = status_filter
+        context['now'] = timezone.now()
+        
+        # Передаем текущие значения фильтров в контекст
+        context['date_from'] = date_from if date_from else ''
+        context['date_to'] = date_to if date_to else ''
+        context['mentors'] = mentors
+        context['selected_mentor_id'] = mentor_id if mentor_id else ''
+        context['is_overdue_filter'] = bool(is_overdue_filter)
+        
+        # Добавляем задания (HomeworkSubmission) на проверку
+        homework_status_filter = 'pending' if status_filter == 'pending' else 'correct'
+        if status_filter == 'reviewed':
+            # Для проверенных показываем и correct, и incorrect
+            homework_base_query = HomeworkSubmission.objects.filter(
+                status__in=['correct', 'incorrect']
+            )
+        else:
+            homework_base_query = HomeworkSubmission.objects.filter(
+                status='pending'
+            )
+        
+        # Фильтрация по группам для наставников
+        if (hasattr(self.request.user, 'profile') and 
+            self.request.user.profile.is_mentor_user and 
+            not self.request.user.is_staff and 
+            not self.request.user.is_superuser):
+            mentor_groups = self.request.user.groups.all()
+            if mentor_groups.exists():
+                homework_base_query = homework_base_query.filter(user__groups__in=mentor_groups).distinct()
+            else:
+                homework_base_query = homework_base_query.none()
+        
+        # Фильтр по дате
+        if date_from:
+            homework_base_query = homework_base_query.filter(submitted_at__gte=date_from_datetime)
+        if date_to:
+            homework_base_query = homework_base_query.filter(submitted_at__lte=date_to_datetime)
+        
+        # Фильтр по наставнику (через курс)
+        if mentor_id:
+            homework_base_query = homework_base_query.filter(course__responsible_mentor_id=mentor_id)
+        
+        pending_homeworks = homework_base_query.select_related(
+            'user', 'homework', 'course', 'course__responsible_mentor'
+        ).order_by('-submitted_at')
+        
+        hw_paginator = Paginator(pending_homeworks, 20)
+        hw_page_number = self.request.GET.get('hw_page', 1)
+        hw_page_obj = hw_paginator.get_page(hw_page_number)
+        
+        context['pending_homeworks'] = hw_page_obj
+        context['hw_page_obj'] = hw_page_obj
+        
+        return context
+
+
+
+
+class ReviewQuizView(LoginRequiredMixin, UserPassesTestMixin, DetailView):
+    """
+    Страница для оценки открытых ответов теста наставником.
+    Доступ только для администраторов и наставников.
+    """
+    model = QuizResult
+    template_name = 'quizzes/review_quiz.html'
+    context_object_name = 'quiz_result'
+    pk_url_kwarg = 'result_id'
+    login_url = 'users:login'
+    
+    def test_func(self):
+        """Проверка прав доступа"""
+        if not self.request.user.is_authenticated:
+            return False
+        
+        # Доступ для staff/superuser
+        if self.request.user.is_staff or self.request.user.is_superuser:
+            return True
+        
+        # Доступ для наставников, но только для тестов пользователей из их групп
+        if (hasattr(self.request.user, 'profile') and 
+            self.request.user.profile.is_mentor_user):
+            # Получаем объект результата теста
+            result_id = self.kwargs.get('result_id')
+            if result_id:
+                try:
+                    quiz_result = QuizResult.objects.get(id=result_id)
+                    # Проверяем, что пользователь теста состоит в группах наставника
+                    mentor_groups = self.request.user.groups.all()
+                    if mentor_groups.exists():
+                        user_groups = quiz_result.user.groups.all()
+                        # Проверяем пересечение групп
+                        return mentor_groups.filter(id__in=user_groups).exists()
+                except QuizResult.DoesNotExist:
+                    return False
+        
+        return False
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        quiz_result = self.get_object()
+        
+        # Получаем тест
+        from quizzes.models import Quiz
+        quiz = Quiz.objects.filter(name=quiz_result.quiz_title).first()
+        
+        # Получаем все ответы пользователя на открытые вопросы
+        text_answers = UserAnswer.objects.filter(
+            quiz_result=quiz_result,
+            question__question_type=Question.TEXT
+        ).select_related('question', 'user').order_by('question__id')
+        
+        # Получаем все ответы пользователя (для отображения полной информации)
+        all_answers = UserAnswer.objects.filter(
+            quiz_result=quiz_result
+        ).select_related('question', 'selected_answer').order_by('question__id')
+        
+        # Группируем ответы по вопросам (особенно важно для MULTIPLE типа)
+        grouped_answers = {}
+        for answer in all_answers:
+            if answer.question not in grouped_answers:
+                grouped_answers[answer.question] = []
+            grouped_answers[answer.question].append(answer)
+        
+        context['quiz'] = quiz
+        context['text_answers'] = text_answers
+        context['all_answers'] = all_answers
+        context['grouped_answers'] = grouped_answers
+        context['user_id'] = quiz_result.user.id
+        
+        return context
+    
+    def post(self, request, *args, **kwargs):
+        """Обработка оценки открытых ответов"""
+        quiz_result = self.get_object()
+        
+        # Получаем оценки для каждого открытого вопроса
+        text_answers = UserAnswer.objects.filter(
+            quiz_result=quiz_result,
+            question__question_type=Question.TEXT
+        )
+        
+        total_text_score = 0.0
+        for answer in text_answers:
+            score_key = f'score_{answer.id}'
+            score_value = request.POST.get(score_key, '0')
+            
+            # Преобразуем оценку в float
+            try:
+                score = float(score_value)
+                # Ограничиваем значение от 0 до 1
+                score = max(0, min(1, score))
+            except ValueError:
+                score = 0.0
+            
+            answer.score_points = score
+            answer.is_correct = score > 0  # Считаем правильным, если балл > 0
+            answer.save()
+            
+            total_text_score += score
+        
+        # Получаем комментарий наставника
+        mentor_comment = request.POST.get('mentor_comment', '')
+        
+        # Пересчитываем общий результат теста с учетом оценок открытых вопросов
+        from quizzes.models import Quiz
+        quiz = Quiz.objects.filter(name=quiz_result.quiz_title).first()
+        
+        if quiz:
+            # Считаем общее количество вопросов
+            total_questions = Question.objects.filter(quiz=quiz).count()
+            text_questions_count = Question.objects.filter(quiz=quiz, question_type=Question.TEXT).count()
+            auto_checkable_count = total_questions - text_questions_count
+            
+            # Получаем баллы за автопроверяемые вопросы
+            auto_score = quiz_result.score
+            
+            # Общий балл = баллы за автопроверяемые + баллы за открытые
+            total_score = auto_score + total_text_score
+            
+            # Пересчитываем процент
+            if total_questions > 0:
+                percent_score = int((total_score / total_questions) * 100)
+            else:
+                percent_score = 0
+            
+            # Определяем, прошел ли пользователь тест
+            passed = percent_score >= quiz.pass_threshold
+            
+            # Обновляем результат теста
+            quiz_result.score = total_score  # Обновляем score с учетом баллов за TEXT вопросы
+            quiz_result.percent = percent_score
+            quiz_result.passed = passed
+            quiz_result.status = 'reviewed'
+            quiz_result.reviewed_by = request.user
+            quiz_result.reviewed_at = timezone.now()
+            quiz_result.mentor_comment = mentor_comment
+            quiz_result.save()
+            
+            # Создаем уведомление для пользователя об оценке теста
+            try:
+                from notifications.models import Notification
+                Notification.create_quiz_reviewed_notification(quiz_result)
+            except Exception as e:
+                # Логируем ошибку, но не прерываем процесс
+                import logging
+                logger = logging.getLogger(__name__)
+                logger.error(f"Ошибка создания уведомления об оценке теста: {e}")
+            
+            # Начисляем баллы и выдаем сертификаты, если тест пройден
+            if passed:
+                course = quiz_result.course
+                from_control_panel = False  # Это проверка наставником, не из панели управления
+                
+                # Проверяем, был ли тест уже пройден ранее в рамках этого курса
+                previous_quiz_result = QuizResult.objects.filter(
+                    user=quiz_result.user,
+                    quiz_title=quiz.name,
+                    course=course,
+                    passed=True,
+                    completed_at__lt=quiz_result.completed_at
+                ).first()
+                
+                if course:
+                    # Получаем UserCourse ТОЛЬКО если пользователь действительно проходит этот курс
+                    user_course = UserCourse.objects.filter(user=quiz_result.user, course=course, status='started').first()
+                    
+                    if user_course:
+                        # Проверяем, что все уроки курса завершены
+                        completed_lessons = UserProgress.objects.filter(
+                            user=quiz_result.user,
+                            course=course,
+                            completed=True
+                        ).count()
+                        total_lessons = course.lessons.count()
+                        
+                        # Проверяем, что все тесты курса пройдены в рамках этого курса
+                        completed_quizzes = QuizResult.objects.filter(
+                            user=quiz_result.user,
+                            course=course,
+                            quiz_title__in=[q.name for q in course.quizzes.all()],
+                            passed=True
+                        ).count()
+                        total_quizzes = course.quizzes.count()
+                        
+                        # Завершаем курс только если все уроки И все тесты пройдены
+                        if completed_lessons >= total_lessons and completed_quizzes >= total_quizzes:
+                            # Начисляем очки за тест только если он не был пройден ранее И курс не является инцидентом
+                            if not previous_quiz_result and not course.is_incident:
+                                award_dascoin_points(quiz_result.user, 10, f"Прохождение теста {quiz.name}")
+                            
+                            # Проверяем, есть ли финальный тест
+                            if course.final_quiz:
+                                # Если есть финальный тест, проверяем, пройден ли он
+                                final_quiz_passed = QuizResult.objects.filter(
+                                    user=quiz_result.user,
+                                    course=course,
+                                    quiz_title=course.final_quiz.name,
+                                    passed=True
+                                ).exists()
+                                
+                                if final_quiz_passed:
+                                    # Финальный тест пройден - завершаем курс
+                                    if user_course.status != 'completed':
+                                        user_course.status = 'completed'
+                                        user_course.save()
+                                        # Начисляем баллы только если курс не является инцидентом
+                                        if not course.is_incident:
+                                            award_dascoin_points(quiz_result.user, course.points, f"Завершение курса {course.title}")
+                                            award_course_badge(quiz_result.user, course)
+                                            issue_certificate(quiz_result.user, course=course)
+                            else:
+                                # Финального теста нет - завершаем курс
+                                if user_course.status != 'completed':
+                                    user_course.status = 'completed'
+                                    user_course.save()
+                                    # Начисляем баллы только если курс не является инцидентом
+                                    if not course.is_incident:
+                                        award_dascoin_points(quiz_result.user, course.points, f"Завершение курса {course.title}")
+                                        award_course_badge(quiz_result.user, course)
+                                        issue_certificate(quiz_result.user, course=course)
+                            
+                            if percent_score == 100:
+                                award_achievement(quiz_result.user, 'perfect_score', 'Идеальный результат', 'Получили 100% за прохождение теста')
+                        else:
+                            # Если не все уроки завершены, начисляем только очки за тест (если курс не является инцидентом)
+                            if not previous_quiz_result and not course.is_incident:
+                                award_dascoin_points(quiz_result.user, 10, f"Прохождение теста {quiz.name}")
+                            if percent_score == 100:
+                                award_achievement(quiz_result.user, 'perfect_score', 'Идеальный результат', 'Получили 100% за прохождение теста')
+                    else:
+                        # Если пользователь не проходит этот курс, начисляем только очки за тест (если курс не является инцидентом)
+                        if not previous_quiz_result and not course.is_incident:
+                            award_dascoin_points(quiz_result.user, 10, f"Прохождение теста {quiz.name}")
+                        if percent_score == 100:
+                            award_achievement(quiz_result.user, 'perfect_score', 'Идеальный результат', 'Получили 100% за прохождение теста')
+                elif not previous_quiz_result:
+                    # Если тест не привязан к курсу, но пройден - начисляем очки только если не был пройден ранее
+                    award_dascoin_points(quiz_result.user, 10, f"Прохождение теста {quiz.name}")
+                    if percent_score == 100:
+                        award_achievement(quiz_result.user, 'perfect_score', 'Идеальный результат', 'Получили 100% за прохождение теста')
+        
+        messages.success(request, f'Оценка теста "{quiz_result.quiz_title}" для пользователя {quiz_result.user.username} сохранена.')
+        return redirect('quizzes:review_quiz', result_id=quiz_result.id)
+
+
+@require_http_methods(["POST"])
+def quiz_upload_docx(request):
+    """
+    Обработка загрузки DOCX файла и создание теста.
+    
+    Формат DOCX:
+    - Курсивный текст = номер и текст вопроса
+    - Обычный текст = варианты ответов
+    - Жирный текст или маркер = правильный ответ
+    """
+    if not (request.user.is_staff or request.user.is_superuser):
+        return JsonResponse({'success': False, 'error': 'Доступ запрещен'}, status=403)
+    
+    if 'docx_file' not in request.FILES:
+        return JsonResponse({'success': False, 'error': 'Файл не загружен'})
+    
+    # Получаем название теста из формы
+    quiz_name = request.POST.get('quiz_name', '').strip()
+    if not quiz_name:
+        return JsonResponse({
+            'success': False,
+            'error': 'Не указано название теста'
+        })
+    
+    docx_file = request.FILES['docx_file']
+    
+    # Проверка расширения
+    if not docx_file.name.endswith('.docx'):
+        return JsonResponse({'success': False, 'error': 'Поддерживаются только файлы .docx'})
+    
+    # Проверка размера файла (максимум 20MB)
+    if docx_file.size > 20 * 1024 * 1024:
+        return JsonResponse({'success': False, 'error': 'Размер файла не должен превышать 10MB'})
+    
+    # Сохраняем файл во временную директорию
+    import tempfile
+    import os
+    
+    with tempfile.NamedTemporaryFile(delete=False, suffix='.docx') as tmp_file:
+        for chunk in docx_file.chunks():
+            tmp_file.write(chunk)
+        tmp_path = tmp_file.name
+    
+    try:
+        # Импортируем процессор
+        from .utils.docx_processor import DocxQuizProcessor
+        
+        # Обрабатываем файл
+        processor = DocxQuizProcessor()
+        quiz_data = processor.parse_docx(tmp_path)
+        
+        # Проверяем, что данные извлечены
+        if not quiz_data.get('questions'):
+            return JsonResponse({
+                'success': False,
+                'error': 'Не найдено ни одного вопроса. Убедитесь, что в документе есть курсивный текст с вопросами в формате "Вопрос 1. Текст вопроса".'
+            })
+        
+        # Проверяем, не существует ли уже тест с таким именем
+        if Quiz.objects.filter(name=quiz_name).exists():
+            return JsonResponse({
+                'success': False,
+                'error': f'Тест с названием "{quiz_name}" уже существует'
+            })
+        
+        # Создаем тест
+        quiz = Quiz.objects.create(
+            name=quiz_name,
+            attempt_limit=int(request.POST.get('attempt_limit', 0)),
+            pass_threshold=int(request.POST.get('pass_threshold', 70)),
+            time_limit=int(request.POST.get('time_limit', 0))
+        )
+        
+        # Создаем вопросы и ответы
+        created_questions = 0
+        created_answers = 0
+        
+        # Сортируем вопросы по порядку перед созданием
+        sorted_questions = sorted(
+            quiz_data.get('questions', []),
+            key=lambda x: x.get('order', 999)  # Если order не найден, ставим в конец
+        )
+        
+        for q_data in sorted_questions:
+            # Пропускаем вопросы без текста
+            if not q_data.get('text', '').strip():
+                continue
+            
+            # Пропускаем вопросы без ответов
+            answers = q_data.get('answers', [])
+            if not answers:
+                continue
+            
+            # Определяем тип вопроса
+            question_type = q_data.get('type', 'single')
+            
+            # Если несколько правильных ответов, меняем тип на multiple
+            correct_count = sum(1 for ans in answers if ans.get('is_correct', False))
+            if correct_count > 1:
+                question_type = 'multiple'
+            elif correct_count == 0:
+                # Если нет правильных ответов, пропускаем вопрос
+                continue
+            
+            # Создаем вопрос
+            question = Question.objects.create(
+                quiz=quiz,
+                text=q_data['text'].strip(),
+                question_type=question_type
+            )
+            created_questions += 1
+            
+            # Создаем ответы
+            for answer_data in answers:
+                if not answer_data.get('text', '').strip():
+                    continue
+                
+                Answer.objects.create(
+                    question=question,
+                    text=answer_data['text'].strip(),
+                    is_correct=answer_data.get('is_correct', False)
+                )
+                created_answers += 1
+        
+        # Проверяем, что созданы вопросы
+        if created_questions == 0:
+            quiz.delete()
+            return JsonResponse({
+                'success': False,
+                'error': 'Не удалось создать ни одного вопроса. Проверьте формат документа.'
+            })
+        
+        return JsonResponse({
+            'success': True,
+            'id': quiz.id,
+            'name': quiz.name,
+            'questions_count': created_questions,
+            'answers_count': created_answers
+        })
+    
+    except Exception as e:
+        import traceback
+        error_details = traceback.format_exc()
+        logging.error(f'Ошибка при обработке DOCX файла: {error_details}')
+        
+        return JsonResponse({
+            'success': False,
+            'error': f'Ошибка при обработке файла: {str(e)}'
+        })
+    
+    finally:
+        # Удаляем временный файл
+        if os.path.exists(tmp_path):
+            try:
+                os.unlink(tmp_path)
+            except Exception:
+                pass
+
+
+# ============================================
+# Views для заданий (Homework)
+# ============================================
+
+class HomeworkCreateView(LoginRequiredMixin, UserPassesTestMixin, CreateView):
+    """Создание нового задания"""
+    model = Homework
+    template_name = 'quizzes/homework_form.html'
+    login_url = 'users:login'
+    
+    def test_func(self):
+        """Только администраторы"""
+        return self.request.user.is_staff or self.request.user.is_superuser
+    
+    def get_form_class(self):
+        from .forms import HomeworkForm
+        return HomeworkForm
+    
+    def get_success_url(self):
+        from django.urls import reverse
+        return reverse('quizzes:quizzes')
+    
+    def form_valid(self, form):
+        from django.contrib import messages
+        response = super().form_valid(form)
+        messages.success(self.request, f'Задание "{form.instance.title}" успешно создано!')
+        return response
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['action'] = 'Создать'
+        return context
+
+
+class HomeworkEditView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
+    """Редактирование задания"""
+    template_name = 'quizzes/homework_form.html'
+    login_url = 'users:login'
+    pk_url_kwarg = 'homework_id'
+    
+    def test_func(self):
+        """Только администраторы"""
+        return self.request.user.is_staff or self.request.user.is_superuser
+    
+    def get_queryset(self):
+        from .models import Homework
+        return Homework.objects.all()
+    
+    def get_form_class(self):
+        from .forms import HomeworkForm
+        return HomeworkForm
+    
+    def get_success_url(self):
+        from django.urls import reverse
+        return reverse('quizzes:quizzes')
+    
+    def form_valid(self, form):
+        from django.contrib import messages
+        response = super().form_valid(form)
+        messages.success(self.request, f'Задание "{form.instance.title}" успешно обновлено!')
+        return response
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['action'] = 'Редактировать'
+        return context
+
+
+class HomeworkDeleteView(LoginRequiredMixin, UserPassesTestMixin, DeleteView):
+    """Удаление задания"""
+    template_name = 'quizzes/homework_confirm_delete.html'
+    login_url = 'users:login'
+    pk_url_kwarg = 'homework_id'
+    
+    def test_func(self):
+        """Только администраторы"""
+        return self.request.user.is_staff or self.request.user.is_superuser
+    
+    def get_queryset(self):
+        from .models import Homework
+        return Homework.objects.all()
+    
+    def get_success_url(self):
+        from django.urls import reverse
+        return reverse('quizzes:quizzes')
+    
+    def delete(self, request, *args, **kwargs):
+        from django.contrib import messages
+        homework = self.get_object()
+        messages.success(request, f'Задание "{homework.title}" успешно удалено!')
+        return super().delete(request, *args, **kwargs)
+
+
+class HomeworkSubmitView(LoginRequiredMixin, View):
+    """Выполнение задания пользователем"""
+    template_name = 'quizzes/homework_submit.html'
+    
+    def dispatch(self, request, *args, **kwargs):
+        from .models import Homework
+        self.homework = get_object_or_404(Homework, id=kwargs['homework_id'])
+        return super().dispatch(request, *args, **kwargs)
+    
+    def _get_navigation_context(self, course):
+        """Получает контекст навигации (предыдущий/следующий материал)"""
+        from .models import HomeworkSubmission
+        
+        if not course:
+            return {}
+        
+        # Получаем все материалы курса
+        materials = course.get_course_materials()
+        
+        # Находим текущее задание в списке материалов
+        current_index = None
+        for i, material in enumerate(materials):
+            if material['type'] == 'homework' and material['id'] == self.homework.id:
+                current_index = i
+                break
+        
+        if current_index is None:
+            return {}
+        
+        # Определяем предыдущий материал
+        previous_material = None
+        if current_index > 0:
+            previous_material = materials[current_index - 1]
+        
+        # Определяем следующий материал
+        next_material = None
+        if current_index < len(materials) - 1:
+            next_material = materials[current_index + 1]
+        
+        return {
+            'previous_material': previous_material,
+            'next_material': next_material,
+        }
+    
+    def get(self, request, *args, **kwargs):
+        from .forms import HomeworkSubmissionForm
+        from .models import HomeworkSubmission
+        
+        course_slug = request.GET.get('course_slug')
+        course = None
+        if course_slug:
+            course = get_object_or_404(Course, slug=course_slug)
+        
+        # Проверяем, есть ли уже отправленный ответ
+        existing_submission = HomeworkSubmission.objects.select_related(
+            'reviewed_by__profile'
+        ).filter(
+            user=request.user,
+            homework=self.homework,
+            course=course
+        ).first()
+        
+        form = HomeworkSubmissionForm()
+        
+        # Получаем контекст навигации
+        nav_context = self._get_navigation_context(course)
+        
+        context = {
+            'homework': self.homework,
+            'form': form,
+            'course': course,
+            'existing_submission': existing_submission,
+        }
+        context.update(nav_context)
+        return render(request, self.template_name, context)
+    
+    def post(self, request, *args, **kwargs):
+        from .forms import HomeworkSubmissionForm
+        from .models import HomeworkSubmission, HomeworkSubmissionImage
+        from django.contrib import messages
+        
+        course_slug = request.POST.get('course_slug') or request.GET.get('course_slug')
+        course = None
+        if course_slug:
+            course = get_object_or_404(Course, slug=course_slug)
+        
+        form = HomeworkSubmissionForm(request.POST, request.FILES)
+        images = request.FILES.getlist('images')
+        
+        # Проверяем, что есть хотя бы текст или изображения
+        answer_text = request.POST.get('answer_text', '').strip()
+        if not answer_text and not images:
+            form.add_error(None, 'Введите текст ответа или прикрепите хотя бы одно фото.')
+            nav_context = self._get_navigation_context(course)
+            context = {
+                'homework': self.homework,
+                'form': form,
+                'course': course,
+            }
+            context.update(nav_context)
+            return render(request, self.template_name, context)
+        
+        if form.is_valid():
+            # Проверяем, есть ли уже отправленный ответ
+            existing = HomeworkSubmission.objects.filter(
+                user=request.user,
+                homework=self.homework,
+                course=course
+            ).first()
+            
+            if existing:
+                # Обновляем существующий ответ
+                existing.answer_text = form.cleaned_data['answer_text'] or ''
+                existing.status = 'pending'
+                existing.reviewed_by = None
+                existing.reviewed_at = None
+                existing.mentor_feedback = None
+                existing.save()
+                
+                # Удаляем старые изображения и добавляем новые
+                if images:
+                    existing.images.all().delete()
+                    for image in images:
+                        HomeworkSubmissionImage.objects.create(
+                            submission=existing,
+                            image=image
+                        )
+                
+                submission = existing
+                messages.info(request, 'Ваш ответ обновлен и отправлен на проверку!')
+            else:
+                # Создаем новый ответ
+                submission = form.save(commit=False)
+                submission.user = request.user
+                submission.homework = self.homework
+                submission.course = course
+                submission.status = 'pending'
+                submission.answer_text = submission.answer_text or ''
+                submission.save()
+                
+                # Сохраняем изображения
+                for image in images:
+                    HomeworkSubmissionImage.objects.create(
+                        submission=submission,
+                        image=image
+                    )
+                
+                messages.success(request, 'Ваш ответ отправлен на проверку!')
+            
+            # Перенаправляем обратно на страницу курса или на главную
+            if course:
+                return redirect('courses:course_detail', slug=course.slug)
+            return redirect('home')
+        
+        nav_context = self._get_navigation_context(course)
+        context = {
+            'homework': self.homework,
+            'form': form,
+            'course': course,
+        }
+        context.update(nav_context)
+        return render(request, self.template_name, context)
+
+
+class HomeworkReviewView(LoginRequiredMixin, UserPassesTestMixin, View):
+    """Проверка задания наставником"""
+    template_name = 'quizzes/homework_review.html'
+    
+    def test_func(self):
+        """Проверка прав доступа"""
+        if not self.request.user.is_authenticated:
+            return False
+        
+        # Доступ для staff/superuser
+        if self.request.user.is_staff or self.request.user.is_superuser:
+            return True
+        
+        # Доступ для наставников
+        if hasattr(self.request.user, 'profile') and self.request.user.profile.is_mentor_user:
+            return True
+        
+        return False
+    
+    def dispatch(self, request, *args, **kwargs):
+        from .models import HomeworkSubmission
+        self.submission = get_object_or_404(HomeworkSubmission, id=kwargs['submission_id'])
+        return super().dispatch(request, *args, **kwargs)
+    
+    def get(self, request, *args, **kwargs):
+        context = {
+            'submission': self.submission,
+            'homework': self.submission.homework,
+        }
+        return render(request, self.template_name, context)
+    
+    def post(self, request, *args, **kwargs):
+        from django.contrib import messages
+        from notifications.models import Notification
+        from gamification.utils import award_dascoin_points
+        
+        status = request.POST.get('status')  # 'correct' или 'incorrect'
+        mentor_feedback = request.POST.get('mentor_feedback', '')
+        
+        if status not in ['correct', 'incorrect']:
+            messages.error(request, 'Неверный статус оценки!')
+            return redirect('quizzes:homework_review', submission_id=self.submission.id)
+        
+        self.submission.status = status
+        self.submission.mentor_feedback = mentor_feedback
+        self.submission.reviewed_by = request.user
+        self.submission.reviewed_at = timezone.now()
+        self.submission.save()
+        
+        # Создаем уведомление для пользователя
+        if status == 'correct':
+            title = "Задание проверено: Правильно!"
+            message = f"Ваше задание «{self.submission.homework.title}» проверено наставником и засчитано!"
+            if mentor_feedback:
+                message += f"\n\nКомментарий наставника: {mentor_feedback}"
+            
+            # Начисляем DASCOIN за правильно выполненное задание
+            if self.submission.homework.points > 0:
+                award_dascoin_points(
+                    self.submission.user, 
+                    self.submission.homework.points, 
+                    f"Выполнение задания: {self.submission.homework.title}"
+                )
+        else:
+            title = "Задание проверено: Не засчитано"
+            message = f"Ваше задание «{self.submission.homework.title}» проверено наставником."
+            if mentor_feedback:
+                message += f"\n\nКомментарий наставника: {mentor_feedback}"
+            else:
+                message += "\n\nПопробуйте выполнить задание заново."
+        
+        # Создаем уведомление
+        Notification.objects.create(
+            user=self.submission.user,
+            notification_type='homework_reviewed',
+            title=title,
+            message=message,
+            related_course=self.submission.course,
+            related_homework_submission=self.submission
+        )
+        
+        messages.success(request, f'Задание оценено: {self.submission.get_status_display()}')
+        
+        # Логируем действие
+        audit_logger.info(
+            f"Задание {self.submission.homework.title} пользователя {self.submission.user.username} "
+            f"проверено наставником {request.user.username}. Статус: {status}"
+        )
+        
+        return redirect('quizzes:pending_quizzes')
+
+
+def search_homeworks_ajax(request):
+    """
+    AJAX endpoint для поиска заданий по названию
+    """
+    from .models import Homework
+    
+    search_term = request.GET.get('q', '').strip()
+    
+    if search_term:
+        homeworks = Homework.objects.filter(
+            name__icontains=search_term
+        ).order_by('-id').values('id', 'name', 'points')
+    else:
+        homeworks = Homework.objects.all().order_by('-id').values('id', 'name', 'points')[:100]
+    
+    # Преобразуем 'name' в 'title' для совместимости с фронтендом
+    results = [{'id': h['id'], 'title': h['name'], 'points': h['points']} for h in homeworks]
+    
+    return JsonResponse({
+        'success': True,
+        'results': results,
+        'count': len(results)
+    })

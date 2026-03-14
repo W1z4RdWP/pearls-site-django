@@ -1,0 +1,609 @@
+{% extends 'layout.html' %}
+{% load static %}
+{% load extra_tags %}
+
+{% block specific_styles %}
+    <style>
+        .detail-wrapper {
+            max-width: 1200px;
+            margin: 20px auto;
+            padding: 0 20px;
+        }
+        
+        .detail-header {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 30px;
+            border-left: 4px solid #007bff;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+        }
+        
+        .detail-header h1 {
+            margin: 0 0 10px 0;
+            color: #333;
+        }
+        
+        .detail-header p {
+            margin: 0;
+            color: #666;
+        }
+        
+        .btn-back {
+            background: #6c757d;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            text-decoration: none;
+            font-size: 14px;
+        }
+        
+        .btn-back:hover {
+            background: #5a6268;
+            color: white;
+            text-decoration: none;
+        }
+        
+        .btn-export {
+            background: #17a2b8;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            text-decoration: none;
+            font-size: 14px;
+            margin-left: 10px;
+        }
+        
+        .btn-export:hover {
+            background: #138496;
+            color: white;
+            text-decoration: none;
+        }
+        
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .info-card {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .info-card h3 {
+            margin: 0 0 15px 0;
+            color: #333;
+            border-bottom: 2px solid #007bff;
+            padding-bottom: 10px;
+        }
+        
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .info-row:last-child {
+            border-bottom: none;
+        }
+        
+        .info-label {
+            font-weight: 600;
+            color: #666;
+        }
+        
+        .info-value {
+            color: #333;
+        }
+        
+        .doctors-section {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 30px;
+        }
+        
+        .doctors-section h3 {
+            margin: 0 0 20px 0;
+            color: #333;
+            border-bottom: 2px solid #007bff;
+            padding-bottom: 10px;
+        }
+        
+        .doctor-card {
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            overflow: hidden;
+        }
+        
+        .doctor-header {
+            background: #f8f9fa;
+            padding: 15px;
+            border-bottom: 1px solid #ddd;
+        }
+        
+        .doctor-header h4 {
+            margin: 0;
+            color: #333;
+        }
+        
+        .doctor-info {
+            padding: 15px;
+        }
+        
+        .doctor-info-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 15px;
+            margin-bottom: 10px;
+        }
+        
+        .months-section {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .months-section h3 {
+            margin: 0 0 20px 0;
+            color: #333;
+            border-bottom: 2px solid #007bff;
+            padding-bottom: 10px;
+        }
+        
+        .month-tabs {
+            display: flex;
+            border-bottom: 1px solid #ddd;
+            margin-bottom: 20px;
+            overflow-x: auto;
+        }
+        
+        .month-tab {
+            padding: 10px 20px;
+            background: #f8f9fa;
+            border: 1px solid #ddd;
+            border-bottom: none;
+            cursor: pointer;
+            white-space: nowrap;
+        }
+        
+        .month-tab.active {
+            background: #007bff;
+            color: white;
+        }
+        
+        .month-content {
+            display: none;
+        }
+        
+        .month-content.active {
+            display: block;
+        }
+        
+        .metrics-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        
+        .metrics-table th {
+            background: #f8f9fa;
+            padding: 12px;
+            text-align: left;
+            border: 1px solid #ddd;
+            font-weight: 600;
+        }
+        
+        .metrics-table td {
+            padding: 12px;
+            border: 1px solid #ddd;
+        }
+        
+        .metrics-table tr:nth-child(even) {
+            background: #f9f9f9;
+        }
+        
+        /* Скрываем карточки метрик на десктопе */
+        .metric-card {
+            display: none;
+        }
+        
+        /* Адаптация под мобильные */
+        @media screen and (max-width: 768px) {
+            .detail-wrapper {
+                padding: 0 10px;
+                margin: 10px auto;
+            }
+            
+            .detail-header {
+                flex-direction: column;
+                gap: 15px;
+                padding: 15px;
+            }
+            
+            .detail-header h1 {
+                font-size: 1.3rem;
+            }
+            
+            .detail-header p {
+                font-size: 13px;
+            }
+            
+            .detail-header > div:last-child {
+                display: flex;
+                flex-direction: column;
+                gap: 10px;
+                width: 100%;
+            }
+            
+            .btn-back,
+            .btn-export {
+                width: 100%;
+                text-align: center;
+                margin: 0;
+                padding: 12px 16px;
+            }
+            
+            .info-grid {
+                grid-template-columns: 1fr;
+                gap: 15px;
+                margin-bottom: 20px;
+            }
+            
+            .info-card {
+                padding: 15px;
+            }
+            
+            .info-card h3 {
+                font-size: 1.1rem;
+            }
+            
+            .info-row {
+                flex-direction: column;
+                gap: 5px;
+                padding: 10px 0;
+            }
+            
+            .info-label {
+                font-size: 12px;
+            }
+            
+            .info-value {
+                font-size: 14px;
+                font-weight: 500;
+            }
+            
+            .doctors-section {
+                padding: 15px;
+                margin-bottom: 20px;
+            }
+            
+            .doctors-section h3 {
+                font-size: 1.1rem;
+            }
+            
+            .doctor-card {
+                margin-bottom: 15px;
+            }
+            
+            .doctor-header {
+                padding: 12px;
+            }
+            
+            .doctor-header h4 {
+                font-size: 1rem;
+            }
+            
+            .doctor-info {
+                padding: 12px;
+            }
+            
+            .doctor-info-row {
+                grid-template-columns: 1fr;
+                gap: 12px;
+            }
+            
+            .doctor-info-row > div {
+                padding: 10px;
+                background: #f8f9fa;
+                border-radius: 4px;
+            }
+            
+            .months-section {
+                padding: 15px;
+            }
+            
+            .months-section h3 {
+                font-size: 1.1rem;
+            }
+            
+            .month-tabs {
+                gap: 5px;
+                margin-bottom: 15px;
+            }
+            
+            .month-tab {
+                padding: 8px 12px;
+                font-size: 13px;
+            }
+            
+            /* Скрываем таблицу метрик на мобильных */
+            .metrics-table {
+                display: none;
+            }
+            
+            /* Показываем карточки метрик */
+            .metric-card {
+                display: block;
+                background: white;
+                border: 1px solid #ddd;
+                border-radius: 8px;
+                padding: 15px;
+                margin-bottom: 15px;
+            }
+            
+            .metric-card-header {
+                background: #f8f9fa;
+                padding: 10px;
+                margin: -15px -15px 15px -15px;
+                border-radius: 8px 8px 0 0;
+                border-bottom: 2px solid #007bff;
+            }
+            
+            .metric-card-header strong {
+                color: #007bff;
+                font-size: 1rem;
+            }
+            
+            .metric-card-row {
+                display: flex;
+                justify-content: space-between;
+                padding: 8px 0;
+                border-bottom: 1px solid #eee;
+            }
+            
+            .metric-card-row:last-child {
+                border-bottom: none;
+            }
+            
+            .metric-card-label {
+                font-weight: 600;
+                color: #666;
+                font-size: 13px;
+            }
+            
+            .metric-card-value {
+                color: #333;
+                font-size: 13px;
+                text-align: right;
+            }
+        }
+    </style>
+{% endblock %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block content %}
+<div class="detail-wrapper">
+    <div class="detail-header">
+        <div>
+            <h1>Детали формы метрик</h1>
+            <p>{{ submission.clinic_name }} • Отправлено {{ submission.submitted_at|date:"d.m.Y в H:i" }}</p>
+        </div>
+        <div>
+            <a href="{% url 'courses:metrics_admin_list' %}" class="btn-back">← Назад к списку</a>
+            <a href="{% url 'courses:metrics_export_excel' submission.id %}" class="btn-export">📊 Экспорт в Excel</a>
+        </div>
+    </div>
+    
+    <div class="info-grid">
+        <div class="info-card">
+            <h3>Информация о пользователе</h3>
+            <div class="info-row">
+                <span class="info-label">Имя:</span>
+                <span class="info-value">{{ submission.user.get_full_name|default:submission.user.username }}</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Email:</span>
+                <span class="info-value">{{ submission.user.email }}</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Дата регистрации:</span>
+                <span class="info-value">{{ submission.user.date_joined|date:"d.m.Y" }}</span>
+            </div>
+        </div>
+        
+        <div class="info-card">
+            <h3>Основные данные клиники</h3>
+            <div class="info-row">
+                <span class="info-label">Название:</span>
+                <span class="info-value">{{ submission.clinic_name }}</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Начальный месяц:</span>
+                <span class="info-value">{{ submission.initial_month }}</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Количество врачей:</span>
+                <span class="info-value">{{ submission.doctors_count }}</span>
+            </div>
+                        <div class="info-row">
+                <span class="info-label">Количество кресел:</span>
+                <span class="info-value">{{ submission.chairs_count }}</span>
+            </div>
+        </div>
+        
+        <div class="info-card">
+            <h3>График работы</h3>
+            <div class="info-row">
+                <span class="info-label">Будни (Пн-Пт):</span>
+                <span class="info-value">{{ submission.hours_weekdays|default:"—" }} ч</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Суббота:</span>
+                <span class="info-value">{{ submission.hours_saturday|default:"—" }} ч</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Воскресенье:</span>
+                <span class="info-value">{{ submission.hours_sunday|default:"—" }} ч</span>
+            </div>
+        </div>
+        
+        <div class="info-card">
+            <h3>Рабочие дни по месяцам</h3>
+            <div class="info-row">
+                <span class="info-label">{{ submission.initial_month|month_name_from_initial:0|capfirst }} (количество дней):</span>
+                <span class="info-value">{{ submission.days_month_1 }} </span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">{{ submission.initial_month|month_name_from_initial:1|capfirst }} (количество дней):</span>
+                <span class="info-value">{{ submission.days_month_2 }} </span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">{{ submission.initial_month|month_name_from_initial:2|capfirst }} (количество дней):</span>
+                <span class="info-value">{{ submission.days_month_3 }} </span>
+            </div>
+
+        </div>
+    </div>
+    
+    {% if submission.doctors_data.doctors %}
+        <div class="doctors-section">
+            <h3>Список врачей</h3>
+            {% for doctor in submission.doctors_data.doctors %}
+                <div class="doctor-card">
+                    <div class="doctor-header">
+                        <h4>{{ doctor.name|default:"Врач не указан" }}</h4>
+                    </div>
+                    <div class="doctor-info">
+                        <div class="doctor-info-row">
+                            <div>
+                                <strong>Врач №:</strong><br>
+                                {{ forloop.counter }}
+                            </div>
+                            <div>
+                                <strong>Специализация:</strong><br>
+                                {% if doctor.specialization == "hygienist" %}Гигиенист
+                                {% elif doctor.specialization == "implantologist" %}Имплантолог
+                                {% elif doctor.specialization == "orthodontist" %}Ортодонт
+                                {% elif doctor.specialization == "orthopedist" %}Ортопед
+                                {% elif doctor.specialization == "periodontist" %}Пародонтолог
+                                {% elif doctor.specialization == "therapist" %}Терапевт
+                                {% elif doctor.specialization == "surgeon" %}Хирург
+                                {% elif doctor.specialization == "therapist_surgeon" %}Терапевт-Хирург
+                                {% elif doctor.specialization == "orthopedist_surgeon" %}Ортопед-Хирург
+                                {% elif doctor.specialization == "universal" %}Универсал
+                                {% else %}Не указана{% endif %}
+                            </div>
+                            <div>
+                                <strong>Тип занятости:</strong><br>
+                                {% if doctor.employment == "full_time" %}Постоянное место работы
+                                {% elif doctor.employment == "part_time" %}Совместительство
+                                {% else %}Не указан{% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    {% endif %}
+    
+    {% if submission.doctors_data.months %}
+        <div class="months-section">
+            <h3>Метрики по месяцам</h3>
+            
+            <div class="month-tabs">
+                {% for month in submission.doctors_data.months %}
+                    <div class="month-tab {% if forloop.first %}active{% endif %}" onclick="showMonth({{ forloop.counter0 }})">
+                        {{ submission.initial_month|month_name_from_initial:forloop.counter0 }}
+                    </div>
+                {% endfor %}
+            </div>
+            
+            {% for month in submission.doctors_data.months %}
+                <div class="month-content {% if forloop.first %}active{% endif %}" id="month{{ forloop.counter0 }}">
+                    <!-- Таблица для десктопа -->
+                    <table class="metrics-table">
+                        <thead>
+                            <tr>
+                                <th>Врач</th>
+                                <th>Часы по графику</th>
+                                <th>Часы с пациентами</th>
+                                <th>Выручка</th>
+                                <th>Комментарий</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for doctor_data in month.doctors %}
+                                <tr>
+                                    <td>
+                                        Врач {{ forloop.counter }}
+                                        {% comment %}
+                                        Упрощенная версия - просто показываем номер врача
+                                        В будущем можно добавить более сложную логику
+                                        {% endcomment %}
+                                    </td>
+                                    <td>{{ doctor_data.scheduleHours|default:"—" }}</td>
+                                    <td>{{ doctor_data.patientHours|default:"—" }}</td>
+                                    <td>{{ doctor_data.revenue|default:"—" }}</td>
+                                    <td>{{ doctor_data.comment|default:"—" }}</td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                    
+                    <!-- Карточки для мобильных -->
+                    {% for doctor_data in month.doctors %}
+                        <div class="metric-card">
+                            <div class="metric-card-header">
+                                <strong>Врач {{ forloop.counter }}</strong>
+                            </div>
+                            <div class="metric-card-row">
+                                <span class="metric-card-label">Часы по графику</span>
+                                <span class="metric-card-value">{{ doctor_data.scheduleHours|default:"—" }}</span>
+                            </div>
+                            <div class="metric-card-row">
+                                <span class="metric-card-label">Часы с пациентами</span>
+                                <span class="metric-card-value">{{ doctor_data.patientHours|default:"—" }}</span>
+                            </div>
+                            <div class="metric-card-row">
+                                <span class="metric-card-label">Выручка</span>
+                                <span class="metric-card-value">{{ doctor_data.revenue|default:"—" }}</span>
+                            </div>
+                            {% if doctor_data.comment %}
+                                <div class="metric-card-row">
+                                    <span class="metric-card-label">Комментарий</span>
+                                    <span class="metric-card-value">{{ doctor_data.comment }}</span>
+                                </div>
+                            {% endif %}
+                        </div>
+                    {% endfor %}
+                </div>
+            {% endfor %}
+        </div>
+    {% endif %}
+</div>
+
+<script>
+function showMonth(monthIndex) {
+    // Скрываем все вкладки и контент
+    document.querySelectorAll('.month-tab').forEach(tab => tab.classList.remove('active'));
+    document.querySelectorAll('.month-content').forEach(content => content.classList.remove('active'));
+    
+    // Показываем выбранную вкладку и контент
+    document.querySelectorAll('.month-tab')[monthIndex].classList.add('active');
+    document.getElementById('month' + monthIndex).classList.add('active');
+}
+</script>
+{% endblock %} 

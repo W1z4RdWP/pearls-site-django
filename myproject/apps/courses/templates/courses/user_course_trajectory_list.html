@@ -2,32 +2,580 @@
 {% load static %}
 
 {% block specific_styles %}
-<link rel="stylesheet" href="{% static 'courses/css/trajectory_list.css' %}">
+    <link rel="stylesheet" href="{% static 'courses/css/trajectory_list.css' %}">
 {% endblock %}
 
 {% block content %}
 <div class="container mt-4">
-    <h1>Список ваших траекторий</h1>
-    {% if user_trajectories %}
-        <div class="row">
-            {% for ut in user_trajectories %}
-            <div class="col-md-6 col-lg-4 mb-4">
-                <div class="card trajectory-card">
-                    <div class="card-body">
-                        <h4 class="card-title">{{ ut.trajectory.name }}</h4>
-                        <p class="card-text text-muted">{{ ut.trajectory.description|default:'Без описания' }}</p>
-                        <ul class="list-unstyled mb-2">
-                            <li><b>Статус:</b> {% if ut.completed %}<span class="badge bg-success">Завершена</span>{% else %}<span class="badge bg-primary">В процессе</span>{% endif %}</li>
-                            <li><b>Дата назначения:</b> {{ ut.started_at|date:"d.m.Y H:i" }}</li>
-                        </ul>
-                        <a href="{% url 'courses:user_course_trajectory_detail' ut.pk %}" class="btn btn-modern w-100">Перейти к траектории</a>
+    <!-- Секция траекторий -->
+    <div class="mb-5">
+        <h1 class="mb-4">
+            <i class="fa fa-road"></i> Ваши траектории обучения
+        </h1>
+        {% if user_trajectories %}
+            <div class="row">
+                {% for ut in user_trajectories %}
+                {% if ut.trajectory %}
+                <div class="col-md-6 col-lg-4 mb-4">
+                    <div class="card trajectory-card">
+                        <div class="card-body">
+                            <h4 class="card-title">{{ ut.trajectory.name }}</h4>
+                            <p class="card-text text-muted">{{ ut.trajectory.description|default:'Без описания' }}</p>
+                            <ul class="list-unstyled mb-4">
+                                <li><b>Статус:</b> {% if ut.completed %}<span class="badge bg-success">Завершена</span>{% else %}<span class="badge bg-primary">В процессе</span>{% endif %}</li>
+                                <li><b>Дата назначения:</b> {{ ut.started_at|date:"d.m.Y H:i" }}</li>
+                            </ul>
+                            <a href="{% url 'courses:user_course_trajectory_detail' ut.pk %}" class="btn btn-modern w-100">Перейти к траектории</a>
+                        </div>
                     </div>
                 </div>
+                {% endif %}
+                {% endfor %}
             </div>
-            {% endfor %}
+        {% else %}
+            <div class="alert alert-info">Вам не назначено ни одной траектории. Обратитесь к администрации.</div>
+        {% endif %}
+    </div>
+
+    <!-- Секция прогресса по курсам -->
+    <div class="progress-header">
+        <h1 class="progress-title">
+            <i class="fa fa-graduation-cap"></i> Ваш прогресс по курсам
+        </h1>
+        <div class="progress-stats">
+            <a href="?status=available&incident=all{% if search_query %}&search={{ search_query }}{% endif %}" class="stat-item available filter-btn {% if status_filter == 'available' %}active{% endif %}">
+                <span class="stat-number">{{ available_courses_all }}</span>
+                <span class="stat-label">Новые</span>
+            </a>
+            <a href="?status=in_progress&incident=all{% if search_query %}&search={{ search_query }}{% endif %}" class="stat-item in-progress filter-btn {% if status_filter == 'in_progress' %}active{% endif %}">
+                <span class="stat-number">{{ in_progress_courses_all }}</span>
+                <span class="stat-label">В процессе</span>
+            </a>
+            <a href="?status=all&incident=true{% if search_query %}&search={{ search_query }}{% endif %}" class="stat-item filter-btn {% if incident_filter == 'true' %}active{% endif %}">
+                <span class="stat-number" style="color: #dc3545;">{{ incident_courses_all }}</span>
+                <span class="stat-label">Инциденты</span>
+            </a>
+            <a href="?status=completed&incident=all{% if search_query %}&search={{ search_query }}{% endif %}" class="stat-item completed filter-btn {% if status_filter == 'completed' %}active{% endif %}">
+                <span class="stat-number">{{ completed_courses_all }}</span>
+                <span class="stat-label">Завершено</span>
+            </a>
         </div>
-    {% else %}
-        <div class="alert alert-info">Вам не назначено ни одной траектории. Обратитесь к администрации.</div>
-    {% endif %}
+    </div>
+
+    <!-- Поиск по курсам -->
+    <div class="search-section mb-4">
+        <form method="get" class="search-form">
+            <div class="input-group">
+                <input type="text" 
+                       name="search" 
+                       class="form-control" 
+                       placeholder="Поиск по названию курса..." 
+                       value="{{ search_query|default:'' }}"
+                       autocomplete="off">
+                <button type="submit" class="btn btn-primary">
+                    <i class="fa fa-search"></i>
+                </button>
+                {% if search_query or incident_filter != 'all' or status_filter != 'all' %}
+                    <a href="?status=all&incident=all" class="btn btn-outline-secondary">
+                        <i class="fa fa-times"></i> Очистить
+                    </a>
+                {% endif %}
+            </div>
+            <!-- Скрытые поля для сохранения фильтров -->
+            {% if status_filter != 'all' %}
+                <input type="hidden" name="status" value="{{ status_filter }}">
+            {% endif %}
+            {% if incident_filter != 'all' %}
+                <input type="hidden" name="incident" value="{{ incident_filter }}">
+            {% endif %}
+        </form>
+    </div>
+
+    <!-- Карточки курсов -->
+    <div class="courses-grid">
+        {% if courses_data %}
+            {% if status_filter == 'all' %}
+                {# Группировка по статусу только когда показываются все курсы #}
+                {% regroup courses_data|dictsort:"status" by status as courses_by_status %}
+                
+                {# Сначала показываем все группы кроме completed #}
+                {% for status_group in courses_by_status %}
+                    {% if status_group.grouper != "completed" %}
+                        {# Добавляем горизонтальную черту перед каждой группой, кроме первой #}
+                        {% if not forloop.first %}
+                            <div class="status-divider" style="grid-column: 1 / -1; height: 2px; background-color: #dee2e6; margin: 30px 0; border-radius: 1px;"></div>
+                        {% endif %}
+                        
+                        {% for course_data in status_group.list %}
+                    <div class="course-card {{ course_data.status }}">
+                        <div class="course-image">
+                            {% if course_data.course.image %}
+                                <img src="{{ course_data.course.image.url }}" alt="{{ course_data.course.title }}">
+                            {% else %}
+                                <div class="course-image-placeholder">
+                                    <i class="fa fa-graduation-cap"></i>
+                                </div>
+                            {% endif %}
+                            {% if course_data.course.total_time_minutes > 0 %}
+                                <div class="course-time-badge">
+                                    <div class="time-number">{{ course_data.course.total_time_minutes }}</div>
+                                    <div class="time-label">мин</div>
+                                </div>
+                            {% endif %}
+                            
+                            <div class="course-status-badge">
+                                {% if course_data.status == 'completed' %}
+                                    <i class="fa fa-check-circle"></i>
+                                {% elif course_data.status == 'in_progress' %}
+                                    <i class="fa fa-clock-o"></i>
+                                {% else %}
+                                    <i class="fa fa-unlock"></i>
+                                {% endif %}
+                            </div>
+                        </div>
+                        
+                        <div class="course-content">
+                            <h3 class="course-title">
+                                {{ course_data.course.title }}
+                            </h3>
+                            
+                            {% if course_data.status == 'available' %}
+                                <!-- Статистика для не начатых курсов -->
+                                <div class="course-details">
+                                    {% if course_data.total_lessons > 0 %}
+                                        <div class="detail-item">
+                                            <i class="fa fa-book"></i>
+                                            <span>{{ course_data.total_lessons }} уроков</span>
+                                        </div>
+                                    {% endif %}
+                                    {% with total_tests=course_data.total_quizzes|add:course_data.total_homeworks %}
+                                    {% if total_tests > 0 %}
+                                        <div class="detail-item">
+                                            <i class="fa fa-question-circle"></i>
+                                            <span>{{ total_tests }} тестов</span>
+                                        </div>
+                                    {% endif %}
+                                    {% if total_tests > 0 and course_data.total_lessons > 0 %}
+                                        <div class="detail-item">
+                                            <i class="fa fa-list"></i>
+                                            <span>{{ course_data.total_materials }} материалов</span>
+                                        </div>
+                                    {% endif %}
+                                {% endwith %}
+                                </div>
+                            {% else %}
+                            
+                                <!-- Прогресс для курсов в процессе и завершенных -->
+                                <div class="course-progress">
+                                    <div class="progress-info">
+                                        <span class="progress-text">{{ course_data.percent }}% завершено</span>
+                                        <span class="progress-details">
+                                            {{ course_data.completed_materials }} из {{ course_data.total_materials }} материалов
+                                        </span>
+                                    </div>
+                                    <div class="progress-bar">
+                                        <div class="progress-fill" style="width: {{ course_data.percent }}%"></div>
+                                    </div>
+                                </div>
+                                
+                                <div class="course-details">
+                                    <div class="detail-item">
+                                        <i class="fa fa-book"></i>
+                                        <span>{{ course_data.completed_lessons }}/{{ course_data.total_lessons }} уроков</span>
+                                    </div>
+                                    {% with total_tests=course_data.total_quizzes|add:course_data.total_homeworks completed_tests=course_data.completed_quizzes|add:course_data.completed_homeworks %}
+                                        {% if total_tests > 0 %}
+                                            <div class="detail-item">
+                                                <i class="fa fa-question-circle"></i>
+                                                <span>{{ completed_tests }}/{{ total_tests }} тестов</span>
+                                            </div>
+                                        {% endif %}
+                                    {% endwith %}
+                                </div>
+                            {% endif %}
+                            
+                            {% if course_data.deadline and course_data.status not in 'completed,blocked' %}
+                                {% if course_data.is_deadline_overdue %}
+                                    <div class="alert alert-danger border-0 mb-2" style="background: #f8d7da; border: 1px solid #f5c6cb; border-radius: 6px; padding: 8px 12px; font-size: 0.875rem;">
+                                        <i class="fa fa-exclamation-triangle text-danger"></i>
+                                        <strong>Просрочен</strong>
+                                        <span class="text-muted small">(до {{ course_data.deadline|date:"d.m.Y" }})</span>
+                                    </div>
+                                {% else %}
+                                    <div class="alert alert-warning border-0 mb-2" style="background: #fff3cd; border: 1px solid #ffeaa7; border-radius: 6px; padding: 8px 12px; font-size: 0.875rem;">
+                                        <i class="fa fa-clock-o text-warning"></i>
+                                        <strong>Завершить до {{ course_data.deadline|date:"d.m.Y" }}</strong>
+                                    </div>
+                                {% endif %}
+                            {% endif %}
+                            
+                            <div class="course-actions">
+                                {% if course_data.status == 'blocked' %}
+                                    <span class="status-badge" style="background-color: #dc3545; color: white; padding: 5px 10px; border-radius: 4px; font-size: 0.875rem;">
+                                        <i class="fa fa-lock"></i> Заблокирован
+                                    </span>
+                                {% elif course_data.status == 'completed' %}
+                                    <span class="status-badge completed">
+                                        <i class="fa fa-trophy"></i> Курс завершен
+                                    </span>
+                                {% elif course_data.status == 'in_progress' %}
+                                    {% if course_data.course.final_quiz and course_data.percent == 100 and not course_data.quiz_passed %}
+                                        {% if course_data.final_quiz_status == 'pending' %}
+                                            <span class="status-badge" style="background-color: #f39c12; color: white; padding: 5px 10px; border-radius: 4px; font-size: 0.875rem;">
+                                                <i class="fa fa-hourglass-half"></i> Тест ожидает проверки
+                                            </span>
+                                        {% else %}
+                                            <a href="{% url 'quizzes:quiz_start' quiz_id=course_data.course.final_quiz.id %}?course_slug={{ course_data.course.slug }}" class="btn btn-warning btn-sm">
+                                                <i class="fa fa-question-circle"></i> Пройти финальный тест
+                                            </a>
+                                        {% endif %}
+                                    {% endif %}
+                                {% endif %}
+                                
+                                <a href="{% url 'courses:course_detail' course_data.course.slug %}" class="btn btn-primary btn-sm">
+                                    {% if course_data.status == 'available' %}
+                                        <i class="fa fa-play"></i> Начать курс
+                                    {% else %}
+                                        <i class="fa fa-arrow-right"></i> Продолжить
+                                    {% endif %}
+                                </a>
+                                
+                                {% if course_data.course.is_incident %}
+                                    <div class="mt-2 text-center">
+                                        <span class="badge bg-danger" style="font-size: 0.75rem; padding: 4px 8px;">
+                                            <i class="fa fa-exclamation-triangle"></i> Курс-инцидент
+                                        </span>
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                        {% endfor %}
+                    {% endif %}
+                {% endfor %}
+                
+                {# Затем показываем завершенные курсы в конце #}
+                {% for status_group in courses_by_status %}
+                    {% if status_group.grouper == "completed" %}
+                        {# Добавляем горизонтальную черту перед завершенными курсами, если есть другие группы #}
+                        {% for check_group in courses_by_status %}
+                            {% if check_group.grouper != "completed" and check_group.list %}
+                                {% if forloop.first %}
+                                    <div class="status-divider" style="grid-column: 1 / -1; height: 2px; background-color: #dee2e6; margin: 30px 0; border-radius: 1px;"></div>
+                                {% endif %}
+                            {% endif %}
+                        {% endfor %}
+                        
+                        {% for course_data in status_group.list %}
+                    <div class="course-card {{ course_data.status }}">
+                        <div class="course-image">
+                            {% if course_data.course.image %}
+                                <img src="{{ course_data.course.image.url }}" alt="{{ course_data.course.title }}">
+                            {% else %}
+                                <div class="course-image-placeholder">
+                                    <i class="fa fa-graduation-cap"></i>
+                                </div>
+                            {% endif %}
+                            {% if course_data.course.total_time_minutes > 0 %}
+                                <div class="course-time-badge">
+                                    <div class="time-number">{{ course_data.course.total_time_minutes }}</div>
+                                    <div class="time-label">мин</div>
+                                </div>
+                            {% endif %}
+                            
+                            <div class="course-status-badge">
+                                {% if course_data.status == 'completed' %}
+                                    <i class="fa fa-check-circle"></i>
+                                {% elif course_data.status == 'in_progress' %}
+                                    <i class="fa fa-clock-o"></i>
+                                {% else %}
+                                    <i class="fa fa-unlock"></i>
+                                {% endif %}
+                            </div>
+                        </div>
+                        
+                        <div class="course-content">
+                            <h3 class="course-title">
+                                {{ course_data.course.title }}
+                            </h3>
+                            
+                            {% if course_data.status == 'available' %}
+                                <!-- Статистика для не начатых курсов -->
+                                <div class="course-details">
+                                    {% if course_data.total_lessons > 0 %}
+                                        <div class="detail-item">
+                                            <i class="fa fa-book"></i>
+                                            <span>{{ course_data.total_lessons }} уроков</span>
+                                        </div>
+                                    {% endif %}
+                                    {% with total_tests=course_data.total_quizzes|add:course_data.total_homeworks %}
+                                    {% if total_tests > 0 %}
+                                        <div class="detail-item">
+                                            <i class="fa fa-question-circle"></i>
+                                            <span>{{ total_tests }} тестов</span>
+                                        </div>
+                                    {% endif %}
+                                    {% if total_tests > 0 and course_data.total_lessons > 0 %}
+                                        <div class="detail-item">
+                                            <i class="fa fa-list"></i>
+                                            <span>{{ course_data.total_materials }} материалов</span>
+                                        </div>
+                                    {% endif %}
+                                {% endwith %}
+                                </div>
+                            {% else %}
+                            
+                                <!-- Прогресс для курсов в процессе и завершенных -->
+                                <div class="course-progress">
+                                    <div class="progress-info">
+                                        <span class="progress-text">{{ course_data.percent }}% завершено</span>
+                                        <span class="progress-details">
+                                            {{ course_data.completed_materials }} из {{ course_data.total_materials }} материалов
+                                        </span>
+                                    </div>
+                                    <div class="progress-bar">
+                                        <div class="progress-fill" style="width: {{ course_data.percent }}%"></div>
+                                    </div>
+                                </div>
+                                
+                                <div class="course-details">
+                                    <div class="detail-item">
+                                        <i class="fa fa-book"></i>
+                                        <span>{{ course_data.completed_lessons }}/{{ course_data.total_lessons }} уроков</span>
+                                    </div>
+                                    {% with total_tests=course_data.total_quizzes|add:course_data.total_homeworks completed_tests=course_data.completed_quizzes|add:course_data.completed_homeworks %}
+                                        {% if total_tests > 0 %}
+                                            <div class="detail-item">
+                                                <i class="fa fa-question-circle"></i>
+                                                <span>{{ completed_tests }}/{{ total_tests }} тестов</span>
+                                            </div>
+                                        {% endif %}
+                                    {% endwith %}
+                                </div>
+                            {% endif %}
+                            
+                            {% if course_data.deadline and course_data.status not in 'completed,blocked' %}
+                                {% if course_data.is_deadline_overdue %}
+                                    <div class="alert alert-danger border-0 mb-2" style="background: #f8d7da; border: 1px solid #f5c6cb; border-radius: 6px; padding: 8px 12px; font-size: 0.875rem;">
+                                        <i class="fa fa-exclamation-triangle text-danger"></i>
+                                        <strong>Просрочен</strong>
+                                        <span class="text-muted small">(до {{ course_data.deadline|date:"d.m.Y" }})</span>
+                                    </div>
+                                {% else %}
+                                    <div class="alert alert-warning border-0 mb-2" style="background: #fff3cd; border: 1px solid #ffeaa7; border-radius: 6px; padding: 8px 12px; font-size: 0.875rem;">
+                                        <i class="fa fa-clock-o text-warning"></i>
+                                        <strong>Завершить до {{ course_data.deadline|date:"d.m.Y" }}</strong>
+                                    </div>
+                                {% endif %}
+                            {% endif %}
+                            
+                            <div class="course-actions">
+                                {% if course_data.status == 'blocked' %}
+                                    <span class="status-badge" style="background-color: #dc3545; color: white; padding: 5px 10px; border-radius: 4px; font-size: 0.875rem;">
+                                        <i class="fa fa-lock"></i> Заблокирован
+                                    </span>
+                                {% elif course_data.status == 'completed' %}
+                                    <span class="status-badge completed">
+                                        <i class="fa fa-trophy"></i> Курс завершен
+                                    </span>
+                                {% elif course_data.status == 'in_progress' %}
+                                    {% if course_data.course.final_quiz and course_data.percent == 100 and not course_data.quiz_passed %}
+                                        {% if course_data.final_quiz_status == 'pending' %}
+                                            <span class="status-badge" style="background-color: #f39c12; color: white; padding: 5px 10px; border-radius: 4px; font-size: 0.875rem;">
+                                                <i class="fa fa-hourglass-half"></i> Тест ожидает проверки
+                                            </span>
+                                        {% else %}
+                                            <a href="{% url 'quizzes:quiz_start' quiz_id=course_data.course.final_quiz.id %}?course_slug={{ course_data.course.slug }}" class="btn btn-warning btn-sm">
+                                                <i class="fa fa-question-circle"></i> Пройти финальный тест
+                                            </a>
+                                        {% endif %}
+                                    {% endif %}
+                                {% endif %}
+                                
+                                <a href="{% url 'courses:course_detail' course_data.course.slug %}" class="btn btn-primary btn-sm">
+                                    {% if course_data.status == 'available' %}
+                                        <i class="fa fa-play"></i> Начать курс
+                                    {% else %}
+                                        <i class="fa fa-arrow-right"></i> Продолжить
+                                    {% endif %}
+                                </a>
+                                
+                                {% if course_data.course.is_incident %}
+                                    <div class="mt-2 text-center">
+                                        <span class="badge bg-danger" style="font-size: 0.75rem; padding: 4px 8px;">
+                                            <i class="fa fa-exclamation-triangle"></i> Курс-инцидент
+                                        </span>
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                        {% endfor %}
+                    {% endif %}
+                {% endfor %}
+            {% else %}
+                {# Когда фильтр по статусу активен, показываем курсы без группировки #}
+                {% for course_data in courses_data %}
+                <div class="course-card {{ course_data.status }}">
+                    <div class="course-image">
+                        {% if course_data.course.image %}
+                            <img src="{{ course_data.course.image.url }}" alt="{{ course_data.course.title }}">
+                        {% else %}
+                            <div class="course-image-placeholder">
+                                <i class="fa fa-graduation-cap"></i>
+                            </div>
+                        {% endif %}
+                        {% if course_data.course.total_time_minutes > 0 %}
+                            <div class="course-time-badge">
+                                <div class="time-number">{{ course_data.course.total_time_minutes }}</div>
+                                <div class="time-label">мин</div>
+                            </div>
+                        {% endif %}
+                        
+                        <div class="course-status-badge">
+                            {% if course_data.status == 'completed' %}
+                                <i class="fa fa-check-circle"></i>
+                            {% elif course_data.status == 'in_progress' %}
+                                <i class="fa fa-clock-o"></i>
+                            {% else %}
+                                <i class="fa fa-unlock"></i>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <div class="course-content">
+                        <h3 class="course-title">
+                            {{ course_data.course.title }}
+                        </h3>
+                        
+                        {% if course_data.status == 'available' %}
+                            <!-- Статистика для не начатых курсов -->
+                            <div class="course-details">
+                                {% if course_data.total_lessons > 0 %}
+                                    <div class="detail-item">
+                                        <i class="fa fa-book"></i>
+                                        <span>{{ course_data.total_lessons }} уроков</span>
+                                    </div>
+                                {% endif %}
+                                {% if course_data.total_quizzes > 0 %}
+                                    <div class="detail-item">
+                                        <i class="fa fa-question-circle"></i>
+                                        <span>{{ course_data.total_quizzes }} тестов</span>
+                                    </div>
+                                {% endif %}
+                                {% if course_data.total_quizzes > 0 and course_data.total_lessons > 0 %}
+                                    <div class="detail-item">
+                                        <i class="fa fa-list"></i>
+                                        <span>{{ course_data.total_materials }} материалов</span>
+                                    </div>
+                                {% endif %}
+                            </div>
+                        {% else %}
+                        
+                            <!-- Прогресс для курсов в процессе и завершенных -->
+                            <div class="course-progress">
+                                <div class="progress-info">
+                                    <span class="progress-text">{{ course_data.percent }}% завершено</span>
+                                    <span class="progress-details">
+                                        {{ course_data.completed_materials }} из {{ course_data.total_materials }} материалов
+                                    </span>
+                                </div>
+                                <div class="progress-bar">
+                                    <div class="progress-fill" style="width: {{ course_data.percent }}%"></div>
+                                </div>
+                            </div>
+                            
+                            <div class="course-details">
+                                <div class="detail-item">
+                                    <i class="fa fa-book"></i>
+                                    <span>{{ course_data.completed_lessons }}/{{ course_data.total_lessons }} уроков</span>
+                                </div>
+                                {% if course_data.total_quizzes > 0 %}
+                                    <div class="detail-item">
+                                        <i class="fa fa-question-circle"></i>
+                                        <span>{{ course_data.completed_quizzes }}/{{ course_data.total_quizzes }} тестов</span>
+                                    </div>
+                                {% endif %}
+                            </div>
+                        {% endif %}
+                        
+                        {% if course_data.deadline and course_data.status not in 'completed,blocked' %}
+                            {% if course_data.is_deadline_overdue %}
+                                <div class="alert alert-danger border-0 mb-2" style="background: #f8d7da; border: 1px solid #f5c6cb; border-radius: 6px; padding: 8px 12px; font-size: 0.875rem;">
+                                    <i class="fa fa-exclamation-triangle text-danger"></i>
+                                    <strong>Просрочен</strong>
+                                    <span class="text-muted small">(до {{ course_data.deadline|date:"d.m.Y" }})</span>
+                                </div>
+                            {% else %}
+                                <div class="alert alert-warning border-0 mb-2" style="background: #fff3cd; border: 1px solid #ffeaa7; border-radius: 6px; padding: 8px 12px; font-size: 0.875rem;">
+                                    <i class="fa fa-clock-o text-warning"></i>
+                                    <strong>Завершить до {{ course_data.deadline|date:"d.m.Y" }}</strong>
+                                </div>
+                            {% endif %}
+                        {% endif %}
+                        
+                        <div class="course-actions">
+                            {% if course_data.status == 'blocked' %}
+                                <span class="status-badge" style="background-color: #dc3545; color: white; padding: 5px 10px; border-radius: 4px; font-size: 0.875rem;">
+                                    <i class="fa fa-lock"></i> Заблокирован
+                                </span>
+                            {% elif course_data.status == 'completed' %}
+                                <span class="status-badge completed">
+                                    <i class="fa fa-trophy"></i> Курс завершен
+                                </span>
+                            {% elif course_data.status == 'in_progress' %}
+                                {% if course_data.course.final_quiz and course_data.percent == 100 and not course_data.quiz_passed %}
+                                    {% if course_data.final_quiz_status == 'pending' %}
+                                        <span class="status-badge" style="background-color: #f39c12; color: white; padding: 5px 10px; border-radius: 4px; font-size: 0.875rem;">
+                                            <i class="fa fa-hourglass-half"></i> Тест ожидает проверки
+                                        </span>
+                                    {% else %}
+                                        <a href="{% url 'quizzes:quiz_start' quiz_id=course_data.course.final_quiz.id %}?course_slug={{ course_data.course.slug }}" class="btn btn-warning btn-sm">
+                                            <i class="fa fa-question-circle"></i> Пройти финальный тест
+                                        </a>
+                                    {% endif %}
+                                {% endif %}
+                            {% endif %}
+                            
+                            <a href="{% url 'courses:course_detail' course_data.course.slug %}" class="btn btn-primary btn-sm">
+                                {% if course_data.status == 'available' %}
+                                    <i class="fa fa-play"></i> Начать курс
+                                {% else %}
+                                    <i class="fa fa-arrow-right"></i> Продолжить
+                                {% endif %}
+                            </a>
+                            
+                            {% if course_data.course.is_incident %}
+                                <div class="mt-2 text-center">
+                                    <span class="badge bg-danger" style="font-size: 0.75rem; padding: 4px 8px;">
+                                        <i class="fa fa-exclamation-triangle"></i> Курс-инцидент
+                                    </span>
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            {% endif %}
+        {% else %}
+            <div class="empty-state">
+                <i class="fa fa-graduation-cap fa-3x"></i>
+                <h3>Курсы не найдены</h3>
+                <p>По выбранному фильтру курсы не найдены</p>
+                <a href="?status=all&incident=all" class="btn btn-primary">Показать все курсы</a>
+            </div>
+        {% endif %}
+    </div>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Анимация появления карточек
+    const cards = document.querySelectorAll('.course-card');
+    cards.forEach((card, index) => {
+        card.style.animationDelay = `${index * 0.1}s`;
+        card.classList.add('fade-in');
+    });
+});
+</script>
 {% endblock %} 

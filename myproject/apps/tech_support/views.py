@@ -4,14 +4,15 @@ from django.http import HttpResponseForbidden
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils import timezone
+from django.utils.dateparse import parse_date
 from django.views.generic import CreateView, DetailView, ListView, View
 from django.http import JsonResponse
 from django.contrib.auth.decorators import login_required
 from django.db.models import Count, Avg, Q
-from datetime import timedelta
+from datetime import timedelta, datetime
 
 from .forms import TicketCreateForm, TicketCommentForm, TicketStaffUpdateForm, TicketRatingForm
-from .models import Ticket, TicketStatus, TicketComment
+from .models import Ticket, TicketAttachment, TicketStatus, TicketComment, TicketCategory, TicketPriority
 
 
 class StaffRequiredMixin(UserPassesTestMixin):
@@ -35,12 +36,70 @@ class TicketCreateView(CreateView):
     def form_valid(self, form):
         ticket = form.save(commit=False)
         ticket.created_by = self.request.user
+        
+        # Установка статуса по умолчанию
         default_status = TicketStatus.objects.order_by('id').first()
         if default_status is None:
             form.add_error(None, 'Не настроены статусы тикетов. Обратитесь к администратору.')
             return self.form_invalid(form)
         ticket.status = default_status
+        
+        # Автоматическая установка категории по типу тикета
+        ticket_type = ticket.ticket_type
+        type_to_category_name = {
+            'academic': 'Учебные вопросы',
+            'technical': 'Технические проблемы', 
+            'administrative': 'Административные запросы',
+            'suggestions': 'Предложения/замечания',
+            'consultation': 'Консультации'
+        }
+        
+        category_name = type_to_category_name.get(ticket_type)
+        if category_name:
+            category = TicketCategory.objects.filter(name=category_name).first()
+            if category:
+                ticket.category = category
+            else:
+                # Если категория не найдена, используем первую доступную
+                ticket.category = TicketCategory.objects.first()
+        else:
+            ticket.category = TicketCategory.objects.first()
+            
+        # Автоматическая установка высокого приоритета
+        high_priority = TicketPriority.objects.order_by('-level').first()  # Самый высокий приоритет
+        if high_priority:
+            ticket.priority = high_priority
+        else:
+            # Если приоритеты не настроены, используем первый доступный
+            ticket.priority = TicketPriority.objects.first()
+            
         ticket.save()
+
+        # Обрабатываем вложения (множественные файлы)
+        if 'attachments' in self.request.FILES:
+            files = self.request.FILES.getlist('attachments')
+            allowed_extensions = ['.jpg', '.jpeg', '.png', '.gif', '.pdf', '.doc', '.docx', '.txt', '.log']
+            max_size = 10 * 1024 * 1024  # 10MB
+            import os
+            
+            for file in files:
+                # Валидация на сервере
+                ext = os.path.splitext(file.name)[1].lower()
+                if ext not in allowed_extensions:
+                    messages.warning(self.request, f'Файл "{file.name}" пропущен: недопустимое расширение')
+                    continue
+                
+                if file.size > max_size:
+                    messages.warning(self.request, f'Файл "{file.name}" пропущен: размер превышает 10MB')
+                    continue
+                
+                TicketAttachment.objects.create(
+                    ticket=ticket,
+                    file=file,
+                    filename=file.name
+                )
+
+    
         messages.success(self.request, 'Тикет создан')
         return redirect('tech_support:ticket_detail', pk=ticket.pk)
 
@@ -113,14 +172,14 @@ class TicketListView(ListView):
         date_from = self.request.GET.get('date_from')
         date_to = self.request.GET.get('date_to')
         start_dt = end_dt = None
-        if date_from:
-            d = parse_date(date_from)
+        if date_from: 
+            d = parse_date(date_from) 
             if d:
-                start_dt = timezone.make_aware(datetime.datetime.combine(d, datetime.time.min))
+                start_dt = timezone.make_aware(datetime.combine(d, datetime.time.min))
         if date_to:
             d = parse_date(date_to)
             if d:
-                end_dt = timezone.make_aware(datetime.datetime.combine(d, datetime.time.max))
+                end_dt = timezone.make_aware(datetime.combine(d, datetime.time.max))
         if start_dt:
             qs = qs.filter(created_at__gte=start_dt)
         if end_dt:
@@ -177,6 +236,7 @@ class TicketDetailView(DetailView):
         if (user == ticket.created_by) and is_closed and not ticket.rating:
             context['rating_form'] = TicketRatingForm(instance=ticket)
         context['comments'] = TicketComment.objects.filter(ticket=ticket).order_by('created_at')
+        context['attachments'] = ticket.attachments.all()
         return context
 
 
@@ -253,11 +313,17 @@ class TicketReportsView(LoginRequiredMixin, StaffRequiredMixin, View):
             ])
             avg_resolution_time = total_time / resolved_tickets.count()
 
+
+        avg_rating = Ticket.objects.filter(rating__isnull=False).aggregate(
+            avg_rating=Avg('rating')
+        )['avg_rating'] or 0
+
         context = {
             'period': period,
             'tickets_by_period': tickets_by_period,
             'performer_stats': performer_stats,
             'avg_resolution_time': round(avg_resolution_time, 1),
+            'avg_rating': round(avg_rating, 1),
             'total_resolved': resolved_tickets.count(),
         }
         return render(request, 'tech_support/ticket_reports.html', context)
@@ -296,12 +362,12 @@ class StaffDashboardView(LoginRequiredMixin, StaffRequiredMixin, View):
             avg_rating=Avg('rating')
         )['avg_rating'] or 0
 
-        recent_tickets = Ticket.objects.order_by('-created_at')[:10]
+        recent_tickets = Ticket.objects.order_by('-created_at')[:5]
 
         overdue_tickets_list = Ticket.objects.filter(
             status__is_active=True,
             deadline__lt=timezone.now()
-        ).order_by('deadline')[:10]
+        ).order_by('deadline')[:5]
 
         # id статуса "В работе" (fallback: любой активный, кроме "Решена")
         in_progress_status_id = TicketStatus.objects.filter(name__icontains='работ').values_list('id', flat=True).first()
@@ -408,10 +474,23 @@ class UpdateTicketView(View):
     def post(self, request, pk):
         ticket = get_object_or_404(Ticket, pk=pk)
         old_deadline = ticket.deadline
+        old_priority = ticket.priority
+        
         form = TicketStaffUpdateForm(request.POST, instance=ticket)
         if form.is_valid():
-            new_deadline = form.cleaned_data.get('deadline')
+            new_priority = form.cleaned_data.get('priority')
+            
+            # Отмечаем, что приоритет изменился, чтобы модель пересчитала дедлайн
+            if old_priority != new_priority:
+                ticket._priority_changed = True
+            
             form.save()
+            
+            # Обновляем ticket из базы, чтобы получить актуальный дедлайн
+            ticket.refresh_from_db()
+            new_deadline = ticket.deadline
+            
+            # Проверяем изменения дедлайна
             if old_deadline != new_deadline:
                 def fmt(dt):
                     if not dt:
@@ -420,11 +499,19 @@ class UpdateTicketView(View):
                         return timezone.localtime(dt).strftime('%d.%m.%Y %H:%M')
                     except Exception:
                         return dt.strftime('%d.%m.%Y %H:%M')
+                
                 full_name = request.user.get_full_name() or request.user.username
+                
+                # Если изменился приоритет, указываем это в комментарии
+                if old_priority != new_priority:
+                    priority_text = f" (приоритет изменён с '{old_priority}' на '{new_priority}')"
+                else:
+                    priority_text = ""
+                
                 TicketComment.objects.create(
                     ticket=ticket,
                     author=request.user,
-                    content=f'{full_name} изменил дедлайн: {fmt(old_deadline)} -> {fmt(new_deadline)}',
+                    content=f'{full_name} изменил дедлайн: {fmt(old_deadline)} -> {fmt(new_deadline)}{priority_text}',
                     is_internal=True
                 )
             messages.success(request, 'Тикет обновлён')

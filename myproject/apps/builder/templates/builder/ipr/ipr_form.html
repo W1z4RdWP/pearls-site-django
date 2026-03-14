@@ -1,0 +1,88 @@
+{% extends 'layout.html' %}
+{% load static %}
+{% block title %}{% if object %}Редактирование ИПР{% else %}Новый ИПР{% endif %}{% endblock %}
+{% block specific_styles %}
+    <link rel="stylesheet" href="{% static 'builder/css/builder_style.css' %}">
+    <link rel="stylesheet" href="{% static 'builder/css/ipr_form.css' %}">
+{% endblock %}
+
+{% block content %}
+
+<div class="ipr-form-card">
+    <h2 class="mb-4">{% if object %}Редактирование ИПР{% else %}Новый ИПР{% endif %}</h2>
+    <form method="post" autocomplete="off">
+        {% csrf_token %}
+        
+        <div class="form-group">
+            <label for="user-display">{{ form.user.label }}</label>
+            <div class="user-select-field" id="userSelectField">
+                <span id="userDisplayName" class="user-display-name">
+                    {% if form.user.value %}{{ form.instance.user.get_full_name }}{% else %}Выберите пользователя...{% endif %}
+                </span>
+                <span class="user-select-icon">&#9660;</span>
+            </div>
+            {{ form.user }}
+            {% if form.user.errors %}
+                <div class="text-danger mt-1">{{ form.user.errors }}</div>
+            {% endif %}
+        </div>
+
+        <div class="form-group">
+            <label for="{{ form.status.id_for_label }}">{{ form.status.label }}</label>
+            {{ form.status }}
+            {# Скрытое поле для передачи значения статуса при отправке формы (так как основное поле disabled) #}
+            {% if object %}
+                <input type="hidden" name="status" value="{{ form.status.value|default:'active' }}" id="status_hidden">
+            {% else %}
+                <input type="hidden" name="status" value="active" id="status_hidden">
+            {% endif %}
+            {% if form.status.errors %}
+                <div class="text-danger mt-1">{{ form.status.errors }}</div>
+            {% endif %}
+        </div>
+
+        <div class="form-actions mt-4" style="display: flex; justify-content: space-between; align-items: center;">
+            <div>
+                <button type="submit" class="btn btn-primary">Сохранить</button>
+                <a href="{% url 'builder:ipr_list' %}" class="btn btn-secondary">ИПР</a>
+            </div>
+        </div>
+    </form>
+</div>
+
+<!-- Модальное окно для выбора пользователя -->
+<div id="userModal" class="user-modal">
+    <div class="user-modal-content">
+        <div class="user-modal-header">
+            <h3>Выберите сотрудника</h3>
+            <span class="user-modal-close" id="userModalClose">&times;</span>
+        </div>
+        <div class="user-modal-body">
+            <div class="user-search-box">
+                <input type="text" id="userSearchInput" class="form-control" placeholder="Поиск по имени или фамилии..." autocomplete="off">
+            </div>
+            <div class="user-list-container">
+                <div id="userList" class="user-list">
+                    <div class="user-list-loading">Загрузка...</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block specific_scripts %}
+
+    <script>
+        // API endpoints для ipr_form.js
+        const searchUsersUrl = "{% url 'builder:api_search_users' %}";
+        const getUsersByIdsUrl = "{% url 'builder:api_get_users_by_ids' %}";
+        const userInputId = "{{ form.user.id_for_label }}";
+        // Флаг для определения страницы создания (true) или редактирования (false)
+        const isCreatePage = {% if object %}false{% else %}true{% endif %}; // eslint-disable-line
+    </script>
+    <script src="{% static 'builder/js/ipr_form.js' %}"></script>
+
+{% endblock %}
+

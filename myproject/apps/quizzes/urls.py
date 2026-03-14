@@ -11,8 +11,21 @@ urlpatterns = [
     path('get-questions', views.get_questions, {'is_start': False}, name='get-questions'),
     path('get-answer', views.get_answer, name='get-answer'),
     path('get-finish', views.get_finish, name='get-finish'),
+    path('best-result/<int:quiz_id>/', views.quiz_best_result, name='quiz_best_result'),
+    path('search/', views.search_quizzes_ajax, name='quiz_search_ajax'),
     path('create/', views.QuizCreateView.as_view(), name='quiz_create'),
     path('edit/<int:quiz_id>/', views.QuizEditView.as_view(), name='quiz_edit'),
     path('delete/<int:quiz_id>/', views.QuizDeleteView.as_view(), name='quiz_delete'),
+    path('upload-docx/', views.quiz_upload_docx, name='quiz_upload_docx'),
     path('limit-exceeded/<int:quiz_id>/', views.AttemptLimitExceededView.as_view(), name='attempt_limit_exceeded'),
+    path('pending/', views.PendingQuizzesView.as_view(), name='pending_quizzes'),
+    path('review/<int:result_id>/', views.ReviewQuizView.as_view(), name='review_quiz'),
+    
+    # Задания (Homework)
+    path('homework/create/', views.HomeworkCreateView.as_view(), name='homework_create'),
+    path('homework/<int:homework_id>/edit/', views.HomeworkEditView.as_view(), name='homework_edit'),
+    path('homework/<int:homework_id>/delete/', views.HomeworkDeleteView.as_view(), name='homework_delete'),
+    path('homework/<int:homework_id>/submit/', views.HomeworkSubmitView.as_view(), name='homework_submit'),
+    path('homework/submission/<int:submission_id>/review/', views.HomeworkReviewView.as_view(), name='homework_review'),
+    path('homework/search/', views.search_homeworks_ajax, name='homework_search_ajax'),
 ]

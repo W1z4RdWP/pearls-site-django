@@ -1,26 +1,570 @@
-{% extends "layout.html" %}
-{% load crispy_forms_tags %}
+{% extends 'layout.html' %}
+{% load static %}
+{% block specific_styles %} 
+    <link rel="stylesheet" href="{% static 'user_management/css/user_form.css' %}">
+    <link rel="stylesheet" href="{% static 'builder/css/incident_form.css' %}">
+{% endblock %}
 
 {% block title %}Редактировать курс{% endblock %}
 
 {% block content %}
-<div class="content-section">
-    <form method="POST" enctype="multipart/form-data">
+<div class="user-form-wrapper">
+    <div class="user-form-header">
+        <a href="{% url 'courses:course_detail' course.slug %}" class="back-link">&larr; Назад</a>
+        
+        <h1 class="form-title">Редактировать курс "{{ course.title }}"</h1>
+    </div>
+    <form method="post" enctype="multipart/form-data" class="user-form">
         {% csrf_token %}
-        <!-- Добавляем form.media для загрузки CKEditor5 -->
         {{ form.media }}
         
-        <fieldset class="form-group">
-            <legend class="border-bottom mb-4">Редактировать курс {{ course.title }}</legend>
+        <div class="form-section">
+            <h2 class="section-title">Основная информация</h2>
             
-            <!-- Используем crispy для рендеринга формы -->
-            {{ form|crispy }}
-        </fieldset>
-        
-        <div class="form-group mt-3">
-            <button class="btn btn-primary" type="submit">Сохранить</button>
+            {{ form.title.label_tag }}{{ form.title }}
+            {% if form.title.errors %}
+                <div class="field-errors">{{ form.title.errors }}</div>
+            {% endif %}
+            
+            {{ form.description.label_tag }}
+            <div class="ckeditor-wrapper">
+                {{ form.description }}
+            </div>
+            {% if form.description.errors %}
+                <div class="field-errors">{{ form.description.errors }}</div>
+            {% endif %}
+            
+            {{ form.image.label_tag }}{{ form.image }}
+            {% if form.image.help_text %}
+                <small class="form-help-text">{{ form.image.help_text }}</small>
+            {% endif %}
+            {% if form.image.errors %}
+                <div class="field-errors">{{ form.image.errors }}</div>
+            {% endif %}
+            
+            {% if course.image %}
+                <div class="current-image-preview">
+                    <label>Текущее изображение:</label>
+                    <img src="{{ course.image.url }}" alt="Текущее изображение курса" style="max-width: 200px; max-height: 150px; border-radius: 8px; margin-top: 0.5rem;">
+                </div>
+            {% endif %}
+        </div>
+
+        <div class="form-section">
+            <h2 class="section-title">Настройки курса</h2>
+            
+            {{ form.slug.label_tag }}{{ form.slug }}
+            {% if form.slug.help_text %}
+                <small class="form-help-text">{{ form.slug.help_text }}</small>
+            {% endif %}
+            {% if form.slug.errors %}
+                <div class="field-errors">{{ form.slug.errors }}</div>
+            {% endif %}
+            
+            <div class="form-group" style="width: 100%; margin-bottom: 5%;">
+                <label for="quiz-display">{{ form.final_quiz.label }}</label>
+                <div class="user-select-field" id="quizSelectField">
+                    <span id="quizDisplayName" class="user-display-name">
+                        {% if form.final_quiz.value %}{{ form.instance.final_quiz.name }}{% else %}Выберите тест...{% endif %}
+                    </span>
+                    <span class="user-select-icon">&#9660;</span>
+                </div>
+                {{ form.final_quiz }}
+                {% if form.final_quiz.errors %}
+                    <div class="text-danger mt-1">{{ form.final_quiz.errors }}</div>
+                {% endif %}
+            </div>
+
+            
+            <div class="form-group" style="width: 100%; margin-bottom: 5%;">
+                <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+                    <label for="user-display" style="margin: 0;">{{ form.responsible_mentor.label }}</label>
+                    <span class="help-icon" tabindex="0" role="button" aria-label="Подсказка" data-tooltip="В списке отображаются сотрудники со статусом «Наставник».&#10;Этот человек отвечает за проверку и подтверждение корректности выполнения теста обучающегося.&#10;Поле обязательное для заполнения, даже если тест не требует проверки — наставник должен быть назначен в любом случае.">?</span>
+                </div>
+                <div style="display: flex; align-items: center; gap: 15px;">
+                    <div class="user-select-field" id="userSelectField" style="flex: 1;">
+                        <span id="userDisplayName" class="user-display-name">
+                            {% if form.responsible_mentor.value %}{{ form.instance.responsible_mentor.get_full_name }}{% else %}Выберите пользователя...{% endif %}
+                        </span>
+                        <span class="user-select-icon">&#9660;</span>
+                    </div>
+                    <div class="time-counter-wrapper">
+                        <button type="button" class="time-counter-btn" id="timeCounterDecrease">−</button>
+                        <input type="number" id="id_mentors_time_to_check" name="mentors_time_to_check" 
+                               value="{{ form.mentors_time_to_check.value|default:course.mentors_time_to_check|default:2 }}" 
+                               min="1" class="time-counter-input" readonly>
+                        <button type="button" class="time-counter-btn" id="timeCounterIncrease">+</button>
+                        <span class="help-icon" tabindex="0" role="button" aria-label="Подсказка" data-tooltip="Укажите период, в течение которого наставник должен проверить тест после завершения урока.&#10;По умолчанию — 2 дня после окончания урока, но срок можно увеличить или уменьшить при необходимости.">?</span>
+                    </div>
+                </div>
+                {{ form.responsible_mentor }}
+                {% if form.responsible_mentor.errors %}
+                    <div class="text-danger mt-1">{{ form.responsible_mentor.errors }}</div>
+                {% endif %}
+                {% if form.mentors_time_to_check.errors %}
+                    <div class="text-danger mt-1">{{ form.mentors_time_to_check.errors }}</div>
+                {% endif %}
+
+                <br>
+                {{ form.default_deadline_days.label_tag }}{{ form.default_deadline_days }}
+                <!-- {% if form.default_deadline_days.help_text %}
+                    <small class="form-help-text">{{ form.default_deadline_days.help_text }}</small>
+                {% endif %} -->
+                {% if form.default_deadline_days.errors %}
+                    <div class="field-errors">{{ form.default_deadline_days.errors }}</div>
+                {% endif %}
+
+            </div>
+            
+            <label for="id_allowed_groups">{{ form.allowed_groups.label }}</label>
+            <div class="um-user-groups-checkboxes">
+                {% for group in form.allowed_groups.field.queryset %}
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" name="allowed_groups" 
+                               id="group_{{ group.id }}" value="{{ group.id }}" 
+                               {% if group in course.allowed_groups.all %}checked{% endif %}
+                               style="pointer-events: auto; cursor: pointer;">
+                        <label class="form-check-label" for="group_{{ group.id }}" style="cursor: pointer;">{{ group.name }}</label>
+                    </div>
+                {% endfor %}
+            </div>
+            {% if form.allowed_groups.errors %}
+                <div class="field-errors">{{ form.allowed_groups.errors }}</div>
+            {% endif %}
+            
+            <hr>
+            <div class="form-check">
+                {{ form.certificate }}
+                <label for="id_certificate" class="form-check-label">
+                    {{ form.certificate.label }}
+                </label>
+            </div>
+            {% if form.certificate.help_text %}
+                <small class="form-help-text">{{ form.certificate.help_text }}</small>
+            {% endif %}
+            {% if form.certificate.errors %}
+                <div class="field-errors">{{ form.certificate.errors }}</div>
+            {% endif %}
+            
+            <hr>
+            <div class="form-check">
+                {{ form.is_incident }}
+                <label for="id_is_incident" class="form-check-label">
+                    {{ form.is_incident.label }}
+                </label>
+            </div>
+            {% if form.is_incident.help_text %}
+                <small class="form-help-text">{{ form.is_incident.help_text }}</small>
+            {% endif %}
+            {% if form.is_incident.errors %}
+                <div class="field-errors">{{ form.is_incident.errors }}</div>
+            {% endif %}
+        </div>
+
+        <div class="form-actions">
+            <button type="submit" class="btn btn-primary">Сохранить изменения</button>
             <a href="{% url 'courses:course_detail' course.slug %}" class="btn btn-secondary">Отмена</a>
         </div>
     </form>
 </div>
+
+<!-- Модальное окно для выбора пользователя -->
+<div id="userModal" class="user-modal">
+    <div class="user-modal-content">
+        <div class="user-modal-header">
+            <h3>Выберите сотрудника</h3>
+            <span class="user-modal-close" id="userModalClose">&times;</span>
+        </div>
+        <div class="user-modal-body">
+            <div class="user-search-box">
+                <input type="text" id="userSearchInput" class="form-control" placeholder="Поиск по имени или фамилии...">
+            </div>
+            <div class="user-list-container">
+                <div id="userList" class="user-list">
+                    <div class="user-list-loading">Загрузка...</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Модальное окно для выбора теста -->
+<div id="quizModal" class="user-modal">
+    <div class="user-modal-content">
+        <div class="user-modal-header">
+            <h3>Выберите тест</h3>
+            <span class="user-modal-close" id="quizModalClose">&times;</span>
+        </div>
+        <div class="user-modal-body">
+            <div class="user-search-box">
+                <input type="text" id="quizSearchInput" class="form-control" placeholder="Поиск по названию теста...">
+            </div>
+            <div class="user-list-container">
+                <div id="quizList" class="user-list">
+                    <div class="user-list-loading">Загрузка...</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+/* Дополнительные стили для CKEditor */
+.ckeditor-wrapper {
+    margin-bottom: 1rem;
+}
+
+.ckeditor-wrapper .ck-editor {
+    border-radius: var(--um-input-radius);
+}
+
+/* Фикс z-index для панели инструментов CKEditor */
+.ck.ck-toolbar.ck-toolbar_sticky {
+    z-index: 999 !important; /* Меньше чем у header (1000) */
+}
+
+.ck.ck-sticky-panel .ck-toolbar {
+    z-index: 999 !important;
+}
+
+.field-errors {
+    color: var(--um-warning-color);
+    font-size: 0.875rem;
+    margin-top: 0.25rem;
+    margin-bottom: 0.5rem;
+}
+
+.form-help-text {
+    color: var(--um-help-text);
+    font-size: 0.875rem;
+    display: block;
+    margin-top: 0.25rem;
+    margin-bottom: 0.5rem;
+}
+
+/* Превью текущего изображения */
+.current-image-preview {
+    margin-bottom: 1rem;
+}
+
+.current-image-preview label {
+    color: var(--um-label-color);
+    font-weight: 500;
+    margin-bottom: 0.5rem;
+    display: block;
+}
+
+/* Адаптация стилей для групп */
+.um-user-groups-checkboxes {
+    margin-bottom: 1rem;
+}
+
+.um-user-groups-checkboxes .form-check {
+    margin-bottom: 0.5rem;
+    display: flex !important;
+    align-items: center;
+    padding-left: 0 !important;
+}
+
+.um-user-groups-checkboxes .form-check-input {
+    background-color: var(--um-checkbox-bg) !important;
+    border: 1px solid var(--um-checkbox-border) !important;
+    width: 1rem !important;
+    height: 1rem !important;
+    margin-left: 0 !important;
+    margin-right: 0.5rem !important;
+    margin-top: 0 !important;
+    float: none !important;
+    position: static !important;
+    appearance: none !important;
+    -webkit-appearance: none !important;
+    -moz-appearance: none !important;
+    border-radius: 0.25em !important;
+    background-repeat: no-repeat !important;
+    background-position: center !important;
+    background-size: contain !important;
+}
+
+.um-user-groups-checkboxes .form-check-input:checked {
+    background-color: #0d6efd !important;
+    border-color: #0d6efd !important;
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'%3e%3cpath fill='none' stroke='%23fff' stroke-linecap='round' stroke-linejoin='round' stroke-width='3' d='m6 10 3 3 6-6'/%3e%3c/svg%3e") !important;
+}
+
+.um-user-groups-checkboxes .form-check-label {
+    color: var(--um-checkbox-color);
+    margin-left: 0;
+    cursor: pointer;
+}
+
+/* Стили для счетчика времени проверки */
+.time-counter-wrapper {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    flex-shrink: 0;
+    vertical-align: middle;
+}
+
+.time-counter-btn {
+    width: 32px;
+    height: 38px;
+    min-height: 38px;
+    border: 1px solid #e3e8f0;
+    border-radius: 6px;
+    background: #fff;
+    color: #232a3a;
+    font-size: 1.2em;
+    font-weight: 600;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+    padding: 0;
+    margin: 0;
+    line-height: 1;
+    vertical-align: middle;
+    box-sizing: border-box;
+    flex-shrink: 0;
+}
+
+.time-counter-btn:hover {
+    background: #f7f8fa;
+    border-color: #4d7cff;
+    color: #4d7cff;
+}
+
+.time-counter-btn:active {
+    background: #e3e8f0;
+    transform: scale(0.95);
+}
+
+.time-counter-input {
+    width: 35px !important;
+    min-width: 35px !important;
+    max-width: 35px !important;
+    height: 38px !important;
+    border: 1px solid #e3e8f0;
+    border-radius: 6px;
+    text-align: center;
+    font-size: 1em !important;
+    font-weight: 600;
+    color: #232a3a !important;
+    background: #fff !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    cursor: default;
+    box-sizing: border-box;
+    flex-shrink: 0;
+    -moz-appearance: textfield;
+    line-height: 38px;
+    vertical-align: middle;
+}
+
+.time-counter-input::-webkit-outer-spin-button,
+.time-counter-input::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+.time-counter-input:focus {
+    outline: none;
+    border-color: #4d7cff;
+}
+
+/* Стили для иконки вопроса и подсказки */
+.help-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background-color: #6c757d;
+    color: #fff;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    position: relative;
+    transition: background-color 0.2s;
+    flex-shrink: 0;
+    line-height: 1;
+}
+
+.help-icon:hover {
+    background-color: #4d7cff;
+}
+
+.help-icon::after {
+    content: attr(data-tooltip);
+    position: absolute;
+    bottom: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    margin-bottom: 8px;
+    padding: 10px 14px;
+    background-color: #232a3a;
+    color: #fff;
+    font-size: 0.875rem;
+    line-height: 1.5;
+    white-space: pre-line;
+    border-radius: 6px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transition: opacity 0.2s, visibility 0.2s;
+    min-width: 280px;
+    max-width: 350px;
+    z-index: 10001;
+    text-align: left;
+}
+
+.help-icon::before {
+    content: '';
+    position: absolute;
+    bottom: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    margin-bottom: 2px;
+    border: 6px solid transparent;
+    border-top-color: #232a3a;
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transition: opacity 0.2s, visibility 0.2s;
+    z-index: 10002;
+}
+
+.help-icon:hover::after,
+.help-icon:focus::after,
+.help-icon.active::after {
+    opacity: 1;
+    visibility: visible;
+}
+
+.help-icon:hover::before,
+.help-icon:focus::before,
+.help-icon.active::before {
+    opacity: 1;
+    visibility: visible;
+}
+
+.help-icon:focus {
+    outline: 2px solid #4d7cff;
+    outline-offset: 2px;
+}
+
+/* Адаптивное позиционирование подсказки для мобильных устройств */
+@media (max-width: 768px) {
+    .help-icon::after {
+        left: auto;
+        right: 0;
+        transform: none;
+        min-width: 250px;
+        max-width: calc(100vw - 40px);
+    }
+    
+    .help-icon::before {
+        left: auto;
+        right: 10px;
+        transform: none;
+    }
+}
+</style>
+
+<script>
+// Сохранение состояния чекбоксов при ошибках валидации
+document.addEventListener('DOMContentLoaded', function() {
+    const checkboxes = document.querySelectorAll('input[name="allowed_groups"]');
+    
+    // Восстановление состояния из localStorage при загрузке
+    if (localStorage.getItem('edit_course_form_groups')) {
+        const savedGroups = JSON.parse(localStorage.getItem('edit_course_form_groups'));
+        checkboxes.forEach(checkbox => {
+            checkbox.checked = savedGroups.includes(checkbox.value);
+        });
+    }
+    
+    // Сохранение состояния при изменении
+    checkboxes.forEach(checkbox => {
+        checkbox.addEventListener('change', function() {
+            const checkedGroups = Array.from(checkboxes)
+                .filter(cb => cb.checked)
+                .map(cb => cb.value);
+            localStorage.setItem('edit_course_form_groups', JSON.stringify(checkedGroups));
+        });
+    });
+    
+    // Очистка localStorage при успешной отправке
+    const form = document.querySelector('.user-form');
+    form.addEventListener('submit', function() {
+        setTimeout(() => {
+            localStorage.removeItem('edit_course_form_groups');
+        }, 100);
+    });
+    
+    // Обработка иконок помощи
+    const helpIcons = document.querySelectorAll('.help-icon');
+    
+    helpIcons.forEach(function(icon) {
+        // Обработка переносов строк в подсказке
+        const tooltip = icon.getAttribute('data-tooltip');
+        if (tooltip) {
+            // Заменяем &#10; на реальные переносы строк
+            const formattedTooltip = tooltip.replace(/&#10;/g, '\n');
+            icon.setAttribute('data-tooltip', formattedTooltip);
+        }
+        
+        // Обработка клика для показа/скрытия подсказки
+        icon.addEventListener('click', function(e) {
+            e.stopPropagation();
+            const isActive = icon.classList.contains('active');
+            
+            // Закрываем все другие подсказки
+            helpIcons.forEach(function(otherIcon) {
+                if (otherIcon !== icon) {
+                    otherIcon.classList.remove('active');
+                }
+            });
+            
+            // Переключаем текущую подсказку
+            if (isActive) {
+                icon.classList.remove('active');
+            } else {
+                icon.classList.add('active');
+            }
+        });
+        
+        // Обработка нажатия Enter/Space для доступности
+        icon.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                icon.click();
+            }
+        });
+    });
+    
+    // Закрытие подсказок при клике вне их
+    document.addEventListener('click', function(e) {
+        if (!e.target.closest('.help-icon')) {
+            helpIcons.forEach(function(icon) {
+                icon.classList.remove('active');
+            });
+        }
+    });
+});
+</script>
 {% endblock content %}
+
+{% block specific_scripts %}
+    <script>
+        // API endpoints
+        const searchUsersUrl = "{% url 'builder:api_search_users' %}";
+        const userInputId = "{{ form.responsible_mentor.id_for_label }}";
+        const searchQuizzesUrl = "{% url 'quizzes:quiz_search_ajax' %}";
+        const quizInputId = "{{ form.final_quiz.id_for_label }}";
+    </script>
+    <script src="{% static 'courses/js/create_course.js' %}"></script>
+{% endblock %}

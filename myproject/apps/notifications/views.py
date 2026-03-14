@@ -14,7 +14,10 @@ from .models import Notification
 @login_required
 def notification_list(request):
     """Список всех уведомлений пользователя"""
-    notifications = Notification.objects.filter(user=request.user)
+    notifications = Notification.objects.filter(user=request.user).select_related(
+        'related_quiz_result__reviewed_by__profile',
+        'related_homework_submission__reviewed_by__profile'
+    )
     
     # Фильтрация
     notification_type = request.GET.get('type')
@@ -104,7 +107,12 @@ def notification_count(request):
 @login_required
 def notification_dropdown(request):
     """Частичное представление для выпадающего списка уведомлений"""
-    notifications = Notification.objects.filter(user=request.user, is_read=False)[:5]
+    # Показываем последние 5 уведомлений (все, не только непрочитанные)
+    notifications = Notification.objects.filter(user=request.user).select_related(
+        'related_quiz_result__reviewed_by__profile',
+        'related_homework_submission__reviewed_by__profile',
+        'related_sender__profile',
+    ).order_by('-created_at')[:5]
     total_unread = Notification.objects.filter(user=request.user, is_read=False).count()
     
     context = {

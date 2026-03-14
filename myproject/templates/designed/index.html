@@ -1,0 +1,754 @@
+{% extends 'designed/base.html' %}
+{% load static %}
+{% block title %}Главная страница{% endblock %}
+    {% block content %}
+      <main class="main">
+        <div class="hero">
+          <div class="hero__container">
+            <picture class="hero__image">
+              <source srcset="{% static 'designed/img/hero_back.webp' %}" class="hero__img">
+              <img src="{% static 'designed/img/hero_back.png' %}" alt="..." class="hero__img" loading="lazy">
+            </picture>
+            <div class="hero__content">
+              <div class="section section--center">
+                <div class="section__container">
+                  <div class="hero-main">
+                    <div class="hero-main__left">
+                      <div class="hero-main__text">
+                        <div class="hero-main__text-top">Учебный центр сети «Территория Улыбки»</div>
+                        <h2 class="title title--size-large title--variant-white"><span>Das System</span> — обучение и настройка процессов клиники</h2>
+                        <p>Онлайн‑уроки и настройка бизнес‑процессов: запись, лечение, расчёты, контроль качества. Для руководителей, врачей, ассистентов, администраторов и координаторов. Без лишней теории — только то, что работает в операционке.</p>
+                      </div>
+                      <a href="{% url 'courses:course_detail' check_up_course.slug %}"><button class="button button--variant-fuchsia button--size-medium button--font-medium button--arrow">Пройти чек-ап сразу <span class="icon icon-arrow button__arrow"></span></button></a>
+                    </div>
+                    <div class="description-card description-card--absolute">
+                      <div class="description-card__top">
+                        <h3 class="card-title">Зачем это клинике</h3>
+                        <img src="{% static 'designed/img/description/question.png' %}" alt="Зачем это клинике" class="description-card__img">
+                      </div>
+                      <div class="description-card__bottom">
+                        <div class="description-card__list">
+                          <div class="feature-item"><span class="icon icon-check feature-item__icon"></span> Сократить время ввода сотрудников и снизить операционные сбои.</div>
+                          <div class="feature-item"><span class="icon icon-check feature-item__icon"></span> Единый порядок работы и контроль по чек‑листам — без разночтений.</div>
+                          <div class="feature-item"><span class="icon icon-check feature-item__icon"></span> Порядок в расписании и учёте — план совпадает с фактом.</div>
+                          <div class="feature-item"><span class="icon icon-check feature-item__icon"></span> Недельный управленческий цикл — от метрик к решениям.</div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="section section--center section--bottom-medium section--top-large">
+          <div class="section__container">
+            <div class="back-figure">
+              <div class="back-figure__container">
+                <div class="description-group">
+                  <div class="heading">
+                    <span>Учебные материалы для команды</span>
+                    <h2 class="title title--size-large">Как это помогает</h2>
+                  </div>
+                  <div class="description-group__container">
+                    <div class="description-card">
+                      <div class="description-card__top">
+                        <h3 class="card-title">Что это</h3>
+                        <img src="{% static 'designed/img/description/what.png' %}" alt="Что это" class="description-card__img">
+                      </div>
+                      <div class="description-card__bottom"><p>Набор онлайн‑уроков и материалов для руководителей, врачей, ассистентов, администраторов и координаторов. Вы проходите уроки — клиника сама решает, как фиксировать результаты.</p></div>
+                    </div>
+                    <div class="description-card">
+                      <div class="description-card__top">
+                        <h3 class="card-title">Какие задачи закрывает</h3>
+                        <img src="{% static 'designed/img/description/task.png' %}" alt="Какие задачи закрывает" class="description-card__img">
+                      </div>
+                      <div class="description-card__bottom">
+                        <ul>
+                          <li>Несогласованность в инструкциях и длительностях процедур.</li>
+                          <li>Ошибки выписки работ и расхождения по оплатам.</li>
+                          <li>Долгая адаптация и повторяющиеся нарушения.</li>
+                          <li>Отсутствие общего языка цифр между врачом и руководителем.</li>
+                        </ul>
+                      </div>
+                    </div>
+                    <div class="description-card">
+                      <div class="description-card__top">
+                        <h3 class="card-title">Как это работает</h3>
+                        <img src="{% static 'designed/img/description/how.png' %}" alt="Как это работает" class="description-card__img">
+                      </div>
+                      <div class="description-card__bottom"><p>Мы даём контент и методики: видеоуроки, таблицы, регламенты и чек‑листы. А контроль прохождения и фиксация результатов — на стороне собственника клиники.</p></div>
+                    </div>
+                    <div class="description-card">
+                      <div class="description-card__top">
+                        <h3 class="card-title">Результат</h3>
+                        <img src="{% static 'designed/img/description/result.png' %}" alt="Результат" class="description-card__img">
+                      </div>
+                      <div class="description-card__bottom"><p>Предсказуемое качество, меньше потерь выручки и прозрачная ответственность в процессе работы.</p></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <picture class="back-figure__image back-figure__image-one">
+                <source srcset="{% static 'designed/img/back/1.webp' %}" class="back-figure__img">
+                <img loading="lazy" src="{% static 'designed/img/back/1.png' %}" alt="back" class="back-figure__img">
+              </picture>
+            </div>
+          </div>
+        </div>
+        <div class="section section--center section--bottom-medium">
+          <div class="section__container">
+            <div class="problem-grid">
+              <h2 class="title title--size-medium">
+                Типчные <span>проблемы</span> <br>
+                и как мы их <span>решаем</span>
+              </h2>
+              <div class="problem-grid__container">
+                <div class="problem-card problem-card--mw">
+                  <div class="problem-card__container">
+                    <div class="problem-card__container-sub">
+                      <span>Проблема</span>
+                      <h3 class="card-title">Долгая адаптация новых сотрудников</h3>
+                    </div>
+                    <div class="problem-card__text">Новые врачи и администраторы входят в работу месяцами, ошибки повторяются, пациенты недовольны.</div>
+                  </div>
+                  <div class="problem-card__container">
+                    <div class="problem-card__decision">Решение</div>
+                    <div class="problem-card__text problem-card__answer">Единые инструкции и краткие уроки. Шаблоны для внедрения. Срок адаптации сокращается в 2–3 раза.</div>
+                  </div>
+                  <img src="{% static 'designed/img/problem/one.png' %}" alt="problem" class="problem-card__img">
+                </div>
+                <div class="problem-card problem-card--mw">
+                  <div class="problem-card__container">
+                    <div class="problem-card__container-sub">
+                      <span>Проблема</span>
+                      <h3 class="card-title">Несогласованные действия в кабинетах</h3>
+                    </div>
+                    <div class="problem-card__text">Один делает так, другой иначе. Качество «гуляет», растут жалобы и переделки.</div>
+                  </div>
+                  <div class="problem-card__container">
+                    <div class="problem-card__decision">Решение</div>
+                    <div class="problem-card__text problem-card__answer">Единые инструкции и длительности. Настройка сетки расписания и контроль по чек‑листу.</div>
+                  </div>
+                  <img src="{% static 'designed/img/problem/two.png' %}" alt="problem" class="problem-card__img">
+                </div>
+                <div class="problem-card problem-card--mw">
+                  <div class="problem-card__container">
+                    <div class="problem-card__container-sub">
+                      <span>Проблема</span>
+                      <h3 class="card-title">Потери выручки из‑за расписания и учёта</h3>
+                    </div>
+                    <div class="problem-card__text">Расписание заполнено, но деньги не совпадают с фактом, часть работ не пробивается, есть простои.</div>
+                  </div>
+                  <div class="problem-card__container">
+                    <div class="problem-card__decision">Решение</div>
+                    <div class="problem-card__text problem-card__answer">Выписка работ в полном объёме, прогноз оплат и работа с длительностями. Обязательные чек‑листы.</div>
+                  </div>
+                  <img src="{% static 'designed/img/problem/three.png' %}" alt="problem" class="problem-card__img">
+                </div>
+                <div class="problem-card problem-card--mw">
+                  <div class="problem-card__container">
+                    <div class="problem-card__container-sub">
+                      <span>Проблема</span>
+                      <h3 class="card-title">Нет общего языка цифр</h3>
+                    </div>
+                    <div class="problem-card__text">Руководство и врачи по‑разному понимают «эффективность».</div>
+                  </div>
+                  <div class="problem-card__container">
+                    <div class="problem-card__decision">Решение</div>
+                    <div class="problem-card__text problem-card__answer">Базовые метрики (часы, загрузка, средний час, завершённость кейсов) и недельный цикл: план → факт → решение → контроль.</div>
+                  </div>
+                  <img src="{% static 'designed/img/problem/four.png' %}" alt="problem" class="problem-card__img">
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="section section--center section--bottom-medium">
+          <div class="section__container">
+            <div class="back-figure">
+              <div class="back-figure__container">
+                <div class="process-grid">
+                  <h2 class="title title--size-medium">Какие <span>процессы</span> настраиваем</h2>
+                  <div class="process-grid__container">
+                    <div class="stage-card">
+                      <div class="stage-card__container">
+                        <div class="stage-card__index">01</div>
+                        <h3 class="card-title">Запись и приём пациента: от звонка до расчёта</h3>
+                      </div>
+                    </div>
+                    <div class="stage-card">
+                      <div class="stage-card__container">
+                        <div class="stage-card__index">02</div>
+                        <h3 class="card-title">Расписание и длительности: сетка, правила, приоритеты</h3>
+                      </div>
+                    </div>
+                    <div class="stage-card">
+                      <div class="stage-card__container">
+                        <div class="stage-card__index">03</div>
+                        <h3 class="card-title">Выписка работ и план‑факт оплат</h3>
+                      </div>
+                    </div>
+                    <div class="stage-card">
+                      <div class="stage-card__container">
+                        <div class="stage-card__index">04</div>
+                        <h3 class="card-title">Контроль качества и завершённость кейсов</h3>
+                      </div>
+                    </div>
+                    <div class="stage-card">
+                      <div class="stage-card__container">
+                        <div class="stage-card__index">05</div>
+                        <h3 class="card-title">Коммуникация с лабораторией</h3>
+                      </div>
+                    </div>
+                    <div class="stage-card">
+                      <div class="stage-card__container">
+                        <div class="stage-card__index">06</div>
+                        <h3 class="card-title">Недельный управленческий цикл и панель показателей</h3>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <picture class="back-figure__image back-figure__image-two">
+                <source srcset="{% static 'designed/img/back/2.webp' %}" class="back-figure__img">
+                <img loading="lazy" src="{% static 'designed/img/back/2.png' %}" alt="back" class="back-figure__img">
+              </picture>
+            </div>
+          </div>
+        </div>
+        <div class="section section--center section--bottom-medium">
+          <div class="section__container">
+            <div class="banner">
+              <div class="banner__container">
+                <picture class="banner__image">
+                  <source srcset="{% static 'designed/img/banner.webp' %}" class="banner__img">
+                  <img src="{% static 'designed/img/banner.png' %}" alt="..." class="banner__img" loading="lazy">
+                </picture>
+                <div class="banner__content">
+                  <div class="banner-directions">
+                    <h2 class="title title--size-medium title--variant-white">Направления обучения</h2>
+                    <div class="banner-directions__container">
+                      <a href="{% url 'courses_app' %}" class="banner-directions__item">
+                        <div class="banner-directions__item-main">
+                          <div class="banner-directions__point"></div>
+                          Менеджмент клиники
+                        </div>
+                        <span class="icon icon-arrow-rotate banner-directions__item-arrow"></span> </a
+                      ><a href="{% url 'courses_app' %}" class="banner-directions__item">
+                        <div class="banner-directions__item-main">
+                          <div class="banner-directions__point"></div>
+                          Маркетинг и продажи
+                        </div>
+                        <span class="icon icon-arrow-rotate banner-directions__item-arrow"></span> </a
+                      ><a href="{% url 'courses_app' %}" class="banner-directions__item">
+                        <div class="banner-directions__item-main">
+                          <div class="banner-directions__point"></div>
+                          Кадры и наставничество
+                        </div>
+                        <span class="icon icon-arrow-rotate banner-directions__item-arrow"></span> </a
+                      ><a href="{% url 'courses_app' %}" class="banner-directions__item">
+                        <div class="banner-directions__item-main">
+                          <div class="banner-directions__point"></div>
+                          Клинические навыки и сервис
+                        </div>
+                        <span class="icon icon-arrow-rotate banner-directions__item-arrow"></span> </a
+                      ><a href="{% url 'courses_app' %}" class="banner-directions__item">
+                        <div class="banner-directions__item-main">
+                          <div class="banner-directions__point"></div>
+                          Финансы и аналитика
+                        </div>
+                        <span class="icon icon-arrow-rotate banner-directions__item-arrow"></span> </a
+                      ><a href="{% url 'courses_app' %}" class="banner-directions__item">
+                        <div class="banner-directions__item-main">
+                          <div class="banner-directions__point"></div>
+                          Цифровизация и база знаний
+                        </div>
+                        <span class="icon icon-arrow-rotate banner-directions__item-arrow"></span>
+                      </a>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <img src="{% static 'designed/img/banner1.png' %}" alt="banner" class="banner__absolute">
+            </div>
+          </div>
+        </div>
+        <div class="section section--center section--bottom-medium">
+          <div class="section__container">
+            <div class="back-figure">
+              <div class="back-figure__container">
+                <div class="program-grid">
+                  <h2 class="title title--size-medium">Популярные <span>программы</span></h2>
+                  <div class="program-grid__container">
+                    <a href="{% url 'courses_app' %}" class="program-card program-card--rose">
+                      <div class="program-card__container">
+                        <picture class="program-card__image">
+                          <source srcset="{% static 'designed/img/program/back1.webp' %}" class="program-card__img">
+                          <img src="{% static 'designed/img/program/back1.png' %}" alt="..." loading="lazy" class="program-card__img">
+                        </picture>
+                        <div class="program-card__main">
+                          <div class="program-card__content">
+                            <span class="program-card__pill"> Включает базовый курс «Чек‑ап клиники»</span>
+                            <div class="program-card__title">Управление прибылью клиники 360°</div>
+                            <div class="program-card__text">Считаем клиническое время и наводим порядок в расписании: часы, загрузка, средний час, план‑факт.</div>
+                            <span class="icon icon-arrow-rotate program-card__icon"></span>
+                          </div>
+                        </div>
+                        <button class="button button--variant-rose button--size-small button--arrow">Начать <span class="icon icon-arrow button__arrow"></span></button> <img src="{% static 'designed/img/program/one.png' %}" alt="..." class="program-card__container-img">
+                      </div>
+                    </a>
+                    <a href="{% url 'courses_app' %}" class="program-card program-card--fuchsia">
+                      <div class="program-card__container">
+                        <picture class="program-card__image">
+                          <source srcset="{% static 'designed/img/program/back2.webp' %}" class="program-card__img">
+                          <img src="{% static 'designed/img/program/back2.png' %}" alt="..." loading="lazy" class="program-card__img">
+                        </picture>
+                        <div class="program-card__main">
+                          <div class="program-card__content">
+                            <div class="program-card__title">Менеджмент клиники: руководителю</div>
+                            <div class="program-card__text">Команда, регламенты, сервис, контроль качества. Недельные управленческие встречи.</div>
+                            <span class="icon icon-arrow-rotate program-card__icon"></span>
+                          </div>
+                        </div>
+                        <button class="button button--variant-fuchsia button--size-small button--arrow">Начать <span class="icon icon-arrow button__arrow"></span></button> <img src="{% static 'designed/img/program/two.png' %}" alt="..." class="program-card__container-img">
+                      </div>
+                    </a>
+                    <a href="{% url 'courses_app' %}" class="program-card program-card--sky">
+                      <div class="program-card__container">
+                        <picture class="program-card__image">
+                          <source srcset="{% static 'designed/img/program/back3.webp' %}" class="program-card__img">
+                          <img src="{% static 'designed/img/program/back3.png' %}" alt="..." loading="lazy" class="program-card__img">
+                        </picture>
+                        <div class="program-card__main">
+                          <div class="program-card__content">
+                            <div class="program-card__title">Финансы клиники: от план‑факта к решениям</div>
+                            <div class="program-card__text">Финансовая модель, бюджетирование и аналитическая панель для руководителя.</div>
+                            <span class="icon icon-arrow-rotate program-card__icon"></span>
+                          </div>
+                        </div>
+                        <button class="button button--variant-sky button--size-small button--arrow">Начать <span class="icon icon-arrow button__arrow"></span></button> <img src="{% static 'designed/img/program/three.png' %}" alt="..." class="program-card__container-img">
+                      </div>
+                    </a>
+                  </div>
+                </div>
+              </div>
+              <picture class="back-figure__image back-figure__image-three">
+                <source srcset="{% static 'designed/img/back/3.webp' %}" class="back-figure__img">
+                <img loading="lazy" src="{% static 'designed/img/back/3.png' %}" alt="back" class="back-figure__img">
+              </picture>
+            </div>
+          </div>
+        </div>
+        <div class="section section--center section--bottom-medium">
+          <div class="section__container">
+            <div class="organization-work">
+              <div class="organization-work__left">
+                <img src="{% static 'designed/img/tooth.png' %}" alt="tooth" class="organization-work__left-img">
+                <h2 class="title title--size-medium"><span>Организация работы </span>с зуботехническими лабораториями</h2>
+                <p>Мы не оказываем зуботехнические услуги. Даём готовые правила и документы для взаимодействия: обмен кейсами, контроль качества, сроки согласований.</p>
+              </div>
+              <div class="organization-work__container">
+                <div class="organization-work-item">
+                  <img src="{% static 'designed/img/suitcase.png' %}" alt="Стандарты обмена кейсами" class="organization-work-item__img">
+                  <div class="organization-work-item__container">
+                    <h3 class="card-title">Стандарты обмена кейсами</h3>
+                    <div class="card-text">Требования к материалам, фото/КТ и формам передачи. Протокол согласования работ.</div>
+                  </div>
+                </div>
+                <div class="organization-work-item">
+                  <img src="{% static 'designed/img/medal.png' %}" alt="Стандарты и контроль качества" class="organization-work-item__img">
+                  <div class="organization-work-item__container">
+                    <h3 class="card-title">Стандарты и контроль качества</h3>
+                    <div class="card-text">Чек‑листы приёмки, фото‑протокол, контроль соответствия. Карта дефектов и исправлений.</div>
+                  </div>
+                </div>
+                <div class="organization-work-item">
+                  <img src="{% static 'designed/img/soo.png' %}" alt="Коммуникации и договорённости" class="organization-work-item__img">
+                  <div class="organization-work-item__container">
+                    <h3 class="card-title">Коммуникации и договорённости</h3>
+                    <div class="card-text">Каналы связи, формат запросов и ответов, рабочие договорённости с лабораторией.</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="section section--center" hidden>
+          <div class="section__container">
+            <h2 class="title title--size-medium">
+              Истории собственников:
+              <br>
+              что <span>болело</span> и как <span>исправили</span>
+            </h2>
+          </div>
+        </div>
+        <div class="section section--full" hidden>
+          <div class="section__container">
+            <div class="swiper-history__swiper swiper">
+              <div class="swiper-history__wrapper swiper-wrapper">
+                <div class="problem-card swiper-history__swiper-slide swiper-slide">
+                  <div class="problem-card__container">
+                    <div class="problem-card__container-sub">
+                      <span>Боль</span>
+                      <h3 class="card-title">Плотная запись, а денег нет</h3>
+                    </div>
+                    <div class="problem-card__text">Кресла заняты, но есть неоплаченные минутыи неполная выписка работ.</div>
+                  </div>
+                  <div class="problem-card__content">
+                    <div class="problem-card__video">
+                      <div class="video">
+                        <div class="video__frame">
+                          <video src="{% static 'designed/video/video.mp4' %}"></video>
+                          <div class="video__button"></div>
+                        </div>
+                      </div>
+                    </div>
+                    <div class="problem-card__container">
+                      <div class="problem-card__decision">Что сделали</div>
+                      <div class="problem-card__text">Стандарты длительностей, прогноз оплат, ежедневная сверка факта.</div>
+                    </div>
+                  </div>
+                </div>
+                <div class="problem-card swiper-history__swiper-slide swiper-slide">
+                  <div class="problem-card__container">
+                    <div class="problem-card__container-sub">
+                      <span>Боль</span>
+                      <h3 class="card-title">Длинные кейсы без финала</h3>
+                    </div>
+                    <div class="problem-card__text">Много визитов, мало завершений, падает поток рекомендаций.</div>
+                  </div>
+                  <div class="problem-card__content">
+                    <div class="problem-card__video">
+                      <div class="video">
+                        <div class="video__frame">
+                          <video src="{% static 'designed/video/video.mp4' %}"></video>
+                          <div class="video__button"></div>
+                        </div>
+                      </div>
+                    </div>
+                    <div class="problem-card__container">
+                      <div class="problem-card__decision">Что сделали</div>
+                      <div class="problem-card__text">Этапность, лимит визитов, контроль завершённости.</div>
+                    </div>
+                  </div>
+                </div>
+                <div class="problem-card swiper-history__swiper-slide swiper-slide">
+                  <div class="problem-card__container">
+                    <div class="problem-card__container-sub">
+                      <span>Боль</span>
+                      <h3 class="card-title">Несовпадение плана и денег</h3>
+                    </div>
+                    <div class="problem-card__text">В расписании одно, в кассе другое. Непредсказуемый результат.</div>
+                  </div>
+                  <div class="problem-card__content">
+                    <div class="problem-card__video">
+                      <div class="video">
+                        <div class="video__frame">
+                          <video src="{% static 'designed/video/video.mp4' %}"></video>
+                          <div class="video__button"></div>
+                        </div>
+                      </div>
+                    </div>
+                    <div class="problem-card__container">
+                      <div class="problem-card__decision">Что сделали</div>
+                      <div class="problem-card__text">Прогноз оплат по неделе, отклонения &gt;10% — разбор.</div>
+                    </div>
+                  </div>
+                </div>
+                <div class="problem-card swiper-history__swiper-slide swiper-slide">
+                  <div class="problem-card__container">
+                    <div class="problem-card__container-sub">
+                      <span>Боль</span>
+                      <h3 class="card-title">Плотная запись, а денег нет</h3>
+                    </div>
+                    <div class="problem-card__text">Кресла заняты, но есть неоплаченные минутыи неполная выписка работ.</div>
+                  </div>
+                  <div class="problem-card__content">
+                    <div class="problem-card__video">
+                      <div class="video">
+                        <div class="video__frame">
+                          <video src="{% static 'designed/video/video.mp4' %}"></video>
+                          <div class="video__button"></div>
+                        </div>
+                      </div>
+                    </div>
+                    <div class="problem-card__container">
+                      <div class="problem-card__decision">Что сделали</div>
+                      <div class="problem-card__text">Стандарты длительностей, прогноз оплат, ежедневная сверка факта.</div>
+                    </div>
+                  </div>
+                </div>
+                <div class="problem-card swiper-history__swiper-slide swiper-slide">
+                  <div class="problem-card__container">
+                    <div class="problem-card__container-sub">
+                      <span>Боль</span>
+                      <h3 class="card-title">Длинные кейсы без финала</h3>
+                    </div>
+                    <div class="problem-card__text">Много визитов, мало завершений, падает поток рекомендаций.</div>
+                  </div>
+                  <div class="problem-card__content">
+                    <div class="problem-card__video">
+                      <div class="video">
+                        <div class="video__frame">
+                          <video src="{% static 'designed/video/video.mp4' %}"></video>
+                          <div class="video__button"></div>
+                        </div>
+                      </div>
+                    </div>
+                    <div class="problem-card__container">
+                      <div class="problem-card__decision">Что сделали</div>
+                      <div class="problem-card__text">Этапность, лимит визитов, контроль завершённости.</div>
+                    </div>
+                  </div>
+                </div>
+                <div class="problem-card swiper-history__swiper-slide swiper-slide">
+                  <div class="problem-card__container">
+                    <div class="problem-card__container-sub">
+                      <span>Боль</span>
+                      <h3 class="card-title">Несовпадение плана и денег</h3>
+                    </div>
+                    <div class="problem-card__text">В расписании одно, в кассе другое. Непредсказуемый результат.</div>
+                  </div>
+                  <div class="problem-card__content">
+                    <div class="problem-card__video">
+                      <div class="video">
+                        <div class="video__frame">
+                          <video src="{% static 'designed/video/video.mp4' %}"></video>
+                          <div class="video__button"></div>
+                        </div>
+                      </div>
+                    </div>
+                    <div class="problem-card__container">
+                      <div class="problem-card__decision">Что сделали</div>
+                      <div class="problem-card__text">Прогноз оплат по неделе, отклонения &gt;10% — разбор.</div>
+                    </div>
+                  </div>
+                </div>
+                <div class="problem-card swiper-history__swiper-slide swiper-slide">
+                  <div class="problem-card__container">
+                    <div class="problem-card__container-sub">
+                      <span>Боль</span>
+                      <h3 class="card-title">Плотная запись, а денег нет</h3>
+                    </div>
+                    <div class="problem-card__text">Кресла заняты, но есть неоплаченные минутыи неполная выписка работ.</div>
+                  </div>
+                  <div class="problem-card__content">
+                    <div class="problem-card__video">
+                      <div class="video">
+                        <div class="video__frame">
+                          <video src="{% static 'designed/video/video.mp4' %}"></video>
+                          <div class="video__button"></div>
+                        </div>
+                      </div>
+                    </div>
+                    <div class="problem-card__container">
+                      <div class="problem-card__decision">Что сделали</div>
+                      <div class="problem-card__text">Стандарты длительностей, прогноз оплат, ежедневная сверка факта.</div>
+                    </div>
+                  </div>
+                </div>
+                <div class="problem-card swiper-history__swiper-slide swiper-slide">
+                  <div class="problem-card__container">
+                    <div class="problem-card__container-sub">
+                      <span>Боль</span>
+                      <h3 class="card-title">Длинные кейсы без финала</h3>
+                    </div>
+                    <div class="problem-card__text">Много визитов, мало завершений, падает поток рекомендаций.</div>
+                  </div>
+                  <div class="problem-card__content">
+                    <div class="problem-card__video">
+                      <div class="video">
+                        <div class="video__frame">
+                          <video src="{% static 'designed/video/video.mp4' %}"></video>
+                          <div class="video__button"></div>
+                        </div>
+                      </div>
+                    </div>
+                    <div class="problem-card__container">
+                      <div class="problem-card__decision">Что сделали</div>
+                      <div class="problem-card__text">Этапность, лимит визитов, контроль завершённости.</div>
+                    </div>
+                  </div>
+                </div>
+                <div class="problem-card swiper-history__swiper-slide swiper-slide">
+                  <div class="problem-card__container">
+                    <div class="problem-card__container-sub">
+                      <span>Боль</span>
+                      <h3 class="card-title">Несовпадение плана и денег</h3>
+                    </div>
+                    <div class="problem-card__text">В расписании одно, в кассе другое. Непредсказуемый результат.</div>
+                  </div>
+                  <div class="problem-card__content">
+                    <div class="problem-card__video">
+                      <div class="video">
+                        <div class="video__frame">
+                          <video src="{% static 'designed/video/video.mp4' %}"></video>
+                          <div class="video__button"></div>
+                        </div>
+                      </div>
+                    </div>
+                    <div class="problem-card__container">
+                      <div class="problem-card__decision">Что сделали</div>
+                      <div class="problem-card__text">Прогноз оплат по неделе, отклонения &gt;10% — разбор.</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="section section--center section--bottom-medium" hidden>
+          <div class="section__container">
+            <div class="back-figure">
+              <div class="back-figure__container"><div class="swiper-history__scrollbar"></div></div>
+              <picture class="back-figure__image back-figure__image-four">
+                <source srcset="{% static 'designed/img/back/4.webp' %}" class="back-figure__img">
+                <img loading="lazy" src="{% static 'designed/img/back/4.png' %}" alt="back" class="back-figure__img">
+              </picture>
+            </div>
+          </div>
+        </div>
+        <div class="section section--center section--bottom-medium">
+          <div class="section__container">
+            <div class="starts-grid">
+              <h2 class="title title--size-medium">Как <span>начать</span></h2>
+              <div class="starts-grid__container">
+                <div class="stage-card stage-card--subgrid">
+                  <div class="stage-card__container">
+                    <div class="stage-card__index">01</div>
+                    <h3 class="card-title">Чек‑ап клиники</h3>
+                  </div>
+                  <div class="card-text">Короткий курс + шаблон метрик. Присылаете данные — получаете экспресс‑чекап и план 30/60/90.</div>
+                </div>
+                <div class="stage-card stage-card--subgrid">
+                  <div class="stage-card__container">
+                    <div class="stage-card__index">02</div>
+                    <h3 class="card-title">Материалы для команды</h3>
+                  </div>
+                  <div class="card-text">Короткие уроки и шаблоны. Передаёте материалы команде, контроль прохождения — на стороне клиники.</div>
+                </div>
+                <div class="stage-card stage-card--subgrid">
+                  <div class="stage-card__container">
+                    <div class="stage-card__index">03</div>
+                    <h3 class="card-title">Программы развития</h3>
+                  </div>
+                  <div class="card-text">Менеджмент, финансы, кадры, маркетинг, клиника, цифровизация.</div>
+                </div>
+                <div class="stage-card stage-card--subgrid">
+                  <div class="stage-card__container">
+                    <div class="stage-card__index">04</div>
+                    <h3 class="card-title">Контроль и рост</h3>
+                  </div>
+                  <div class="card-text">Панель показателей руководителя: часы, загрузка, средний час, завершённость кейсов, план‑факт.</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="section section--center section--bottom-medium">
+          <div class="section__container">
+            <div class="changes-grid">
+              <h2 class="title title--size-medium">Что <span>меняется</span> после запуска учебного центра и обучения команды</h2>
+              <div class="changes-grid__container">
+                <div class="changes-item">
+                  <div class="changes-item__data">‑30–60%</div>
+                  <div class="card-text">время адаптации после запуска обучения команды</div>
+                </div>
+                <div class="changes-item">
+                  <div class="changes-item__data">+8–15 п.п.</div>
+                  <div class="card-text">рост загрузки кресел при тех же лидах</div>
+                </div>
+                <div class="changes-item">
+                  <div class="changes-item__data">‑20–40%</div>
+                  <div class="card-text">снижение простоев и несоответствий длительностей</div>
+                </div>
+                <div class="changes-item">
+                  <div class="changes-item__data">+10–25%</div>
+                  <div class="card-text">рост среднего часа по врачам (медиана)</div>
+                </div>
+                <div class="changes-item">
+                  <div class="changes-item__data">100%</div>
+                  <div class="card-text">полнота выписки работ и прогноз оплат в стандарте</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="section section--center section--bottom-medium" hidden>
+          <div class="section__container">
+            <div class="back-figure">
+              <div class="back-figure__container">
+                <div class="questions">
+                  <div class="heading heading--center">
+                    <span>FAQ</span>
+                    <h2 class="title title--size-large">Часто задаваемые вопросы</h2>
+                  </div>
+                  <div class="accordion">
+                    <div class="accordion__container">
+                      <div class="accordion__item ac">
+                        <div class="ac-trigger">
+                          <div class="accordion__title">Это только для нашей сети?</div>
+                          <div class="accordion__icon"><span class="icon icon-arrow accordion__icon-plus"></span></div>
+                        </div>
+                        <div class="ac-panel"><div class="accordion__content">Руководителям, врачам, ассистентам, администраторам и координаторам.</div></div>
+                      </div>
+                      <div class="accordion__item ac">
+                        <div class="ac-trigger">
+                          <div class="accordion__title">Можно ли проходить без куратора?</div>
+                          <div class="accordion__icon"><span class="icon icon-arrow accordion__icon-plus"></span></div>
+                        </div>
+                        <div class="ac-panel"><div class="accordion__content">Руководителям, врачам, ассистентам, администраторам и координаторам.</div></div>
+                      </div>
+                      <div class="accordion__item ac">
+                        <div class="ac-trigger">
+                          <div class="accordion__title">Кому полезны материалы?</div>
+                          <div class="accordion__icon"><span class="icon icon-arrow accordion__icon-plus"></span></div>
+                        </div>
+                        <div class="ac-panel"><div class="accordion__content">Руководителям, врачам, ассистентам, администраторам и координаторам.</div></div>
+                      </div>
+                      <div class="accordion__item ac">
+                        <div class="ac-trigger">
+                          <div class="accordion__title">Какие данные нужны для «Чек‑апа клиники»?</div>
+                          <div class="accordion__icon"><span class="icon icon-arrow accordion__icon-plus"></span></div>
+                        </div>
+                        <div class="ac-panel"><div class="accordion__content">Руководителям, врачам, ассистентам, администраторам и координаторам.</div></div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <picture class="back-figure__image back-figure__image-five">
+                <source srcset="{% static 'designed/img/back/5.webp' %}" class="back-figure__img">
+                <img loading="lazy" src="{% static 'designed/img/back/5.png' %}" alt="back" class="back-figure__img">
+              </picture>
+            </div>
+          </div>
+        </div>
+        <div class="section section--center section--bottom-medium">
+          <div class="section__container">
+            <div class="banner">
+              <div class="banner__container">
+                <picture class="banner__image">
+                  <source srcset="{% static 'designed/img/banner.webp' %}" class="banner__img">
+                  <img src="{% static 'designed/img/banner.png' %}" alt="..." class="banner__img" loading="lazy">
+                </picture>
+                <div class="banner__content">
+                  <div class="banner-footer">
+                    <div class="banner-footer__content">
+                      <h2 class="title title--size-medium title--variant-white"><span>Начните</span> с базового курса «Чек‑ап клиники»</h2>
+                      <p>Заполните таблицу метрик, получите экспресс‑чекап и план ближайших шагов. Затем передайте материалы команде и подключайте программы развития.</p>
+                    </div>
+                    <div class="banner-footer__button">
+                      <a href="{% url 'courses:course_detail' check_up_course.slug %}"><button class="button button--variant-fuchsia button--size-medium button--font-medium button--arrow">Пройти «Чек‑ап клиники» <span class="icon icon-arrow button__arrow"></span></button></a>
+                      <a href="{% url 'courses_app' %}"><button class="button button--variant-outline button--size-medium button--font-medium">Смотреть каталог</button></a>
+                    </div>
+                  </div>
+                </div>
+              </div>
+                <img src="{% static 'designed/img/banner2.png' %}" alt="banner" class="banner__absolute banner__absolute-big">
+            </div>
+          </div>
+        </div>
+      </main>
+    {% endblock %}

@@ -34,6 +34,8 @@
   --um-lesson-detail-status-completed: #059669;
   --um-lesson-detail-status-not-completed: #9ca3af;
   --um-lesson-detail-date: #6b7280;
+  --um-lesson-detail-bg: #f9fafb;
+  --um-lesson-detail-border: #e5e7eb;
   --um-lesson-completed-bg: #f0fdf4;
   --um-lesson-completed-border: #bbf7d0;
   --um-rewards-bg: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
@@ -107,114 +109,6 @@
   --um-level-bar-fill: linear-gradient(90deg, #4f8cff, #38d39f);
 }
 
-body.theme-dark {
-  --um-bg: #181a20;
-  --um-header-gradient: linear-gradient(135deg, #232a3a 0%, #232323 100%);
-  --um-header-color: #fff;
-  --um-card-bg: #232a3a;
-  --um-card-border: #353535;
-  --um-card-shadow: 0 4px 6px #0007;
-  --um-card-shadow-hover: 0 8px 25px #000a;
-  --um-title-color: #eee;
-  --um-title-color-inverse: #232323;
-  --um-stat-value: #fff;
-  --um-stat-desc: #bdbdbd;
-  --um-course-header-gradient: linear-gradient(135deg, #232a3a 0%, #353535 100%);
-  --um-course-title: #fff;
-  --um-course-date: #bdbdbd;
-  --um-status-completed-bg: #1e2d1e;
-  --um-status-completed-color: #28a745;
-  --um-status-started-bg: #2d1e1e;
-  --um-status-started-color: #ffc107;
-  --um-status-available-bg: #232a3a;
-  --um-status-available-color: #4d7cff;
-  --um-progress-bar-bg: #353535;
-  --um-progress-bar-fill: linear-gradient(90deg, #38d39f 0%, #4f8cff 100%);
-  --um-progress-percent: #fff;
-  --um-lessons-count: #bdbdbd;
-  --um-quiz-info-bg: #232a3a;
-  --um-quiz-info-title: #eee;
-  --um-quiz-passed: #10b981;
-  --um-quiz-not-passed: #ff4d4f;
-  --um-lesson-detail-bg: #232a3a;
-  --um-lesson-detail-border: #353535;
-  --um-lesson-detail-title: #eee;
-  --um-lesson-detail-order: #bdbdbd;
-  --um-lesson-detail-status-completed: #10b981;
-  --um-lesson-detail-status-not-completed: #6b7280;
-  --um-lesson-detail-date: #bdbdbd;
-  --um-lesson-completed-bg: #1e2d1e;
-  --um-lesson-completed-border: #28a745;
-  --um-rewards-bg: linear-gradient(135deg, #353535 0%, #232a3a 100%);
-  --um-rewards-title: #ffc107;
-  --um-reward-available-bg: #1e2d1e;
-  --um-reward-available-color: #28a745;
-  --um-reward-unavailable-bg: #2d1e1e;
-  --um-reward-unavailable-color: #ff4d4f;
-  --um-no-courses-bg: #232a3a;
-  --um-no-courses-border: #353535;
-  --um-no-courses-shadow: 0 4px 6px #0007;
-  --um-no-courses-text: #bdbdbd;
-  --um-quiz-card-bg: #232a3a;
-  --um-quiz-card-border: #353535;
-  --um-quiz-card-shadow: 0 4px 6px #0007;
-  --um-quiz-card-shadow-hover: 0 8px 25px #000a;
-  --um-quiz-header-bg: linear-gradient(135deg, #232a3a 0%, #353535 100%);
-  --um-quiz-title: #fff;
-  --um-quiz-date: #bdbdbd;
-  --um-quiz-score: #bdbdbd;
-  --um-quiz-status-bg: #232a3a;
-  --um-quiz-status-color: #4d7cff;
-  --um-quiz-answers-bg: #232a3a;
-  --um-quiz-answers-title: #eee;
-  --um-question-correct-bg: #1e2d1e;
-  --um-question-correct-border: #28a745;
-  --um-question-incorrect-bg: #2d1e1e;
-  --um-question-incorrect-border: #ff4d4f;
-  --um-question-header: #bdbdbd;
-  --um-question-text: #eee;
-  --um-question-type-bg: #353535;
-  --um-question-type-color: #bdbdbd;
-  --um-answer-bg: #232a3a;
-  --um-answer-border: #353535;
-  --um-answer-correct-bg: #1e2d1e;
-  --um-answer-correct-border: #28a745;
-  --um-answer-selected-bg: #232a3a;
-  --um-answer-selected-border: #4d7cff;
-  --um-answer-correct-selected-bg: #1e2d1e;
-  --um-answer-correct-selected-border: #28a745;
-  --um-answer-incorrect-selected-bg: #2d1e1e;
-  --um-answer-incorrect-selected-border: #ff4d4f;
-  --um-answer-marker-correct: #28a745;
-  --um-answer-marker-selected: #4d7cff;
-  --um-answer-marker-incorrect: #ff4d4f;
-  --um-answer-text: #eee;
-  --um-answer-user-choice-bg: #4d7cff;
-  --um-answer-user-choice-color: #fff;
-  --um-text-answer-bg: #232a3a;
-  --um-text-answer-border: #353535;
-  --um-text-answer-label: #eee;
-  --um-text-answer-correct-bg: #1e2d1e;
-  --um-text-answer-correct-color: #28a745;
-  --um-text-answer-incorrect-bg: #2d1e1e;
-  --um-text-answer-incorrect-color: #ff4d4f;
-  --um-text-answer-expected-bg: #1e2d1e;
-  --um-text-answer-expected-border: #28a745;
-  --um-text-answer-expected-color: #28a745;
-  --um-question-status-correct: #10b981;
-  --um-question-status-incorrect: #ff4d4f;
-  --um-btn-primary-bg: #4d7cff;
-  --um-btn-primary-color: #fff;
-  --um-btn-primary-hover-bg: #2dabc4;
-  --um-btn-secondary-bg: #353535;
-  --um-btn-secondary-color: #fff;
-  --um-btn-secondary-hover-bg: #232a3a;
-  --um-level-block-bg: #232a3a;
-  --um-level-block-color: #eee;
-  --um-level-block-shadow: 0 1px 4px #0003;
-  --um-level-bar-bg: #353535;
-  --um-level-bar-fill: linear-gradient(90deg, #38d39f, #4f8cff);
-}
 
 /* Основные стили дэшборда прогресса */
 .um-progress-dashboard-wrapper {
@@ -526,6 +420,23 @@ body.theme-dark {
 .um-lesson-completed-date {
     font-size: 12px;
     color: var(--um-lesson-detail-date);
+}
+
+.um-quiz-attempts-info {
+    margin-top: 0.5rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.um-attempts-count {
+    color: var(--um-lesson-detail-date);
+    font-size: 0.75rem;
+    font-weight: 500;
+    background: var(--um-lesson-detail-bg);
+    padding: 0.25rem 0.5rem;
+    border-radius: 0.375rem;
+    border: 1px solid var(--um-lesson-detail-border);
 }
 
 /* Награды */

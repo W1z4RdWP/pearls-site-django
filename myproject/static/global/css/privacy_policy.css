@@ -17,24 +17,6 @@
     --privacy-section-border-bottom: #f0f0f0;
 }
 
-body.theme-dark {
-    --privacy-bg: #232a3a;
-    --privacy-text: #bdbdbd;
-    --privacy-header: #e3e8f0;
-    --privacy-header-desc: #bdbdbd;
-    --privacy-section-title: #e3e8f0;
-    --privacy-section-border: #5473B5;
-    --privacy-highlight-gradient: linear-gradient(135deg, #5473B5 0%, #764ba2 100%);
-    --privacy-highlight-shadow: 0 5px 15px rgba(84, 115, 181, 0.3);
-    --privacy-contact-bg: #333;
-    --privacy-contact-border: #5473B5;
-    --privacy-contact-text: #eee;
-    --privacy-contact-link: #4d7cff;
-    --privacy-contact-link-hover: #2dabc4;
-    --privacy-last-updated: #bdbdbd;
-    --privacy-last-updated-border: #353535;
-    --privacy-section-border-bottom: #353535;
-}
 
 .privacy-container {
     max-width: 800px;

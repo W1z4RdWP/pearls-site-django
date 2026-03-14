@@ -53,58 +53,6 @@
 
 }
 
-body.theme-dark {
-    --color-bg: #333;
-    --color-bg-secondary: #232a3a;
-    --color-text: whitesmoke;
-    --color-text-secondary: #bdbdbd;
-    --color-accent: #5473B5;
-    --color-accent-hover: #2dabc4;
-    --color-card-bg: #232a3a;
-    --color-card-shadow: 0 2px 16px #0007;
-    --color-btn-bg: #4d7cff;
-    --color-btn-text: #fff;
-    --color-navbar-bg: #333;
-    --color-navbar-link: whitesmoke;
-    --color-navbar-link-hover: rgb(227, 92, 121);
-    --color-footer-bg: #232323;
-    --color-footer-bottom-bg: #1c1c1c;
-    --color-footer-text: #eee;
-    --color-footer-link: #eee;
-    --color-footer-link-hover: #4d7cff;
-    --color-footer-accent: #4d7cff;
-    --color-footer-tagline: #bdbdbd;
-    --color-footer-border: #353535;
-    --color-card-border: gray;
-    --color-card-title: whitesmoke;
-    --color-card-desc: #bdbdbd;
-    --color-hero-face-label: #bdbdbd;
-    --color-hero-face-bg: #222;
-    --color-hero-face-shadow: 0 2px 16px #0007;
-    --color-overlay-bg: rgba(50, 50, 50, 0.8);
-    --color-overlay-text: #fff;
-    --color-carousel-indicator: #fff;
-    --color-carousel-indicator-active: #fff;
-    --color-carousel-arrow: #4d7cff;
-    --color-carousel-shadow: whitesmoke;
-    --color-btn-secondary-bg: #e3e8f0;
-    --color-btn-secondary-text: #4d7cff;
-    --color-input-bg: #232a3a;
-    --color-input-text: #fff;
-    --color-border: #706f6f;
-    --color-progress-bar: #4CAF50;
-    --color-success: #28a745;
-    --color-success-hover: #218838;
-    --color-danger: #dc3545;
-    --color-danger-hover: #bb2d3b;
-    --color-link: #4d7cff;
-    --color-link-hover: #2dabc4;
-    --color-hero-gradient: #333;
-    --color-hero-btn-bg: #232323;
-    --color-hero-btn-text: var(--color-text);
-    --color-hero-btn-hover-bg: #e3e8f0;
-    --color-hero-btn-hover-text: #232a3a;
-}
 
 
 
@@ -143,12 +91,14 @@ header{
     display: flex;
     place-content: center;
     width: 100%;
+    position: relative;
 }
 
 .navbar {
     background-color: var(--color-navbar-bg) !important; /* Переопределяем фон */
     width: 100%;
     padding: 0.5rem 1rem;
+    position: relative;
 }
 
 .navbar #logopng{
@@ -173,17 +123,28 @@ header{
 
 .nav-profile-actions {
     position: absolute;
-    right: 30px;
-    top: 0;
-    height: 100%;
+    right: 15px;
+    top: 50%;
+    transform: translateY(-50%);
     display: flex;
     align-items: center;
-    gap: 10px;
-    z-index: 10;
+    gap: 5px;
+    z-index: 1001;
+    flex-shrink: 0;
+    flex-wrap: nowrap;
+}
+
+.nav-profile-actions .nav-link {
+    color: var(--color-navbar-link) !important;
+    padding: 0.5rem !important;
+}
+
+.nav-profile-actions .nav-link:hover {
+    color: var(--color-navbar-link-hover) !important;
 }
 
 .custom-navbar .navbar-nav {
-    margin-right: 120px; /* чтобы не налезали на profile-actions */
+    margin-right: 130px; /* отступ от колокольчика и аватара */
 }
 
 .form-group{
@@ -375,6 +336,24 @@ section {
     width: 100%;
     height: 100%;
     border: 0;
+}
+
+/* Адаптация iframe видео из CKEditor для мобильных устройств */
+@media (max-width: 768px) {
+    .lesson-content iframe[src*="rutube.ru"] {
+        width: 100% !important;
+        max-width: 500px !important;
+        height: auto !important;
+        aspect-ratio: 16/9;
+    }
+}
+
+@media (max-width: 480px) {
+    .lesson-content iframe[src*="rutube.ru"] {
+        width: 328px !important;
+        height: 200px !important;
+        max-width: 100% !important;
+    }
 }
 
 .scale_on_hover:hover{
@@ -778,7 +757,8 @@ main > section > .text-block-2 {
     color: #212529;
     font-size: 1rem;
     line-height: 1.5;
-    overflow: auto;
+    overflow: visible;
+    position: relative;
 }
 .lesson-content a {
     color: #0d6efd;
@@ -791,23 +771,118 @@ main > section > .text-block-2 {
 .lesson-content table {
     border-collapse: collapse;
     width: 100%;
-    /* margin: 16px 0; */
+    margin: 16px 0;
     background: #fafbfc;
     font-size: 1em;
+    position: relative;
+    z-index: 1;
+    display: table;
+    table-layout: auto;
 }
 .lesson-content th, .lesson-content td {
     border: 1px solid #bbb;
     padding: 8px 12px;
     text-align: left;
+    position: relative;
+    vertical-align: top;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
 }
 .lesson-content th {
     background: #f3f3f3;
     font-weight: 600;
     text-align: center;
 }
+.lesson-content tr {
+    position: relative;
+    z-index: 1;
+    display: table-row;
+}
 .lesson-content tr:nth-child(even) {
     background: #f7f7f7;
 }
+
+/* Дополнительные стили для предотвращения наложения таблиц */
+.lesson-content table + table {
+    margin-top: 24px;
+}
+
+.lesson-content table tbody {
+    display: table-row-group;
+}
+
+.lesson-content table thead {
+    display: table-header-group;
+}
+
+.lesson-content table tfoot {
+    display: table-footer-group;
+}
+
+.lesson-content table colgroup {
+    display: table-column-group;
+}
+
+.lesson-content table col {
+    display: table-column;
+}
+/* CKEditor wrappers: fix overlay caused by inline heights and bootstrap .table clash */
+.lesson-content figure.table {
+    display: block;
+    width: 100%;
+    max-width: 100%;
+    height: auto !important; /* override inline height like style="height:71px;" */
+    overflow: visible;
+    margin: 16px 0;
+    background: transparent;
+    border: 0;
+}
+.lesson-content figure.table > table {
+    width: 100% !important;
+    margin: 0;
+}
+.lesson-content figure.image {
+    display: block;
+    max-width: 100%;
+    height: auto !important;
+    margin: 16px 0;
+}
+.lesson-content .raw-html-embed {
+    display: flex;
+    width: 100%;
+    margin: 16px 0;
+    overflow: visible;
+    justify-content: center;
+}
+.lesson-content .raw-html-embed iframe {
+    display: block;
+    width: 100%;
+    max-width: 960px; /* ограничение на десктопе */
+    aspect-ratio: 16/9; /* сохраняем пропорции видео */
+    height: auto;
+}
+
+/* На случай, если iframe вставлен без .raw-html-embed */
+.lesson-content iframe[src*="rutube.ru"],
+.lesson-content iframe[src*="youtube.com"],
+.lesson-content iframe[src*="youtu.be"] {
+    display: block;
+    margin: 16px auto;
+    width: 100%;
+    max-width: 960px;
+    aspect-ratio: 16/9;
+    height: auto;
+}
+
+/* Оформление заглушки для «битых» картинок */
+/* Убрал, так как нет необходимости, восстановить если будет картинка */
+/* .img-fallback {
+    object-fit: contain;
+    background: #f3f4f6;
+    border: 1px dashed #d1d5db;
+    padding: 8px;
+    width: 30%;
+} */
 /* Подпись к таблице */
 .lesson-content figcaption {
     caption-side: top;
@@ -1180,7 +1255,7 @@ main > section > .text-block-2 {
         margin-right: 0px;
     }
 
-    .nav-profile-actions, .custom-nav-list .nav-item.staff-icons-row {
+    .custom-nav-list .nav-item.staff-icons-row {
         display: flex !important;
         flex-direction: row;
         justify-content: center;
@@ -2176,6 +2251,7 @@ main > section > .text-block-2 {
         margin-top: 0.5rem;
         border: 1px solid rgba(0,0,0,.15);
         box-shadow: 0 0.5rem 1rem rgba(0,0,0,.175);
+        margin-left: -2.5rem;
     }
     
     /* Группировка колокольчика и бургер меню */

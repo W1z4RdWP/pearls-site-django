@@ -5,155 +5,7 @@
 
 {% block specific_styles %}
 <link rel="stylesheet" href="{% static 'user_management/css/user_list.css' %}">
-<style>
-    .quiz-attempts-container {
-        max-width: 1200px;
-        margin: 0 auto;
-        padding: 20px;
-    }
-    
-    .user-info-card {
-        background: #f8f9fa;
-        border-radius: 12px;
-        padding: 20px;
-        margin-bottom: 30px;
-        border: 1px solid #dee2e6;
-        position: relative; /* Добавляем для позиционирования дочерних элементов */
-    }
-    
-    .admin-badge-position {
-        position: absolute;
-        top: 15px;
-        right: 20px;
-    }
-    
-    .quiz-card {
-        background: white;
-        border-radius: 12px;
-        box-shadow: 0 2px 10px rgba(0,0,0,0.08);
-        margin-bottom: 20px;
-        overflow: hidden;
-        border: 1px solid #e9ecef;
-    }
-    
-    .quiz-header {
-        background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
-        color: white;
-        padding: 15px 20px;
-        font-weight: 600;
-    }
-    
-    .quiz-body {
-        padding: 20px;
-    }
-    
-    .quiz-stats {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-        gap: 15px;
-        margin-bottom: 20px;
-    }
-    
-    .stat-item {
-        text-align: center;
-        padding: 10px;
-        background: #f8f9fa;
-        border-radius: 8px;
-    }
-    
-    .stat-value {
-        font-size: 1.5rem;
-        font-weight: bold;
-        color: #007bff;
-    }
-    
-    .stat-label {
-        font-size: 0.9rem;
-        color: #6c757d;
-        margin-top: 5px;
-    }
-    
-    .attempts-table {
-        width: 100%;
-        border-collapse: collapse;
-        margin-top: 15px;
-    }
-    
-    .attempts-table th,
-    .attempts-table td {
-        padding: 8px 12px;
-        text-align: left;
-        border-bottom: 1px solid #dee2e6;
-    }
-    
-    .attempts-table th {
-        background: #f8f9fa;
-        font-weight: 600;
-        color: #495057;
-    }
-    
-    .status-badge {
-        padding: 4px 8px;
-        border-radius: 4px;
-        font-size: 0.85rem;
-        font-weight: 500;
-    }
-    
-    .status-passed {
-        background: #d4edda;
-        color: #155724;
-    }
-    
-    .status-failed {
-        background: #f8d7da;
-        color: #721c24;
-    }
-    
-    .status-blocked {
-        background: #fff3cd;
-        color: #856404;
-    }
-    
-    .quiz-actions {
-        margin-top: 20px;
-        display: flex;
-        gap: 10px;
-        flex-wrap: wrap;
-    }
-    
-
-    
-    .btn-unlock {
-        background: #28a745;
-        color: white;
-        border: none;
-        padding: 8px 16px;
-        border-radius: 6px;
-        font-size: 0.9rem;
-        cursor: pointer;
-        transition: background-color 0.3s;
-    }
-    
-    .btn-unlock:hover {
-        background: #218838;
-    }
-    
-    .no-attempts {
-        text-align: center;
-        color: #6c757d;
-        font-style: italic;
-        padding: 40px;
-    }
-    
-    .alert-info {
-        background: #d1ecf1;
-        border: 1px solid #bee5eb;
-        color: #0c5460;
-        padding: 12px 16px;
-        border-radius: 8px;
-        margin-bottom: 20px;
-    }
-</style>
+<link rel="stylesheet" href="{% static 'user_management/css/user_quiz_attempts.css' %}">
 {% endblock %}
 
 {% block content %}
@@ -177,7 +29,7 @@
                      class="rounded-circle" style="width: 80px; height: 80px; object-fit: cover;">
             </div>
             <div class="col-md-10">
-                <h4 class="mb-1">{{ target_user.get_full_name|default:target_user.username }} {% if target_user.profile.middle_name %}({{ target_user.last_name|slice:":1" }}{{ target_user.first_name|slice:":1" }}{{ target_user.profile.middle_name|slice:":1" }}) {% endif %}</h4>
+                <h4 class="mb-1">{{ target_user.get_full_name|default:target_user.username }} </h4>
                 <p class="text-muted mb-1">{{ target_user.email }}</p>
                 <p class="mb-0">
                     <strong>Группы:</strong> 
@@ -195,11 +47,52 @@
     </div>
 
     {% if quiz_data %}
+    <div class="search-container">
+        <!-- Фильтр по статусу блокировки -->
+        <div class="mb-3">
+            <label class="d-block mb-2 text-muted small">
+                <i class="fas fa-filter me-1"></i>Фильтр по статусу:
+            </label>
+            <div class="btn-group w-100" role="group" aria-label="Фильтр по статусу">
+                <input type="radio" class="btn-check" name="statusFilter" id="filterAll" value="all" checked>
+                <label class="btn btn-outline-primary" for="filterAll">
+                    <i class="fas fa-list me-1"></i>Все тесты
+                </label>
+                
+                <input type="radio" class="btn-check" name="statusFilter" id="filterBlocked" value="blocked">
+                <label class="btn btn-outline-danger" for="filterBlocked">
+                    <i class="fas fa-lock me-1"></i>Заблокированные
+                </label>
+                
+                <input type="radio" class="btn-check" name="statusFilter" id="filterUnlocked" value="unlocked">
+                <label class="btn btn-outline-success" for="filterUnlocked">
+                    <i class="fas fa-unlock me-1"></i>Разблокированные
+                </label>
+            </div>
+        </div>
+
+        <!-- Поиск по названию теста -->
+        <div class="d-flex align-items-center">
+            <i class="fas fa-search me-3 text-muted"></i>
+            <input type="text" id="quizSearch" class="search-input" placeholder="Поиск по названию теста...">
+        </div>
+    </div>
+    {% endif %}
+
+    {% if quiz_data %}
         {% for quiz, data in quiz_data.items %}
-        <div class="quiz-card">
+        <div class="quiz-card" data-quiz-name="{{ quiz.name|lower }}" data-is-blocked="{% if data.is_blocked %}true{% else %}false{% endif %}">
             <div class="quiz-header">
                 <div class="d-flex justify-content-between align-items-center">
-                    <h5 class="mb-0">{{ quiz.name }}</h5>
+                    <div>
+                        <h5 class="mb-0">{{ quiz.name }}</h5>
+                        <small class="text-light">
+                            <i class="fas fa-info-circle me-1"></i>{{ data.quiz_type }}
+                            {% if data.related_course %}
+                                | Курс: {{ data.related_course.title }}
+                            {% endif %}
+                        </small>
+                    </div>
                     <div class="text-end">
                         <small>ID: {{ quiz.id }}</small><br>
                         <small>
@@ -225,6 +118,12 @@
                         <div class="stat-value">{{ data.failed_attempts }}</div>
                         <div class="stat-label">Неуспешных {% if quiz.attempt_limit > 0 %}(из {{ quiz.attempt_limit }}){% endif %}</div>
                     </div>
+                    {% if data.excluded_attempts > 0 %}
+                    <div class="stat-item">
+                        <div class="stat-value">{{ data.excluded_attempts }}</div>
+                        <div class="stat-label">Исключенных из лимита</div>
+                    </div>
+                    {% endif %}
                     <div class="stat-item">
                         <div class="stat-value">
                             {% if data.best_score %}{{ data.best_score }}%{% else %}—{% endif %}
@@ -297,6 +196,7 @@
                     {% if data.is_blocked %}
                     <form method="post" action="{% url 'user_management:unlock_quiz_access' target_user.pk quiz.pk %}" style="display: inline;">
                         {% csrf_token %}
+                        <input type="hidden" name="next" value="user_quiz_attempts">
                         <button type="submit" class="btn-unlock" onclick="return confirm('Разблокировать доступ к тесту? Пользователь сможет пройти еще одну попытку.')">
                             <i class="fas fa-unlock me-1"></i>Разблокировать
                         </button>
@@ -316,4 +216,10 @@
     </div>
     {% endif %}
 </div>
+
+{% endblock %}
+
+
+{% block specific_scripts %}
+    <script src="{% static 'user_management/js/user_quiz_attempts.js' %}"></script>
 {% endblock %}

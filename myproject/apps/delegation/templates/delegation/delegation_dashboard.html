@@ -1,0 +1,271 @@
+{% extends 'layout.html' %}
+{% block title %}Панель управления делегированием{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1><i class="fas fa-user-shield"></i> Делегирование полномочий</h1>
+        <a href="{% url 'delegation:delegation_create' %}" class="btn btn-primary">
+            <i class="fas fa-plus"></i> Делегировать права
+        </a>
+    </div>
+
+    <!-- Nav tabs -->
+    <ul class="nav nav-tabs mb-4" id="delegationTabs" role="tablist">
+        <li class="nav-item" role="presentation">
+            <button class="nav-link active" id="outgoing-tab" data-bs-toggle="tab" data-bs-target="#outgoing" type="button" role="tab">
+                <i class="fas fa-arrow-right"></i> Исходящие
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="incoming-tab" data-bs-toggle="tab" data-bs-target="#incoming" type="button" role="tab">
+                <i class="fas fa-arrow-left"></i> Входящие
+                {% if pending_count > 0 %}
+                <span class="badge bg-danger ms-1">{{ pending_count }}</span>
+                {% endif %}
+            </button>
+        </li>
+        {% if user.is_superuser or user.is_staff %}
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="all-tab" data-bs-toggle="tab" data-bs-target="#all" type="button" role="tab">
+                <i class="fas fa-list"></i> Все делегирования
+            </button>
+        </li>
+        {% endif %}
+    </ul>
+
+    <!-- Tab content -->
+    <div class="tab-content" id="delegationTabContent">
+        <!-- Исходящие делегирования -->
+        <div class="tab-pane fade show active" id="outgoing" role="tabpanel">
+            <div class="card shadow-sm">
+                <div class="card-header">
+                    <h5 class="mb-0">Мои исходящие делегирования</h5>
+                    <small class="text-muted">Делегирования, которые вы передали другим пользователям</small>
+                </div>
+                <div class="card-body">
+                    {% if outgoing_delegations %}
+                    <div class="table-responsive">
+                        <table class="table table-hover table-sm">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Принимающий</th>
+                                    <th>Права</th>
+                                    <th>Период</th>
+                                    <th>Статус</th>
+                                    <th>Создано</th>
+                                    <th>Действия</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for delegation in outgoing_delegations %}
+                                <tr>
+                                    <td>{{ delegation.id }}</td>
+                                    <td><small>{{ delegation.delegate.get_full_name|default:delegation.delegate.username }}</small></td>
+                                    <td><small>{{ delegation.delegated_permissions|truncatechars:30 }}</small></td>
+                                    <td>
+                                        <small>
+                                            {{ delegation.start_datetime|date:"d.m H:i" }} — 
+                                            {% if delegation.end_datetime %}{{ delegation.end_datetime|date:"d.m H:i" }}{% else %}бессрочно{% endif %}
+                                        </small>
+                                    </td>
+                                    <td>
+                                        {% if delegation.status == 'pending' %}
+                                            <span class="badge bg-warning text-dark">{{ delegation.get_status_display }}</span>
+                                        {% elif delegation.status == 'active' %}
+                                            <span class="badge bg-success">{{ delegation.get_status_display }}</span>
+                                        {% elif delegation.status == 'completed' %}
+                                            <span class="badge bg-secondary">{{ delegation.get_status_display }}</span>
+                                        {% elif delegation.status == 'cancelled' %}
+                                            <span class="badge bg-danger">{{ delegation.get_status_display }}</span>
+                                        {% endif %}
+                                    </td>
+                                    <td><small>{{ delegation.created_at|date:"d.m.Y H:i" }}</small></td>
+                                    <td>
+                                        {% if delegation.status in 'pending,active' %}
+                                        <form method="post" action="{% url 'delegation:delegation_cancel' delegation.id %}" style="display: inline;">
+                                            {% csrf_token %}
+                                            <button type="submit" class="btn btn-sm btn-danger btn-sm" 
+                                                    onclick="return confirm('Вы уверены, что хотите отменить это делегирование?')">
+                                                <i class="fas fa-times"></i>
+                                            </button>
+                                        </form>
+                                        {% else %}
+                                            <span class="text-muted">—</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle"></i> У вас пока нет исходящих делегирований
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Входящие делегирования -->
+        <div class="tab-pane fade" id="incoming" role="tabpanel">
+            <div class="card shadow-sm">
+                <div class="card-header">
+                    <h5 class="mb-0">Мои входящие делегирования</h5>
+                    <small class="text-muted">Делегирования, которые вам передали другие пользователи</small>
+                </div>
+                <div class="card-body">
+                    {% if incoming_delegations %}
+                    <div class="table-responsive">
+                        <table class="table table-hover table-sm">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Передающий</th>
+                                    <th>Права</th>
+                                    <th>Период</th>
+                                    <th>Статус</th>
+                                    <th>Создано</th>
+                                    <th>Действия</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for delegation in incoming_delegations %}
+                                <tr {% if delegation.status == 'pending' %}class="table-warning"{% endif %}>
+                                    <td>{{ delegation.id }}</td>
+                                    <td><small>{{ delegation.delegator.get_full_name|default:delegation.delegator.username }}</small></td>
+                                    <td><small>{{ delegation.delegated_permissions|truncatechars:30 }}</small></td>
+                                    <td>
+                                        <small>
+                                            {{ delegation.start_datetime|date:"d.m H:i" }} — 
+                                            {% if delegation.end_datetime %}{{ delegation.end_datetime|date:"d.m H:i" }}{% else %}бессрочно{% endif %}
+                                        </small>
+                                    </td>
+                                    <td>
+                                        {% if delegation.status == 'pending' %}
+                                            <span class="badge bg-warning text-dark">{{ delegation.get_status_display }}</span>
+                                        {% elif delegation.status == 'active' %}
+                                            <span class="badge bg-success">{{ delegation.get_status_display }}</span>
+                                        {% elif delegation.status == 'completed' %}
+                                            <span class="badge bg-secondary">{{ delegation.get_status_display }}</span>
+                                        {% elif delegation.status == 'cancelled' %}
+                                            <span class="badge bg-danger">{{ delegation.get_status_display }}</span>
+                                        {% endif %}
+                                    </td>
+                                    <td><small>{{ delegation.created_at|date:"d.m.Y H:i" }}</small></td>
+                                    <td>
+                                        {% if delegation.status == 'pending' %}
+                                        <div class="btn-group btn-group-sm" role="group">
+                                            <form method="post" action="{% url 'delegation:delegation_confirm' delegation.id %}" style="display: inline;">
+                                                {% csrf_token %}
+                                                <button type="submit" class="btn btn-success btn-sm" title="Принять">
+                                                    <i class="fas fa-check"></i>
+                                                </button>
+                                            </form>
+                                            <form method="post" action="{% url 'delegation:delegation_reject' delegation.id %}" style="display: inline;">
+                                                {% csrf_token %}
+                                                <button type="submit" class="btn btn-danger btn-sm" 
+                                                        onclick="return confirm('Вы уверены, что хотите отклонить это делегирование?')" title="Отклонить">
+                                                    <i class="fas fa-times"></i>
+                                                </button>
+                                            </form>
+                                        </div>
+                                        {% else %}
+                                            <span class="text-muted">—</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle"></i> У вас пока нет входящих делегирований
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Все делегирования (только для администраторов) -->
+        {% if user.is_superuser or user.is_staff %}
+        <div class="tab-pane fade" id="all" role="tabpanel">
+            <div class="card shadow-sm">
+                <div class="card-header">
+                    <h5 class="mb-0">Журнал всех делегирований</h5>
+                    <small class="text-muted">Полный журнал делегирований всех пользователей за последние 30 дней</small>
+                </div>
+                <div class="card-body">
+                    {% if all_delegations %}
+                    <div class="table-responsive">
+                        <table class="table table-hover table-sm">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Передающий</th>
+                                    <th>Принимающий</th>
+                                    <th>Права</th>
+                                    <th>Период</th>
+                                    <th>Статус</th>
+                                    <th>Создано</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for delegation in all_delegations %}
+                                <tr>
+                                    <td>{{ delegation.id }}</td>
+                                    <td><small>{{ delegation.delegator.get_full_name|default:delegation.delegator.username }}</small></td>
+                                    <td><small>{{ delegation.delegate.get_full_name|default:delegation.delegate.username }}</small></td>
+                                    <td><small>{{ delegation.delegated_permissions|truncatechars:30 }}</small></td>
+                                    <td>
+                                        <small>
+                                            {{ delegation.start_datetime|date:"d.m H:i" }} — 
+                                            {% if delegation.end_datetime %}{{ delegation.end_datetime|date:"d.m H:i" }}{% else %}бессрочно{% endif %}
+                                        </small>
+                                    </td>
+                                    <td>
+                                        {% if delegation.status == 'pending' %}
+                                            <span class="badge bg-warning text-dark">{{ delegation.get_status_display }}</span>
+                                        {% elif delegation.status == 'active' %}
+                                            <span class="badge bg-success">{{ delegation.get_status_display }}</span>
+                                        {% elif delegation.status == 'completed' %}
+                                            <span class="badge bg-secondary">{{ delegation.get_status_display }}</span>
+                                        {% elif delegation.status == 'cancelled' %}
+                                            <span class="badge bg-danger">{{ delegation.get_status_display }}</span>
+                                        {% endif %}
+                                    </td>
+                                    <td><small>{{ delegation.created_at|date:"d.m.Y H:i" }}</small></td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle"></i> Нет делегирований за последние 30 дней
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<style>
+    .nav-tabs .nav-link {
+        color: #495057;
+    }
+    .nav-tabs .nav-link.active {
+        color: #0d6efd;
+        font-weight: 500;
+    }
+    .table-warning {
+        background-color: #fff3cd !important;
+    }
+</style>
+
+{% endblock %}

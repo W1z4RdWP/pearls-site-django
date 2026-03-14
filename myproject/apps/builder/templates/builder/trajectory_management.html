@@ -21,69 +21,95 @@
     </div>
 
     <!-- Статистика -->
-    <div class="row mb-4">
-        <div class="col-xl-3 col-md-6 mb-4">
-            <div class="card border-left-primary shadow h-100 py-2">
-                <div class="card-body">
-                    <div class="row no-gutters align-items-center">
-                        <div class="col mr-2">
-                            <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">Курсы</div>
-                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ total_courses }}</div>
-                        </div>
-                        <div class="col-auto">
-                            <i class="fas fa-graduation-cap fa-2x text-gray-300"></i>
+    <div class="stats-row mb-4">
+        <div class="col stats-col">
+            <a href="{% url 'builder:lesson_master' %}" class="stat-card-link">
+                <div class="card border-left-success shadow h-100 py-2 stat-card">
+                    <div class="card-body">
+                        <div class="row no-gutters align-items-center">
+                            <div class="col mr-2">
+                                <div class="text-xs font-weight-bold text-success text-uppercase mb-1">Уроки</div>
+                                <div class="h5 mb-0 font-weight-bold text-gray-800">{{ total_lessons }}</div>
+                            </div>
+                            <div class="col-auto">
+                                <i class="fas fa-book fa-2x text-gray-300"></i>
+                            </div>
                         </div>
                     </div>
                 </div>
-            </div>
+            </a>
         </div>
 
-        <div class="col-xl-3 col-md-6 mb-4">
-            <div class="card border-left-success shadow h-100 py-2">
-                <div class="card-body">
-                    <div class="row no-gutters align-items-center">
-                        <div class="col mr-2">
-                            <div class="text-xs font-weight-bold text-success text-uppercase mb-1">Уроки</div>
-                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ total_lessons }}</div>
-                        </div>
-                        <div class="col-auto">
-                            <i class="fas fa-book fa-2x text-gray-300"></i>
+        <div class="col stats-col">
+            <a href="{% url 'builder:course_list' %}" class="stat-card-link">
+                <div class="card border-left-primary shadow h-100 py-2 stat-card">
+                    <div class="card-body">
+                        <div class="row no-gutters align-items-center">
+                            <div class="col mr-2">
+                                <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">Курсы</div>
+                                <div class="h5 mb-0 font-weight-bold text-gray-800">{{ total_courses }}</div>
+                            </div>
+                            <div class="col-auto">
+                                <i class="fas fa-graduation-cap fa-2x text-gray-300"></i>
+                            </div>
                         </div>
                     </div>
                 </div>
-            </div>
+            </a>
         </div>
 
-        <div class="col-xl-3 col-md-6 mb-4">
-            <div class="card border-left-info shadow h-100 py-2">
-                <div class="card-body">
-                    <div class="row no-gutters align-items-center">
-                        <div class="col mr-2">
-                            <div class="text-xs font-weight-bold text-info text-uppercase mb-1">Траектории</div>
-                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ total_trajectories }}</div>
-                        </div>
-                        <div class="col-auto">
-                            <i class="fas fa-route fa-2x text-gray-300"></i>
+        <div class="col stats-col">
+            <a href="{% url 'builder:incident_course_list' %}" class="stat-card-link">
+                <div class="card border-left-danger shadow h-100 py-2 stat-card">
+                    <div class="card-body">
+                        <div class="row no-gutters align-items-center">
+                            <div class="col mr-2">
+                                <div class="text-xs font-weight-bold text-danger text-uppercase mb-1">Курсы-инциденты</div>
+                                <div class="h5 mb-0 font-weight-bold text-gray-800">{{ total_incident_courses }}</div>
+                            </div>
+                            <div class="col-auto">
+                                <i class="fas fa-exclamation-triangle fa-2x text-gray-300"></i>
+                            </div>
                         </div>
                     </div>
                 </div>
-            </div>
+            </a>
         </div>
 
-        <div class="col-xl-3 col-md-6 mb-4">
-            <div class="card border-left-warning shadow h-100 py-2">
-                <div class="card-body">
-                    <div class="row no-gutters align-items-center">
-                        <div class="col mr-2">
-                            <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">Тесты</div>
-                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ total_quizzes }}</div>
-                        </div>
-                        <div class="col-auto">
-                            <i class="fas fa-question-circle fa-2x text-gray-300"></i>
+        <div class="col stats-col">
+            <a href="{% url 'builder:trajectory_list' %}" class="stat-card-link">
+                <div class="card border-left-info shadow h-100 py-2 stat-card">
+                    <div class="card-body">
+                        <div class="row no-gutters align-items-center">
+                            <div class="col mr-2">
+                                <div class="text-xs font-weight-bold text-info text-uppercase mb-1">Траектории</div>
+                                <div class="h5 mb-0 font-weight-bold text-gray-800">{{ total_trajectories }}</div>
+                            </div>
+                            <div class="col-auto">
+                                <i class="fas fa-route fa-2x text-gray-300"></i>
+                            </div>
                         </div>
                     </div>
                 </div>
-            </div>
+            </a>
+        </div>
+
+        <div class="col stats-col">
+            <a href="{% url 'quizzes:quizzes' %}" class="stat-card-link">
+                <div class="card border-left-warning shadow h-100 py-2 stat-card">
+                    <div class="card-body">
+                        <div class="row no-gutters align-items-center">
+                            <div class="col mr-2">
+                                <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">Тесты</div>
+                                <div class="h5 mb-0 font-weight-bold text-gray-800">{{ total_quizzes }}</div>
+                            </div>
+                            <div class="col-auto">
+                                <i class="fas fa-question-circle fa-2x text-gray-300"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </a>
         </div>
     </div>
 
@@ -95,52 +121,57 @@
                     <h6 class="m-0 font-weight-bold text-primary">Быстрые действия</h6>
                 </div>
                 <div class="card-body">
-                    <div class="row">
-                        <div class="col-lg-3 col-md-6 mb-3">
-                            <div class="card border-0 bg-light h-100">
-                                <div class="card-body text-center d-flex flex-column">
-                                    <i class="fas fa-plus-circle fa-3x text-primary mb-3"></i>
-                                    <h5 class="card-title">Создать урок</h5>
-                                    <p class="card-text flex-grow-1">Добавить новый урок в базу знаний</p>
-                                    <a href="{% url 'builder:lesson_add' %}" class="btn btn-primary btn-sm mt-auto">
-                                        <i class="fas fa-plus"></i> Создать
-                                    </a>
+                    <div class="quick-actions-row">
+                        <div class="col quick-action-col">
+                            <a href="{% url 'builder:lesson_master' %}" class="quick-action-link">
+                                <div class="card border-0 bg-light h-100 quick-action-card">
+                                    <div class="card-body text-center d-flex flex-column">
+                                        <i class="fas fa-plus-circle fa-3x text-success mb-3"></i>
+                                        <h5 class="card-title">Создать урок</h5>
+                                        
+                                    </div>
                                 </div>
-                            </div>
+                            </a>
                         </div>
-                        <div class="col-lg-3 col-md-6 mb-3">
-                            <div class="card border-0 bg-light h-100">
-                                <div class="card-body text-center d-flex flex-column">
-                                    <i class="fas fa-graduation-cap fa-3x text-success mb-3"></i>
-                                    <h5 class="card-title">Создать курс</h5>
-                                    <p class="card-text flex-grow-1">Создать новый курс обучения</p>
-                                    <button type="button" class="btn btn-success btn-sm mt-auto" onclick="showCreateCourseModal()">
-                                        <i class="fas fa-plus"></i> Создать
-                                    </button>
+                        <div class="col quick-action-col">
+                            <a href="{% url 'courses:create-course' %}" class="quick-action-link">
+                                <div class="card border-0 bg-light h-100 quick-action-card">
+                                    <div class="card-body text-center d-flex flex-column">
+                                        <i class="fas fa-graduation-cap fa-3x text-primary mb-3"></i>
+                                        <h5 class="card-title">Создать курс</h5>
+                                        
+                                    </div>
                                 </div>
-                            </div>
+                            </a>
                         </div>
-                        <div class="col-lg-3 col-md-6 mb-3">
-                            <div class="card border-0 bg-light h-100">
-                                <div class="card-body text-center d-flex flex-column">
-                                    <i class="fas fa-route fa-3x text-info mb-3"></i>
-                                    <h5 class="card-title">Создать траекторию</h5>
-                                    <p class="card-text flex-grow-1">Настроить последовательность курсов</p>
-                                    <button type="button" class="btn btn-info btn-sm mt-auto" onclick="showCreateTrajectoryModal()">
-                                        <i class="fas fa-plus"></i> Создать
-                                    </button>
+                        <div class="col quick-action-col">
+                            <a href="{% url 'courses:create-course' %}?is_incident=1" class="quick-action-link">
+                                <div class="card border-0 bg-light h-100 quick-action-card">
+                                    <div class="card-body text-center d-flex flex-column">
+                                        <i class="fas fa-exclamation-triangle fa-3x text-danger mb-3"></i>
+                                        <h5 class="card-title">Создать курс-инцидент</h5>
+                                        
+                                    </div>
                                 </div>
-                            </div>
+                            </a>
                         </div>
-                        <div class="col-lg-3 col-md-6 mb-3">
-                            <div class="card border-0 bg-light h-100">
+                        <div class="col quick-action-col">
+                            <a href="{% url 'courses:trajectory_create' %}" class="quick-action-link">
+                                <div class="card border-0 bg-light h-100 quick-action-card">
+                                    <div class="card-body text-center d-flex flex-column">
+                                        <i class="fas fa-route fa-3x text-info mb-3"></i>
+                                        <h5 class="card-title">Создать траекторию</h5>
+                                        
+                                    </div>
+                                </div>
+                            </a>
+                        </div>
+                        <div class="col quick-action-col">
+                            <div class="card border-0 bg-light h-100 quick-action-card quick-action-clickable" onclick="showCreateQuizModal()">
                                 <div class="card-body text-center d-flex flex-column">
                                     <i class="fas fa-question-circle fa-3x text-warning mb-3"></i>
                                     <h5 class="card-title">Создать тест</h5>
-                                    <p class="card-text flex-grow-1">Создать новый тест или квиз</p>
-                                    <button type="button" class="btn btn-warning btn-sm mt-auto" onclick="showCreateQuizModal()">
-                                        <i class="fas fa-plus"></i> Создать
-                                    </button>
+                                    
                                 </div>
                             </div>
                         </div>
@@ -152,128 +183,132 @@
 
     <!-- Последние элементы -->
     <div class="row">
-        <!-- Последние курсы -->
-        <div class="col-lg-6 mb-4">
-            <div class="card shadow">
-                <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
-                    <h6 class="m-0 font-weight-bold text-primary">Последние курсы</h6>
-                    <a href="{% url 'builder:course_list' %}" class="btn btn-primary btn-sm">Все курсы</a>
-                </div>
-                <div class="card-body">
-                    {% if recent_courses %}
-                        <div class="list-group list-group-flush">
-                            {% for course in recent_courses %}
-                            <div class="list-group-item d-flex justify-content-between align-items-center">
-                                <div>
-                                    <h6 class="mb-1">{{ course.title }}</h6>
-                                    <small class="text-muted">Автор: {{ course.author.get_full_name|default:course.author.username }}</small>
-                                </div>
-                                <div>
-                                    <span class="badge badge-primary badge-pill">{{ course.lessons.count }} уроков</span>
-                                </div>
-                            </div>
-                            {% endfor %}
-                        </div>
-                    {% else %}
-                        <p class="text-muted text-center">Курсы не найдены</p>
-                    {% endif %}
-                </div>
-            </div>
-        </div>
-
         <!-- Последние уроки -->
         <div class="col-lg-6 mb-4">
-            <div class="card shadow">
-                <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
-                    <h6 class="m-0 font-weight-bold text-success">Последние уроки</h6>
-                    <a href="{% url 'builder:lesson_master' %}" class="btn btn-success btn-sm">Все уроки</a>
-                </div>
-                <div class="card-body">
-                    {% if recent_lessons %}
-                        <div class="list-group list-group-flush">
-                            {% for lesson in recent_lessons %}
-                            <div class="list-group-item d-flex justify-content-between align-items-center">
-                                <div>
-                                    <h6 class="mb-1">{{ lesson.title }}</h6>
-                                    <small class="text-muted">
-                                        {% if lesson.category %}
-                                            Категория: {{ lesson.category.name }}
-                                        {% else %}
-                                            Без категории
+            <a href="{% url 'builder:lesson_master' %}" class="clickable-card-link">
+                <div class="card shadow clickable-card">
+                    <div class="card-header py-3">
+                        <h6 class="m-0 font-weight-bold text-success">Последние уроки</h6>
+                    </div>
+                    <div class="card-body">
+                        {% if recent_lessons %}
+                            <div class="list-group list-group-flush">
+                                {% for lesson in recent_lessons %}
+                                <div class="list-group-item d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <h6 class="mb-1">{{ lesson.title }}</h6>
+                                        <small class="text-muted">
+                                            {% if lesson.category %}
+                                                Категория: {{ lesson.category.name }}
+                                            {% else %}
+                                                Без категории
+                                            {% endif %}
+                                        </small>
+                                    </div>
+                                    <div>
+                                        {% if lesson.video_id %}
+                                            <i class="fas fa-video text-info"></i>
                                         {% endif %}
-                                    </small>
+                                    </div>
                                 </div>
-                                <div>
-                                    {% if lesson.video_id %}
-                                        <i class="fas fa-video text-info"></i>
-                                    {% endif %}
-                                </div>
+                                {% endfor %}
                             </div>
-                            {% endfor %}
-                        </div>
-                    {% else %}
-                        <p class="text-muted text-center">Уроки не найдены</p>
-                    {% endif %}
+                        {% else %}
+                            <p class="text-muted text-center">Уроки не найдены</p>
+                        {% endif %}
+                    </div>
                 </div>
-            </div>
+            </a>
+        </div>
+
+        <!-- Последние курсы -->
+        <div class="col-lg-6 mb-4">
+            <a href="{% url 'builder:course_list' %}" class="clickable-card-link">
+                <div class="card shadow clickable-card">
+                    <div class="card-header py-3">
+                        <h6 class="m-0 font-weight-bold text-primary">Последние курсы</h6>
+                    </div>
+                    <div class="card-body">
+                        {% if recent_courses %}
+                            <div class="list-group list-group-flush">
+                                {% for course in recent_courses %}
+                                <div class="list-group-item d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <h6 class="mb-1">{{ course.title }}</h6>
+                                        <small class="text-muted">Автор: {{ course.author.get_full_name|default:course.author.username }}</small>
+                                    </div>
+                                    <div>
+                                        <span class="badge badge-primary badge-pill">{{ course.lessons.count }} уроков</span>
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        {% else %}
+                            <p class="text-muted text-center">Курсы не найдены</p>
+                        {% endif %}
+                    </div>
+                </div>
+            </a>
         </div>
 
         <!-- Последние траектории -->
         <div class="col-lg-6 mb-4">
-            <div class="card shadow">
-                <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
-                    <h6 class="m-0 font-weight-bold text-info">Последние траектории</h6>
-                    <a href="{% url 'builder:trajectory_list' %}" class="btn btn-info btn-sm">Все траектории</a>
-                </div>
-                <div class="card-body">
-                    {% if recent_trajectories %}
-                        <div class="list-group list-group-flush">
-                            {% for trajectory in recent_trajectories %}
-                            <div class="list-group-item d-flex justify-content-between align-items-center">
-                                <div>
-                                    <h6 class="mb-1">{{ trajectory.name }}</h6>
-                                    <small class="text-muted">{{ trajectory.courses.count }} курсов</small>
+            <a href="{% url 'builder:trajectory_list' %}" class="clickable-card-link">
+                <div class="card shadow clickable-card">
+                    <div class="card-header py-3">
+                        <h6 class="m-0 font-weight-bold text-info">Последние траектории</h6>
+                    </div>
+                    <div class="card-body">
+                        {% if recent_trajectories %}
+                            <div class="list-group list-group-flush">
+                                {% for trajectory in recent_trajectories %}
+                                <div class="list-group-item d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <h6 class="mb-1">{{ trajectory.name }}</h6>
+                                        <small class="text-muted">{{ trajectory.courses.count }} курсов</small>
+                                    </div>
+                                    <div>
+                                        <span class="badge badge-info badge-pill">{{ trajectory.groups.count }} групп</span>
+                                    </div>
                                 </div>
-                                <div>
-                                    <span class="badge badge-info badge-pill">{{ trajectory.groups.count }} групп</span>
-                                </div>
+                                {% endfor %}
                             </div>
-                            {% endfor %}
-                        </div>
-                    {% else %}
-                        <p class="text-muted text-center">Траектории не найдены</p>
-                    {% endif %}
+                        {% else %}
+                            <p class="text-muted text-center">Траектории не найдены</p>
+                        {% endif %}
+                    </div>
                 </div>
-            </div>
+            </a>
         </div>
 
         <!-- Последние тесты -->
         <div class="col-lg-6 mb-4">
-            <div class="card shadow">
-                <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
-                    <h6 class="m-0 font-weight-bold text-warning">Последние тесты</h6>
-                    <a href="{% url 'quizzes:quizzes' %}" class="btn btn-warning btn-sm">Все тесты</a>
-                </div>
-                <div class="card-body">
-                    {% if recent_quizzes %}
-                        <div class="list-group list-group-flush">
-                            {% for quiz in recent_quizzes %}
-                            <div class="list-group-item d-flex justify-content-between align-items-center">
-                                <div>
-                                    <h6 class="mb-1">{{ quiz.name }}</h6>
-                                    <small class="text-muted">{{ quiz.question_set.count }} вопросов</small>
+            <a href="{% url 'quizzes:quizzes' %}" class="clickable-card-link">
+                <div class="card shadow clickable-card">
+                    <div class="card-header py-3">
+                        <h6 class="m-0 font-weight-bold text-warning">Последние тесты</h6>
+                    </div>
+                    <div class="card-body">
+                        {% if recent_quizzes %}
+                            <div class="list-group list-group-flush">
+                                {% for quiz in recent_quizzes %}
+                                <div class="list-group-item d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <h6 class="mb-1">{{ quiz.name }}</h6>
+                                        <small class="text-muted">{{ quiz.question_set.count }} вопросов</small>
+                                    </div>
+                                    <div>
+                                        <span class="badge badge-warning badge-pill">Тест</span>
+                                    </div>
                                 </div>
-                                <div>
-                                    <span class="badge badge-warning badge-pill">Тест</span>
-                                </div>
+                                {% endfor %}
                             </div>
-                            {% endfor %}
-                        </div>
-                    {% else %}
-                        <p class="text-muted text-center">Тесты не найдены</p>
-                    {% endif %}
+                        {% else %}
+                            <p class="text-muted text-center">Тесты не найдены</p>
+                        {% endif %}
+                    </div>
                 </div>
-            </div>
+            </a>
         </div>
     </div>
 </div>
@@ -326,42 +361,7 @@
     </div>
 </div>
 
-<!-- Модальное окно создания траектории -->
-<div class="modal fade" id="createTrajectoryModal" tabindex="-1" role="dialog">
-    <div class="modal-dialog modal-lg" role="document">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Создать новую траекторию</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <form id="createTrajectoryForm" method="post" action="{% url 'courses:trajectory_create' %}">
-                {% csrf_token %}
-                <div class="modal-body">
-                    <div class="form-group">
-                        <label for="trajectory_name">Название траектории *</label>
-                        <input type="text" class="form-control" id="trajectory_name" name="name" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="trajectory_description">Описание</label>
-                        <textarea class="form-control" id="trajectory_description" name="description" rows="3"></textarea>
-                    </div>
-                    <div class="form-group">
-                        <label for="trajectory_groups">Назначить группам</label>
-                        <select class="form-control" id="trajectory_groups" name="groups" multiple>
-                            {% for group in all_groups %}
-                            <option value="{{ group.id }}">{{ group.name }}</option>
-                            {% endfor %}
-                        </select>
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
-                    <button type="submit" class="btn btn-primary">Создать траекторию</button>
-                </div>
-            </form>
-        </div>
-    </div>
-</div>
+
 
 <!-- Модальное окно создания теста -->
 <div class="modal fade" id="createQuizModal" tabindex="-1" role="dialog">
@@ -383,6 +383,28 @@
                             <div class="form-group mb-3">
                                 <label for="quiz_name" class="form-label">Название теста *</label>
                                 <input type="text" class="form-control" id="quiz_name" name="name" required>
+                            </div>
+                            
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="form-group mb-3">
+                                        <label for="attempt_limit" class="form-label">Ограничение попыток</label>
+                                        <input type="number" class="form-control" id="attempt_limit" name="attempt_limit" value="0" min="0">
+                                        <small class="form-text text-muted">0 = без ограничений</small>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="form-group mb-3">
+                                        <label for="pass_threshold" class="form-label">Проходной балл (%)</label>
+                                        <input type="number" class="form-control" id="pass_threshold" name="pass_threshold" value="70" min="0" max="100">
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="form-group mb-3">
+                                <label for="time_limit" class="form-label">Время на прохождение (минуты)</label>
+                                <input type="number" class="form-control" id="time_limit" name="time_limit" value="0" min="0">
+                                <small class="form-text text-muted">0 = без ограничения по времени</small>
                             </div>
                         </div>
                     </div>
@@ -416,5 +438,180 @@
 </div>
 
 
+
+
+<style>
+/* Стили для элементов последовательности в модальном окне создания теста */
+.sequence-item {
+    transition: all 0.2s ease;
+}
+
+.sequence-item:hover {
+    background-color: #f8f9fa;
+    border-radius: 4px;
+    padding: 4px;
+    margin: -4px;
+}
+
+.sequence-number {
+    min-width: 32px;
+    min-height: 32px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+.sequence-item .form-control-sm {
+    border-radius: 4px;
+}
+
+/* Стили для кликабельных карточек статистики */
+.stat-card-link {
+    text-decoration: none;
+    color: inherit;
+    display: block;
+}
+
+.stat-card-link:hover {
+    text-decoration: none;
+    color: inherit;
+}
+
+.stat-card {
+    transition: all 0.3s ease;
+    cursor: pointer;
+}
+
+.stat-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15) !important;
+}
+
+/* Стили для кликабельных карточек "Последние элементы" */
+.clickable-card-link {
+    text-decoration: none;
+    color: inherit;
+    display: block;
+}
+
+.clickable-card-link:hover {
+    text-decoration: none;
+    color: inherit;
+}
+
+.clickable-card {
+    transition: all 0.3s ease;
+    cursor: pointer;
+}
+
+.clickable-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15) !important;
+}
+
+/* Стили для кликабельных блоков быстрых действий */
+.quick-action-link {
+    text-decoration: none;
+    color: inherit;
+    display: block;
+}
+
+.quick-action-link:hover {
+    text-decoration: none;
+    color: inherit;
+}
+
+.quick-action-card {
+    transition: all 0.3s ease;
+    cursor: pointer;
+}
+
+.quick-action-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15) !important;
+}
+
+.quick-action-clickable {
+    cursor: pointer;
+}
+
+/* Стили для равномерного распределения 5 элементов в строке статистики */
+.stats-row {
+    display: flex;
+    flex-wrap: wrap;
+    margin-left: -0.4rem;
+    margin-right: -0.4rem;
+}
+
+.stats-row > .stats-col {
+    flex: 1 1 0;
+    min-width: 0;
+    margin-left: 0.4rem;
+    margin-right: 0.4rem;
+    margin-bottom: 1rem;
+    padding: 0;
+}
+
+@media (max-width: 1400px) {
+    .stats-row > .stats-col {
+        flex: 0 0 calc(33.333333% - 0.8rem);
+        max-width: calc(33.333333% - 0.8rem);
+    }
+}
+
+@media (max-width: 768px) {
+    .stats-row > .stats-col {
+        flex: 0 0 calc(50% - 0.8rem);
+        max-width: calc(50% - 0.8rem);
+    }
+}
+
+@media (max-width: 576px) {
+    .stats-row > .stats-col {
+        flex: 0 0 calc(100% - 0.8rem);
+        max-width: calc(100% - 0.8rem);
+    }
+}
+
+/* Стили для равномерного распределения 5 элементов в строке быстрых действий */
+.quick-actions-row {
+    display: flex;
+    flex-wrap: wrap;
+    margin-left: -0.4rem;
+    margin-right: -0.4rem;
+}
+
+.quick-actions-row > .quick-action-col {
+    flex: 1 1 0;
+    min-width: 0;
+    margin-left: 0.4rem;
+    margin-right: 0.4rem;
+    margin-bottom: 0.75rem;
+    padding: 0;
+}
+
+@media (max-width: 1400px) {
+    .quick-actions-row > .quick-action-col {
+        flex: 0 0 calc(33.333333% - 0.8rem);
+        max-width: calc(33.333333% - 0.8rem);
+    }
+}
+
+@media (max-width: 768px) {
+    .quick-actions-row > .quick-action-col {
+        flex: 0 0 calc(50% - 0.8rem);
+        max-width: calc(50% - 0.8rem);
+    }
+}
+
+@media (max-width: 576px) {
+    .quick-actions-row > .quick-action-col {
+        flex: 0 0 calc(100% - 0.8rem);
+        max-width: calc(100% - 0.8rem);
+    }
+}
+</style>
 
 {% endblock %} 

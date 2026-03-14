@@ -1,0 +1,437 @@
+{% extends 'designed/base.html' %}
+{% load static %}
+{% block title %}Чек-ап клиники{% endblock %}
+    {% block content %}
+      <main class="main">
+        <div class="hero">
+          <div class="hero__container">
+            <picture class="hero__image">
+              <source srcset="{% static 'designed/img/hero_back.webp' %}" class="hero__img">
+              <img src="{% static 'designed/img/hero_back.png' %}" alt="..." class="hero__img" loading="lazy">
+            </picture>
+            <div class="hero__content">
+              <div class="section section--center">
+                <div class="section__container">
+                  <div class="hero-main hero-main__bread">
+                    <div class="breadcrumb breadcrumb--dot">
+                      <div class="breadcrumb__container">
+                        <span>
+                          <span> <a href="{% url 'homepage' %}">Главная</a> </span> <span class="breadcrumb_last">Чек‑ап метрик клиники</span>
+                        </span>
+                      </div>
+                    </div>
+                    <div class="hero-main__container">
+                      <div class="hero-main__left">
+                        <div class="hero-content">
+                          <div class="hero-content__text">
+                            <div class="pill">Вводная услуга • Бесплатно</div>
+                            <h2 class="title title--size-large title--variant-white">
+                              <span> Чек‑ап метрик клиники: </span>
+                              3 метрики → свод за 3 месяца
+                            </h2>
+                            <p>10–15 минут. Покажем загрузку, средний час и выручку по врачам и дадим план, что делать в первую очередь. По опыту сети «Территория Улыбки».</p>
+                          </div>
+                          <div class="hero-content__button">
+                            <a href="https://lc.smileterritory.ru/courses/course/chek-ap-stomatologicheskoi-kliniki/" >
+                              <button class="button button--variant-fuchsia button--size-medium button--font-medium button--arrow">
+                                Начать «Чек‑ап клиники»
+                                <span class="icon icon-arrow button__arrow"></span>
+                              </button>
+                            </a>
+                            <a href="https://lc.smileterritory.ru/courses/course/chek-ap-stomatologicheskoi-kliniki/" >
+                              <button class="button button--variant-outline button--size-medium button--font-medium">Какие данные нужны</button>
+                            </a>
+                          </div>
+                          <div class="hero-content__pills">
+                            <div class="pill">Без данных пациентов</div>
+                            <div class="pill">Заполнение за 10–15 минут</div>
+                            <div class="pill">Онлайн‑разбор по вашим цифрам</div>
+                          </div>
+                        </div>
+                      </div>
+                      <div class="description-card description-card--absolute">
+                        <div class="description-card__top">
+                          <h3 class="card-title">Как это будет</h3>
+                          <img src="{% static 'designed/img/description/question.png' %}" alt="Как это будет" class="description-card__img">
+                        </div>
+                        <div class="description-card__bottom"><p>Вы перейдёте в учебный центр, посмотрите короткий урок и заполните короткую форму по 3 метрикам прямо в форме. Никаких файлов и скачиваний.</p></div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="section section--center section--bottom-medium section--top-large">
+          <div class="section__container">
+            <div class="back-figure">
+              <div class="back-figure__container">
+                <div class="how-it-works">
+                  <h2 class="title title--size-medium">Как это <span>работает</span></h2>
+                  <div class="how-it-works__container">
+                    <div class="stage-card stage-card--subgrid">
+                      <div class="stage-card__container">
+                        <div class="stage-card__index">01</div>
+                        <h3 class="card-title">Войти в учебный центр</h3>
+                      </div>
+                      <div class="card-text">Авторизуйтесь по кнопке ниже.</div>
+                    </div>
+                    <div class="stage-card stage-card--subgrid">
+                      <div class="stage-card__container">
+                        <div class="stage-card__index">02</div>
+                        <h3 class="card-title">Короткий урок</h3>
+                      </div>
+                      <div class="card-text">60–90 сек: как заполнить форму и где взять цифры.</div>
+                    </div>
+                    <div class="stage-card stage-card--subgrid">
+                      <div class="stage-card__container">
+                        <div class="stage-card__index">03</div>
+                        <h3 class="card-title">Заполнить 3 метрики</h3>
+                      </div>
+                      <div class="card-text">Онлайн‑форма за 10–15 минут: месяцы, часы, выручка.</div>
+                    </div>
+                    <div class="stage-card stage-card--subgrid">
+                      <div class="stage-card__container">
+                        <div class="stage-card__index">04</div>
+                        <h3 class="card-title">Онлайн‑разбор</h3>
+                      </div>
+                      <div class="card-text">Свод за 3 месяца и план 30/60/90.</div>
+                    </div>
+                  </div>
+                  <div class="info-card">
+                    <img src="{% static 'designed/img/info.svg' %}" alt="" class="info-card__icon">
+                    <div class="info-card__container">
+                      <h3 class="card-title card-title--extra-large">Почему бесплатно</h3>
+                      <div class="card-text card-text--extra-large">Это вводная услуга: вы увидите ценность на своих данных и решите, какие курсы нужны дальше.</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <picture class="back-figure__image back-figure__image-one">
+                <source srcset="{% static 'designed/img/back/1.webp' %}" class="back-figure__img">
+                <img loading="lazy" src="{% static 'designed/img/back/1.png' %}" alt="back" class="back-figure__img">
+              </picture>
+            </div>
+          </div>
+        </div>
+        <div class="section section--center section--bottom-medium">
+          <div class="section__container">
+            <div class="data-need">
+              <h2 class="title title--size-medium">Какие <span>данные</span> нужны</h2>
+              <div class="data-need__container">
+                <div class="description-card">
+                  <div class="description-card__top">
+                    <h3 class="card-title">Параметры месяца</h3>
+                    <img src="{% static 'designed/img/description/how.png' %}" alt="Параметры месяца" class="description-card__img">
+                  </div>
+                  <div class="description-card__bottom">
+                    <ul>
+                      <li><b>Кресла, шт.</b> — сколько одновременных приёмов возможно.</li>
+                      <li><b>Рабочие дни, дн.</b> — сколько клиника реально работает в месяц и какой у неё потенциал по клиническим часам.</li>
+                    </ul>
+                  </div>
+                </div>
+                <div class="description-card">
+                  <div class="description-card__top">
+                    <h3 class="card-title">Часы по врачам</h3>
+                    <img src="{% static 'designed/img/problem/one.png' %}" alt="Часы по врачам" class="description-card__img">
+                  </div>
+                  <div class="description-card__bottom">
+                    <ul>
+                      <li><b>График, ч</b> — план: врач стоит в расписании и должен работать в это окно. Считаем все слоты, включая пустые.</li>
+                      <li><b>С пациентами, ч</b> &nbsp;— реально занято: сколько времени слот был оплачен/занят пациентом, независимо от сдвигов по времени.</li>
+                    </ul>
+                  </div>
+                </div>
+                <div class="description-card">
+                  <div class="description-card__top">
+                    <h3 class="card-title">Выручка по работам</h3>
+                    <img src="{% static 'designed/img/problem/three.png' %}" alt="Выручка по работам" class="description-card__img">
+                  </div>
+                  <div class="description-card__bottom">
+                    <ul>
+                      <li><b>За месяц, ₽</b> — только клинические работы. Авансы и админ‑доход не учитываем.</li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="section section--center section--bottom-medium">
+          <div class="section__container">
+            <div class="back-figure">
+              <div class="back-figure__container">
+                <div class="what-you-get">
+                  <h2 class="title title--size-medium">Что получите</h2>
+                  <div class="what-you-get__container">
+                    <div class="colorful-card colorful-card--green">
+                      <img src="{% static 'designed/img/check-up/calendar.png' %}" alt="" class="colorful-card__icon">
+                      <div class="colorful-card__container">
+                        <h3 class="card-title card-title--white card-title--l-more">Свод за 3 месяца</h3>
+                        <div class="card-text card-text--white card-text--large">Загрузка, средний час, часы, выручка по врачам.</div>
+                      </div>
+                    </div>
+                    <div class="colorful-card colorful-card--fuchsia">
+                      <img src="{% static 'designed/img/check-up/warning.png' %}" alt="" class="colorful-card__icon">
+                      <div class="colorful-card__container">
+                        <h3 class="card-title card-title--white card-title--l-more">Подсветка ограничений</h3>
+                        <div class="card-text card-text--white card-text--large">Где теряются деньги: расписание, длительности, выписка.</div>
+                      </div>
+                    </div>
+                    <div class="colorful-card colorful-card--blue">
+                      <img src="{% static 'designed/img/check-up/checklist.png' %}" alt="" class="colorful-card__icon">
+                      <div class="colorful-card__container">
+                        <h3 class="card-title card-title--white card-title--l-more">План 30/60/90</h3>
+                        <div class="card-text card-text--white card-text--large">Три приоритета и понятные действия на старт.</div>
+                      </div>
+                    </div>
+                    <div class="colorful-card colorful-card--teal">
+                      <img src="{% static 'designed/img/check-up/case.png' %}" alt="" class="colorful-card__icon">
+                      <div class="colorful-card__container">
+                        <h3 class="card-title card-title--white card-title--l-more">Пример свода (кейс)</h3>
+                        <div class="card-text card-text--white card-text--large">Клиника на 3 кабинета: загрузка +9 п.п., средний час +14% за 60 дней. Без расширения штата.</div>
+                      </div>
+                    </div>
+                    <div class="colorful-card colorful-card--rose">
+                      <img src="{% static 'designed/img/check-up/360.png' %}" alt="" class="colorful-card__icon">
+                      <div class="colorful-card__container">
+                        <h3 class="card-title card-title--white card-title--l-more">После чек‑апа</h3>
+                        <div class="card-text card-text--white card-text--large">Рекомендуем начать с «Операционная 360», затем «Расписание и длительности» и «Финконтур: план‑факт».</div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <picture class="back-figure__image back-figure__image-two">
+                <source srcset="{% static 'designed/img/back/2.webp' %}" class="back-figure__img">
+                <img loading="lazy" src="{% static 'designed/img/back/2.png' %}" alt="back" class="back-figure__img">
+              </picture>
+            </div>
+          </div>
+        </div>
+        <div class="section section--center section--bottom-medium">
+          <div class="section__container">
+            <div class="for-whom">
+              <h2 class="title title--size-medium">Для кого это</h2>
+              <div class="for-whom__container">
+                <div class="stage-card stage-card--subgrid">
+                  <div class="stage-card__container">
+                    <div class="stage-card__index">01</div>
+                    <h3 class="card-title">Собственники</h3>
+                  </div>
+                  <div class="card-text">Быстро увидеть, где теряются деньги, и что делать сначала.</div>
+                </div>
+                <div class="stage-card stage-card--subgrid">
+                  <div class="stage-card__container">
+                    <div class="stage-card__index">02</div>
+                    <h3 class="card-title">Исполнительные директора</h3>
+                  </div>
+                  <div class="card-text">Единая рамка для цикла: план → факт → решение → контроль.</div>
+                </div>
+                <div class="stage-card stage-card--subgrid">
+                  <div class="stage-card__container">
+                    <div class="stage-card__index">03</div>
+                    <h3 class="card-title">Главврачи/заведующие</h3>
+                  </div>
+                  <div class="card-text">Понятные ориентиры по загрузке, длительностям и завершённости.</div>
+                </div>
+                <div class="stage-card stage-card--subgrid">
+                  <div class="stage-card__container">
+                    <div class="stage-card__index">04</div>
+                    <h3 class="card-title">Финдир/аналитики</h3>
+                  </div>
+                  <div class="card-text">Чистые операционные цифры для регулярной витрины показателей.</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="section section--center section--bottom-medium">
+          <div class="section__container">
+            <div class="organization-work">
+              <div class="organization-work__left">
+                <img src="{% static 'designed/img/problem/four.png' %}" alt="tooth" class="organization-work__left-img">
+                <h2 class="title title--size-medium">Как выглядит форма</h2>
+              </div>
+              <div class="organization-work__container">
+                <div class="organization-work-item">
+                  <img src="{% static 'designed/img/description/how.png' %}" alt="Параметры месяцев" class="organization-work-item__img">
+                  <div class="organization-work-item__container">
+                    <h3 class="card-title">Параметры месяцев</h3>
+                    <div class="card-text">Март/Апрель/Май/Июнь — рядом: кресла и рабочие дни. Так быстрее.</div>
+                  </div>
+                </div>
+                <div class="organization-work-item">
+                  <img src="{% static 'designed/img/group.png' %}" alt="Команда" class="organization-work-item__img">
+                  <div class="organization-work-item__container">
+                    <h3 class="card-title">Команда</h3>
+                    <div class="card-text">Список врачей с поиском. Специализация — выпадающий список + свой вариант.</div>
+                  </div>
+                </div>
+                <div class="organization-work-item">
+                  <img src="{% static 'designed/img/problem/one.png' %}" alt="Часы и выручка" class="organization-work-item__img">
+                  <div class="organization-work-item__container">
+                    <h3 class="card-title">Часы и выручка</h3>
+                    <div class="card-text">Таблица: слева врач и спец, справа месяцы. В ячейке — «График, ч» и «С пациентами, ч».</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="section section--center section--bottom-medium">
+          <div class="section__container">
+            <div class="back-figure">
+              <div class="back-figure__container">
+                <div class="changes-grid">
+                  <h2 class="title title--size-medium">Сроки и формат</h2>
+                  <div class="changes-grid__container">
+                    <div class="changes-item">
+                      <div class="changes-item__data changes-item__data--small">10–15 минут</div>
+                      <div class="card-text">На заполнение формы после короткого урока.</div>
+                    </div>
+                    <div class="changes-grid__divider"></div>
+                    <div class="changes-item">
+                      <div class="changes-item__data changes-item__data--small">В течение 24 часов</div>
+                      <div class="card-text">Онлайн‑разбор и план первых действий</div>
+                    </div>
+                    <div class="changes-grid__divider"></div>
+                    <div class="changes-item">
+                      <div class="changes-item__data changes-item__data--small">30–45 минут</div>
+                      <div class="card-text">Онлайн‑разбор и план первых действий</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <picture class="back-figure__image back-figure__image-three">
+                <source srcset="{% static 'designed/img/back/3.webp' %}" class="back-figure__img">
+                <img loading="lazy" src="{% static 'designed/img/back/3.png' %}" alt="back" class="back-figure__img">
+              </picture>
+            </div>
+          </div>
+        </div>
+        <div class="section section--center section--bottom-medium">
+          <div class="section__container">
+            <div class="data-and-security">
+              <h2 class="title title--size-medium">Данные и безопасность</h2>
+              <div class="data-and-security__container">
+                <div class="colorful-card colorful-card--rose">
+                  <img src="{% static 'designed/img/check-up/group.png' %}" alt="" class="colorful-card__icon">
+                  <div class="colorful-card__container">
+                    <h3 class="card-title card-title--white card-title--l-more">Без данных пациентов</h3>
+                    <div class="card-text card-text--white card-text--large">Нужны только суммарные часы, загрузка и выручка по работам.</div>
+                  </div>
+                </div>
+                <div class="colorful-card colorful-card--teal">
+                  <img src="{% static 'designed/img/check-up/time.png' %}" alt="" class="colorful-card__icon">
+                  <div class="colorful-card__container">
+                    <h3 class="card-title card-title--white card-title--l-more">Понятно и быстро</h3>
+                    <div class="card-text card-text--white card-text--large">7 полей, привычный порядок, подсказки у каждого поля.</div>
+                  </div>
+                </div>
+                <div class="colorful-card colorful-card--honey">
+                  <img src="{% static 'designed/img/check-up/loupe.png' %}" alt="" class="colorful-card__icon">
+                  <div class="colorful-card__container">
+                    <h3 class="card-title card-title--white card-title--l-more">Прозрачно</h3>
+                    <div class="card-text card-text--white card-text--large">Встреча назначается на удобное время. Никаких скрытых условий.</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="section section--center section--bottom-medium" hidden>
+          <div class="section__container">
+            <div class="back-figure">
+              <div class="back-figure__container">
+                <div class="questions">
+                  <div class="questions__container">
+                    <div class="heading heading--center">
+                      <span>FAQ</span>
+                      <h2 class="title title--size-great">Часто задаваемы вопросы</h2>
+                    </div>
+                    <div class="accordion">
+                      <div class="accordion__container">
+                        <div class="accordion__item ac">
+                          <div class="ac-trigger">
+                            <div class="accordion__title">Это бесплатно?</div>
+                            <div class="accordion__icon"><span class="icon icon-arrow accordion__icon-plus"></span></div>
+                          </div>
+                          <div class="ac-panel"><div class="accordion__content">Руководителям, врачам, ассистентам, администраторам и координаторам.</div></div>
+                        </div>
+                        <div class="accordion__item ac">
+                          <div class="ac-trigger">
+                            <div class="accordion__title">Сколько времени займёт?</div>
+                            <div class="accordion__icon"><span class="icon icon-arrow accordion__icon-plus"></span></div>
+                          </div>
+                          <div class="ac-panel"><div class="accordion__content">Кресла, рабочие дни, часы по графику/с пациентами и выручка по работам. Без персональных данных.</div></div>
+                        </div>
+                        <div class="accordion__item ac">
+                          <div class="ac-trigger">
+                            <div class="accordion__title">Какие данные нужны?</div>
+                            <div class="accordion__icon"><span class="icon icon-arrow accordion__icon-plus"></span></div>
+                          </div>
+                          <div class="ac-panel"><div class="accordion__content">Кресла, рабочие дни, часы по графику/с пациентами и выручка по работам. Без персональных данных.</div></div>
+                        </div>
+                        <div class="accordion__item ac">
+                          <div class="ac-trigger">
+                            <div class="accordion__title">Где заполнять?</div>
+                            <div class="accordion__icon"><span class="icon icon-arrow accordion__icon-plus"></span></div>
+                          </div>
+                          <div class="ac-panel"><div class="accordion__content">Кресла, рабочие дни, часы по графику/с пациентами и выручка по работам. Без персональных данных.</div></div>
+                        </div>
+                        <div class="accordion__item ac">
+                          <div class="ac-trigger">
+                            <div class="accordion__title">Что получите на разборе?</div>
+                            <div class="accordion__icon"><span class="icon icon-arrow accordion__icon-plus"></span></div>
+                          </div>
+                          <div class="ac-panel"><div class="accordion__content">Кресла, рабочие дни, часы по графику/с пациентами и выручка по работам. Без персональных данных.</div></div>
+                        </div>
+                        <div class="accordion__item ac">
+                          <div class="ac-trigger">
+                            <div class="accordion__title">Можно вернуться к форме позже?</div>
+                            <div class="accordion__icon"><span class="icon icon-arrow accordion__icon-plus"></span></div>
+                          </div>
+                          <div class="ac-panel"><div class="accordion__content">Кресла, рабочие дни, часы по графику/с пациентами и выручка по работам. Без персональных данных.</div></div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <picture class="back-figure__image back-figure__image-one">
+                <source srcset="{% static 'designed/img/back/5.webp' %}" class="back-figure__img">
+                <img loading="lazy" src="{% static 'designed/img/back/5.png' %}" alt="back" class="back-figure__img">
+              </picture>
+            </div>
+          </div>
+        </div>
+        <div class="section section--center section--bottom-medium">
+          <div class="section__container">
+            <div class="banner">
+              <div class="banner__container">
+                <picture class="banner__image">
+                  <source srcset="{% static 'designed/img/banner.webp' %}" class="banner__img">
+                  <img src="{% static 'designed/img/banner.png' %}" alt="..." class="banner__img" loading="lazy">
+                </picture>
+                <div class="banner__content">
+                  <div class="banner-footer">
+                    <div class="banner-footer__content">
+                      <h2 class="title title--size-medium title--variant-white">Перейти в <span>учебный центр</span></h2>
+                      <p>Там вас ждёт короткий урок и онлайн‑форма по 3 метрикам. Ни скачиваний, ни отправки файлов — всё внутри платформы.</p>
+                    </div>
+                    <div class="banner-footer__button">
+                      <a href="https://lc.smileterritory.ru/courses/course/chek-ap-stomatologicheskoi-kliniki/" ><button class="button button--variant-fuchsia button--size-medium button--font-medium button--arrow">Войти в учебный центр <span class="icon icon-arrow button__arrow"></span></button></a>
+                      <a href="https://lc.smileterritory.ru/courses/course/chek-ap-stomatologicheskoi-kliniki/" ><button class="button button--variant-outline button--size-medium button--font-medium">Сразу к уроку по заполнению</button></a>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <img src="{% static 'designed/img/banner3.png' %}" alt="banner" class="banner__absolute banner__absolute-big">
+            </div>
+          </div>
+        </div>
+      </main>
+    {% endblock %}

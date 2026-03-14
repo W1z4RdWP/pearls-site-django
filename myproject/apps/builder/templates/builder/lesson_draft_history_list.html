@@ -1,0 +1,177 @@
+{% extends 'layout.html' %}
+{% load static %}
+
+{% block title %}
+    История правок
+{% endblock %}
+
+{% block specific_styles %}
+    <link rel="stylesheet" href="{% static 'builder/css/builder_style.css' %}">
+    <link rel="stylesheet" href="{% static 'builder/css/lesson_draft_review.css' %}">
+    <style>
+        .draft-history-card {
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 16px;
+            transition: box-shadow 0.2s;
+            cursor: pointer;
+            background: #fff;
+        }
+        .draft-history-card:hover {
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+        .draft-history-card.pending {
+            border-left: 4px solid #ffc107;
+        }
+        .draft-history-card.approved {
+            border-left: 4px solid #28a745;
+        }
+        .draft-history-card.rejected {
+            border-left: 4px solid #dc3545;
+        }
+        .status-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 0.875rem;
+            font-weight: 500;
+        }
+        .status-badge.pending {
+            background: #fff3cd;
+            color: #856404;
+        }
+        .status-badge.approved {
+            background: #d4edda;
+            color: #155724;
+        }
+        .status-badge.rejected {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        .filters-section {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 24px;
+        }
+    </style>
+{% endblock %}
+
+{% block content %}
+<div class="container" style="max-width: 1200px; margin-top: 48px;">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>История правок</h2>
+        <a href="{% url 'builder:dashboard' %}" class="btn btn-secondary">
+            <i class="fas fa-arrow-left"></i> Назад к панели управления
+        </a>
+    </div>
+    
+    <!-- Фильтры -->
+    <div class="filters-section">
+        <form method="get" action="{% url 'builder:lesson_draft_history' %}" class="row g-3">
+            <div class="col-md-6">
+                <label for="search" class="form-label">Поиск по названию урока</label>
+                <input type="text" 
+                       class="form-control" 
+                       id="search" 
+                       name="search" 
+                       value="{{ search_query }}"
+                       placeholder="Введите название урока..."
+                       autocomplete="off">
+            </div>
+            <div class="col-md-4">
+                <label for="status" class="form-label">Статус</label>
+                <select class="form-select" id="status" name="status">
+                    <option value="">Все статусы</option>
+                    <option value="pending" {% if current_status == 'pending' %}selected{% endif %}>На проверке</option>
+                    <option value="approved" {% if current_status == 'approved' %}selected{% endif %}>Принят</option>
+                    <option value="rejected" {% if current_status == 'rejected' %}selected{% endif %}>Отклонен</option>
+                </select>
+            </div>
+            <div class="col-md-2 d-flex align-items-end">
+                <button type="submit" class="btn btn-primary w-100">
+                    <i class="fas fa-search"></i> Найти
+                </button>
+            </div>
+        </form>
+    </div>
+    
+    <!-- Список черновиков -->
+    {% if drafts %}
+        <div class="draft-list">
+            {% for draft in drafts %}
+            <div class="draft-history-card {{ draft.status }}" 
+                 onclick="window.location.href='{% url 'builder:lesson_draft_history_detail' draft.pk %}'">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div class="flex-grow-1">
+                        <h5 class="mb-2">{{ draft.lesson.title }}</h5>
+                        <div class="mb-2">
+                            <span class="status-badge {{ draft.status }}">
+                                {{ draft.get_status_display }}
+                            </span>
+                        </div>
+                        <div class="text-muted small">
+                            <i class="far fa-calendar"></i> Создан: {{ draft.created_at|date:"d.m.Y H:i" }}
+                            {% if draft.reviewed_at %}
+                                <br><i class="far fa-calendar-check"></i> Рассмотрен: {{ draft.reviewed_at|date:"d.m.Y H:i" }}
+                            {% endif %}
+                        </div>
+                        {% if draft.submit_comment %}
+                        <div class="mt-2 text-muted small">
+                            <i class="far fa-comment"></i> <em>{{ draft.submit_comment|truncatewords:20 }}</em>
+                        </div>
+                        {% endif %}
+                    </div>
+                    <div class="text-end">
+                        <i class="fas fa-chevron-right text-muted"></i>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        
+        <!-- Пагинация -->
+        {% if is_paginated %}
+        <nav aria-label="Навигация по страницам">
+            <ul class="pagination justify-content-center">
+                {% if page_obj.has_previous %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page=1{% if search_query %}&search={{ search_query }}{% endif %}{% if current_status %}&status={{ current_status }}{% endif %}">Первая</a>
+                    </li>
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}{% if current_status %}&status={{ current_status }}{% endif %}">Предыдущая</a>
+                    </li>
+                {% endif %}
+                
+                <li class="page-item active">
+                    <span class="page-link">
+                        Страница {{ page_obj.number }} из {{ page_obj.paginator.num_pages }}
+                    </span>
+                </li>
+                
+                {% if page_obj.has_next %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}{% if current_status %}&status={{ current_status }}{% endif %}">Следующая</a>
+                    </li>
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}{% if search_query %}&search={{ search_query }}{% endif %}{% if current_status %}&status={{ current_status }}{% endif %}">Последняя</a>
+                    </li>
+                {% endif %}
+            </ul>
+        </nav>
+        {% endif %}
+    {% else %}
+        <div class="alert alert-info">
+            <h5><i class="fas fa-info-circle"></i> Нет черновиков</h5>
+            <p class="mb-0">
+                {% if search_query or current_status %}
+                    По заданным критериям черновики не найдены.
+                {% else %}
+                    У вас пока нет созданных черновиков уроков.
+                {% endif %}
+            </p>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

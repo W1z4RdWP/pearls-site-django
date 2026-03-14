@@ -11,19 +11,6 @@
     --ucf-btn-color: #fff;
     --ucf-overdue-bg: #ffd6e0;
 }
-body.theme-dark {
-    --ucf-bg: #383838;
-    --ucf-card-bg: #232323;
-    --ucf-card-shadow: 0 2px 8px #0005;
-    --ucf-table-border: #444;
-    --ucf-table-th-bg: #232323;
-    --ucf-table-th-color: #fff;
-    --ucf-table-td-bg: #232323;
-    --ucf-table-td-focus: #232323;
-    --ucf-btn-bg: #4d7cff;
-    --ucf-btn-color: #fff;
-    --ucf-overdue-bg: #5a2a3a;
-}
 
 .update-control-form-bg { background: var(--ucf-bg); min-height: 100vh; padding: 40px 0; }
     .update-control-form-card { position: relative; background: var(--ucf-card-bg); border-radius: 10px; box-shadow: var(--ucf-card-shadow); padding: 32px 32px 24px 32px; max-width: 1200px; margin: 0 auto; }

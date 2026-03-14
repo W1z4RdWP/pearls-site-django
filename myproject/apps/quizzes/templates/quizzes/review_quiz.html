@@ -1,0 +1,187 @@
+{% extends "layout.html" %}
+{% load static %}
+
+{% block specific_styles %}
+    <link rel="stylesheet" href="{% static 'quizzes/css/quiz_styles.css' %}">
+    <link rel="stylesheet" href="{% static 'quizzes/css/review_quiz.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="review-container">
+    <div class="review-header">
+        <h2 class="h3 mb-0">
+            <a href="{% url 'quizzes:pending_quizzes' %}" class="text-decoration-none me-2">←</a>
+            Оценка теста: {{ quiz_result.quiz_title }}
+        </h2>
+        <div class="review-info">
+            <div class="review-info-item">
+                <span class="review-info-label">Студент</span>
+                <a href="{% url 'user_management:user_edit_detailed' pk=user_id %}"><span class="review-info-value">{{ quiz_result.user.get_full_name|default:quiz_result.user.username }}</span></a>
+            </div>
+            <div class="review-info-item">
+                <span class="review-info-label">Курс</span>
+                <span class="review-info-value">{{ quiz_result.course.title|default:"-" }}</span>
+            </div>
+            <div class="review-info-item">
+                <span class="review-info-label">Дата прохождения</span>
+                <span class="review-info-value">{{ quiz_result.completed_at|date:"d.m.Y H:i" }}</span>
+            </div>
+            <div class="review-info-item">
+                <span class="review-info-label">Автопроверяемые вопросы</span>
+                <span class="review-info-value">{{ quiz_result.score }}/{{ quiz_result.total_questions }} правильно</span>
+            </div>
+            <div class="review-info-item">
+                <span class="review-info-label">Статус</span>
+                <span class="review-info-value">
+                    {% if quiz_result.status == 'pending' %}
+                        <span style="color: #f39c12;">⏳ Ожидает проверки</span>
+                    {% elif quiz_result.status == 'reviewed' %}
+                        <span style="color: #27ae60;">✅ Проверен</span>
+                    {% endif %}
+                </span>
+            </div>
+            {% if quiz_result.reviewed_by %}
+            <div class="review-info-item">
+                <span class="review-info-label">Проверил</span>
+                <span class="review-info-value">{{ quiz_result.reviewed_by.get_full_name|default:quiz_result.reviewed_by.username }}</span>
+            </div>
+            {% endif %}
+        </div>
+        {% if quiz_result.mentor_comment %}
+        <div style="margin-top: 15px; padding: 12px; background: #e7f3ff; border-radius: 6px; border-left: 4px solid #2196F3;">
+            <strong style="color: #1976D2;">Комментарий наставника:</strong>
+            <p style="margin: 5px 0 0 0; color: #333; white-space: pre-line;">{{ quiz_result.mentor_comment }}</p>
+        </div>
+        {% endif %}
+    </div>
+    
+    <form method="post">
+        {% csrf_token %}
+        
+        <h3 style="color: #2c3e50; margin-bottom: 15px; font-size: 1.2em;">Открытые вопросы для оценки</h3>
+        
+        {% for answer in text_answers %}
+        <div class="question-card">
+            <div class="question-header">
+                <span class="question-number">Вопрос {{ forloop.counter }}</span>
+                <span class="question-text">{{ answer.question.text }}</span>
+                {% if answer.question.mentor_instruction %}
+                <span class="help-icon" 
+                      tabindex="0" 
+                      role="button" 
+                      aria-label="Подсказка" 
+                      data-tooltip="{{ answer.question.mentor_instruction|escape }}">
+                    ?
+                </span>
+                {% endif %}
+            </div>
+            
+            <div class="student-answer">
+                <div class="student-answer-label">Ответ студента:</div>
+                <div class="student-answer-text">{{ answer.answer_text|default:"Ответ не предоставлен" }}</div>
+            </div>
+            
+            <div class="score-selector">
+                <label class="score-selector-label">Оценка:</label>
+                <div class="score-buttons">
+                    <button type="button" class="score-btn score-btn-0 {% if answer.score_points == 0 %}selected{% endif %}" data-answer-id="{{ answer.id }}" data-score="0" onclick="selectScore(this)">
+                        ❌ Неверно (0)
+                    </button>
+                    <button type="button" class="score-btn score-btn-05 {% if answer.score_points == 0.5 %}selected{% endif %}" data-answer-id="{{ answer.id }}" data-score="0.5" onclick="selectScore(this)">
+                        ⚠️ Частично (0.5)
+                    </button>
+                    <button type="button" class="score-btn score-btn-1 {% if answer.score_points == 1 %}selected{% endif %}" data-answer-id="{{ answer.id }}" data-score="1" onclick="selectScore(this)">
+                        ✅ Верно (1)
+                    </button>
+                </div>
+                <input type="hidden" name="score_{{ answer.id }}" id="score_{{ answer.id }}" value="{% if answer.score_points is not None %}{{ answer.score_points }}{% else %}0{% endif %}">
+            </div>
+        </div>
+        {% endfor %}
+        
+        <div class="mentor-comment-section">
+            <label for="mentor_comment">Комментарий наставника (необязательно):</label>
+            <textarea name="mentor_comment" id="mentor_comment" placeholder="Оставьте комментарий для студента...">{% if quiz_result.mentor_comment %}{{ quiz_result.mentor_comment }}{% endif %}</textarea>
+        </div>
+        
+        <div class="submit-section">
+            <button type="submit" class="btn-submit">Сохранить оценку</button>
+            <a href="{% url 'quizzes:pending_quizzes' %}" class="btn-cancel">Отмена</a>
+        </div>
+    </form>
+    
+    {% if grouped_answers %}
+    <div class="all-answers-section">
+        <h3>Все ответы студента (для справки)</h3>
+        {% for question, answers in grouped_answers.items %}
+        <div class="answer-item">
+            <strong>{{ question.text }}</strong>
+            {% if question.question_type == 'text' %}
+                <p>Ответ: {{ answers.0.answer_text|default:"Ответ не предоставлен" }}</p>
+            {% elif question.question_type == 'multiple' %}
+                <div class="multiple-answers-group">
+                    {% for answer in answers %}
+                        <div class="multiple-answer-item">
+                            <p>
+                                Ответ: {{ answer.selected_answer.text|default:"—" }}
+                                {% if answer.selected_answer and answer.selected_answer.is_correct %}
+                                    <span class="answer-correct">✓ Верно</span>
+                                {% else %}
+                                    <span class="answer-incorrect">✗ Неверно</span>
+                                {% endif %}
+                            </p>
+                        </div>
+                        {% if not forloop.last %}
+                            <hr class="answer-divider">
+                        {% endif %}
+                    {% endfor %}
+                </div>
+            {% elif answers.0.selected_answer %}
+                <p>
+                    Ответ: {{ answers.0.selected_answer.text }}
+                    {% if answers.0.is_correct %}
+                        <span class="answer-correct">✓ Верно</span>
+                    {% else %}
+                        <span class="answer-incorrect">✗ Неверно</span>
+                    {% endif %}
+                </p>
+            {% endif %}
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+</div>
+
+<script>
+function selectScore(button) {
+    const answerId = button.dataset.answerId;
+    const score = button.dataset.score;
+    
+    // Убираем выделение со всех кнопок для этого вопроса
+    const allButtons = document.querySelectorAll(`button[data-answer-id="${answerId}"]`);
+    allButtons.forEach(btn => btn.classList.remove('selected'));
+    
+    // Выделяем выбранную кнопку
+    button.classList.add('selected');
+    
+    // Устанавливаем значение в скрытое поле
+    document.getElementById(`score_${answerId}`).value = score;
+}
+
+// Предварительно выбираем "Неверно" для всех вопросов без оценки
+document.addEventListener('DOMContentLoaded', function() {
+    // Проверяем каждый вопрос, если нет выбранной кнопки, выбираем "Неверно"
+    const allAnswers = document.querySelectorAll('.question-card');
+    allAnswers.forEach(card => {
+        const hasSelected = card.querySelector('.score-btn.selected');
+        if (!hasSelected) {
+            const defaultButton = card.querySelector('.score-btn-0');
+            if (defaultButton) {
+                selectScore(defaultButton);
+            }
+        }
+    });
+});
+</script>
+{% endblock %}
+

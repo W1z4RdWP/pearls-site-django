@@ -33,40 +33,6 @@
   --um-status-unapproved-border: #e5e7eb;
 }
 
-body.theme-dark {
-  --um-list-bg: #232a3a;
-  --um-list-color: #eee;
-  --um-list-border-radius: 12px;
-  --um-list-shadow: 0 2px 8px #0007;
-  --um-list-padding: 32px 40px;
-  --um-list-header-title: #eee;
-  --um-list-header-title-size: 2rem;
-  --um-list-header-title-weight: 600;
-  --um-list-filter-bg: #232a3a;
-  --um-list-filter-border: #353535;
-  --um-list-filter-radius: 6px;
-  --um-list-filter-color: #eee;
-  --um-list-table-bg: #232a3a;
-  --um-list-table-th-bg: #353535;
-  --um-list-table-th-color: #bdbdbd;
-  --um-list-table-td-color: #eee;
-  --um-list-table-border: #353535;
-  --um-btn-bg: #4d7cff;
-  --um-btn-color: #fff;
-  --um-btn-hover-bg: #2dabc4;
-  --um-btn-secondary-bg: #353535;
-  --um-btn-secondary-color: #eee;
-  --um-btn-secondary-hover-bg: #232a3a;
-  --um-avatar-bg: #353535;
-  --um-avatar-border: #232a3a;
-  --um-email-color: #bdbdbd;
-  --um-status-approved-bg: #1e2d1e;
-  --um-status-approved-color: #28a745;
-  --um-status-approved-border: #28a745;
-  --um-status-unapproved-bg: #353535;
-  --um-status-unapproved-color: #bdbdbd;
-  --um-status-unapproved-border: #353535;
-}
 
 .um-user-list-wrapper {
     max-width: 1200px;
@@ -138,6 +104,7 @@ body.theme-dark {
 }
 .um-btn:hover {
     background: var(--um-btn-hover-bg);
+    text-decoration: none;
 }
 .um-btn-secondary {
     background: var(--um-btn-secondary-bg);
@@ -146,6 +113,17 @@ body.theme-dark {
 .um-btn-secondary:hover {
     background: var(--um-btn-secondary-hover-bg);
 }
+
+.btn.btn__back-to-control-panel{
+    background-color: #fff; 
+    color: #0d6efd;
+}
+.btn.btn__back-to-control-panel:hover{
+    background-color: #fff; 
+    box-shadow: 7px 5px 25px #0d6efd;
+    color: #0d6efd;
+}
+
 .um-user-avatar-name {
     display: flex;
     align-items: center;

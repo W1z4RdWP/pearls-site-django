@@ -4,6 +4,11 @@
     --primary-text-color: #333;
 }
 
+/* Предотвращаем горизонтальный скролл */
+body {
+    overflow-x: hidden;
+}
+
 
 .content-section {
     background: #dad7d7;
@@ -190,6 +195,23 @@ legend{
 
 #cancel-edit-btn {
     margin-left: 10px;
+}
+
+#toggle-courses-progress-btn{
+    background-color: transparent;
+    border: none;
+    font-size: 30px;
+    cursor: default;
+}
+
+
+.profile-courses-progress-header{
+    display: flex;
+    margin-left: 30px;
+    margin-right: 30px;
+    margin-top: 30px;
+    justify-content: space-between;
+    align-items: center;
 }
 
 .progress-bar {
@@ -511,6 +533,21 @@ legend{
   
   .quiz-status span {
     align-self: flex-start;
+    font-size: 0.75em;
+    line-height: 1.2;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    max-width: 100%;
+    padding: 4px 8px;
+  }
+  
+  /* Специальные стили для бейджа с длинным текстом */
+  .quiz-status .badge.bg-info {
+    font-size: 0.7em;
+    padding: 6px 10px;
+    white-space: normal;
+    text-align: left;
+    line-height: 1.3;
   }
 
   .quiz_history-bottom_info {
@@ -1055,5 +1092,282 @@ legend{
     .badge-title,
     .achievement-title {
         font-size: 1.1em;
+    }
+}
+
+/* Стили для пагинации */
+.pagination {
+    flex-wrap: wrap;
+    gap: 2px;
+    margin: 20px 0;
+}
+
+.pagination .page-link {
+    border-radius: 6px;
+    margin: 0 1px;
+    min-width: 40px;
+    text-align: center;
+    font-size: 0.9em;
+    padding: 8px 12px;
+    transition: all 0.2s ease;
+    border: 1px solid #dee2e6;
+    color: #007bff;
+    background-color: #fff;
+}
+
+.pagination .page-link:hover {
+    background-color: #e9ecef;
+    border-color: #dee2e6;
+    color: #0056b3;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.pagination .page-item.active .page-link {
+    background-color: #007bff;
+    border-color: #007bff;
+    color: #fff;
+    font-weight: 600;
+}
+
+.pagination .page-item.disabled .page-link {
+    color: #6c757d;
+    background-color: transparent;
+    border-color: #dee2e6;
+    cursor: not-allowed;
+}
+
+.pagination .page-item.disabled .page-link:hover {
+    transform: none;
+    box-shadow: none;
+}
+
+/* Адаптивность для пагинации */
+@media (max-width: 768px) {
+    .pagination {
+        gap: 1px;
+    }
+    
+    .pagination .page-link {
+        min-width: 35px;
+        padding: 6px 8px;
+        font-size: 0.85em;
+    }
+}
+
+@media (max-width: 512px) {
+    .pagination {
+        gap: 1px;
+    }
+    
+    .pagination .page-link {
+        min-width: 32px;
+        padding: 5px 6px;
+        font-size: 0.8em;
+    }
+    
+    /* Скрываем некоторые номера страниц на очень маленьких экранах */
+    .pagination .page-item:not(.active):not(:first-child):not(:last-child):not(.disabled) {
+        display: none;
+    }
+    
+    .pagination .page-item.disabled {
+        display: inline-block;
+    }
+}
+
+/* Стили для истории тестов */
+.quiz-history-section {
+    margin-top: 20px;
+}
+
+.quiz-history-section .card {
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    border: 1px solid #e9ecef;
+}
+
+.quiz-history-section .card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+
+.quiz-history-section .card-header {
+    background: linear-gradient(135deg, #007bff, #0056b3);
+    color: white;
+    font-weight: 600;
+    border-bottom: none;
+}
+
+.quiz-history-section .progress {
+    height: 20px;
+    border-radius: 10px;
+    background-color: #e9ecef;
+}
+
+.quiz-history-section .progress-bar {
+    border-radius: 10px;
+    font-size: 0.8em;
+    font-weight: 600;
+}
+
+.quiz_history-bottom_info {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 15px;
+    padding-top: 10px;
+    border-top: 1px solid #e9ecef;
+}
+
+.quiz_history-bottom_info .btn-outline-info {
+    border-radius: 20px;
+    padding: 6px 16px;
+    font-size: 0.85em;
+    transition: all 0.2s ease;
+}
+
+.quiz_history-bottom_info .btn-outline-info:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 6px rgba(0,123,255,0.3);
+}
+
+/* Стили для камеры аватара */
+.avatar-upload-container {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    padding: 20px;
+    border: 2px dashed #dee2e6;
+    border-radius: 12px;
+    background: #f8f9fa;
+    margin: 10px 0;
+    overflow: hidden;
+}
+
+.upload-method,
+.camera-method {
+    text-align: center;
+    padding: 10px;
+}
+
+.upload-divider {
+    position: relative;
+    text-align: center;
+    margin: 10px 0;
+}
+
+.upload-divider::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: #dee2e6;
+}
+
+.upload-divider span {
+    background: #f8f9fa;
+    padding: 0 15px;
+    color: #6c757d;
+    font-size: 0.9em;
+}
+
+#camera-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    min-width: 150px;
+    margin: 0 auto;
+}
+
+#camera-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+/* Стили для превью камеры */
+#camera-preview {
+    text-align: center;
+    padding: 15px;
+    background: white;
+    border-radius: 8px;
+    border: 1px solid #dee2e6;
+}
+
+#camera-preview img {
+    display: block;
+    margin: 0 auto 10px auto;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+#camera-preview .btn {
+    margin: 0 5px;
+}
+
+/* Адаптивность для камеры */
+@media (max-width: 768px) {
+    .avatar-upload-container {
+        padding: 15px;
+        gap: 12px;
+    }
+    
+    .upload-method,
+    .camera-method {
+        padding: 8px;
+    }
+    
+    #camera-btn {
+        min-width: 130px;
+        font-size: 0.9em;
+    }
+    
+    #camera-preview {
+        padding: 10px;
+    }
+    
+    #camera-preview img {
+        max-width: 150px;
+        max-height: 150px;
+    }
+    
+    #camera-preview .btn {
+        font-size: 0.85em;
+        padding: 6px 12px;
+        margin: 2px;
+    }
+}
+
+@media (max-width: 512px) {
+    .avatar-upload-container {
+        padding: 12px;
+        gap: 10px;
+    }
+    
+    #camera-btn {
+        min-width: 120px;
+        font-size: 0.85em;
+        padding: 8px 15px;
+    }
+    
+    #camera-preview {
+        padding: 8px;
+    }
+    
+    #camera-preview img {
+        max-width: 120px;
+        max-height: 120px;
+    }
+    
+    #camera-preview .btn {
+        font-size: 0.8em;
+        padding: 5px 10px;
+        margin: 2px;
+        display: block;
+        width: 100%;
+        max-width: 150px;
+        margin-left: auto;
+        margin-right: auto;
     }
 }

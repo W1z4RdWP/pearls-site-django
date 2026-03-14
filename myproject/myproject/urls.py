@@ -27,6 +27,7 @@ from debug_toolbar.toolbar import debug_toolbar_urls
 from myapp import views
 from myapp.views import page_not_found_view, PrivacyPolicyView
 from quizzes.models import Answer
+from apps.api.views import telegram_register
 from .sitemaps import (
     StaticViewSitemap,
     CourseSitemap,
@@ -50,21 +51,34 @@ urlpatterns = [
     path('robots.txt', TemplateView.as_view(template_name='robots.txt', content_type='text/plain')),
     path('sitemap.xml', sitemap, {'sitemaps': sitemaps}, name='django.contrib.sitemaps.views.sitemap'),
     path('admin/', admin.site.urls),
+    path('api-auth/', include('rest_framework.urls')),
+    path('api/', include('api.urls'), name='api'),
     path('', (views.IndexView.as_view()), name='home'),
+    path('homepage/', (views.HomepageView.as_view()), name='homepage'),
+    path('courses_app/', (views.DesignedCoursesView.as_view()), name='courses_app'),
+    path('check-up/', (views.DesignedCheckUpView.as_view()), name='check_up'),
+    path('event/', (views.EventTemplateView.as_view()), name='event'),
     path('captcha/', include('captcha.urls')),
     path('about/', views.AboutView.as_view(), name='about'),
     path('users/', include('users.urls'), name='users'),
     path('courses/', include('courses.urls'), name='courses'),
     path('quizzes/', include('quizzes.urls'), name='quizzes'),
     path('builder/', include('builder.urls'), name='builder'),
+    path('reports/', include('reports.urls'), name='reports'),
+    path('shop/', include('shop.urls'), name='shop'),
+    path('delegation/', include('delegation.urls'), name='delegation'),
     path('user_management/', include('user_management.urls'), name='user_management'),
     path('notifications/', include('notifications.urls')),
+    path('messenger/', include('messenger.urls'), name='messenger'),
     path('i18n/', include('django.conf.urls.i18n')),
     path('ckeditor5/', include('django_ckeditor_5.urls')),
     path('changelog/', views.ChangelogListView.as_view(), name='changelog'),
     path('privacy-policy/', PrivacyPolicyView.as_view(), name='privacy_policy'),
     path('error_found/', views.page_not_found_view, {'exception': Answer.MultipleObjectsReturned}, name='error'),
     path('tech_support/', include('tech_support.urls'), name='tech_support'),
+    path('csrf-debug/', views.csrf_debug_view, name='csrf_debug'),
+    path('clear-user-cache/', views.clear_user_cache, name='clear_user_cache'),
+
 ]
 
 handler404 = 'myapp.views.page_not_found_view'

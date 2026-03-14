@@ -1,0 +1,556 @@
+{% extends 'layout.html' %}
+{% load static %}
+
+{% block specific_styles %}
+    <style>
+        .activity-wrapper {
+            max-width: 1400px;
+            margin: 20px auto;
+            padding: 0 20px;
+        }
+        
+        .activity-header {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 30px;
+            border-left: 4px solid #6f42c1;
+        }
+        
+        .activity-header h1 {
+            margin: 0 0 10px 0;
+            color: #333;
+        }
+        
+        .activity-header p {
+            margin: 0;
+            color: #666;
+        }
+        
+        .stats-row {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .stat-card {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            flex: 1;
+            text-align: center;
+        }
+        
+        .stat-number {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #6f42c1;
+            margin-bottom: 5px;
+        }
+        
+        .stat-label {
+            color: #666;
+            font-size: 14px;
+        }
+        
+        .activity-table {
+            background: white;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .activity-table table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        
+        .activity-table th {
+            background: #6f42c1;
+            color: white;
+            padding: 15px;
+            text-align: left;
+            font-weight: 600;
+        }
+        
+        .activity-table td {
+            padding: 8px 15px;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .activity-table tr:hover {
+            background: #f8f9fa;
+        }
+        
+        .user-info {
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .user-name {
+            font-weight: 600;
+            color: #333;
+            font-size: 14px;
+        }
+        
+        .action-badge {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+        
+        .action-create {
+            background: #d4edda;
+            color: #155724;
+        }
+        
+        .action-update {
+            background: #fff3cd;
+            color: #856404;
+        }
+        
+        .action-delete {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        
+        .action-copy {
+            background: #cce5ff;
+            color: #004085;
+        }
+        
+        .action-move {
+            background: #e2e3e5;
+            color: #383d41;
+        }
+        
+        .action-view {
+            background: #d1ecf1;
+            color: #0c5460;
+        }
+        
+        .action-other {
+            background: #f8f9fa;
+            color: #495057;
+        }
+        
+        .action-lesson-kz {
+            background: #e3f2fd;
+            color: #1565c0;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-weight: 500;
+            font-size: 13px;
+        }
+        
+        .action-lesson-ru {
+            background: #f3e5f5;
+            color: #7b1fa2;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-weight: 500;
+            font-size: 13px;
+        }
+        
+        .action-course {
+            background: #e8f5e8;
+            color: #2e7d32;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-weight: 500;
+            font-size: 13px;
+        }
+        
+        .action-homepage {
+            background: #fff3e0;
+            color: #ef6c00;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-weight: 500;
+            font-size: 13px;
+        }
+        
+        .action-bot-auth {
+            background: #fce4ec;
+            color: #c2185b;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-weight: 500;
+            font-size: 13px;
+        }
+        
+        .action-metrics {
+            background: #e0f2f1;
+            color: #00695c;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-weight: 500;
+            font-size: 13px;
+        }
+        
+        .action-privacy {
+            background: #f1f8e9;
+            color: #558b2f;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-weight: 500;
+            font-size: 13px;
+        }
+        
+        .action-courses-page {
+            background: #e8eaf6;
+            color: #3f51b5;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-weight: 500;
+            font-size: 13px;
+        }
+        
+        .action-checkup {
+            background: #fff8e1;
+            color: #f57f17;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-weight: 500;
+            font-size: 13px;
+        }
+        
+        .action-notifications {
+            background: #f3e5f5;
+            color: #8e24aa;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-weight: 500;
+            font-size: 13px;
+        }
+        
+        .action-start-course {
+            background: #e8f5e8;
+            color: #1b5e20;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-weight: 500;
+            font-size: 13px;
+        }
+        
+        .action-submit-form {
+            background: #e1f5fe;
+            color: #0277bd;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-weight: 500;
+            font-size: 13px;
+        }
+        
+        .action-logout {
+            background: #ffebee;
+            color: #c62828;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-weight: 500;
+            font-size: 13px;
+        }
+        
+        .timestamp {
+            font-size: 14px;
+            color: #666;
+        }
+        
+        .ip-address {
+            font-family: monospace;
+            font-size: 12px;
+            color: #666;
+        }
+        
+        .no-activity {
+            text-align: center;
+            padding: 60px 20px;
+            color: #666;
+        }
+        
+        .no-activity i {
+            font-size: 3rem;
+            margin-bottom: 20px;
+            color: #ccc;
+        }
+        
+        .pagination {
+            display: flex;
+            justify-content: center;
+            margin-top: 20px;
+        }
+        
+        .pagination a {
+            padding: 8px 12px;
+            margin: 0 4px;
+            background: #6f42c1;
+            color: white;
+            text-decoration: none;
+            border-radius: 4px;
+        }
+        
+        .pagination a:hover {
+            background: #5a32a3;
+        }
+        
+        .pagination .current {
+            padding: 8px 12px;
+            margin: 0 4px;
+            background: #5a32a3;
+            color: white;
+            border-radius: 4px;
+        }
+        
+        /* Мобильная адаптация */
+        @media (max-width: 768px) {
+            .activity-wrapper {
+                margin: 10px auto;
+                padding: 0 10px;
+            }
+            
+            .activity-header {
+                padding: 15px;
+                margin-bottom: 20px;
+            }
+            
+            .activity-header h1 {
+                font-size: 1.5rem;
+            }
+            
+            .stats-row {
+                flex-direction: column;
+                gap: 10px;
+                margin-bottom: 20px;
+            }
+            
+            .stat-card {
+                padding: 15px;
+            }
+            
+            .stat-number {
+                font-size: 1.5rem;
+            }
+            
+            .activity-table {
+                overflow-x: auto;
+                -webkit-overflow-scrolling: touch;
+            }
+            
+            .activity-table table {
+                min-width: 600px;
+            }
+            
+            .activity-table th,
+            .activity-table td {
+                padding: 6px 8px;
+                font-size: 12px;
+            }
+            
+            .user-name {
+                font-size: 13px;
+            }
+            
+            .action-lesson-kz,
+            .action-lesson-ru,
+            .action-course,
+            .action-homepage,
+            .action-bot-auth,
+            .action-metrics,
+            .action-privacy,
+            .action-courses-page,
+            .action-checkup,
+            .action-notifications,
+            .action-start-course,
+            .action-submit-form,
+            .action-logout {
+                padding: 3px 6px;
+                font-size: 11px;
+                border-radius: 3px;
+            }
+            
+            .timestamp {
+                font-size: 11px;
+            }
+            
+            .pagination {
+                flex-wrap: wrap;
+                gap: 5px;
+            }
+            
+            .pagination a,
+            .pagination .current {
+                padding: 6px 8px;
+                font-size: 12px;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .activity-wrapper {
+                padding: 0 5px;
+            }
+            
+            .activity-header {
+                padding: 10px;
+            }
+            
+            .activity-header h1 {
+                font-size: 1.3rem;
+            }
+            
+            .stat-card {
+                padding: 10px;
+            }
+            
+            .stat-number {
+                font-size: 1.3rem;
+            }
+            
+            .activity-table th,
+            .activity-table td {
+                padding: 4px 6px;
+                font-size: 11px;
+            }
+            
+            .user-name {
+                font-size: 12px;
+            }
+            
+            .action-lesson-kz,
+            .action-lesson-ru,
+            .action-course,
+            .action-homepage,
+            .action-bot-auth,
+            .action-metrics,
+            .action-privacy,
+            .action-courses-page,
+            .action-checkup,
+            .action-notifications,
+            .action-start-course,
+            .action-submit-form,
+            .action-logout {
+                padding: 2px 4px;
+                font-size: 10px;
+            }
+            
+            .timestamp {
+                font-size: 10px;
+            }
+        }
+    </style>
+{% endblock %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block content %}
+<div class="activity-wrapper">
+    <div class="activity-header">
+        <h1>{{ title }}</h1>
+        <p>Мониторинг всех действий пользователей группы "Внешний пользователь"</p>
+    </div>
+    
+    <div class="stats-row">
+        <div class="stat-card">
+            <div class="stat-number">{{ total_users }}</div>
+            <div class="stat-label">Внешних пользователей</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-number">{{ total_actions }}</div>
+            <div class="stat-label">Всего действий</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-number">{{ activity_logs|length }}</div>
+            <div class="stat-label">На этой странице</div>
+        </div>
+    </div>
+    
+    {% if activity_logs %}
+        <div class="activity-table">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Пользователь</th>
+                        <th>Что сделал</th>
+                        <th>Когда</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for log in activity_logs %}
+                        <tr>
+                            <td>
+                                <div class="user-info">
+                                    <div class="user-name">{{ log.user.get_full_name|default:log.user.username }}</div>
+                                </div>
+                            </td>
+                            <td>
+                                {% if "GET /courses/course/chek-ap-stomatologicheskoi-kliniki/lesson/72/" in log.object_name %}
+                                    <span class="action-lesson-kz">Открыл урок KZ Метрики эффективности стоматологической клиники</span>
+                                {% elif "GET /courses/course/chek-ap-stomatologicheskoi-kliniki/lesson/69/" in log.object_name %}
+                                    <span class="action-lesson-ru">Открыл урок Метрики эффективности стоматологической клиники</span>
+                                {% elif "GET /courses/course/chek-ap-stomatologicheskoi-kliniki/" in log.object_name %}
+                                    <span class="action-course">Открыл курс чек-ап</span>
+                                {% elif "GET /homepage/" in log.object_name %}
+                                    <span class="action-homepage">Перешёл на главную дизайнерскую страницу</span>
+                                {% elif "GET /api/s/" in log.object_name %}
+                                    <span class="action-bot-auth">Перешёл по авторизационной ссылке из бота</span>
+                                {% elif "GET /courses/metrics/" in log.object_name %}
+                                    <span class="action-metrics">Перешёл к заполнению метрик</span>
+                                {% elif "GET /privacy-policy/" in log.object_name %}
+                                    <span class="action-privacy">Просматривает политику конфиденциальности</span>
+                                {% elif "GET /courses_app/" in log.object_name %}
+                                    <span class="action-courses-page">Перешёл на дизайнерскую страницу с курсами</span>
+                                {% elif "GET /check-up/" in log.object_name %}
+                                    <span class="action-checkup">Перешёл на последнюю дизайнерскую страницу</span>
+                                {% elif "GET /notifications/" in log.object_name %}
+                                    <span class="action-notifications">Просматривает уведомления</span>
+                                {% elif "POST /courses/course/chek-ap-stomatologicheskoi-kliniki/" in log.object_name %}
+                                    <span class="action-start-course">Нажал кнопку "Начать курс"</span>
+                                {% elif "POST /courses/metrics/" in log.object_name %}
+                                    <span class="action-submit-form">Заполнил форму</span>
+                                {% elif "POST /users/logout/" in log.object_name %}
+                                    <span class="action-logout">Вышел из учетной записи</span>
+                                {% else %}
+                                    <span class="action-badge action-{{ log.action }}">
+                                        {{ log.get_action_display }}
+                                    </span>
+                                    <br>
+                                    <strong>{{ log.object_name }}</strong>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <div class="timestamp">{{ log.timestamp|date:"d.m.Y в H:i" }}</div>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        
+        {% if is_paginated %}
+            <div class="pagination">
+                {% if page_obj.has_previous %}
+                    <a href="?page=1">&laquo; Первая</a>
+                    <a href="?page={{ page_obj.previous_page_number }}">Предыдущая</a>
+                {% endif %}
+                
+                <span class="current">
+                    Страница {{ page_obj.number }} из {{ page_obj.paginator.num_pages }}
+                </span>
+                
+                {% if page_obj.has_next %}
+                    <a href="?page={{ page_obj.next_page_number }}">Следующая</a>
+                    <a href="?page={{ page_obj.paginator.num_pages }}">Последняя &raquo;</a>
+                {% endif %}
+            </div>
+        {% endif %}
+    {% else %}
+        <div class="no-activity">
+            <i>📊</i>
+            <h3>Нет активности</h3>
+            <p>Внешние пользователи пока не выполняли действий в системе</p>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

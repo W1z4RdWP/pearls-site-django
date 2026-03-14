@@ -1,0 +1,66 @@
+{% extends 'layout.html' %}
+{% load static %}
+
+{% block specific_styles %}
+    <link rel="stylesheet" href="{% static 'user_management/css/user_form.css' %}">
+    <style>
+        .success-wrapper {
+            max-width: 600px;
+            margin: 50px auto;
+            text-align: center;
+        }
+        
+        .success-icon {
+            font-size: 4rem;
+            color: #28a745;
+            margin-bottom: 20px;
+        }
+        
+        .success-title {
+            color: #28a745;
+            margin-bottom: 20px;
+        }
+        
+        .success-message {
+            background: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 30px;
+        }
+        
+        .btn-back {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 5px;
+            text-decoration: none;
+            display: inline-block;
+        }
+        
+        .btn-back:hover {
+            background: #0056b3;
+            color: white;
+            text-decoration: none;
+        }
+    </style>
+{% endblock %}
+
+{% block title %}Форма отправлена успешно{% endblock %}
+
+{% block content %}
+<div class="success-wrapper">
+    <div class="success-icon">✓</div>
+    <h1 class="success-title">Форма отправлена успешно!</h1>
+    
+    <div class="success-message">
+        <p><strong>Форма принята. Мы уже собираем свод по вашей клинике за 3 месяца.</strong></p>
+        <p>Следующий шаг - онлайн-разбор: покажем реальные точки роста (загрузка кресел, средний час, выручка по врачам) и дадим план «что прокачать сначала».</p>
+        <p>Свяжемся в течение 24 часов, чтобы назначить удобное время.</p>
+    </div>
+    
+    <a href="{% url 'courses:metrics_form' %}" class="btn-back">Заполнить новую форму</a>
+</div>
+{% endblock %} 

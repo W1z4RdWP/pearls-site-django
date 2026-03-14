@@ -1,0 +1,1132 @@
+{% extends 'layout.html' %}
+{% load static %}
+{% block title %}Инфо по модулю ИПР{% endblock %}
+{% block specific_styles %}
+    <link rel="stylesheet" href="{% static 'builder/css/builder_style.css' %}">
+    <link rel="stylesheet" href="{% static 'builder/css/ipr.css' %}">
+    <style>
+        .ipr-info-card {
+            background: #fff;
+            border-radius: 10px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            padding: 32px;
+            max-width: 1600px;
+            margin: 0 auto;
+        }
+        .ipr-info-header {
+            margin-bottom: 24px;
+        }
+        .ipr-info-header h2 {
+            color: #232a3a;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+        .ipr-info-description {
+            color: #666;
+            font-size: 0.95em;
+            margin-bottom: 24px;
+        }
+        .ipr-info-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 24px;
+        }
+        .ipr-info-table th {
+            background-color: #f8f9fa;
+            padding: 12px;
+            text-align: left;
+            font-weight: 600;
+            border: 1px solid #e3e8f0;
+        }
+        .ipr-info-table td {
+            padding: 12px;
+            border: 1px solid #e3e8f0;
+            vertical-align: top;
+        }
+        .ipr-info-table tr:not(:last-child) td {
+            border-bottom: 1px solid #e3e8f0;
+        }
+        .ipr-info-label {
+            font-weight: 600;
+            color: #232a3a;
+        }
+        .ipr-info-value {
+            color: #232a3a;
+        }
+        .ipr-info-required {
+            color: #dc3545;
+            font-weight: 600;
+        }
+        .ipr-info-optional {
+            color: #6c757d;
+        }
+        .ipr-start-button {
+            background-color: #28a745;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+        }
+        .ipr-start-button:hover {
+            background-color: #218838;
+        }
+        .ipr-complete-button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            margin-left: 8px;
+        }
+        .ipr-complete-button:hover {
+            background-color: #0056b3;
+        }
+        .ipr-pause-button {
+            background-color: #ffc107;
+            color: #212529;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            margin-left: 8px;
+        }
+        .ipr-pause-button:hover {
+            background-color: #e0a800;
+        }
+        .ipr-resume-button {
+            background-color: #28a745;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            margin-left: 8px;
+        }
+        .ipr-resume-button:hover {
+            background-color: #218838;
+        }
+        .ipr-diagnostics-section {
+            margin-top: 24px;
+            padding: 20px;
+            border: 1px solid #e3e8f0;
+            border-radius: 6px;
+            background-color: #f8f9fa;
+        }
+        .ipr-diagnostics-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+        .ipr-diagnostics-header h3 {
+            margin: 0;
+            color: #232a3a;
+        }
+        .ipr-diagnostics-edit-btn {
+            background: none;
+            border: none;
+            color: #6c757d;
+            cursor: pointer;
+            font-size: 1.2em;
+            padding: 4px 8px;
+            border-radius: 4px;
+            transition: background-color 0.2s;
+        }
+        .ipr-diagnostics-edit-btn:hover {
+            background-color: #e9ecef;
+            color: #232a3a;
+        }
+        .ipr-diagnostics-content {
+            white-space: pre-wrap;
+            color: #232a3a;
+            line-height: 1.6;
+            min-height: 50px;
+            padding: 12px;
+            background-color: #fff;
+            border: 1px solid #e3e8f0;
+            border-radius: 4px;
+        }
+        .ipr-diagnostics-textarea {
+            width: 100%;
+            min-height: 150px;
+            padding: 12px;
+            border: 1px solid #e3e8f0;
+            border-radius: 4px;
+            font-family: inherit;
+            font-size: inherit;
+            resize: vertical;
+        }
+        .ipr-diagnostics-actions {
+            margin-top: 12px;
+            display: flex;
+            gap: 8px;
+        }
+        .ipr-diagnostics-actions button {
+            padding: 8px 16px;
+            border-radius: 4px;
+            border: none;
+            cursor: pointer;
+            font-weight: 600;
+        }
+        .ipr-diagnostics-save {
+            background-color: #28a745;
+            color: white;
+        }
+        .ipr-diagnostics-save:hover {
+            background-color: #218838;
+        }
+        .ipr-diagnostics-cancel {
+            background-color: #6c757d;
+            color: white;
+        }
+        .ipr-diagnostics-cancel:hover {
+            background-color: #5a6268;
+        }
+        .ipr-info-separator {
+            width: 2px;
+            background-color: #e3e8f0;
+            margin: 0 8px;
+        }
+        .ipr-indicators-section {
+            margin-top: 24px;
+            padding: 20px;
+            border: 1px solid #e3e8f0;
+            border-radius: 6px;
+            background-color: #f8f9fa;
+        }
+        .ipr-indicators-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+        .ipr-indicators-header h3 {
+            margin: 0;
+            color: #232a3a;
+        }
+        .ipr-indicators-table {
+            width: 100%;
+            border-collapse: collapse;
+            background-color: #fff;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+        .ipr-indicators-table th {
+            background-color: #f8f9fa;
+            padding: 12px;
+            text-align: left;
+            font-weight: 600;
+            border: 1px solid #e3e8f0;
+            font-size: 0.9em;
+        }
+        .ipr-indicators-table td {
+            padding: 8px;
+            border: 1px solid #e3e8f0;
+            vertical-align: top;
+        }
+        .ipr-indicators-table input[type="text"],
+        .ipr-indicators-table textarea,
+        .ipr-indicators-table input[type="datetime-local"] {
+            width: 100%;
+            padding: 6px;
+            border: 1px solid #e3e8f0;
+            border-radius: 4px;
+            font-size: 0.9em;
+            font-family: inherit;
+            height: 60px;
+            box-sizing: border-box;
+        }
+        .ipr-indicators-table textarea {
+            resize: none;
+            overflow-y: auto;
+        }
+        .ipr-indicators-table input[type="text"],
+        .ipr-indicators-table input[type="datetime-local"] {
+            line-height: 48px;
+        }
+        .ipr-indicators-add-btn {
+            background-color: #28a745;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 1.2em;
+        }
+        .ipr-indicators-add-btn:hover {
+            background-color: #218838;
+        }
+        .ipr-indicators-delete-btn {
+            background-color: #dc3545;
+            color: white;
+            border: none;
+            padding: 4px 8px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.9em;
+        }
+        .ipr-indicators-delete-btn:hover {
+            background-color: #c82333;
+        }
+        .ipr-indicators-save-btn {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 4px 8px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.9em;
+            margin-right: 4px;
+        }
+        .ipr-indicators-save-btn:hover {
+            background-color: #0056b3;
+        }
+        .ipr-info-table select,
+        .ipr-info-table input[type="date"] {
+            width: 100%;
+            padding: 6px;
+            border: 1px solid #e3e8f0;
+            border-radius: 4px;
+            font-size: 0.9em;
+            font-family: inherit;
+            box-sizing: border-box;
+        }
+        .ipr-info-table .edit-mode {
+            display: none;
+        }
+        .ipr-info-table.edit-active .view-mode {
+            display: none;
+        }
+        .ipr-info-table.edit-active .edit-mode {
+            display: block;
+        }
+    </style>
+{% endblock %}
+
+{% block content %}
+<div class="ipr-info-card">
+    <div class="ipr-info-header">
+        <h2>Инфо</h2>
+        
+            
+        {% if is_new_status %}
+            <div class="mb-3">
+                <form method="post" action="{% url 'builder:ipr_module_start' module.pk %}" style="display: inline;">
+                    {% csrf_token %}
+                    <button type="submit" class="ipr-start-button">Начать ИПР</button>
+                </form>
+            </div>
+        {% endif %}
+        {% if module.status == 'active' %}
+            <div class="mb-3">
+                <form method="post" action="{% url 'builder:ipr_module_complete' module.pk %}" style="display: inline;">
+                    {% csrf_token %}
+                    <button type="submit" class="ipr-complete-button">Завершить</button>
+                </form>
+                <form method="post" action="{% url 'builder:ipr_module_pause' module.pk %}" style="display: inline;">
+                    {% csrf_token %}
+                    <button type="submit" class="ipr-pause-button">Приостановить</button>
+                </form>
+            </div>
+        {% endif %}
+        {% if module.status == 'paused' %}
+            <div class="mb-3">
+                <form method="post" action="{% url 'builder:ipr_module_resume' module.pk %}" style="display: inline;">
+                    {% csrf_token %}
+                    <button type="submit" class="ipr-resume-button">Возобновить</button>
+                </form>
+            </div>
+        {% endif %}
+        <a href="{% url 'builder:ipr_module_list' user_id=module.user.pk %}" class="btn btn-secondary">Назад к списку модулей</a>
+        <button type="button" class="btn btn-primary" id="toggleEditModeBtn">Редактировать</button>
+        <button type="button" class="btn btn-success" id="saveTableFieldsBtn" style="display: none;">Сохранить</button>
+        <button type="button" class="btn btn-secondary" id="cancelEditModeBtn" style="display: none;">Отмена</button>
+    </div>
+    
+    <table class="ipr-info-table" id="moduleInfoTable">
+        <thead>
+            <tr>
+                <th style="width: 20%;">ФИО сотрудника</th>
+                <th style="width: 25%;">{{ module.user.get_full_name|default:module.user.username }}</th>
+                <th class="ipr-info-separator" style="width: 2px; padding: 0;"></th>
+                <th style="width: 15%;">Отделение</th>
+                <th style="width: 15%;">
+                    {% if module.department %}
+                        {{ module.department.name }}
+                    {% else %}
+                        —
+                    {% endif %}
+                </th>
+                <th style="width: 10%;">Дата создания</th>
+                <th style="width: 13%;">{{ module.created_at|date:"d.m.y" }}</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td class="ipr-info-label">Руководитель</td>
+                <td class="ipr-info-value">
+                    <span class="view-mode">
+                        {% if module.supervisor %}
+                            {{ module.supervisor.get_full_name|default:module.supervisor.username }}
+                        {% else %}
+                            —
+                        {% endif %}
+                    </span>
+                    <select class="edit-mode" id="supervisorSelect" name="supervisor">
+                        <option value="">—</option>
+                        {% for user in all_users %}
+                            <option value="{{ user.id }}" {% if module.supervisor and module.supervisor.id == user.id %}selected{% endif %}>
+                                {{ user.get_full_name|default:user.username }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </td>
+                <td class="ipr-info-separator" style="padding: 0;"></td>
+                <td class="ipr-info-label" colspan="2">Дата старта ИПР</td>
+                <td class="ipr-info-value" colspan="2">
+                    <span class="view-mode">
+                        {% if module.start_date %}
+                            {{ module.start_date|date:"d.m.y" }}
+                        {% else %}
+                            —
+                        {% endif %}
+                    </span>
+                    <input type="date" class="edit-mode" id="startDateInput" name="start_date" value="{% if module.start_date %}{{ module.start_date|date:'Y-m-d' }}{% endif %}">
+                </td>
+            </tr>
+            <tr>
+                <td class="ipr-info-label">Зав отделением</td>
+                <td class="ipr-info-value">
+                    <span class="view-mode">
+                        {% if module.department_head %}
+                            {{ module.department_head.get_full_name|default:module.department_head.username }}
+                        {% else %}
+                            —
+                        {% endif %}
+                    </span>
+                    <select class="edit-mode" id="departmentHeadSelect" name="department_head">
+                        <option value="">—</option>
+                        {% for user in all_users %}
+                            <option value="{{ user.id }}" {% if module.department_head and module.department_head.id == user.id %}selected{% endif %}>
+                                {{ user.get_full_name|default:user.username }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </td>
+                <td class="ipr-info-separator" style="padding: 0;"></td>
+                <td class="ipr-info-label" colspan="2">Дедлайн ИПР</td>
+                <td class="ipr-info-value" colspan="2">
+                    <span class="view-mode">
+                        {% if module.deadline %}
+                            {{ module.deadline|date:"d.m.y" }}
+                        {% elif module.end_date %}
+                            {{ module.end_date|date:"d.m.y" }}
+                        {% else %}
+                            —
+                        {% endif %}
+                    </span>
+                    <input type="date" class="edit-mode" id="deadlineInput" name="deadline" value="{% if module.deadline %}{{ module.deadline|date:'Y-m-d' }}{% elif module.end_date %}{{ module.end_date|date:'Y-m-d' }}{% endif %}">
+                </td>
+            </tr>
+            <tr>
+                <td class="ipr-info-label">Наставник</td>
+                <td class="ipr-info-value">
+                    <span class="view-mode">
+                        {% if module.mentor %}
+                            {{ module.mentor.get_full_name|default:module.mentor.username }}
+                        {% else %}
+                            —
+                        {% endif %}
+                    </span>
+                    <select class="edit-mode" id="mentorSelect" name="mentor">
+                        <option value="">—</option>
+                        {% for user in mentors %}
+                            <option value="{{ user.id }}" {% if module.mentor and module.mentor.id == user.id %}selected{% endif %}>
+                                {{ user.get_full_name|default:user.username }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </td>
+                <td class="ipr-info-separator" style="padding: 0;"></td>
+                <td colspan="4"></td>
+            </tr>
+        </tbody>
+    </table>
+
+    <div class="ipr-diagnostics-section">
+        <div class="ipr-diagnostics-header">
+            <h3>Диагностика / Проблема</h3>
+            <button type="button" class="ipr-diagnostics-edit-btn" id="editDiagnosticsBtn" title="Редактировать">
+                ✏️
+            </button>
+        </div>
+        <div id="diagnosticsView" class="ipr-diagnostics-content">
+            {% if module.diagnostics %}
+                {{ module.diagnostics|linebreaks }}
+            {% else %}
+                <em style="color: #6c757d;">Диагностика не указана</em>
+            {% endif %}
+        </div>
+        <div id="diagnosticsEdit" style="display: none;">
+            <textarea id="diagnosticsTextarea" class="ipr-diagnostics-textarea" name="diagnostics">{{ module.diagnostics|default:'' }}</textarea>
+            <div class="ipr-diagnostics-actions">
+                <button type="button" class="ipr-diagnostics-save" id="saveDiagnosticsBtn">Сохранить</button>
+                <button type="button" class="ipr-diagnostics-cancel" id="cancelDiagnosticsBtn">Отмена</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="ipr-diagnostics-section">
+        <div class="ipr-diagnostics-header">
+            <h3>Цели</h3>
+            <button type="button" class="ipr-diagnostics-edit-btn" id="editGoalsBtn" title="Редактировать">
+                ✏️
+            </button>
+        </div>
+        <div id="goalsView" class="ipr-diagnostics-content">
+            {% if module.goals %}
+                {{ module.goals|linebreaks }}
+            {% else %}
+                <em style="color: #6c757d;">Цели не указаны</em>
+            {% endif %}
+        </div>
+        <div id="goalsEdit" style="display: none;">
+            <textarea id="goalsTextarea" class="ipr-diagnostics-textarea" name="goals">{{ module.goals|default:'' }}</textarea>
+            <div class="ipr-diagnostics-actions">
+                <button type="button" class="ipr-diagnostics-save" id="saveGoalsBtn">Сохранить</button>
+                <button type="button" class="ipr-diagnostics-cancel" id="cancelGoalsBtn">Отмена</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="ipr-indicators-section">
+        <div class="ipr-indicators-header">
+            <h3>Показатели</h3>
+            <button type="button" class="ipr-indicators-add-btn" id="addIndicatorBtn">+</button>
+        </div>
+        <table class="ipr-indicators-table" id="indicatorsTable">
+            <thead>
+                <tr>
+                    <th style="width: 15%;">Показатель</th>
+                    <th style="width: 14%;">Точка А</th>
+                    <th style="width: 14%;">Промежуточная точка</th>
+                    <th style="width: 14%;">Срок этапа</th>
+                    <th style="width: 14%;">Точка Б</th>
+                    <th style="width: 14%;">Факт</th>
+                    <th style="width: 15%;">Дедлайн</th>
+                </tr>
+            </thead>
+            <tbody id="indicatorsTableBody">
+                {% for indicator in indicators %}
+                <tr data-indicator-id="{{ indicator.id }}">
+                    <td><input type="text" class="indicator-name" value="{{ indicator.name }}" data-original="{{ indicator.name }}" onchange="saveIndicator({{ indicator.id }})"></td>
+                    <td><textarea class="indicator-point-a" onchange="saveIndicator({{ indicator.id }})">{{ indicator.point_a|default:'' }}</textarea></td>
+                    <td><textarea class="indicator-intermediate-point" onchange="saveIndicator({{ indicator.id }})">{{ indicator.intermediate_point|default:'' }}</textarea></td>
+                    <td><input type="datetime-local" class="indicator-stage-deadline" value="{% if indicator.stage_deadline %}{{ indicator.stage_deadline|date:'Y-m-d\TH:i' }}{% endif %}" onchange="saveIndicator({{ indicator.id }})"></td>
+                    <td><textarea class="indicator-point-b" onchange="saveIndicator({{ indicator.id }})">{{ indicator.point_b|default:'' }}</textarea></td>
+                    <td><textarea class="indicator-fact" onchange="saveIndicator({{ indicator.id }})">{{ indicator.fact|default:'' }}</textarea></td>
+                    <td><input type="datetime-local" class="indicator-deadline" value="{% if indicator.deadline %}{{ indicator.deadline|date:'Y-m-d\TH:i' }}{% endif %}" onchange="saveIndicator({{ indicator.id }})"></td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <div class="ipr-diagnostics-section">
+        <div class="ipr-diagnostics-header">
+            <h3>Комментарий</h3>
+            <button type="button" class="ipr-diagnostics-edit-btn" id="editCommentBtn" title="Редактировать">
+                ✏️
+            </button>
+        </div>
+        <div id="commentView" class="ipr-diagnostics-content">
+            {% if module.comment %}
+                {{ module.comment|linebreaks }}
+            {% else %}
+                <em style="color: #6c757d;">Комментарий не указан</em>
+            {% endif %}
+        </div>
+        <div id="commentEdit" style="display: none;">
+            <textarea id="commentTextarea" class="ipr-diagnostics-textarea" name="comment">{{ module.comment|default:'' }}</textarea>
+            <div class="ipr-diagnostics-actions">
+                <button type="button" class="ipr-diagnostics-save" id="saveCommentBtn">Сохранить</button>
+                <button type="button" class="ipr-diagnostics-cancel" id="cancelCommentBtn">Отмена</button>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<div id="diagnostics-data" 
+     data-module-id="{{ module.pk }}"
+     data-save-url="{% url 'builder:ipr_module_info' module.pk %}"
+     data-csrf-token="{{ csrf_token }}"
+     style="display: none;"></div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const editBtn = document.getElementById('editDiagnosticsBtn');
+    const saveBtn = document.getElementById('saveDiagnosticsBtn');
+    const cancelBtn = document.getElementById('cancelDiagnosticsBtn');
+    const diagnosticsView = document.getElementById('diagnosticsView');
+    const diagnosticsEdit = document.getElementById('diagnosticsEdit');
+    const diagnosticsTextarea = document.getElementById('diagnosticsTextarea');
+    const dataElement = document.getElementById('diagnostics-data');
+    const saveUrl = dataElement.getAttribute('data-save-url');
+    const csrfToken = dataElement.getAttribute('data-csrf-token');
+    
+    let originalValue = diagnosticsTextarea ? diagnosticsTextarea.value : '';
+    
+    // Показываем форму редактирования
+    if (editBtn) {
+        editBtn.addEventListener('click', function() {
+            originalValue = diagnosticsTextarea.value;
+            diagnosticsView.style.display = 'none';
+            diagnosticsEdit.style.display = 'block';
+            editBtn.style.display = 'none';
+            diagnosticsTextarea.focus();
+        });
+    }
+    
+    // Отмена редактирования
+    if (cancelBtn) {
+        cancelBtn.addEventListener('click', function() {
+            diagnosticsTextarea.value = originalValue;
+            diagnosticsView.style.display = 'block';
+            diagnosticsEdit.style.display = 'none';
+            if (editBtn) editBtn.style.display = 'block';
+        });
+    }
+    
+    // Сохранение диагностики
+    if (saveBtn) {
+        saveBtn.addEventListener('click', function() {
+            const diagnostics = diagnosticsTextarea.value.trim();
+            
+            // Отправляем AJAX запрос для сохранения
+            fetch(saveUrl, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'X-CSRFToken': csrfToken
+                },
+                body: 'diagnostics=' + encodeURIComponent(diagnostics) + '&action=save_diagnostics'
+            })
+            .then(function(response) {
+                return response.json();
+            })
+            .then(function(data) {
+                if (data.success) {
+                    // Обновляем отображение
+                    if (diagnostics) {
+                        diagnosticsView.innerHTML = diagnostics.replace(/\n/g, '<br>');
+                    } else {
+                        diagnosticsView.innerHTML = '<em style="color: #6c757d;">Диагностика не указана</em>';
+                    }
+                    originalValue = diagnostics;
+                    diagnosticsView.style.display = 'block';
+                    diagnosticsEdit.style.display = 'none';
+                    if (editBtn) editBtn.style.display = 'block';
+                } else {
+                    alert('Ошибка при сохранении: ' + (data.error || 'Неизвестная ошибка'));
+                }
+            })
+            .catch(function(error) {
+                console.error('Ошибка:', error);
+                alert('Ошибка при сохранении диагностики');
+            });
+        });
+    }
+
+    // Обработка редактирования целей
+    const editGoalsBtn = document.getElementById('editGoalsBtn');
+    const saveGoalsBtn = document.getElementById('saveGoalsBtn');
+    const cancelGoalsBtn = document.getElementById('cancelGoalsBtn');
+    const goalsView = document.getElementById('goalsView');
+    const goalsEdit = document.getElementById('goalsEdit');
+    const goalsTextarea = document.getElementById('goalsTextarea');
+    
+    let originalGoalsValue = goalsTextarea ? goalsTextarea.value : '';
+    
+    // Показываем форму редактирования
+    if (editGoalsBtn) {
+        editGoalsBtn.addEventListener('click', function() {
+            originalGoalsValue = goalsTextarea.value;
+            goalsView.style.display = 'none';
+            goalsEdit.style.display = 'block';
+            editGoalsBtn.style.display = 'none';
+            goalsTextarea.focus();
+        });
+    }
+    
+    // Отмена редактирования
+    if (cancelGoalsBtn) {
+        cancelGoalsBtn.addEventListener('click', function() {
+            goalsTextarea.value = originalGoalsValue;
+            goalsView.style.display = 'block';
+            goalsEdit.style.display = 'none';
+            if (editGoalsBtn) editGoalsBtn.style.display = 'block';
+        });
+    }
+    
+    // Сохранение целей
+    if (saveGoalsBtn) {
+        saveGoalsBtn.addEventListener('click', function() {
+            const goals = goalsTextarea.value.trim();
+            
+            // Отправляем AJAX запрос для сохранения
+            fetch(saveUrl, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'X-CSRFToken': csrfToken
+                },
+                body: 'goals=' + encodeURIComponent(goals) + '&action=save_goals'
+            })
+            .then(function(response) {
+                return response.json();
+            })
+            .then(function(data) {
+                if (data.success) {
+                    // Обновляем отображение
+                    if (goals) {
+                        goalsView.innerHTML = goals.replace(/\n/g, '<br>');
+                    } else {
+                        goalsView.innerHTML = '<em style="color: #6c757d;">Цели не указаны</em>';
+                    }
+                    originalGoalsValue = goals;
+                    goalsView.style.display = 'block';
+                    goalsEdit.style.display = 'none';
+                    if (editGoalsBtn) editGoalsBtn.style.display = 'block';
+                } else {
+                    alert('Ошибка при сохранении: ' + (data.error || 'Неизвестная ошибка'));
+                }
+            })
+            .catch(function(error) {
+                console.error('Ошибка:', error);
+                alert('Ошибка при сохранении целей');
+            });
+        });
+    }
+
+    // Обработка редактирования комментария
+    const editCommentBtn = document.getElementById('editCommentBtn');
+    const saveCommentBtn = document.getElementById('saveCommentBtn');
+    const cancelCommentBtn = document.getElementById('cancelCommentBtn');
+    const commentView = document.getElementById('commentView');
+    const commentEdit = document.getElementById('commentEdit');
+    const commentTextarea = document.getElementById('commentTextarea');
+    
+    let originalCommentValue = commentTextarea ? commentTextarea.value : '';
+    
+    // Показываем форму редактирования
+    if (editCommentBtn) {
+        editCommentBtn.addEventListener('click', function() {
+            originalCommentValue = commentTextarea.value;
+            commentView.style.display = 'none';
+            commentEdit.style.display = 'block';
+            editCommentBtn.style.display = 'none';
+            commentTextarea.focus();
+        });
+    }
+    
+    // Отмена редактирования
+    if (cancelCommentBtn) {
+        cancelCommentBtn.addEventListener('click', function() {
+            commentTextarea.value = originalCommentValue;
+            commentView.style.display = 'block';
+            commentEdit.style.display = 'none';
+            if (editCommentBtn) editCommentBtn.style.display = 'block';
+        });
+    }
+    
+    // Сохранение комментария
+    if (saveCommentBtn) {
+        saveCommentBtn.addEventListener('click', function() {
+            const comment = commentTextarea.value.trim();
+            
+            // Отправляем AJAX запрос для сохранения
+            fetch(saveUrl, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'X-CSRFToken': csrfToken
+                },
+                body: 'comment=' + encodeURIComponent(comment) + '&action=save_comment'
+            })
+            .then(function(response) {
+                return response.json();
+            })
+            .then(function(data) {
+                if (data.success) {
+                    // Обновляем отображение
+                    if (comment) {
+                        commentView.innerHTML = comment.replace(/\n/g, '<br>');
+                    } else {
+                        commentView.innerHTML = '<em style="color: #6c757d;">Комментарий не указан</em>';
+                    }
+                    originalCommentValue = comment;
+                    commentView.style.display = 'block';
+                    commentEdit.style.display = 'none';
+                    if (editCommentBtn) editCommentBtn.style.display = 'block';
+                } else {
+                    alert('Ошибка при сохранении: ' + (data.error || 'Неизвестная ошибка'));
+                }
+            })
+            .catch(function(error) {
+                console.error('Ошибка:', error);
+                alert('Ошибка при сохранении комментария');
+            });
+        });
+    }
+
+    // Обработка показателей
+    const addIndicatorBtn = document.getElementById('addIndicatorBtn');
+    const indicatorsTableBody = document.getElementById('indicatorsTableBody');
+    
+    // Добавление нового показателя
+    if (addIndicatorBtn) {
+        addIndicatorBtn.addEventListener('click', function() {
+            // Отправляем запрос на добавление с пустым названием
+            fetch(saveUrl, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'X-CSRFToken': csrfToken
+                },
+                body: 'name=' + encodeURIComponent('Новый показатель') + '&action=add_indicator'
+            })
+            .then(function(response) {
+                return response.json();
+            })
+            .then(function(data) {
+                if (data.success) {
+                    // Добавляем строку в таблицу
+                    const row = createIndicatorRow(data.indicator);
+                    indicatorsTableBody.appendChild(row);
+                    // Фокусируемся на поле названия для быстрого редактирования
+                    row.querySelector('.indicator-name').focus();
+                    row.querySelector('.indicator-name').select();
+                } else {
+                    alert('Ошибка при добавлении: ' + (data.error || 'Неизвестная ошибка'));
+                }
+            })
+            .catch(function(error) {
+                console.error('Ошибка:', error);
+                alert('Ошибка при добавлении показателя');
+            });
+        });
+    }
+    
+    // Функция создания строки показателя
+    function createIndicatorRow(indicator) {
+        const row = document.createElement('tr');
+        row.setAttribute('data-indicator-id', indicator.id);
+        
+        row.innerHTML = `
+            <td><input type="text" class="indicator-name" value="${escapeHtml(indicator.name)}" data-original="${escapeHtml(indicator.name)}" onchange="saveIndicator(${indicator.id})"></td>
+            <td><textarea class="indicator-point-a" onchange="saveIndicator(${indicator.id})">${escapeHtml(indicator.point_a || '')}</textarea></td>
+            <td><textarea class="indicator-intermediate-point" onchange="saveIndicator(${indicator.id})">${escapeHtml(indicator.intermediate_point || '')}</textarea></td>
+            <td><input type="datetime-local" class="indicator-stage-deadline" value="${indicator.stage_deadline || ''}" onchange="saveIndicator(${indicator.id})"></td>
+            <td><textarea class="indicator-point-b" onchange="saveIndicator(${indicator.id})">${escapeHtml(indicator.point_b || '')}</textarea></td>
+            <td><textarea class="indicator-fact" onchange="saveIndicator(${indicator.id})">${escapeHtml(indicator.fact || '')}</textarea></td>
+            <td><input type="datetime-local" class="indicator-deadline" value="${indicator.deadline || ''}" onchange="saveIndicator(${indicator.id})"></td>
+        `;
+        
+        return row;
+    }
+    
+    // Функция экранирования HTML
+    function escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+    
+    // Функция сохранения показателя
+    window.saveIndicator = function(indicatorId) {
+        const row = document.querySelector(`tr[data-indicator-id="${indicatorId}"]`);
+        if (!row) return;
+        
+        const name = row.querySelector('.indicator-name').value.trim() || 'Новый показатель';
+        
+        const pointA = row.querySelector('.indicator-point-a').value.trim();
+        const intermediatePoint = row.querySelector('.indicator-intermediate-point').value.trim();
+        const stageDeadline = row.querySelector('.indicator-stage-deadline').value;
+        const pointB = row.querySelector('.indicator-point-b').value.trim();
+        const fact = row.querySelector('.indicator-fact').value.trim();
+        const deadline = row.querySelector('.indicator-deadline').value;
+        
+        const body = new URLSearchParams({
+            'action': 'update_indicator',
+            'indicator_id': indicatorId,
+            'name': name,
+            'point_a': pointA,
+            'intermediate_point': intermediatePoint,
+            'stage_deadline': stageDeadline,
+            'point_b': pointB,
+            'fact': fact,
+            'deadline': deadline
+        });
+        
+        fetch(saveUrl, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+                'X-CSRFToken': csrfToken
+            },
+            body: body.toString()
+        })
+        .then(function(response) {
+            return response.json();
+        })
+        .then(function(data) {
+            if (data.success) {
+                // Обновляем data-original для отслеживания изменений
+                row.querySelector('.indicator-name').setAttribute('data-original', name);
+                // Тихая сохранение без alert
+            } else {
+                alert('Ошибка при сохранении: ' + (data.error || 'Неизвестная ошибка'));
+            }
+        })
+        .catch(function(error) {
+            console.error('Ошибка:', error);
+            alert('Ошибка при сохранении показателя');
+        });
+    };
+    
+    // Функция удаления показателя
+    window.deleteIndicator = function(indicatorId) {
+        if (!confirm('Вы уверены, что хотите удалить этот показатель?')) {
+            return;
+        }
+        
+        const body = new URLSearchParams({
+            'action': 'delete_indicator',
+            'indicator_id': indicatorId
+        });
+        
+        fetch(saveUrl, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+                'X-CSRFToken': csrfToken
+            },
+            body: body.toString()
+        })
+        .then(function(response) {
+            return response.json();
+        })
+        .then(function(data) {
+            if (data.success) {
+                const row = document.querySelector(`tr[data-indicator-id="${indicatorId}"]`);
+                if (row) {
+                    row.remove();
+                }
+            } else {
+                alert('Ошибка при удалении: ' + (data.error || 'Неизвестная ошибка'));
+            }
+        })
+        .catch(function(error) {
+            console.error('Ошибка:', error);
+            alert('Ошибка при удалении показателя');
+        });
+    };
+
+    // Обработка редактирования полей таблицы
+    const toggleEditModeBtn = document.getElementById('toggleEditModeBtn');
+    const saveTableFieldsBtn = document.getElementById('saveTableFieldsBtn');
+    const cancelEditModeBtn = document.getElementById('cancelEditModeBtn');
+    const moduleInfoTable = document.getElementById('moduleInfoTable');
+    
+    let originalTableData = {};
+    
+    // Сохранение исходных значений
+    function saveOriginalValues() {
+        const supervisorSelect = document.getElementById('supervisorSelect');
+        const departmentHeadSelect = document.getElementById('departmentHeadSelect');
+        const mentorSelect = document.getElementById('mentorSelect');
+        const startDateInput = document.getElementById('startDateInput');
+        const deadlineInput = document.getElementById('deadlineInput');
+        
+        originalTableData = {
+            supervisor: supervisorSelect ? supervisorSelect.value : '',
+            department_head: departmentHeadSelect ? departmentHeadSelect.value : '',
+            mentor: mentorSelect ? mentorSelect.value : '',
+            start_date: startDateInput ? startDateInput.value : '',
+            deadline: deadlineInput ? deadlineInput.value : ''
+        };
+    }
+    
+    // Восстановление исходных значений
+    function restoreOriginalValues() {
+        const supervisorSelect = document.getElementById('supervisorSelect');
+        const departmentHeadSelect = document.getElementById('departmentHeadSelect');
+        const mentorSelect = document.getElementById('mentorSelect');
+        const startDateInput = document.getElementById('startDateInput');
+        const deadlineInput = document.getElementById('deadlineInput');
+        
+        if (supervisorSelect) supervisorSelect.value = originalTableData.supervisor || '';
+        if (departmentHeadSelect) departmentHeadSelect.value = originalTableData.department_head || '';
+        if (mentorSelect) mentorSelect.value = originalTableData.mentor || '';
+        if (startDateInput) startDateInput.value = originalTableData.start_date || '';
+        if (deadlineInput) deadlineInput.value = originalTableData.deadline || '';
+    }
+    
+    // Включение режима редактирования
+    if (toggleEditModeBtn) {
+        toggleEditModeBtn.addEventListener('click', function() {
+            saveOriginalValues();
+            moduleInfoTable.classList.add('edit-active');
+            toggleEditModeBtn.style.display = 'none';
+            saveTableFieldsBtn.style.display = 'inline-block';
+            cancelEditModeBtn.style.display = 'inline-block';
+        });
+    }
+    
+    // Отмена редактирования
+    if (cancelEditModeBtn) {
+        cancelEditModeBtn.addEventListener('click', function() {
+            restoreOriginalValues();
+            moduleInfoTable.classList.remove('edit-active');
+            toggleEditModeBtn.style.display = 'inline-block';
+            saveTableFieldsBtn.style.display = 'none';
+            cancelEditModeBtn.style.display = 'none';
+        });
+    }
+    
+    // Сохранение изменений
+    if (saveTableFieldsBtn) {
+        saveTableFieldsBtn.addEventListener('click', function() {
+            const supervisorSelect = document.getElementById('supervisorSelect');
+            const departmentHeadSelect = document.getElementById('departmentHeadSelect');
+            const mentorSelect = document.getElementById('mentorSelect');
+            const startDateInput = document.getElementById('startDateInput');
+            const deadlineInput = document.getElementById('deadlineInput');
+            
+            const supervisor = supervisorSelect ? supervisorSelect.value : '';
+            const departmentHead = departmentHeadSelect ? departmentHeadSelect.value : '';
+            const mentor = mentorSelect ? mentorSelect.value : '';
+            const startDate = startDateInput ? startDateInput.value : '';
+            const deadline = deadlineInput ? deadlineInput.value : '';
+            
+            const body = new URLSearchParams({
+                'action': 'update_module_fields',
+                'supervisor': supervisor,
+                'department_head': departmentHead,
+                'mentor': mentor,
+                'start_date': startDate,
+                'deadline': deadline
+            });
+            
+            fetch(saveUrl, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'X-CSRFToken': csrfToken
+                },
+                body: body.toString()
+            })
+            .then(function(response) {
+                return response.json();
+            })
+            .then(function(data) {
+                if (data.success) {
+                    // Обновляем отображение
+                    const supervisorSelect = document.getElementById('supervisorSelect');
+                    if (supervisorSelect) {
+                        const supervisorView = supervisorSelect.parentElement.querySelector('.view-mode');
+                        if (supervisorView) {
+                            if (data.supervisor && data.supervisor.name) {
+                                supervisorView.textContent = data.supervisor.name;
+                            } else {
+                                supervisorView.textContent = '—';
+                            }
+                        }
+                    }
+                    
+                    const departmentHeadSelect = document.getElementById('departmentHeadSelect');
+                    if (departmentHeadSelect) {
+                        const departmentHeadView = departmentHeadSelect.parentElement.querySelector('.view-mode');
+                        if (departmentHeadView) {
+                            if (data.department_head && data.department_head.name) {
+                                departmentHeadView.textContent = data.department_head.name;
+                            } else {
+                                departmentHeadView.textContent = '—';
+                            }
+                        }
+                    }
+                    
+                    const mentorSelect = document.getElementById('mentorSelect');
+                    if (mentorSelect) {
+                        const mentorView = mentorSelect.parentElement.querySelector('.view-mode');
+                        if (mentorView) {
+                            if (data.mentor && data.mentor.name) {
+                                mentorView.textContent = data.mentor.name;
+                            } else {
+                                mentorView.textContent = '—';
+                            }
+                        }
+                    }
+                    
+                    const startDateInput = document.getElementById('startDateInput');
+                    if (startDateInput) {
+                        const startDateView = startDateInput.parentElement.querySelector('.view-mode');
+                        if (startDateView) {
+                            if (data.start_date) {
+                                const date = new Date(data.start_date + 'T00:00:00');
+                                const day = String(date.getDate()).padStart(2, '0');
+                                const month = String(date.getMonth() + 1).padStart(2, '0');
+                                const year = String(date.getFullYear()).slice(-2);
+                                startDateView.textContent = day + '.' + month + '.' + year;
+                            } else {
+                                startDateView.textContent = '—';
+                            }
+                        }
+                    }
+                    
+                    const deadlineInput = document.getElementById('deadlineInput');
+                    if (deadlineInput) {
+                        const deadlineView = deadlineInput.parentElement.querySelector('.view-mode');
+                        if (deadlineView) {
+                            if (data.deadline) {
+                                const date = new Date(data.deadline + 'T00:00:00');
+                                const day = String(date.getDate()).padStart(2, '0');
+                                const month = String(date.getMonth() + 1).padStart(2, '0');
+                                const year = String(date.getFullYear()).slice(-2);
+                                deadlineView.textContent = day + '.' + month + '.' + year;
+                            } else {
+                                deadlineView.textContent = '—';
+                            }
+                        }
+                    }
+                    
+                    // Выходим из режима редактирования
+                    moduleInfoTable.classList.remove('edit-active');
+                    toggleEditModeBtn.style.display = 'inline-block';
+                    saveTableFieldsBtn.style.display = 'none';
+                    cancelEditModeBtn.style.display = 'none';
+                    
+                    // Обновляем сохраненные значения
+                    saveOriginalValues();
+                } else {
+                    alert('Ошибка при сохранении: ' + (data.error || 'Неизвестная ошибка'));
+                }
+            })
+            .catch(function(error) {
+                console.error('Ошибка:', error);
+                alert('Ошибка при сохранении данных');
+            });
+        });
+    }
+});
+</script>
+{% endblock %}
+

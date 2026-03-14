@@ -6,24 +6,140 @@
 {% block specific_styles %}
         <link rel="stylesheet" href="{% static 'courses/css/lesson_custom_buttons.css' %}"> 
         <script src="{% static 'courses/js/ckeditor_target_blank.js' %}"></script>
+        <style>
+            /* Стили для модального окна */
+            #continueLearningModal .modal-content {
+                border-radius: 12px;
+                border: none;
+                box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            }
+            
+            #continueLearningModal .modal-header {
+                background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+                border-bottom: 1px solid #dee2e6;
+                border-radius: 12px 12px 0 0;
+            }
+            
+            #continueLearningModal .modal-title {
+                color: #495057;
+                font-weight: 600;
+            }
+            
+            #continueLearningModal .modal-body {
+                padding: 2rem;
+            }
+            
+            #continueLearningModal .modal-footer {
+                border-top: 1px solid #dee2e6;
+                padding: 1.5rem 2rem;
+            }
+            
+            #continueLearningModal .btn {
+                padding: 10px 20px;
+                border-radius: 8px;
+                font-weight: 500;
+                transition: all 0.2s ease;
+            }
+            
+            #continueLearningModal .btn-primary {
+                background: #007bff;
+                border-color: #007bff;
+            }
+            
+            #continueLearningModal .btn-primary:hover {
+                background: #0056b3;
+                border-color: #0056b3;
+                transform: translateY(-1px);
+            }
+            
+            #continueLearningModal .btn-outline-secondary {
+                border-color: #6c757d;
+                color: #6c757d;
+            }
+            
+            #continueLearningModal .btn-outline-secondary:hover {
+                background: #6c757d;
+                border-color: #6c757d;
+                color: #dee2e6;
+                transform: translateY(-1px);
+            }
+            
+            #continueLearningModal .btn i {
+                margin-right: 8px;
+            }
+            
+            /* Анимация появления модального окна */
+            .modal.fade .modal-dialog {
+                transition: transform 0.3s ease-out;
+                transform: translate(0, -50px);
+            }
+            
+            .modal.show .modal-dialog {
+                transform: none;
+            }
+            
+            /* Адаптивные стили для видео */
+            video {
+                width: 100%;
+                height: auto;
+                max-width: 100%;
+                border-radius: 8px;
+                box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            }
+            
+            /* Мобильные устройства */
+            @media (max-width: 768px) {
+                video {
+                    border-radius: 6px;
+                    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+                }
+            }
+            
+            /* Очень маленькие экраны */
+            @media (max-width: 480px) {
+                video {
+                    border-radius: 4px;
+                }
+            }
+        </style>
 {% endblock %}
 
 {% block content %}
 
     <div class="lesson-navigation">
+        <a href="{% url 'courses:course_detail' slug=course.slug %}" 
+        class="btn btn-outline-secondary" style="margin-right: 10px;">
+            <i class="fa fa-arrow-left"></i> Вернуться к курсу
+        </a>
+        
         {% if previous_lesson %}
             <a href="{% url 'courses:lesson_detail' course_slug=course.slug lesson_id=previous_lesson.id %}" 
             class="btn btn-primary">
-                ← {{ previous_lesson.title }}
+                ← {% if previous_lesson.title == 'KZ Метрики эффективности стоматологической клиники' and user_country == 'Казахстан' %}Метрики эффективности стоматологической клиники{% else %}{{ previous_lesson.title }}{% endif %}
             </a>
         {% else %}
             <button class="btn btn-secondary" disabled>← Это первый урок</button>
         {% endif %}
 
-        {% if next_lesson %}
+        {% if is_dental_checkup_course and is_first_lesson %}
+            <a href="{% url 'courses:metrics_form' %}" 
+            class="btn btn-primary">
+                Форма метрик эффективности →
+            </a>
+        {% elif lesson_quiz and not lesson_quiz_passed %}
+            <a href="{% url 'quizzes:quiz_start' quiz_id=lesson_quiz.id %}?course_slug={{ course.slug }}&lesson_id={{ lesson.id }}" 
+            class="btn btn-success" style="background-color: #28a745; border-color: #28a745;">
+                <i class="fa fa-graduation-cap"></i> Перейти к тесту: {{ lesson_quiz.name }} →
+            </a>
+        {% elif next_material and next_material.type == 'homework' %}
+            <a href="{% url 'quizzes:homework_submit' homework_id=next_material.id %}?course_slug={{ course.slug }}" 
+            class="btn btn-warning" style="background-color: #ffc107; border-color: #ffc107; color: #212529;">
+                <i class="fa fa-pencil-alt"></i> Перейти к заданию: {{ next_material.title }} →
+            </a>
+        {% elif next_lesson %}
             <a href="{% url 'courses:lesson_detail' course_slug=course.slug lesson_id=next_lesson.id %}" 
             class="btn btn-primary">
-                {{ next_lesson.title }} →
+                {% if next_lesson.title == 'KZ Метрики эффективности стоматологической клиники' and user_country == 'Казахстан' %}Метрики эффективности стоматологической клиники{% else %}{{ next_lesson.title }}{% endif %} →
             </a>
         {% else %}
             <button class="btn btn-secondary" disabled>Это последний урок →</button>
@@ -32,36 +148,70 @@
 
     <div class="content-section">
         <h1>{{ course.title }}</h1>
-        <h2>{{ lesson.title }}</h2>
-        <div class="lesson-content ck-content">
-            {{ lesson.content|safe }}
-
-            {% if lesson.video_id %}
-            <div class="video-wrapper">
-                <iframe src="https://rutube.ru/video/embed/{{ lesson.video_id }}/" 
-                        frameborder="0" 
-                        allowfullscreen>
-                </iframe>
+        <h2>
+            {% if lesson.title == 'KZ Метрики эффективности стоматологической клиники' and user_country == 'Казахстан' %}
+                Метрики эффективности стоматологической клиники
+            {% else %}
+                {{ lesson.title }}
+            {% endif %}
+        </h2>
+        
+        {% if quiz_just_completed and lesson_quiz and lesson_quiz_passed %}
+            <div class="alert alert-success alert-dismissible fade show" role="alert" style="margin-top: 20px;">
+                <i class="fa fa-check-circle"></i> <strong>Тест успешно пройден!</strong> Теперь вы можете завершить урок.
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
             </div>
+        {% endif %}
+        <div class="lesson-content ck-content">
+            {% if is_metrics_lesson %}
+                <!-- Специальный контент для урока "Метрики эффективности стоматологической клиники" -->
+                {% if is_external_user and user_country == 'Казахстан' %}
+                    <div style="position: relative; padding-top: 56.25%; width: 100%"><iframe src="https://kinescope.io/embed/cSgZQgbtFC1AtNdYXaVKbV" allow="autoplay; fullscreen; picture-in-picture; encrypted-media; gyroscope; accelerometer; clipboard-write; screen-wake-lock;" frameborder="0" allowfullscreen style="position: absolute; width: 100%; height: 100%; top: 0; left: 0;"></iframe></div>
+                {% else %}
+                    <div style="position: relative; padding-top: 56.25%; width: 100%"><iframe src="https://kinescope.io/embed/6jhMqUizYEgMyMDYb6bo2g" allow="autoplay; fullscreen; picture-in-picture; encrypted-media; gyroscope; accelerometer; clipboard-write; screen-wake-lock;" frameborder="0" allowfullscreen style="position: absolute; width: 100%; height: 100%; top: 0; left: 0;"></iframe></div>
+                {% endif %}
+            {% elif is_metrics_kz_lesson %}
+                <!-- Специальный контент для урока "KZ Метрики эффективности стоматологической клиники" -->
+                <div style="position: relative; padding-top: 56.25%; width: 100%"><iframe src="https://kinescope.io/embed/cSgZQgbtFC1AtNdYXaVKbV" allow="autoplay; fullscreen; picture-in-picture; encrypted-media; gyroscope; accelerometer; clipboard-write; screen-wake-lock;" frameborder="0" allowfullscreen style="position: absolute; width: 100%; height: 100%; top: 0; left: 0;"></iframe></div>
+            {% else %}
+                <!-- Обычный контент урока -->
+                {{ lesson.content|safe }}
+
+                {% if lesson.video_id %}
+                <div class="video-wrapper">
+                    <iframe src="https://rutube.ru/video/embed/{{ lesson.video_id }}/" 
+                            frameborder="0" 
+                            allowfullscreen>
+                    </iframe>
+                </div>
+                {% endif %}
             {% endif %}
         </div>
         
         <!-- Галочка подтверждения -->
+        {% if not is_dental_checkup_course and not request.user.is_staff %}
         <div class="confirmation-checkbox" style="margin: 30px 0; padding: 20px; border: 1px solid #ddd; border-radius: 8px; background-color: #f9f9f9;">
             <label style="display: flex; align-items: center; cursor: pointer; font-size: 16px;">
                 <input type="checkbox" id="lessonConfirmation" style="margin-right: 12px; transform: scale(1.2);">
                 <span>Подтверждаю ознакомление с учебным материалом и полное понимание его содержания. Дополнительных вопросов не имеется.</span>
             </label>
         </div>
+        {% endif %}
     </div>
     
     <div class="lesson-actions">
-        <form method="POST" action="{% url 'courses:complete_lesson' course_slug=course.slug lesson_id=lesson.id %}" id="completeLessonForm" style="display: none;">
-            {% csrf_token %}
-            <button type="submit" class="btn-lesson complete">
-                <i class="fa fa-check"></i> Завершить урок
-            </button>
-        </form>
+        {% if is_dental_checkup_course %}
+            <a href="{% url 'courses:metrics_form' %}" class="btn-lesson complete">
+                <i class="fa fa-arrow-right"></i> Перейти к заполнению метрик
+            </a>
+        {% else %}
+            <form method="POST" action="{% url 'courses:complete_lesson' course_slug=course.slug lesson_id=lesson.id %}" id="completeLessonForm" style="display: none;">
+                {% csrf_token %}
+                <button type="submit" class="btn-lesson complete">
+                    <i class="fa fa-check"></i> Завершить урок
+                </button>
+            </form>
+        {% endif %}
         {% if user.is_authenticated and user.is_staff %}
             <form method="POST" action="{% url 'courses:delete_lesson' lesson.id %}">
                 {% csrf_token %}
@@ -76,8 +226,70 @@
         {% endif %}
     </div>
 
+    <!-- Модальное окно подтверждения -->
+    <div class="modal fade" id="continueLearningModal" tabindex="-1" aria-labelledby="continueLearningModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="continueLearningModalLabel">
+                        <i class="fa fa-graduation-cap"></i> Продолжаем обучение?
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body text-center">
+                    <div class="mb-3">
+                        {% if next_material and next_material.type == 'quiz' %}
+                            <i class="fa fa-clipboard-check" style="font-size: 3rem; color: #dc3545;"></i>
+                        {% elif next_material and next_material.type == 'homework' %}
+                            <i class="fa fa-pencil-alt" style="font-size: 3rem; color: #ffc107;"></i>
+                        {% else %}
+                            <i class="fa fa-question-circle" style="font-size: 3rem; color: #007bff;"></i>
+                        {% endif %}
+                    </div>
+                    {% if lesson_quiz and not lesson_quiz_passed %}
+                        <p class="lead">Для завершения урока необходимо пройти связанный тест!</p>
+                        <p class="text-muted">Урок <strong>"{{ lesson.title }}"</strong> имеет обязательный тест <strong>"{{ lesson_quiz.name }}"</strong>, который необходимо пройти для завершения урока.</p>
+                    {% elif is_last_lesson %}
+                        <p class="lead">Урок завершен! Это был последний урок курса.</p>
+                        <p class="text-muted">Вы можете вернуться к курсу и проверить свой прогресс или отдохнуть.</p>
+                    {% elif next_material and next_material.type == 'quiz' %}
+                        <p class="lead">Урок завершен! Следующий этап - тест.</p>
+                        <p class="text-muted">После завершения урока вас ждет тест <strong>"{{ next_material.title }}"</strong>. Готовы проверить свои знания?</p>
+                    {% elif next_material and next_material.type == 'homework' %}
+                        <p class="lead">Урок завершен! Следующий этап - задание.</p>
+                        <p class="text-muted">После завершения урока вас ждет задание <strong>"{{ next_material.title }}"</strong>. Готовы выполнить задание?</p>
+                    {% else %}
+                        <p class="lead">Урок завершен! Хотите продолжить обучение?</p>
+                        <p class="text-muted">Вы можете перейти к следующему уроку или отдохнуть и вернуться позже.</p>
+                    {% endif %}
+                </div>
+                <div class="modal-footer justify-content-center">
+                    {% if not is_last_lesson %}
+                    <button type="button" class="btn btn-outline-secondary me-2" id="restButton">
+                        <i class="fa fa-bed"></i> Отдохну
+                    </button>
+                    {% endif %}
+                    <button type="button" class="btn btn-primary" id="continueButton">
+                        {% if lesson_quiz and not lesson_quiz_passed %}
+                            <i class="fa fa-graduation-cap"></i> Перейти к тесту
+                        {% elif is_last_lesson %}
+                            <i class="fa fa-check"></i> Вернуться к курсу
+                        {% elif next_material and next_material.type == 'quiz' %}
+                            <i class="fa fa-clipboard-check"></i> Перейти к тесту
+                        {% elif next_material and next_material.type == 'homework' %}
+                            <i class="fa fa-pencil-alt"></i> Перейти к заданию
+                        {% else %}
+                            <i class="fa fa-arrow-right"></i> Да, продолжаем!
+                        {% endif %}
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script>
         // Показываем/скрываем кнопку "Завершить" в зависимости от состояния галочки
+        {% if not is_dental_checkup_course %}
         document.getElementById('lessonConfirmation').addEventListener('change', function() {
             const completeForm = document.getElementById('completeLessonForm');
             if (this.checked) {
@@ -86,6 +298,75 @@
                 completeForm.style.display = 'none';
             }
         });
+        
+        // Обработка формы завершения урока
+        document.getElementById('completeLessonForm').addEventListener('submit', function(e) {
+            e.preventDefault(); // Предотвращаем стандартную отправку формы
+            
+            // Показываем модальное окно
+            const modal = new bootstrap.Modal(document.getElementById('continueLearningModal'));
+            modal.show();
+        });
+        
+        // Обработка кнопки "Да, продолжаем!" / "Вернуться к курсу" / "Перейти к тесту"
+        document.getElementById('continueButton').addEventListener('click', function() {
+            // Скрываем модальное окно
+            const modal = bootstrap.Modal.getInstance(document.getElementById('continueLearningModal'));
+            modal.hide();
+            
+            // Отправляем форму завершения урока
+            const form = document.getElementById('completeLessonForm');
+            
+            // Проверяем, есть ли у урока связанный тест
+            {% if lesson_quiz and not lesson_quiz_passed %}
+                // Если у урока есть незавершенный тест, перенаправляем на тест
+                window.location.href = '{% url "quizzes:quiz_start" quiz_id=lesson_quiz.id %}?course_slug={{ course.slug }}&lesson_id={{ lesson.id }}';
+                return;
+            {% elif next_material and next_material.type == 'quiz' %}
+                // Если следующий материал - тест, добавляем параметр для перехода к тесту
+                const input = document.createElement('input');
+                input.type = 'hidden';
+                input.name = 'go_to_quiz';
+                input.value = '{{ next_material.id }}';
+                form.appendChild(input);
+            {% elif next_material and next_material.type == 'homework' %}
+                // Если следующий материал - задание, добавляем параметр для перехода к заданию
+                const input = document.createElement('input');
+                input.type = 'hidden';
+                input.name = 'go_to_homework';
+                input.value = '{{ next_material.id }}';
+                form.appendChild(input);
+            {% elif is_last_lesson %}
+                // Для последнего урока не добавляем параметр continue_learning
+                // Это приведет к редиректу на страницу курса
+            {% else %}
+                // Для обычных уроков добавляем параметр для перехода к следующему уроку
+                const input = document.createElement('input');
+                input.type = 'hidden';
+                input.name = 'continue_learning';
+                input.value = 'true';
+                form.appendChild(input);
+            {% endif %}
+            
+            form.submit();
+        });
+        
+        // Обработка кнопки "Отдохну"
+        document.getElementById('restButton').addEventListener('click', function() {
+            // Скрываем модальное окно
+            const modal = bootstrap.Modal.getInstance(document.getElementById('continueLearningModal'));
+            modal.hide();
+            
+            // Отправляем форму завершения урока с параметром для возврата к курсу
+            const form = document.getElementById('completeLessonForm');
+            const input = document.createElement('input');
+            input.type = 'hidden';
+            input.name = 'return_to_course';
+            input.value = 'true';
+            form.appendChild(input);
+            form.submit();
+        });
+        {% endif %}
         
         function informUser() {
             alert("Обратитесь к администратору сайта, чтобы изменить содержимое урока.");

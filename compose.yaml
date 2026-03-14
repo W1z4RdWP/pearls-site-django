@@ -6,19 +6,11 @@ services:
      POSTGRES_USER: ${DJANGO_DB_USER}
      POSTGRES_PASSWORD: ${DJANGO_DB_PASSWD}
    ports:
-     - "5434:5432" # проброс порта 5432 из контейнера на порт 5434 снаружи
+     - "${DJANGO_DB_PORT}:${DJANGO_DB_PORT}" # проброс порта 5432 из контейнера на порт 5434 снаружи
    volumes:
      - postgres_data:/var/lib/postgresql/data
    env_file:
      - .env
- 
- redis:
-   restart: unless-stopped
-   image: redis:7.0.5-alpine 
-   ports:
-     - "6379:6379"  # Пробрасываем порт для внешнего доступа (опционально)
-   expose:
-     - 6379
 
  django-web: # третий
    build: .
@@ -29,9 +21,9 @@ services:
     - .:/app
    depends_on:
      - db
-     - redis
+    #  - redis
    command: sh -c "python manage.py migrate &&
-         python manage.py runserver 0.0.0.0:8005" # выполняет миграции в БД и запускает тестовый инстанс на порту 8005
+         gunicorn --workers 10 --bind 0.0.0.0:8005 myproject.wsgi" # выполняет миграции в БД и запускает тестовый инстанс на порту 8005
    environment: # переменные из .env файла
      DJANGO_SECRET_KEY: ${DJANGO_SECRET_KEY}
      DEBUG: ${DEBUG}
@@ -44,7 +36,45 @@ services:
      DATABASE_PASSWORD: ${DJANGO_DB_PASSWD}
      DATABASE_HOST: ${DJANGO_DB_HOST}
      DATABASE_PORT: ${DJANGO_DB_PORT}
+     
+     # Настройки для внешнего Redis
+     REDIS_HOST: ${REDIS_HOST:-host.docker.internal}
+     REDIS_PORT: ${REDIS_PORT:-6379}
    env_file: # имя файла откуда берутся переменные (путь до файла, должен быть на одном уровне в компоуз)
      - .env
+
+  # Отдельный сервис для messenger
+ messenger-service:
+   build: .
+   container_name: django-messenger
+   ports:
+     - "8006:8006"  # Отдельный порт для messenger
+   volumes:  
+     - .:/app
+   depends_on:
+     - db
+     #- redis
+   extra_hosts:
+     - "host.docker.internal:host-gateway"
+   working_dir: /app/myproject
+   command: sh -c "python manage.py migrate &&
+          daphne -b 0.0.0.0 -p 8006 myproject.messenger_asgi:application"
+   environment:
+     DJANGO_SECRET_KEY: ${DJANGO_SECRET_KEY}
+     DEBUG: ${DEBUG}
+     DJANGO_LOGLEVEL: ${DJANGO_LOGLEVEL}
+     DJANGO_ALLOWED_HOSTS: ${DJANGO_ALLOWED_HOSTS}
+     DATABASE_ENGINE: ${DATABASE_ENGINE}
+     DATABASE_NAME: ${DJANGO_DB_NAME}
+     DATABASE_USERNAME: ${DJANGO_DB_USER}
+     DATABASE_PASSWORD: ${DJANGO_DB_PASSWD}
+     DATABASE_HOST: ${DJANGO_DB_HOST}
+     DATABASE_PORT: ${DJANGO_DB_PORT}
+     REDIS_HOST: redis
+     REDIS_PORT: 6379
+   env_file:
+     - .env
+
+
 volumes:
    postgres_data:

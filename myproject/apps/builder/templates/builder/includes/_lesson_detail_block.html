@@ -4,15 +4,31 @@
     <div style="display: flex; justify-content: space-between; align-items: flex-start;">
         <h2 style="margin-bottom: 0;">{{ lesson.title }}</h2>
         <div style="display: flex; align-items: flex-start; gap: 16px;">
-            {% if not is_readonly %}
+            {% if not is_readonly or user.profile.is_mentor_user %}
             <div class="actualization-history-block" style="position: relative;">
                 <button id="actualization-history-btn" class="btn btn-outline-secondary" type="button">История актуализаций</button>
                 <div id="actualization-history-dropdown" class="builder-dropdown" style="display: none; min-width: 420px; max-width: 700px;">
                     <div style="margin-bottom: 8px; display: flex; gap: 8px; align-items: center;">
+                        {% if not is_readonly or user_is_responsible_for_lesson %}
                         <button id="actualize-main-btn" class="btn btn-primary btn-sm">Актуализировать</button>
+                        {% endif %}
+                        {% if user.profile.is_mentor_user or user.is_staff or user.is_superuser %}
+                            {% if pending_draft %}
+                                <a href="{% url 'builder:lesson_draft_edit' pending_draft.id %}" class="btn btn-info btn-sm" title="Редактировать черновик">Редактировать черновик</a>
+                            {% else %}
+                                <a href="{% url 'builder:lesson_draft_create' lesson.id %}" class="btn btn-outline-info btn-sm" title="Создать черновик для редактирования">Черновик</a>
+                            {% endif %}
+                        {% endif %}
+                        {% if user.is_staff or user.is_superuser %}
+                            {% if pending_draft and pending_draft.saved_at_least_once %}
+                                <a href="{% url 'builder:lesson_draft_review' pending_draft.id %}" class="btn btn-warning btn-sm" title="Рассмотреть черновик">Рассмотреть черновик</a>
+                            {% endif %}
+                        {% endif %}
+                        {% if not is_readonly %}
                         <button id="responsible-settings-btn" class="btn btn-outline-secondary btn-sm" title="Настройки ответственных">
                             <i class="fa fa-cog"></i>
                         </button>
+                        {% endif %}
                     </div>
                     <div style="max-height: 320px; overflow-y: auto;">
                         <table class="table table-sm table-bordered mb-0" style="background: #fff;">
@@ -72,6 +88,7 @@ function safeParseJsonScript(id) {
 window.responsibleIdDefault = safeParseJsonScript('responsible-id-default');
 window.previousRoleId = safeParseJsonScript('previous-role-id');
 window.previousRoleName = safeParseJsonScript('previous-role-name');
+window.isMentorOnly = {% if is_readonly and user.profile.is_mentor_user %}true{% else %}false{% endif %};
 </script>
     {% if lesson.video_id %}
         <div class="lesson-video mt-4" id="lesson-video-block">
@@ -119,6 +136,7 @@ window._lessonVersions = [];
 window.responsibleIdDefault = safeParseJsonScript('responsible-id-default-else');
 window.previousRoleId = safeParseJsonScript('previous-role-id-else');
 window.previousRoleName = safeParseJsonScript('previous-role-name-else');
+window.isMentorOnly = {% if is_readonly and user.profile.is_mentor_user %}true{% else %}false{% endif %};
 </script>
 {% endif %} 
 
@@ -151,7 +169,7 @@ window.previousRoleName = safeParseJsonScript('previous-role-name-else');
       </div>
       <div style="margin-bottom:12px;">
         <label>Роль ответственного:<br>
-          <select id="actualize-role" required style="width:220px;">
+          <select id="actualize-role" required style="width:220px;"{% if is_readonly and user.profile.is_mentor_user %} disabled{% endif %}>
             <option value="">— выберите роль —</option>
           </select>
         </label>

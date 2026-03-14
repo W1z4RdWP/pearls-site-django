@@ -46,14 +46,17 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const completionMessage = animation.querySelector('.completion-message');
     
-    // Таймер для автоматического закрытия через 5 секунд
-    let timeoutId = setTimeout(() => animation.remove(), 5000);
+    // Таймер для автоматического закрытия через 5 секунд (только если нет траектории)
+    let timeoutId = null;
+    if (!animation.hasAttribute('data-has-trajectory')) {
+        timeoutId = setTimeout(() => animation.remove(), 5000);
+    }
 
-    // Закрытие при клике вне блока с сообщением
+    // Закрытие при клике вне блока с сообщением (только если нет траектории)
     document.addEventListener('click', function(e) {
-        if (!completionMessage.contains(e.target)) {
+        if (!completionMessage.contains(e.target) && !animation.hasAttribute('data-has-trajectory')) {
             animation.remove();
-            clearTimeout(timeoutId);
+            if (timeoutId) clearTimeout(timeoutId);
         }
     });
 
@@ -90,19 +93,96 @@ document.addEventListener('DOMContentLoaded', () => {
 document.addEventListener('DOMContentLoaded', () => {
   const showDescription = document.getElementById('show-description');
   const courseDescription = document.getElementById('course-description');
-  // if (!showDescription || !courseDescription) return;
+  const courseDescriptionImage = document.getElementById('course-description-image');
+  if (!showDescription || !courseDescription) return;
 
-  showDescription.addEventListener('click', () => {
-    courseDescription.style.display = 'none';
-    // showDescription.style.display = 'none';
-    if (showDescription.textContent === 'Скрыть описание') {
-      showDescription.textContent = 'Показать описание';
+  const setButtonState = (isHidden) => {
+    if (isHidden) {
+      showDescription.innerHTML = '<i class="fa fa-eye"></i> Показать описание';
     } else {
-      showDescription.textContent = 'Скрыть описание';
-      showDescription.classList.remove('btn-mini-active');
-      courseDescription.style.display = 'block';
+      showDescription.innerHTML = '<i class="fa fa-eye-slash"></i> Скрыть описание';
     }
-    // showDescription.classList.toggle('btn-mini-active');
+  };
+
+  const isCurrentlyHidden = () => {
+    return window.getComputedStyle(courseDescription).display === 'none';
+  };
+
+  // Инициализация состояния кнопки в соответствии с текущей видимостью
+  setButtonState(isCurrentlyHidden());
+
+  showDescription.addEventListener('click', (e) => {
+    e.preventDefault();
+    const hidden = isCurrentlyHidden();
+    if (hidden) {
+      courseDescription.style.display = 'block';
+      if (courseDescriptionImage) courseDescriptionImage.style.display = 'block';
+    } else {
+      courseDescription.style.display = 'none';
+      if (courseDescriptionImage) courseDescriptionImage.style.display = 'none';
+    }
+    setButtonState(!hidden);
   });
   showDescription.style.display = 'block';
 });
+
+// Обработка заблокированных уроков
+document.addEventListener('DOMContentLoaded', () => {
+  const blockedLessons = document.querySelectorAll('.lesson-blocked');
+  
+  blockedLessons.forEach(lesson => {
+    lesson.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      
+      // Подсветка кнопки "Начать курс"
+      const startBtn = document.getElementById('start-course-btn');
+      if (startBtn) {
+        startBtn.classList.add('highlight');
+        startBtn.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        
+        // Убираем подсветку через 5 секунд
+        setTimeout(() => {
+          startBtn.classList.remove('highlight');
+        }, 5000);
+      }
+      
+      // Показываем уведомление
+      showNotification('Чтобы получить доступ к материалам, сначала начните курс');
+    });
+  });
+});
+
+// Функция для показа уведомлений
+function showNotification(message) {
+  // Удаляем предыдущее уведомление если есть
+  const existingNotification = document.querySelector('.course-notification');
+  if (existingNotification) {
+    existingNotification.remove();
+  }
+  
+  // Создаем новое уведомление
+  const notification = document.createElement('div');
+  notification.className = 'course-notification alert alert-warning';
+  notification.style.cssText = `
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 1050;
+    max-width: 300px;
+    animation: slideInRight 0.3s ease-out;
+  `;
+  notification.innerHTML = `
+    <i class="fa fa-exclamation-triangle"></i> ${message}
+    <button type="button" class="btn-close" onclick="this.parentElement.remove()"></button>
+  `;
+  
+  document.body.appendChild(notification);
+  
+  // Автоматически убираем через 4 секунды
+  setTimeout(() => {
+    if (notification.parentElement) {
+      notification.remove();
+    }
+  }, 4000);
+}

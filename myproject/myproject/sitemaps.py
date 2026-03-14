@@ -81,7 +81,7 @@ class QuizSitemap(Sitemap):
     protocol = 'https'
 
     def items(self):
-        return Quiz.objects.filter(is_active=True)
+        return Quiz.objects.all()
 
     def location(self, obj):
         return reverse('quizzes:quiz_start', kwargs={'quiz_id': obj.id})

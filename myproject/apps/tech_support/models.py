@@ -5,8 +5,6 @@ from django.utils import timezone
 import uuid
 
 
-# Create your models here.
-
 class TicketCategory(models.Model):
     """Категории тикетов"""
     name = models.CharField(max_length=100, verbose_name='Название категории')
@@ -62,7 +60,7 @@ class Ticket(models.Model):
 
     # Основная информация
     ticket_number = models.CharField(max_length=20, unique=True, verbose_name="Номер тикета")
-    title = models.CharField(max_length=200, verbose_name="Заголовок")
+    title = models.CharField(max_length=70, verbose_name="Заголовок")
     description = models.TextField(verbose_name="Описание проблемы")
     ticket_type = models.CharField(max_length=20, choices=TICKET_TYPES, verbose_name="Тип тикета")
     
@@ -82,7 +80,6 @@ class Ticket(models.Model):
     deadline = models.DateTimeField(null=True, blank=True, verbose_name="Дедлайн")
     
     # Дополнительные поля
-    is_anonymous = models.BooleanField(default=False, verbose_name="Анонимный тикет")
     rating = models.IntegerField(null=True, blank=True, validators=[MinValueValidator(1), MaxValueValidator(5)], verbose_name="Оценка")
     student_feedback = models.TextField(blank=True, verbose_name="Отзыв студента")
     
@@ -97,9 +94,16 @@ class Ticket(models.Model):
     def save(self, *args, **kwargs):
         if not self.ticket_number:
             self.ticket_number = f"TICKET-{uuid.uuid4().hex[:8].upper()}"
-        if not self.deadline and self.priority:
+        
+        # Пересчитываем дедлайн при изменении приоритета или если он не задан
+        if self.priority:
             from datetime import timedelta
-            self.deadline = timezone.now() + timedelta(hours=self.priority.response_time_hours)
+            # Если это новый тикет или приоритет изменился
+            if not self.pk or (self.pk and hasattr(self, '_priority_changed') and self._priority_changed):
+                self.deadline = self.created_at + timedelta(hours=self.priority.response_time_hours) if self.created_at else timezone.now() + timedelta(hours=self.priority.response_time_hours)
+            elif not self.deadline:
+                self.deadline = self.created_at + timedelta(hours=self.priority.response_time_hours) if self.created_at else timezone.now() + timedelta(hours=self.priority.response_time_hours)
+        
         super().save(*args, **kwargs)
     
     @property

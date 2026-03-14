@@ -1,14 +1,18 @@
-from django.shortcuts import render, redirect
-from django.views.generic import ListView, CreateView, UpdateView, DetailView, FormView
-from django.contrib.auth.models import User
-from django.db.models import Q, Count, Max, F
-from users.models import Profile, Role
+from django.shortcuts import render, redirect, get_object_or_404
+from django.http import HttpResponse, JsonResponse, HttpResponseForbidden
+from django.views.generic import ListView, CreateView, UpdateView, DetailView, FormView, TemplateView
+from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
+from django.contrib.auth.decorators import login_required
+from django.contrib.auth.models import User, Group
+from django.db.models import Q, Count, Max, F, Sum, Subquery, OuterRef
+from users.models import Department, Profile, Role
+from users.permissions import MentorRequiredMixin
 from django import forms
 from django.urls import reverse_lazy
 from django.core.exceptions import PermissionDenied
 from myapp.models import UserProgress, UserCourse, QuizResult, UserAnswer
-from quizzes.models import Quiz, QuizLock
-from courses.models import Course, Lesson, UserLessonTrajectory
+from quizzes.models import Quiz, QuizLock, HomeworkSubmission
+from courses.models import Course, Lesson, UserLessonTrajectory, UserCourseTrajectory, Trajectory, UserLesson
 from django.core.paginator import Paginator, PageNotAnInteger, EmptyPage
 from django.utils.decorators import method_decorator
 from django.contrib.admin.views.decorators import staff_member_required
@@ -18,7 +22,23 @@ from django.contrib.auth.forms import SetPasswordForm
 from django.views.decorators.http import require_POST
 from django.urls import reverse
 from django.contrib import messages
-from .utils import send_user_credentials_email
+from .utils import send_user_credentials_email, get_user_privilege_level, format_timedelta
+from gamification.models import DascoinTransaction, Badge
+import logging
+from datetime import datetime, timedelta
+from django.utils import timezone
+from django.template.loader import render_to_string
+from openpyxl import Workbook
+from openpyxl.styles import Fill, Font, PatternFill, Alignment, Border, Side
+from openpyxl.utils import get_column_letter
+from urllib.parse import urlencode
+from weasyprint import HTML
+import json
+
+
+# Получаем логгер для записи в журнал аудита
+audit_logger = logging.getLogger('audit')
+
 
 class UserListView(ListView):
     model = User
@@ -27,12 +47,27 @@ class UserListView(ListView):
     paginate_by = 20
 
     def dispatch(self, request, *args, **kwargs):
-        if not request.user.is_authenticated or not (request.user.is_staff or request.user.is_superuser):
+        if not request.user.is_authenticated or not (request.user.is_staff or request.user.is_superuser or (hasattr(request.user, 'profile') and request.user.profile.is_mentor_user)):
             raise PermissionDenied("У вас нет доступа к управлению пользователями.")
         return super().dispatch(request, *args, **kwargs)
 
     def get_queryset(self):
         queryset = super().get_queryset().order_by('email')
+        
+        # Если пользователь - наставник (но не superuser и не staff), показываем только его группу
+        if (hasattr(self.request.user, 'profile') and 
+            self.request.user.profile.is_mentor_user and 
+            not self.request.user.is_superuser and 
+            not self.request.user.is_staff):
+            # Получаем группы наставника
+            mentor_groups = self.request.user.groups.all()
+            if mentor_groups.exists():
+                # Показываем только пользователей из групп наставника
+                queryset = queryset.filter(groups__in=mentor_groups).distinct()
+            else:
+                # Если у наставника нет групп, показываем пустой список
+                queryset = queryset.none()
+        
         q = self.request.GET.get('q')
         if q:
             queryset = queryset.filter(
@@ -40,7 +75,12 @@ class UserListView(ListView):
                 Q(first_name__icontains=q) |
                 Q(last_name__icontains=q)
             )
+            
         filter_val = self.request.GET.get('filter')
+        # По умолчанию применяем фильтр "approved", если filter не задан
+        if filter_val is None:
+            filter_val = 'approved'
+
         if filter_val == 'approved':
             queryset = queryset.filter(profile__is_approved=True)
         elif filter_val == 'not_approved':
@@ -53,18 +93,37 @@ class UserListView(ListView):
                 ~Q(profile__role__responsible_user=F('id'))
             )
         
-        # Фильтрация по группе
-        group_filter = self.request.GET.get('group')
-        if group_filter:
-            queryset = queryset.filter(groups__id=group_filter)
+        # Фильтрация по группе (только для не-наставников)
+        if not (hasattr(self.request.user, 'profile') and 
+                self.request.user.profile.is_mentor_user and 
+                not self.request.user.is_superuser and 
+                not self.request.user.is_staff):
+            group_filter = self.request.GET.get('group')
+            if group_filter:
+                queryset = queryset.filter(groups__id=group_filter)
+            
+            # Исключаем внешних пользователей по умолчанию, можно отключить чекбоксом
+            exclude_external_vals = self.request.GET.getlist('exclude_external')
+            exclude_external = ('1' in exclude_external_vals) or (not exclude_external_vals)
+            if exclude_external:
+                queryset = queryset.exclude(groups__name="Внешний пользователь")
         
         return queryset
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        # Добавляем список групп для фильтра
+        # Добавляем список групп для фильтра (только для не-наставников)
         from django.contrib.auth.models import Group
-        context['groups'] = Group.objects.all().order_by('name')
+        if not (hasattr(self.request.user, 'profile') and 
+                self.request.user.profile.is_mentor_user and 
+                not self.request.user.is_superuser and 
+                not self.request.user.is_staff):
+            context['groups'] = Group.objects.all().order_by('name')
+        else:
+            # Для наставников показываем только их группы
+            context['groups'] = self.request.user.groups.all().order_by('name')
+        exclude_external_vals = self.request.GET.getlist('exclude_external')
+        context['exclude_external_checked'] = ('1' in exclude_external_vals) or (not exclude_external_vals)
         return context
 
 
@@ -72,6 +131,11 @@ class UserCreateStep1View(CreateView):
     template_name = 'user_management/user_create_step1.html'
     form_class = UserRegisterNoCaptchaForm
     success_url = reverse_lazy('user_management:user_create_step2')
+
+    def dispatch(self, request, *args, **kwargs):
+        if not request.user.is_authenticated or not (request.user.is_staff or request.user.is_superuser):
+            raise PermissionDenied("У вас нет доступа к управлению пользователями.")
+        return super().dispatch(request, *args, **kwargs)
 
     def form_valid(self, form):
         user = form.save()
@@ -89,6 +153,8 @@ class UserCreateStep2View(CreateView):
 
 
     def dispatch(self, request, *args, **kwargs):
+        if not request.user.is_authenticated or not (request.user.is_staff or request.user.is_superuser):
+            raise PermissionDenied("У вас нет доступа к управлению пользователями.")
         if 'user_create_step1_user_id' not in request.session:
             return redirect('user_management:user_create_step1')
         return super().dispatch(request, *args, **kwargs)
@@ -123,15 +189,6 @@ class UserCreateStep2View(CreateView):
         
         return redirect(self.success_url)
 
-
-
-
-def get_user_privilege_level(user):
-    if user.is_superuser:
-        return 3
-    if user.is_staff:
-        return 2
-    return 1
 
 
 
@@ -226,7 +283,10 @@ def role_users_json(request, role_id):
     """
     Возвращает список пользователей с данной ролью в JSON формате
     """
-    if not request.user.is_staff:
+    is_staff_or_admin = request.user.is_staff or request.user.is_superuser
+    is_mentor = hasattr(request.user, 'profile') and request.user.profile.is_mentor_user
+    
+    if not is_staff_or_admin and not is_mentor:
         from django.http import JsonResponse
         return JsonResponse({'error': 'forbidden'}, status=403)
     
@@ -285,11 +345,49 @@ def roles_all_json(request):
     return JsonResponse({'roles': roles_data})
 
 
+
+def department_manage(request):
+    if not request.user.is_staff:
+        raise PermissionDenied
+    if request.method == 'POST':
+        name = request.POST.get('new_department', '').strip()
+        if name:
+            Department.objects.get_or_create(name=name)
+            messages.success(request, f'Подразделение "{name}" добавлено.')
+        return redirect(request.META.get('HTTP_REFERER', reverse('user_management:user_list')))
+    return redirect('user_management:user_list')
+
+
+@require_POST
+def department_delete(request, department_id):
+    if not request.user.is_staff:
+        raise PermissionDenied
+    Department.objects.filter(id=department_id).delete()
+    messages.success(request, 'Подразделение удалено.')
+    return redirect(request.META.get('HTTP_REFERER', reverse('user_management:user_list')))
+
+
+@require_POST
+def department_edit(request, department_id):
+    if not request.user.is_staff:
+        raise PermissionDenied
+    new_name = request.POST.get('new_name', '').strip()
+    if new_name:
+        Department.objects.filter(id=department_id).update(name=new_name)
+        messages.success(request, f'Подразделение переименовано в "{new_name}".')
+    else:
+        messages.error(request, 'Название не может быть пустым.')
+    return redirect(request.META.get('HTTP_REFERER', reverse('user_management:user_list')))
+
+
 def lesson_allowed_roles_json(request, lesson_id):
     """
     Возвращает список разрешенных должностей для урока в JSON формате
     """
-    if not request.user.is_staff:
+    is_staff_or_admin = request.user.is_staff or request.user.is_superuser
+    is_mentor = hasattr(request.user, 'profile') and request.user.profile.is_mentor_user
+    
+    if not is_staff_or_admin and not is_mentor:
         from django.http import JsonResponse
         return JsonResponse({'error': 'forbidden'}, status=403)
     
@@ -418,17 +516,374 @@ class UserUpdateView(UpdateView):
             profile_form.save()
         return response
 
+
+class UserEditDetailedView(UpdateView):
+    """
+    Объединенный view для редактирования пользователя с вкладками:
+    - Персональная информация (форма редактирования)
+    - Прогресс (dashboard прогресса)
+    - Попытки тестов (quiz attempts)
+    """
+    model = User
+    template_name = 'user_management/user_edit_detailed.html'
+    fields = ['email', 'first_name', 'last_name', 'groups', 'is_active']
+    context_object_name = 'target_user'
+
+    def dispatch(self, request, *args, **kwargs):
+        if not request.user.is_authenticated or not (request.user.is_staff or request.user.is_superuser or (hasattr(request.user, 'profile') and request.user.profile.is_mentor_user)):
+            raise PermissionDenied("У вас нет доступа к управлению пользователями.")
+        user_to_edit = self.get_object()
+        
+        # Наставники (не staff/superuser) всегда имеют readonly доступ
+        if hasattr(request.user, 'profile') and request.user.profile.is_mentor_user and not request.user.is_staff and not request.user.is_superuser:
+            self.readonly = True
+        elif request.user.is_staff or request.user.is_superuser:
+            # Для staff/superuser проверяем уровень привилегий
+            if get_user_privilege_level(request.user) < get_user_privilege_level(user_to_edit):
+                self.readonly = True
+            else:
+                self.readonly = False
+        else:
+            self.readonly = False
+        return super().dispatch(request, *args, **kwargs)
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        user = self.get_object()
+        
+        # Данные для формы редактирования (из UserUpdateView)
+        if self.request.POST:
+            context['profile_form'] = UserProfileForm(self.request.POST, self.request.FILES, instance=user.profile, user_instance=user)
+        else:
+            context['profile_form'] = UserProfileForm(instance=user.profile, user_instance=user)
+        context['readonly'] = getattr(self, 'readonly', False)
+        context['roles'] = Role.objects.all()
+        context['departments'] = Department.objects.all()
+        
+        # Данные для вкладки прогресса (из UserProgressDashboardView)
+        from myapp.models import ManualCourseUnassignment
+        
+        profile = user.profile
+        available_courses = Course.objects.available_for_user(user)
+        user_courses = []
+        for course in available_courses:
+            user_course = UserCourse.objects.filter(user=user, course=course).first()
+            if user_course:
+                user_courses.append(user_course)
+            else:
+                # Курсы из траекторий назначаются только последовательно (после завершения предыдущего).
+                # Не создаём UserCourse здесь — он будет создан сигналом assign_next_trajectory_course_on_completion.
+                if UserCourseTrajectory.objects.filter(user=user, trajectory__trajectorycourse__course=course).exists():
+                    continue
+                # Проверяем, не был ли курс отменен вручную
+                manual_unassignment = ManualCourseUnassignment.objects.filter(
+                    user=user, 
+                    course=course
+                ).first()
+                
+                if not manual_unassignment:
+                    # Создаём UserCourse только если не было ручной отмены (для курсов из групп и т.п.)
+                    user_course = UserCourse.objects.create(user=user, course=course, status='available')
+                    user_courses.append(user_course)
+                # Если была ручная отмена, просто пропускаем этот курс
+        
+        quiz_results = list(QuizResult.objects.filter(user=user).order_by('-completed_at'))
+        courses_progress = []
+        
+        for user_course in user_courses:
+            course = user_course.course
+            trajectory = UserLessonTrajectory.objects.filter(user=user, course=course).first()
+            
+            if trajectory:
+                lessons = trajectory.lessons.all().order_by('order')
+                total_lessons = lessons.count()
+                lesson_ids = lessons.values_list('id', flat=True)
+                completed_lessons = UserProgress.objects.filter(
+                    user=user, course=course, completed=True, lesson_id__in=lesson_ids
+                ).count()
+            else:
+                lessons = course.lessons.all().order_by('order')
+                total_lessons = lessons.count()
+                completed_lessons = UserProgress.objects.filter(
+                    user=user, course=course, completed=True
+                ).count()
+            
+            completed_quizzes = QuizResult.objects.filter(
+                user=user, course=course,
+                quiz_title__in=[quiz.name for quiz in course.quizzes.all()],
+                passed=True
+            ).values('quiz_title').distinct().count()
+            total_quizzes = course.quizzes.count()
+            
+            # Подсчёт выполненных заданий (задания считаются как тесты)
+            completed_homeworks = HomeworkSubmission.objects.filter(
+                user=user, course=course,
+                homework__in=course.homeworks,
+                status='correct'
+            ).values('homework_id').distinct().count()
+            total_homeworks = course.homeworks.count()
+            
+            total_materials = total_lessons + total_quizzes + total_homeworks
+            completed_materials = completed_lessons + completed_quizzes + completed_homeworks
+            progress_percent = int((completed_materials / total_materials) * 100) if total_materials > 0 else 0
+            
+            quiz_passed = False
+            if course.final_quiz:
+                quiz_passed = QuizResult.objects.filter(
+                    user=user, course=course, quiz_title=course.final_quiz.name, passed=True
+                ).exists()
+            
+            materials_detail = []
+            for lesson in lessons:
+                progress = UserProgress.objects.filter(user=user, course=course, lesson=lesson, completed=True).first()
+                materials_detail.append({
+                    'type': 'lesson', 'lesson': lesson, 'completed': progress is not None,
+                    'completed_at': progress.completed_at if progress else None,
+                    'order': lesson.order, 'title': lesson.title
+                })
+            
+            for quiz in course.quizzes.all():
+                quiz_attempts = QuizResult.objects.filter(
+                    user=user, course=course, quiz_title=quiz.name
+                ).order_by('-completed_at')
+                quiz_result = quiz_attempts.filter(passed=True).first()
+                best_attempt = None
+                if quiz_attempts.exists():
+                    best_attempt = sorted(quiz_attempts, key=lambda x: (x.percent, x.completed_at), reverse=True)[0]
+                
+                materials_detail.append({
+                    'type': 'quiz', 'quiz': quiz, 'completed': quiz_result is not None,
+                    'completed_at': quiz_result.completed_at if quiz_result else None,
+                    'order': quiz.order, 'title': quiz.name,
+                    'attempts_count': quiz_attempts.count(), 'best_attempt': best_attempt
+                })
+            
+            materials_detail.sort(key=lambda x: x['order'])
+            lessons_detail = materials_detail
+            
+            best_attempt = None
+            if course.final_quiz:
+                attempts = [qr for qr in quiz_results if qr.quiz_title == course.final_quiz.name]
+                if attempts:
+                    best_attempt = sorted(attempts, key=lambda x: (x.percent, x.completed_at), reverse=True)[0]
+            
+            courses_progress.append({
+                'course': course, 'user_course': user_course,
+                'total_lessons': total_lessons, 'completed_lessons': completed_lessons,
+                'total_quizzes': total_quizzes, 'completed_quizzes': completed_quizzes,
+                'total_homeworks': total_homeworks, 'completed_homeworks': completed_homeworks,
+                'total_materials': total_materials, 'completed_materials': completed_materials,
+                'progress_percent': progress_percent, 'quiz_passed': quiz_passed,
+                'lessons_detail': lessons_detail, 'best_attempt': best_attempt,
+            })
+        
+        total_courses = len(courses_progress)
+        completed_courses = len([cp for cp in courses_progress if cp['user_course'].status == 'completed'])
+        started_courses = len([cp for cp in courses_progress if cp['user_course'].status == 'started'])
+        total_lessons_completed = sum(cp['completed_lessons'] for cp in courses_progress)
+        total_lessons_available = sum(cp['total_lessons'] for cp in courses_progress)
+        total_materials_completed = sum(cp['completed_materials'] for cp in courses_progress)
+        total_materials_available = sum(cp['total_materials'] for cp in courses_progress)
+        overall_progress = int((total_materials_completed / total_materials_available) * 100) if total_materials_available > 0 else 0
+        
+        course_filter = self.request.GET.get('course_filter', 'completed')
+        if course_filter == 'completed':
+            courses_progress = [cp for cp in courses_progress if cp['user_course'].status == 'completed']
+        elif course_filter == 'started':
+            courses_progress = [cp for cp in courses_progress if cp['user_course'].status == 'started']
+        
+        paginator_courses = Paginator(courses_progress, 4)
+        page_number_courses = self.request.GET.get('courses_page', 1)
+        try:
+            page_obj_courses = paginator_courses.page(page_number_courses)
+        except PageNotAnInteger:
+            page_obj_courses = paginator_courses.page(1)
+        except EmptyPage:
+            page_obj_courses = paginator_courses.page(paginator_courses.num_pages)
+        
+        context.update({
+            'courses_progress': courses_progress, 'total_courses': total_courses,
+            'completed_courses': completed_courses, 'started_courses': started_courses,
+            'total_lessons_completed': total_lessons_completed,
+            'total_lessons_available': total_lessons_available,
+            'overall_progress': overall_progress,
+            'page_obj_courses': page_obj_courses, 'course_filter': course_filter,
+        })
+        
+        # Данные для вкладки попыток тестов (из UserQuizAttemptsView)
+        available_courses_quiz = Course.objects.available_for_user(user)
+        quizzes = set()
+        for course in available_courses_quiz:
+            if course.final_quiz:
+                quizzes.add(course.final_quiz)
+            for quiz in course.quizzes.all():
+                quizzes.add(quiz)
+            # Добавляем тесты, связанные с уроками курса
+            for lesson in course.lessons.all():
+                if lesson.final_quiz:
+                    quizzes.add(lesson.final_quiz)
+        
+        quizzes = sorted(list(quizzes), key=lambda q: q.name)
+        quiz_data = {}
+        for quiz in quizzes:
+            results = QuizResult.objects.filter(user=user, quiz_title=quiz.name).order_by('-completed_at')
+            attempts_with_results = []
+            for i, result in enumerate(results, 1):
+                attempts_with_results.append({
+                    'result': result, 'attempt_number': i,
+                    'started_at': result.completed_at, 'completed_at': result.completed_at
+                })
+            
+            total_attempts = results.count()
+            passed_attempts = results.filter(passed=True).count()
+            failed_attempts = results.filter(passed=False).count()
+            excluded_attempts = results.filter(passed=False, excluded_from_limit=True).count()
+            best_result = results.order_by('-percent').first()
+            best_score = best_result.percent if best_result else None
+            
+            quiz_lock = QuizLock.objects.filter(user=user, quiz=quiz).first()
+            is_blocked = quiz_lock.is_locked if quiz_lock else False
+            
+            quiz_type = "Неизвестно"
+            related_course = None
+            final_course = Course.objects.filter(final_quiz=quiz).first()
+            if final_course:
+                quiz_type = "Финальный тест"
+                related_course = final_course
+            else:
+                # Проверяем, связан ли тест с уроком
+                from courses.models import Lesson
+                lesson_with_quiz = Lesson.objects.filter(final_quiz=quiz).first()
+                if lesson_with_quiz:
+                    # Находим курс, к которому относится этот урок
+                    lesson_course = lesson_with_quiz.courses.first()
+                    if lesson_course:
+                        quiz_type = "Тест урока"
+                        related_course = lesson_course
+                    else:
+                        quiz_type = "Тест урока"
+                else:
+                    # Проверяем, входит ли тест в материалы курса
+                    material_course = Course.objects.filter(course_quizzes=quiz).first()
+                    if material_course:
+                        quiz_type = "Тест из материалов курса"
+                        related_course = material_course
+            
+            quiz_data[quiz] = {
+                'attempts': attempts_with_results, 'total_attempts': total_attempts,
+                'passed_attempts': passed_attempts, 'failed_attempts': failed_attempts,
+                'excluded_attempts': excluded_attempts, 'best_score': best_score,
+                'is_blocked': is_blocked, 'quiz_type': quiz_type, 'related_course': related_course
+            }
+        
+        context['quiz_data'] = quiz_data
+        
+        # Данные для вкладки "Назначенное обучение"
+        assigned_courses = UserCourse.objects.filter(user=user).select_related('course').order_by('-start_date')
+        assigned_trajectories = UserCourseTrajectory.objects.filter(user=user).select_related('trajectory').order_by('-started_at')
+        
+        # Формируем список назначенных обучений (курсы + траектории)
+        assigned_trainings = []
+        
+        # Добавляем курсы
+        for user_course in assigned_courses:
+            # Формируем статус для отображения
+            status_display = user_course.get_status_display()
+            if user_course.status == 'started':
+                status_display = 'В процессе'
+            elif user_course.status == 'available':
+                status_display = 'Не начат'
+            elif user_course.status == 'blocked':
+                status_display = 'Заблокирован'
+            
+            # Определяем тип назначения: если курс-инцидент, то "Курс-инцидент", иначе "Курс"
+            assignment_type = 'Курс-инцидент' if user_course.course.is_incident else 'Курс'
+            
+            assigned_trainings.append({
+                'type': 'course',
+                'id': user_course.id,
+                'name': user_course.course.title,
+                'assignment_date': user_course.start_date,
+                'status': status_display,
+                'status_code': user_course.status,
+                'due_date': user_course.deadline,
+                'assignment_type': assignment_type,
+                'object': user_course,
+            })
+        
+        # Добавляем траектории
+        for user_trajectory in assigned_trajectories:
+            assigned_trainings.append({
+                'type': 'trajectory',
+                'id': user_trajectory.id,
+                'name': user_trajectory.trajectory.name,
+                'assignment_date': user_trajectory.started_at,
+                'status': 'Завершена' if user_trajectory.completed else 'В процессе',
+                'status_code': 'completed' if user_trajectory.completed else 'started',
+                'due_date': None,  # Пока прочерк
+                'assignment_type': 'Траектория',
+                'object': user_trajectory,
+            })
+        
+        # Сортируем по дате назначения (новые сверху)
+        assigned_trainings.sort(key=lambda x: x['assignment_date'], reverse=True)
+        
+        context['assigned_trainings'] = assigned_trainings
+        
+        # Данные для вкладки "Достижения"
+        user_badges = profile.get_badges()
+        user_achievements = profile.get_achievements()
+        dascoin_points = profile.dascoin_points
+        
+        # Получаем общее количество доступных бейджей для расчета прогресса
+        total_badges_available = profile.get_available_badges_count()
+        badges_progress = int((user_badges.count() / total_badges_available * 100)) if total_badges_available > 0 else 0
+        
+        context.update({
+            'user_badges': user_badges,
+            'user_achievements': user_achievements,
+            'dascoin_points': dascoin_points,
+            'total_badges_available': total_badges_available,
+            'badges_progress': badges_progress,
+            'user_id': self.object.pk,
+        })
+        
+        # Определяем активную вкладку
+        context['active_tab'] = self.request.GET.get('tab', 'personal')
+        
+        return context
+
+    def form_valid(self, form):
+        if getattr(self, 'readonly', False):
+            raise PermissionDenied("Недостаточно прав для редактирования этого пользователя.")
+        # Дополнительная проверка для наставников (не staff/superuser)
+        if hasattr(self.request.user, 'profile') and self.request.user.profile.is_mentor_user and not self.request.user.is_staff and not self.request.user.is_superuser:
+            raise PermissionDenied("Наставники не могут редактировать персональную информацию пользователей.")
+        response = super().form_valid(form)
+        profile_form = UserProfileForm(self.request.POST, self.request.FILES, instance=self.object.profile, user_instance=self.object)
+        if profile_form.is_valid():
+            profile_form.save()
+        return response
+
+    def get_success_url(self):
+        return reverse('user_management:user_edit_detailed', kwargs={'pk': self.object.pk}) + '?tab=personal'
+
+
+
+
 class UserProgressDashboardView(DetailView):
     model = User
     template_name = 'user_management/user_progress_dashboard.html'
     context_object_name = 'target_user'
 
     def dispatch(self, request, *args, **kwargs):
-        if not request.user.is_authenticated or not (request.user.is_staff or request.user.is_superuser):
+        if not request.user.is_authenticated or not (request.user.is_staff or request.user.is_superuser or (hasattr(request.user, 'profile') and request.user.profile.is_mentor_user)):
             raise PermissionDenied("У вас нет доступа к управлению пользователями.")
         return super().dispatch(request, *args, **kwargs)
 
     def get_context_data(self, **kwargs):
+        from myapp.models import ManualCourseUnassignment
+        
         context = super().get_context_data(**kwargs)
         user = self.get_object()
         profile = user.profile
@@ -442,9 +897,21 @@ class UserProgressDashboardView(DetailView):
             if user_course:
                 user_courses.append(user_course)
             else:
-                # Создаем UserCourse если его нет (для курсов из траекторий)
-                user_course = UserCourse.objects.create(user=user, course=course, status='available')
-                user_courses.append(user_course)
+                # Курсы из траекторий назначаются только последовательно (после завершения предыдущего).
+                # Не создаём UserCourse здесь — он будет создан сигналом assign_next_trajectory_course_on_completion.
+                if UserCourseTrajectory.objects.filter(user=user, trajectory__trajectorycourse__course=course).exists():
+                    continue
+                # Проверяем, не был ли курс отменен вручную
+                manual_unassignment = ManualCourseUnassignment.objects.filter(
+                    user=user, 
+                    course=course
+                ).first()
+                
+                if not manual_unassignment:
+                    # Создаем UserCourse если его нет (для курсов из групп и т.п.)
+                    user_course = UserCourse.objects.create(user=user, course=course, status='available')
+                    user_courses.append(user_course)
+                # Если была ручная отмена, просто пропускаем этот курс
         
         # Получаем все результаты тестирования пользователя ДО цикла по курсам
         quiz_results = list(QuizResult.objects.filter(user=user).order_by('-completed_at'))
@@ -480,33 +947,93 @@ class UserProgressDashboardView(DetailView):
                     completed=True
                 ).count()
             
-            # Вычисляем процент прогресса
-            progress_percent = int((completed_lessons / total_lessons) * 100) if total_lessons > 0 else 0
+            # Подсчитываем завершенные тесты в рамках этого курса (только уникальные по quiz_title)
+            completed_quizzes = QuizResult.objects.filter(
+                user=user,
+                course=course,
+                quiz_title__in=[quiz.name for quiz in course.quizzes.all()],
+                passed=True
+            ).values('quiz_title').distinct().count()
+            total_quizzes = course.quizzes.count()
             
-            # Проверяем прохождение финального теста
+            # Подсчитываем выполненные задания в рамках этого курса (задания считаются как тесты)
+            completed_homeworks = HomeworkSubmission.objects.filter(
+                user=user,
+                course=course,
+                homework__in=course.homeworks,
+                status='correct'
+            ).values('homework_id').distinct().count()
+            total_homeworks = course.homeworks.count()
+            
+            # Вычисляем процент прогресса с учетом уроков, тестов и заданий
+            total_materials = total_lessons + total_quizzes + total_homeworks
+            completed_materials = completed_lessons + completed_quizzes + completed_homeworks
+            progress_percent = int((completed_materials / total_materials) * 100) if total_materials > 0 else 0
+            
+            # Проверяем прохождение финального теста в рамках этого курса
             quiz_passed = False
             if course.final_quiz:
                 quiz_passed = QuizResult.objects.filter(
                     user=user,
+                    course=course,
                     quiz_title=course.final_quiz.name,
                     passed=True
                 ).exists()
             
-            # Получаем детальную информацию об уроках
-            lessons_detail = []
+            # Получаем детальную информацию об уроках и тестах
+            materials_detail = []
+            
+            # Добавляем уроки
             for lesson in lessons:
                 progress = UserProgress.objects.filter(
                     user=user,
+                    course=course,
                     lesson=lesson,
                     completed=True
                 ).first()
                 
-                lessons_detail.append({
+                materials_detail.append({
+                    'type': 'lesson',
                     'lesson': lesson,
                     'completed': progress is not None,
                     'completed_at': progress.completed_at if progress else None,
-                    'order': lesson.order
+                    'order': lesson.order,
+                    'title': lesson.title
                 })
+            
+            # Добавляем тесты курса
+            for quiz in course.quizzes.all():
+                # Получаем все попытки теста
+                quiz_attempts = QuizResult.objects.filter(
+                    user=user,
+                    course=course,
+                    quiz_title=quiz.name
+                ).order_by('-completed_at')
+                
+                # Проверяем, есть ли успешная попытка
+                quiz_result = quiz_attempts.filter(passed=True).first()
+                
+                # Получаем лучшую попытку (по проценту, затем по дате)
+                best_attempt = None
+                if quiz_attempts.exists():
+                    best_attempt = sorted(quiz_attempts, key=lambda x: (x.percent, x.completed_at), reverse=True)[0]
+                
+                materials_detail.append({
+                    'type': 'quiz',
+                    'quiz': quiz,
+                    'completed': quiz_result is not None,
+                    'completed_at': quiz_result.completed_at if quiz_result else None,
+                    'order': quiz.order,
+                    'title': quiz.name,
+                    'attempts_count': quiz_attempts.count(),
+                    'best_attempt': best_attempt
+                })
+            
+            # Сортируем материалы по порядку
+            materials_detail.sort(key=lambda x: x['order'])
+            
+            # Для совместимости с шаблоном сохраняем старое название
+            lessons_detail = materials_detail
             
             best_attempt = None
             if course.final_quiz:
@@ -519,10 +1046,15 @@ class UserProgressDashboardView(DetailView):
                 'user_course': user_course,
                 'total_lessons': total_lessons,
                 'completed_lessons': completed_lessons,
+                'total_quizzes': total_quizzes,
+                'completed_quizzes': completed_quizzes,
+                'total_homeworks': total_homeworks,
+                'completed_homeworks': completed_homeworks,
+                'total_materials': total_materials,
+                'completed_materials': completed_materials,
                 'progress_percent': progress_percent,
                 'quiz_passed': quiz_passed,
                 'lessons_detail': lessons_detail,
-
                 'best_attempt': best_attempt,
             })
         
@@ -532,9 +1064,13 @@ class UserProgressDashboardView(DetailView):
         started_courses = len([cp for cp in courses_progress if cp['user_course'].status == 'started'])
         available_courses = len([cp for cp in courses_progress if cp['user_course'].status == 'available'])
         
+        total_materials_completed = sum(cp['completed_materials'] for cp in courses_progress)
+        total_materials_available = sum(cp['total_materials'] for cp in courses_progress)
+        overall_progress = int((total_materials_completed / total_materials_available) * 100) if total_materials_available > 0 else 0
+        
+        # Для совместимости с шаблоном сохраняем старые переменные
         total_lessons_completed = sum(cp['completed_lessons'] for cp in courses_progress)
         total_lessons_available = sum(cp['total_lessons'] for cp in courses_progress)
-        overall_progress = int((total_lessons_completed / total_lessons_available) * 100) if total_lessons_available > 0 else 0
         
 
 
@@ -584,6 +1120,14 @@ class UserProgressDashboardView(DetailView):
         except EmptyPage:
             page_obj = paginator.page(paginator.num_pages)
         
+        # Фильтрация курсов по статусу
+        course_filter = self.request.GET.get('course_filter', 'completed')
+        if course_filter == 'completed':
+            courses_progress = [cp for cp in courses_progress if cp['user_course'].status == 'completed']
+        elif course_filter == 'started':
+            courses_progress = [cp for cp in courses_progress if cp['user_course'].status == 'started']
+        # Для 'all' и других значений показываем все курсы
+        
         # Пагинация по курсам
         paginator_courses = Paginator(courses_progress, 4)
         page_number_courses = self.request.GET.get('courses_page', 1)
@@ -607,15 +1151,168 @@ class UserProgressDashboardView(DetailView):
             'quiz_results': quiz_results,
             'page_obj': page_obj,
             'page_obj_courses': page_obj_courses,
+            'course_filter': course_filter,
         })
         
         return context
 
-@method_decorator(staff_member_required, name='dispatch')
-class UserQuizReportView(DetailView):
+
+
+
+@login_required
+def export_user_progress_excel(request, pk):
+    """
+    Экспорт прогресса пользователя в Excel 
+    """
+    from myapp.views import is_admin
+    if not is_admin:
+        try:
+            if not request.user.profile.is_mentor_user:
+                return HttpResponseForbidden("Доступ запрещен")
+        except:
+            return HttpResponseForbidden("Доступ запрещен")
+
+    target_user = get_object_or_404(User, pk=pk)
+
+    wb = Workbook()
+    sheet = wb.active
+    sheet.title = f"Прогресс пользователя {target_user.first_name}"
+
+    sheet.merge_cells('A1:I1')
+    header_cell = sheet['A1']
+    header_cell.value = f"Отчёт по прогрессу пользователя: {target_user.first_name} {target_user.last_name}"
+    header_cell.font = Font(bold=True, size=14)
+    header_cell.alignment = Alignment(horizontal='center', vertical='center')
+
+    sheet.merge_cells('A2:I2')
+    date_cell = sheet['A2']
+    date_cell.value = f"Дата создания отчёта: {timezone.now().strftime('%Y-%m-%d')}"
+    date_cell.font = Font(size=10)
+    date_cell.alignment = Alignment(horizontal='center', vertical='center')
+
+    # Пустая строка
+    sheet.append([])
+    sheet.append([])
+
+    # Заголовки столбцов
+    headers = [
+        'Название курса',
+        'Дата назначения курса',
+        'Дата начала курса',
+        'Дата завершения курса',
+        'Дедлайн',
+        'Статус',
+        'Прогресс (%)',
+        'Общее установленное время',
+        'Общее затраченное время'
+    ]
+    sheet.append(headers)
+
+    # Стили для заголовков
+    header_fill = PatternFill(start_color="366092", end_color="366092", fill_type="solid")
+    header_font = Font(bold=True, color="FFFFFF", size=11)
+    border = Border(
+        left=Side(border_style="thin"),
+        right=Side(border_style="thin"),
+        top=Side(border_style="thin"),
+        bottom=Side(border_style="thin")
+    )
+
+    for cell in sheet[5]:
+        cell.fill = header_fill
+        cell.font = header_font
+        cell.alignment = Alignment(horizontal='center', vertical='center', wrap_text=True)
+        cell.border = border
+
+    # Текущее время для расчётов
+    now = timezone.now()
+    STATUSES = {
+        'available': 'Доступен',
+        'started': 'Начат',
+        'completed': 'Завершен',
+        'blocked': 'Заблокирован'
+    }
+
+    # Формируем данные в ячейки
+    user_courses = UserCourse.objects.all().filter(user=target_user)
+    for user_course in user_courses:
+        course = user_course.course
+        assignment_time = user_course.start_date - timedelta(days=7) # TODO: динамически определять время назначения, а не -7 дней от дедлайна
+        
+        if user_course.deadline:
+            user_course_deadline = user_course.deadline.strftime("%d-%m-%Yг.")
+        else:
+            user_course_deadline = "Без дедлайна"
+        
+        if user_course.end_date:
+            user_course_end_date = user_course.end_date.strftime("%d-%m-%Yг.")
+            actual_time_to_complete = format_timedelta(user_course.end_date - user_course.start_date)
+        else:
+            user_course_end_date = "---"
+            actual_time_to_complete = "---"
+        course_lessons_all = user_course.course.lessons.count()
+        completed_count = UserProgress.objects.filter(
+            user=target_user,
+            course=user_course.course,
+            completed=True
+        ).count()
+        if course_lessons_all == 0:
+            progress = 'нет уроков'
+        else:
+            progress = completed_count / course_lessons_all * 100
+            if round(progress, 2) == 100.0 or round(progress, 2) == 0.0:
+                progress = round(progress)
+            progress = round(progress, 2)
+        
+
+        row = [
+            str(course.title),
+            str(assignment_time.strftime("%d-%m-%Yг.")),
+            str(user_course.start_date.strftime("%d-%m-%Yг.")),
+            str(user_course_end_date),
+            str(user_course_deadline),
+            str(STATUSES[user_course.status]),
+            progress,
+            '7 дней',
+            str(actual_time_to_complete),
+        ]
+        sheet.append(row)
+
+
+    # Автоматическая ширина колонок
+    for col in sheet.columns:
+        max_length = 0
+        column_letter = get_column_letter(col[0].column)
+        for cell in col:
+            try:
+                if len(str(cell.value)) > max_length:
+                    max_length = len(str(cell.value))
+            except:
+                pass
+        
+        adjusted_width = min(max_length + 2, 50)
+        sheet.column_dimensions[column_letter].width = adjusted_width
+
+
+    # Формируем ответ
+    response = HttpResponse(
+        content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    )
+    filename = f"user_progress_{target_user.id}_{timezone.now().strftime('%Y%m%d_%H%M%S')}.xlsx"
+    response['Content-Disposition'] = f'attachment; filename="{filename}"'
+    wb.save(response)
+    return response
+
+
+
+
+class UserQuizReportView(MentorRequiredMixin, DetailView):
     model = QuizResult
     template_name = 'user_management/user_quiz_report.html'
     context_object_name = 'quiz_result'
+
+    def dispatch(self, request, *args, **kwargs):
+        return super().dispatch(request, *args, **kwargs)
 
     def get_object(self):
         return QuizResult.objects.get(id=self.kwargs['quiz_id'])
@@ -628,12 +1325,100 @@ class UserQuizReportView(DetailView):
         grouped = {}
         for ans in answers:
             grouped.setdefault(ans.question, []).append(ans)
+        
+        # Обработка типа "match" - парсим answer_text и подготавливаем данные для отображения
+        from quizzes.models import Answer
+        
+        # Добавляем match_results непосредственно к каждому вопросу в grouped
+        for question, user_answers in grouped.items():
+            if question.question_type == 'match':
+                user_answer = user_answers[0]  # Для match всегда один UserAnswer
+                # Парсим answer_text вида "question_id:answer_id; question_id:answer_id"
+                user_matches = {}
+                if user_answer.answer_text:
+                    for pair in user_answer.answer_text.split('; '):
+                        if ':' in pair:
+                            q_id, a_id = pair.split(':')
+                            user_matches[q_id] = a_id
+                
+                # Получаем все ответы для этого вопроса (question и answer пары)
+                all_answers = Answer.objects.filter(question=question).order_by('id')
+                answers_list = list(all_answers)
+                
+                # Вопросы (неперетаскиваемые элементы справа)
+                questions_dict = {}
+                # Ответы (перетаскиваемые элементы слева)
+                answers_dict = {}
+                
+                # Правильные соответствия
+                correct_matches = {}
+                
+                # Группируем ответы по парам (каждые 2 ответа - это пара вопрос-ответ)
+                for i in range(0, len(answers_list), 2):
+                    if i < len(answers_list):
+                        # Четные элементы - это вопросы
+                        question_answer = answers_list[i]
+                        question_key = str(question_answer.id)
+                        questions_dict[question_key] = {
+                            'text': question_answer.text,
+                            'image': question_answer.image.url if question_answer.image else None
+                        }
+                    
+                    if i + 1 < len(answers_list):
+                        # Нечетные элементы - это ответы
+                        answer_answer = answers_list[i + 1]
+                        answers_dict[str(answer_answer.id)] = {
+                            'text': answer_answer.text,
+                            'image': answer_answer.image.url if answer_answer.image else None
+                        }
+                        
+                        # Если оба отмечены как правильные, это правильная пара
+                        if i < len(answers_list):
+                            question_answer = answers_list[i]
+                            if question_answer.is_correct and answer_answer.is_correct:
+                                correct_matches[str(question_answer.id)] = str(answer_answer.id)
+                
+                # Если не нашли пары через is_correct, используем простую логику
+                if not correct_matches:
+                    for i in range(0, len(answers_list), 2):
+                        if i + 1 < len(answers_list):
+                            question_answer = answers_list[i]
+                            answer_answer = answers_list[i + 1]
+                            correct_matches[str(question_answer.id)] = str(answer_answer.id)
+                
+                # Формируем результаты для каждого вопроса
+                match_results = []
+                for question_id, question_data in questions_dict.items():
+                    user_answer_id = user_matches.get(question_id, '')
+                    correct_answer_id = correct_matches.get(question_id, '')
+                    user_answer_data = answers_dict.get(user_answer_id, {'text': 'Неизвестный ответ', 'image': None})
+                    correct_answer_data = answers_dict.get(correct_answer_id, {'text': 'Неизвестный ответ', 'image': None})
+                    is_question_correct = (user_answer_id == correct_answer_id)
+                    
+                    match_results.append({
+                        'question_text': question_data['text'],
+                        'question_image': question_data['image'],
+                        'user_answer_text': user_answer_data['text'],
+                        'user_answer_image': user_answer_data['image'],
+                        'correct_answer_text': correct_answer_data['text'],
+                        'correct_answer_image': correct_answer_data['image'],
+                        'is_correct': is_question_correct,
+                    })
+                
+                # Добавляем match_results непосредственно к user_answer для удобства доступа в шаблоне
+                user_answer.match_results = match_results
+        
         context['grouped_answers'] = grouped
         return context
 
 
     def post(self, request, *args, **kwargs):
+        from django.utils import timezone
+        from quizzes.models import Question
+        
         quiz_result = self.get_object()
+        
+        # Обрабатываем оценки открытых вопросов
         for key, val in request.POST.items():
             if not key.startswith('text_eval_'):
                 continue
@@ -641,15 +1426,79 @@ class UserQuizReportView(DetailView):
                 ua_id = int(key.replace('text_eval_', ''))
             except ValueError:
                 continue
-            if val == '':
-                new_val = None
-            elif val == 'true':
-                new_val = True
-            elif val == 'false':
-                new_val = False
-            else:
+            
+            # Получаем UserAnswer
+            user_answer = quiz_result.answers.filter(id=ua_id, question__question_type='text').first()
+            if not user_answer:
                 continue
-            quiz_result.answers.filter(id=ua_id, question__question_type='text').update(is_correct=new_val)
+            
+            # Преобразуем значение в score_points
+            if val == '':
+                score_points = None
+                is_correct = None
+            else:
+                try:
+                    score_points = float(val)
+                    # Ограничиваем значение от 0 до 1
+                    score_points = max(0, min(1, score_points))
+                    is_correct = score_points > 0
+                except ValueError:
+                    continue
+            
+            # Обновляем UserAnswer
+            user_answer.score_points = score_points
+            user_answer.is_correct = is_correct
+            user_answer.save()
+        
+        # Пересчитываем общий результат теста
+        from quizzes.models import Quiz
+        quiz = Quiz.objects.filter(name=quiz_result.quiz_title).first()
+        
+        if quiz:
+            # Получаем все TEXT вопросы с оценками
+            text_answers = quiz_result.answers.filter(question__question_type='text')
+            total_text_score = sum(
+                ans.score_points for ans in text_answers if ans.score_points is not None
+            )
+            
+            # Считаем количество вопросов
+            total_questions = Question.objects.filter(quiz=quiz).count()
+            text_questions_count = Question.objects.filter(quiz=quiz, question_type='text').count()
+            auto_checkable_count = total_questions - text_questions_count
+            
+            # Получаем баллы за автопроверяемые вопросы (из старого score)
+            # Если все TEXT вопросы оценены, пересчитываем score
+            all_text_evaluated = all(
+                ans.score_points is not None for ans in text_answers
+            )
+            
+            if all_text_evaluated and text_answers.exists():
+                # Считаем баллы за автопроверяемые вопросы
+                auto_score = quiz_result.answers.exclude(
+                    question__question_type='text'
+                ).filter(is_correct=True).count()
+                
+                # Общий балл = баллы за автопроверяемые + баллы за открытые
+                total_score = auto_score + total_text_score
+                
+                # Пересчитываем процент
+                if total_questions > 0:
+                    percent_score = int((total_score / total_questions) * 100)
+                else:
+                    percent_score = 0
+                
+                # Определяем, прошел ли пользователь тест
+                passed = percent_score >= quiz.pass_threshold
+                
+                # Обновляем результат теста
+                quiz_result.score = total_score
+                quiz_result.percent = percent_score
+                quiz_result.passed = passed
+                quiz_result.status = 'completed'
+                quiz_result.reviewed_by = request.user
+                quiz_result.reviewed_at = timezone.now()
+                quiz_result.save()
+        
         return redirect(request.path)
 
 
@@ -689,7 +1538,7 @@ class UserQuizAttemptsView(DetailView):
     context_object_name = 'target_user'
 
     def dispatch(self, request, *args, **kwargs):
-        if not request.user.is_authenticated or not (request.user.is_staff or request.user.is_superuser):
+        if not request.user.is_authenticated or not (request.user.is_staff or request.user.is_superuser or request.user.profile.is_mentor_user):
             raise PermissionDenied("У вас нет доступа к управлению пользователями.")
         return super().dispatch(request, *args, **kwargs)
 
@@ -697,17 +1546,19 @@ class UserQuizAttemptsView(DetailView):
         context = super().get_context_data(**kwargs)
         user = self.get_object()
         
-        # Получаем все тесты
-        # quizzes = Quiz.objects.all().order_by('name') # TODO: Фильтровать по доступности
-        
         # Получаем все курсы, доступные пользователю
         available_courses = Course.objects.available_for_user(user)
 
-        # Собираем тесты из доступных курсов
+        # Собираем ВСЕ тесты из доступных курсов
         quizzes = set()
         for course in available_courses:
+            # Добавляем финальный тест курса
             if course.final_quiz:
                 quizzes.add(course.final_quiz)
+            
+            # Добавляем тесты из материалов курса
+            for quiz in course.quizzes.all():
+                quizzes.add(quiz)
         
         # Добавляем тесты, которые напрямую доступны пользователю (если есть такая логика)
         # На данный момент считаем, что все тесты привязаны к курсам или доступны глобально.
@@ -738,6 +1589,7 @@ class UserQuizAttemptsView(DetailView):
             total_attempts = results.count()  # Общее количество результатов
             passed_attempts = results.filter(passed=True).count()
             failed_attempts = results.filter(passed=False).count()
+            excluded_attempts = results.filter(passed=False, excluded_from_limit=True).count()  # Исключенные из лимита
             best_result = results.order_by('-percent').first()
             best_score = best_result.percent if best_result else None
             
@@ -745,13 +1597,32 @@ class UserQuizAttemptsView(DetailView):
             quiz_lock = QuizLock.objects.filter(user=user, quiz=quiz).first()
             is_blocked = quiz_lock.is_locked if quiz_lock else False
             
+            # Определяем тип теста и связанный курс
+            quiz_type = "Неизвестно"
+            related_course = None
+            
+            # Проверяем, является ли тест финальным для какого-либо курса
+            final_course = Course.objects.filter(final_quiz=quiz).first()
+            if final_course:
+                quiz_type = "Финальный тест"
+                related_course = final_course
+            else:
+                # Проверяем, входит ли тест в материалы курса
+                material_course = Course.objects.filter(course_quizzes=quiz).first()
+                if material_course:
+                    quiz_type = "Тест из материалов курса"
+                    related_course = material_course
+            
             quiz_data[quiz] = {
                 'attempts': attempts_with_results,
                 'total_attempts': total_attempts,
                 'passed_attempts': passed_attempts,
                 'failed_attempts': failed_attempts,
+                'excluded_attempts': excluded_attempts,
                 'best_score': best_score,
-                'is_blocked': is_blocked
+                'is_blocked': is_blocked,
+                'quiz_type': quiz_type,
+                'related_course': related_course
             }
         
         context['quiz_data'] = quiz_data
@@ -765,39 +1636,1413 @@ def unlock_quiz_access(request, user_id, quiz_id):
     Разблокирует доступ к тесту для пользователя.
     Позволяет пройти тест еще 1 раз сверх ограничения попыток.
     """
-    if not request.user.is_staff or not request.user.is_superuser:
+    if not (request.user.is_staff or request.user.is_superuser):
         raise PermissionDenied("У вас нет доступа к этому действию.")
     
     try:
         user = User.objects.get(id=user_id)
         quiz = Quiz.objects.get(id=quiz_id)
         
-        # Разблокируем тест
+        # Исключаем неудачные попытки из подсчета лимита, но сохраняем их для статистики
+        from myapp.models import QuizResult
+        QuizResult.objects.filter(
+            user=user,
+            quiz_title=quiz.name,
+            passed=False,
+            excluded_from_limit=False
+        ).update(excluded_from_limit=True)
+        
+        # Разблокируем тест - обновляем независимо от текущего состояния
         quiz_lock, created = QuizLock.objects.get_or_create(
             user=user,
             quiz=quiz,
-            defaults={'is_locked': False}
+            defaults={'is_locked': False, 'locked_at': None}
         )
         
-        if quiz_lock.is_locked:
-            quiz_lock.is_locked = False
-            quiz_lock.locked_at = None
-            quiz_lock.save()
-            
-            messages.success(
-                request,
-                f'Тест "{quiz.name}" разблокирован для пользователя {user.get_full_name()}. '
-                f'Пользователь может пройти еще одну попытку.'
-            )
-        else:
-            messages.info(
-                request,
-                f'Тест "{quiz.name}" уже разблокирован для пользователя {user.get_full_name()}.'
-            )
+        # Обновляем блокировку независимо от текущего состояния
+        quiz_lock.is_locked = False
+        quiz_lock.locked_at = None
+        quiz_lock.save(update_fields=['is_locked', 'locked_at'])
+        
+        # НЕ восстанавливаем прогресс курса - пользователь должен сам пройти уроки заново
+        
+        messages.success(
+            request,
+            f'Тест "{quiz.name}" разблокирован для пользователя {user.get_full_name()}. '
+            f'Пользователь сможет пройти тест еще раз.'
+        )
         
     except (User.DoesNotExist, Quiz.DoesNotExist):
         messages.error(request, 'Пользователь или тест не найден.')
     except Exception as e:
         messages.error(request, f'Ошибка при разблокировке: {str(e)}')
     
-    return redirect('user_management:user_quiz_attempts', pk=user_id)
+    # Проверяем, откуда пришел запрос (параметр next) и делаем редирект туда
+    next_url = request.POST.get('next')
+    if next_url == 'user_edit_detailed':
+        return redirect('user_management:user_edit_detailed', pk=user_id)
+    else:
+        return redirect('user_management:user_quiz_attempts', pk=user_id)
+
+
+
+
+class AdminDashboardView(LoginRequiredMixin, UserPassesTestMixin, ListView):
+    """CBV для отображения административной панели статистики пользователей по баллам DASCOIN"""
+    model = User
+    template_name = 'user_management/admin_dascoin_dashboard.html'
+    context_object_name = 'users'
+    paginate_by = 25
+    ordering = ['-profile__dascoin_points', 'email']
+    
+    def test_func(self):
+        """Проверяет, что пользователь является staff или superuser"""
+        return self.request.user.is_staff or self.request.user.is_superuser or (hasattr(self.request.user, 'profile') and self.request.user.profile.is_mentor_user)
+    
+    def get_queryset(self):
+        """Возвращает пользователей с фильтрацией"""
+        queryset = User.objects.select_related('profile', 'profile__role').prefetch_related('groups').order_by('-profile__dascoin_points', 'email')
+        
+        # Если пользователь - наставник (но не superuser и не staff), показываем только его группу
+        if (hasattr(self.request.user, 'profile') and 
+            self.request.user.profile.is_mentor_user and 
+            not self.request.user.is_superuser and 
+            not self.request.user.is_staff):
+            # Получаем группы наставника
+            mentor_groups = self.request.user.groups.all()
+            if mentor_groups.exists():
+                # Показываем только пользователей из групп наставника
+                queryset = queryset.filter(groups__in=mentor_groups).distinct()
+            else:
+                # Если у наставника нет групп, показываем пустой список
+                queryset = queryset.none()
+        
+        # Фильтрация по группе (только для не-наставников)
+        if not (hasattr(self.request.user, 'profile') and 
+                self.request.user.profile.is_mentor_user and 
+                not self.request.user.is_superuser and 
+                not self.request.user.is_staff):
+            group_id = self.request.GET.get('group')
+            if group_id:
+                queryset = queryset.filter(groups__id=group_id)
+        
+        # Фильтрация по должности
+        role_id = self.request.GET.get('role')
+        if role_id:
+            queryset = queryset.filter(profile__role__id=role_id)
+        
+        # Фильтрация по минимальному количеству баллов
+        points_min = self.request.GET.get('points_min')
+        if points_min and points_min.isdigit():
+            queryset = queryset.filter(profile__dascoin_points__gte=int(points_min))
+        
+        # Фильтрация по максимальному количеству баллов
+        points_max = self.request.GET.get('points_max')
+        if points_max and points_max.isdigit():
+            queryset = queryset.filter(profile__dascoin_points__lte=int(points_max))
+        
+        # Быстрые фильтры
+        zero_points = self.request.GET.get('zero_points')
+        if zero_points:
+            queryset = queryset.filter(profile__dascoin_points=0)
+        
+        approved_only = self.request.GET.get('approved')
+        show_all = self.request.GET.get('show_all')
+        # По умолчанию показываем только подтвержденных пользователей, если нет никаких параметров
+        has_any_params = bool(self.request.GET)
+        
+        if approved_only == '1' or (not has_any_params and not show_all):
+            queryset = queryset.filter(profile__is_approved=True)
+        
+        # Применяем distinct() до среза
+        queryset = queryset.distinct()
+        
+        # Добавляем аннотацию для получения даты последнего начисления для каждого пользователя
+        from gamification.models import DascoinTransaction
+        last_award_subquery = DascoinTransaction.objects.filter(
+            user=OuterRef('pk'),
+            transaction_type='award'
+        ).order_by('-created_at').values('created_at')[:1]
+        
+        queryset = queryset.annotate(
+            last_award_date=Subquery(last_award_subquery)
+        )
+        
+        # Быстрый фильтр топ-N применяется после distinct()
+        top_users = self.request.GET.get('top')
+        if top_users and top_users.isdigit():
+            queryset = queryset.order_by('-profile__dascoin_points')[:int(top_users)]
+        
+        return queryset
+    
+    def get_context_data(self, **kwargs):
+        """Добавляет дополнительный контекст"""
+        context = super().get_context_data(**kwargs)
+        
+        # Общая статистика
+        if not (hasattr(self.request.user, 'profile') and 
+                self.request.user.profile.is_mentor_user and 
+                not self.request.user.is_superuser and 
+                not self.request.user.is_staff):
+            # Для обычных пользователей - общая статистика
+            all_users = User.objects.select_related('profile')
+            context['total_users'] = all_users.count()
+            context['total_dascoin_points'] = all_users.aggregate(total=Sum('profile__dascoin_points'))['total'] or 0
+            context['active_users'] = all_users.filter(is_active=True).count()
+        else:
+            # Для наставников - статистика только по их группам
+            mentor_groups = self.request.user.groups.all()
+            if mentor_groups.exists():
+                all_users = User.objects.filter(groups__in=mentor_groups).select_related('profile').distinct()
+                context['total_users'] = all_users.count()
+                context['total_dascoin_points'] = all_users.aggregate(total=Sum('profile__dascoin_points'))['total'] or 0
+                context['active_users'] = all_users.filter(is_active=True).count()
+            else:
+                context['total_users'] = 0
+                context['total_dascoin_points'] = 0
+                context['active_users'] = 0
+        
+        # Статистика по баллам DASCOIN
+        from gamification.models import DascoinTransaction
+        
+        # Общее количество потраченных баллов (все списания)
+        total_spent_points = DascoinTransaction.objects.filter(
+            transaction_type='deduct'
+        ).aggregate(total=Sum('points_change'))['total'] or 0
+        context['total_spent_points'] = abs(total_spent_points)  # Берем абсолютное значение
+        
+        # Время последнего начисления баллов
+        last_award_transaction = DascoinTransaction.objects.filter(
+            transaction_type='award'
+        ).order_by('-created_at').first()
+        
+        if last_award_transaction:
+            context['last_award_date'] = last_award_transaction.created_at
+            context['last_award_user'] = last_award_transaction.user
+            context['last_award_points'] = last_award_transaction.points_change
+        else:
+            context['last_award_date'] = None
+            context['last_award_user'] = None
+            context['last_award_points'] = None
+        
+        # Группы и должности для фильтров
+        if not (hasattr(self.request.user, 'profile') and 
+                self.request.user.profile.is_mentor_user and 
+                not self.request.user.is_superuser and 
+                not self.request.user.is_staff):
+            context['groups'] = Group.objects.all().order_by('name')
+        else:
+            # Для наставников показываем только их группы
+            context['groups'] = self.request.user.groups.all().order_by('name')
+        context['roles'] = Role.objects.all().order_by('name')
+        
+        # Параметры фильтрации
+        context['selected_group'] = self.request.GET.get('group')
+        context['selected_role'] = self.request.GET.get('role')
+        context['points_min'] = self.request.GET.get('points_min')
+        context['points_max'] = self.request.GET.get('points_max')
+        
+        # Флаги быстрых фильтров
+        has_any_params = bool(self.request.GET)
+        show_all = self.request.GET.get('show_all')
+        
+        context['any_filter'] = has_any_params
+        context['top_users'] = bool(self.request.GET.get('top'))
+        context['zero_points'] = bool(self.request.GET.get('zero_points'))
+        # approved_only активен по умолчанию (нет параметров) или когда явно передан approved=1
+        context['approved_only'] = (self.request.GET.get('approved') == '1') or (not has_any_params and not show_all)
+        context['show_all'] = bool(show_all)
+        
+        # Параметры для пагинации
+        query_params = self.request.GET.copy()
+        if 'page' in query_params:
+            del query_params['page']
+        context['query_params'] = '&' + urlencode(query_params) if query_params else ''
+        
+        # Логирование действия
+        audit_logger.info(
+            'Просматривает административную панель статистики DASCOIN', 
+            extra={
+                'user': self.request.user.email if self.request.user.is_authenticated else 'Anonymous'
+            }
+        )
+        
+        return context
+
+
+
+
+@login_required
+def export_admin_stats_excel(request):
+    """Экспорт статистики администратора в Excel"""
+    if not (request.user.is_staff or request.user.is_superuser):
+        return HttpResponse("Доступ запрещен", status=403)
+    
+    # Получаем данные с теми же фильтрами, что и в dashboard
+    queryset = User.objects.select_related('profile', 'profile__role').prefetch_related('groups')
+    
+    # Применяем фильтры
+    group_id = request.GET.get('group')
+    if group_id:
+        queryset = queryset.filter(groups__id=group_id)
+    
+    role_id = request.GET.get('role')
+    if role_id:
+        queryset = queryset.filter(profile__role__id=role_id)
+    
+    points_min = request.GET.get('points_min')
+    if points_min and points_min.isdigit():
+        queryset = queryset.filter(profile__dascoin_points__gte=int(points_min))
+    
+    points_max = request.GET.get('points_max')
+    if points_max and points_max.isdigit():
+        queryset = queryset.filter(profile__dascoin_points__lte=int(points_max))
+    
+    # Быстрые фильтры
+    zero_points = request.GET.get('zero_points')
+    if zero_points:
+        queryset = queryset.filter(profile__dascoin_points=0)
+    
+    approved_only = request.GET.get('approved')
+    show_all = request.GET.get('show_all')
+    # По умолчанию показываем только подтвержденных пользователей, если нет никаких параметров
+    has_any_params = bool(request.GET)
+    
+    if approved_only == '1' or (not has_any_params and not show_all):
+        queryset = queryset.filter(profile__is_approved=True)
+    
+    # Применяем distinct() до среза
+    queryset = queryset.distinct()
+    
+    # Быстрый фильтр топ-N применяется после distinct()
+    top_users = request.GET.get('top')
+    if top_users and top_users.isdigit():
+        queryset = queryset.order_by('-profile__dascoin_points')[:int(top_users)]
+    else:
+        queryset = queryset.order_by('-profile__dascoin_points', 'email')
+    
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Статистика DASCOIN"
+    
+    headers = ['Пользователь', 'Email', 'Группы', 'Должность', 'DASCOIN', 'Статус', 'Дата регистрации']
+    ws.append(headers)
+    
+    # Стили для заголовков
+    for cell in ws[1]:
+        cell.font = Font(bold=True, color="FFFFFF")
+        cell.fill = PatternFill(start_color="366092", end_color="366092", fill_type="solid")
+    
+    for user in queryset:
+        groups = ', '.join([group.name for group in user.groups.all()])
+        role = user.profile.role.name if user.profile.role else ''
+        
+        if user.is_active:
+            if user.profile.is_approved:
+                status = 'Активен'
+            else:
+                status = 'Ожидает подтверждения'
+        else:
+            status = 'Неактивен'
+        
+        ws.append([
+            user.get_full_name() or user.email,
+            user.email,
+            groups,
+            role,
+            user.profile.dascoin_points,
+            status,
+            user.date_joined.strftime("%d.%m.%Y %H:%M")
+        ])
+    
+    # Автоматическая ширина колонок
+    for column in ws.columns:
+        max_length = max(len(str(cell.value)) for cell in column)
+        ws.column_dimensions[column[0].column_letter].width = min(max_length + 2, 50)
+    
+    response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+    filename = f"admin_stats_{datetime.now().strftime('%Y%m%d_%H%M')}.xlsx"
+    response['Content-Disposition'] = f'attachment; filename={filename}'
+    wb.save(response)
+    
+    audit_logger.info(
+        'Экспортировал статистику администратора в Excel', 
+        extra={
+            'user': request.user.email if request.user.is_authenticated else 'Anonymous'
+        }
+    )
+    return response
+
+
+
+
+@login_required
+def export_admin_stats_pdf(request):
+    """Экспорт статистики администратора в PDF"""
+    if not (request.user.is_staff or request.user.is_superuser):
+        return HttpResponse("Доступ запрещен", status=403)
+    
+    # Получаем данные с теми же фильтрами
+    queryset = User.objects.select_related('profile', 'profile__role').prefetch_related('groups')
+    
+    # Применяем фильтры
+    group_id = request.GET.get('group')
+    if group_id:
+        queryset = queryset.filter(groups__id=group_id)
+    
+    role_id = request.GET.get('role')
+    if role_id:
+        queryset = queryset.filter(profile__role__id=role_id)
+    
+    points_min = request.GET.get('points_min')
+    if points_min and points_min.isdigit():
+        queryset = queryset.filter(profile__dascoin_points__gte=int(points_min))
+    
+    points_max = request.GET.get('points_max')
+    if points_max and points_max.isdigit():
+        queryset = queryset.filter(profile__dascoin_points__lte=int(points_max))
+    
+    # Быстрые фильтры
+    zero_points = request.GET.get('zero_points')
+    if zero_points:
+        queryset = queryset.filter(profile__dascoin_points=0)
+    
+    approved_only = request.GET.get('approved')
+    show_all = request.GET.get('show_all')
+    # По умолчанию показываем только подтвержденных пользователей, если нет никаких параметров
+    has_any_params = bool(request.GET)
+    
+    if approved_only == '1' or (not has_any_params and not show_all):
+        queryset = queryset.filter(profile__is_approved=True)
+    
+    # Применяем distinct() до среза
+    queryset = queryset.distinct()
+    
+    # Быстрый фильтр топ-N применяется после distinct()
+    top_users = request.GET.get('top')
+    if top_users and top_users.isdigit():
+        queryset = queryset.order_by('-profile__dascoin_points')[:int(top_users)]
+    else:
+        queryset = queryset.order_by('-profile__dascoin_points', 'email')
+    
+    # Общая статистика
+    all_users = User.objects.select_related('profile')
+    total_users = all_users.count()
+    total_dascoin_points = all_users.aggregate(total=Sum('profile__dascoin_points'))['total'] or 0
+    active_users = all_users.filter(is_active=True).count()
+    
+    # Статистика по баллам DASCOIN
+    total_spent_points = DascoinTransaction.objects.filter(
+        transaction_type='deduct'
+    ).aggregate(total=Sum('points_change'))['total'] or 0
+    total_spent_points = abs(total_spent_points)
+    
+    # Время последнего начисления баллов
+    last_award_transaction = DascoinTransaction.objects.filter(
+        transaction_type='award'
+    ).order_by('-created_at').first()
+    
+    last_award_date = None
+    if last_award_transaction:
+        last_award_date = last_award_transaction.created_at
+    
+    html_string = render_to_string('user_management/admin_stats_pdf.html', {
+        'users': queryset,
+        'total_users': total_users,
+        'total_dascoin_points': total_dascoin_points,
+        'active_users': active_users,
+        'total_spent_points': total_spent_points,
+        'last_award_date': last_award_date,
+        'generated_at': datetime.now(),
+        'generated_by': request.user.get_full_name() or request.user.email,
+    })
+    
+    html = HTML(string=html_string)
+    pdf = html.write_pdf()
+    response = HttpResponse(pdf, content_type='application/pdf')
+    filename = f"admin_stats_{datetime.now().strftime('%Y%m%d_%H%M')}.pdf"
+    response['Content-Disposition'] = f'attachment; filename={filename}'
+    
+    audit_logger.info(
+        'Экспортировал статистику администратора в PDF', 
+        extra={
+            'user': request.user.email if request.user.is_authenticated else 'Anonymous'
+        }
+    )
+    return response
+
+
+
+
+class AdminUserTransactionsView(LoginRequiredMixin, UserPassesTestMixin, ListView):
+    """CBV для отображения истории транзакций DASCOIN конкретного пользователя администратором"""
+    model = DascoinTransaction
+    template_name = 'user_management/admin_user_transactions.html'
+    context_object_name = 'transactions'
+    paginate_by = 20
+    ordering = ['-created_at']
+    
+    def test_func(self):
+        """Проверяет, что пользователь является staff или superuser"""
+        return self.request.user.is_staff or self.request.user.is_superuser
+    
+    def get_queryset(self):
+        """Возвращает транзакции конкретного пользователя с возможностью фильтрации"""
+        user_id = self.kwargs.get('user_id')
+        self.user = get_object_or_404(User, id=user_id)
+        
+        queryset = DascoinTransaction.objects.filter(user=self.user).order_by('-created_at')
+        
+        # Фильтрация по типу транзакции
+        transaction_type = self.request.GET.get('type')
+        if transaction_type and transaction_type in ['award', 'deduct', 'set', 'correction']:
+            queryset = queryset.filter(transaction_type=transaction_type)
+        
+        return queryset
+    
+    def get_context_data(self, **kwargs):
+        """Добавляет дополнительный контекст"""
+        context = super().get_context_data(**kwargs)
+        
+        context['user'] = self.user
+        context['total_transactions'] = self.get_queryset().count()
+        context['current_filter'] = self.request.GET.get('type', '')
+        
+        # Статистика по типам транзакций
+        all_transactions = DascoinTransaction.objects.filter(user=self.user)
+        context['stats'] = {
+            'award': all_transactions.filter(transaction_type='award').count(),
+            'deduct': all_transactions.filter(transaction_type='deduct').count(),
+            'set': all_transactions.filter(transaction_type='set').count(),
+            'correction': all_transactions.filter(transaction_type='correction').count(),
+        }
+        
+        # Логирование действия
+        audit_logger.info(
+            f'Просматривает историю транзакций пользователя {self.user.email}', 
+            extra={
+                'user': self.request.user.email if self.request.user.is_authenticated else 'Anonymous',
+                'target_user': self.user.email
+            }
+        )
+        
+        return context
+
+
+
+
+@login_required
+def export_admin_user_transactions_excel(request, user_id):
+    """Экспорт транзакций конкретного пользователя в Excel"""
+    if not (request.user.is_staff or request.user.is_superuser):
+        return HttpResponse("Доступ запрещен", status=403)
+    
+    user = get_object_or_404(User, id=user_id)
+    transactions = DascoinTransaction.objects.filter(user=user).order_by('-created_at')
+    
+    # Применяем фильтры
+    transaction_type = request.GET.get('type')
+    if transaction_type and transaction_type in ['award', 'deduct', 'set', 'correction']:
+        transactions = transactions.filter(transaction_type=transaction_type)
+    
+    wb = Workbook()
+    ws = wb.active
+    ws.title = f"Транзакции {user.email}"
+    
+    headers = ['Дата', 'Тип', 'Изменение', 'До', 'После', 'Причина', 'Администратор']
+    ws.append(headers)
+    
+    # Стили для заголовков
+    for cell in ws[1]:
+        cell.font = Font(bold=True, color="FFFFFF")
+        cell.fill = PatternFill(start_color="366092", end_color="366092", fill_type="solid")
+    
+    for tx in transactions:
+        ws.append([
+            tx.created_at.strftime("%d.%m.%Y %H:%M"),
+            tx.get_transaction_type_display(),
+            tx.points_change,
+            tx.points_before,
+            tx.points_after,
+            tx.reason or "Не указана",
+            tx.admin_user.get_full_name() if tx.admin_user else "Система"
+        ])
+    
+    # Автоматическая ширина колонок
+    for column in ws.columns:
+        max_length = max(len(str(cell.value)) for cell in column)
+        ws.column_dimensions[column[0].column_letter].width = min(max_length + 2, 50)
+    
+    response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+    filename = f"transactions_{user.email}_{datetime.now().strftime('%Y%m%d_%H%M')}.xlsx"
+    response['Content-Disposition'] = f'attachment; filename={filename}'
+    wb.save(response)
+    
+    audit_logger.info(
+        f'Экспортировал транзакции пользователя {user.email} в Excel', 
+        extra={
+            'user': request.user.email if request.user.is_authenticated else 'Anonymous',
+            'target_user': user.email
+        }
+    )
+    return response
+
+
+@login_required
+def export_admin_user_transactions_pdf(request, user_id):
+    """Экспорт транзакций конкретного пользователя в PDF"""
+    if not (request.user.is_staff or request.user.is_superuser):
+        return HttpResponse("Доступ запрещен", status=403)
+    
+    user = get_object_or_404(User, id=user_id)
+    transactions = DascoinTransaction.objects.filter(user=user).order_by('-created_at')
+    
+    # Применяем фильтры
+    transaction_type = request.GET.get('type')
+    if transaction_type and transaction_type in ['award', 'deduct', 'set', 'correction']:
+        transactions = transactions.filter(transaction_type=transaction_type)
+    
+    html_string = render_to_string('users/transactions_pdf.html', {
+        'transactions': transactions,
+        'user': user,
+        'generated_at': datetime.now(),
+        'total_transactions': transactions.count(),
+        'is_admin_view': True,
+        'generated_by': request.user.get_full_name() or request.user.email,
+    })
+    
+    html = HTML(string=html_string)
+    pdf = html.write_pdf()
+    response = HttpResponse(pdf, content_type='application/pdf')
+    filename = f"transactions_{user.email}_{datetime.now().strftime('%Y%m%d_%H%M')}.pdf"
+    response['Content-Disposition'] = f'attachment; filename={filename}'
+    
+    audit_logger.info(
+        f'Экспортировал транзакции пользователя {user.email} в PDF', 
+        extra={
+            'user': request.user.email if request.user.is_authenticated else 'Anonymous',
+            'target_user': user.email
+        }
+    )
+    return response
+
+
+@login_required
+def api_get_groups_with_courses(request):
+    """
+    API endpoint для получения списка всех групп с информацией о количестве курсов.
+    Возвращает JSON с данными групп.
+    """
+    if not (request.user.is_staff or request.user.is_superuser):
+        return JsonResponse({'error': 'Доступ запрещен'}, status=403)
+    
+    groups = Group.objects.all().order_by('name')
+    
+    groups_data = []
+    for group in groups:
+        # Получаем количество курсов, доступных для этой группы
+        courses_count = Course.objects.filter(allowed_groups=group).exclude(is_incident=True).count()
+        
+        groups_data.append({
+            'id': group.id,
+            'name': group.name,
+            'user_count': group.user_set.filter(is_active=True).count(),
+            'courses_count': courses_count,
+        })
+    
+    return JsonResponse({'groups': groups_data})
+
+
+@login_required
+def api_get_group_courses(request, group_id):
+    """
+    API endpoint для получения списка курсов, доступных для группы.
+    Возвращает JSON с данными курсов.
+    """
+    if not (request.user.is_staff or request.user.is_superuser):
+        return JsonResponse({'error': 'Доступ запрещен'}, status=403)
+    
+    try:
+        group = Group.objects.get(id=group_id)
+    except Group.DoesNotExist:
+        return JsonResponse({'error': 'Группа не найдена'}, status=404)
+    
+    # Получаем курсы, доступные для этой группы (исключаем курсы-инциденты)
+    courses = Course.objects.filter(allowed_groups=group).exclude(is_incident=True).order_by('title')
+    
+    courses_data = []
+    for course in courses:
+        courses_data.append({
+            'id': course.id,
+            'title': course.title,
+            'description': course.description[:200] if course.description else '',  # Первые 200 символов
+            'author': course.author.get_full_name() or course.author.username,
+        })
+    
+    return JsonResponse({'courses': courses_data})
+
+
+@login_required
+def api_search_courses(request):
+    """
+    API endpoint для поиска курсов по названию.
+    Возвращает JSON с данными курсов.
+    """
+    if not (request.user.is_staff or request.user.is_superuser):
+        return JsonResponse({'error': 'Доступ запрещен'}, status=403)
+    
+    query = request.GET.get('q', '').strip()
+    
+    # Исключаем курсы-инциденты
+    courses = Course.objects.exclude(is_incident=True)
+    
+    if query:
+        courses = courses.filter(
+            Q(title__icontains=query) | 
+            Q(description__icontains=query)
+        )
+    
+    courses = courses.order_by('title')[:50]  # Ограничиваем 50 результатами
+    
+    courses_data = []
+    for course in courses:
+        courses_data.append({
+            'id': course.id,
+            'title': course.title,
+            'description': course.description[:200] if course.description else '',
+            'author': course.author.get_full_name() or course.author.username,
+        })
+    
+    return JsonResponse({'courses': courses_data})
+
+
+@login_required
+@require_POST
+def api_assign_courses_to_user(request, user_id):
+    """
+    API endpoint для индивидуального назначения курсов пользователю.
+    Принимает список ID курсов и назначает их пользователю, если они еще не назначены.
+    """
+    if not (request.user.is_staff or request.user.is_superuser):
+        return JsonResponse({'error': 'Доступ запрещен'}, status=403)
+    
+    try:
+        target_user = User.objects.get(id=user_id)
+    except User.DoesNotExist:
+        return JsonResponse({'error': 'Пользователь не найден'}, status=404)
+    
+    # Получаем данные из POST запроса
+    try:
+        data = json.loads(request.body)
+    except (json.JSONDecodeError, AttributeError):
+        return JsonResponse({'error': 'Неверный формат данных'}, status=400)
+    
+    # Поддержка нового формата с индивидуальными deadline_days для каждого курса
+    courses_data = data.get('courses', [])
+    
+    # Поддержка старого формата для обратной совместимости
+    if not courses_data:
+        course_ids = data.get('course_ids', [])
+        deadline_days = data.get('deadline_days', 7)
+        
+        if not course_ids or not isinstance(course_ids, list):
+            return JsonResponse({'error': 'Список курсов не указан'}, status=400)
+        
+        # Валидация deadline_days
+        try:
+            deadline_days = int(deadline_days)
+            if deadline_days < 1:
+                return JsonResponse({'error': 'Количество дней должно быть больше 0'}, status=400)
+        except (ValueError, TypeError):
+            return JsonResponse({'error': 'Неверное значение количества дней'}, status=400)
+        
+        # Преобразуем старый формат в новый
+        courses_data = [{'course_id': cid, 'deadline_days': deadline_days} for cid in course_ids]
+    
+    if not courses_data or not isinstance(courses_data, list):
+        return JsonResponse({'error': 'Список курсов не указан'}, status=400)
+    
+    # Валидация и извлечение данных о курсах
+    course_deadlines = {}
+    course_ids = []
+    
+    for course_item in courses_data:
+        if not isinstance(course_item, dict):
+            return JsonResponse({'error': 'Неверный формат данных курса'}, status=400)
+        
+        course_id = course_item.get('course_id')
+        deadline_days = course_item.get('deadline_days', 7)
+        
+        if not course_id:
+            return JsonResponse({'error': 'ID курса не указан'}, status=400)
+        
+        # Валидация deadline_days
+        try:
+            deadline_days = int(deadline_days)
+            if deadline_days < 1:
+                return JsonResponse({'error': 'Количество дней должно быть больше 0'}, status=400)
+        except (ValueError, TypeError):
+            return JsonResponse({'error': 'Неверное значение количества дней'}, status=400)
+        
+        course_ids.append(course_id)
+        course_deadlines[course_id] = deadline_days
+    
+    # Получаем курсы
+    courses = Course.objects.filter(id__in=course_ids).exclude(is_incident=True)
+    
+    if courses.count() != len(course_ids):
+        return JsonResponse({'error': 'Некоторые курсы не найдены'}, status=400)
+    
+    # Создаем словарь курсов для быстрого доступа
+    courses_dict = {course.id: course for course in courses}
+    
+    # Назначаем курсы пользователю
+    assigned_count = 0
+    already_assigned_count = 0
+    assigned_courses = []
+    already_assigned_courses = []
+    
+    for course_id in course_ids:
+        course = courses_dict.get(course_id)
+        if not course:
+            continue
+        
+        deadline_days = course_deadlines[course_id]
+        deadline = timezone.now() + timedelta(days=deadline_days)
+        
+        # Проверяем, не назначен ли уже курс пользователю
+        user_course, created = UserCourse.objects.get_or_create(
+            user=target_user,
+            course=course,
+            defaults={'status': 'available', 'deadline': deadline}
+        )
+        
+        # Если курс уже был назначен, обновляем deadline только если он не был установлен ранее
+        if not created and not user_course.deadline:
+            user_course.deadline = deadline
+            user_course.save(update_fields=['deadline'])
+        
+        if created:
+            assigned_count += 1
+            assigned_courses.append({
+                'id': course.id,
+                'title': course.title
+            })
+            
+            # Создаем внутреннее уведомление
+            try:
+                from notifications.models import Notification
+                Notification.create_course_assignment_notification(target_user, course)
+            except Exception as e:
+                audit_logger.error(f"Ошибка создания уведомления о курсе {course.title}: {e}")
+            
+            # Отправляем email уведомление
+            try:
+                from .utils import send_course_assignment_email
+                send_course_assignment_email(target_user, course)
+                audit_logger.info(f"Отправлено email уведомление о курсе {course.title} пользователю {target_user.email}",
+                extra={
+                    'user': request.user.username if request.user.is_authenticated else 'Anonymous'
+                })
+            except Exception as e:
+                audit_logger.error(f"Ошибка отправки email уведомления о курсе {course.title}: {e}",
+                extra={
+                    'user': request.user.username if request.user.is_authenticated else 'Anonymous'
+                })
+        else:
+            already_assigned_count += 1
+            already_assigned_courses.append({
+                'id': course.id,
+                'title': course.title
+            })
+    
+    return JsonResponse({
+        'success': True,
+        'assigned_count': assigned_count,
+        'already_assigned_count': already_assigned_count,
+        'assigned_courses': assigned_courses,
+        'already_assigned_courses': already_assigned_courses,
+        'message': f'Назначено курсов: {assigned_count}, уже были назначены: {already_assigned_count}'
+    })
+
+
+@require_POST
+@login_required
+def unassign_course_from_user(request, user_id, user_course_id):
+    """
+    Отменяет назначение курса для пользователя.
+    Удаляет запись UserCourse для указанного пользователя и курса.
+    Создает запись ManualCourseUnassignment для предотвращения автоматического переназначения.
+    """
+    # Проверка прав доступа
+    if not (request.user.is_staff or request.user.is_superuser):
+        messages.error(request, 'У вас нет прав для выполнения этого действия.')
+        return redirect('user_management:user_edit_detailed', pk=user_id)
+    
+    try:
+        from myapp.models import ManualCourseUnassignment
+        
+        # Получаем пользователя
+        target_user = get_object_or_404(User, id=user_id)
+        
+        # Получаем назначение курса
+        user_course = get_object_or_404(UserCourse, id=user_course_id, user=target_user)
+        
+        # Сохраняем ссылку на курс
+        course = user_course.course
+        course_title = course.title
+        
+        # Создаем запись о ручной отмене назначения (или обновляем существующую)
+        ManualCourseUnassignment.objects.update_or_create(
+            user=target_user,
+            course=course,
+            defaults={
+                'unassigned_by': request.user,
+                'reason': f'Ручная отмена назначения через интерфейс управления'
+            }
+        )
+        
+        # Удаляем назначение
+        user_course.delete()
+        
+        # Логируем действие
+        audit_logger.info(
+            f"Отменено назначение курса '{course_title}' для пользователя {target_user.username}. "
+            f"Создана запись о ручной отмене для предотвращения автоматического переназначения.",
+            extra={'user': request.user.username}
+        )
+        
+        messages.success(request, f'Назначение курса "{course_title}" успешно отменено.')
+        
+    except Exception as e:
+        audit_logger.error(
+            f"Ошибка при отмене назначения курса: {str(e)}",
+            extra={'user': request.user.username}
+        )
+        messages.error(request, 'Произошла ошибка при отмене назначения курса.')
+    
+    # Формируем URL с параметром tab
+    url = reverse('user_management:user_edit_detailed', kwargs={'pk': user_id})
+    return redirect(url + '?tab=assigned_training')
+
+
+@require_POST
+@login_required
+def unassign_trajectory_from_user(request, user_id, user_trajectory_id):
+    """
+    Отменяет назначение траектории для пользователя.
+    Удаляет запись UserCourseTrajectory для указанного пользователя и траектории.
+    Создает запись ManualTrajectoryUnassignment для предотвращения автоматического переназначения.
+    """
+    # Проверка прав доступа
+    if not (request.user.is_staff or request.user.is_superuser):
+        messages.error(request, 'У вас нет прав для выполнения этого действия.')
+        return redirect('user_management:user_edit_detailed', pk=user_id)
+    
+    try:
+        from courses.models import ManualTrajectoryUnassignment
+        
+        # Получаем пользователя
+        target_user = get_object_or_404(User, id=user_id)
+        
+        # Получаем назначение траектории
+        user_trajectory = get_object_or_404(UserCourseTrajectory, id=user_trajectory_id, user=target_user)
+        
+        # Сохраняем ссылку на траекторию
+        trajectory = user_trajectory.trajectory
+        trajectory_name = trajectory.name
+        
+        # Создаем запись о ручной отмене назначения (или обновляем существующую)
+        ManualTrajectoryUnassignment.objects.update_or_create(
+            user=target_user,
+            trajectory=trajectory,
+            defaults={
+                'unassigned_by': request.user,
+                'reason': f'Ручная отмена назначения через интерфейс управления'
+            }
+        )
+        
+        # Удаляем назначение
+        user_trajectory.delete()
+        
+        # Логируем действие
+        audit_logger.info(
+            f"Отменено назначение траектории '{trajectory_name}' для пользователя {target_user.username}. "
+            f"Создана запись о ручной отмене для предотвращения автоматического переназначения.",
+            extra={'user': request.user.username}
+        )
+        
+        messages.success(request, f'Назначение траектории "{trajectory_name}" успешно отменено.')
+        
+    except Exception as e:
+        audit_logger.error(
+            f"Ошибка при отмене назначения траектории: {str(e)}",
+            extra={'user': request.user.username}
+        )
+        messages.error(request, 'Произошла ошибка при отмене назначения траектории.')
+    
+    # Формируем URL с параметром tab
+    url = reverse('user_management:user_edit_detailed', kwargs={'pk': user_id})
+    return redirect(url + '?tab=assigned_training')
+
+
+@require_POST
+@login_required
+def toggle_course_block(request, user_id, user_course_id):
+    """
+    Блокирует или разблокирует курс для пользователя.
+    Изменяет статус UserCourse на 'blocked' или 'available'/'started' в зависимости от текущего статуса.
+    """
+    # Проверка прав доступа
+    if not (request.user.is_staff or request.user.is_superuser):
+        messages.error(request, 'У вас нет прав для выполнения этого действия.')
+        return redirect('user_management:user_edit_detailed', pk=user_id)
+    
+    try:
+        # Получаем пользователя
+        target_user = get_object_or_404(User, id=user_id)
+        
+        # Получаем назначение курса
+        user_course = get_object_or_404(UserCourse, id=user_course_id, user=target_user)
+        
+        # Сохраняем ссылку на курс
+        course = user_course.course
+        course_title = course.title
+        
+        # Определяем действие: блокировка или разблокировка
+        if user_course.status == 'blocked':
+            # Разблокируем курс
+            # Если курс был завершен, оставляем статус 'completed'
+            # Иначе устанавливаем 'available' или 'started' в зависимости от прогресса
+            if user_course.end_date:
+                # Курс был завершен, оставляем completed
+                new_status = 'completed'
+            else:
+                # Проверяем, есть ли прогресс
+                has_progress = UserProgress.objects.filter(
+                    user=target_user, 
+                    course=course, 
+                    completed=True
+                ).exists()
+                new_status = 'started' if has_progress else 'available'
+                # Отключаем дедлайн для выбранного курса
+                user_course.deadline = None
+                user_course.save(update_fields=['deadline'])
+            
+            user_course.status = new_status
+            action_text = 'разблокирован'
+            log_action = 'разблокирован'
+        else:
+            # Блокируем курс
+            user_course.status = 'blocked'
+            action_text = 'заблокирован'
+            log_action = 'заблокирован'
+
+        
+        user_course.save(update_fields=['status'])
+        
+        # Логируем действие
+        audit_logger.info(
+            f"Курс '{course_title}' для пользователя {target_user.username} {log_action}.",
+            extra={'user': request.user.username}
+        )
+        
+        messages.success(request, f'Курс "{course_title}" успешно {action_text}.')
+        
+    except Exception as e:
+        audit_logger.error(
+            f"Ошибка при изменении статуса блокировки курса: {str(e)}",
+            extra={'user': request.user.username}
+        )
+        messages.error(request, 'Произошла ошибка при изменении статуса блокировки курса.')
+    
+    # Формируем URL с параметром tab
+    url = reverse('user_management:user_edit_detailed', kwargs={'pk': user_id})
+    return redirect(url + '?tab=assigned_training')
+
+
+# ========== API ENDPOINTS ДЛЯ ТРАЕКТОРИЙ ==========
+
+@login_required
+def api_get_groups_with_trajectories(request):
+    """
+    API endpoint для получения списка всех групп с информацией о количестве траекторий.
+    Возвращает JSON с данными групп.
+    """
+    if not (request.user.is_staff or request.user.is_superuser):
+        return JsonResponse({'error': 'Доступ запрещен'}, status=403)
+    
+    groups = Group.objects.all().order_by('name')
+    
+    groups_data = []
+    for group in groups:
+        # Получаем количество траекторий, доступных для этой группы
+        trajectories_count = Trajectory.objects.filter(groups=group).count()
+        
+        groups_data.append({
+            'id': group.id,
+            'name': group.name,
+            'user_count': group.user_set.filter(is_active=True).count(),
+            'trajectories_count': trajectories_count,
+        })
+    
+    return JsonResponse({'groups': groups_data})
+
+
+@login_required
+def api_get_group_trajectories(request, group_id):
+    """
+    API endpoint для получения списка траекторий, доступных для группы.
+    Возвращает JSON с данными траекторий.
+    """
+    if not (request.user.is_staff or request.user.is_superuser):
+        return JsonResponse({'error': 'Доступ запрещен'}, status=403)
+    
+    try:
+        group = Group.objects.get(id=group_id)
+    except Group.DoesNotExist:
+        return JsonResponse({'error': 'Группа не найдена'}, status=404)
+    
+    # Получаем траектории, доступные для этой группы
+    trajectories = Trajectory.objects.filter(groups=group).order_by('name')
+    
+    trajectories_data = []
+    for trajectory in trajectories:
+        trajectories_data.append({
+            'id': trajectory.id,
+            'name': trajectory.name,
+            'description': trajectory.description[:200] if trajectory.description else '',
+        })
+    
+    return JsonResponse({'trajectories': trajectories_data})
+
+
+@login_required
+def api_search_trajectories(request):
+    """
+    API endpoint для поиска траекторий по названию.
+    Возвращает JSON с данными траекторий.
+    """
+    if not (request.user.is_staff or request.user.is_superuser):
+        return JsonResponse({'error': 'Доступ запрещен'}, status=403)
+    
+    query = request.GET.get('q', '').strip()
+    
+    trajectories = Trajectory.objects.all()
+    
+    if query:
+        trajectories = trajectories.filter(
+            Q(name__icontains=query) | 
+            Q(description__icontains=query)
+        )
+    
+    trajectories = trajectories.order_by('name')[:50]  # Ограничиваем 50 результатами
+    
+    trajectories_data = []
+    for trajectory in trajectories:
+        trajectories_data.append({
+            'id': trajectory.id,
+            'name': trajectory.name,
+            'description': trajectory.description[:200] if trajectory.description else '',
+        })
+    
+    return JsonResponse({'trajectories': trajectories_data})
+
+
+@login_required
+@require_POST
+def api_assign_trajectories_to_user(request, user_id):
+    """
+    API endpoint для индивидуального назначения траекторий пользователю.
+    Принимает список ID траекторий и назначает их пользователю, если они еще не назначены.
+    """
+    if not (request.user.is_staff or request.user.is_superuser):
+        return JsonResponse({'error': 'Доступ запрещен'}, status=403)
+    
+    try:
+        target_user = User.objects.get(id=user_id)
+    except User.DoesNotExist:
+        return JsonResponse({'error': 'Пользователь не найден'}, status=404)
+    
+    # Получаем данные из POST запроса
+    try:
+        data = json.loads(request.body)
+    except (json.JSONDecodeError, AttributeError):
+        return JsonResponse({'error': 'Неверный формат данных'}, status=400)
+    
+    # Поддержка нового формата с индивидуальными deadline_days для каждой траектории
+    trajectories_data = data.get('trajectories', [])
+    
+    # Поддержка старого формата для обратной совместимости
+    if not trajectories_data:
+        trajectory_ids = data.get('trajectory_ids', [])
+        deadline_days = data.get('deadline_days', 30)
+        
+        if not trajectory_ids or not isinstance(trajectory_ids, list):
+            return JsonResponse({'error': 'Список траекторий не указан'}, status=400)
+        
+        # Валидация deadline_days
+        try:
+            deadline_days = int(deadline_days)
+            if deadline_days < 1:
+                return JsonResponse({'error': 'Количество дней должно быть больше 0'}, status=400)
+        except (ValueError, TypeError):
+            return JsonResponse({'error': 'Неверное значение количества дней'}, status=400)
+        
+        # Преобразуем старый формат в новый
+        trajectories_data = [{'trajectory_id': tid, 'deadline_days': deadline_days} for tid in trajectory_ids]
+    
+    if not trajectories_data or not isinstance(trajectories_data, list):
+        return JsonResponse({'error': 'Список траекторий не указан'}, status=400)
+    
+    # Валидация и извлечение данных о траекториях
+    trajectory_deadlines = {}
+    trajectory_ids = []
+    
+    for trajectory_item in trajectories_data:
+        if not isinstance(trajectory_item, dict):
+            return JsonResponse({'error': 'Неверный формат данных траектории'}, status=400)
+        
+        trajectory_id = trajectory_item.get('trajectory_id')
+        deadline_days = trajectory_item.get('deadline_days', 30)
+        
+        if not trajectory_id:
+            return JsonResponse({'error': 'ID траектории не указан'}, status=400)
+        
+        # Валидация deadline_days
+        try:
+            deadline_days = int(deadline_days)
+            if deadline_days < 1:
+                return JsonResponse({'error': 'Количество дней должно быть больше 0'}, status=400)
+        except (ValueError, TypeError):
+            return JsonResponse({'error': 'Неверное значение количества дней'}, status=400)
+        
+        trajectory_ids.append(trajectory_id)
+        trajectory_deadlines[trajectory_id] = deadline_days
+    
+    # Получаем траектории
+    trajectories = Trajectory.objects.filter(id__in=trajectory_ids)
+    
+    if trajectories.count() != len(trajectory_ids):
+        return JsonResponse({'error': 'Некоторые траектории не найдены'}, status=400)
+    
+    # Создаем словарь траекторий для быстрого доступа
+    trajectories_dict = {trajectory.id: trajectory for trajectory in trajectories}
+    
+    # Назначаем траектории пользователю
+    assigned_count = 0
+    already_assigned_count = 0
+    assigned_trajectories = []
+    already_assigned_trajectories = []
+    
+    for trajectory_id in trajectory_ids:
+        trajectory = trajectories_dict.get(trajectory_id)
+        if not trajectory:
+            continue
+        
+        # Примечание: deadline для траекторий не используется в текущей модели UserCourseTrajectory
+        # Но мы можем добавить это поле в будущем
+        
+        # Проверяем, не назначена ли уже траектория пользователю
+        user_trajectory, created = UserCourseTrajectory.objects.get_or_create(
+            user=target_user,
+            trajectory=trajectory,
+            defaults={'completed': False}
+        )
+        
+        if created:
+            assigned_count += 1
+            assigned_trajectories.append({
+                'id': trajectory.id,
+                'name': trajectory.name
+            })
+            
+            # Создаем внутреннее уведомление
+            try:
+                from notifications.models import Notification
+                Notification.create_trajectory_assignment_notification(target_user, trajectory)
+            except Exception as e:
+                audit_logger.error(f"Ошибка создания уведомления о траектории {trajectory.name}: {e}")
+            
+            # Отправляем email уведомление
+            try:
+                from .utils import send_trajectory_assignment_email
+                send_trajectory_assignment_email(target_user, trajectory)
+                audit_logger.info(f"Отправлено email уведомление о траектории {trajectory.name} пользователю {target_user.email}",
+                extra={
+                    'user': request.user.username if request.user.is_authenticated else 'Anonymous'
+                })
+            except Exception as e:
+                audit_logger.error(f"Ошибка отправки email уведомления о траектории {trajectory.name}: {e}",
+                extra={
+                    'user': request.user.username if request.user.is_authenticated else 'Anonymous'
+                })
+        else:
+            already_assigned_count += 1
+            already_assigned_trajectories.append({
+                'id': trajectory.id,
+                'name': trajectory.name
+            })
+    
+    return JsonResponse({
+        'success': True,
+        'assigned_count': assigned_count,
+        'already_assigned_count': already_assigned_count,
+        'assigned_trajectories': assigned_trajectories,
+        'already_assigned_trajectories': already_assigned_trajectories,
+        'message': f'Назначено траекторий: {assigned_count}, уже были назначены: {already_assigned_count}'
+    })
+
+
+@login_required
+def api_get_lessons_for_assignment(request):
+    """
+    API endpoint для получения всех уроков из базы знаний для назначения пользователю.
+    Возвращает структуру категорий с уроками, аналогично AddLessonView.
+    """
+    if not (request.user.is_staff or request.user.is_superuser):
+        return JsonResponse({'error': 'Доступ запрещен'}, status=403)
+    
+    from builder.models import CategoryName
+    from quizzes.models import Quiz
+    
+    def process_category(cat):
+        """Рекурсивная обработка категории"""
+        # Получаем все уроки категории (включая зеркала)
+        lessons = list(cat.lessons.all())
+        for mirror in cat.mirrored_lessons.all():
+            if mirror.lesson not in lessons:
+                lessons.append(mirror.lesson)
+        
+        # Обрабатываем подкатегории
+        subcategories = []
+        for subcat in cat.subcategories.all().order_by('order', 'name'):
+            subcategories.append(process_category(subcat))
+        
+        return {
+            'id': cat.id,
+            'name': cat.name,
+            'lessons': [{
+                'id': lesson.id,
+                'title': lesson.title,
+            } for lesson in lessons],
+            'subcategories': subcategories
+        }
+    
+    # Получаем все категории
+    categories = CategoryName.objects.filter(parent=None).prefetch_related(
+        'subcategories', 'lessons', 'mirrored_lessons__lesson'
+    ).order_by('order', 'name')
+    
+    categories_data = [process_category(cat) for cat in categories]
+    
+    # Получаем уроки без категории
+    uncategorized_lessons = Lesson.objects.filter(category__isnull=True).order_by('order', 'title')
+    uncategorized_data = [{
+        'id': lesson.id,
+        'title': lesson.title,
+    } for lesson in uncategorized_lessons]
+    
+    return JsonResponse({
+        'categories': categories_data,
+        'uncategorized_lessons': uncategorized_data,
+    })
+
+
+@login_required
+def api_search_lessons(request):
+    """
+    API endpoint для поиска уроков по названию.
+    Возвращает JSON с данными уроков.
+    """
+    if not (request.user.is_staff or request.user.is_superuser):
+        return JsonResponse({'error': 'Доступ запрещен'}, status=403)
+    
+    query = request.GET.get('q', '').strip()
+    
+    lessons = Lesson.objects.all()
+    
+    if query:
+        lessons = lessons.filter(title__icontains=query)
+    
+    lessons = lessons.order_by('title')[:50]  # Ограничиваем 50 результатами
+    
+    lessons_data = []
+    for lesson in lessons:
+        lessons_data.append({
+            'id': lesson.id,
+            'title': lesson.title,
+            'category': lesson.category.name if lesson.category else None,
+        })
+    
+    return JsonResponse({'lessons': lessons_data})
+
+
+@login_required
+@require_POST
+def api_assign_lessons_to_user(request, user_id):
+    """
+    API endpoint для назначения уроков пользователю отдельно от курсов.
+    Принимает список ID уроков и назначает их пользователю.
+    """
+    if not (request.user.is_staff or request.user.is_superuser):
+        return JsonResponse({'error': 'Доступ запрещен'}, status=403)
+    
+    try:
+        target_user = User.objects.get(id=user_id)
+    except User.DoesNotExist:
+        return JsonResponse({'error': 'Пользователь не найден'}, status=404)
+    
+    # Получаем данные из POST запроса
+    try:
+        data = json.loads(request.body)
+    except (json.JSONDecodeError, AttributeError):
+        return JsonResponse({'error': 'Неверный формат данных'}, status=400)
+    
+    lesson_ids = data.get('lesson_ids', [])
+    
+    if not lesson_ids or not isinstance(lesson_ids, list):
+        return JsonResponse({'error': 'Список уроков не указан'}, status=400)
+    
+    # Получаем уроки
+    lessons = Lesson.objects.filter(id__in=lesson_ids)
+    
+    if lessons.count() != len(lesson_ids):
+        return JsonResponse({'error': 'Некоторые уроки не найдены'}, status=400)
+    
+    # Назначаем уроки пользователю
+    assigned_count = 0
+    already_assigned_count = 0
+    assigned_lessons = []
+    already_assigned_lessons = []
+    
+    for lesson in lessons:
+        user_lesson, created = UserLesson.objects.get_or_create(
+            user=target_user,
+            lesson=lesson,
+            defaults={'assigned_by': request.user}
+        )
+        
+        if created:
+            assigned_count += 1
+            assigned_lessons.append({
+                'id': lesson.id,
+                'title': lesson.title
+            })
+        else:
+            already_assigned_count += 1
+            already_assigned_lessons.append({
+                'id': lesson.id,
+                'title': lesson.title
+            })
+    
+    return JsonResponse({
+        'success': True,
+        'assigned_count': assigned_count,
+        'already_assigned_count': already_assigned_count,
+        'assigned_lessons': assigned_lessons,
+        'already_assigned_lessons': already_assigned_lessons,
+        'message': f'Назначено уроков: {assigned_count}, уже были назначены: {already_assigned_count}'
+    })
+
+

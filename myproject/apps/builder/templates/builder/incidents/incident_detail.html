@@ -1,0 +1,696 @@
+{% extends 'layout.html' %}
+{% load static %}
+{% load quiz_filters %}
+{% block title %}Детали инцидентов{% endblock %}
+{% block specific_styles %}
+    <link rel="stylesheet" href="{% static 'builder/css/incidents.css' %}">
+{% endblock %}
+{% block content %}
+{% csrf_token %}
+<div class="incidents-card mb-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h2 class="mb-0">Детали инцидентов</h2>
+        <div class="d-flex gap-2">
+            <a href="{% url 'builder:incident_statuses_report' %}" class="btn btn-primary">Отчёт</a>
+            <a href="{% url 'builder:incidents' %}" class="btn btn-secondary">← Назад к списку</a>
+        </div>
+    </div>
+    
+    <!-- Фильтры -->
+    <form method="get" id="incident-detail-filter-form" class="mb-4">
+        <div class="row mb-2 g-2 align-items-center">
+            <!-- Поиск по названию -->
+            <div class="col-md-3 col-lg-3">
+                <input type="text" class="form-control" id="search" name="search" placeholder="Поиск по названию инцидента..." value="{{ search }}">
+            </div>
+            <!-- Фильтр по дате -->
+            <div class="col-md-auto d-flex align-items-center gap-1" id="date-filter-wrap">
+                <div>
+                    <input type="date" class="form-control date-input-compact" id="date_from" name="date_from" value="{{ date_from }}">
+                </div>
+                <div>
+                    <input type="date" class="form-control date-input-compact" id="date_to" name="date_to" value="{{ date_to }}">
+                </div>
+                <div class="date-quick-buttons d-flex flex-column gap-1">
+                    <button type="button" class="btn btn-sm btn-outline-secondary date-quick-btn" id="date-btn-last-week" title="Инциденты за прошлую неделю">-1нед.</button>
+                    <button type="button" class="btn btn-sm btn-outline-secondary date-quick-btn" id="date-btn-reset" title="Весь период, сбросить фильтр по дате">&lt;-&gt;</button>
+                </div>
+            </div>
+            <!-- Фильтр по пользователю -->
+            <div class="col-md-3 col-lg-2">
+                <select class="form-control" id="assigned_user" name="assigned_user">
+                    <option value="">Все пользователи</option>
+                    {% for user in users %}
+                        <option value="{{ user.id }}" {% if selected_user_id == user.id %}selected{% endif %}>
+                            {{ user.get_full_name|default:user.username }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <!-- Фильтр по нарушителям -->
+            <div class="col-md-3 col-lg-2">
+                <select class="form-control" id="violator_filter" name="violator_filter" {% if violator_filter == 'yes' and violator_filter_locked %}disabled{% endif %}>
+                    <option value="all" {% if violator_filter == 'all' %}selected{% endif %}>Тип участника: Все</option>
+                    <option value="yes" {% if violator_filter == 'yes' %}selected{% endif %}>Только нарушители</option>
+                    <option value="no" {% if violator_filter == 'no' %}selected{% endif %}>Только не нарушители</option>
+                </select>
+                {% if violator_filter == 'yes' and violator_filter_locked %}
+                <input type="hidden" name="violator_filter" value="yes">
+                {% endif %}
+            </div>
+        </div>
+        <!-- Фильтр по статусу инцидента -->
+        <div class="mb-2">
+            <div class="status-filters d-flex flex-wrap gap-2 align-items-center">
+                {% for value, label in status_choices %}
+                    <div class="form-check">
+                        <input class="form-check-input status-checkbox"
+                               type="checkbox"
+                               name="status"
+                               value="{{ value }}"
+                               id="status_{{ value }}"
+                               {% if value in selected_statuses %}checked{% endif %}>
+                        <label class="form-check-label" for="status_{{ value }}">
+                            {{ label }}
+                        </label>
+                    </div>
+                {% endfor %}
+                <div class="col-md-auto dropdown">
+                    <button class="btn btn-outline-secondary dropdown-toggle department-dropdown-toggle" type="button" id="departmentDropdown" data-bs-toggle="dropdown" aria-expanded="false" style="min-width: 200px; text-align: left;">
+                        <span class="department-dropdown-label">{% if selected_department_filters %}{{ selected_department_filters|length }} выбрано{% else %}Все подразделения{% endif %}</span>
+                    </button>
+                    <ul class="dropdown-menu department-dropdown-menu" aria-labelledby="departmentDropdown" style="max-height: 280px; overflow-y: auto;">
+                        {% for department in departments %}
+                            <li class="dropdown-item-text px-2 py-1" style="margin-left: 10%;">
+                                <label class="d-flex align-items-center gap-2 mb-0 cursor-pointer w-100 py-1">
+                                    <input type="checkbox" class="form-check-input department-checkbox" name="department_filter" value="{{ department.name }}" {% if department.name in selected_department_filters %}checked{% endif %}>
+                                    <span>{{ department.name }}</span>
+                                </label>
+                            </li>
+                        {% endfor %}
+                    </ul>
+                </div>
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" id="only_overdue" name="only_overdue" {% if only_overdue %}checked{% endif %}>
+                    <label class="form-check-label" for="only_overdue">
+                        Только просроченные
+                    </label>
+                </div>
+            </div>
+        </div>
+        <!-- Кнопки под строкой поиска -->
+        <div class="row">
+            <div class="col-md-2 col-lg-2">
+                <button type="submit" class="btn btn-primary w-30">Применить фильтры</button>
+            </div>
+            <div class="col-md-1 col-lg-1">
+                <a href="{% url 'builder:incident_detail' %}{% if violator_filter_locked %}?violator_filter=yes&date_from={{ date_from }}&date_to={{ date_to }}{% elif search %}?search={{ search|urlencode }}{% endif %}" class="btn btn-secondary w-30" id="reset-button">Сбросить</a>
+            </div>
+            <div class="col-md-2 col-lg-3">
+                <button type="button" id="column-comments-button" class="btn btn-secondary w-30" title="Комментарий к столбцам">К</button>
+            </div>
+        </div>
+    </form>
+    
+    <h3 class="mb-3">Назначенные пользователи</h3>
+    
+    <div class="incidents-table-responsive">
+        <table class="table">
+            <thead>
+                <tr>
+                    <th style="width: 5%;">№</th>
+                    <th style="width: 10%;" class="sortable" data-sort-type="date-dot" data-sort-col="1">Дата назначения<span class="sort-icon"><span class="sort-asc">&#9650;</span><span class="sort-desc">&#9660;</span></span></th>
+                    <th style="width: 20%;" class="sortable" data-sort-type="text" data-sort-col="2">Название инцидента<span class="sort-icon"><span class="sort-asc">&#9650;</span><span class="sort-desc">&#9660;</span></span></th>
+                    <th style="width: 15%;" class="sortable" data-sort-type="text" data-sort-col="3">Назначено<span class="sort-icon"><span class="sort-asc">&#9650;</span><span class="sort-desc">&#9660;</span></span></th>
+                    <th style="width: 15%;" class="sortable" data-sort-type="text" data-sort-col="4">Подразделение<span class="sort-icon"><span class="sort-asc">&#9650;</span><span class="sort-desc">&#9660;</span></span></th>
+                    <th style="width: 10%;" class="sortable" data-sort-type="text" data-sort-col="5">Нарушитель<span class="sort-icon"><span class="sort-asc">&#9650;</span><span class="sort-desc">&#9660;</span></span></th>
+                    <th style="width: 10%;" class="sortable" data-sort-type="text" data-sort-col="6">Ответственный<span class="sort-icon"><span class="sort-asc">&#9650;</span><span class="sort-desc">&#9660;</span></span></th>
+                    <th style="width: 10%;" class="sortable" data-sort-type="datetime-dot" data-sort-col="7">Дедлайн<span class="sort-icon"><span class="sort-asc">&#9650;</span><span class="sort-desc">&#9660;</span></span></th>
+                    <th style="width: 10%;" class="sortable" data-sort-type="text" data-sort-col="8">Статус<span class="sort-icon"><span class="sort-asc">&#9650;</span><span class="sort-desc">&#9660;</span></span></th>
+                    <th style="width: 5%;">Действия</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% if incident_user_list %}
+                    {% for item in incident_user_list %}
+                    <tr class="incident-user-row" data-incident-id="{{ item.incident.id }}" data-user-id="{{ item.user.id }}" style="cursor: pointer;">
+                        <td>{{ forloop.counter }}</td>
+                        <td>{{ item.incident.created_at|date:"d.m.Y" }}</td>
+                        <td>{{ item.incident.title }}</td>
+                        <td>{{ item.user.get_full_name|default:item.user.username }}</td>
+                        <td style="text-wrap: wrap;">
+                            {{ item.user.profile.department }}
+                        </td>
+                        <td>
+                            {% if item.is_violator %}
+                                <span class="badge bg-danger">Да</span>
+                            {% else %}
+                                <span class="badge bg-secondary">Нет</span>
+                            {% endif %}
+                        </td>
+                        <!-- <td class="{% if item.incident.deadline and item.incident.deadline|is_overdue:now %}deadline-overdue{% endif %}">
+                            {% if item.incident.deadline %}
+                                <span class="deadline-date">{{ item.incident.deadline|date:"d.m.Y" }}</span> <span class="deadline-time">{{ item.incident.deadline|date:"H:i" }}</span>
+                            {% else %}
+                                —
+                            {% endif %}
+                        </td> -->
+                        <td>
+                            {% if item.incident.responsible_mentor %}
+                                {{ item.incident.responsible_mentor.get_full_name|default:item.incident.responsible_mentor.username }}
+                            {% else %}
+                                —
+                            {% endif %}
+                        </td>
+                        <td style="text-align: center;">
+                            {% if item.incident.course %}
+                                {% if item.course_deadline %}
+                                    {{ item.course_deadline|date:"d.m.Y H:i" }}
+                                {% else %}
+                                    Без срока
+                                {% endif %}
+                            {% else %}
+                                —
+                            {% endif %}
+                        </td>
+                        <td {% if item.incident_status %}class="status-{{ item.incident_status }}"{% endif %} style="text-align: center;">
+                            {% if item.incident_status %}
+                                {{ item.incident_status_display|capfirst }}
+                            {% else %}
+                                —
+                            {% endif %}
+                        </td>
+                        <td style="text-align: center;">
+                            <button type="button" class="btn btn-sm unassign-button" 
+                                    data-incident-id="{{ item.incident.id }}" 
+                                    data-user-id="{{ item.user.id }}"
+                                        >
+                                    <i class="fa fa-cancel" style="color: red; font-size: larger;" aria-hidden="true"></i>
+                            </button>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                {% else %}
+                    <tr>
+                        <td colspan="10" class="text-center">Нет назначенных пользователей</td>
+                    </tr>
+                {% endif %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+    // Модальное окно для редактирования комментариев к столбцам
+    // Ключ для localStorage
+    const COLUMN_TITLES_STORAGE_KEY = 'incident_detail_table_column_titles';
+
+    // Функция для получения сохраненных title из localStorage
+    function getSavedColumnTitles() {
+        const saved = localStorage.getItem(COLUMN_TITLES_STORAGE_KEY);
+        return saved ? JSON.parse(saved) : {};
+    }
+
+    // Функция для сохранения title в localStorage
+    function saveColumnTitles(titles) {
+        localStorage.setItem(COLUMN_TITLES_STORAGE_KEY, JSON.stringify(titles));
+    }
+
+    function getColumnName(th) {
+        const clone = th.cloneNode(true);
+        const sortIcon = clone.querySelector('.sort-icon');
+        if (sortIcon) sortIcon.remove();
+        return clone.textContent.trim();
+    }
+
+    // Функция для применения сохраненных title к столбцам
+    function applySavedColumnTitles() {
+        const savedTitles = getSavedColumnTitles();
+        const tableHeaders = document.querySelectorAll('.table thead th');
+        
+        tableHeaders.forEach((th, index) => {
+            const columnName = getColumnName(th);
+            if (savedTitles[columnName]) {
+                th.setAttribute('title', savedTitles[columnName]);
+            }
+        });
+    }
+
+    // Функция для открытия модального окна
+    function openColumnCommentsModal() {
+        const tableHeaders = document.querySelectorAll('.table thead th');
+        const savedTitles = getSavedColumnTitles();
+        const formBody = document.getElementById('column-comments-form-body');
+        
+        if (!formBody) return;
+        
+        // Очищаем форму
+        formBody.innerHTML = '';
+        
+        // Создаем поля для каждого столбца
+        tableHeaders.forEach((th) => {
+            const columnName = getColumnName(th);
+            const currentTitle = savedTitles[columnName] || th.getAttribute('title') || '';
+            
+            const row = document.createElement('div');
+            row.style.marginBottom = '16px';
+            
+            const label = document.createElement('label');
+            label.style.display = 'block';
+            label.style.marginBottom = '6px';
+            label.style.fontWeight = '500';
+            label.textContent = columnName;
+            
+            const textarea = document.createElement('textarea');
+            textarea.value = currentTitle;
+            textarea.dataset.columnName = columnName;
+            textarea.style.width = '100%';
+            textarea.style.padding = '8px 12px';
+            textarea.style.border = '1px solid #c3c8d0';
+            textarea.style.borderRadius = '6px';
+            textarea.style.fontSize = '0.95em';
+            textarea.style.boxSizing = 'border-box';
+            textarea.style.minHeight = '80px';
+            textarea.style.resize = 'vertical';
+            textarea.style.fontFamily = 'inherit';
+            
+            textarea.addEventListener('focus', function() {
+                this.style.border = '1.5px solid #4d7cff';
+                this.style.boxShadow = '0 0 0 2px #4d7cff22';
+                this.style.outline = 'none';
+            });
+            
+            textarea.addEventListener('blur', function() {
+                this.style.border = '1px solid #c3c8d0';
+                this.style.boxShadow = 'none';
+            });
+            
+            row.appendChild(label);
+            row.appendChild(textarea);
+            formBody.appendChild(row);
+        });
+        
+        const columnCommentsModal = document.getElementById('column-comments-modal');
+        if (columnCommentsModal) {
+            columnCommentsModal.style.display = 'flex';
+        }
+    }
+
+    // Функция для закрытия модального окна
+    function closeColumnCommentsModal() {
+        const columnCommentsModal = document.getElementById('column-comments-modal');
+        if (columnCommentsModal) {
+            columnCommentsModal.style.display = 'none';
+        }
+    }
+
+    function initTableSorting() {
+        const table = document.querySelector('.incidents-table-responsive .table');
+        if (!table) return;
+
+        const headers = table.querySelectorAll('thead th.sortable');
+        const tbody = table.querySelector('tbody');
+        if (!tbody) return;
+
+        function parseDateDot(str) {
+            str = str.trim();
+            if (!str || str === '—' || str === 'Без срока') return null;
+            const parts = str.match(/(\d{2})\.(\d{2})\.(\d{4})/);
+            if (!parts) return null;
+            return new Date(parts[3], parts[2] - 1, parts[1]);
+        }
+
+        function parseDatetimeDot(str) {
+            str = str.trim();
+            if (!str || str === '—' || str === 'Без срока') return null;
+            const parts = str.match(/(\d{2})\.(\d{2})\.(\d{4})\s+(\d{2}):(\d{2})/);
+            if (parts) return new Date(parts[3], parts[2] - 1, parts[1], parts[4], parts[5]);
+            return parseDateDot(str);
+        }
+
+        function getSortValue(cell, type) {
+            const text = cell.textContent.trim();
+            switch (type) {
+                case 'number':
+                    return parseFloat(text) || 0;
+                case 'date-dot':
+                    return parseDateDot(text);
+                case 'datetime-dot':
+                    return parseDatetimeDot(text);
+                case 'text':
+                default:
+                    return text.toLowerCase();
+            }
+        }
+
+        function compareValues(a, b, type) {
+            if (a === null && b === null) return 0;
+            if (a === null) return 1;
+            if (b === null) return -1;
+
+            if (type === 'number') return a - b;
+            if (type === 'date-dot' || type === 'datetime-dot') return a - b;
+            return a < b ? -1 : a > b ? 1 : 0;
+        }
+
+        headers.forEach(function(header) {
+            header.addEventListener('click', function() {
+                const colIdx = parseInt(this.dataset.sortCol);
+                const sortType = this.dataset.sortType || 'text';
+
+                let direction = 'asc';
+                if (this.classList.contains('sorted-asc')) {
+                    direction = 'desc';
+                } else if (this.classList.contains('sorted-desc')) {
+                    direction = 'asc';
+                }
+
+                headers.forEach(function(h) {
+                    h.classList.remove('sorted-asc', 'sorted-desc');
+                });
+                this.classList.add(direction === 'asc' ? 'sorted-asc' : 'sorted-desc');
+
+                const rows = Array.from(tbody.querySelectorAll('tr.incident-user-row'));
+                if (rows.length === 0) return;
+
+                rows.sort(function(rowA, rowB) {
+                    const cellA = rowA.children[colIdx];
+                    const cellB = rowB.children[colIdx];
+                    if (!cellA || !cellB) return 0;
+
+                    const valA = getSortValue(cellA, sortType);
+                    const valB = getSortValue(cellB, sortType);
+                    const cmp = compareValues(valA, valB, sortType);
+                    return direction === 'asc' ? cmp : -cmp;
+                });
+
+                rows.forEach(function(row, index) {
+                    tbody.appendChild(row);
+                    row.children[0].textContent = index + 1;
+                });
+            });
+        });
+    }
+
+    function initDateRangeValidation() {
+        const dateFrom = document.getElementById('date_from');
+        const dateTo = document.getElementById('date_to');
+        if (!dateFrom || !dateTo) return;
+
+        function applyMinDateTo() {
+            if (dateFrom.value) {
+                dateTo.min = dateFrom.value;
+                if (dateTo.value && dateTo.value < dateFrom.value) {
+                    dateTo.value = dateFrom.value;
+                }
+            } else {
+                dateTo.removeAttribute('min');
+            }
+        }
+
+        dateFrom.addEventListener('change', applyMinDateTo);
+        dateFrom.addEventListener('input', applyMinDateTo);
+        dateTo.addEventListener('change', function() {
+            if (dateFrom.value && dateTo.value && dateTo.value < dateFrom.value) {
+                dateTo.value = dateFrom.value;
+            }
+        });
+        dateTo.addEventListener('input', function() {
+            if (dateFrom.value && dateTo.value && dateTo.value < dateFrom.value) {
+                dateTo.value = dateFrom.value;
+            }
+        });
+        applyMinDateTo();
+    }
+
+    function updateDateFilterAppliedState() {
+        const btnLastWeek = document.getElementById('date-btn-last-week');
+        const btnReset = document.getElementById('date-btn-reset');
+        [btnLastWeek, btnReset].forEach(function(btn) {
+            if (btn) btn.classList.remove('date-quick-btn-active');
+        });
+        const params = new URLSearchParams(window.location.search);
+        const dateFrom = params.get('date_from') || '';
+        const dateTo = params.get('date_to') || '';
+        if (!dateFrom && !dateTo) {
+            if (btnReset) btnReset.classList.add('date-quick-btn-active');
+            return;
+        }
+        var today = new Date();
+        var todayStr = today.toISOString().split('T')[0];
+        var weekAgo = new Date(today);
+        weekAgo.setDate(weekAgo.getDate() - 7);
+        var weekAgoStr = weekAgo.toISOString().split('T')[0];
+        if (dateFrom === weekAgoStr && dateTo === todayStr && btnLastWeek) {
+            btnLastWeek.classList.add('date-quick-btn-active');
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        const form = document.getElementById('incident-detail-filter-form');
+        const dateFromInput = document.getElementById('date_from');
+        const dateToInput = document.getElementById('date_to');
+
+        initDateRangeValidation();
+        updateDateFilterAppliedState();
+
+        // Кнопка «-1нед.» — прошлая неделя (последние 7 дней)
+        var btnLastWeek = document.getElementById('date-btn-last-week');
+        if (btnLastWeek && form) {
+            btnLastWeek.addEventListener('click', function() {
+                var today = new Date();
+                var dateTo = new Date(today);
+                var dateFrom = new Date(today);
+                dateFrom.setDate(dateFrom.getDate() - 7);
+                dateFromInput.value = dateFrom.toISOString().split('T')[0];
+                dateToInput.value = dateTo.toISOString().split('T')[0];
+                dateToInput.min = dateFromInput.value;
+                form.submit();
+            });
+        }
+
+        // Кнопка «<-->» — сброс фильтра по дате, весь период
+        var btnResetDate = document.getElementById('date-btn-reset');
+        if (btnResetDate && form) {
+            btnResetDate.addEventListener('click', function() {
+                dateFromInput.value = '';
+                dateFromInput.removeAttribute('min');
+                dateToInput.value = '';
+                dateToInput.removeAttribute('min');
+                var params = new URLSearchParams(new FormData(form));
+                params.delete('date_from');
+                params.delete('date_to');
+                var baseUrl = "{% url 'builder:incident_detail' %}";
+                var query = params.toString();
+                window.location.href = query ? baseUrl + '?' + query : baseUrl;
+            });
+        }
+
+        // Проверяем наличие параметров в URL
+        const urlParams = new URLSearchParams(window.location.search);
+        const searchParam = urlParams.get('search');
+        const violatorFilterParam = urlParams.get('violator_filter');
+        const violatorFilterLocked = violatorFilterParam === 'yes';
+        
+        // Если фильтр по нарушителям заблокирован, добавляем визуальный стиль
+        if (violatorFilterLocked) {
+            const violatorFilterField = document.getElementById('violator_filter');
+            if (violatorFilterField && violatorFilterField.disabled) {
+                violatorFilterField.style.backgroundColor = '#e9ecef';
+                violatorFilterField.style.cursor = 'not-allowed';
+            }
+        }
+        
+        // Обработчик отправки формы - гарантируем сохранение параметра violator_filter, если он заблокирован
+        if (form && violatorFilterLocked) {
+            form.addEventListener('submit', function(e) {
+                // Убеждаемся, что параметр violator_filter будет передан через скрытое поле
+                let hiddenViolatorFilter = document.querySelector('input[name="violator_filter"][type="hidden"]');
+                if (!hiddenViolatorFilter) {
+                    hiddenViolatorFilter = document.createElement('input');
+                    hiddenViolatorFilter.type = 'hidden';
+                    hiddenViolatorFilter.name = 'violator_filter';
+                    hiddenViolatorFilter.value = 'yes';
+                    form.appendChild(hiddenViolatorFilter);
+                }
+            });
+            
+            // Обновляем ссылку кнопки "Сбросить", чтобы она сохраняла параметры фильтра по нарушителям
+            const resetButton = document.getElementById('reset-button');
+            if (resetButton) {
+                const dateFrom = urlParams.get('date_from') || '';
+                const dateTo = urlParams.get('date_to') || '';
+                const baseUrl = "{% url 'builder:incident_detail' %}";
+                let resetUrl = baseUrl + '?violator_filter=yes';
+                if (dateFrom) {
+                    resetUrl += '&date_from=' + encodeURIComponent(dateFrom);
+                }
+                if (dateTo) {
+                    resetUrl += '&date_to=' + encodeURIComponent(dateTo);
+                }
+                resetButton.href = resetUrl;
+            }
+        }
+        
+        // Инициализация обработчиков для модального окна комментариев к столбцам
+        const columnCommentsButton = document.getElementById('column-comments-button');
+        const columnCommentsClose = document.getElementById('column-comments-modal-close');
+        const columnCommentsForm = document.getElementById('column-comments-form');
+        const columnCommentsModal = document.getElementById('column-comments-modal');
+        
+        if (columnCommentsButton) {
+            columnCommentsButton.addEventListener('click', openColumnCommentsModal);
+        }
+        
+        if (columnCommentsClose) {
+            columnCommentsClose.addEventListener('click', closeColumnCommentsModal);
+        }
+        
+        
+        // Обработчик отправки формы
+        if (columnCommentsForm) {
+            columnCommentsForm.addEventListener('submit', function(event) {
+                event.preventDefault();
+                
+                const formBody = document.getElementById('column-comments-form-body');
+                if (!formBody) return;
+                
+                const textareas = formBody.querySelectorAll('textarea[data-column-name]');
+                const titles = {};
+                
+                textareas.forEach(textarea => {
+                    const columnName = textarea.dataset.columnName;
+                    const title = textarea.value.trim();
+                    titles[columnName] = title;
+                });
+                
+                // Сохраняем в localStorage
+                saveColumnTitles(titles);
+                
+                // Применяем к столбцам
+                applySavedColumnTitles();
+                
+                // Закрываем модальное окно
+                closeColumnCommentsModal();
+            });
+        }
+        
+        // Применяем сохраненные title к столбцам при загрузке страницы
+        applySavedColumnTitles();
+        
+        // Выпадающий список подразделений: не закрывать при клике по чекбоксам, обновлять подпись
+        const departmentDropdownMenu = document.querySelector('.department-dropdown-menu');
+        const departmentDropdownToggle = document.querySelector('.department-dropdown-toggle');
+        const departmentDropdownLabel = document.querySelector('.department-dropdown-label');
+        if (departmentDropdownMenu) {
+            departmentDropdownMenu.addEventListener('click', function(e) {
+                e.stopPropagation();
+            });
+        }
+        if (departmentDropdownMenu && departmentDropdownLabel) {
+            departmentDropdownMenu.querySelectorAll('.department-checkbox').forEach(function(cb) {
+                cb.addEventListener('change', function() {
+                    const checked = departmentDropdownMenu.querySelectorAll('.department-checkbox:checked');
+                    departmentDropdownLabel.textContent = checked.length ? checked.length + ' выбрано' : 'Все подразделения';
+                });
+            });
+        }
+        
+        // --- Сортировка таблицы по клику на заголовки ---
+        initTableSorting();
+
+        // Обработчики для строк таблицы и кнопки "Отменить"
+        const incidentUserRows = document.querySelectorAll('.incident-user-row');
+        let selectedRow = null;
+        
+        incidentUserRows.forEach(row => {
+            
+            // Обработчик клика на кнопку "Отменить"
+            const unassignButton = row.querySelector('.unassign-button');
+            if (unassignButton) {
+                unassignButton.addEventListener('click', function(event) {
+                    event.stopPropagation(); // Предотвращаем срабатывание клика на строку
+                    
+                    const incidentId = this.dataset.incidentId;
+                    const userId = this.dataset.userId;
+                    
+                    if (!incidentId || !userId) {
+                        alert('Ошибка: не удалось определить инцидент или пользователя');
+                        return;
+                    }
+                    
+                    // Подтверждение действия
+                    if (!confirm('Вы уверены, что хотите отменить назначение этого пользователя на инцидент?')) {
+                        return;
+                    }
+                    
+                    // Получаем текущие параметры URL для сохранения фильтров
+                    const urlParams = new URLSearchParams(window.location.search);
+                    
+                    // Функция для получения CSRF токена
+                    function getCookie(name) {
+                        let cookieValue = null;
+                        if (document.cookie && document.cookie !== '') {
+                            const cookies = document.cookie.split(';');
+                            for (let i = 0; i < cookies.length; i++) {
+                                const cookie = cookies[i].trim();
+                                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                                    break;
+                                }
+                            }
+                        }
+                        return cookieValue;
+                    }
+                    
+                    // Создаем форму для отправки POST запроса
+                    const form = document.createElement('form');
+                    form.method = 'POST';
+                    // Генерируем URL с правильными параметрами
+                    const baseUrl = "{% url 'builder:incident_unassign_user' incident_id=999999 user_id=888888 %}";
+                    form.action = baseUrl.replace('999999', incidentId).replace('888888', userId);
+                    
+                    // Добавляем CSRF токен
+                    const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]');
+                    const csrfInput = document.createElement('input');
+                    csrfInput.type = 'hidden';
+                    csrfInput.name = 'csrfmiddlewaretoken';
+                    if (csrfToken) {
+                        csrfInput.value = csrfToken.value;
+                    } else {
+                        // Если токен не найден, получаем его из cookies
+                        csrfInput.value = getCookie('csrftoken') || '';
+                    }
+                    form.appendChild(csrfInput);
+                    
+                    // Добавляем параметры фильтров как скрытые поля
+                    urlParams.forEach((value, key) => {
+                        const input = document.createElement('input');
+                        input.type = 'hidden';
+                        input.name = key;
+                        input.value = value;
+                        form.appendChild(input);
+                    });
+                    
+                    document.body.appendChild(form);
+                    form.submit();
+                });
+            }
+        });
+    });
+</script>
+
+<!-- Модальное окно для редактирования комментариев к столбцам -->
+<div id="column-comments-modal" style="display:none; position:fixed; z-index:99999; left:0; top:0; width:100vw; height:100vh; background:rgba(0,0,0,0.35); align-items:center; justify-content:center;">
+    <div style="background:#fff; color:#232a3a; padding:32px 32px 24px 32px; border-radius:12px; box-shadow:0 2px 16px #0007; min-width:500px; max-width:95vw; max-height:90vh; overflow-y:auto; text-align:left; position:relative;">
+        <h4 style="margin-top:0; margin-bottom:24px;">Комментарий к столбцам</h4>
+        <form id="column-comments-form">
+            <div id="column-comments-form-body"></div>
+            <div style="margin-top:24px; display:flex; gap:12px; justify-content:flex-end;">
+                <button type="button" class="btn btn-secondary" onclick="closeColumnCommentsModal()">Отмена</button>
+                <button type="submit" class="btn btn-primary">Сохранить</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

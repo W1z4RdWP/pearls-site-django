@@ -11,6 +11,10 @@ myproject_cache
 staticfiles
 staticfiles_old
 
+# Node
+node_modules/
+.vite/
+
 # Backup files # 
 *.bak 
 

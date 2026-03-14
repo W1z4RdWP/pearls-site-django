@@ -27,34 +27,6 @@
   --incidents-table-td-color: inherit;
 }
 
-body.theme-dark {
-  --incidents-bg: #232323;
-  --incidents-card-bg: #232a3a;
-  --incidents-card-radius: 10px;
-  --incidents-card-shadow: 0 2px 8px #0007;
-  --incidents-card-padding: 32px 32px 24px 32px;
-  --incidents-card-title: #eee;
-  --incidents-title-font-weight: 700;
-  --incidents-title-letter-spacing: 0.5px;
-  --incidents-title-font-size: 1.2rem;
-  --incidents-meta: #bdbdbd;
-  --incidents-meta-font-size: 0.95em;
-  --incidents-doc-link: #4d7cff;
-  --incidents-doc-link-hover: #2dabc4;
-  --incidents-status-new: #4d7cff;
-  --incidents-status-in-progress: #ffc107;
-  --incidents-status-resolved: #28a745;
-  --incidents-status-font-weight: 600;
-  --incidents-table-header-bg: #232a3a;
-  --incidents-table-header-border: #353535;
-  --incidents-table-row-hover-bg: #232a3a;
-  --incidents-table-th-font-size: 1em;
-  --incidents-table-td-font-size: 1em;
-  --incidents-table-td-padding: 6px 8px;
-  --incidents-table-th-padding: 6px 8px;
-  --incidents-table-th-color: #eee;
-  --incidents-table-td-color: #333;
-}
 
 .incidents-bg {
   background: var(--incidents-bg);
@@ -92,6 +64,37 @@ body.theme-dark {
   color: var(--incidents-doc-link-hover);
 }
 
+.department-dropdown-menu .dropdown-item-text {
+  cursor: default;
+}
+.department-dropdown-menu label.cursor-pointer {
+  cursor: pointer;
+}
+
+/* Кнопки быстрого выбора периода по дате (инциденты) */
+#date-filter-wrap {
+  flex-wrap: nowrap;
+}
+#date-filter-wrap > div:not(.date-quick-buttons) {
+  min-width: 8.5rem;
+}
+.date-quick-buttons {
+  flex-shrink: 0;
+}
+.date-quick-buttons .date-quick-btn {
+  padding: 2px 6px;
+  font-size: 0.7rem;
+  line-height: 1.2;
+  min-height: unset;
+  white-space: nowrap;
+}
+/* Выделение только активной кнопки быстрого фильтра */
+.date-quick-buttons .date-quick-btn.date-quick-btn-active {
+  border-color: var(--incidents-doc-link);
+  color: var(--incidents-doc-link);
+  background-color: #f0f5ff;
+}
+
 .table th, .table td {
   vertical-align: middle !important;
   font-size: var(--incidents-table-th-font-size);
@@ -99,6 +102,7 @@ body.theme-dark {
   padding: var(--incidents-table-th-padding);
 }
 
+/* Статусы инцидентов */
 .status-new {
   color: var(--incidents-status-new);
   font-weight: var(--incidents-status-font-weight);
@@ -111,6 +115,21 @@ body.theme-dark {
   color: var(--incidents-status-resolved);
   font-weight: var(--incidents-status-font-weight);
 }
+
+/* Статусы курсов */
+.status-available {
+  color: var(--incidents-status-new);
+  font-weight: var(--incidents-status-font-weight);
+}
+.status-started {
+  color: var(--incidents-status-in-progress);
+  font-weight: var(--incidents-status-font-weight);
+}
+.status-completed {
+  color: var(--incidents-status-resolved);
+  font-weight: var(--incidents-status-font-weight);
+}
+
 
 .table thead th {
   background: var(--incidents-table-header-bg);
@@ -167,4 +186,416 @@ body.theme-dark {
     padding: 4px 4px;
     min-width: 60px;
   }
+}
+
+
+.incidents-card {
+  background: #fff;
+  border-radius: 10px;
+  box-shadow: 0 2px 16px #e3e8f0;
+  padding: 32px;
+  max-width: 1600px;
+  margin: 0 auto;
+}
+.incidents-card h2 {
+  color: #232a3a;
+  font-weight: 700;
+  margin-bottom: 0;
+}
+.incidents-table-responsive {
+  overflow-x: auto;
+  margin-top: 20px;
+  width: 100%;
+}
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9em;
+  table-layout: fixed;
+  min-width: 1100px;
+}
+.table thead th {
+  background-color: #f7f8fa;
+  color: #232a3a;
+  font-weight: 600;
+  padding: 10px 6px;
+  border-bottom: 2px solid #e3e8f0;
+  text-align: left;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.table tbody td {
+  padding: 10px 6px;
+  border-bottom: 1px solid #e3e8f0;
+  vertical-align: top;
+  color: #232a3a;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+/* Прозрачный фон для всех ячеек, кроме ячеек со статусом */
+.table tbody td:not([class*="status-"]) {
+  background-color: transparent !important;
+}
+.table tbody td.responsible-cell {
+  white-space: normal;
+  word-break: break-word;
+}
+.table tbody td:not(.comment-cell):not(.responsible-cell) {
+  white-space: nowrap;
+}
+.table tbody tr {
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+/* Цвета строк по статусам - ОТКЛЮЧЕНО */
+/* .incidents-card .table tbody tr.status-row-new {
+  background-color: #fff9e6 !important;
+}
+.incidents-card .table tbody tr.status-row-new td {
+  background-color: transparent !important;
+}
+.incidents-card .table tbody tr.status-row-accepted {
+  background-color: #e6f7e6 !important;
+}
+.incidents-card .table tbody tr.status-row-accepted td {
+  background-color: transparent !important;
+}
+.incidents-card .table tbody tr.status-row-assigned {
+  background-color: #e6f0ff !important;
+}
+.incidents-card .table tbody tr.status-row-assigned td {
+  background-color: transparent !important;
+}
+.incidents-card .table tbody tr.status-row-resolved {
+  background-color: #ffe6f0 !important;
+}
+.incidents-card .table tbody tr.status-row-resolved td {
+  background-color: transparent !important;
+}
+.incidents-card .table tbody tr.status-row-declined {
+  background-color: #ffe6e6 !important;
+}
+.incidents-card .table tbody tr.status-row-declined td {
+  background-color: transparent !important;
+}
+.incidents-card .table tbody tr.status-row-new:hover {
+  background-color: #fff3cc !important;
+}
+.incidents-card .table tbody tr.status-row-accepted:hover {
+  background-color: #d4f0d4 !important;
+}
+.incidents-card .table tbody tr.status-row-assigned:hover {
+  background-color: #cce0ff !important;
+}
+.incidents-card .table tbody tr.status-row-resolved:hover {
+  background-color: #ffd9e6 !important;
+}
+.incidents-card .table tbody tr.status-row-declined:hover {
+  background-color: #ffcccc !important;
+} */
+
+/* Простое hover выделение для всех строк, кроме ячеек со статусом и просроченных дедлайнов */
+.incidents-card .table tbody tr:hover td:not([class*="status-"]):not(.deadline-overdue) {
+  background-color: #f5f7fa !important;
+}
+/* Цветное выделение ячеек со статусом */
+.incidents-card .table tbody td.status-new {
+  background-color: #fff9e6 !important;
+  color: #856404 !important;
+  font-weight: 600;
+}
+.incidents-card .table tbody td.status-accepted {
+  background-color: #e6f7e6 !important;
+  color: #155724 !important;
+  font-weight: 600;
+}
+.incidents-card .table tbody td.status-assigned {
+  background-color: #e6f0ff !important;
+  color: #004085 !important;
+  font-weight: 600;
+}
+.incidents-card .table tbody td.status-resolved {
+  background-color: #d4edda !important;
+  color: #155724 !important;
+  font-weight: 600;
+}
+.incidents-card .table tbody td.status-declined {
+  background-color: #f8d7da !important;
+  color: #721c24 !important;
+  font-weight: 600;
+}
+.incidents-card .table tbody td.status-studies_completed {
+  background-color: #d1ecf1 !important;
+  color: #0c5460 !important;
+  font-weight: 600;
+}
+
+/* Hover-эффекты для ячеек со статусом */
+.incidents-card .table tbody tr:hover td.status-new {
+  background-color: #fff3cc !important;
+}
+.incidents-card .table tbody tr:hover td.status-accepted {
+  background-color: #d4f0d4 !important;
+}
+.incidents-card .table tbody tr:hover td.status-assigned {
+  background-color: #cce0ff !important;
+}
+.incidents-card .table tbody tr:hover td.status-resolved {
+  background-color: #c3e6cb !important;
+}
+.incidents-card .table tbody tr:hover td.status-declined {
+  background-color: #f5c6cb !important;
+}
+.incidents-card .table tbody tr:hover td.status-studies_completed {
+  background-color: #bee5eb !important;
+}
+
+/* Стиль для просроченного дедлайна */
+.incidents-card .table tbody td.deadline-overdue {
+  background-color: #ffb6c1 !important;
+  color: #8b0000 !important;
+  font-weight: 600;
+}
+
+/* Стиль для времени в дедлайне - на 3px меньше даты */
+.incidents-card .table tbody td .deadline-time {
+  font-size: calc(1em - 3px);
+}
+
+/* Hover-эффект для просроченного дедлайна - сохраняем розовый цвет */
+.incidents-card .table tbody tr:hover td.deadline-overdue {
+  background-color: #ffb6c1 !important;
+  color: #8b0000 !important;
+}
+
+.responsible-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.comment-cell {
+  font-style: italic;
+  color: #6c757d;
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+/* Скрываем последний столбец (Комментарий) при узком экране */
+@media (max-width: 1400px) {
+  .table th:last-child,
+  .table td:last-child {
+      display: none;
+  }
+  .table {
+      min-width: 900px;
+  }
+}
+@media (max-width: 1200px) {
+  .table {
+      min-width: 800px;
+  }
+  .table thead th,
+  .table tbody td {
+      padding: 8px 4px;
+      font-size: 0.85em;
+  }
+}
+@media (min-width: 1401px) {
+  .table {
+      min-width: 1200px;
+  }
+}
+.status-filters {
+  padding: 12px;
+  background: #f7f8fa;
+  border-radius: 6px;
+  border: 1px solid #e3e8f0;
+}
+.status-filters .form-check {
+  margin-bottom: 0;
+}
+.status-filters .form-check-input:disabled + .form-check-label {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.form-label {
+  font-weight: 600;
+  color: #232a3a;
+  margin-bottom: 6px;
+}
+.form-control {
+  border: 1px solid #e3e8f0;
+  border-radius: 6px;
+  padding: 8px 12px;
+}
+
+/* Компактные поля для дат */
+.date-input-compact {
+  max-width: 180px;
+  padding: 8px 10px;
+  font-size: 0.95em;
+}
+
+/* Уменьшаем отступы между полями формы */
+.row.g-2 {
+  --bs-gutter-x: 0.5rem;
+  --bs-gutter-y: 0.5rem;
+}
+
+/* Выделение строки при одиночном клике */
+.incident-row.row-selected {
+  background-color: #e3f2fd !important;
+  border: 2px solid #2196f3 !important;
+}
+
+.incident-row.row-selected td {
+  background-color: #e3f2fd !important;
+}
+
+/* Статусы инцидентов */
+.incident-row.row-selected td.status-new,
+.incident-row.row-selected td.status-accepted,
+.incident-row.row-selected td.status-assigned,
+.incident-row.row-selected td.status-resolved,
+.incident-row.row-selected td.status-declined,
+.incident-row.row-selected td.status-studies_completed {
+  background-color: inherit !important;
+}
+
+/* Статусы курсов */
+.incident-row.row-selected td.status-started,
+.incident-row.row-selected td.status-available,
+.incident-row.row-selected td.status-completed{
+  background-color: inherit !important;
+}
+
+#column-comments-modal {
+  display: none;
+  position: fixed;
+  z-index: 99999;
+  left: 0;
+  top: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0,0,0,0.35);
+  align-items: center;
+  justify-content: center;
+}
+
+#column-comments-modal > div {
+  background: #fff;
+  color: #232a3a;
+  padding: 32px 32px 24px 32px;
+  border-radius: 12px;
+  box-shadow: 0 2px 16px rgba(0,0,0,0.07);
+  min-width: 500px;
+  max-width: 95vw;
+  max-height: 90vh;
+  overflow-y: auto;
+  text-align: left;
+  position: relative;
+}
+
+#column-comments-modal h4 {
+  margin-top: 0;
+  margin-bottom: 24px;
+  font-size: 1.35em;
+  font-weight: 700;
+}
+
+#column-comments-modal-close {
+  position: absolute;
+  right: 12px;
+  top: 12px;
+  background: none;
+  border: none;
+  font-size: 1.5em;
+  color: #888;
+  cursor: pointer;
+  padding: 0;
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+#column-comments-modal-close:hover {
+  color: #333;
+}
+
+#column-comments-form label {
+  display: block;
+  margin-bottom: 6px;
+  font-weight: 500;
+  color: #232a3a;
+}
+
+#column-comments-form input[type="text"] {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid #c3c8d0;
+  border-radius: 6px;
+  font-size: 0.95em;
+  box-sizing: border-box;
+  transition: border 0.2s, box-shadow 0.2s;
+}
+
+#column-comments-form input[type="text"]:focus {
+  border: 1.5px solid #4d7cff;
+  box-shadow: 0 0 0 2px rgba(77, 124, 255, 0.13);
+  outline: none;
+}
+
+/* Сортируемые заголовки таблицы */
+.table thead th.sortable {
+  cursor: pointer;
+  user-select: none;
+  position: relative;
+  padding-right: 22px;
+  transition: background-color 0.15s;
+}
+
+.table thead th.sortable:hover {
+  background-color: #ebeef3;
+}
+
+.table thead th.sortable .sort-icon {
+  display: inline-flex;
+  flex-direction: column;
+  vertical-align: middle;
+  margin-left: 4px;
+  font-size: 0.55em;
+  line-height: 1;
+  color: #bbb;
+  position: absolute;
+  right: 4px;
+  top: 50%;
+  transform: translateY(-50%);
+  gap: 1px;
+}
+
+.table thead th.sortable .sort-icon .sort-asc,
+.table thead th.sortable .sort-icon .sort-desc {
+  transition: color 0.15s;
+}
+
+.table thead th.sortable.sorted-asc .sort-icon .sort-asc {
+  color: #4d7cff;
+}
+
+.table thead th.sortable.sorted-desc .sort-icon .sort-desc {
+  color: #4d7cff;
+}
+
+.table thead th.sortable:hover .sort-icon {
+  color: #888;
+}
+
+.table thead th.sortable.sorted-asc:hover .sort-icon .sort-asc,
+.table thead th.sortable.sorted-desc:hover .sort-icon .sort-desc {
+  color: #2356b3;
 }

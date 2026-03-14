@@ -4,6 +4,9 @@ from django.db.models.signals import post_save
 from django.dispatch import receiver
 from typing import Any
 
+from gamification.models import Badge
+from myapp.models import UserCourse
+
 
 class Role(models.Model):
     """
@@ -83,7 +86,23 @@ class Profile(models.Model):
         phone_number (CharField): Номер телефона в формате +7XXXXXXXXXX
         image (ImageField): Изображение профиля. По умолчанию используется 'profile_pics/default.jpg'.
         bio (TextField): Текстовое поле с информацией о пользователе.
+        dascoin_points (PositiveIntegerField): Баллы DASCOIN.
+        is_mentor (BooleanField): Провряет, является ли пользователь наставником.
         is_approved (BooleanField): Провряет, подтвердил ли администратор регистрацию пользователя.
+
+    Methods:
+        add_dascoin_points(points: int, reason: str = "") -> None: Добавляет баллы DASCOIN пользователю.
+        get_badges() -> QuerySet: Возвращает все бейджи пользователя.
+        get_achievements() -> QuerySet: Возвращает все достижения пользователя.
+        get_recent_badges(limit: int = 8) -> QuerySet: Возвращает последние полученные бейджи.
+        get_recent_achievements(limit: int = 8) -> QuerySet: Возвращает последние полученные достижения.
+        is_mentor_user() -> bool: Проверяет, является ли пользователь наставником.
+        is_responsible() -> bool: Проверяет, является ли пользователь ответственным за свою должность.
+        clean() -> None: Проверяет, что пользователь имеет должность, которую он занимает.
+        save() -> None: Сохраняет профиль пользователя.
+        __str__() -> str: Возвращает строковое представление профиля.
+        is_mentor_user() -> bool: Проверяет, является ли пользователь наставником.
+        is_responsible() -> bool: Проверяет, является ли пользователь ответственным за свою должность.
 
     """
 
@@ -92,6 +111,7 @@ class Profile(models.Model):
     role = models.ForeignKey(Role, null=True, blank=True, on_delete=models.SET_NULL, verbose_name="Должность")
     department = models.ForeignKey(Department, null=True, blank=True, on_delete=models.SET_NULL, verbose_name="Подразделение")
     date_of_birth = models.DateField(blank=True, null=True, verbose_name="Дата рождения")
+    country = models.CharField(max_length=200, blank=True, null=True, verbose_name="Страна")
     phone_number = models.CharField(
         max_length=18,
         verbose_name="Номер телефона",
@@ -107,7 +127,9 @@ class Profile(models.Model):
     image = models.ImageField(default='profile_pics/default.jpg', upload_to='profile_pics', verbose_name="Аватар")
     bio = models.TextField(max_length=500, blank=True, null=True, verbose_name="О себе")
     is_approved = models.BooleanField(default=False, verbose_name="Подвтерждение администратором")
+    is_mentor = models.BooleanField(default=False, verbose_name="Является наставником", help_text="Пользователь с правами наставника")
     dascoin_points = models.PositiveIntegerField(default=0, verbose_name="Баллы DASCOIN")
+    first_login_shown = models.BooleanField(default=False, verbose_name="Показано модальное окно при первом входе")
 
     class Meta:
         app_label = 'users'
@@ -125,6 +147,16 @@ class Profile(models.Model):
                 
         return f'Учётная запись {self.user.username}'
     
+
+
+
+    @property
+    def is_mentor_user(self) -> bool:
+        """
+        Проверяет, является ли пользователь наставником.
+        """
+        return self.is_mentor
+
     @property
     def is_responsible(self) -> bool:
         """
@@ -144,6 +176,35 @@ class Profile(models.Model):
         self.dascoin_points += points
         self.save()
     
+    def get_available_badges_count(self):
+        """
+        Возвращает количество доступных бейджей, которые пользователь может получить.
+        Доступные бейджи - это бейджи за курсы, которые назначены пользователю,
+        но еще не завершены.
+        """
+        # Получаем все курсы, назначенные пользователю
+        assigned_courses = UserCourse.objects.filter(user=self.user)
+        
+        assigned_courses_count = assigned_courses.count()
+
+        # Получаем курсы, которые пользователь уже завершил
+        completed_course_ids = assigned_courses.filter(status='completed').values_list('course_id', flat=True)
+
+        # Получаем курсы, которые еще не завершены
+        uncompleted_courses_count = assigned_courses.exclude(course_id__in=completed_course_ids).count()
+
+        # Получаем бейджи, которые пользователь уже получил
+        earned_badge_names = self.get_badges().values_list('badge__name', flat=True)
+
+        # Получаем общие бейджи (не связанные с курсами)
+        general_badges_count = Badge.objects.filter(
+            is_active=True,
+            badge_type__in=['points', 'skill', 'trajectory']
+        ).count()
+
+        # Общее количество доступных бейджей = бейджи за незавершенные курсы + общие бейджи
+        return assigned_courses_count + general_badges_count
+
     def get_badges(self):
         """Возвращает все бейджи пользователя"""
         from gamification.models import UserBadge

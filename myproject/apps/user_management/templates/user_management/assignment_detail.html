@@ -1,0 +1,234 @@
+{% extends 'layout.html' %}
+{% block title %}Проверка задания - {{ assignment.title }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2><i class="fas fa-clipboard-check"></i> Проверка задания</h2>
+                <div class="btn-group" role="group">
+                    <a href="{% url 'user_management:assignment_review' %}" class="btn btn-outline-secondary">
+                        <i class="fas fa-arrow-left"></i> Назад к списку
+                    </a>
+                </div>
+            </div>
+
+            <div class="row">
+                <!-- Информация о задании -->
+                <div class="col-md-8">
+                    <div class="card mb-4">
+                        <div class="card-header">
+                            <h5 class="mb-0">{{ assignment.title }}</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <strong>Курс:</strong> {{ assignment.course.title }}
+                                </div>
+                                <div class="col-md-6">
+                                    <strong>Урок:</strong> 
+                                    {% if assignment.lesson %}
+                                        {{ assignment.lesson.title }}
+                                    {% else %}
+                                        <span class="text-muted">Не указан</span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <strong>Описание задания:</strong>
+                                <div class="mt-2 p-3 bg-light rounded">
+                                    {{ assignment.description|linebreaks }}
+                                </div>
+                            </div>
+
+                            {% if assignment.answer_text %}
+                            <div class="mb-3">
+                                <strong>Ответ студента:</strong>
+                                <div class="mt-2 p-3 border rounded">
+                                    {{ assignment.answer_text|linebreaks }}
+                                </div>
+                            </div>
+                            {% endif %}
+
+                            {% if assignment.student_comment %}
+                            <div class="mb-3">
+                                <strong>Комментарий студента:</strong>
+                                <div class="mt-2 p-3 bg-info bg-opacity-10 rounded">
+                                    {{ assignment.student_comment|linebreaks }}
+                                </div>
+                            </div>
+                            {% endif %}
+
+                            {% if assignment.attachment %}
+                            <div class="mb-3">
+                                <strong>Прикрепленный файл:</strong>
+                                <div class="mt-2">
+                                    <a href="{{ assignment.attachment.url }}" class="btn btn-outline-primary" target="_blank">
+                                        <i class="fas fa-download"></i> Скачать файл
+                                    </a>
+                                </div>
+                            </div>
+                            {% endif %}
+
+                            {% if assignment.mentor_comment %}
+                            <div class="mb-3">
+                                <strong>Комментарий наставника:</strong>
+                                <div class="mt-2 p-3 bg-warning bg-opacity-10 rounded">
+                                    {{ assignment.mentor_comment|linebreaks }}
+                                </div>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Информация о студенте и проверка -->
+                <div class="col-md-4">
+                    <!-- Информация о студенте -->
+                    <div class="card mb-4">
+                        <div class="card-header">
+                            <h6 class="mb-0">Информация о студенте</h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="d-flex align-items-center mb-3">
+                                {% if assignment.student.profile.image %}
+                                    <img src="{{ assignment.student.profile.image.url }}" 
+                                         class="rounded-circle me-3" width="60" height="60" 
+                                         alt="{{ assignment.student.get_full_name }}">
+                                {% endif %}
+                                <div>
+                                    <h6 class="mb-0">{{ assignment.student.get_full_name|default:assignment.student.username }}</h6>
+                                    <small class="text-muted">{{ assignment.student.email }}</small>
+                                </div>
+                            </div>
+                            
+                            <div class="row text-center">
+                                <div class="col-6">
+                                    <div class="text-muted small">DASCOIN</div>
+                                    <div class="h6 mb-0">{{ assignment.student.profile.dascoin_points }}</div>
+                                </div>
+                                <div class="col-6">
+                                    <div class="text-muted small">Группы</div>
+                                    <div class="h6 mb-0">
+                                        {% for group in assignment.student.groups.all %}
+                                            <span class="badge bg-secondary">{{ group.name }}</span>
+                                        {% endfor %}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Статус и метаданные -->
+                    <div class="card mb-4">
+                        <div class="card-header">
+                            <h6 class="mb-0">Статус задания</h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="mb-3">
+                                <strong>Текущий статус:</strong>
+                                <div class="mt-1">
+                                    {% if assignment.status == 'pending' %}
+                                        <span class="badge bg-warning">Ожидает проверки</span>
+                                    {% elif assignment.status == 'in_review' %}
+                                        <span class="badge bg-info">На проверке</span>
+                                    {% elif assignment.status == 'approved' %}
+                                        <span class="badge bg-success">Принято</span>
+                                    {% elif assignment.status == 'rejected' %}
+                                        <span class="badge bg-danger">Отклонено</span>
+                                    {% elif assignment.status == 'needs_revision' %}
+                                        <span class="badge bg-warning">Требует доработки</span>
+                                    {% endif %}
+                                </div>
+                            </div>
+
+                            <div class="mb-3">
+                                <strong>Дата отправки:</strong>
+                                <div>{{ assignment.submitted_at|date:"d.m.Y H:i" }}</div>
+                            </div>
+
+                            {% if assignment.deadline %}
+                            <div class="mb-3">
+                                <strong>Дедлайн:</strong>
+                                <div class="{% if assignment.is_overdue %}text-danger{% endif %}">
+                                    {{ assignment.deadline|date:"d.m.Y H:i" }}
+                                    {% if assignment.is_overdue %}
+                                        <span class="badge bg-danger ms-1">Просрочено</span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            {% endif %}
+
+                            {% if assignment.reviewed_at %}
+                            <div class="mb-3">
+                                <strong>Дата проверки:</strong>
+                                <div>{{ assignment.reviewed_at|date:"d.m.Y H:i" }}</div>
+                            </div>
+                            {% endif %}
+
+                            {% if assignment.mentor %}
+                            <div class="mb-3">
+                                <strong>Проверил:</strong>
+                                <div>{{ assignment.mentor.get_full_name|default:assignment.mentor.username }}</div>
+                            </div>
+                            {% endif %}
+
+                            {% if assignment.score is not None %}
+                            <div class="mb-3">
+                                <strong>Оценка:</strong>
+                                <div class="h5 text-primary">{{ assignment.score }}/{{ assignment.max_score }}</div>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <!-- Форма проверки -->
+                    {% if assignment.status in 'pending,in_review' %}
+                    <div class="card">
+                        <div class="card-header">
+                            <h6 class="mb-0">Проверка задания</h6>
+                        </div>
+                        <div class="card-body">
+                            <form method="post">
+                                {% csrf_token %}
+                                
+                                <div class="mb-3">
+                                    <label for="status" class="form-label">Статус</label>
+                                    <select name="status" id="status" class="form-select" required>
+                                        <option value="approved" {% if assignment.status == 'approved' %}selected{% endif %}>Принять</option>
+                                        <option value="rejected" {% if assignment.status == 'rejected' %}selected{% endif %}>Отклонить</option>
+                                        <option value="needs_revision" {% if assignment.status == 'needs_revision' %}selected{% endif %}>Требует доработки</option>
+                                    </select>
+                                </div>
+
+                                <div class="mb-3">
+                                    <label for="score" class="form-label">Оценка (0-{{ assignment.max_score }})</label>
+                                    <input type="number" name="score" id="score" class="form-control" 
+                                           min="0" max="{{ assignment.max_score }}" 
+                                           value="{% if assignment.score %}{{ assignment.score }}{% endif %}"
+                                           placeholder="Введите оценку">
+                                </div>
+
+                                <div class="mb-3">
+                                    <label for="mentor_comment" class="form-label">Комментарий наставника</label>
+                                    <textarea name="mentor_comment" id="mentor_comment" class="form-control" rows="4" 
+                                              placeholder="Оставьте комментарий для студента...">{% if assignment.mentor_comment %}{{ assignment.mentor_comment }}{% endif %}</textarea>
+                                </div>
+
+                                <div class="d-grid">
+                                    <button type="submit" class="btn btn-success">
+                                        <i class="fas fa-check"></i> Сохранить проверку
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

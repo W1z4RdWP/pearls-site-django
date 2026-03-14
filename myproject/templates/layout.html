@@ -10,16 +10,12 @@
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@600&family=Open+Sans&display=swap" rel="stylesheet">
     <link rel="icon" href="{% static 'global/imgs/favicon.ico' %}" type="image/x-icon">
     <link rel="shortcut icon" href="{% static 'global/imgs/favicon.ico' %}" type="image/x-icon"> <!-- Иконка -->
-    {% comment %} <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js" defer></script> {% endcomment %}
       <!-- Bootstrap CSS -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/css/bootstrap.min.css">
     <link rel="stylesheet" href="{% static 'global/bootstrap/css/bootstrap.min.css' %}" >
     <!-- Bootstrap JS + Popper JS -->
     <script defer src="{% static 'global/bootstrap/js/bootstrap.bundle.min.js' %}"></script>
-    {% comment %} <script src="https://unpkg.com/htmx.org@1.9.10" 
-    integrity="sha384-D1Kt99CQMDuVetoL1lrYwg5t+9QdHe7NLX/SoJYkXDFfX37iInKRy5xLSi8nO7UC"
-    crossorigin="anonymous"></script> {% endcomment %}
+
     
     {% comment %} Подключение шрифта onest {% endcomment %}
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -32,29 +28,19 @@
     <link rel="stylesheet" href="{% static 'notifications/css/notifications.css' %}" />
     <script src="{% static 'global/js/scripts.js' %}" defer></script>
     {% block specific_styles %} {% endblock %}
-    <script>
-    (function() {
-      try {
-        if (localStorage.getItem('theme') === 'dark') {
-          document.documentElement.classList.add('theme-dark');
-          document.body.classList.add('theme-dark');
-        } else {
-          // Убираем классы темной темы если тема светлая
-          document.documentElement.classList.remove('theme-dark');
-          document.body.classList.remove('theme-dark');
-        }
-      } catch(e){}
-    })();
-    </script>
 </head>
 <body>
     
     <header class='header'>
         <nav class="navbar navbar-expand-lg navbar-dark bg-dark custom-navbar">
             <div class="container-fluid">
+              {% if not request.user.groups.all.0.name == 'Внешний пользователь' %}
                 <a class="navbar-brand" href="{% url 'home' %}" id="logolink">
-                    <img src="{% static 'global/imgs/logo_lc.png' %}" alt="Logo" id="logopng">
+                    <img src="{% static 'global/imgs/logo_light_theme.png' %}" alt="Logo" id="logopng">
                 </a>
+              {% else %}
+                  <img src="{% static 'global/imgs/logo_light_theme.png' %}" alt="Logo" id="logopng">
+              {% endif %}
                 <div class="d-flex align-items-center">
                     {% if user.is_authenticated %}
                     <!-- Уведомления - вынесены за бургер меню для мобильных -->
@@ -86,12 +72,20 @@
                             </a>
                             <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="profileDropdownMobile">
                               <li><a class="dropdown-item" href="{% url 'users:profile' %}">Профиль</a></li>
-                              <li><a class="dropdown-item" href="{% url 'users:transactions' %}">
-                               История транзакций
-                              </a></li>
-                              <li><a class="dropdown-item" href="{% url 'courses:user_course_trajectory_list' %}">
-                                Ваши траектории
-                              </a></li>
+                              {% if not request.user.groups.all.0.name == 'Внешний пользователь' %}
+                                <li><a class="dropdown-item" href="{% url 'users:transactions' %}">
+                                История транзакций
+                                </a></li>
+                                <li><a class="dropdown-item" href="{% url 'courses:user_course_trajectory_list' %}">
+                                  Ваши траектории и курсы
+                                </a></li>
+                                <li><a class="dropdown-item" href="{% url 'courses:user_certificates' %}">
+                                  Ваши сертификаты
+                                </a></li>
+                                <li><a class="dropdown-item" href="{% url 'users:quiz_attempts_report' %}">
+                                  Ваши попытки тестов
+                                </a></li>
+                              {% endif %}
                               <li><hr class="dropdown-divider"></li>
                               <li>
                                 <form action="{% url 'users:logout' %}" method="post" style="display: inline;">
@@ -110,13 +104,28 @@
                 </div>
                 <div class="collapse navbar-collapse" id="navbarNav">
                   <ul class="navbar-nav ms-auto custom-nav-list">
-                    {% for item in nav_public %}
-                    <li class="nav-item">
-                      <a class="nav-link custom-nav-link" href="{% url item.url %}">
-                        <i class="{{ item.icon }}"></i> {{ item.label }}
-                      </a>
-                    </li>
-                    {% endfor %}
+                    {% if user.is_authenticated and not request.user.groups.all.0.name == 'Внешний пользователь' %}
+                      {% for item in nav_public %}
+                      <li class="nav-item">
+                        <a class="nav-link custom-nav-link" href="{% url item.url %}">
+                          <i class="{{ item.icon }}"></i> {{ item.label }}
+                        </a>
+                      </li>
+                      {% endfor %}
+                    {% endif %}
+
+
+                    {% if user.profile.is_mentor_user and not user.is_superuser and not user.is_staff %}
+                      {% for item in nav_mentor %}
+                        <li class="nav-item">
+                          <a class="nav-link custom-nav-link" href="{% url item.url %}" title="{{ item.label }}">
+                            <i class="{{ item.icon }}"></i>
+                          </a>
+                        </li>
+                      {% endfor %}
+                    {% endif %}
+
+
                     {% if user.is_authenticated %}
                     {% if request.user.is_staff %}
                       {% for item in nav_staff %}
@@ -134,8 +143,21 @@
                       </li>
                     {% endif %}
                   {% endif %}
-                      <!-- Уведомления - только для десктопа -->
-                      <li class="nav-item dropdown d-none d-lg-block">
+                    {% else %}
+                      <li class="nav-item">
+                        <a class="nav-link custom-nav-link" href="{% url 'users:login' %}" title="Вход">
+                          <i class="fa-solid fa-right-to-bracket"></i>
+                          <span>Войти</span>
+                        </a>
+                      </li>
+                    {% endif %}
+                  </ul>
+                </div>
+                {% if user.is_authenticated %}
+                <!-- Уведомления и профиль - фиксированная позиция справа на desktop -->
+                <div class="nav-profile-actions d-none d-lg-flex">
+                      <!-- Уведомления -->
+                      <div class="nav-item dropdown">
                         <a class="nav-link dropdown-toggle d-flex align-items-center position-relative" href="#" id="notificationDropdown" role="button"
                           data-bs-toggle="dropdown" aria-expanded="false">
                           <i class="fas fa-bell"></i>
@@ -150,10 +172,10 @@
                             </div>
                           </li>
                         </ul>
-                      </li>
+                      </div>
                       
-                      <!-- Профиль - только для десктопа -->
-                      <li class="nav-item dropdown d-none d-lg-block">
+                      <!-- Профиль -->
+                      <div class="nav-item dropdown">
                         <a class="nav-link dropdown-toggle d-flex align-items-center" href="#" id="profileDropdown" role="button"
                           data-bs-toggle="dropdown" aria-expanded="false">
                           <img src="{{ request.user.profile.image.url|default:'/media/profile_pics/default.jpg' }}" alt="Аватар"
@@ -161,15 +183,20 @@
                         </a>
                         <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="profileDropdown">
                           <li><a class="dropdown-item" href="{% url 'users:profile' %}">Профиль</a></li>
-                          <li><a class="dropdown-item" href="{% url 'users:transactions' %}">
-                           История транзакций
-                          </a></li>
-                          <li><a class="dropdown-item" href="{% url 'courses:user_course_trajectory_list' %}">
-                            Ваши траектории
-                          </a></li>
-                          <li><a class="dropdown-item" href="{% url 'courses:user_certificates' %}">
-                            Ваши сертификаты
-                          </a></li>
+                          {% if not request.user.groups.all.0.name == 'Внешний пользователь' %}
+                            <li><a class="dropdown-item" href="{% url 'users:transactions' %}">
+                            История транзакций
+                            </a></li>
+                            <li><a class="dropdown-item" href="{% url 'courses:user_course_trajectory_list' %}">
+                              Ваши траектории и курсы
+                            </a></li>
+                            <li><a class="dropdown-item" href="{% url 'courses:user_certificates' %}">
+                              Ваши сертификаты
+                            </a></li>
+                            <li><a class="dropdown-item" href="{% url 'users:quiz_attempts_report' %}">
+                              Ваши попытки тестов
+                            </a></li>
+                          {% endif %}
                           <li><hr class="dropdown-divider"></li>
                           <li>
                             <form action="{% url 'users:logout' %}" method="post" style="display: inline;">
@@ -178,30 +205,36 @@
                             </form>
                           </li>
                         </ul>
-                      </li>
-                    {% else %}
-                      <li class="nav-item">
-                        <a class="nav-link custom-nav-link" href="{% url 'users:login' %}" title="Вход">
-                          <i class="fa-solid fa-right-to-bracket"></i>
-                          <span class="d-md-none">Войти</span>
-                        </a>
-                      </li>
-                    {% endif %}
-                    <li class="nav-item">
-                      <button id="theme-toggle-btn" class="btn btn-outline-primary ms-2" type="button">Светлая тема</button>
-                    </li>
-                  </ul>
+                      </div>
                 </div>
+                {% endif %}
             </div>
         </nav>
     </header>
     <main>
         {% if messages %}
             {% for message in messages %}
-                <div class="alert alert-{{ message.tags }}">
+                <div class="alert alert-{{ message.tags }} alert-dismissible fade show auto-dismiss" role="alert">
                     {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Закрыть"></button>
                 </div>
             {% endfor %}
+            <script>
+                // Автоматическое скрытие сообщений через 5 секунд
+                document.addEventListener('DOMContentLoaded', function() {
+                    const alerts = document.querySelectorAll('.auto-dismiss');
+                    alerts.forEach(function(alert) {
+                        setTimeout(function() {
+                            // Плавное исчезновение
+                            alert.style.transition = 'opacity 0.5s ease-out';
+                            alert.style.opacity = '0';
+                            setTimeout(function() {
+                                alert.remove();
+                            }, 500);
+                        }, 5000); // 5 секунд
+                    });
+                });
+            </script>
         {% endif %}
                 
         {% block content %}
@@ -222,19 +255,25 @@
     <footer class="footer-main">
         <div class="footer-container">
             <div class="footer-col footer-brand">
+                {% if not request.user.groups.all.0.name == 'Внешний пользователь' %}
                 <a href="{% url 'home' %}">
-                    <img src="{% static 'global/imgs/logo_lc.png' %}" alt="Logo" class='footer-logo' id="footerlogo">
+                {% endif %}
+                    <img src="{% static 'global/imgs/logo_light_theme.png' %}" alt="Logo" class='footer-logo' id="footerlogo">
                 </a>
                 <p class="footer-tagline">Территория улыбки — учись, вдохновляйся, совершенствуйся!</p>       
             </div>
             <div class="footer-col footer-links">
+                {% if user.is_authenticated and not request.user.groups.all.0.name == 'Внешний пользователь' %}
                 <h5>Навигация</h5>
                 <ul>
                     <li><a href="{% url 'home' %}">Главная</a></li>
                     <li><a href="{% url 'about' %}">О нас</a></li>
-                    <li><a href="{% url 'changelog' %}">Изменения</a></li>
+                    {% if user.is_authenticated and request.user.is_staff %}
+                      <li><a href="{% url 'changelog' %}">Изменения</a></li>
+                    {% endif %}
                     <li><a href="{% url 'users:profile' %}">Профиль</a></li>
                 </ul>
+                {% endif %}
             </div>
             <div class="footer-col footer-social">
                 <h5>Мы в соцсетях</h5>
@@ -270,17 +309,19 @@
         </div>
         <div class="footer-bottom">
             <span class="site-version">Версия: {{ latest_version }}</span>
-            <span class="footer-text">© 2025 Территория Улыбки &nbsp;|&nbsp; The site was created by w1z4rdWP</span>
             <!-- Дублированный логотип для мобильных устройств -->
-            <img src="{% static 'global/imgs/logo_lc.png' %}" alt="Logo" class='footer-logo-mobile' id="footerlogomobile">
+            <img src="{% static 'global/imgs/logo_light_theme.png' %}" alt="Logo" class='footer-logo-mobile' id="footerlogomobile">
+            {% if user.is_authenticated %}
+            <form action="{% url 'clear_user_cache' %}" method="post" class="d-inline-block ml-3">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-sm btn-outline-dark" style="background-color: transparent; color: #333;" title="Сбросить кэш">
+                  <i class="fa-solid fa-arrows-rotate"></i> Сбросить кэш
+                </button>
+            </form>
+            {% endif %}
             <a href="{% url 'privacy_policy' %}" class="footer-policy">Политика конфиденциальности</a> 
         </div>
     </footer>
-    <script>
-        // Логотипы для темной и светлой темы
-        const darkLogo = "{% static 'global/imgs/logo_lc.png' %}";
-        const lightLogo = "{% static 'global/imgs/logo_light_theme.png' %}";
-    </script>
     <!-- jQuery -->
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     
@@ -300,6 +341,24 @@
                     const errorHtml = '<li><div class="dropdown-item-text text-center text-danger">Ошибка загрузки</div></li>';
                     $('#notification-list').html(errorHtml);
                     $('#notification-list-mobile').html(errorHtml);
+                }
+            });
+        }
+        
+        // Функция для автоматической отметки всех уведомлений как прочитанных
+        function markAllNotificationsAsRead() {
+            $.ajax({
+                url: '{% url "notifications:mark_all_as_read" %}',
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': $('input[name=csrfmiddlewaretoken]').val()
+                },
+                success: function() {
+                    // Обновляем счетчик уведомлений
+                    updateNotificationCount();
+                },
+                error: function() {
+                    console.log('Ошибка при отметке уведомлений как прочитанных');
                 }
             });
         }
@@ -328,47 +387,18 @@
             });
         }
         
-        // Обработчик для отметки уведомления как прочитанного
-        $(document).on('click', '.mark-read-btn', function(e) {
-            e.preventDefault();
-            const notificationId = $(this).data('notification-id');
-            const notificationItem = $(this).closest('.notification-item');
-            
-            $.ajax({
-                url: '/notifications/' + notificationId + '/mark-read/',
-                method: 'POST',
-                headers: {
-                    'X-CSRFToken': $('[name=csrfmiddlewaretoken]').val() || $('meta[name=csrf-token]').attr('content')
-                },
-                success: function() {
-                    notificationItem.removeClass('unread');
-                    updateNotificationCount();
-                    loadNotifications();
-                }
-            });
-        });
-        
-        // Обработчик для отметки всех уведомлений как прочитанных
-        $(document).on('click', '.mark-all-read-btn', function(e) {
-            e.preventDefault();
-            
-            $.ajax({
-                url: '{% url "notifications:mark_all_as_read" %}',
-                method: 'POST',
-                headers: {
-                    'X-CSRFToken': $('[name=csrfmiddlewaretoken]').val() || $('meta[name=csrf-token]').attr('content')
-                },
-                success: function() {
-                    updateNotificationCount();
-                    loadNotifications();
-                }
-            });
-        });
+        // Убрали обработчики для ручной отметки уведомлений, 
+        // так как теперь они отмечаются автоматически при открытии dropdown
         
         // Инициализация при загрузке страницы
         $(document).ready(function() {
             loadNotifications();
             updateNotificationCount();
+            
+            // Автоматическая отметка уведомлений как прочитанных при открытии dropdown
+            $('#notificationDropdown, #notificationDropdownMobile').on('show.bs.dropdown', function() {
+                markAllNotificationsAsRead();
+            });
             
             function updateNewTicketsIndicator() {
                 const indicator = $('#new-tickets-indicator');
@@ -396,6 +426,75 @@
             }, 30000);
         });
     </script>
+    
+    <!-- JavaScript для модального окна первого входа -->
+    <script>
+        $(document).ready(function() {
+            // Проверяем, нужно ли показать модальное окно
+            {% if request.session.show_intro_modal %}
+                // Показываем модальное окно
+                $('#introModal').modal('show');
+                
+                // Убираем флаг из сессии после показа
+                $.ajax({
+                    url: '{% url "users:clear_intro_modal_flag" %}',
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': $('input[name=csrfmiddlewaretoken]').val() || $('meta[name=csrf-token]').attr('content')
+                    }
+                });
+            {% endif %}
+            
+
+            
+            // Обработчик закрытия модального окна - останавливаем видео
+            $('#introModal').on('hidden.bs.modal', function () {
+                var video = $(this).find('video')[0];
+                if (video) {
+                    video.pause();
+                    video.currentTime = 0; // Сбрасываем время воспроизведения
+                }
+            });
+            
+            
+            // Обработчик нажатия кнопки закрытия - останавливаем видео
+            $('#introModal .btn-close, #introModal .btn-primary').on('click', function() {
+                var video = $('#introModal video')[0];
+                if (video) {
+                    video.pause();
+                    video.currentTime = 0;
+                }
+            });
+            
+        });
+    </script>
     {% endif %}
+
+    <!-- Модальное окно для первого входа -->
+    {% if user.is_authenticated %}
+    <div class="modal fade" id="introModal" tabindex="-1" aria-labelledby="introModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="introModalLabel">Добро пожаловать!</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body text-center">
+                    <p class="mb-3">Посмотрите это короткое видео, чтобы узнать больше о платформе:</p>
+                    <video controls class="w-100" style="max-height: 400px;">
+                        <source src="{% static 'global/video/user_intro.mp4' %}" type="video/mp4">
+                        Ваш браузер не поддерживает видео.
+                    </video>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-primary" data-bs-dismiss="modal">Понятно</button>
+                </div>
+            </div>
+        </div>
+    </div>
+  
+    {% endif %}
+    
+    {% block specific_scripts %}{% endblock %}
 </body>
 </html>

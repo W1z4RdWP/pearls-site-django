@@ -4,40 +4,123 @@
 {% block title %}Уведомления{% endblock %}
 
 {% block specific_styles %}
+<link rel="stylesheet" href="{% static 'notifications/css/notifications.css' %}">
 <style>
+    .page-header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 2rem 0;
+        margin-bottom: 2rem;
+        border-radius: 0 0 1rem 1rem;
+    }
+    
+    .page-header h1 {
+        color: white;
+        font-weight: 600;
+        margin: 0;
+    }
+    
+    .page-header .subtitle {
+        color: rgba(255, 255, 255, 0.8);
+        margin-top: 0.5rem;
+    }
+    
     .notification-filters {
-        background: #f8f9fa;
-        padding: 1rem;
-        border-radius: 0.375rem;
-        margin-bottom: 1.5rem;
+        background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+        padding: 1.5rem;
+        border-radius: 0.75rem;
+        margin-bottom: 2rem;
+        border: 1px solid #dee2e6;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
     }
     
     .notification-item {
         border: 1px solid #dee2e6;
-        border-radius: 0.375rem;
-        padding: 1rem;
-        margin-bottom: 1rem;
-        transition: all 0.2s ease;
+        border-radius: 0.75rem;
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+        transition: all 0.3s ease;
+        background: white;
+        position: relative;
+        overflow: hidden;
     }
     
-    .notification-item:hover {
-        box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+    .notification-item[onclick] {
+        cursor: pointer;
+    }
+    
+    .notification-item[onclick]:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 12px 30px rgba(0, 0, 0, 0.15);
+        border-color: #007bff;
+    }
+    
+    .notification-item[onclick]:active {
+        transform: translateY(-1px);
+    }
+    
+    .notification-item::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 3px;
+        background: linear-gradient(90deg, #e9ecef 0%, #dee2e6 100%);
+        transition: all 0.3s ease;
+    }
+    
+    .notification-item:not([onclick]):hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+        border-color: #007bff;
     }
     
     .notification-item.unread {
         border-left: 4px solid #007bff;
-        background-color: #f8f9ff;
+        background: linear-gradient(135deg, #f0f8ff 0%, #e6f3ff 100%);
+    }
+    
+    .notification-item.unread::before {
+        background: linear-gradient(90deg, #007bff 0%, #0056b3 100%);
+    }
+    
+    .notification-icon {
+        width: 50px;
+        height: 50px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+        border: 2px solid #dee2e6;
+        margin-right: 1rem;
+        flex-shrink: 0;
+        transition: all 0.3s ease;
+    }
+    
+    .notification-item:hover .notification-icon {
+        transform: scale(1.1);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    }
+    
+    .notification-icon i {
+        font-size: 1.3rem;
     }
     
     .notification-title {
         font-weight: 600;
         color: #212529;
         margin-bottom: 0.5rem;
+        font-size: 1.1rem;
+        line-height: 1.3;
     }
     
     .notification-message {
         color: #6c757d;
-        margin-bottom: 0.5rem;
+        margin-bottom: 1rem;
+        line-height: 1.5;
+        font-size: 0.95rem;
     }
     
     .notification-meta {
@@ -46,76 +129,214 @@
         align-items: center;
         font-size: 0.875rem;
         color: #6c757d;
+        margin-bottom: 1rem;
     }
     
     .notification-type-badge {
         font-size: 0.75rem;
-        padding: 0.25rem 0.5rem;
-        border-radius: 0.25rem;
-        background-color: #e9ecef;
+        padding: 0.4rem 0.8rem;
+        border-radius: 1rem;
+        background: linear-gradient(135deg, #e9ecef 0%, #dee2e6 100%);
         color: #495057;
+        font-weight: 500;
+        border: 1px solid #ced4da;
+    }
+    
+    .notification-time {
+        display: flex;
+        align-items: center;
+        gap: 0.3rem;
     }
     
     .notification-actions {
         display: flex;
         gap: 0.5rem;
+        flex-wrap: wrap;
+    }
+    
+    .notification-actions .btn {
+        border-radius: 0.5rem;
+        font-weight: 500;
+        transition: all 0.3s ease;
+    }
+    
+    .notification-actions .btn:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
     }
     
     .notification-stats {
-        background: #e9ecef;
-        padding: 1rem;
-        border-radius: 0.375rem;
-        margin-bottom: 1.5rem;
+        background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+        padding: 1.5rem;
+        border-radius: 0.75rem;
+        margin-bottom: 2rem;
+        border: 1px solid #dee2e6;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
     }
     
     .stats-item {
         text-align: center;
+        padding: 1rem;
+        border-radius: 0.5rem;
+        background: white;
+        border: 1px solid #e9ecef;
+        transition: all 0.3s ease;
+    }
+    
+    .stats-item:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
     }
     
     .stats-number {
-        font-size: 1.5rem;
-        font-weight: 600;
+        font-size: 2rem;
+        font-weight: 700;
         color: #007bff;
+        margin-bottom: 0.5rem;
     }
     
     .stats-label {
         font-size: 0.875rem;
         color: #6c757d;
+        font-weight: 500;
+    }
+    
+    .empty-state {
+        text-align: center;
+        padding: 4rem 2rem;
+        background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+        border-radius: 1rem;
+        border: 2px dashed #dee2e6;
+    }
+    
+    .empty-state i {
+        font-size: 4rem;
+        color: #adb5bd;
+        margin-bottom: 1rem;
+    }
+    
+    .empty-state h4 {
+        color: #6c757d;
+        margin-bottom: 0.5rem;
+    }
+    
+    .empty-state p {
+        color: #adb5bd;
+    }
+    
+    .pagination .page-link {
+        border-radius: 0.5rem;
+        margin: 0 0.2rem;
+        border: 1px solid #dee2e6;
+        color: #007bff;
+        transition: all 0.3s ease;
+    }
+    
+    .pagination .page-link:hover {
+        background-color: #007bff;
+        color: white;
+        transform: translateY(-1px);
+    }
+    
+    .pagination .page-item.active .page-link {
+        background-color: #007bff;
+        border-color: #007bff;
+    }
+    
+    /* Стили для кнопки очистки старых уведомлений */
+    .btn-outline-danger.w-100 {
+        border-radius: 0.75rem;
+        font-weight: 500;
+        padding: 0.75rem 1.5rem;
+        transition: all 0.3s ease;
+        border-width: 2px;
+    }
+    
+    .btn-outline-danger.w-100:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(220, 53, 69, 0.3);
+        background-color: #dc3545;
+        border-color: #dc3545;
+        color: white;
+    }
+    
+    .btn-outline-danger.w-100:active {
+        transform: translateY(0);
+    }
+    
+    @media (max-width: 768px) {
+        .notification-item {
+            padding: 1rem;
+        }
+        
+        .notification-icon {
+            width: 40px;
+            height: 40px;
+            margin-right: 0.75rem;
+        }
+        
+        .notification-icon i {
+            font-size: 1.1rem;
+        }
+        
+        .notification-actions {
+            margin-top: 1rem;
+        }
+        
+        .notification-actions .btn {
+            font-size: 0.8rem;
+            padding: 0.4rem 0.8rem;
+        }
     }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="container mt-4">
+<!-- Заголовок страницы -->
+<div class="page-header">
+    <div class="container">
+        <div class="row">
+            <div class="col-12">
+                <h1>
+                    <i class="fas fa-bell me-3"></i>
+                    Уведомления
+                </h1>
+                <p class="subtitle">Управление всеми вашими уведомлениями</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="container">
     <div class="row">
         <div class="col-12">
-            <h1 class="mb-4">
-                <i class="fas fa-bell"></i> Уведомления
-            </h1>
             
             <!-- Статистика -->
             <div class="notification-stats">
                 <div class="row">
-                    <div class="col-md-3 stats-item">
+                    <div class="col-md-4 stats-item">
                         <div class="stats-number">{{ total_count }}</div>
                         <div class="stats-label">Всего уведомлений</div>
                     </div>
-                    <div class="col-md-3 stats-item">
+                    <div class="col-md-4 stats-item">
                         <div class="stats-number text-warning">{{ unread_count }}</div>
                         <div class="stats-label">Непрочитанных</div>
                     </div>
-                    <div class="col-md-3 stats-item">
+                    <div class="col-md-4 stats-item">
                         <div class="stats-number text-success">{{ read_count }}</div>
                         <div class="stats-label">Прочитанных</div>
                     </div>
-                    <div class="col-md-3 stats-item">
-                        <a href="{% url 'notifications:clear_old_notifications' %}" 
-                           class="btn btn-outline-danger btn-sm"
-                           onclick="return confirm('Удалить уведомления старше 30 дней?')">
-                            <i class="fas fa-trash"></i> Очистить старые
-                        </a>
-                    </div>
                 </div>
+            </div>
+            
+            <!-- Кнопка очистки старых уведомлений -->
+            <div class="mb-3">
+                <a href="{% url 'notifications:clear_old_notifications' %}" 
+                   class="btn btn-outline-danger w-100"
+                   onclick="return confirm('Удалить уведомления старше 30 дней?')">
+                    <i class="fas fa-trash me-2"></i> 
+                    Очистить старые уведомления (старше 30 дней)
+                </a>
             </div>
             
             <!-- Фильтры -->
@@ -163,48 +384,104 @@
             <!-- Список уведомлений -->
             {% if notifications %}
                 {% for notification in notifications %}
-                    <div class="notification-item {% if not notification.is_read %}unread{% endif %}">
-                        <div class="row">
-                            <div class="col-md-8">
-                                <div class="notification-title">
-                                    {% if not notification.is_read %}
-                                        <i class="fas fa-circle text-primary" style="font-size: 0.5rem;"></i>
+                    <div class="notification-item {% if not notification.is_read %}unread{% endif %}" 
+                         {% if notification.get_absolute_url != '#' %}
+                             onclick="window.location.href='{{ notification.get_absolute_url }}'"
+                             style="cursor: pointer;"
+                         {% endif %}>
+                        <div class="d-flex align-items-start">
+                            <!-- Иконка типа уведомления -->
+                            <div class="notification-icon">
+                                {% if notification.notification_type == 'course_assigned' %}
+                                    <i class="fas fa-graduation-cap text-success"></i>
+                                {% elif notification.notification_type == 'trajectory_assigned' %}
+                                    <i class="fas fa-route text-info"></i>
+                                {% elif notification.notification_type == 'dascoin' %}
+                                    <i class="fas fa-coins text-warning"></i>
+                                {% elif notification.notification_type == 'platform_update' %}
+                                    <i class="fas fa-sync-alt text-primary"></i>
+                                {% elif notification.notification_type == 'lesson_actualization' %}
+                                    <i class="fas fa-book text-secondary"></i>
+                                {% elif notification.notification_type == 'ticket_status' %}
+                                    <i class="fas fa-ticket-alt text-danger"></i>
+                                {% elif notification.notification_type == 'ticket_comment' %}
+                                    <i class="fas fa-comment text-info"></i>
+                                {% elif notification.notification_type == 'quiz_reviewed' %}
+                                    {% if notification.related_quiz_result and notification.related_quiz_result.reviewed_by %}
+                                        {% if notification.related_quiz_result.reviewed_by.profile.image %}
+                                            <img src="{{ notification.related_quiz_result.reviewed_by.profile.image.url }}" 
+                                                alt="{{ notification.related_quiz_result.reviewed_by.get_full_name|default:notification.related_quiz_result.reviewed_by.username }}"
+                                                class="rounded-circle" 
+                                                style="width: 50px; height: 50px; object-fit: cover;">
+                                        {% else %}
+                                            <div class="bg-success rounded-circle d-flex align-items-center justify-content-center" 
+                                                style="width: 50px; height: 50px;">
+                                                <i class="fas fa-user text-white"></i>
+                                            </div>
+                                        {% endif %}
+                                    {% else %}
+                                        <i class="fas fa-check-circle text-success"></i>
                                     {% endif %}
+                                {% elif notification.notification_type == 'homework_reviewed' %}
+                                    {% if notification.related_homework_submission and notification.related_homework_submission.reviewed_by %}
+                                        {% if notification.related_homework_submission.reviewed_by.profile.image %}
+                                            <img src="{{ notification.related_homework_submission.reviewed_by.profile.image.url }}" 
+                                                alt="{{ notification.related_homework_submission.reviewed_by.get_full_name|default:notification.related_homework_submission.reviewed_by.username }}"
+                                                class="rounded-circle" 
+                                                style="width: 50px; height: 50px; object-fit: cover;">
+                                        {% else %}
+                                            <div class="bg-warning rounded-circle d-flex align-items-center justify-content-center" 
+                                                style="width: 50px; height: 50px;">
+                                                <i class="fas fa-user text-white"></i>
+                                            </div>
+                                        {% endif %}
+                                    {% else %}
+                                        <i class="fas fa-tasks text-warning"></i>
+                                    {% endif %}
+                                {% else %}
+                                    <i class="fas fa-bell text-muted"></i>
+                                {% endif %}
+                            </div>
+                            
+                            <!-- Содержимое уведомления -->
+                            <div class="flex-grow-1">
+                                <div class="notification-title">
                                     {{ notification.title }}
+                                    {% if not notification.is_read %}
+                                        <span class="badge bg-danger rounded-pill ms-2" style="width: 8px; height: 8px; padding: 0;"></span>
+                                    {% endif %}
                                 </div>
                                 <div class="notification-message">{{ notification.message }}</div>
                                 <div class="notification-meta">
                                     <span class="notification-type-badge">
+                                        <i class="fas fa-tag me-1"></i>
                                         {{ notification.get_notification_type_display }}
                                     </span>
-                                    <span>{{ notification.created_at|date:"d.m.Y H:i" }}</span>
+                                    <span class="notification-time">
+                                        <i class="fas fa-clock me-1"></i>
+                                        {{ notification.created_at|date:"d.m.Y H:i" }}
+                                    </span>
                                 </div>
                             </div>
-                            <div class="col-md-4">
-                                <div class="notification-actions">
-                                    {% if not notification.is_read %}
-                                        <form method="post" action="{% url 'notifications:mark_as_read' notification.id %}" style="display: inline;">
-                                            {% csrf_token %}
-                                            <button type="submit" class="btn btn-sm btn-outline-primary">
-                                                <i class="fas fa-check"></i> Прочитано
-                                            </button>
-                                        </form>
-                                    {% endif %}
-                                    
-                                    {% if notification.get_absolute_url != '#' %}
-                                        <a href="{{ notification.get_absolute_url }}" class="btn btn-sm btn-primary">
-                                            <i class="fas fa-external-link-alt"></i> Перейти
-                                        </a>
-                                    {% endif %}
-                                    
-                                    <form method="post" action="{% url 'notifications:delete_notification' notification.id %}" style="display: inline;">
+                            
+                            <!-- Действия -->
+                            <div class="notification-actions" onclick="event.stopPropagation();">
+                                {% if not notification.is_read %}
+                                    <form method="post" action="{% url 'notifications:mark_as_read' notification.id %}" style="display: inline;">
                                         {% csrf_token %}
-                                        <button type="submit" class="btn btn-sm btn-outline-danger"
-                                                onclick="return confirm('Удалить уведомление?')">
-                                            <i class="fas fa-trash"></i>
+                                        <button type="submit" class="btn btn-sm btn-outline-success">
+                                            <i class="fas fa-check"></i> Прочитано
                                         </button>
                                     </form>
-                                </div>
+                                {% endif %}
+                                
+                                <form method="post" action="{% url 'notifications:delete_notification' notification.id %}" style="display: inline;">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn btn-sm btn-outline-danger"
+                                            onclick="return confirm('Удалить уведомление?')">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </form>
                             </div>
                         </div>
                     </div>
@@ -247,13 +524,68 @@
                     </nav>
                 {% endif %}
             {% else %}
-                <div class="text-center py-5">
-                    <i class="fas fa-bell-slash text-muted" style="font-size: 3rem;"></i>
-                    <h4 class="mt-3">Уведомлений не найдено</h4>
-                    <p class="text-muted">Попробуйте изменить параметры поиска или фильтры</p>
+                <div class="empty-state">
+                    <i class="fas fa-bell-slash"></i>
+                    <h4>Уведомлений не найдено</h4>
+                    <p>Попробуйте изменить параметры поиска или фильтры</p>
                 </div>
             {% endif %}
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block specific_scripts %}
+<script>
+$(document).ready(function() {
+    // Анимация появления уведомлений
+    $('.notification-item').each(function(index) {
+        $(this).css('opacity', '0').delay(index * 100).animate({
+            opacity: 1
+        }, 300);
+    });
+    
+    // Улучшенная обработка форм
+    $('.notification-actions form').on('submit', function(e) {
+        const $form = $(this);
+        const $button = $form.find('button[type="submit"]');
+        const originalText = $button.html();
+        
+        // Показываем загрузку
+        $button.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i>');
+        
+        // Восстанавливаем кнопку через 2 секунды (на случай ошибки)
+        setTimeout(function() {
+            $button.prop('disabled', false).html(originalText);
+        }, 2000);
+    });
+    
+    // Автофокус на поле поиска при нажатии Ctrl+F
+    $(document).keydown(function(e) {
+        if (e.ctrlKey && e.keyCode === 70) {
+            e.preventDefault();
+            $('#search').focus();
+        }
+    });
+    
+    // Автоматическая отправка формы при изменении фильтров
+    $('#type').on('change', function() {
+        $(this).closest('form').submit();
+    });
+    
+    // Поиск с задержкой
+    let searchTimeout;
+    $('#search').on('input', function() {
+        clearTimeout(searchTimeout);
+        searchTimeout = setTimeout(function() {
+            $('#search').closest('form').submit();
+        }, 500);
+    });
+    
+    // Добавляем подсказку о кликабельности для уведомлений с ссылками
+    $('.notification-item[onclick]').each(function() {
+        $(this).attr('title', 'Нажмите для перехода к связанному объекту');
+    });
+});
+</script>
 {% endblock %} 

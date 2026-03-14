@@ -33,13 +33,17 @@ def get_changelog(request):
 def nav_menu(request):
     nav_public = [
         {'url': 'home', 'label': 'Главная', 'icon': 'fa-solid fa-house'},
-        {'url': 'changelog', 'label': 'Список изменений', 'icon': 'fa-solid fa-list-check'},
         {'url': 'about', 'label': 'О нас', 'icon': 'fa-solid fa-circle-info'},
         {'url': 'builder:lesson_master', 'label': 'База знаний', 'icon': 'fa-solid fa-book'},
+        {'url': 'shop:shop', 'label': 'Магазин', 'icon': 'fa-solid fa-store'},
+        {'url': 'messenger:chat_room_list', 'label': 'Мессенджер', 'icon': 'fa-solid fa-comments'},
     ]
     nav_staff = [
-        {'url': 'courses:create-course', 'label': 'Создать курс', 'icon': 'fa-solid fa-plus'},
-        {'url': 'quizzes:quizzes', 'label': 'Тесты', 'icon': 'fa-solid fa-clipboard-question'},
+        {'url': 'builder:trajectory_management', 'label': 'Управление траекториями', 'icon': 'fa-solid fa-route'},
+        {'url': 'changelog', 'label': 'Список изменений', 'icon': 'fa-solid fa-list-check'},
         {'url': 'builder:dashboard', 'label': 'Панель управления', 'icon': 'fa-solid fa-cog'},
     ]
-    return {'nav_public': nav_public, 'nav_staff': nav_staff}
+    nav_mentor = [
+        {'url': 'builder:dashboard', 'label': 'Панель управления', 'icon': 'fa-solid fa-cog'},
+    ]
+    return {'nav_public': nav_public, 'nav_staff': nav_staff, 'nav_mentor': nav_mentor}
