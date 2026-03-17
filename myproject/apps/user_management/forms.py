@@ -24,6 +24,7 @@ class UserProfileForm(forms.ModelForm):
             self.fields['first_name'] = forms.CharField(label='Имя', required=True)
             self.fields['last_name'] = forms.CharField(label='Фамилия', required=True)
         self.fields['middle_name'].required = False
+        self.fields['country'].required = False
         self.fields['role'] = forms.ModelChoiceField(
             label='Должность',
             queryset=Role.objects.all(),
@@ -37,6 +38,7 @@ class UserProfileForm(forms.ModelForm):
             empty_label='— выберите —',
         )
         self.fields['date_of_birth'].required = False
+        self.fields['country'].required = False
         self.fields['image'].required = False
         self.fields['is_approved'].required = False
 
@@ -72,7 +74,7 @@ class UserProfileForm(forms.ModelForm):
 
     class Meta:
         model = Profile
-        fields = ['middle_name', 'role', 'department', 'date_of_birth', 'phone_number', 'phone_arbitrary_format', 'image', 'bio', 'is_approved', 'is_mentor']
+        fields = ['middle_name', 'role', 'department', 'date_of_birth', 'country', 'phone_number', 'phone_arbitrary_format', 'image', 'bio', 'is_approved', 'is_mentor']
         widgets = {
             'date_of_birth': forms.DateInput(attrs={'type': 'date'}),
         }
