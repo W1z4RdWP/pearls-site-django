@@ -599,3 +599,40 @@
 .table thead th.sortable.sorted-desc:hover .sort-icon .sort-desc {
   color: #2356b3;
 }
+
+/* Контекстное меню по ПКМ на строке инцидента */
+.incident-context-menu {
+  position: fixed;
+  z-index: 10000;
+  min-width: 180px;
+  padding: 6px 0;
+  background: #fff;
+  border: 1px solid #e3e8f0;
+  border-radius: 8px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+  list-style: none;
+  margin: 0;
+}
+
+.incident-context-menu-item {
+  display: block;
+  padding: 8px 14px;
+  color: #232a3a;
+  text-decoration: none;
+  font-size: 0.95em;
+  transition: background-color 0.15s;
+  cursor: pointer;
+  border: none;
+  width: 100%;
+  text-align: left;
+  background: transparent;
+}
+
+.incident-context-menu-item:hover {
+  background-color: #f0f4ff;
+  color: #4d7cff;
+}
+
+.incident-context-menu-item i {
+  width: 1.1em;
+}
