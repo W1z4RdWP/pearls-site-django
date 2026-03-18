@@ -24,7 +24,15 @@ class UserProfileForm(forms.ModelForm):
             self.fields['first_name'] = forms.CharField(label='Имя', required=True)
             self.fields['last_name'] = forms.CharField(label='Фамилия', required=True)
         self.fields['middle_name'].required = False
-        self.fields['country'].required = False
+        self.fields['country'] = forms.ChoiceField(
+            label='Страна',
+            choices=[
+                ('', '— выберите —'),
+                ('Россия', 'Россия'),
+                ('Казахстан', 'Казахстан'),
+            ],
+            required=False,
+        )
         self.fields['role'] = forms.ModelChoiceField(
             label='Должность',
             queryset=Role.objects.all(),
@@ -38,7 +46,6 @@ class UserProfileForm(forms.ModelForm):
             empty_label='— выберите —',
         )
         self.fields['date_of_birth'].required = False
-        self.fields['country'].required = False
         self.fields['image'].required = False
         self.fields['is_approved'].required = False
 
