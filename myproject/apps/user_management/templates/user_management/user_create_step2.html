@@ -29,6 +29,7 @@
                 {% endfor %}
             </div>
             {{ form.date_of_birth.label_tag }}{{ form.date_of_birth }}
+            {{ form.country.label_tag }}{{ form.country }}
             <div class="phone-field-wrapper">
                 <label for="id_phone_number">{{ form.phone_number.label }}</label>
                 <input type="text" id="id_phone_number" name="phone_number" class="form-control" maxlength="12" autocomplete="off" value="{{ form.phone_number.value|default:'' }}"/>
