@@ -119,6 +119,8 @@ python manage.py send_lesson_actualization_reminders --days-before 7 --days-afte
 0 9 * * * cd /path/to/project && python manage.py send_lesson_actualization_reminders
 ```
 
+(Реализовано на прод в sudo crontab -e)
+
 ### API endpoints
 
 - `GET /notifications/` - список всех уведомлений

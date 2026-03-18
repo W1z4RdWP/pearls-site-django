@@ -549,23 +549,14 @@ class CourseDetailView(DetailView):
             user_country = request.user.profile.country or ''
 
         # Проверяем deadline.
-        # Для обычных курсов по-прежнему блокируем курс при просрочке.
-        # Для курсов-инцидентов доступ не блокируем, но помечаем просрочку и шлем уведомление один раз.
+        # Для обычных курсов блокируем курс при просрочке.
+        # Для курсов-инцидентов доступ не блокируем — уведомление о просрочке
+        # рассылается по расписанию командой send_incident_course_overdue_notifications.
         is_deadline_overdue = False
         if user_course and user_course.deadline:
             is_deadline_overdue = timezone.now() > user_course.deadline
             if is_deadline_overdue:
-                if course.is_incident:
-                    # Отправляем единоразовое уведомление о просроченном курсе-инциденте
-                    from notifications.models import Notification
-                    last_overdue = Notification.objects.filter(
-                        user=user,
-                        related_course=course,
-                        notification_type='incident_course_overdue',
-                    ).order_by('-created_at').first()
-                    if not last_overdue:
-                        Notification.create_incident_course_overdue_notification(user, course)
-                elif user_course.status not in ['completed', 'blocked']:
+                if not course.is_incident and user_course.status not in ['completed', 'blocked']:
                     user_course.status = 'blocked'
                     user_course.save(update_fields=['status'])
         
