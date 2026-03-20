@@ -1,9 +1,10 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { fetchIncidentDetail, unassignIncidentUser } from '../../../api/builder_api';
 import './IncidentDetailPage.css';
 
 const COLUMN_TITLES_STORAGE_KEY = 'incident_detail_table_column_titles';
+const LAZY_PAGE_SIZE = 30;
 
 const DEFAULT_DATE_FROM = '2025-01-01';
 function getDefaultDateTo() {
@@ -87,6 +88,12 @@ const IncidentDetailPage = () => {
   const [departmentDropdownOpen, setDepartmentDropdownOpen] = useState(false);
   const { col: sortCol, dir: sortDir } = sortState;
 
+  // Lazy rendering: показываем часть списка (30, 60, 90...) по мере прокрутки.
+  const [visibleCount, setVisibleCount] = useState(LAZY_PAGE_SIZE);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const sentinelRef = useRef(null);
+  const loadingMoreRef = useRef(false);
+
   const loadData = useCallback(async (params) => {
     setLoading(true);
     setError(null);
@@ -139,6 +146,11 @@ const IncidentDetailPage = () => {
     setFilters(fromUrl);
     loadData(fromUrl);
   }, [searchParams]);
+
+  // Сброс lazy-рендера при повторной загрузке данных (смена фильтров/параметров).
+  useEffect(() => {
+    setVisibleCount(LAZY_PAGE_SIZE);
+  }, [data?.incident_user_list]);
 
   const applyFiltersToUrl = useCallback((q) => {
     const params = new URLSearchParams();
@@ -313,6 +325,41 @@ const IncidentDetailPage = () => {
     return arr;
   }, [data?.incident_user_list, sortCol, sortDir]);
 
+  const totalCount = sortedList.length;
+  const hasMore = totalCount > visibleCount;
+
+  // Infinite scroll trigger (добавляет следующие 30 строк).
+  useEffect(() => {
+    if (!hasMore) return;
+    if (!sentinelRef.current) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const first = entries[0];
+        if (!first?.isIntersecting) return;
+        if (loadingMoreRef.current) return;
+
+        loadingMoreRef.current = true;
+        setLoadingMore(true);
+
+        setVisibleCount((prev) => {
+          if (prev >= totalCount) return prev;
+          return Math.min(prev + LAZY_PAGE_SIZE, totalCount);
+        });
+
+        // Небольшой кулдаун для UX и чтобы не триггерилось несколько раз подряд.
+        setTimeout(() => {
+          loadingMoreRef.current = false;
+          setLoadingMore(false);
+        }, 250);
+      },
+      { root: null, rootMargin: '300px 0px', threshold: 0.01 }
+    );
+
+    observer.observe(sentinelRef.current);
+    return () => observer.disconnect();
+  }, [hasMore, totalCount]);
+
   if (loading && !data) {
     return (
       <main className="incident-detail">
@@ -334,7 +381,7 @@ const IncidentDetailPage = () => {
     );
   }
 
-  const list = sortedList;
+  const list = sortedList.slice(0, visibleCount);
   const users = data?.users ?? [];
   const statusChoices = data?.status_choices ?? [];
   const departments = data?.departments ?? [];
@@ -548,6 +595,17 @@ const IncidentDetailPage = () => {
             </tbody>
           </table>
         </div>
+
+        {hasMore && (
+          <>
+            <div ref={sentinelRef} style={{ height: 1 }} />
+            {loadingMore && (
+              <div style={{ textAlign: 'center', marginTop: 8, color: '#6c757d' }}>
+                Подгружаем...
+              </div>
+            )}
+          </>
+        )}
       </div>
 
       {columnModalOpen && (
