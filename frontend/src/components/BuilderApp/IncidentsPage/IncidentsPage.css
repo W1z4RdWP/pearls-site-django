@@ -161,6 +161,11 @@
   cursor: pointer;
 }
 
+.incidents-page__checkbox:disabled,
+.incidents-page__checkbox:disabled + .incidents-page__form-check-label {
+  cursor: not-allowed;
+}
+
 .incidents-page__filter-buttons {
   margin-left: auto;
   display: flex;

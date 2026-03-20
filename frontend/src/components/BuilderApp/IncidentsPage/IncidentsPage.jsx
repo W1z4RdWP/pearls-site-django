@@ -9,6 +9,8 @@ function getDefaultDateTo() {
   return new Date().toISOString().split('T')[0];
 }
 const DEFAULT_STATUSES = ['new', 'accepted', 'assigned', 'studies_completed'];
+const BLOCKED_STATUSES = ['new', 'accepted', 'assigned', 'studies_completed'];
+const COMPLETED_STATUSES = ['resolved', 'declined'];
 
 function getSavedColumnTitles() {
   try {
@@ -241,28 +243,59 @@ const IncidentsPage = () => {
           </div>
 
           <div className="incidents-page__status-filters">
-            {statusChoices.map(([value, label]) => (
-              <div key={value} className="incidents-page__form-check">
-                <input
-                  type="checkbox"
-                  className="incidents-page__checkbox"
-                  name="status"
-                  value={value}
-                  id={`status_${value}`}
-                  checked={selectedStatuses.includes(value)}
-                  onChange={(e) => {
-                    if (e.target.checked) {
-                      setFilters((p) => ({ ...p, status: [...p.status, value] }));
-                    } else {
-                      setFilters((p) => ({ ...p, status: p.status.filter((s) => s !== value) }));
-                    }
-                  }}
-                />
-                <label className="incidents-page__form-check-label" htmlFor={`status_${value}`}>
-                  {label}
-                </label>
-              </div>
-            ))}
+            {statusChoices.map(([value, label]) => {
+              const isBlocked = BLOCKED_STATUSES.includes(value) && selectedStatuses.some((s) => COMPLETED_STATUSES.includes(s));
+              return (
+                <div key={value} className="incidents-page__form-check">
+                  <input
+                    type="checkbox"
+                    className="incidents-page__checkbox"
+                    name="status"
+                    value={value}
+                    id={`status_${value}`}
+                    checked={selectedStatuses.includes(value)}
+                    disabled={isBlocked}
+                    onChange={() => {
+                      setFilters((p) => {
+                        const wasChecked = p.status.includes(value);
+                        let newStatuses = wasChecked
+                          ? p.status.filter((s) => s !== value)
+                          : [...p.status, value];
+
+                        const hasCompleted = newStatuses.some((s) => COMPLETED_STATUSES.includes(s));
+
+                        if (hasCompleted) {
+                          newStatuses = newStatuses.filter((s) => !BLOCKED_STATUSES.includes(s));
+                          const today = new Date();
+                          const dateFrom = new Date(today);
+                          dateFrom.setDate(dateFrom.getDate() - 30);
+                          return {
+                            ...p,
+                            status: newStatuses,
+                            date_from: dateFrom.toISOString().split('T')[0],
+                            date_to: today.toISOString().split('T')[0],
+                          };
+                        }
+
+                        if (newStatuses.length === 0) {
+                          return {
+                            ...p,
+                            status: [...BLOCKED_STATUSES],
+                            date_from: DEFAULT_DATE_FROM,
+                            date_to: getDefaultDateTo(),
+                          };
+                        }
+
+                        return { ...p, status: newStatuses };
+                      });
+                    }}
+                  />
+                  <label className="incidents-page__form-check-label" htmlFor={`status_${value}`}>
+                    {label}
+                  </label>
+                </div>
+              );
+            })}
             <div className="incidents-page__filter-buttons">
               <button type="submit" className="incidents-page__btn incidents-page__btn--primary">
                 Применить фильтры
