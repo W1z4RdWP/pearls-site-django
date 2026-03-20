@@ -86,7 +86,7 @@
 
 .incident-detail__date-wrap {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   align-items: center;
   gap: 0.25rem;
 }
@@ -119,6 +119,10 @@
   align-items: center;
   gap: 0.75rem;
   margin-bottom: 0.5rem;
+  padding: 12px;
+  background: #f7f8fa;
+  border-radius: 6px;
+  border: 1px solid #e3e8f0;
 }
 
 .incident-detail__status-filters {
@@ -196,6 +200,7 @@
   cursor: pointer;
   border: 1px solid transparent;
   font-family: inherit;
+  border: 1px solid black;
 }
 
 .incident-detail__btn--primary {
@@ -230,12 +235,13 @@
   width: 100%;
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
+  margin-top: 20px;
 }
 
 .incident-detail__table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 0.85em;
+  font-size: 0.9em;
   table-layout: fixed;
   min-width: 1100px;
 }
@@ -244,43 +250,65 @@
   background: #f7f8fa;
   color: #232a3a;
   font-weight: 600;
-  padding: 6px 6px;
+  padding: 10px 6px;
   border-bottom: 2px solid #e3e8f0;
   text-align: left;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  font-size: 0.9em;
 }
 
 .incident-detail__table thead th.sortable {
   cursor: pointer;
   user-select: none;
+  position: relative;
+  padding-right: 22px;
+  transition: background-color 0.15s;
 }
 
 .incident-detail__table thead th.sortable:hover {
-  background: #eef0f4;
+  background-color: #ebeef3;
 }
 
 .incident-detail__sort-icon {
+  display: inline-flex;
+  flex-direction: column;
+  vertical-align: middle;
   margin-left: 4px;
-  font-size: 0.7em;
-  opacity: 0.5;
+  font-size: 0.55em;
+  line-height: 1;
+  color: #bbb;
+  position: absolute;
+  right: 4px;
+  top: 50%;
+  transform: translateY(-50%);
+  gap: 1px;
+}
+
+.incident-detail__sort-icon span {
+  transition: color 0.15s;
 }
 
 .incident-detail__sort-icon .incident-detail__sort-active {
-  opacity: 1;
   color: #4d7cff;
 }
 
+.incident-detail__table thead th.sortable:hover .incident-detail__sort-icon {
+  color: #888;
+}
+
+.incident-detail__table thead th.sortable:hover .incident-detail__sort-icon .incident-detail__sort-active {
+  color: #2356b3;
+}
+
 .incident-detail__table tbody td {
-  padding: 6px 6px;
+  padding: 10px 6px;
   border-bottom: 1px solid #e3e8f0;
   vertical-align: middle;
   color: #232a3a;
   overflow: hidden;
   text-overflow: ellipsis;
-  font-size: 0.9em;
+  white-space: nowrap;
 }
 
 .incident-detail__row {
@@ -517,14 +545,29 @@
   }
 }
 
-@media (max-width: 600px) {
+@media (min-width: 1401px) {
+  .incident-detail__table {
+    min-width: 1200px;
+  }
+}
+
+@media (max-width: 1200px) {
   .incident-detail__table {
     min-width: 800px;
-    font-size: 0.85em;
   }
 
   .incident-detail__table thead th,
   .incident-detail__table tbody td {
     padding: 8px 4px;
+    font-size: 0.85em;
+  }
+}
+
+@media (max-width: 600px) {
+  .incident-detail__table thead th,
+  .incident-detail__table tbody td {
+    white-space: nowrap;
+    font-size: 0.92em;
+    padding: 6px 8px;
   }
 }
