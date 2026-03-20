@@ -54,3 +54,70 @@ export function fetchStaffDashboard() {
 export function fetchTicketReports(period = 'month') {
   return request(`/tech_support/reports/?period=${encodeURIComponent(period)}`);
 }
+
+/**
+ * Детальная информация о тикете.
+ * @param {number} ticketId
+ * @returns {Promise<{ ticket, comments, attachments, is_staff_view, is_closed, can_comment, can_rate, update_options? }>}
+ */
+export function fetchTicketDetail(ticketId) {
+  return request(`/tech_support/ticket/${ticketId}/`);
+}
+
+/**
+ * Взять тикет в работу (staff).
+ * @param {number} ticketId
+ * @returns {Promise<{ success: boolean, message: string }>}
+ */
+export function takeTicket(ticketId) {
+  return request(`/tech_support/ticket/${ticketId}/take/`, { method: 'POST' });
+}
+
+/**
+ * Закрыть тикет (staff).
+ * @param {number} ticketId
+ * @returns {Promise<{ success: boolean, message: string }>}
+ */
+export function closeTicket(ticketId) {
+  return request(`/tech_support/ticket/${ticketId}/close/`, { method: 'POST' });
+}
+
+/**
+ * Добавить комментарий к тикету.
+ * @param {number} ticketId
+ * @param {string} content
+ * @returns {Promise<{ success: boolean, comment: object }>}
+ */
+export function addTicketComment(ticketId, content) {
+  return request(`/tech_support/ticket/${ticketId}/comment/`, {
+    method: 'POST',
+    body: JSON.stringify({ content }),
+  });
+}
+
+/**
+ * Обновить параметры тикета (staff).
+ * @param {number} ticketId
+ * @param {object} payload — { title?, status_id?, priority_id?, category_id?, deadline?, assigned_to_id? }
+ * @returns {Promise<{ success: boolean, message: string }>}
+ */
+export function updateTicket(ticketId, payload) {
+  return request(`/tech_support/ticket/${ticketId}/update/`, {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+}
+
+/**
+ * Оценить решение тикета (только автор закрытого тикета).
+ * @param {number} ticketId
+ * @param {number} rating — от 1 до 5
+ * @param {string} studentFeedback — отзыв
+ * @returns {Promise<{ success: boolean, message: string }>}
+ */
+export function rateTicket(ticketId, rating, studentFeedback = '') {
+  return request(`/tech_support/ticket/${ticketId}/rate/`, {
+    method: 'POST',
+    body: JSON.stringify({ rating, student_feedback: studentFeedback }),
+  });
+}

@@ -5,6 +5,10 @@ from myapp.models import ChangeLog, UserCourse
 from messenger.models import ChatRoom, RoomMessage, RoomMessageAttachment
 from shop.models import InternalProduct, ProductOrder
 from users.models import Role
+from tech_support.models import (
+    Ticket, TicketStatus, TicketPriority, TicketCategory,
+    TicketAttachment, TicketComment,
+)
 
 
 class GroupSerializer(serializers.ModelSerializer):
@@ -147,3 +151,111 @@ class BuilderRoleSerializer(serializers.ModelSerializer):
     class Meta:
         model = Role
         fields = ('id', 'name')
+
+
+# ---------------------------------------------------------------------------
+#  Tech Support API — детальная страница тикета
+# ---------------------------------------------------------------------------
+
+class TicketStatusSerializer(serializers.ModelSerializer):
+    """Сериализатор статуса тикета."""
+
+    class Meta:
+        model = TicketStatus
+        fields = ('id', 'name', 'color', 'is_active')
+
+
+class TicketPrioritySerializer(serializers.ModelSerializer):
+    """Сериализатор приоритета тикета."""
+
+    class Meta:
+        model = TicketPriority
+        fields = ('id', 'name', 'level', 'response_time_hours', 'color')
+
+
+class TicketCategorySerializer(serializers.ModelSerializer):
+    """Сериализатор категории тикета."""
+
+    class Meta:
+        model = TicketCategory
+        fields = ('id', 'name')
+
+
+class TicketAttachmentSerializer(serializers.ModelSerializer):
+    """Сериализатор вложения тикета."""
+
+    file_url = serializers.SerializerMethodField()
+
+    class Meta:
+        model = TicketAttachment
+        fields = ('id', 'filename', 'file_url', 'uploaded_at')
+
+    def get_file_url(self, obj):
+        if obj.file:
+            return obj.file.url
+        return None
+
+
+class TicketCommentSerializer(serializers.ModelSerializer):
+    """Сериализатор комментария к тикету."""
+
+    author = UserBasicSerializer(read_only=True)
+
+    class Meta:
+        model = TicketComment
+        fields = ('id', 'author', 'content', 'is_internal', 'created_at')
+
+
+class TicketDetailSerializer(serializers.ModelSerializer):
+    """Сериализатор тикета для детальной страницы."""
+
+    status = TicketStatusSerializer(read_only=True)
+    priority = TicketPrioritySerializer(read_only=True)
+    category = TicketCategorySerializer(read_only=True)
+    created_by = UserBasicSerializer(read_only=True)
+    assigned_to = UserBasicSerializer(read_only=True)
+    ticket_type_display = serializers.SerializerMethodField()
+    is_overdue = serializers.BooleanField(read_only=True)
+    deadline_hours_left = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Ticket
+        fields = (
+            'id', 'ticket_number', 'title', 'description', 'ticket_type',
+            'ticket_type_display', 'status', 'priority', 'category',
+            'created_by', 'assigned_to', 'created_at', 'updated_at',
+            'resolved_at', 'deadline', 'rating', 'student_feedback',
+            'is_overdue', 'deadline_hours_left',
+        )
+
+    def get_ticket_type_display(self, obj):
+        return obj.get_ticket_type_display()
+
+    def get_deadline_hours_left(self, obj):
+        td = obj.time_to_deadline
+        if td is None:
+            return None
+        hours = abs(td.total_seconds()) / 3600
+        return round(hours, 1)
+
+
+class StaffUserOptionSerializer(serializers.ModelSerializer):
+    """Сериализатор сотрудника для выпадающего списка назначения."""
+
+    display_name = serializers.SerializerMethodField()
+
+    class Meta:
+        model = User
+        fields = ('id', 'display_name')
+
+    def get_display_name(self, obj):
+        role_name = ''
+        try:
+            if hasattr(obj, 'profile') and obj.profile and obj.profile.role:
+                role_name = obj.profile.role.name
+        except Exception:
+            pass
+        name = obj.get_full_name() or obj.username
+        if role_name:
+            return f"{name} ({role_name})"
+        return name

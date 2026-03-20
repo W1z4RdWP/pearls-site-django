@@ -4,14 +4,24 @@ API-представления для приложения tech_support (React-�
 import json
 from datetime import datetime, time, timedelta
 
+from django.contrib.auth.models import User
 from django.http import JsonResponse
+from django.shortcuts import get_object_or_404
 from django.views.decorators.http import require_http_methods
 from django.contrib.auth.decorators import login_required
 from django.db.models import Q, Count, Avg
 from django.utils import timezone
 from django.utils.dateparse import parse_date
 
-from tech_support.models import Ticket, TicketStatus, TicketCategory, TicketPriority
+from tech_support.models import (
+    Ticket, TicketStatus, TicketCategory, TicketPriority,
+    TicketComment, TicketAttachment,
+)
+from api.serializers import (
+    TicketDetailSerializer, TicketCommentSerializer, TicketAttachmentSerializer,
+    TicketStatusSerializer, TicketPrioritySerializer, TicketCategorySerializer,
+    StaffUserOptionSerializer,
+)
 
 
 def _serialize_ticket_for_dashboard(t):
@@ -352,3 +362,274 @@ def api_ticket_reports(request):
         'avg_rating': avg_rating,
         'total_resolved': total_resolved,
     })
+
+
+# ---------------------------------------------------------------------------
+#  Ticket Detail page — GET/POST эндпоинты для React
+# ---------------------------------------------------------------------------
+
+def _check_ticket_access(user, ticket):
+    """Проверка доступа к тикету: автор, суперюзер, staff (свободный/назначенный)."""
+    if user == ticket.created_by or user.is_superuser:
+        return True
+    if user.is_staff and (ticket.assigned_to is None or ticket.assigned_to == user):
+        return True
+    return False
+
+
+@login_required
+@require_http_methods(["GET"])
+def api_ticket_detail(request, pk):
+    """API: детальная информация о тикете со всеми связанными данными."""
+    ticket = get_object_or_404(
+        Ticket.objects.select_related('status', 'priority', 'category', 'created_by', 'assigned_to'),
+        pk=pk,
+    )
+    if not _check_ticket_access(request.user, ticket):
+        return JsonResponse({'error': 'Доступ запрещён'}, status=403)
+
+    user = request.user
+    is_staff_view = user.is_staff or user.is_superuser
+    is_closed = bool(ticket.status and not ticket.status.is_active)
+    can_comment = (is_staff_view or user == ticket.created_by) and not is_closed
+    can_rate = (user == ticket.created_by) and is_closed and not ticket.rating
+
+    ticket_data = TicketDetailSerializer(ticket).data
+    comments = TicketComment.objects.filter(ticket=ticket).select_related('author').order_by('created_at')
+    attachments = ticket.attachments.all().order_by('uploaded_at')
+
+    response = {
+        'ticket': ticket_data,
+        'comments': TicketCommentSerializer(comments, many=True).data,
+        'attachments': TicketAttachmentSerializer(attachments, many=True).data,
+        'is_staff_view': is_staff_view,
+        'is_closed': is_closed,
+        'can_comment': can_comment,
+        'can_rate': can_rate,
+    }
+
+    if is_staff_view:
+        response['update_options'] = {
+            'statuses': TicketStatusSerializer(TicketStatus.objects.all(), many=True).data,
+            'priorities': TicketPrioritySerializer(TicketPriority.objects.all(), many=True).data,
+            'categories': TicketCategorySerializer(TicketCategory.objects.all(), many=True).data,
+            'staff_users': StaffUserOptionSerializer(
+                User.objects.filter(is_staff=True).select_related('profile', 'profile__role'),
+                many=True,
+            ).data,
+        }
+
+    return JsonResponse(response)
+
+
+@login_required
+@require_http_methods(["POST"])
+def api_ticket_take(request, pk):
+    """API: взять тикет в работу (staff)."""
+    if not (request.user.is_staff or request.user.is_superuser):
+        return JsonResponse({'error': 'Доступ запрещён'}, status=403)
+
+    ticket = get_object_or_404(Ticket.objects.select_related('status'), pk=pk)
+
+    if ticket.status and not ticket.status.is_active:
+        return JsonResponse({'error': 'Тикет закрыт, брать в работу нельзя'}, status=400)
+    if ticket.assigned_to and ticket.assigned_to != request.user:
+        return JsonResponse({'error': 'Тикет уже взят другим сотрудником'}, status=400)
+
+    ticket.assigned_to = request.user
+    update_fields = ['assigned_to']
+
+    in_progress_status = TicketStatus.objects.filter(name__iexact='В работе', is_active=True).first()
+    if in_progress_status and ticket.status_id != in_progress_status.id:
+        ticket.status = in_progress_status
+        update_fields.append('status')
+
+    ticket.save(update_fields=update_fields)
+    return JsonResponse({'success': True, 'message': 'Тикет принят в работу'})
+
+
+@login_required
+@require_http_methods(["POST"])
+def api_ticket_close(request, pk):
+    """API: закрыть тикет (staff)."""
+    if not (request.user.is_staff or request.user.is_superuser):
+        return JsonResponse({'error': 'Доступ запрещён'}, status=403)
+
+    ticket = get_object_or_404(Ticket, pk=pk)
+    closed_status = TicketStatus.objects.filter(is_active=False).order_by('id').first()
+    if closed_status is None:
+        return JsonResponse({'error': 'Не найден статус для закрытия тикета'}, status=500)
+
+    ticket.status = closed_status
+    ticket.assigned_to = ticket.assigned_to or request.user
+    ticket.resolved_at = ticket.resolved_at or timezone.now()
+    ticket.save(update_fields=['status', 'assigned_to', 'resolved_at'])
+    return JsonResponse({'success': True, 'message': 'Тикет закрыт'})
+
+
+@login_required
+@require_http_methods(["POST"])
+def api_ticket_comment(request, pk):
+    """API: добавить комментарий к тикету."""
+    ticket = get_object_or_404(Ticket.objects.select_related('status'), pk=pk)
+
+    if ticket.status and not ticket.status.is_active:
+        return JsonResponse({'error': 'Тикет закрыт. Комментирование недоступно.'}, status=400)
+    if not (request.user == ticket.created_by or request.user.is_staff or request.user.is_superuser):
+        return JsonResponse({'error': 'Доступ запрещён'}, status=403)
+
+    try:
+        data = json.loads(request.body) if request.body else {}
+    except (ValueError, TypeError):
+        return JsonResponse({'error': 'Неверный формат JSON'}, status=400)
+
+    content = (data.get('content') or '').strip()
+    if not content:
+        return JsonResponse({'error': 'Комментарий не может быть пустым'}, status=400)
+
+    comment = TicketComment.objects.create(
+        ticket=ticket,
+        author=request.user,
+        content=content,
+        is_internal=False,
+    )
+    return JsonResponse({
+        'success': True,
+        'comment': TicketCommentSerializer(comment).data,
+    })
+
+
+@login_required
+@require_http_methods(["POST"])
+def api_ticket_update(request, pk):
+    """API: обновить параметры тикета (staff)."""
+    if not (request.user.is_staff or request.user.is_superuser):
+        return JsonResponse({'error': 'Доступ запрещён'}, status=403)
+
+    ticket = get_object_or_404(Ticket.objects.select_related('priority'), pk=pk)
+
+    try:
+        data = json.loads(request.body) if request.body else {}
+    except (ValueError, TypeError):
+        return JsonResponse({'error': 'Неверный формат JSON'}, status=400)
+
+    old_deadline = ticket.deadline
+    old_priority = ticket.priority
+
+    errors = {}
+
+    title = data.get('title')
+    if title is not None:
+        title = title.strip()
+        if len(title) < 2:
+            errors['title'] = 'Заголовок слишком короткий'
+        else:
+            ticket.title = title
+
+    status_id = data.get('status_id')
+    if status_id is not None:
+        status_obj = TicketStatus.objects.filter(pk=status_id).first()
+        if not status_obj:
+            errors['status_id'] = 'Статус не найден'
+        else:
+            ticket.status = status_obj
+
+    priority_id = data.get('priority_id')
+    if priority_id is not None:
+        priority_obj = TicketPriority.objects.filter(pk=priority_id).first()
+        if not priority_obj:
+            errors['priority_id'] = 'Приоритет не найден'
+        elif old_priority != priority_obj:
+            ticket.priority = priority_obj
+            ticket._priority_changed = True
+
+    category_id = data.get('category_id')
+    if category_id is not None:
+        cat_obj = TicketCategory.objects.filter(pk=category_id).first()
+        if not cat_obj:
+            errors['category_id'] = 'Категория не найдена'
+        else:
+            ticket.category = cat_obj
+
+    deadline = data.get('deadline')
+    if deadline is not None:
+        if deadline == '' or deadline is False:
+            ticket.deadline = None
+        else:
+            from django.utils.dateparse import parse_datetime
+            dt = parse_datetime(deadline)
+            if dt:
+                if timezone.is_naive(dt):
+                    dt = timezone.make_aware(dt)
+                ticket.deadline = dt
+            else:
+                errors['deadline'] = 'Неверный формат даты'
+
+    assigned_to_id = data.get('assigned_to_id')
+    if assigned_to_id is not None:
+        if assigned_to_id == '' or assigned_to_id is None:
+            ticket.assigned_to = None
+        else:
+            staff_user = User.objects.filter(pk=assigned_to_id, is_staff=True).first()
+            if not staff_user:
+                errors['assigned_to_id'] = 'Сотрудник не найден'
+            else:
+                ticket.assigned_to = staff_user
+
+    if errors:
+        return JsonResponse({'errors': errors}, status=400)
+
+    ticket.save()
+    ticket.refresh_from_db()
+
+    new_deadline = ticket.deadline
+    if old_deadline != new_deadline:
+        def fmt(dt):
+            if not dt:
+                return 'не задан'
+            try:
+                return timezone.localtime(dt).strftime('%d.%m.%Y %H:%M')
+            except Exception:
+                return dt.strftime('%d.%m.%Y %H:%M')
+
+        full_name = request.user.get_full_name() or request.user.username
+        priority_text = ''
+        if old_priority != ticket.priority:
+            priority_text = f" (приоритет изменён с '{old_priority}' на '{ticket.priority}')"
+
+        TicketComment.objects.create(
+            ticket=ticket,
+            author=request.user,
+            content=f'{full_name} изменил дедлайн: {fmt(old_deadline)} -> {fmt(new_deadline)}{priority_text}',
+            is_internal=True,
+        )
+
+    return JsonResponse({'success': True, 'message': 'Тикет обновлён'})
+
+
+@login_required
+@require_http_methods(["POST"])
+def api_ticket_rate(request, pk):
+    """API: оценить решение тикета (только автор, тикет закрыт, ещё не оценён)."""
+    ticket = get_object_or_404(Ticket.objects.select_related('status'), pk=pk)
+
+    is_closed = bool(ticket.status and not ticket.status.is_active)
+    if not (request.user == ticket.created_by and is_closed and not ticket.rating):
+        return JsonResponse({'error': 'Оценка недоступна'}, status=403)
+
+    try:
+        data = json.loads(request.body) if request.body else {}
+    except (ValueError, TypeError):
+        return JsonResponse({'error': 'Неверный формат JSON'}, status=400)
+
+    rating = data.get('rating')
+    if rating is None or not isinstance(rating, int) or rating < 1 or rating > 5:
+        return JsonResponse({'error': 'Оценка должна быть от 1 до 5'}, status=400)
+
+    student_feedback = (data.get('student_feedback') or '').strip()
+
+    ticket.rating = rating
+    ticket.student_feedback = student_feedback
+    ticket.save(update_fields=['rating', 'student_feedback'])
+
+    return JsonResponse({'success': True, 'message': 'Спасибо! Ваша оценка отправлена.'})

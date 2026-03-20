@@ -155,4 +155,10 @@ urlpatterns = [
     path('tech_support/tickets/', tech_support_views.api_ticket_list_staff, name='api_tech_support_ticket_list_staff'),
     path('tech_support/dashboard/', tech_support_views.api_staff_dashboard, name='api_tech_support_staff_dashboard'),
     path('tech_support/reports/', tech_support_views.api_ticket_reports, name='api_tech_support_ticket_reports'),
+    path('tech_support/ticket/<int:pk>/', tech_support_views.api_ticket_detail, name='api_tech_support_ticket_detail'),
+    path('tech_support/ticket/<int:pk>/take/', tech_support_views.api_ticket_take, name='api_tech_support_ticket_take'),
+    path('tech_support/ticket/<int:pk>/close/', tech_support_views.api_ticket_close, name='api_tech_support_ticket_close'),
+    path('tech_support/ticket/<int:pk>/comment/', tech_support_views.api_ticket_comment, name='api_tech_support_ticket_comment'),
+    path('tech_support/ticket/<int:pk>/update/', tech_support_views.api_ticket_update, name='api_tech_support_ticket_update'),
+    path('tech_support/ticket/<int:pk>/rate/', tech_support_views.api_ticket_rate, name='api_tech_support_ticket_rate'),
 ]

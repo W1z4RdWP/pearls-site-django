@@ -54,6 +54,7 @@ import MyTicketListPage from './components/TechSupportApp/MyTicketListPage/MyTic
 import TicketListPage from './components/TechSupportApp/TicketListPage/TicketListPage';
 import StaffDashboardPage from './components/TechSupportApp/StaffDashboardPage/StaffDashboardPage';
 import TicketReportsPage from './components/TechSupportApp/TicketReportsPage/TicketReportsPage';
+import TicketDetailPage from './components/TechSupportApp/TicketDetailPage/TicketDetailPage';
 import NotFound from './pages/NotFound';
 
 const App = () => {
@@ -136,6 +137,8 @@ const App = () => {
           <Route path='/tech_support/tickets' element={<TicketListPage />} />
           <Route path='/tech_support/reports' element={<TicketReportsPage />} />
           <Route path='/tech_support/reports/' element={<TicketReportsPage />} />
+          <Route path='/tech_support/ticket/:ticketId' element={<TicketDetailPage />} />
+          <Route path='/tech_support/ticket/:ticketId/' element={<TicketDetailPage />} />
 
           {/* user management */}
           <Route path='/user_management/users' element={<UserListPage />} />
