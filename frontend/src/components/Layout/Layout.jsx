@@ -3,12 +3,14 @@ import { Outlet } from 'react-router-dom';
 import Header from './Header/Header';
 import Footer from './Footer/Footer';
 import { fetchLayoutData } from '../../api/api';
+import { fetchNewTicketsCount } from '../../api/tech_support_api';
 import './Layout.css';
 
 const Layout = () => {
   const [layoutData, setLayoutData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [hasNewTickets, setHasNewTickets] = useState(false);
 
   const loadLayout = useCallback(async () => {
     try {
@@ -25,6 +27,36 @@ const Layout = () => {
   useEffect(() => {
     loadLayout();
   }, [loadLayout]);
+
+  useEffect(() => {
+    if (!layoutData?.is_authenticated || !(layoutData?.user?.is_staff || layoutData?.user?.is_superuser)) {
+      setHasNewTickets(false);
+      return undefined;
+    }
+
+    let isCancelled = false;
+
+    const updateNewTicketsIndicator = async () => {
+      try {
+        const data = await fetchNewTicketsCount();
+        if (!isCancelled) {
+          setHasNewTickets(Boolean(data?.has_new));
+        }
+      } catch (err) {
+        if (!isCancelled) {
+          setHasNewTickets(false);
+        }
+      }
+    };
+
+    updateNewTicketsIndicator();
+    const intervalId = window.setInterval(updateNewTicketsIndicator, 30000);
+
+    return () => {
+      isCancelled = true;
+      window.clearInterval(intervalId);
+    };
+  }, [layoutData]);
 
   if (loading) {
     return (
@@ -52,6 +84,7 @@ const Layout = () => {
     nav_mentor: navMentor,
     site_version: siteVersion,
   } = layoutData;
+  const isStaffUser = Boolean(user?.is_staff || user?.is_superuser);
 
   return (
     <>
@@ -72,8 +105,11 @@ const Layout = () => {
       {/* Кнопка поддержки */}
       {isAuthenticated && (
         <a href="/tech_support/chat/" className="layout__support-btn" title="Служба поддержки">
-          <div className="layout__support-pulse" />
+          {!isStaffUser && <div className="layout__support-pulse" />}
           <i className="fas fa-question" />
+          {isStaffUser && hasNewTickets && (
+            <span className="layout__new-tickets-indicator" title="Новые тикеты" />
+          )}
         </a>
       )}
 

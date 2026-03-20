@@ -351,3 +351,148 @@
     grid-template-columns: 1fr 1fr 1fr;
   }
 }
+
+/* File attachments */
+
+.support-chat__file-input-hidden {
+  position: absolute;
+  left: -9999px;
+}
+
+.support-chat__file-dropzone {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 20px 16px;
+  background: var(--color-bg, #f8f9fa);
+  border: 2px dashed var(--color-card-border, #dee2e6);
+  border-radius: 8px;
+  text-align: center;
+  cursor: pointer;
+  transition: background 0.2s ease, border-color 0.2s ease;
+  font-size: 0.95rem;
+  color: var(--color-text-secondary, #6c757d);
+}
+
+.support-chat__file-dropzone:hover {
+  background: #e9ecef;
+  border-color: var(--color-accent, #0d6efd);
+}
+
+.support-chat__file-dropzone--drag {
+  background: #e7f3ff;
+  border-color: var(--color-accent, #0d6efd);
+}
+
+.support-chat__file-dropzone-icon {
+  font-size: 1.5rem;
+  color: var(--color-text-secondary, #6c757d);
+}
+
+.support-chat__file-dropzone-hint {
+  font-size: 0.85rem;
+  color: var(--color-text-secondary, #6c757d);
+}
+
+.support-chat__attachments-list {
+  margin-top: 16px;
+}
+
+.support-chat__attachments-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+  font-size: 0.95rem;
+  color: var(--color-text);
+}
+
+.support-chat__attachments-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 6px;
+  border-radius: 12px;
+  background: var(--color-accent, #0d6efd);
+  color: #fff;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.support-chat__attachment-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  background: var(--color-bg, #f8f9fa);
+  border-radius: 8px;
+  margin-bottom: 8px;
+  transition: background 0.2s ease;
+}
+
+.support-chat__attachment-item:hover {
+  background: #e9ecef;
+}
+
+.support-chat__attachment-preview {
+  width: 60px;
+  height: 60px;
+  object-fit: cover;
+  border-radius: 6px;
+  flex-shrink: 0;
+}
+
+.support-chat__attachment-icon-wrap {
+  width: 60px;
+  height: 60px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #e9ecef;
+  border-radius: 6px;
+  flex-shrink: 0;
+  font-size: 1.5rem;
+}
+
+.support-chat__file-icon--pdf { color: #dc3545; }
+.support-chat__file-icon--word { color: var(--color-accent, #0d6efd); }
+.support-chat__file-icon--text { color: var(--color-text-secondary, #6c757d); }
+.support-chat__file-icon--image { color: #0dcaf0; }
+.support-chat__file-icon--generic { color: #adb5bd; }
+
+.support-chat__attachment-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.support-chat__attachment-name {
+  font-weight: 500;
+  color: var(--color-text, #212529);
+  margin-bottom: 4px;
+  word-break: break-word;
+}
+
+.support-chat__attachment-size {
+  font-size: 0.875rem;
+  color: var(--color-text-secondary, #6c757d);
+}
+
+.support-chat__attachment-remove {
+  background: none;
+  border: none;
+  color: #dc3545;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 4px;
+  transition: background 0.2s ease, color 0.2s ease;
+  flex-shrink: 0;
+  font-size: 1rem;
+}
+
+.support-chat__attachment-remove:hover {
+  background: #dc3545;
+  color: #fff;
+}

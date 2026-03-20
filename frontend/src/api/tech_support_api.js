@@ -1,18 +1,42 @@
-import { request } from './api';
+import { request, API_BASE, getCSRFToken } from './api';
 
 /**
  * Создаёт тикет обращения в поддержку.
- * @param {object} payload — { ticket_type: string, title: string, description: string }
+ * @param {object} payload — { ticket_type, title, description, attachments?: File[] }
  * @returns {Promise<{ ticket_id: number, ticket_number: string, ticket_detail_url: string }>}
  */
 export function createTicket(payload) {
-  return request('/tech_support/chat/', {
+  const files = payload.attachments || [];
+  if (files.length === 0) {
+    return request('/tech_support/chat/', {
+      method: 'POST',
+      body: JSON.stringify({
+        ticket_type: payload.ticket_type,
+        title: payload.title,
+        description: payload.description,
+      }),
+    });
+  }
+
+  const formData = new FormData();
+  formData.append('ticket_type', payload.ticket_type);
+  formData.append('title', payload.title);
+  formData.append('description', payload.description);
+  files.forEach((file) => formData.append('attachments', file));
+
+  return fetch(`${API_BASE}/tech_support/chat/`, {
     method: 'POST',
-    body: JSON.stringify({
-      ticket_type: payload.ticket_type,
-      title: payload.title,
-      description: payload.description,
-    }),
+    credentials: 'include',
+    headers: { 'X-CSRFToken': getCSRFToken() },
+    body: formData,
+  }).then(async (response) => {
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      const err = new Error(data.error || `HTTP ${response.status}`);
+      if (data.errors) err.errors = data.errors;
+      throw err;
+    }
+    return data;
   });
 }
 
@@ -36,6 +60,14 @@ export function fetchTicketListStaff(params = {}) {
   });
   const query = searchParams.toString();
   return request(`/tech_support/tickets/${query ? `?${query}` : ''}`.trim());
+}
+
+/**
+ * Проверка наличия новых тикетов (только staff/superuser).
+ * @returns {Promise<{ count: number, has_new: boolean }>}
+ */
+export function fetchNewTicketsCount() {
+  return request('/tech_support/new-tickets-count/');
 }
 
 /**

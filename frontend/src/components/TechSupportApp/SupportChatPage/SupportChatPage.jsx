@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import { useOutletContext, useNavigate } from 'react-router-dom';
 import { createTicket } from '../../../api/tech_support_api';
 import './SupportChatPage.css';
@@ -10,6 +10,39 @@ const TICKET_TYPES = [
   { value: 'suggestions', label: 'Предложения/замечания', desc: 'Идеи по улучшению', icon: 'fa-lightbulb', iconClass: 'support-chat__type-icon--success' },
   { value: 'consultation', label: 'Запрос на консультацию', desc: 'Консультация с преподавателем', icon: 'fa-chalkboard-teacher', iconClass: 'support-chat__type-icon--info' },
 ];
+
+const MAX_FILE_SIZE = 10 * 1024 * 1024;
+const ALLOWED_EXTENSIONS = ['.jpg', '.jpeg', '.png', '.gif', '.pdf', '.doc', '.docx', '.txt', '.log'];
+const IMAGE_EXTENSIONS = ['.jpg', '.jpeg', '.png', '.gif'];
+
+function getFileExtension(name) {
+  const dot = name.lastIndexOf('.');
+  return dot >= 0 ? name.slice(dot).toLowerCase() : '';
+}
+
+function formatFileSize(bytes) {
+  if (bytes === 0) return '0 B';
+  const k = 1024;
+  const sizes = ['B', 'KB', 'MB', 'GB'];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return `${Math.round((bytes / Math.pow(k, i)) * 100) / 100} ${sizes[i]}`;
+}
+
+function getFileIcon(name) {
+  const ext = getFileExtension(name);
+  if (ext === '.pdf') return 'fas fa-file-pdf support-chat__file-icon--pdf';
+  if (ext === '.doc' || ext === '.docx') return 'fas fa-file-word support-chat__file-icon--word';
+  if (ext === '.txt' || ext === '.log') return 'fas fa-file-alt support-chat__file-icon--text';
+  if (IMAGE_EXTENSIONS.includes(ext)) return 'fas fa-file-image support-chat__file-icon--image';
+  return 'fas fa-file support-chat__file-icon--generic';
+}
+
+function validateFile(file) {
+  const errors = [];
+  if (file.size > MAX_FILE_SIZE) errors.push('Размер файла превышает 10MB');
+  if (!ALLOWED_EXTENSIONS.includes(getFileExtension(file.name))) errors.push('Недопустимое расширение файла');
+  return errors;
+}
 
 const TYPE_CONFIG = {
   academic: {
@@ -54,6 +87,44 @@ const TYPE_CONFIG = {
   },
 };
 
+function AttachmentItem({ file, index, onRemove }) {
+  const [preview, setPreview] = useState(null);
+  const ext = getFileExtension(file.name);
+  const isImage = IMAGE_EXTENSIONS.includes(ext);
+
+  useEffect(() => {
+    if (!isImage) return;
+    const reader = new FileReader();
+    reader.onload = (e) => setPreview(e.target.result);
+    reader.readAsDataURL(file);
+  }, [file, isImage]);
+
+  return (
+    <div className="support-chat__attachment-item">
+      {isImage && preview ? (
+        <img src={preview} alt={file.name} className="support-chat__attachment-preview" />
+      ) : (
+        <div className="support-chat__attachment-icon-wrap">
+          <i className={getFileIcon(file.name)} aria-hidden />
+        </div>
+      )}
+      <div className="support-chat__attachment-info">
+        <div className="support-chat__attachment-name">{file.name}</div>
+        <div className="support-chat__attachment-size">{formatFileSize(file.size)}</div>
+      </div>
+      <button
+        type="button"
+        className="support-chat__attachment-remove"
+        onClick={() => onRemove(index)}
+        title="Удалить файл"
+        aria-label={`Удалить файл ${file.name}`}
+      >
+        <i className="fas fa-times" aria-hidden />
+      </button>
+    </div>
+  );
+}
+
 function SupportChatPage() {
   const { user } = useOutletContext() || {};
   const navigate = useNavigate();
@@ -68,11 +139,54 @@ function SupportChatPage() {
   const [extraDatetime, setExtraDatetime] = useState('');
   const [extraFormat, setExtraFormat] = useState('Онлайн');
 
+  const [attachments, setAttachments] = useState([]);
+  const [dragOver, setDragOver] = useState(false);
+  const fileInputRef = useRef(null);
+
   const [errors, setErrors] = useState({});
   const [submitting, setSubmitting] = useState(false);
   const [nonFieldError, setNonFieldError] = useState('');
 
   const config = ticketType ? (TYPE_CONFIG[ticketType] || TYPE_CONFIG.academic) : null;
+
+  const addFiles = useCallback((fileList) => {
+    const incoming = Array.from(fileList);
+    setAttachments((prev) => {
+      const next = [...prev];
+      for (const file of incoming) {
+        const errs = validateFile(file);
+        if (errs.length) continue;
+        const dup = next.some((f) => f.name === file.name && f.size === file.size);
+        if (!dup) next.push(file);
+      }
+      return next;
+    });
+  }, []);
+
+  const removeFile = useCallback((index) => {
+    setAttachments((prev) => prev.filter((_, i) => i !== index));
+  }, []);
+
+  const handleFileChange = useCallback((e) => {
+    if (e.target.files?.length) addFiles(e.target.files);
+    e.target.value = '';
+  }, [addFiles]);
+
+  const handleDrop = useCallback((e) => {
+    e.preventDefault();
+    setDragOver(false);
+    if (e.dataTransfer.files?.length) addFiles(e.dataTransfer.files);
+  }, [addFiles]);
+
+  const handleDragOver = useCallback((e) => {
+    e.preventDefault();
+    setDragOver(true);
+  }, []);
+
+  const handleDragLeave = useCallback((e) => {
+    e.preventDefault();
+    setDragOver(false);
+  }, []);
 
   const handleSelectType = useCallback((value) => {
     setTicketType(value);
@@ -128,6 +242,7 @@ function SupportChatPage() {
           ticket_type: ticketType,
           title: title.trim(),
           description: fullDescription,
+          attachments,
         });
         if (data.ticket_detail_url) {
           window.location.href = data.ticket_detail_url;
@@ -144,7 +259,7 @@ function SupportChatPage() {
         setSubmitting(false);
       }
     },
-    [ticketType, title, buildDescription, navigate]
+    [ticketType, title, buildDescription, attachments, navigate]
   );
 
   return (
@@ -287,6 +402,47 @@ function SupportChatPage() {
                     )}
                     {!errors.description && (
                       <div id="support-chat-desc-help" className="support-chat__help">{config.descHelp}</div>
+                    )}
+                  </div>
+
+                  <div className="support-chat__field support-chat__field--full">
+                    <label className="support-chat__label">Вложения (опционально)</label>
+                    <div
+                      className={`support-chat__file-dropzone${dragOver ? ' support-chat__file-dropzone--drag' : ''}`}
+                      onClick={() => fileInputRef.current?.click()}
+                      onDrop={handleDrop}
+                      onDragOver={handleDragOver}
+                      onDragLeave={handleDragLeave}
+                      role="button"
+                      tabIndex={0}
+                      onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && fileInputRef.current?.click()}
+                    >
+                      <i className="fas fa-cloud-upload-alt support-chat__file-dropzone-icon" aria-hidden />
+                      <div>Нажмите для выбора файлов или перетащите их сюда</div>
+                      <small className="support-chat__file-dropzone-hint">
+                        JPG, PNG, PDF, DOC, TXT и другие (максимум 10MB на файл)
+                      </small>
+                    </div>
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      multiple
+                      accept=".jpg,.jpeg,.png,.gif,.pdf,.doc,.docx,.txt,.log"
+                      className="support-chat__file-input-hidden"
+                      onChange={handleFileChange}
+                    />
+                    <div className="support-chat__help">Можно загрузить несколько файлов. Максимальный размер одного файла: 10MB</div>
+
+                    {attachments.length > 0 && (
+                      <div className="support-chat__attachments-list">
+                        <div className="support-chat__attachments-header">
+                          <strong>Загруженные файлы:</strong>
+                          <span className="support-chat__attachments-badge">{attachments.length}</span>
+                        </div>
+                        {attachments.map((file, idx) => (
+                          <AttachmentItem key={`${file.name}-${file.size}`} file={file} index={idx} onRemove={removeFile} />
+                        ))}
+                      </div>
                     )}
                   </div>
 

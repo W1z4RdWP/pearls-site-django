@@ -123,14 +123,22 @@ def _get_staff_ticket_queryset(request):
     return qs.order_by('-created_at')
 
 
+MAX_ATTACHMENT_SIZE = 10 * 1024 * 1024
+ALLOWED_ATTACHMENT_EXTENSIONS = {'.jpg', '.jpeg', '.png', '.gif', '.pdf', '.doc', '.docx', '.txt', '.log'}
+
+
 @login_required
 @require_http_methods(["POST"])
 def api_ticket_create(request):
-    """API: создание тикета обращения в поддержку. Принимает title, description, ticket_type (JSON)."""
-    try:
-        data = json.loads(request.body) if request.body else {}
-    except (ValueError, TypeError):
-        return JsonResponse({'error': 'Неверный формат JSON'}, status=400)
+    """API: создание тикета обращения в поддержку. Принимает JSON или multipart/form-data."""
+    content_type = request.content_type or ''
+    if 'multipart/form-data' in content_type:
+        data = request.POST
+    else:
+        try:
+            data = json.loads(request.body) if request.body else {}
+        except (ValueError, TypeError):
+            return JsonResponse({'error': 'Неверный формат JSON'}, status=400)
 
     title = (data.get('title') or '').strip()
     description = (data.get('description') or '').strip()
@@ -144,6 +152,14 @@ def api_ticket_create(request):
     allowed_types = [c[0] for c in Ticket.TICKET_TYPES]
     if ticket_type not in allowed_types:
         errors['ticket_type'] = ['Выберите тип обращения.']
+
+    files = request.FILES.getlist('attachments')
+    for f in files:
+        ext = ('.' + f.name.rsplit('.', 1)[-1].lower()) if '.' in f.name else ''
+        if ext not in ALLOWED_ATTACHMENT_EXTENSIONS:
+            errors.setdefault('attachments', []).append(f'Недопустимое расширение файла: {f.name}')
+        elif f.size > MAX_ATTACHMENT_SIZE:
+            errors.setdefault('attachments', []).append(f'Размер файла превышает 10MB: {f.name}')
 
     if errors:
         return JsonResponse({'errors': errors}, status=400)
@@ -188,6 +204,13 @@ def api_ticket_create(request):
     )
     ticket.save()
 
+    for f in files:
+        TicketAttachment.objects.create(
+            ticket=ticket,
+            file=f,
+            filename=f.name,
+        )
+
     return JsonResponse({
         'ticket_id': ticket.pk,
         'ticket_number': ticket.ticket_number,
@@ -213,6 +236,17 @@ def api_ticket_list_staff(request):
     qs = _get_staff_ticket_queryset(request)
     tickets = [_serialize_ticket(t, include_author_and_assignee=True) for t in qs]
     return JsonResponse({'tickets': tickets})
+
+
+@login_required
+@require_http_methods(['GET'])
+def api_new_tickets_count(request):
+    """API: количество новых тикетов для staff (не взятых в работу)."""
+    if not (request.user.is_staff or request.user.is_superuser):
+        return JsonResponse({'error': 'Доступ запрещён'}, status=403)
+
+    count = Ticket.objects.filter(assigned_to__isnull=True, status__is_active=True).count()
+    return JsonResponse({'count': count, 'has_new': count > 0})
 
 
 @login_required
