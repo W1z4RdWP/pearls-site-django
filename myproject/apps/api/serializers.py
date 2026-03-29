@@ -9,6 +9,7 @@ from tech_support.models import (
     Ticket, TicketStatus, TicketPriority, TicketCategory,
     TicketAttachment, TicketComment,
 )
+from notifications.models import Notification
 
 
 class GroupSerializer(serializers.ModelSerializer):
@@ -259,3 +260,54 @@ class StaffUserOptionSerializer(serializers.ModelSerializer):
         if role_name:
             return f"{name} ({role_name})"
         return name
+
+
+class NotificationListItemSerializer(serializers.ModelSerializer):
+    """Элемент списка уведомлений на React-странице /notifications/."""
+
+    notification_type_display = serializers.CharField(
+        source='get_notification_type_display',
+        read_only=True,
+    )
+    url = serializers.SerializerMethodField()
+    avatar_url = serializers.SerializerMethodField()
+    created_at_display = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Notification
+        fields = (
+            'id',
+            'title',
+            'message',
+            'is_read',
+            'notification_type',
+            'notification_type_display',
+            'url',
+            'avatar_url',
+            'created_at_display',
+        )
+
+    def get_url(self, obj):
+        return obj.get_absolute_url()
+
+    def get_created_at_display(self, obj):
+        return obj.created_at.strftime('%d.%m.%Y %H:%M')
+
+    def get_avatar_url(self, obj):
+        if obj.notification_type == 'chat_message' and obj.related_sender_id:
+            profile = getattr(obj.related_sender, 'profile', None)
+            if profile and profile.image:
+                return profile.image.url
+        if obj.notification_type == 'quiz_reviewed' and obj.related_quiz_result_id:
+            reviewer = obj.related_quiz_result.reviewed_by
+            if reviewer:
+                profile = getattr(reviewer, 'profile', None)
+                if profile and profile.image:
+                    return profile.image.url
+        if obj.notification_type == 'homework_reviewed' and obj.related_homework_submission_id:
+            reviewer = obj.related_homework_submission.reviewed_by
+            if reviewer:
+                profile = getattr(reviewer, 'profile', None)
+                if profile and profile.image:
+                    return profile.image.url
+        return None

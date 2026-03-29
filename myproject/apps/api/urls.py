@@ -112,6 +112,10 @@ urlpatterns = [
     path('notifications/count/', notifications_views.api_notifications_count, name='api_notifications_count'),
     path('notifications/dropdown/', notifications_views.api_notifications_dropdown, name='api_notifications_dropdown'),
     path('notifications/mark-all-read/', notifications_views.api_mark_all_notifications_read, name='api_notifications_mark_all_read'),
+    path('notifications/clear-old/', notifications_views.api_notifications_clear_old, name='api_notifications_clear_old'),
+    path('notifications/<int:notification_id>/mark-read/', notifications_views.api_notification_mark_read, name='api_notification_mark_read'),
+    path('notifications/<int:notification_id>/delete/', notifications_views.api_notification_delete, name='api_notification_delete'),
+    path('notifications/', notifications_views.api_notifications_list, name='api_notifications_list'),
 
     # Users API — транзакции DASCOIN для React
     path('users/transactions/', users_views.api_transactions, name='api_users_transactions'),

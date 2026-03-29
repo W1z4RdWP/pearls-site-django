@@ -56,6 +56,7 @@ import StaffDashboardPage from './components/TechSupportApp/StaffDashboardPage/S
 import TicketReportsPage from './components/TechSupportApp/TicketReportsPage/TicketReportsPage';
 import TicketDetailPage from './components/TechSupportApp/TicketDetailPage/TicketDetailPage';
 import NotFound from './pages/NotFound';
+import NotificationsListPage from './components/NotificationsApp/NotificationsListPage/NotificationsListPage';
 
 const App = () => {
   return (
@@ -124,6 +125,10 @@ const App = () => {
           <Route path='/users/profile' element={<ProfilePage />} />
           <Route path='/users/profile/transactions' element={<TransactionsPage />} />
           <Route path='/users/profile/quiz-attempts-report' element={<QuizAttemptsReportPage />} />
+
+          {/* notifications */}
+          <Route path='/notifications' element={<NotificationsListPage />} />
+          <Route path='/notifications/' element={<NotificationsListPage />} />
 
           {/* messenger */}
           <Route path='/messenger/chat/rooms' element={<MessengerPage />}/>
