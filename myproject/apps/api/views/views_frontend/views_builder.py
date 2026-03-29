@@ -33,6 +33,7 @@ from builder.utils import (
     copy_category_tree,
     move_category_tree,
 )
+from builder.views.lessons_views import get_update_control_context
 from api.serializers import BuilderLessonDetailSerializer, BuilderRoleSerializer
 
 PAGINATE_BY = 15
@@ -855,6 +856,56 @@ def api_lesson_detail(request, pk):
     }
     _inject_lesson_detail(request, payload, int(pk), user, is_readonly)
     return JsonResponse(payload)
+
+
+@login_required
+@require_http_methods(['GET'])
+def api_lesson_update_control(request):
+    """API: таблица и фильтры страницы «Контроль актуальности уроков» (аналог lesson_update_control_form)."""
+    user = request.user
+    if not user.is_authenticated:
+        return JsonResponse({'error': 'Требуется авторизация'}, status=403)
+    is_staff_or_admin = user.is_staff or user.is_superuser
+    is_mentor = hasattr(user, 'profile') and user.profile.is_mentor_user
+    if not (is_staff_or_admin or is_mentor):
+        return JsonResponse({'error': 'Доступ запрещён'}, status=403)
+
+    ctx = get_update_control_context(request)
+    rows_out = []
+    for i, row in enumerate(ctx['update_rows'], start=1):
+        rows_out.append({
+            'index': i,
+            'lesson_id': row['lesson_id'],
+            'created': row['created'].isoformat() if row['created'] else None,
+            'title': row['title'],
+            'category': row['category'],
+            'last_update': row['last_update'].isoformat() if row['last_update'] else None,
+            'period_between': row['period_between'],
+            'next_update': row['next_update'].isoformat() if row['next_update'] else None,
+            'responsible_position': row['responsible_position'],
+            'responsible_fio': row['responsible_fio'],
+            'is_overdue': bool(row['is_overdue']),
+        })
+    roles_qs = ctx['roles']
+    roles_data = BuilderRoleSerializer(roles_qs, many=True).data
+    sel = ctx['selected_responsible'] or ''
+    return JsonResponse({
+        'rows': rows_out,
+        'roles': roles_data,
+        'filters': {
+            'show_overdue': ctx['show_overdue'],
+            'show_no_next': ctx['show_no_next'],
+            'show_no_responsible': ctx['show_no_responsible'],
+            'selected_responsible': sel,
+            'created_from': ctx['created_from'] or '',
+            'created_to': ctx['created_to'] or '',
+            'title': ctx['title_query'] or '',
+        },
+        'user_role_name': ctx['user_role_name'],
+        'urls': {
+            'content': '/builder/content/',
+        },
+    })
 
 
 @login_required

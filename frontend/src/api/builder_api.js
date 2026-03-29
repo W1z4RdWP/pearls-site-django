@@ -44,6 +44,46 @@ export function fetchLessonDetail(pk) {
 }
 
 /**
+ * Контроль актуальности уроков (фильтры и таблица).
+ * @param {string} [queryString] — строка запроса без ведущего «?» или с ним (как у Django GET-формы)
+ * @returns {Promise<{
+ *   rows: Array<{
+ *     index: number,
+ *     lesson_id: number,
+ *     created: string|null,
+ *     title: string,
+ *     category: string,
+ *     last_update: string|null,
+ *     period_between: number|null,
+ *     next_update: string|null,
+ *     responsible_position: string,
+ *     responsible_fio: string,
+ *     is_overdue: boolean
+ *   }>,
+ *   roles: Array<{ id: number, name: string }>,
+ *   filters: {
+ *     show_overdue: boolean,
+ *     show_no_next: boolean,
+ *     show_no_responsible: boolean,
+ *     selected_responsible: string,
+ *     created_from: string,
+ *     created_to: string,
+ *     title: string
+ *   },
+ *   user_role_name: string|null,
+ *   urls: { content: string }
+ * }>}
+ */
+export function fetchLessonUpdateControl(queryString) {
+  const base = '/builder/update_control/';
+  if (!queryString) {
+    return request(base);
+  }
+  const q = queryString.startsWith('?') ? queryString.slice(1) : queryString;
+  return request(`${base}?${q}`);
+}
+
+/**
  * Данные урока для диалога удаления (название).
  * @param {number} id — ID урока
  * @returns {Promise<{ title: string }>}

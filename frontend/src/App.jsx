@@ -26,6 +26,7 @@ import UserProgressDashboardPage from './components/UserManagementApp/UserProgre
 import AdminDascoinDashboardPage from './components/UserManagementApp/AdminDascoinDashboardPage/AdminDascoinDashboardPage';
 import AdminUserTransactionsPage from './components/UserManagementApp/AdminUserTransactionsPage/AdminUserTransactionsPage';
 import KnowledgeBasePage from './components/BuilderApp/KnowledgeBasePage/KnowledgeBasePage';
+import LessonUpdateControlPage from './components/BuilderApp/LessonUpdateControlPage/LessonUpdateControlPage';
 import IncidentsPage from './components/BuilderApp/IncidentsPage/IncidentsPage';
 import IncidentFormPage from './components/BuilderApp/IncidentFormPage/IncidentFormPage';
 import IncidentDetailPage from './components/BuilderApp/IncidentDetailPage/IncidentDetailPage';
@@ -79,6 +80,8 @@ const App = () => {
           <Route path='/builder/incidents/statuses-report/' element={<IncidentStatusesReportPage />}/>
           <Route path='/builder/content' element={<KnowledgeBasePage />}/>
           <Route path='/builder/lesson/:pk' element={<KnowledgeBasePage />}/>
+          <Route path='/builder/update_control' element={<LessonUpdateControlPage />}/>
+          <Route path='/builder/update_control/' element={<LessonUpdateControlPage />}/>
           <Route path='/builder/trajectory-management' element={<TrajectoryManagementPage />}/>
           <Route path='/builder/courses' element={<CourseListPage />}/>
           <Route path='/builder/incident-courses' element={<IncidentCourseListPage />}/>

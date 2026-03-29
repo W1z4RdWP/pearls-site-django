@@ -47,6 +47,7 @@ urlpatterns = [
     # Дашборд builder (панель управления)
     path('builder/dashboard/', views_frontend.dashboard_data, name='api_builder_dashboard'),
     path('builder/content/', builder_views.api_master_detail_content, name='api_builder_content'),
+    path('builder/update_control/', builder_views.api_lesson_update_control, name='api_builder_update_control'),
     path('builder/lesson/<int:pk>/', builder_views.api_lesson_detail, name='api_builder_lesson_detail'),
     path('builder/trajectory-management/', builder_views.api_trajectory_management, name='api_builder_trajectory_management'),
     path('builder/courses/', builder_views.api_course_list, name='api_builder_course_list'),

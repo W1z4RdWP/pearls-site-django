@@ -1,0 +1,226 @@
+.lesson-update-control {
+  --luc-bg: #f7f8fa;
+  --luc-card-bg: #fff;
+  --luc-card-shadow: 0 2px 8px rgba(0, 0, 0, 0.125);
+  --luc-border: #d1d5db;
+  --luc-th-bg: #f8f9fa;
+  --luc-th-color: #232323;
+  --luc-td-bg: #f8f9fa;
+  --luc-td-focus: #fff;
+  --luc-btn-bg: #4d7cff;
+  --luc-btn-color: #fff;
+  --luc-overdue-bg: #ffd6e0;
+  --luc-my-bg: #218838;
+  --luc-my-color: #fff;
+}
+
+.lesson-update-control__bg {
+  background: var(--luc-bg);
+  min-height: 100vh;
+  padding: 40px 0;
+}
+
+.lesson-update-control__card {
+  position: relative;
+  background: var(--luc-card-bg);
+  border-radius: 10px;
+  box-shadow: var(--luc-card-shadow);
+  padding: 32px 32px 24px;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.lesson-update-control__title {
+  color: var(--luc-th-color);
+  font-weight: 700;
+  margin: 0 0 32px;
+  letter-spacing: 0.5px;
+  font-size: 1.5rem;
+}
+
+.lesson-update-control__banner-error {
+  margin: -16px 0 16px;
+  padding: 8px 12px;
+  background: #fee2e2;
+  color: #991b1b;
+  border-radius: 6px;
+  font-size: 0.9rem;
+}
+
+.lesson-update-control__refreshing {
+  margin: -24px 0 12px;
+  font-size: 0.85rem;
+  color: #6b7280;
+}
+
+.lesson-update-control__close {
+  position: absolute;
+  right: 32px;
+  top: 32px;
+  font-size: 28px;
+  color: #888;
+  text-decoration: none;
+  z-index: 109;
+  line-height: 1;
+}
+
+.lesson-update-control__close:hover,
+.lesson-update-control__close:focus {
+  color: #232323;
+}
+
+.lesson-update-control__filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: flex-end;
+  margin-bottom: 2%;
+}
+
+.lesson-update-control__input,
+.lesson-update-control__select {
+  margin-bottom: 0;
+  border: 1px solid var(--luc-border);
+  border-radius: 6px;
+  padding: 6px 8px;
+  font-size: 0.93em;
+  background: var(--luc-td-bg);
+}
+
+.lesson-update-control__input:focus,
+.lesson-update-control__select:focus {
+  border-color: var(--luc-btn-bg);
+  outline: none;
+  background: var(--luc-td-focus);
+}
+
+.lesson-update-control__input--title {
+  width: 160px;
+}
+
+.lesson-update-control__input--date {
+  width: 135px;
+}
+
+.lesson-update-control__select {
+  width: 140px;
+}
+
+.lesson-update-control__check {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: 8px;
+  cursor: pointer;
+}
+
+.lesson-update-control__check-label {
+  color: var(--luc-th-color);
+  font-weight: 500;
+  letter-spacing: 0.1px;
+  font-size: 0.93em;
+}
+
+.lesson-update-control__btn {
+  min-width: 120px;
+  font-size: 1.05em;
+  margin-left: 8px;
+  padding: 6px 12px;
+  border-radius: 6px;
+  border: none;
+  cursor: pointer;
+}
+
+.lesson-update-control__btn--primary {
+  background: var(--luc-btn-bg);
+  color: var(--luc-btn-color);
+}
+
+.lesson-update-control__btn--my {
+  margin-left: 4px;
+  background: var(--luc-my-bg);
+  color: var(--luc-my-color);
+}
+
+.lesson-update-control__table-wrap {
+  overflow-x: auto;
+}
+
+.lesson-update-control__table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 24px;
+}
+
+.lesson-update-control__table th,
+.lesson-update-control__table td {
+  border: 1px solid var(--luc-border);
+  padding: 4px;
+  font-size: 0.93em;
+  line-height: 1.1;
+  font-weight: 400;
+}
+
+.lesson-update-control__table th {
+  background: var(--luc-th-bg);
+  font-weight: 700;
+  color: var(--luc-th-color);
+}
+
+.lesson-update-control__table td {
+  background: var(--luc-td-bg);
+}
+
+.lesson-update-control__cell--overdue {
+  background: var(--luc-overdue-bg) !important;
+}
+
+.lesson-update-control__lesson-link {
+  color: #007bff;
+  text-decoration: none;
+}
+
+.lesson-update-control__lesson-link:hover,
+.lesson-update-control__lesson-link:focus {
+  text-decoration: underline;
+}
+
+.lesson-update-control__empty {
+  text-align: center;
+}
+
+.lesson-update-control__loading,
+.lesson-update-control__error {
+  padding: 48px 24px;
+  text-align: center;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.lesson-update-control__error {
+  color: #c00;
+}
+
+@media (max-width: 900px) {
+  .lesson-update-control__card {
+    padding: 18px 4px;
+    max-width: 100%;
+  }
+
+  .lesson-update-control__table th,
+  .lesson-update-control__table td {
+    font-size: 0.95em;
+    padding: 6px 2px;
+  }
+}
+
+@media (max-width: 700px) {
+  .lesson-update-control__filters {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .lesson-update-control__check {
+    margin-left: 0;
+  }
+}

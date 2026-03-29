@@ -15,7 +15,7 @@ from builder.models import CategoryName, DictionarySection, LessonVersion, Lesso
 from builder.utils import (filter_categories_and_lessons_for_user, get_category_tree_data, 
                             get_compact_fio, get_responsible_user_for_lesson, user_has_category_access)
 from builder.views.incidents_views import _get_user_cache_version, INCIDENTS_PAGE_CACHE_TIMEOUT
-from courses.models import Lesson, UserLessonTrajectory
+from courses.models import Lesson, UserLesson, UserLessonTrajectory
 from myapp.models import UserCourse
 from users.models import Role
 from courses.forms import LessonForm
@@ -392,6 +392,139 @@ class LessonDeleteView(DeleteView, AuditLoggerMixin):
 
 
 
+def get_update_control_context(request):
+    """
+    Контекст страницы контроля актуальности уроков (шаблон builder и JSON API).
+    """
+    from datetime import datetime
+
+    from django.utils import timezone
+
+    user = request.user
+    is_staff_or_admin = user.is_staff or user.is_superuser
+    is_mentor = hasattr(user, 'profile') and user.profile.is_mentor_user
+
+    if is_staff_or_admin:
+        lessons = Lesson.objects.select_related('category').all()
+    else:
+        allowed_lesson_ids = set()
+
+        user_courses = UserCourse.objects.filter(user=user).select_related('course')
+        allowed_courses = [uc.course for uc in user_courses if uc.status in ['available', 'started', 'completed']]
+        for course in allowed_courses:
+            trajectory = UserLessonTrajectory.objects.filter(user=user, course=course).first()
+            if trajectory:
+                allowed_lesson_ids.update(trajectory.lessons.values_list('id', flat=True))
+            else:
+                allowed_lesson_ids.update(course.lessons.values_list('id', flat=True))
+
+        assigned_lesson_ids = UserLesson.objects.filter(user=user).values_list('lesson_id', flat=True)
+        allowed_lesson_ids.update(assigned_lesson_ids)
+
+        lessons = Lesson.objects.select_related('category').filter(id__in=allowed_lesson_ids)
+    today = timezone.now().date()
+
+    all_dates = request.GET.get('all_dates') == '1'
+    if all_dates:
+        created_from = ''
+        created_to = ''
+    else:
+        created_from = request.GET.get('created_from', '')
+        created_to = request.GET.get('created_to', '')
+    title_query = request.GET.get('title', '').strip()
+    rows = []
+    for lesson in lessons:
+        versions = list(lesson.versions.order_by('-version'))
+        if not versions:
+            last_update = None
+            period_between = None
+            next_update = None
+            responsible = None
+        else:
+            last = versions[0]
+            last_update = last.updated_at.date() if last.updated_at else None
+            next_update = last.next_update
+            responsible = last.updated_by
+            if last_update and next_update:
+                period_between = (next_update - last_update).days
+            else:
+                period_between = None
+
+        created = lesson.created_at.date() if lesson.created_at else None
+        rows.append({
+            'lesson_id': lesson.id,
+            'created': created,
+            'title': lesson.title,
+            'category': lesson.category.name if lesson.category else '—',
+            'last_update': last_update,
+            'period_between': period_between,
+            'next_update': next_update,
+            'responsible': responsible,
+            'responsible_id': responsible.id if responsible else None,
+            'responsible_fio': get_compact_fio(responsible) if responsible else '—',
+            'responsible_position': responsible.profile.role.name if responsible and responsible.profile and responsible.profile.role else '—',
+            'is_overdue': next_update and next_update < today,
+            'no_next': not next_update,
+        })
+
+    show_overdue = request.GET.get('overdue')
+    show_no_next = request.GET.get('no_next')
+    show_no_responsible = request.GET.get('no_responsible')
+    if show_overdue is None and show_no_next is None and show_no_responsible is None and not request.GET:
+        show_overdue = True
+        show_no_next = True
+        show_no_responsible = True
+    else:
+        show_overdue = show_overdue == '1'
+        show_no_next = show_no_next == '1'
+        show_no_responsible = show_no_responsible == '1'
+    responsible_position = request.GET.get('responsible')
+    filtered = rows
+    if created_from:
+        dt_from = datetime.strptime(created_from, '%Y-%m-%d').date()
+        filtered = [r for r in filtered if r['created'] and r['created'] >= dt_from]
+    if created_to:
+        dt_to = datetime.strptime(created_to, '%Y-%m-%d').date()
+        filtered = [r for r in filtered if r['created'] and r['created'] <= dt_to]
+    if show_overdue and show_no_next and show_no_responsible:
+        filtered = [r for r in filtered if r['is_overdue'] or r['no_next'] or r['responsible_fio'] == '—']
+    elif show_overdue and show_no_next:
+        filtered = [r for r in filtered if r['is_overdue'] or r['no_next']]
+    elif show_overdue and show_no_responsible:
+        filtered = [r for r in filtered if r['is_overdue'] or r['responsible_fio'] == '—']
+    elif show_no_next and show_no_responsible:
+        filtered = [r for r in filtered if r['no_next'] or r['responsible_fio'] == '—']
+    elif show_overdue:
+        filtered = [r for r in filtered if r['is_overdue']]
+    elif show_no_next:
+        filtered = [r for r in filtered if r['no_next']]
+    elif show_no_responsible:
+        filtered = [r for r in filtered if r['responsible_fio'] == '—']
+    if responsible_position:
+        filtered = [r for r in filtered if r['responsible_position'] == responsible_position]
+    if title_query:
+        filtered = [r for r in filtered if title_query.lower() in r['title'].lower()]
+
+    roles = Role.objects.all().order_by('name')
+
+    user_role_name = None
+    if hasattr(user, 'profile') and user.profile and user.profile.role:
+        user_role_name = user.profile.role.name
+
+    return {
+        'update_rows': filtered,
+        'roles': roles,
+        'show_overdue': show_overdue,
+        'show_no_next': show_no_next,
+        'show_no_responsible': show_no_responsible,
+        'selected_responsible': responsible_position,
+        'created_from': created_from,
+        'created_to': created_to,
+        'title_query': title_query,
+        'user_role_name': user_role_name,
+    }
+
+
 class UpdateControlStandaloneView(TemplateView):
     """
     Централизованный мониторинг актуальности уроков.
@@ -408,142 +541,7 @@ class UpdateControlStandaloneView(TemplateView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        from courses.models import Lesson, UserLesson
-        from django.utils import timezone
-        
-        user = self.request.user
-        is_staff_or_admin = user.is_staff or user.is_superuser
-        is_mentor = hasattr(user, 'profile') and user.profile.is_mentor_user
-        
-        # Для staff/superuser показываем все уроки, для наставников - только доступные
-        if is_staff_or_admin:
-            lessons = Lesson.objects.select_related('category').all()
-        else:
-            # Для наставников получаем уроки через курсы и назначенные напрямую
-            allowed_lesson_ids = set()
-            
-            # Уроки из назначенных курсов
-            user_courses = UserCourse.objects.filter(user=user).select_related('course')
-            allowed_courses = [uc.course for uc in user_courses if uc.status in ['available', 'started', 'completed']]
-            for course in allowed_courses:
-                trajectory = UserLessonTrajectory.objects.filter(user=user, course=course).first()
-                if trajectory:
-                    allowed_lesson_ids.update(trajectory.lessons.values_list('id', flat=True))
-                else:
-                    allowed_lesson_ids.update(course.lessons.values_list('id', flat=True))
-            
-            # Уроки, назначенные напрямую
-            assigned_lesson_ids = UserLesson.objects.filter(user=user).values_list('lesson_id', flat=True)
-            allowed_lesson_ids.update(assigned_lesson_ids)
-            
-            lessons = Lesson.objects.select_related('category').filter(id__in=allowed_lesson_ids)
-        today = timezone.now().date()
-        
-        # По умолчанию — за весь период (пустые даты). Параметр all_dates=1 тоже сбрасывает фильтр по датам.
-        all_dates = self.request.GET.get('all_dates') == '1'
-        if all_dates:
-            created_from = ''
-            created_to = ''
-        else:
-            created_from = self.request.GET.get('created_from', '')
-            created_to = self.request.GET.get('created_to', '')
-        title_query = self.request.GET.get('title', '').strip()
-        rows = []
-        for lesson in lessons:
-            versions = list(lesson.versions.order_by('-version'))
-            if not versions:
-                last_update = None
-                period_between = None
-                next_update = None
-                responsible = None
-            else:
-                last = versions[0]
-                last_update = last.updated_at.date() if last.updated_at else None
-                next_update = last.next_update
-                responsible = last.updated_by
-                if last_update and next_update:
-                    period_between = (next_update - last_update).days
-                else:
-                    period_between = None
-            # Дата создания — из поля модели Lesson
-            
-            created = lesson.created_at.date() if lesson.created_at else None
-            rows.append({
-                'lesson_id': lesson.id,
-                'created': created,
-                'title': lesson.title,
-                'category': lesson.category.name if lesson.category else '—',
-                'last_update': last_update,
-                'period_between': period_between,
-                'next_update': next_update,
-                'responsible': responsible,
-                'responsible_id': responsible.id if responsible else None,
-                'responsible_fio': get_compact_fio(responsible) if responsible else '—',
-                'responsible_position': responsible.profile.role.name if responsible and responsible.profile and responsible.profile.role else '—',
-                'is_overdue': next_update and next_update < today,
-                'no_next': not next_update,
-            })
-        # Фильтрация
-        show_overdue = self.request.GET.get('overdue')
-        show_no_next = self.request.GET.get('no_next')
-        show_no_responsible = self.request.GET.get('no_responsible')
-        # Если нет GET-параметров — все фильтры включены по умолчанию
-        if show_overdue is None and show_no_next is None and show_no_responsible is None and not self.request.GET:
-            show_overdue = True
-            show_no_next = True
-            show_no_responsible = True
-        else:
-            show_overdue = show_overdue == '1'
-            show_no_next = show_no_next == '1'
-            show_no_responsible = show_no_responsible == '1'
-        responsible_position = self.request.GET.get('responsible')
-        filtered = rows
-        # Фильтр по дате создания
-        from datetime import datetime
-        if created_from:
-            dt_from = datetime.strptime(created_from, '%Y-%m-%d').date()
-            filtered = [r for r in filtered if r['created'] and r['created'] >= dt_from]
-        if created_to:
-            dt_to = datetime.strptime(created_to, '%Y-%m-%d').date()
-            filtered = [r for r in filtered if r['created'] and r['created'] <= dt_to]
-        if show_overdue and show_no_next and show_no_responsible:
-            filtered = [r for r in filtered if r['is_overdue'] or r['no_next'] or r['responsible_fio'] == '—']
-        elif show_overdue and show_no_next:
-            filtered = [r for r in filtered if r['is_overdue'] or r['no_next']]
-        elif show_overdue and show_no_responsible:
-            filtered = [r for r in filtered if r['is_overdue'] or r['responsible_fio'] == '—']
-        elif show_no_next and show_no_responsible:
-            filtered = [r for r in filtered if r['no_next'] or r['responsible_fio'] == '—']
-        elif show_overdue:
-            filtered = [r for r in filtered if r['is_overdue']]
-        elif show_no_next:
-            filtered = [r for r in filtered if r['no_next']]
-        elif show_no_responsible:
-            filtered = [r for r in filtered if r['responsible_fio'] == '—']
-        if responsible_position:
-            filtered = [r for r in filtered if r['responsible_position'] == responsible_position]
-        if title_query:
-            filtered = [r for r in filtered if title_query.lower() in r['title'].lower()]
-        
-        # Список должностей для фильтра
-        from users.models import Role
-        roles = Role.objects.all().order_by('name')
-        
-        # Должность текущего пользователя для кнопки "Мои к актуализации"
-        user_role_name = None
-        if hasattr(user, 'profile') and user.profile and user.profile.role:
-            user_role_name = user.profile.role.name
-        
-        context['update_rows'] = filtered
-        context['roles'] = roles
-        context['show_overdue'] = show_overdue
-        context['show_no_next'] = show_no_next
-        context['show_no_responsible'] = show_no_responsible
-        context['selected_responsible'] = responsible_position
-        context['created_from'] = created_from
-        context['created_to'] = created_to
-        context['title_query'] = title_query
-        context['user_role_name'] = user_role_name
+        context.update(get_update_control_context(self.request))
         return context
 
 
