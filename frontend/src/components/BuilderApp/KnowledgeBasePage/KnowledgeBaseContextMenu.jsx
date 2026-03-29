@@ -1,4 +1,5 @@
 import { useEffect } from 'react';
+import { createPortal } from 'react-dom';
 
 /**
  * Контекстное меню базы знаний (как в master_detail.html):
@@ -43,7 +44,7 @@ const KnowledgeBaseContextMenu = ({
 
   if (!visible) return null;
 
-  return (
+  return createPortal(
     <div
       className="kb-context-menu"
       style={{ left: x, top: y }}
@@ -97,7 +98,8 @@ const KnowledgeBaseContextMenu = ({
           Скрыть
         </div>
       )}
-    </div>
+    </div>,
+    document.body
   );
 };
 

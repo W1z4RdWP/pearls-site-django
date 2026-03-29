@@ -124,7 +124,7 @@ def api_trajectory_management(request):
         'recent_quizzes': [_serialize_quiz(q) for q in recent_quizzes],
         'all_groups': [{'id': g.id, 'name': g.name} for g in all_groups],
         'urls': {
-            'lesson_master': '/builder/add/',
+            'lesson_master': '/builder/content/',
             'course_list': '/builder/courses/',
             'incident_course_list': '/builder/incident-courses/',
             'trajectory_list': '/builder/trajectories/',

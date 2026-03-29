@@ -846,21 +846,21 @@
   color: #3d6ce8;
 }
 
-/* Контекстное меню (как в master_detail) */
+/* Контекстное меню — как .builder-context-menu / .builder-context-menu-item в builder_style.css */
 .kb-context-menu {
   position: fixed;
   z-index: 9999;
-  min-width: 180px;
+  min-width: 160px;
   background: var(--color-card-bg, #fff);
   color: var(--color-text, #212529);
   border: 1px solid var(--color-card-border, #dee2e6);
   border-radius: 6px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
-  padding: 0.25rem 0;
 }
 
 .kb-context-menu__item {
-  padding: 0.5rem 1rem;
+  padding: 4px 14px;
+  line-height: 1.35;
   cursor: pointer;
   font-size: 0.9rem;
   border: none;

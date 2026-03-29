@@ -236,7 +236,7 @@ const KnowledgeBaseSidebar = ({
     if (target) {
       e.preventDefault();
       e.stopPropagation();
-      setContextMenu({ visible: true, x: e.pageX, y: e.pageY, target });
+      setContextMenu({ visible: true, x: e.clientX, y: e.clientY, target });
     }
   };
 
