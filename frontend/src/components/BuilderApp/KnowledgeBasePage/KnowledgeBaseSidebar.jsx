@@ -8,6 +8,8 @@ const TAB_CATEGORIES = 'categories';
 const TAB_UNCAT = 'uncat';
 const TAB_DICT = 'dict';
 
+const lessonIdsEqual = (a, b) => a != null && b != null && Number(a) === Number(b);
+
 // const LessonIcon = () => (
 //   <svg width="16" height="16" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
 //     <rect x="4" y="3" width="12" height="14" rx="2" fill="currentColor" opacity="0.9" />
@@ -175,9 +177,9 @@ const KnowledgeBaseSidebar = ({
   };
 
   const categoryContainsLesson = useCallback((cat, lessonId) => {
-    if (!cat) return false;
+    if (!cat || lessonId == null || lessonId === '') return false;
     const lessons = cat.lessons || [];
-    if (lessons.some((l) => l.id === lessonId)) return true;
+    if (lessons.some((l) => lessonIdsEqual(l.id, lessonId))) return true;
     const subcategories = cat.subcategories || [];
     return subcategories.some((sub) => categoryContainsLesson(sub, lessonId));
   }, []);
@@ -187,7 +189,7 @@ const KnowledgeBaseSidebar = ({
       .map((cat) => {
         const subFiltered = filterCategoriesToLesson(cat.subcategories || [], lessonId);
         const hasInSubs = subFiltered.length > 0;
-        const lessons = (cat.lessons || []).filter((l) => l.id === lessonId);
+        const lessons = (cat.lessons || []).filter((l) => lessonIdsEqual(l.id, lessonId));
         const hasHere = lessons.length > 0;
         if (!hasHere && !hasInSubs) return null;
         return {
@@ -203,6 +205,47 @@ const KnowledgeBaseSidebar = ({
     if (!mirrorsFilterLessonId) return categories;
     return filterCategoriesToLesson(categories, mirrorsFilterLessonId);
   }, [categories, mirrorsFilterLessonId, filterCategoriesToLesson]);
+
+  useEffect(() => {
+    if (selectedLessonId == null || selectedLessonId === '') return;
+    const sid = Number(selectedLessonId);
+    if (Number.isNaN(sid)) return;
+
+    const inUncat = uncategorizedLessons.some((l) => lessonIdsEqual(l.id, sid));
+    const inCat = categories.some((cat) => categoryContainsLesson(cat, sid));
+
+    if (inUncat) {
+      setActiveTab(TAB_UNCAT);
+      onSearchChange?.('');
+    } else if (inCat) {
+      setActiveTab(TAB_CATEGORIES);
+      onSearchChange?.('');
+    }
+  }, [selectedLessonId, uncategorizedLessons, categories, categoryContainsLesson, onSearchChange]);
+
+  useEffect(() => {
+    if (selectedLessonId == null || selectedLessonId === '') return;
+    const sid = Number(selectedLessonId);
+    if (Number.isNaN(sid)) return;
+    const scrollT = window.setTimeout(() => {
+      const root = document.getElementById('kb-sidebar');
+      if (!root) return;
+      const el = root.querySelector(`.kb-sidebar__lesson-item[data-lesson-id="${sid}"]`);
+      el?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    }, 60);
+    return () => window.clearTimeout(scrollT);
+  }, [selectedLessonId, activeTab, displayCategories]);
+
+  useEffect(() => {
+    if (selectedLessonId == null || selectedLessonId === '' || !mirrorsFilterLessonId) return;
+    const sid = Number(selectedLessonId);
+    if (Number.isNaN(sid)) return;
+    const inFull = categories.some((cat) => categoryContainsLesson(cat, sid));
+    const inFiltered = displayCategories.some((cat) => categoryContainsLesson(cat, sid));
+    if (inFull && !inFiltered) {
+      setMirrorsFilterLessonId(null);
+    }
+  }, [selectedLessonId, categories, displayCategories, mirrorsFilterLessonId, categoryContainsLesson]);
 
   useEffect(() => {
     if (isReadonly) return;
@@ -619,7 +662,8 @@ const KnowledgeBaseSidebar = ({
               {filteredUncategorized.map((lesson) => (
                 <li
                   key={lesson.id}
-                  className={`kb-sidebar__lesson-item ${selectedLessonId === lesson.id ? 'kb-sidebar__lesson-item--active' : ''}`}
+                  className={`kb-sidebar__lesson-item ${lessonIdsEqual(selectedLessonId, lesson.id) ? 'kb-sidebar__lesson-item--active' : ''}`}
+                  data-lesson-id={lesson.id}
                   data-id={`uncat-${lesson.id}`}
                   data-has-mirrors={lesson.has_mirrors ? '1' : undefined}
                 >

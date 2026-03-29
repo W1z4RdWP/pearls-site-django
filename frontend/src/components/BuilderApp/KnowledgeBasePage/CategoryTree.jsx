@@ -1,10 +1,12 @@
 import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 
+const lessonIdsEqual = (a, b) => a != null && b != null && Number(a) === Number(b);
+
 const categoryContainsLesson = (category, lessonId) => {
-  if (!category || !lessonId) return false;
+  if (!category || lessonId == null || lessonId === '') return false;
   const lessons = category.lessons || [];
-  if (lessons.some((l) => l.id === lessonId)) {
+  if (lessons.some((l) => lessonIdsEqual(l.id, lessonId))) {
     return true;
   }
   const subcategories = category.subcategories || [];
@@ -57,6 +59,12 @@ const CategoryTree = ({
   const [expanded, setExpanded] = useState(() =>
     selectedLessonId ? categoryContainsLesson(category, selectedLessonId) : false,
   );
+
+  useEffect(() => {
+    if (selectedLessonId != null && categoryContainsLesson(category, selectedLessonId)) {
+      setExpanded(true);
+    }
+  }, [selectedLessonId, category]);
 
   useEffect(() => {
     if (isAddingSubcategory && inputRef.current) {
@@ -214,7 +222,7 @@ const CategoryTree = ({
               {visibleLessons.map((lesson) => (
                 <li
                   key={lesson.id}
-                  className={`kb-sidebar__lesson-item ${selectedLessonId === lesson.id ? 'kb-sidebar__lesson-item--active' : ''}`}
+                  className={`kb-sidebar__lesson-item ${lessonIdsEqual(selectedLessonId, lesson.id) ? 'kb-sidebar__lesson-item--active' : ''}`}
                   data-lesson-id={lesson.id}
                 >
                   <button

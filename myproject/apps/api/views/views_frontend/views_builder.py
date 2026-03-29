@@ -472,7 +472,8 @@ def api_lesson_form_create(request, category_id=None):
         from urllib.parse import unquote
         redirect_url = unquote(return_url)
     else:
-        redirect_url = f"{reverse('builder:lesson_master')}?new_lesson={lesson.id}"
+        # React: страница урока в базе знаний (см. /builder/lesson/:pk)
+        redirect_url = reverse('builder:lesson_detail', kwargs={'pk': lesson.id}).rstrip('/')
     return JsonResponse({'success': True, 'lesson_id': lesson.id, 'redirect_url': redirect_url})
 
 
@@ -589,7 +590,11 @@ def api_lesson_form_edit(request, pk):
     log_create(request.user, LessonVersion.objects.filter(lesson=lesson).order_by('-version').first(), request,
                comment=f'Создана версия {next_version} при обновлении урока')
 
-    redirect_url = data.get('return_url') or f"{reverse('builder:lesson_master')}?edited_lesson={lesson.id}"
+    return_url = data.get('return_url')
+    if return_url:
+        redirect_url = return_url
+    else:
+        redirect_url = reverse('builder:lesson_detail', kwargs={'pk': lesson.id}).rstrip('/')
     return JsonResponse({'success': True, 'redirect_url': redirect_url})
 
 
