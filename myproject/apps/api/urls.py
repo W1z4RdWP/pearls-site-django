@@ -10,6 +10,7 @@ from .views.views_frontend import views_courses as courses_views
 from .views.views_frontend import views_builder as builder_views
 from .views.views_frontend import views_tech_support as tech_support_views
 from .views.views_frontend import views_reports as reports_views
+from .views.views_frontend import views_notifications as notifications_views
 from builder.views.api_views import api_search_users, api_get_users_by_ids, api_get_groups, api_get_group_users
 from quizzes.views import search_quizzes_ajax
 
@@ -106,6 +107,11 @@ urlpatterns = [
     path('builder/groups/', api_get_groups, name='api_builder_groups'),
     path('builder/groups/<int:group_id>/users/', api_get_group_users, name='api_builder_group_users'),
     path('quizzes/search/', search_quizzes_ajax, name='api_quizzes_search'),
+
+    # Notifications API — колокольчик и выпадающий список для React
+    path('notifications/count/', notifications_views.api_notifications_count, name='api_notifications_count'),
+    path('notifications/dropdown/', notifications_views.api_notifications_dropdown, name='api_notifications_dropdown'),
+    path('notifications/mark-all-read/', notifications_views.api_mark_all_notifications_read, name='api_notifications_mark_all_read'),
 
     # Users API — транзакции DASCOIN для React
     path('users/transactions/', users_views.api_transactions, name='api_users_transactions'),
