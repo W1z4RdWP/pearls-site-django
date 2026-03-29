@@ -58,6 +58,7 @@ import TicketReportsPage from './components/TechSupportApp/TicketReportsPage/Tic
 import TicketDetailPage from './components/TechSupportApp/TicketDetailPage/TicketDetailPage';
 import NotFound from './pages/NotFound';
 import NotificationsListPage from './components/NotificationsApp/NotificationsListPage/NotificationsListPage';
+import PrivacyPolicyPage from './pages/PrivacyPolicyPage/PrivacyPolicyPage';
 
 const App = () => {
   return (
@@ -68,6 +69,7 @@ const App = () => {
           <Route path='*' element={<NotFound />} />
           <Route path='/about' element={<AboutPage />}/>
           <Route path='/changelog' element={<ChangeLogPage />}/>
+          <Route path='/privacy-policy' element={<PrivacyPolicyPage />}/>
           <Route path='/builder' element={<DashboardPage />}/>
           <Route path='/builder/incidents' element={<IncidentsPage />}/>
           <Route path='/builder/incidents/add' element={<IncidentFormPage />}/>
