@@ -72,6 +72,14 @@ urlpatterns = [
     path('builder/incidents/statuses-report/', builder_views.api_incident_statuses_report, name='api_builder_incident_statuses_report'),
     path('builder/incidents/<int:incident_id>/unassign-user/<int:user_id>/', builder_views.api_incident_unassign_user, name='api_builder_incident_unassign_user'),
     path('builder/incidents/<int:pk>/decline/', builder_views.api_incident_decline, name='api_builder_incident_decline'),
+
+    # Builder API — контекстное меню (clipboard, mirror, assign)
+    path('builder/clipboard/', builder_views.api_clipboard, name='api_builder_clipboard'),
+    path('builder/copy/', builder_views.api_copy, name='api_builder_copy'),
+    path('builder/cut/', builder_views.api_cut, name='api_builder_cut'),
+    path('builder/paste/', builder_views.api_paste, name='api_builder_paste'),
+    path('builder/mirror/', builder_views.api_mirror, name='api_builder_mirror'),
+    path('builder/categories/<int:category_id>/lessons/', builder_views.api_category_lessons, name='api_builder_category_lessons'),
     path('changelog/', views_frontend.changelog_data, name='api_changelog'),
 
     # MyApp API — история изменений для React

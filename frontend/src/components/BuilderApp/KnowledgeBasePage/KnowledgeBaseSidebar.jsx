@@ -2,7 +2,12 @@ import { useState, useMemo, useRef, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import CategoryTree from './CategoryTree';
 import KnowledgeBaseContextMenu from './KnowledgeBaseContextMenu';
-import { createRootCategory, createSubcategory, renameCategory, deleteCategory, fetchCategoryDeleteStats, fetchLessonDeleteInfo, deleteLesson } from '../../../api/builder_api';
+import {
+  createRootCategory, createSubcategory, renameCategory, deleteCategory,
+  fetchCategoryDeleteStats, fetchLessonDeleteInfo, deleteLesson,
+  fetchClipboard, clipboardCopy, clipboardCut, clipboardPaste,
+  createMirror, fetchCategoryLessons,
+} from '../../../api/builder_api';
 
 const TAB_CATEGORIES = 'categories';
 const TAB_UNCAT = 'uncat';
@@ -86,12 +91,6 @@ const KnowledgeBaseSidebar = ({
   const handleLessonSelect = (lessonId) => {
     setSelectedCategoryId(null);
     navigate(`/builder/lesson/${lessonId}`);
-  };
-
-  const getCsrfToken = () => {
-    if (typeof document === 'undefined') return '';
-    const input = document.querySelector('[name=csrfmiddlewaretoken]');
-    return input ? input.value : '';
   };
 
   useEffect(() => {
@@ -249,11 +248,8 @@ const KnowledgeBaseSidebar = ({
 
   useEffect(() => {
     if (isReadonly) return;
-    fetch('/builder/clipboard/')
-      .then((r) => r.json())
-      .then((data) => {
-        setClipboardData(data.empty ? null : data);
-      })
+    fetchClipboard()
+      .then((data) => setClipboardData(data.empty ? null : data))
       .catch(() => setClipboardData(null));
   }, [isReadonly]);
 
@@ -271,10 +267,11 @@ const KnowledgeBaseSidebar = ({
       const lessonId = lessonItemEl.getAttribute('data-lesson-id');
       const uncatId = lessonItemEl.getAttribute('data-id');
       const hasMirrors = lessonItemEl.hasAttribute('data-has-mirrors');
+      const isMirror = lessonItemEl.hasAttribute('data-is-mirror');
       const id = lessonId || (uncatId && uncatId.startsWith('uncat-') ? uncatId.replace('uncat-', '') : null);
       const parentCat = lessonItemEl.closest('.kb-sidebar__category');
       const parentCategoryId = parentCat ? parentCat.getAttribute('data-id') || '' : '';
-      if (id) target = { type: 'lesson', id: String(id), parentCategoryId, hasMirrors: !!hasMirrors, isMirror: false };
+      if (id) target = { type: 'lesson', id: String(id), parentCategoryId, hasMirrors: !!hasMirrors, isMirror: !!isMirror };
     }
     if (target) {
       e.preventDefault();
@@ -285,41 +282,26 @@ const KnowledgeBaseSidebar = ({
 
   const closeContextMenu = useCallback(() => setContextMenu((c) => ({ ...c, visible: false })), []);
 
-  const apiPost = (url, body) => {
-    return fetch(url, {
-      method: 'POST',
-      headers: {
-        'X-CSRFToken': getCsrfToken(),
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(body),
-    }).then((r) => r.json());
-  };
-
   const handleCopy = useCallback(() => {
     if (!contextMenu.target) return;
     const { type, id } = contextMenu.target;
-    apiPost('/builder/copy/', { id, type }).then((data) => {
-      if (data.error) {
-        window.alert('Ошибка: ' + data.error);
-        return;
-      }
-      setClipboardData({ id, type, action: 'copy' });
-      closeContextMenu();
-    }).catch(() => window.alert('Ошибка сети'));
+    setClipboardData({ id, type, action: 'copy' });
+    closeContextMenu();
+    clipboardCopy(id, type).catch((e) => {
+      setClipboardData(null);
+      window.alert('Ошибка: ' + (e.message || 'Ошибка сети'));
+    });
   }, [contextMenu.target, closeContextMenu]);
 
   const handleCut = useCallback(() => {
     if (!contextMenu.target) return;
     const { type, id } = contextMenu.target;
-    apiPost('/builder/cut/', { id, type }).then((data) => {
-      if (data.error) {
-        window.alert('Ошибка: ' + data.error);
-        return;
-      }
-      setClipboardData({ id, type, action: 'cut' });
-      closeContextMenu();
-    }).catch(() => window.alert('Ошибка сети'));
+    setClipboardData({ id, type, action: 'cut' });
+    closeContextMenu();
+    clipboardCut(id, type).catch((e) => {
+      setClipboardData(null);
+      window.alert('Ошибка: ' + (e.message || 'Ошибка сети'));
+    });
   }, [contextMenu.target, closeContextMenu]);
 
   const handlePaste = useCallback(() => {
@@ -333,16 +315,15 @@ const KnowledgeBaseSidebar = ({
       }
       targetCategory = '';
     }
-    apiPost('/builder/paste/', { target_category: targetCategory }).then((data) => {
-      if (data.error) {
-        window.alert('Ошибка: ' + data.error);
-        return;
-      }
-      setClipboardData(null);
-      closeContextMenu();
-      window.location.reload();
-    }).catch(() => window.alert('Ошибка сети'));
-  }, [clipboardData, contextMenu.target, closeContextMenu]);
+    const wasCut = clipboardData.action === 'cut';
+    closeContextMenu();
+    clipboardPaste(targetCategory)
+      .then(() => {
+        if (wasCut) setClipboardData(null);
+        onCategoriesUpdated?.();
+      })
+      .catch((e) => window.alert('Ошибка: ' + (e.message || 'Ошибка сети')));
+  }, [clipboardData, contextMenu.target, closeContextMenu, onCategoriesUpdated]);
 
   const handleMirror = useCallback(() => {
     if (!contextMenu.target || contextMenu.target.type !== 'lesson') return;
@@ -353,22 +334,22 @@ const KnowledgeBaseSidebar = ({
 
   const handleMirrorHere = useCallback(() => {
     if (!contextMenu.target || contextMenu.target.type !== 'category' || !mirrorSourceLessonId) return;
-    apiPost('/builder/mirror/', {
-      lesson_id: mirrorSourceLessonId,
-      category_id: contextMenu.target.id,
-    }).then((data) => {
-      if (data.error) {
-        window.alert('Ошибка: ' + data.error);
-        return;
-      }
-      setMirrorSourceLessonId(null);
-      closeContextMenu();
-      window.alert('Зеркало создано!');
-      window.location.reload();
-    }).catch(() => window.alert('Ошибка сети'));
-  }, [contextMenu.target, mirrorSourceLessonId, closeContextMenu]);
+    const catId = contextMenu.target.id;
+    const srcId = mirrorSourceLessonId;
+    setMirrorSourceLessonId(null);
+    closeContextMenu();
+    createMirror(srcId, catId)
+      .then(() => {
+        window.alert('Зеркало создано!');
+        onCategoriesUpdated?.();
+      })
+      .catch((e) => {
+        setMirrorSourceLessonId(srcId);
+        window.alert('Ошибка: ' + (e.message || 'Ошибка сети'));
+      });
+  }, [contextMenu.target, mirrorSourceLessonId, closeContextMenu, onCategoriesUpdated]);
 
-  const openAssignmentModal = useCallback((lessonIds, categoryName) => {
+  const openAssignmentModal = useCallback((lessonIds) => {
     const url = '/user_management/';
     const params = new URLSearchParams({ assign_lessons: lessonIds.join(','), from: 'builder' });
     window.open(`${url}?${params}`, '_blank', 'noopener');
@@ -383,16 +364,15 @@ const KnowledgeBaseSidebar = ({
       return;
     }
     if (type === 'category') {
-      fetch(`/builder/api/categories/${id}/lessons/`)
-        .then((r) => r.json())
+      fetchCategoryLessons(id)
         .then((data) => {
-          if (data.error || !data.lesson_ids?.length) {
-            window.alert(data.error || 'В категории нет уроков');
+          if (!data.lesson_ids?.length) {
+            window.alert('В категории нет уроков');
             return;
           }
-          openAssignmentModal(data.lesson_ids, data.category_name);
+          openAssignmentModal(data.lesson_ids);
         })
-        .catch(() => window.alert('Ошибка загрузки уроков'));
+        .catch((e) => window.alert(e.message || 'Ошибка загрузки уроков'));
     }
   }, [contextMenu.target, closeContextMenu, openAssignmentModal]);
 

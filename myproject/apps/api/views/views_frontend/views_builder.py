@@ -23,13 +23,15 @@ from quizzes.models import Quiz
 from users.models import Role, Department
 from builder.models import CategoryName, LessonVersion, LessonDraft, DictionarySection, LessonCategoryMirror, Incident
 from builder.forms import IncidentForm
-from builder.audit_logger import log_create, log_update, log_delete, serialize_model_data
+from builder.audit_logger import log_create, log_update, log_delete, log_copy, log_move, log_mirror, serialize_model_data
 from builder.utils import (
     get_responsible_user_for_lesson,
     get_category_tree_data,
     filter_categories_and_lessons_for_user,
     get_compact_fio,
     user_has_category_access,
+    copy_category_tree,
+    move_category_tree,
 )
 from api.serializers import BuilderLessonDetailSerializer, BuilderRoleSerializer
 
@@ -1782,4 +1784,222 @@ def api_incident_create_course(request, pk):
     incident.save(update_fields=['course', 'status', 'updated_at'])
     return JsonResponse({
         'redirect_url': reverse('courses:course_detail', kwargs={'slug': course.slug}),
+    })
+
+
+# ---------------------------------------------------------------------------
+# Контекстное меню базы знаний: clipboard (copy/cut/paste), mirror, assign
+# ---------------------------------------------------------------------------
+
+@login_required
+@require_http_methods(["GET"])
+def api_clipboard(request):
+    """API: получить содержимое буфера обмена (session)."""
+    if not (request.user.is_staff or request.user.is_superuser):
+        return JsonResponse({'error': 'forbidden'}, status=403)
+    clipboard = request.session.get('clipboard')
+    if not clipboard:
+        return JsonResponse({'empty': True})
+    return JsonResponse({
+        'id': clipboard.get('id'),
+        'type': clipboard.get('type'),
+        'action': clipboard.get('action'),
+    })
+
+
+@login_required
+@require_http_methods(["POST"])
+def api_copy(request):
+    """API: скопировать урок или категорию в буфер обмена."""
+    if not (request.user.is_staff or request.user.is_superuser):
+        return JsonResponse({'error': 'forbidden'}, status=403)
+    try:
+        data = json.loads(request.body)
+    except (json.JSONDecodeError, ValueError):
+        return JsonResponse({'error': 'bad json'}, status=400)
+    item_id = data.get('id')
+    item_type = data.get('type')
+    if not item_id or item_type not in ('lesson', 'category'):
+        return JsonResponse({'error': 'missing params'}, status=400)
+
+    if item_type == 'lesson':
+        if not Lesson.objects.filter(pk=item_id).exists():
+            return JsonResponse({'error': 'lesson not found'}, status=404)
+        request.session['clipboard'] = {'id': item_id, 'type': 'lesson', 'action': 'copy'}
+    else:
+        category_data = get_category_tree_data(item_id)
+        if not category_data:
+            return JsonResponse({'error': 'category not found'}, status=404)
+        request.session['clipboard'] = {
+            'id': item_id, 'type': 'category', 'action': 'copy',
+            'category_data': category_data,
+        }
+    return JsonResponse({'ok': True})
+
+
+@login_required
+@require_http_methods(["POST"])
+def api_cut(request):
+    """API: вырезать урок или категорию в буфер обмена."""
+    if not (request.user.is_staff or request.user.is_superuser):
+        return JsonResponse({'error': 'forbidden'}, status=403)
+    try:
+        data = json.loads(request.body)
+    except (json.JSONDecodeError, ValueError):
+        return JsonResponse({'error': 'bad json'}, status=400)
+    item_id = data.get('id')
+    item_type = data.get('type')
+    if not item_id or item_type not in ('lesson', 'category'):
+        return JsonResponse({'error': 'missing params'}, status=400)
+
+    if item_type == 'lesson':
+        if not Lesson.objects.filter(pk=item_id).exists():
+            return JsonResponse({'error': 'lesson not found'}, status=404)
+        request.session['clipboard'] = {'id': item_id, 'type': 'lesson', 'action': 'cut'}
+    else:
+        category_data = get_category_tree_data(item_id)
+        if not category_data:
+            return JsonResponse({'error': 'category not found'}, status=404)
+        request.session['clipboard'] = {
+            'id': item_id, 'type': 'category', 'action': 'cut',
+            'category_data': category_data,
+        }
+    return JsonResponse({'ok': True})
+
+
+@login_required
+@require_http_methods(["POST"])
+def api_paste(request):
+    """API: вставить элемент из буфера обмена в указанную категорию."""
+    if not (request.user.is_staff or request.user.is_superuser):
+        return JsonResponse({'error': 'forbidden'}, status=403)
+    try:
+        data = json.loads(request.body)
+    except (json.JSONDecodeError, ValueError):
+        return JsonResponse({'error': 'bad json'}, status=400)
+
+    target_category = data.get('target_category')
+    if target_category == '' or target_category is None:
+        target_category = None
+
+    clipboard = request.session.get('clipboard')
+    if not clipboard:
+        return JsonResponse({'error': 'clipboard empty'}, status=400)
+
+    item_id = clipboard['id']
+    item_type = clipboard['type']
+    action = clipboard['action']
+
+    if item_type == 'lesson':
+        try:
+            lesson = Lesson.objects.get(pk=item_id)
+        except Lesson.DoesNotExist:
+            return JsonResponse({'error': 'lesson not found'}, status=404)
+
+        if target_category:
+            max_order = Lesson.objects.filter(category_id=target_category).aggregate(Max('order'))['order__max'] or 0
+        else:
+            max_order = Lesson.objects.filter(category__isnull=True).aggregate(Max('order'))['order__max'] or 0
+
+        if action == 'copy':
+            new_lesson = Lesson.objects.create(
+                title=lesson.title + ' (копия)',
+                content=lesson.content,
+                video_id=lesson.video_id,
+                category_id=target_category,
+                order=max_order + 1,
+            )
+            log_copy(request.user, lesson, new_lesson, request,
+                     extra_data={'target_category_id': target_category},
+                     comment='Скопирован урок через React')
+            return JsonResponse({'ok': True, 'result': {'id': new_lesson.id, 'title': new_lesson.title}})
+        else:
+            old_category = lesson.category
+            lesson.category_id = target_category
+            lesson.order = max_order + 1
+            lesson.save(update_fields=['category', 'order'])
+            try:
+                new_category = CategoryName.objects.get(pk=target_category) if target_category else None
+            except CategoryName.DoesNotExist:
+                return JsonResponse({'error': 'target category not found'}, status=404)
+            log_move(request.user, lesson, old_category, new_category, request,
+                     comment='Перемещён урок через React')
+            del request.session['clipboard']
+            return JsonResponse({'ok': True, 'result': {'id': lesson.id, 'title': lesson.title}})
+
+    elif item_type == 'category':
+        try:
+            if action == 'copy':
+                category_data = clipboard.get('category_data')
+                if not category_data:
+                    return JsonResponse({'error': 'category data not found'}, status=400)
+                new_category = copy_category_tree(category_data, target_category)
+                result = {'id': new_category.id, 'name': new_category.name}
+            else:
+                moved_category = move_category_tree(item_id, target_category)
+                if not moved_category:
+                    return JsonResponse({'error': 'cannot move category'}, status=400)
+                result = {'id': moved_category.id, 'name': moved_category.name}
+                del request.session['clipboard']
+            return JsonResponse({'ok': True, 'result': result})
+        except Exception as e:
+            return JsonResponse({'error': f'category operation failed: {str(e)}'}, status=500)
+
+    return JsonResponse({'error': 'bad type'}, status=400)
+
+
+@login_required
+@require_http_methods(["POST"])
+def api_mirror(request):
+    """API: создать зеркало урока в указанной категории."""
+    if not (request.user.is_staff or request.user.is_superuser):
+        return JsonResponse({'error': 'forbidden'}, status=403)
+    try:
+        data = json.loads(request.body)
+    except (json.JSONDecodeError, ValueError):
+        return JsonResponse({'error': 'bad json'}, status=400)
+    lesson_id = data.get('lesson_id')
+    category_id = data.get('category_id')
+    if not lesson_id or not category_id:
+        return JsonResponse({'error': 'missing params'}, status=400)
+    try:
+        lesson = Lesson.objects.get(pk=lesson_id)
+        category = CategoryName.objects.get(pk=category_id)
+    except Lesson.DoesNotExist:
+        return JsonResponse({'error': 'lesson not found'}, status=404)
+    except CategoryName.DoesNotExist:
+        return JsonResponse({'error': 'category not found'}, status=404)
+
+    if LessonCategoryMirror.objects.filter(lesson=lesson, category=category).exists():
+        return JsonResponse({'error': 'Зеркало уже существует'}, status=400)
+
+    max_order = LessonCategoryMirror.objects.filter(category=category).aggregate(Max('order'))['order__max'] or 0
+    mirror = LessonCategoryMirror.objects.create(lesson=lesson, category=category, order=max_order + 1)
+    log_mirror(request.user, lesson, category, mirror, request, comment='Создано зеркало урока через React')
+    return JsonResponse({'ok': True, 'mirror_id': mirror.id})
+
+
+@login_required
+@require_http_methods(["GET"])
+def api_category_lessons(request, category_id):
+    """API: получить все ID уроков категории (включая подкатегории), для назначения."""
+    if not (request.user.is_staff or request.user.is_superuser):
+        return JsonResponse({'error': 'forbidden'}, status=403)
+    try:
+        category = CategoryName.objects.get(pk=category_id)
+    except CategoryName.DoesNotExist:
+        return JsonResponse({'error': 'Категория не найдена'}, status=404)
+
+    def _collect(cat):
+        ids = set(cat.lessons.values_list('id', flat=True))
+        ids.update(cat.mirrored_lessons.values_list('lesson_id', flat=True))
+        for sub in cat.subcategories.all():
+            ids.update(_collect(sub))
+        return ids
+
+    lesson_ids = list(_collect(category))
+    return JsonResponse({
+        'lesson_ids': lesson_ids,
+        'category_name': category.name,
+        'count': len(lesson_ids),
     })

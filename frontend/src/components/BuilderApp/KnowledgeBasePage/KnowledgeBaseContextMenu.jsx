@@ -32,12 +32,18 @@ const KnowledgeBaseContextMenu = ({
 
   useEffect(() => {
     if (!visible) return;
-    const handleClick = () => onClose();
+    const handleClickOutside = (e) => {
+      if (!e.target.closest('.kb-context-menu')) {
+        onClose();
+      }
+    };
     const handleScroll = () => onClose();
-    document.addEventListener('click', handleClick, true);
+    document.addEventListener('click', handleClickOutside);
+    document.addEventListener('contextmenu', handleClickOutside);
     document.addEventListener('scroll', handleScroll, true);
     return () => {
-      document.removeEventListener('click', handleClick, true);
+      document.removeEventListener('click', handleClickOutside);
+      document.removeEventListener('contextmenu', handleClickOutside);
       document.removeEventListener('scroll', handleScroll, true);
     };
   }, [visible, onClose]);

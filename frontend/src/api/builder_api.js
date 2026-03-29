@@ -131,6 +131,75 @@ export function deleteCategory(id, action = 'move_to_none') {
 }
 
 // ---------------------------------------------------------------------------
+// Контекстное меню: буфер обмена (copy/cut/paste), зеркала, назначение
+// ---------------------------------------------------------------------------
+
+/**
+ * Получить содержимое серверного буфера обмена.
+ * @returns {Promise<{ empty?: true, id?, type?, action? }>}
+ */
+export function fetchClipboard() {
+  return request('/builder/clipboard/');
+}
+
+/**
+ * Скопировать урок или категорию в буфер обмена.
+ * @param {string|number} id
+ * @param {'lesson'|'category'} type
+ */
+export function clipboardCopy(id, type) {
+  return request('/builder/copy/', {
+    method: 'POST',
+    body: JSON.stringify({ id, type }),
+  });
+}
+
+/**
+ * Вырезать урок или категорию в буфер обмена.
+ * @param {string|number} id
+ * @param {'lesson'|'category'} type
+ */
+export function clipboardCut(id, type) {
+  return request('/builder/cut/', {
+    method: 'POST',
+    body: JSON.stringify({ id, type }),
+  });
+}
+
+/**
+ * Вставить элемент из буфера обмена в указанную категорию.
+ * @param {string|number|null} targetCategory — ID категории-назначения (null/'' = корень / без категории)
+ * @returns {Promise<{ ok: true, result: { id, title|name } }>}
+ */
+export function clipboardPaste(targetCategory) {
+  return request('/builder/paste/', {
+    method: 'POST',
+    body: JSON.stringify({ target_category: targetCategory ?? '' }),
+  });
+}
+
+/**
+ * Создать зеркало урока в указанной категории.
+ * @param {string|number} lessonId
+ * @param {string|number} categoryId
+ */
+export function createMirror(lessonId, categoryId) {
+  return request('/builder/mirror/', {
+    method: 'POST',
+    body: JSON.stringify({ lesson_id: lessonId, category_id: categoryId }),
+  });
+}
+
+/**
+ * Получить все ID уроков категории (включая подкатегории) — для назначения.
+ * @param {number} categoryId
+ * @returns {Promise<{ lesson_ids: number[], category_name: string, count: number }>}
+ */
+export function fetchCategoryLessons(categoryId) {
+  return request(`/builder/categories/${categoryId}/lessons/`);
+}
+
+// ---------------------------------------------------------------------------
 // Управление траекториями, курсы, формы уроков
 // ---------------------------------------------------------------------------
 

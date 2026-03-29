@@ -224,6 +224,8 @@ const CategoryTree = ({
                   key={lesson.id}
                   className={`kb-sidebar__lesson-item ${lessonIdsEqual(selectedLessonId, lesson.id) ? 'kb-sidebar__lesson-item--active' : ''}`}
                   data-lesson-id={lesson.id}
+                  data-has-mirrors={lesson.has_mirrors ? '1' : undefined}
+                  data-is-mirror={lesson.is_mirror ? '1' : undefined}
                 >
                   <button
                     type="button"
