@@ -13,7 +13,9 @@
   <div class="row mx-0">
     <aside class="col-lg-3 mb-4 news-page__sidebar-col pl-lg-0 pr-lg-3">
       <nav class="news-sidebar nav flex-column border rounded p-2 bg-light" aria-label="Рубрики новостей">
-        <a class="btn btn-primary" style="margin-bottom: 10px;" href="#">Создать новость</a>
+        {% if user.is_staff %}
+        <a class="btn btn-primary" style="margin-bottom: 10px;" href="{% url 'news:news_create' %}">Создать новость</a>
+        {% endif %}
         <a class="news-sidebar__link {% if not active_type %}is-active{% endif %}"
           href="{% url 'news:news_dashboard' %}">Все публикации</a>
         {% for value, label in news_type_tabs %}

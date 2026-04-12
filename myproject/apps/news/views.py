@@ -1,6 +1,12 @@
-from django.views.generic import DetailView, ListView
+from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
+from django.db import transaction
+from django.http import HttpResponseRedirect
+from django.urls import reverse_lazy
+from django.views.generic import CreateView, DetailView, ListView
 
-from .models import NewsItem, NewsType
+from news.forms import NewsItemForm
+
+from .models import NewsGalleryImage, NewsItem, NewsType
 
 
 class NewsFeedView(ListView):
@@ -39,3 +45,24 @@ class NewsDetailView(DetailView):
 
     def get_queryset(self):
         return NewsItem.objects.prefetch_related('gallery_images')
+
+
+class NewsItemCreateView(LoginRequiredMixin, UserPassesTestMixin, CreateView):
+    model = NewsItem
+    form_class = NewsItemForm
+    template_name = 'news/news_item_create.html'
+    success_url = reverse_lazy('news:news_dashboard')
+
+    def test_func(self):
+        return self.request.user.is_authenticated and self.request.user.is_staff
+
+    def form_valid(self, form):
+        with transaction.atomic():
+            self.object = form.save()
+            for order, f in enumerate(self.request.FILES.getlist('gallery_files')):
+                NewsGalleryImage.objects.create(
+                    news_item=self.object,
+                    image=f,
+                    sort_order=order,
+                )
+        return HttpResponseRedirect(self.get_success_url())

@@ -1,0 +1,98 @@
+{% extends 'layout.html' %}
+{% load static %}
+
+{% block title %}Создать новость{% endblock %}
+
+{% block specific_styles %}
+<link rel="stylesheet" href="{% static 'news/css/news_item_create.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="nfc-page">
+  <div class="nfc-card">
+    <header class="nfc-header">
+      <!-- <a href="{% url 'news:news_dashboard' %}" class="nfc-back" aria-label="Назад к ленте новостей">&larr; К ленте</a> -->
+      <h1 class="nfc-title">Создать новость</h1>
+    </header>
+
+    <form method="post" enctype="multipart/form-data" class="nfc-form" autocomplete="off">
+      {% csrf_token %}
+
+      {% if form.non_field_errors %}
+      <div class="alert alert-danger nfc-alert" role="alert">
+        {{ form.non_field_errors }}
+      </div>
+      {% endif %}
+
+      <section class="nfc-section" aria-labelledby="nfc-section-main">
+        <h2 id="nfc-section-main" class="nfc-section-title">Основное</h2>
+
+        <div class="nfc-field">
+          <label class="nfc-label" for="{{ form.title.id_for_label }}">{{ form.title.label }}</label>
+          {{ form.title }}
+          {% if form.title.help_text %}<p class="nfc-hint">{{ form.title.help_text }}</p>{% endif %}
+          {% if form.title.errors %}<div class="nfc-errors">{{ form.title.errors }}</div>{% endif %}
+        </div>
+
+        <div class="nfc-field">
+          <label class="nfc-label" for="{{ form.news_type.id_for_label }}">{{ form.news_type.label }}</label>
+          {{ form.news_type }}
+          {% if form.news_type.help_text %}<p class="nfc-hint">{{ form.news_type.help_text }}</p>{% endif %}
+          {% if form.news_type.errors %}<div class="nfc-errors">{{ form.news_type.errors }}</div>{% endif %}
+        </div>
+
+        <div class="nfc-field">
+          <label class="nfc-label" for="{{ form.description.id_for_label }}">{{ form.description.label }}</label>
+          {{ form.description }}
+          {% if form.description.help_text %}<p class="nfc-hint">{{ form.description.help_text }}</p>{% endif %}
+          {% if form.description.errors %}<div class="nfc-errors">{{ form.description.errors }}</div>{% endif %}
+        </div>
+
+        <div class="nfc-field">
+          <label class="nfc-label" for="{{ form.content.id_for_label }}">{{ form.content.label }}</label>
+          {{ form.content }}
+          {% if form.content.help_text %}<p class="nfc-hint">{{ form.content.help_text }}</p>{% endif %}
+          {% if form.content.errors %}<div class="nfc-errors">{{ form.content.errors }}</div>{% endif %}
+        </div>
+      </section>
+
+      <section class="nfc-section" aria-labelledby="nfc-section-media">
+        <h2 id="nfc-section-media" class="nfc-section-title">Медиа</h2>
+        <p class="nfc-hint nfc-hint--block">Можно указать обложку, загружаемое видео и/или ссылку для встраивания — что уместно для материала.</p>
+
+        <div class="nfc-field">
+          <label class="nfc-label" for="{{ form.main_image.id_for_label }}">{{ form.main_image.label }}</label>
+          {{ form.main_image }}
+          {% if form.main_image.help_text %}<p class="nfc-hint">{{ form.main_image.help_text }}</p>{% endif %}
+          {% if form.main_image.errors %}<div class="nfc-errors">{{ form.main_image.errors }}</div>{% endif %}
+        </div>
+
+        <div class="nfc-field">
+          <label class="nfc-label" for="{{ form.video.id_for_label }}">{{ form.video.label }}</label>
+          {{ form.video }}
+          {% if form.video.help_text %}<p class="nfc-hint">{{ form.video.help_text }}</p>{% endif %}
+          {% if form.video.errors %}<div class="nfc-errors">{{ form.video.errors }}</div>{% endif %}
+        </div>
+
+        <div class="nfc-field">
+          <label class="nfc-label" for="{{ form.video_embed_url.id_for_label }}">{{ form.video_embed_url.label }}</label>
+          {{ form.video_embed_url }}
+          {% if form.video_embed_url.help_text %}<p class="nfc-hint">{{ form.video_embed_url.help_text }}</p>{% endif %}
+          {% if form.video_embed_url.errors %}<div class="nfc-errors">{{ form.video_embed_url.errors }}</div>{% endif %}
+        </div>
+
+        <div class="nfc-field">
+          <label class="nfc-label" for="id_gallery_files">Фотогалерея</label>
+          <input type="file" name="gallery_files" id="id_gallery_files" class="form-control nfc-control" multiple accept="image/*">
+          <p class="nfc-hint">Необязательно. Можно выбрать несколько изображений (JPEG, PNG, WebP, GIF), до 12 МБ каждое.</p>
+        </div>
+      </section>
+
+      <div class="nfc-actions">
+        <button type="submit" class="btn btn-primary">Сохранить</button>
+        <a href="{% url 'news:news_dashboard' %}" class="btn btn-secondary">Отмена</a>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
