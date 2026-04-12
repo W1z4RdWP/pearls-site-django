@@ -1,8 +1,135 @@
 {% extends 'layout.html' %}
+{% load static %}
+
 {% block title %}Новости{% endblock %}
 
+{% block specific_styles %}
+<link rel="stylesheet" href="{% static 'news/css/news.css' %}">
+{% endblock %}
+
 {% block content %}
-<div class="container">
-    <h1>Новости</h1>
+<div class="container-fluid news-page py-4 px-3 px-lg-0">
+  <h1 class="mb-4" style="text-align: center;">Новости</h1>
+  <div class="row mx-0">
+    <aside class="col-lg-3 mb-4 news-page__sidebar-col pl-lg-0 pr-lg-3">
+      <nav class="news-sidebar nav flex-column border rounded p-2 bg-light" aria-label="Рубрики новостей">
+        <a class="btn btn-primary" style="margin-bottom: 10px;" href="#">Создать новость</a>
+        <a class="news-sidebar__link {% if not active_type %}is-active{% endif %}"
+          href="{% url 'news:news_dashboard' %}">Все публикации</a>
+        {% for value, label in news_type_tabs %}
+        <a class="news-sidebar__link {% if active_type == value %}is-active{% endif %}"
+          href="{% url 'news:news_dashboard' %}?type={{ value }}">{{ label }}</a>
+        {% endfor %}
+      </nav>
+    </aside>
+    <div class="col-lg-9 px-lg-4">
+      <div id="news-feed-root" data-feed-url="{% url 'news:news_dashboard' %}" data-active-type="{{ active_type }}">
+        <div id="news-feed-cards" class="row">
+          {% for item in news_items %}
+          <div class="col-md-6 mb-4">
+            {% include "news/includes/_news_card.html" with item=item %}
+          </div>
+          {% empty %}
+          <div class="col-12">
+            <p class="text-muted mb-0">Пока нет публикаций.</p>
+          </div>
+          {% endfor %}
+        </div>
+        <div id="news-feed-pagination-slot">
+          {% if page_obj.has_next %}
+          <div class="news-feed-pagination pt-2 mt-2 border-top" data-next-page="{{ page_obj.next_page_number }}">
+            <button type="button" class="btn btn-outline-primary w-100 news-load-more">Показать ещё</button>
+          </div>
+          {% endif %}
+        </div>
+        <div id="news-scroll-sentinel" class="w-100" style="height:1px" aria-hidden="true"></div>
+      </div>
+    </div>
+  </div>
 </div>
+<script>
+(function () {
+  const root = document.getElementById('news-feed-root');
+  if (!root) return;
+  const cardsRow = document.getElementById('news-feed-cards');
+  const slot = document.getElementById('news-feed-pagination-slot');
+  const sentinel = document.getElementById('news-scroll-sentinel');
+  const baseUrl = root.getAttribute('data-feed-url');
+  const activeType = root.getAttribute('data-active-type') || '';
+  let scrollObserver = null;
+
+  function buildFragmentUrl(page) {
+    const u = new URL(baseUrl, window.location.origin);
+    u.searchParams.set('fragment', '1');
+    u.searchParams.set('page', String(page));
+    if (activeType) u.searchParams.set('type', activeType);
+    return u.toString();
+  }
+
+  function wireLoadButton(btn) {
+    if (!btn || btn.dataset.wired === '1') return;
+    btn.dataset.wired = '1';
+    btn.addEventListener('click', function () { loadNext(false); });
+  }
+
+  function swapPagination(doc) {
+    const nextSlot = doc.querySelector('#news-feed-pagination-slot');
+    if (nextSlot) {
+      slot.innerHTML = nextSlot.innerHTML;
+    } else {
+      const pag = doc.querySelector('.news-feed-pagination');
+      slot.innerHTML = pag ? pag.outerHTML : '';
+    }
+    slot.querySelectorAll('.news-load-more').forEach(wireLoadButton);
+    if (!slot.querySelector('.news-feed-pagination') && scrollObserver) {
+      scrollObserver.disconnect();
+      scrollObserver = null;
+    }
+  }
+
+  let loading = false;
+
+  function loadNext() {
+    const pag = slot.querySelector('.news-feed-pagination');
+    if (!pag || loading) return;
+    const nextPage = pag.getAttribute('data-next-page');
+    if (!nextPage) return;
+    const btn = slot.querySelector('.news-load-more');
+    loading = true;
+    if (btn) btn.disabled = true;
+    fetch(buildFragmentUrl(nextPage), { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+      .then(function (r) {
+        if (!r.ok) throw new Error('bad status');
+        return r.text();
+      })
+      .then(function (html) {
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(html, 'text/html');
+        const cols = doc.querySelectorAll('.col-md-6.mb-4');
+        cols.forEach(function (node) { cardsRow.appendChild(node); });
+        swapPagination(doc);
+      })
+      .catch(function () {
+        if (btn) btn.disabled = false;
+        alert('Не удалось загрузить публикации. Попробуйте ещё раз.');
+      })
+      .finally(function () {
+        loading = false;
+        const liveBtn = slot.querySelector('.news-load-more');
+        if (btn && liveBtn) liveBtn.disabled = false;
+      });
+  }
+
+  slot.querySelectorAll('.news-load-more').forEach(wireLoadButton);
+
+  if ('IntersectionObserver' in window && sentinel) {
+    scrollObserver = new IntersectionObserver(function (entries) {
+      entries.forEach(function (e) {
+        if (e.isIntersecting) loadNext();
+      });
+    }, { root: null, rootMargin: '200px', threshold: 0 });
+    scrollObserver.observe(sentinel);
+  }
+})();
+</script>
 {% endblock %}

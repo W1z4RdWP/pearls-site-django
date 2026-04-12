@@ -1,6 +1,41 @@
-from django.shortcuts import render
-from django.views.generic import TemplateView
-# Create your views here.
-class AboutView(TemplateView):
-    """Класс представление страницы 'О нас' """
+from django.views.generic import DetailView, ListView
+
+from .models import NewsItem, NewsType
+
+
+class NewsFeedView(ListView):
+    """Лента новостей с фильтром по рубрике и подгрузкой фрагментом (fragment=1)."""
+
+    model = NewsItem
+    context_object_name = 'news_items'
+    paginate_by = 8
     template_name = 'news/news_dashboard.html'
+
+    def get_template_names(self):
+        if self.request.GET.get('fragment'):
+            return ['news/includes/_news_feed_fragment.html']
+        return [self.template_name]
+
+    def get_queryset(self):
+        qs = NewsItem.objects.all().prefetch_related('gallery_images')
+        t = (self.request.GET.get('type') or '').strip()
+        if t and t in NewsType.values:
+            qs = qs.filter(news_type=t)
+        return qs
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        ctx['news_type_tabs'] = NewsType.choices
+        ctx['active_type'] = (self.request.GET.get('type') or '').strip()
+        if ctx['active_type'] not in NewsType.values and ctx['active_type']:
+            ctx['active_type'] = ''
+        return ctx
+
+
+class NewsDetailView(DetailView):
+    model = NewsItem
+    context_object_name = 'news'
+    template_name = 'news/news_detail.html'
+
+    def get_queryset(self):
+        return NewsItem.objects.prefetch_related('gallery_images')
