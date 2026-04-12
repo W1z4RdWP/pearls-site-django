@@ -70,7 +70,7 @@ class UserCourse(models.Model):
         is_new = self.pk is None # Проверка является ли объект новым
         
         # Автоматически устанавливаем deadline на основе course.default_deadline_days, если deadline не установлен
-        if is_new and not self.deadline:
+        if is_new and not self.deadline and not self.user.is_staff:
             # Получаем курс (может быть передан как объект или как ID)
             course = self.course
             if course and hasattr(course, 'default_deadline_days'):
@@ -80,7 +80,7 @@ class UserCourse(models.Model):
         
         # Проверяем deadline и блокируем курс, если срок истек
         # Для курс-инцидентов (is_incident=True) блокировка не применяется
-        if self.deadline and self.status not in ['completed', 'blocked']:
+        if self.deadline and self.status not in ['completed', 'blocked'] and not self.user.is_staff:
             if timezone.now() > self.deadline:
                 # Проверяем, является ли курс курс-инцидентом
                 course = self.course
