@@ -501,17 +501,18 @@
                 </div>
                 <div class="sidebar-body">
                     {% if user_course %}
+                        {% if user.is_staff or user.is_superuser %}
+                            <div class="text-center">
+                                {% if user.is_superuser %}
+                                    <p class="text-muted mb-3">Вы авторизованы как суперпользователь</p>
+                                {% else %}
+                                    <p class="text-muted mb-3">Вы авторизованы как администратор системы</p>
+                                {% endif %}
+                                <p class="text-muted">Статусы курса отключены</p>
+                            </div>
+                        {% endif %}
                         {% if user_course.status == 'available' %}
-                            {% if user.is_staff or user.is_superuser %}
-                                <div class="text-center">
-                                    {% if user.is_superuser %}
-                                        <p class="text-muted mb-3">Вы авторизованы как суперпользователь</p>
-                                    {% else %}
-                                        <p class="text-muted mb-3">Вы авторизованы как администратор системы</p>
-                                    {% endif %}
-                                    <p class="text-muted">Статусы курса отключены</p>
-                                </div>
-                            {% else %}
+                            {% if not user.is_staff and not user.is_superuser %}
                                 <div class="status-badge status-available">
                                     <i class="fa fa-unlock"></i> Доступен
                                 </div>
