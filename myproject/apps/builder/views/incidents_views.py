@@ -33,7 +33,7 @@ audit_logger = logging.getLogger('audit')
 
 
 # Время жизни кэша страниц инцидентов (секунды)
-INCIDENTS_PAGE_CACHE_TIMEOUT = 3600  # 60 минут
+INCIDENTS_PAGE_CACHE_TIMEOUT = 1800  # 30 минут
 
 
 def _get_user_cache_version(user_id: int) -> int:
