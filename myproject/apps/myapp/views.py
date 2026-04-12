@@ -182,9 +182,6 @@ class IndexView(TemplateView):
             context['courses'] = []
         return context
 
-class AboutView(TemplateView):
-    """Класс представление страницы 'О нас' """
-    template_name = 'about.html'
 
 
 

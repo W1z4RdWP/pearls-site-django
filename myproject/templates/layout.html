@@ -267,7 +267,7 @@
                 <h5>Навигация</h5>
                 <ul>
                     <li><a href="{% url 'home' %}">Главная</a></li>
-                    <li><a href="{% url 'about' %}">О нас</a></li>
+                    <li><a href="{% url 'news:news_dashboard' %}">О нас</a></li>
                     {% if user.is_authenticated and request.user.is_staff %}
                       <li><a href="{% url 'changelog' %}">Изменения</a></li>
                     {% endif %}

@@ -33,7 +33,7 @@ def get_changelog(request):
 def nav_menu(request):
     nav_public = [
         {'url': 'home', 'label': 'Главная', 'icon': 'fa-solid fa-house'},
-        {'url': 'about', 'label': 'О нас', 'icon': 'fa-solid fa-circle-info'},
+        {'url': 'news:news_dashboard', 'label': 'О нас', 'icon': 'fa-solid fa-circle-info'},
         {'url': 'builder:lesson_master', 'label': 'База знаний', 'icon': 'fa-solid fa-book'},
         {'url': 'shop:shop', 'label': 'Магазин', 'icon': 'fa-solid fa-store'},
         {'url': 'messenger:chat_room_list', 'label': 'Мессенджер', 'icon': 'fa-solid fa-comments'},
