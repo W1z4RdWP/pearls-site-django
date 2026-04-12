@@ -3204,7 +3204,7 @@ class AssignCourseToExpertView(View):
                 # Создаем внутреннее уведомление
                 try:
                     from notifications.models import Notification
-                    Notification.create_course_assignment_notification(incident.expert, course)
+                    Notification.create_incident_course_assignment_notification(incident.expert, course)
                 except Exception as e:
                     logger.error(f"Ошибка создания внутреннего уведомления о курсе-инциденте {course.title}: {e}")
                 
@@ -3281,7 +3281,7 @@ class AssignCourseToAssignedView(View):
                     # Создаем внутреннее уведомление
                     try:
                         from notifications.models import Notification
-                        Notification.create_course_assignment_notification(user, course)
+                        Notification.create_incident_course_assignment_notification(user, course)
                     except Exception as e:
                         logger.error(f"Ошибка создания внутреннего уведомления о курсе-инциденте {course.title}: {e}")
                     

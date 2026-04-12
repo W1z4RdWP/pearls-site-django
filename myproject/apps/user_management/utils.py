@@ -68,9 +68,13 @@ def send_user_credentials_email(user, password):
 
 def send_course_assignment_email(user, course):
     """
-    Отправляет email уведомление о назначении курса
+    Отправляет email уведомление о назначении курса (или курса-инцидента).
     """
-    subject = f'Вам назначен курс: {course.title}'
+    is_incident = bool(getattr(course, 'is_incident', False))
+    if is_incident:
+        subject = f'Вам назначен курс-инцидент: {course.title}'
+    else:
+        subject = f'Вам назначен курс: {course.title}'
     
     # Получаем ФИО пользователя
     full_name = user.get_full_name()
@@ -90,6 +94,7 @@ def send_course_assignment_email(user, course):
             'course': course,
             'full_name': full_name,
             'course_url': course_url,
+            'is_incident': is_incident,
         }
     )
     
@@ -98,9 +103,14 @@ def send_course_assignment_email(user, course):
         from django.core.mail import EmailMultiAlternatives
         
         # Создаем сообщение с альтернативным содержимым
+        plain_intro = (
+            f'Вам назначен курс-инцидент "{course.title}"'
+            if is_incident
+            else f'Вам назначен курс "{course.title}"'
+        )
         msg = EmailMultiAlternatives(
             subject=subject,
-            body=f'Вам назначен курс "{course.title}". Ссылка: {course_url}',
+            body=f'{plain_intro}. Ссылка: {course_url}',
             from_email=settings.DEFAULT_FROM_EMAIL,
             to=[user.email]
         )
