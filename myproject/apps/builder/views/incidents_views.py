@@ -207,7 +207,7 @@ class IncidentListView(ListView):
         
         context = super().get_context_data(**kwargs)
         readonly = False
-        is_mentor = self.request.user.profile.is_mentor_user
+        is_mentor = self.request.user.profile.is_mentor_user and not self.request.user.is_staff and not self.request.user.is_superuser
         if is_mentor:
             readonly = True
         context['readonly'] = readonly
