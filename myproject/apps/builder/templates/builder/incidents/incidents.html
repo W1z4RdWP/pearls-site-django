@@ -110,15 +110,15 @@
             <table class="table">
                 <thead>
                     <tr>
-                        <th style="width: 5%;" class="sortable" data-sort-type="date-dot" data-sort-col="0" title="Дата">№<span class="sort-icon"><span class="sort-asc">&#9650;</span><span class="sort-desc">&#9660;</span></span></th>
-                        <th style="width: 8%;" class="sortable" data-sort-type="date-dot" data-sort-col="0" title="Дата">Дата<span class="sort-icon"><span class="sort-asc">&#9650;</span><span class="sort-desc">&#9660;</span></span></th>
-                        <th style="width: 18%;" class="sortable" data-sort-type="text" data-sort-col="1" title="Описание">Описание<span class="sort-icon"><span class="sort-asc">&#9650;</span><span class="sort-desc">&#9660;</span></span></th>
-                        <th style="width: 12%;" class="sortable" data-sort-type="text" data-sort-col="2" title="Тип инцидента">Тип инцидента<span class="sort-icon"><span class="sort-asc">&#9650;</span><span class="sort-desc">&#9660;</span></span></th>
-                        <th style="width: 12%;" class="sortable" data-sort-type="text" data-sort-col="3" title="Кто зафиксировал">Кто зафиксировал<span class="sort-icon"><span class="sort-asc">&#9650;</span><span class="sort-desc">&#9660;</span></span></th>
-                        <th style="width: 7%;" class="sortable" data-sort-type="number" data-sort-col="4" title="Всего обучающихся">Всего обучающихся<span class="sort-icon"><span class="sort-asc">&#9650;</span><span class="sort-desc">&#9660;</span></span></th>
-                        <th style="width: 7%;" class="sortable" data-sort-type="number" data-sort-col="5" title="Завершили обуч.">Завершили обуч.<span class="sort-icon"><span class="sort-asc">&#9650;</span><span class="sort-desc">&#9660;</span></span></th>
-                        <th style="width: 8%;" class="sortable" data-sort-type="text" data-sort-col="6" title="Статус">Статус<span class="sort-icon"><span class="sort-asc">&#9650;</span><span class="sort-desc">&#9660;</span></span></th>
-                        <th style="width: 5%;" class="comment-column sortable" data-sort-type="text" data-sort-col="7" title="Комментарий (опционально)">Комментарий (опционально)<span class="sort-icon"><span class="sort-asc">&#9650;</span><span class="sort-desc">&#9660;</span></span></th>
+                        <th style="width: 5%;" class="sortable" data-sort-type="number" data-sort-col="0" title="Номер">№<span class="sort-icon"><span class="sort-asc">&#9650;</span><span class="sort-desc">&#9660;</span></span></th>
+                        <th style="width: 8%;" class="sortable" data-sort-type="date-dot" data-sort-col="1" title="Дата">Дата<span class="sort-icon"><span class="sort-asc">&#9650;</span><span class="sort-desc">&#9660;</span></span></th>
+                        <th style="width: 18%;" class="sortable" data-sort-type="text" data-sort-col="2" title="Описание">Описание<span class="sort-icon"><span class="sort-asc">&#9650;</span><span class="sort-desc">&#9660;</span></span></th>
+                        <th style="width: 12%;" class="sortable" data-sort-type="text" data-sort-col="3" title="Тип инцидента">Тип инцидента<span class="sort-icon"><span class="sort-asc">&#9650;</span><span class="sort-desc">&#9660;</span></span></th>
+                        <th style="width: 12%;" class="sortable" data-sort-type="text" data-sort-col="4" title="Кто зафиксировал">Кто зафиксировал<span class="sort-icon"><span class="sort-asc">&#9650;</span><span class="sort-desc">&#9660;</span></span></th>
+                        <th style="width: 7%;" class="sortable" data-sort-type="number" data-sort-col="5" title="Всего обучающихся">Всего обучающихся<span class="sort-icon"><span class="sort-asc">&#9650;</span><span class="sort-desc">&#9660;</span></span></th>
+                        <th style="width: 7%;" class="sortable" data-sort-type="number" data-sort-col="6" title="Завершили обуч.">Завершили обуч.<span class="sort-icon"><span class="sort-asc">&#9650;</span><span class="sort-desc">&#9660;</span></span></th>
+                        <th style="width: 8%;" class="sortable" data-sort-type="status" data-sort-col="7" title="Статус">Статус<span class="sort-icon"><span class="sort-asc">&#9650;</span><span class="sort-desc">&#9660;</span></span></th>
+                        <th style="width: 5%;" class="comment-column sortable" data-sort-type="text" data-sort-col="8" title="Комментарий (опционально)">Комментарий (опционально)<span class="sort-icon"><span class="sort-asc">&#9650;</span><span class="sort-desc">&#9660;</span></span></th>
                     </tr>
                 </thead>
                 <tbody>
@@ -320,6 +320,14 @@ function initTableSorting() {
     const headers = table.querySelectorAll('thead th.sortable');
     const tbody = table.querySelector('tbody');
     if (!tbody) return;
+    const statusSortOrder = {
+        declined: 0,
+        resolved: 1,
+        studies_completed: 2,
+        assigned: 3,
+        accepted: 4,
+        new: 5,
+    };
 
     function parseDateDot(str) {
         str = str.trim();
@@ -329,16 +337,31 @@ function initTableSorting() {
         return new Date(parts[3], parts[2] - 1, parts[1]);
     }
 
-    function getSortValue(cell, type) {
+    function parseNumber(str) {
+        const normalized = str.replace(/\s+/g, '').replace(',', '.');
+        if (!normalized || normalized === '—') return null;
+        const value = Number(normalized);
+        return Number.isNaN(value) ? null : value;
+    }
+
+    function getSortValue(row, colIdx, type) {
+        const cell = row.children[colIdx];
+        if (!cell) return null;
         const text = cell.textContent.trim();
         switch (type) {
             case 'number':
-                return parseFloat(text) || (text === '—' ? null : 0);
+                return parseNumber(text);
             case 'date-dot':
                 return parseDateDot(text);
+            case 'status': {
+                const statusCode = row.dataset.incidentStatus || '';
+                return Object.prototype.hasOwnProperty.call(statusSortOrder, statusCode)
+                    ? statusSortOrder[statusCode]
+                    : null;
+            }
             case 'text':
             default:
-                return text.toLowerCase();
+                return text.toLocaleLowerCase('ru');
         }
     }
 
@@ -346,8 +369,7 @@ function initTableSorting() {
         if (a === null && b === null) return 0;
         if (a === null) return 1;
         if (b === null) return -1;
-        if (type === 'number') return a - b;
-        if (type === 'date-dot') return a - b;
+        if (type === 'number' || type === 'date-dot' || type === 'status') return a - b;
         return a < b ? -1 : a > b ? 1 : 0;
     }
 
@@ -372,12 +394,8 @@ function initTableSorting() {
             if (rows.length === 0) return;
 
             rows.sort(function(rowA, rowB) {
-                const cellA = rowA.children[colIdx];
-                const cellB = rowB.children[colIdx];
-                if (!cellA || !cellB) return 0;
-
-                const valA = getSortValue(cellA, sortType);
-                const valB = getSortValue(cellB, sortType);
+                const valA = getSortValue(rowA, colIdx, sortType);
+                const valB = getSortValue(rowB, colIdx, sortType);
                 const cmp = compareValues(valA, valB, sortType);
                 return direction === 'asc' ? cmp : -cmp;
             });
