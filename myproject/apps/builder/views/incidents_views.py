@@ -24,6 +24,7 @@ from builder.models import Incident
 from builder.utils import get_total_incidents_students
 from courses.models import Course, UserLessonTrajectory
 from myapp.models import UserCourse, UserProgress, ManualCourseUnassignment
+from myapp.views import is_admin
 from users.models import Department
 
 import logging
@@ -1398,6 +1399,7 @@ class IncidentDetailListView(ListView):
                             })
         
         context['incident_user_list'] = incident_user_list
+        context['is_admin'] = is_admin(self.request.user)
         return context
 
 

@@ -187,7 +187,8 @@ class IndexView(TemplateView):
 
 
 def is_admin(user) -> bool:
-    return user.is_staff
+    if user.is_staff or (user.profile.is_mentor and user.is_staff):
+        return user.is_staff
 
 def is_author_or_admin(user, course):
     return user.is_staff or user == course.author

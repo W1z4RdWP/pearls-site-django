@@ -127,7 +127,9 @@
                     <th style="width: 10%;" class="sortable" data-sort-type="text" data-sort-col="6">Ответственный<span class="sort-icon"><span class="sort-asc">&#9650;</span><span class="sort-desc">&#9660;</span></span></th>
                     <th style="width: 10%;" class="sortable" data-sort-type="datetime-dot" data-sort-col="7">Дедлайн<span class="sort-icon"><span class="sort-asc">&#9650;</span><span class="sort-desc">&#9660;</span></span></th>
                     <th style="width: 10%;" class="sortable" data-sort-type="text" data-sort-col="8">Статус<span class="sort-icon"><span class="sort-asc">&#9650;</span><span class="sort-desc">&#9660;</span></span></th>
-                    <th style="width: 5%;">Действия</th>
+                    {% if is_admin %}
+                        <th style="width: 5%;">Действия</th>
+                    {% endif %}
                 </tr>
             </thead>
             <tbody>
