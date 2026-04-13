@@ -75,21 +75,23 @@
                         </label>
                     </div>
                 {% endfor %}
-                <div class="col-md-auto dropdown">
-                    <button class="btn btn-outline-secondary dropdown-toggle department-dropdown-toggle" type="button" id="departmentDropdown" data-bs-toggle="dropdown" aria-expanded="false" style="min-width: 200px; text-align: left;">
-                        <span class="department-dropdown-label">{% if selected_department_filters %}{{ selected_department_filters|length }} выбрано{% else %}Все подразделения{% endif %}</span>
-                    </button>
-                    <ul class="dropdown-menu department-dropdown-menu" aria-labelledby="departmentDropdown" style="max-height: 280px; overflow-y: auto;">
-                        {% for department in departments %}
-                            <li class="dropdown-item-text px-2 py-1" style="margin-left: 10%;">
-                                <label class="d-flex align-items-center gap-2 mb-0 cursor-pointer w-100 py-1">
-                                    <input type="checkbox" class="form-check-input department-checkbox" name="department_filter" value="{{ department.name }}" {% if department.name in selected_department_filters %}checked{% endif %}>
-                                    <span>{{ department.name }}</span>
-                                </label>
-                            </li>
-                        {% endfor %}
-                    </ul>
-                </div>
+                {% if show_department_filter %}
+                    <div class="col-md-auto dropdown">
+                        <button class="btn btn-outline-secondary dropdown-toggle department-dropdown-toggle" type="button" id="departmentDropdown" data-bs-toggle="dropdown" aria-expanded="false" style="min-width: 200px; text-align: left;">
+                            <span class="department-dropdown-label">{% if selected_department_filters %}{{ selected_department_filters|length }} выбрано{% else %}Все подразделения{% endif %}</span>
+                        </button>
+                        <ul class="dropdown-menu department-dropdown-menu" aria-labelledby="departmentDropdown" style="max-height: 280px; overflow-y: auto;">
+                            {% for department in departments %}
+                                <li class="dropdown-item-text px-2 py-1" style="margin-left: 10%;">
+                                    <label class="d-flex align-items-center gap-2 mb-0 cursor-pointer w-100 py-1">
+                                        <input type="checkbox" class="form-check-input department-checkbox" name="department_filter" value="{{ department.name }}" {% if department.name in selected_department_filters %}checked{% endif %}>
+                                        <span>{{ department.name }}</span>
+                                    </label>
+                                </li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                {% endif %}
                 <div class="form-check">
                     <input class="form-check-input" type="checkbox" id="only_overdue" name="only_overdue" {% if only_overdue %}checked{% endif %}>
                     <label class="form-check-label" for="only_overdue">
@@ -188,9 +190,9 @@
                                     data-user-id="{{ item.user.id }}"
                                         >
                                     <i class="fa fa-cancel" style="color: red; font-size: larger;" aria-hidden="true"></i>
-                            </button>
-                        </td>
-                    </tr>
+                                </button>
+                            </td>
+                        </tr>
                     {% endfor %}
                 {% else %}
                     <tr>

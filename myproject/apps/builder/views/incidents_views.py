@@ -1118,10 +1118,22 @@ class IncidentDetailListView(ListView):
         
         context = super().get_context_data(**kwargs)
         context['now'] = timezone.now()  # Текущая дата и время для проверки просроченных дедлайнов
+        is_mentor_only = (
+            self.request.user.profile.is_mentor_user
+            and not self.request.user.is_staff
+            and not self.request.user.is_superuser
+        )
+        mentor_department = self.request.user.profile.department if is_mentor_only else None
+        mentor_department_id = mentor_department.id if mentor_department else None
+        mentor_department_name = mentor_department.name if mentor_department else None
+        context['show_department_filter'] = not is_mentor_only
         
         # Получаем список всех активных пользователей для фильтра
         User = get_user_model()
-        context['users'] = User.objects.filter(is_active=True).order_by('last_name', 'first_name')
+        users_queryset = User.objects.filter(is_active=True)
+        if mentor_department_id is not None:
+            users_queryset = users_queryset.filter(profile__department_id=mentor_department_id)
+        context['users'] = users_queryset.order_by('last_name', 'first_name')
         
         # Параметры фильтров
         search = self.request.GET.get('search', '').strip()
@@ -1133,6 +1145,8 @@ class IncidentDetailListView(ListView):
         context['status_choices'] = status_choices
 
         departments = Department.objects.all().order_by('name')
+        if mentor_department_id is not None:
+            departments = departments.filter(id=mentor_department_id)
         context['departments'] = departments
         
         # Если нет параметров в GET запросе (первичная загрузка), устанавливаем дефолтные значения
@@ -1143,14 +1157,18 @@ class IncidentDetailListView(ListView):
             context['selected_user_id'] = None
             context['violator_filter'] = 'all'
             context['violator_filter_locked'] = False
-            context['department_filter'] = ''
-            context['selected_department_filters'] = []
+            context['department_filter'] = mentor_department_name or ''
+            context['selected_department_filters'] = [mentor_department_name] if mentor_department_name else []
             context['only_overdue'] = False
         else:
             date_from = self.request.GET.get('date_from', '')
             date_to = self.request.GET.get('date_to', '')
-            selected_department_filters = self.request.GET.getlist('department_filter')
-            department_filter = self.request.GET.get('department_filter', '')  # для обратной совместимости
+            if mentor_department_name:
+                selected_department_filters = [mentor_department_name]
+                department_filter = mentor_department_name
+            else:
+                selected_department_filters = self.request.GET.getlist('department_filter')
+                department_filter = self.request.GET.get('department_filter', '')  # для обратной совместимости
             only_overdue = self.request.GET.get('only_overdue', '') == 'on'
 
             
@@ -1191,6 +1209,11 @@ class IncidentDetailListView(ListView):
             violators = incident.violators.all()
             
             for user in assigned_users:
+                if mentor_department_id is not None:
+                    user_department_id = getattr(getattr(user, 'profile', None), 'department_id', None)
+                    if user_department_id != mentor_department_id:
+                        continue
+
                 # Фильтр по подразделению (множественный выбор)
                 if selected_department_filters:
                     user_department_name = None
@@ -1299,6 +1322,11 @@ class IncidentDetailListView(ListView):
                 if expert not in assigned_users:
                     # Проверяем фильтры: если они не пропускают expert, добавляем его в список
                     should_add_expert = True
+
+                    if mentor_department_id is not None:
+                        expert_department_id = getattr(getattr(expert, 'profile', None), 'department_id', None)
+                        if expert_department_id != mentor_department_id:
+                            should_add_expert = False
                     
                     # Фильтр по подразделению (множественный выбор)
                     if selected_department_filters:
