@@ -110,6 +110,7 @@
             <table class="table">
                 <thead>
                     <tr>
+                        <th style="width: 5%;" class="sortable" data-sort-type="date-dot" data-sort-col="0" title="Дата">№<span class="sort-icon"><span class="sort-asc">&#9650;</span><span class="sort-desc">&#9660;</span></span></th>
                         <th style="width: 8%;" class="sortable" data-sort-type="date-dot" data-sort-col="0" title="Дата">Дата<span class="sort-icon"><span class="sort-asc">&#9650;</span><span class="sort-desc">&#9660;</span></span></th>
                         <th style="width: 18%;" class="sortable" data-sort-type="text" data-sort-col="1" title="Описание">Описание<span class="sort-icon"><span class="sort-asc">&#9650;</span><span class="sort-desc">&#9660;</span></span></th>
                         <th style="width: 12%;" class="sortable" data-sort-type="text" data-sort-col="2" title="Тип инцидента">Тип инцидента<span class="sort-icon"><span class="sort-asc">&#9650;</span><span class="sort-desc">&#9660;</span></span></th>
@@ -128,6 +129,7 @@
                         data-incident-status="{{ inc.status }}"
                         onclick="selectRow(this, event)"
                         {% if not readonly %}ondblclick="window.location.href='{% url 'builder:incident_edit' inc.pk %}'"{% endif %}>
+                        <td>{{ forloop.counter }}</td>
                         <td>{{ inc.created_at|date:"d.m.Y" }}</td>
                         <td>{{ inc.title }}</td>
                         <td>{{ inc.get_incident_type_display }}</td>
