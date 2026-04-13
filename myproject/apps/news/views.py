@@ -9,6 +9,14 @@ from news.forms import NewsItemForm
 from .models import NewsGalleryImage, NewsItem, NewsType
 
 
+def _is_video_upload(uploaded_file):
+    content_type = (getattr(uploaded_file, 'content_type', None) or '').lower()
+    file_name = (getattr(uploaded_file, 'name', '') or '').lower()
+    return content_type.startswith('video/') or file_name.endswith(
+        ('.mp4', '.webm', '.mov', '.avi', '.mkv', '.m4v', '.ogg')
+    )
+
+
 class NewsFeedView(ListView):
     """Лента новостей с фильтром по рубрике и подгрузкой фрагментом (fragment=1)."""
 
@@ -59,10 +67,11 @@ class NewsItemCreateView(LoginRequiredMixin, UserPassesTestMixin, CreateView):
     def form_valid(self, form):
         with transaction.atomic():
             self.object = form.save()
-            for order, f in enumerate(self.request.FILES.getlist('gallery_files')):
+            for order, f in enumerate(self.request.FILES.getlist('media_files')):
                 NewsGalleryImage.objects.create(
                     news_item=self.object,
-                    image=f,
                     sort_order=order,
+                    image=None if _is_video_upload(f) else f,
+                    video=f if _is_video_upload(f) else None,
                 )
         return HttpResponseRedirect(self.get_success_url())

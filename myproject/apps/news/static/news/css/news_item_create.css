@@ -122,6 +122,156 @@
   height: auto;
 }
 
+.nfc-file-input-wrapper {
+  position: relative;
+  width: 100%;
+}
+
+.nfc-file-input-wrapper input[type='file'] {
+  position: absolute;
+  left: -9999px;
+}
+
+.nfc-file-input-label {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 24px 16px;
+  border: 2px dashed #d7dfec;
+  border-radius: 10px;
+  background: #f8faff;
+  color: #232a3a;
+  text-align: center;
+  cursor: pointer;
+  transition: border-color 0.2s, background 0.2s, box-shadow 0.2s;
+}
+
+.nfc-file-input-label:hover,
+.nfc-file-input-label.is-dragover {
+  border-color: #4d7cff;
+  background: #eef3ff;
+}
+
+.nfc-file-input-label small {
+  color: #5c6578;
+}
+
+.nfc-file-input-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 999px;
+  background: #e3ebff;
+  color: #2f5ce6;
+  font-size: 1.6rem;
+  line-height: 1;
+}
+
+.nfc-attachments-list {
+  display: none;
+  margin-top: 16px;
+}
+
+.nfc-attachments-list.has-files {
+  display: block;
+}
+
+.nfc-attachments-list__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.nfc-attachments-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 28px;
+  height: 28px;
+  padding: 0 8px;
+  border-radius: 999px;
+  background: #4d7cff;
+  color: #fff;
+  font-size: 0.875rem;
+  font-weight: 700;
+}
+
+.nfc-attachment-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  margin-bottom: 8px;
+  border: 1px solid #e3e8f0;
+  border-radius: 10px;
+  background: #f8faff;
+}
+
+.nfc-attachment-preview,
+.nfc-attachment-icon {
+  width: 64px;
+  height: 64px;
+  border-radius: 8px;
+  flex-shrink: 0;
+}
+
+.nfc-attachment-preview {
+  display: block;
+  object-fit: cover;
+}
+
+.nfc-attachment-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: #e9eef9;
+  color: #4d7cff;
+  font-size: 1.5rem;
+  font-weight: 700;
+}
+
+.nfc-attachment-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.nfc-attachment-name {
+  font-weight: 600;
+  color: #232a3a;
+  word-break: break-word;
+}
+
+.nfc-attachment-meta {
+  margin-top: 4px;
+  font-size: 0.875rem;
+  color: #5c6578;
+}
+
+.nfc-attachment-remove {
+  border: 0;
+  background: transparent;
+  color: #c0392b;
+  font-size: 1.2rem;
+  line-height: 1;
+  cursor: pointer;
+  padding: 4px 8px;
+}
+
+.nfc-attachment-remove:hover {
+  color: #962d22;
+}
+
+.nfc-attachment-error {
+  margin-top: 4px;
+  font-size: 0.875rem;
+  color: #c0392b;
+}
+
 .nfc-card .nfc-control:focus {
   border-color: #4d7cff;
   outline: none;

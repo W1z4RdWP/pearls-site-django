@@ -1,3 +1,5 @@
+import os
+
 from django import forms
 
 from .models import NewsItem
@@ -9,20 +11,12 @@ class NewsItemForm(forms.ModelForm):
         fields = [
             'title',
             'news_type',
-            'description',
             'content',
-            'main_image',
-            'video',
-            'video_embed_url',
         ]
         labels = {
             'title': 'Заголовок',
             'news_type': 'Рубрика',
-            'description': 'Краткое описание',
             'content': 'Полный текст',
-            'main_image': 'Главное изображение',
-            'video': 'Видеофайл',
-            'video_embed_url': 'Ссылка на видео (YouTube, VK и т. п.)',
         }
         widgets = {
             'title': forms.TextInput(
@@ -33,13 +27,6 @@ class NewsItemForm(forms.ModelForm):
                 }
             ),
             'news_type': forms.Select(attrs={'class': 'form-control nfc-control'}),
-            'description': forms.Textarea(
-                attrs={
-                    'class': 'form-control nfc-control',
-                    'rows': 4,
-                    'placeholder': 'Текст для карточки в ленте (2–4 строки)',
-                }
-            ),
             'content': forms.Textarea(
                 attrs={
                     'class': 'form-control nfc-control',
@@ -47,44 +34,27 @@ class NewsItemForm(forms.ModelForm):
                     'placeholder': 'Полный текст публикации',
                 }
             ),
-            'main_image': forms.ClearableFileInput(
-                attrs={
-                    'class': 'form-control nfc-control',
-                    'accept': 'image/*',
-                }
-            ),
-            'video': forms.ClearableFileInput(
-                attrs={
-                    'class': 'form-control nfc-control',
-                    'accept': 'video/*',
-                }
-            ),
-            'video_embed_url': forms.URLInput(
-                attrs={
-                    'class': 'form-control nfc-control',
-                    'placeholder': 'https://www.youtube.com/watch?v=…',
-                    'autocomplete': 'off',
-                }
-            ),
         }
 
     def clean(self):
         cleaned_data = super().clean()
-        max_gallery_bytes = 12 * 1024 * 1024
-        allowed_image_types = (
-            'image/jpeg',
-            'image/png',
-            'image/webp',
-            'image/gif',
-        )
-        for f in self.files.getlist('gallery_files'):
-            if f.size > max_gallery_bytes:
+        max_media_bytes = 50 * 1024 * 1024
+        allowed_image_extensions = {'.jpg', '.jpeg', '.png', '.webp', '.gif'}
+        allowed_video_extensions = {'.mp4', '.webm', '.mov', '.avi', '.mkv', '.m4v', '.ogg'}
+
+        for f in self.files.getlist('media_files'):
+            if f.size > max_media_bytes:
                 raise forms.ValidationError(
-                    f'Файл «{f.name}» слишком большой (максимум {max_gallery_bytes // (1024 * 1024)} МБ).'
+                    f'Файл «{f.name}» слишком большой (максимум {max_media_bytes // (1024 * 1024)} МБ).'
                 )
+
             ct = (getattr(f, 'content_type', None) or '').lower()
-            if ct and ct not in allowed_image_types:
+            ext = os.path.splitext((getattr(f, 'name', '') or '').lower())[1]
+            is_image = ct.startswith('image/') or ext in allowed_image_extensions
+            is_video = ct.startswith('video/') or ext in allowed_video_extensions
+
+            if not (is_image or is_video):
                 raise forms.ValidationError(
-                    f'В галерее допустимы только изображения (JPEG, PNG, WebP, GIF): «{f.name}».'
+                    f'Допустимы только изображения и видео (JPEG, PNG, WebP, GIF, MP4, WebM, MOV, AVI, MKV, M4V, OGG): «{f.name}».'
                 )
         return cleaned_data

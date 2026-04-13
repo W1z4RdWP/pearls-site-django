@@ -1,20 +1,23 @@
 {% load static %}
 <article class="news-card card h-100 shadow-sm">
+  {% with first_image=item.first_gallery_image first_media=item.first_gallery_media %}
   <div class="news-card__media">
-    {% if item.video %}
-      <video class="w-100" controls preload="metadata" playsinline>
-        <source src="{{ item.video.url }}" type="video/mp4">
-      </video>
-    {% elif item.resolved_video_embed_src %}
-      <div class="embed-responsive embed-responsive-16by9">
-        <iframe class="embed-responsive-item" src="{{ item.resolved_video_embed_src }}" title="Видео: {{ item.title }}"
-          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-          allowfullscreen loading="lazy"></iframe>
-      </div>
-    {% elif item.main_image %}
+    {% if item.main_image %}
       <a href="{{ item.get_absolute_url }}">
         <img src="{{ item.main_image.url }}" alt="{{ item.title }}" loading="lazy">
       </a>
+    {% elif first_image %}
+      <a href="{{ item.get_absolute_url }}">
+        <img src="{{ first_image.image.url }}" alt="{{ item.title }}" loading="lazy">
+      </a>
+    {% elif first_media and first_media.video %}
+      <video class="w-100" controls preload="metadata" playsinline>
+        <source src="{{ first_media.video.url }}">
+      </video>
+    {% elif item.video %}
+      <video class="w-100" controls preload="metadata" playsinline>
+        <source src="{{ item.video.url }}">
+      </video>
     {% else %}
       <div class="d-flex align-items-center justify-content-center text-muted py-5 px-3 small">
         Нет обложки
@@ -30,12 +33,9 @@
       <a href="{{ item.get_absolute_url }}" class="text-dark">{{ item.title }}</a>
     </h2>
     <p class="card-text text-muted small flex-grow-1 news-card__description">
-      {% if item.description %}
-        {{ item.description }}
-      {% else %}
-        {{ item.content|truncatechars:280 }}
-      {% endif %}
+      {{ item.content|truncatechars:280 }}
     </p>
     <!-- <a href="{{ item.get_absolute_url }}" class="btn btn-sm btn-outline-primary mt-2 align-self-start">Подробнее</a> -->
   </div>
+  {% endwith %}
 </article>

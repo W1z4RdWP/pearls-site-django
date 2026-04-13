@@ -1,5 +1,3 @@
-from urllib.parse import parse_qs, urlparse
-
 from django.db import models
 from django.urls import reverse
 
@@ -16,22 +14,22 @@ class NewsType(models.TextChoices):
 
 class NewsItem(models.Model):
     title = models.CharField(max_length=255)
-    description = models.TextField(blank=True, help_text='Краткое описание для карточки в ленте')
     content = models.TextField()
     news_type = models.CharField(
-        max_length=32,
+        max_length=100,
         choices=NewsType.choices,
         default=NewsType.OTHER,
         db_index=True,
     )
     main_image = models.ImageField(upload_to='news/main/', blank=True, null=True)
     video = models.FileField(upload_to='news/video/', blank=True, null=True)
-    video_embed_url = models.URLField(blank=True, help_text='Ссылка на видео (YouTube, VK и т.п.)')
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
         ordering = ['-created_at']
+        verbose_name = 'Новость'
+        verbose_name_plural = 'Новости'
 
     def __str__(self):
         return self.title
@@ -40,27 +38,19 @@ class NewsItem(models.Model):
         return reverse('news:news_detail', kwargs={'pk': self.pk})
 
     @property
-    def resolved_video_embed_src(self):
-        """URL для iframe: поддержка watch/v и youtu.be, иначе исходная https-ссылка."""
-        url = (self.video_embed_url or '').strip()
-        if not url:
-            return ''
-        if 'youtube.com/embed/' in url:
-            return url
-        try:
-            parsed = urlparse(url)
-            host = (parsed.hostname or '').lower()
-            if host in ('www.youtube.com', 'youtube.com', 'm.youtube.com') and parsed.path == '/watch':
-                v = parse_qs(parsed.query).get('v', [None])[0]
-                if v:
-                    return f'https://www.youtube.com/embed/{v}'
-            if host == 'youtu.be':
-                vid = parsed.path.strip('/').split('?')[0]
-                if vid:
-                    return f'https://www.youtube.com/embed/{vid}'
-        except (ValueError, TypeError):
-            return ''
-        return url if url.startswith('https://') else ''
+    def first_gallery_media(self):
+        for media in self.gallery_images.all():
+            if media.image or media.video:
+                return media
+        return None
+
+    @property
+    def first_gallery_image(self):
+        for media in self.gallery_images.all():
+            if media.image:
+                return media
+        return None
+
 
     def get_news_type_display_label(self):
         return self.get_news_type_display()
@@ -72,11 +62,25 @@ class NewsGalleryImage(models.Model):
         related_name='gallery_images',
         on_delete=models.CASCADE,
     )
-    image = models.ImageField(upload_to='news/gallery/')
+    image = models.ImageField(upload_to='news/gallery/', blank=True, null=True)
+    video = models.FileField(upload_to='news/gallery/video/', blank=True, null=True)
     sort_order = models.PositiveSmallIntegerField(default=0)
 
     class Meta:
         ordering = ['sort_order', 'id']
 
+    @property
+    def is_image(self):
+        return bool(self.image)
+
+    @property
+    def is_video(self):
+        return bool(self.video)
+
+    @property
+    def file_name(self):
+        media_file = self.image or self.video
+        return media_file.name if media_file else ''
+
     def __str__(self):
-        return f'{self.news_item_id}: {self.image.name}'
+        return f'{self.news_item_id}: {self.file_name or "empty"}'

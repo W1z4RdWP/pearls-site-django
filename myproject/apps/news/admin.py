@@ -6,6 +6,7 @@ from .models import NewsGalleryImage, NewsItem
 class NewsGalleryImageInline(admin.TabularInline):
     model = NewsGalleryImage
     extra = 1
+    fields = ('image', 'video', 'sort_order')
     ordering = ('sort_order', 'id')
 
 
@@ -13,7 +14,10 @@ class NewsGalleryImageInline(admin.TabularInline):
 class NewsItemAdmin(admin.ModelAdmin):
     list_display = ('title', 'news_type', 'created_at', 'updated_at')
     list_filter = ('news_type',)
-    search_fields = ('title', 'description', 'content')
+    search_fields = ('title', 'content')
     ordering = ('-created_at',)
     inlines = (NewsGalleryImageInline,)
+
+    class Meta:
+        verbose = 'Новость'
 

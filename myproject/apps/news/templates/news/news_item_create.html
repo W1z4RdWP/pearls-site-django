@@ -25,8 +25,6 @@
       {% endif %}
 
       <section class="nfc-section" aria-labelledby="nfc-section-main">
-        <h2 id="nfc-section-main" class="nfc-section-title">Основное</h2>
-
         <div class="nfc-field">
           <label class="nfc-label" for="{{ form.title.id_for_label }}">{{ form.title.label }}</label>
           {{ form.title }}
@@ -42,13 +40,6 @@
         </div>
 
         <div class="nfc-field">
-          <label class="nfc-label" for="{{ form.description.id_for_label }}">{{ form.description.label }}</label>
-          {{ form.description }}
-          {% if form.description.help_text %}<p class="nfc-hint">{{ form.description.help_text }}</p>{% endif %}
-          {% if form.description.errors %}<div class="nfc-errors">{{ form.description.errors }}</div>{% endif %}
-        </div>
-
-        <div class="nfc-field">
           <label class="nfc-label" for="{{ form.content.id_for_label }}">{{ form.content.label }}</label>
           {{ form.content }}
           {% if form.content.help_text %}<p class="nfc-hint">{{ form.content.help_text }}</p>{% endif %}
@@ -57,34 +48,24 @@
       </section>
 
       <section class="nfc-section" aria-labelledby="nfc-section-media">
-        <h2 id="nfc-section-media" class="nfc-section-title">Медиа</h2>
-        <p class="nfc-hint nfc-hint--block">Можно указать обложку, загружаемое видео и/или ссылку для встраивания — что уместно для материала.</p>
-
         <div class="nfc-field">
-          <label class="nfc-label" for="{{ form.main_image.id_for_label }}">{{ form.main_image.label }}</label>
-          {{ form.main_image }}
-          {% if form.main_image.help_text %}<p class="nfc-hint">{{ form.main_image.help_text }}</p>{% endif %}
-          {% if form.main_image.errors %}<div class="nfc-errors">{{ form.main_image.errors }}</div>{% endif %}
-        </div>
-
-        <div class="nfc-field">
-          <label class="nfc-label" for="{{ form.video.id_for_label }}">{{ form.video.label }}</label>
-          {{ form.video }}
-          {% if form.video.help_text %}<p class="nfc-hint">{{ form.video.help_text }}</p>{% endif %}
-          {% if form.video.errors %}<div class="nfc-errors">{{ form.video.errors }}</div>{% endif %}
-        </div>
-
-        <div class="nfc-field">
-          <label class="nfc-label" for="{{ form.video_embed_url.id_for_label }}">{{ form.video_embed_url.label }}</label>
-          {{ form.video_embed_url }}
-          {% if form.video_embed_url.help_text %}<p class="nfc-hint">{{ form.video_embed_url.help_text }}</p>{% endif %}
-          {% if form.video_embed_url.errors %}<div class="nfc-errors">{{ form.video_embed_url.errors }}</div>{% endif %}
-        </div>
-
-        <div class="nfc-field">
-          <label class="nfc-label" for="id_gallery_files">Фотогалерея</label>
-          <input type="file" name="gallery_files" id="id_gallery_files" class="form-control nfc-control" multiple accept="image/*">
-          <p class="nfc-hint">Необязательно. Можно выбрать несколько изображений (JPEG, PNG, WebP, GIF), до 12 МБ каждое.</p>
+          <label class="nfc-label" for="id_media_files">Медиафайлы</label>
+          <div class="nfc-file-input-wrapper">
+            <label for="id_media_files" class="nfc-file-input-label" id="mediaInputLabel">
+              <span class="nfc-file-input-icon" aria-hidden="true">+</span>
+              <span>Нажмите для выбора файлов или перетащите их сюда</span>
+              <small>Изображения и видео, до 50 МБ на файл</small>
+            </label>
+            <input type="file" name="media_files" id="id_media_files" multiple accept="image/*,video/*">
+          </div>
+          <p class="nfc-hint">Главным в ленте будет первое изображение из добавленных. В самой новости первым крупно покажется первое загруженное медиа.</p>
+          <div class="nfc-attachments-list" id="mediaFilesList" aria-live="polite">
+            <div class="nfc-attachments-list__header">
+              <strong>Добавленные файлы</strong>
+              <span class="nfc-attachments-count" id="mediaFilesCount">0</span>
+            </div>
+            <div id="mediaFilesContainer"></div>
+          </div>
         </div>
       </section>
 
@@ -95,4 +76,5 @@
     </form>
   </div>
 </div>
+<script src="{% static 'news/js/news_item_create.js' %}"></script>
 {% endblock %}

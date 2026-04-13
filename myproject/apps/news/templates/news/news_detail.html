@@ -4,7 +4,7 @@
 {% block title %}{{ news.title }}{% endblock %}
 
 {% block specific_styles %}
-<link rel="stylesheet" href="{% static 'news/css/news.css' %}">
+  <link rel="stylesheet" href="{% static 'news/css/news.css' %}">
 {% endblock %}
 
 {% block content %}
@@ -15,7 +15,10 @@
       <li class="breadcrumb-item active" aria-current="page">{{ news.title|truncatechars:48 }}</li>
     </ol>
   </nav>
-  <header class="mb-3">
+  <header class="mb-3" style="
+  display: flex;
+  justify-content: space-between;
+">
     <span class="badge badge-secondary mb-2">{{ news.get_news_type_display }}</span>
     <h1 class="h2">{{ news.title }}</h1>
     <p class="text-muted mb-0">
@@ -24,34 +27,23 @@
   </header>
 
   {% with gf=news.gallery_images.first %}
-  <div class="news-detail__hero mb-4">
-    {% if news.video %}
+  <div class="news-detail__hero">
+    {% if news.main_image %}
+      <img src="{{ news.main_image.url }}" alt="{{ news.title }}" class="rounded shadow-sm">
+    {% elif news.video %}
       <div class="embed-responsive embed-responsive-16by9 bg-dark">
         <video class="embed-responsive-item" controls playsinline preload="metadata">
           <source src="{{ news.video.url }}" type="video/mp4">
         </video>
       </div>
-    {% elif news.resolved_video_embed_src %}
-      <div class="embed-responsive embed-responsive-16by9">
-        <iframe class="embed-responsive-item" src="{{ news.resolved_video_embed_src }}" title="{{ news.title }}"
-          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-          allowfullscreen loading="lazy"></iframe>
-      </div>
-    {% elif news.main_image %}
-      <img src="{{ news.main_image.url }}" alt="{{ news.title }}" class="rounded shadow-sm">
     {% elif gf %}
       <img src="{{ gf.image.url }}" alt="{{ news.title }}" class="rounded shadow-sm">
     {% endif %}
   </div>
 
-  <div class="news-detail__body mb-4">
-    {{ news.content|linebreaks }}
-  </div>
-
   {% if news.gallery_images.exists %}
     {% if news.gallery_images.count > 1 or news.main_image or news.video or news.resolved_video_embed_src %}
-  <section class="news-detail__gallery mt-5" aria-label="Фотогалерея">
-    <h2 class="h5 mb-3">Фотогалерея</h2>
+  <section class="news-detail__gallery" aria-label="Фотогалерея">
     <div class="row">
       {% for g in news.gallery_images.all %}
         {% if gf and not news.main_image and not news.video and not news.resolved_video_embed_src and forloop.first %}
@@ -67,6 +59,11 @@
   </section>
     {% endif %}
   {% endif %}
+
+  <div class="news-detail__body mb-4">
+    {{ news.content|linebreaks }}
+  </div>
+
   {% endwith %}
 </article>
 {% endblock %}

@@ -235,6 +235,8 @@ class UserAnswer(models.Model):
             models.Index(fields=['user'], name='useranswer_user_idx'),
             models.Index(fields=['quiz_result'], name='useranswer_quizresult_idx'),
         ]
+        verbose_name = 'Ответ пользователя'
+        verbose_name_plural = 'Ответы пользователей'
 
     def __str__(self):
         return f"{self.user.username} - {self.question.text} ({'верно' if self.is_correct else 'неверно'})"
