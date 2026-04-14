@@ -1,4 +1,8 @@
+from typing import Optional
+from django.conf import settings
+from django.core.cache import cache
 from django.db.models.query import QuerySet
+from django.http import HttpRequest, HttpResponse
 from .models import CategoryName
 from courses.models import Course, UserLessonTrajectory, UserLesson
 from django.db import transaction
@@ -324,3 +328,118 @@ def get_total_incidents_students(incidents: QuerySet) -> int:
     violators_count = incidents.aggregate(Count('violators', distinct=False))['violators__count'] or 0
     total_students = assigned_count + violators_count
     return total_students
+
+
+class PageCacheMixin:
+    """
+    Универсальный кэш-миксин для CBV (в первую очередь ListView/DetailView).
+    Использование:
+        class IncidentListView(PageCacheMixin, ListView):
+            cache_prefix = "incidents_page"
+            cache_timeout = 1800
+    Важно:
+    - Ставьте mixin ПЕРЕД ListView/DetailView в порядке наследования.
+    - По умолчанию кэшируются только GET и только text/html с кодом 200.
+    """
+
+    cache_enabled: bool = True
+    cache_settings_flag: Optional[str] = "PAGE_CACHE_ENABLED"
+
+    cache_prefix: str = "page"
+
+    cache_timeout: int = 1800
+
+    cache_vary_by_user: bool = True
+    cache_vary_by_querystring: bool = True
+
+    cache_use_user_version: bool = False
+    user_version_prefix: str = "user_cache_version"
+    
+    cache_only_methods: tuple[str, ...] = ("GET",)
+    cache_only_statuses: tuple[int, ...] = (200,)
+    cache_content_types: tuple[str, ...] = ("text/html",)
+
+    cache_bypass_query_param: str = "nocache"
+    cache_bypass_only_staff: bool = True
+
+    def is_cache_enabled(self) -> bool:
+        if not self.cache_enabled:
+            return False
+        if self.cache_settings_flag:
+            return bool(getattr(settings, self.cache_settings_flag, True))
+        return True
+
+    def should_bypass_cache(self, request: HttpRequest) -> bool:
+        if not self.cache_bypass_query_param:
+            return False
+        if request.GET.get(self.cache_bypass_query_param) != "1":
+            return False
+
+        if not self.cache_bypass_only_staff:
+            return True
+
+        user = request.user
+        return bool(user.is_authenticated and (user.is_staff or user.is_superuser))
+
+    def should_attempt_cache_read(self, request: HttpRequest) -> bool:
+        return (
+            self.is_cache_enabled()
+            and request.method in self.cache_only_methods
+            and not self.should_bypass_cache(request)
+        )
+    
+
+    def should_store_response(self, request: HttpRequest, response: HttpResponse) -> bool:
+        if not self.should_attempt_cache_read(request):
+            return False
+        if response.status_code not in self.cache_only_statuses:
+            return False
+
+        content_type = response.get('Content-Type', '')
+        return any(content_type.startswith(prefix) for prefix in self.cache_content_types)
+
+    def get_user_cache_version(self, request: HttpRequest) -> int:
+        if not request.user.is_authenticated:
+            return 1
+        key = f"{self.user_version_prefix}:{request.user.pk}"
+        return cache.get(key, 1)
+
+    def build_cache_key(self, request: HttpRequest) -> str:
+        parts = [self.cache_prefix]
+
+        if self.cache_vary_by_user:
+            if request.user.is_authenticated:
+                user_part = f"user_{request.user.pk}"
+            else:
+                user_part = "user_anon"
+        else:
+            user_part = "user_any"
+        parts.append(user_part)
+
+
+        if self.cache_use_user_version and request.user.is_authenticated:
+            parts.append(f"v{self.get_user_cache_version(request)}")
+
+        if self.cache_vary_by_querystring:
+            parts.append(request.get_full_path())
+        else:
+            parts.append(request.path)
+
+        return ":".join(parts)
+
+
+    def get(self, request: HttpRequest, *args, **kwargs) -> HttpResponse:
+        if not self.should_attempt_cache_read(request):
+            return super().get(request, *args, **kwargs)
+
+        cache_key = self.build_cache_key(request)
+        cached_content = cache.get(cache_key)
+        if cached_content is not None:
+            return HttpResponse(cached_content, content_type='text/html; charset=utf-8')
+        
+        response = super().get(request, *args, **kwargs)
+        if self.should_store_response(request, response):
+            if hasattr(response, "render") and callable(response.render):
+                response.render()
+            cache.set(cache_key, response.content, timeout=self.cache_timeout)
+        return response
