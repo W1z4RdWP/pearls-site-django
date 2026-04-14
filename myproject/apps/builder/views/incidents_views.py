@@ -1012,6 +1012,7 @@ class IncidentDetailListView(ListView):
         import datetime
         
         queryset = super().get_queryset()
+        
         # Оптимизация: предзагрузка ManyToMany полей и связанных объектов
         queryset = queryset.prefetch_related('assigned_to', 'violators').select_related('user', 'responsible_mentor', 'expert', 'course')
         
@@ -1038,11 +1039,6 @@ class IncidentDetailListView(ListView):
             date_to_parsed = datetime.datetime.strptime(date_to, '%Y-%m-%d').date()
             date_to_datetime = timezone.make_aware(datetime.datetime.combine(date_to_parsed, datetime.time.max))
             queryset = queryset.filter(created_at__lte=date_to_datetime)
-        
-        # Фильтр по статусу инцидента
-        selected_statuses = self.request.GET.getlist('status', [])
-        if selected_statuses:
-            queryset = queryset.filter(status__in=selected_statuses)
         
         return queryset
 
@@ -1075,8 +1071,8 @@ class IncidentDetailListView(ListView):
         selected_user_id = self.request.GET.get('assigned_user', '')
         violator_filter = self.request.GET.get('violator_filter', 'all')  # 'all', 'yes', 'no'
         
-        # Фильтр по статусу инцидента
-        status_choices = Incident.STATUS_CHOICES
+        # Фильтр по статусу курса (UserCourse.status)
+        status_choices = UserCourse.STATUS_CHOICES
         context['status_choices'] = status_choices
 
         departments = Department.objects.all().order_by('name')
@@ -1089,6 +1085,7 @@ class IncidentDetailListView(ListView):
             context['date_from'] = '2025-01-01'
             context['date_to'] = timezone.now().date().strftime('%Y-%m-%d')
             context['search'] = ''
+            context['selected_statuses'] = []
             context['selected_user_id'] = None
             context['violator_filter'] = 'all'
             context['violator_filter_locked'] = False
@@ -1174,6 +1171,7 @@ class IncidentDetailListView(ListView):
         if mentor_department_id is not None and mentor_department is not None:
             selected_department_filters = [mentor_department.name]
         only_overdue = self.request.GET.get('only_overdue', '') == 'on'
+        selected_course_statuses = self.request.GET.getlist('status')
 
         max_items_to_collect = offset + limit + 1
         collected = []
@@ -1214,10 +1212,16 @@ class IncidentDetailListView(ListView):
                     user_course_qs = UserCourse.objects.filter(user=user, course=incident.course)
                     if not user_course_qs.exists():
                         continue
+                    if selected_course_statuses and not user_course_qs.filter(status__in=selected_course_statuses).exists():
+                        continue
+                elif selected_course_statuses:
+                    # Если выбран фильтр статусов курса, инциденты без курса не показываем.
+                    continue
 
                 progress_percent = None
                 course_deadline = None
                 course_status = None
+                course_status_display = None
 
                 if incident.course:
                     course = incident.course
@@ -1225,6 +1229,7 @@ class IncidentDetailListView(ListView):
                     if user_course:
                         course_deadline = user_course.deadline
                         course_status = user_course.status
+                        course_status_display = user_course.get_status_display()
 
                     if only_overdue:
                         if not course_deadline or course_deadline >= now or course_status == 'completed' or incident.status == 'declined':
@@ -1264,6 +1269,8 @@ class IncidentDetailListView(ListView):
                     'progress_percent': progress_percent,
                     'course_deadline': course_deadline,
                     'incident_status': incident.status,
+                    'course_status': course_status,
+                    'course_status_display': course_status_display,
                     'incident_status_display': incident.get_status_display(),
                 })
                 if len(collected) >= max_items_to_collect:
@@ -1297,17 +1304,23 @@ class IncidentDetailListView(ListView):
                         expert_course_qs = UserCourse.objects.filter(user=expert, course=incident.course)
                         if not expert_course_qs.exists():
                             should_add_expert = False
+                        elif selected_course_statuses and not expert_course_qs.filter(status__in=selected_course_statuses).exists():
+                            should_add_expert = False
+                    elif selected_course_statuses:
+                        should_add_expert = False
 
                     if should_add_expert:
                         progress_percent = None
                         course_deadline = None
                         course_status = None
+                        course_status_display = None
                         if incident.course:
                             course = incident.course
                             user_course = UserCourse.objects.filter(user=expert, course=course).first()
                             if user_course:
                                 course_deadline = user_course.deadline
                                 course_status = user_course.status
+                                course_status_display = user_course.get_status_display()
                             if only_overdue:
                                 if not course_deadline or course_deadline >= now or course_status == 'completed' or incident.status == 'declined':
                                     should_add_expert = False
@@ -1345,6 +1358,8 @@ class IncidentDetailListView(ListView):
                                 'progress_percent': progress_percent,
                                 'course_deadline': course_deadline,
                                 'incident_status': incident.status,
+                                'course_status': course_status,
+                                'course_status_display': course_status_display,
                                 'incident_status_display': incident.get_status_display(),
                             })
                             if len(collected) >= max_items_to_collect:
@@ -1353,6 +1368,8 @@ class IncidentDetailListView(ListView):
 
         has_more = len(collected) > (offset + limit)
         return collected[offset:offset + limit], has_more
+
+
 
 
 @method_decorator(login_required, name='dispatch')

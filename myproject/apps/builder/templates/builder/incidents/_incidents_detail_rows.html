@@ -32,9 +32,9 @@
             —
         {% endif %}
     </td>
-    <td {% if item.incident_status %}class="status-{{ item.incident_status }}"{% endif %} style="text-align: center;">
-        {% if item.incident_status %}
-            {{ item.incident_status_display|capfirst }}
+    <td {% if item.course_status %}class="status-{{ item.course_status }}"{% endif %} style="text-align: center;">
+        {% if item.course_status %}
+            {{ item.course_status_display|default:item.course_status|capfirst }}
         {% else %}
             —
         {% endif %}

@@ -332,6 +332,28 @@
   font-weight: 600;
 }
 
+/* Цвета ячеек статусов курсов */
+.incidents-card .table tbody td.status-available {
+  background-color: #e6f0ff !important;
+  color: #004085 !important;
+  font-weight: 600;
+}
+.incidents-card .table tbody td.status-started {
+  background-color: #d4edda !important;
+  color: #155724 !important;
+  font-weight: 600;
+}
+.incidents-card .table tbody td.status-completed {
+  background-color: #d4edda !important;
+  color: #155724 !important;
+  font-weight: 600;
+}
+.incidents-card .table tbody td.status-blocked {
+  background-color: #f8d7da !important;
+  color: #721c24 !important;
+  font-weight: 600;
+}
+
 /* Hover-эффекты для ячеек со статусом */
 .incidents-card .table tbody tr:hover td.status-new {
   background-color: #fff3cc !important;
@@ -350,6 +372,16 @@
 }
 .incidents-card .table tbody tr:hover td.status-studies_completed {
   background-color: #bee5eb !important;
+}
+.incidents-card .table tbody tr:hover td.status-available {
+  background-color: #cce0ff !important;
+}
+.incidents-card .table tbody tr:hover td.status-started,
+.incidents-card .table tbody tr:hover td.status-completed {
+  background-color: #c3e6cb !important;
+}
+.incidents-card .table tbody tr:hover td.status-blocked {
+  background-color: #f5c6cb !important;
 }
 
 /* Стиль для просроченного дедлайна */
@@ -468,7 +500,8 @@
 /* Статусы курсов */
 .incident-row.row-selected td.status-started,
 .incident-row.row-selected td.status-available,
-.incident-row.row-selected td.status-completed{
+.incident-row.row-selected td.status-completed,
+.incident-row.row-selected td.status-blocked {
   background-color: inherit !important;
 }
 
