@@ -24,9 +24,10 @@ from builder.forms import IncidentForm
 from builder.models import Incident
 from builder.utils import get_total_incidents_students, PageCacheMixin
 from courses.models import Course, UserLessonTrajectory
-from myapp.models import UserCourse, UserProgress, ManualCourseUnassignment
+from myapp.models import UserCourse, UserProgress, ManualCourseUnassignment, QuizResult
 from myapp.views import is_admin
 from users.models import Department
+from quizzes.models import HomeworkSubmission
 
 import logging
 
@@ -1071,8 +1072,8 @@ class IncidentDetailListView(ListView):
         selected_user_id = self.request.GET.get('assigned_user', '')
         violator_filter = self.request.GET.get('violator_filter', 'all')  # 'all', 'yes', 'no'
         
-        # Фильтр по статусу курса (UserCourse.status)
-        status_choices = UserCourse.STATUS_CHOICES
+        # Фильтр по статусу курса (UserCourse.status) + виртуальный статус "Обучение завершено"
+        status_choices = list(UserCourse.STATUS_CHOICES) + [('studies_completed', 'Обучение завершено')]
         context['status_choices'] = status_choices
 
         departments = Department.objects.all().order_by('name')
@@ -1212,8 +1213,6 @@ class IncidentDetailListView(ListView):
                     user_course_qs = UserCourse.objects.filter(user=user, course=incident.course)
                     if not user_course_qs.exists():
                         continue
-                    if selected_course_statuses and not user_course_qs.filter(status__in=selected_course_statuses).exists():
-                        continue
                 elif selected_course_statuses:
                     # Если выбран фильтр статусов курса, инциденты без курса не показываем.
                     continue
@@ -1230,6 +1229,24 @@ class IncidentDetailListView(ListView):
                         course_deadline = user_course.deadline
                         course_status = user_course.status
                         course_status_display = user_course.get_status_display()
+
+                        # Виртуальный статус "Обучение завершено" для ожидания проверки наставником.
+                        has_pending_quiz_review = QuizResult.objects.filter(
+                            user=user,
+                            course=course,
+                            status='pending'
+                        ).exists()
+                        has_pending_homework_review = HomeworkSubmission.objects.filter(
+                            user=user,
+                            course=course,
+                            status='pending'
+                        ).exists()
+                        if (has_pending_quiz_review or has_pending_homework_review) and course_status != 'completed':
+                            course_status = 'studies_completed'
+                            course_status_display = 'Обучение завершено'
+
+                    if selected_course_statuses and course_status not in selected_course_statuses:
+                        continue
 
                     if only_overdue:
                         if not course_deadline or course_deadline >= now or course_status == 'completed' or incident.status == 'declined':
@@ -1304,8 +1321,6 @@ class IncidentDetailListView(ListView):
                         expert_course_qs = UserCourse.objects.filter(user=expert, course=incident.course)
                         if not expert_course_qs.exists():
                             should_add_expert = False
-                        elif selected_course_statuses and not expert_course_qs.filter(status__in=selected_course_statuses).exists():
-                            should_add_expert = False
                     elif selected_course_statuses:
                         should_add_expert = False
 
@@ -1321,6 +1336,23 @@ class IncidentDetailListView(ListView):
                                 course_deadline = user_course.deadline
                                 course_status = user_course.status
                                 course_status_display = user_course.get_status_display()
+
+                                has_pending_quiz_review = QuizResult.objects.filter(
+                                    user=expert,
+                                    course=course,
+                                    status='pending'
+                                ).exists()
+                                has_pending_homework_review = HomeworkSubmission.objects.filter(
+                                    user=expert,
+                                    course=course,
+                                    status='pending'
+                                ).exists()
+                                if (has_pending_quiz_review or has_pending_homework_review) and course_status != 'completed':
+                                    course_status = 'studies_completed'
+                                    course_status_display = 'Обучение завершено'
+
+                            if selected_course_statuses and course_status not in selected_course_statuses:
+                                should_add_expert = False
                             if only_overdue:
                                 if not course_deadline or course_deadline >= now or course_status == 'completed' or incident.status == 'declined':
                                     should_add_expert = False
