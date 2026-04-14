@@ -136,72 +136,27 @@
             </thead>
             <tbody>
                 {% if incident_user_list %}
-                    {% for item in incident_user_list %}
-                    <tr class="incident-user-row" data-incident-id="{{ item.incident.id }}" data-user-id="{{ item.user.id }}" style="cursor: pointer;">
-                        <td>{{ forloop.counter }}</td>
-                        <td>{{ item.incident.created_at|date:"d.m.Y" }}</td>
-                        <td>{{ item.incident.title }}</td>
-                        <td>{{ item.user.get_full_name|default:item.user.username }}</td>
-                        <td style="text-wrap: wrap;">
-                            {{ item.user.profile.department }}
-                        </td>
-                        <td>
-                            {% if item.is_violator %}
-                                <span class="badge bg-danger">Да</span>
-                            {% else %}
-                                <span class="badge bg-secondary">Нет</span>
-                            {% endif %}
-                        </td>
-                        <!-- <td class="{% if item.incident.deadline and item.incident.deadline|is_overdue:now %}deadline-overdue{% endif %}">
-                            {% if item.incident.deadline %}
-                                <span class="deadline-date">{{ item.incident.deadline|date:"d.m.Y" }}</span> <span class="deadline-time">{{ item.incident.deadline|date:"H:i" }}</span>
-                            {% else %}
-                                —
-                            {% endif %}
-                        </td> -->
-                        <td>
-                            {% if item.incident.responsible_mentor %}
-                                {{ item.incident.responsible_mentor.get_full_name|default:item.incident.responsible_mentor.username }}
-                            {% else %}
-                                —
-                            {% endif %}
-                        </td>
-                        <td style="text-align: center;">
-                            {% if item.incident.course %}
-                                {% if item.course_deadline %}
-                                    {{ item.course_deadline|date:"d.m.Y H:i" }}
-                                {% else %}
-                                    Без срока
-                                {% endif %}
-                            {% else %}
-                                —
-                            {% endif %}
-                        </td>
-                        <td {% if item.incident_status %}class="status-{{ item.incident_status }}"{% endif %} style="text-align: center;">
-                            {% if item.incident_status %}
-                                {{ item.incident_status_display|capfirst }}
-                            {% else %}
-                                —
-                            {% endif %}
-                        </td>
-                        <td style="text-align: center;">
-                            <button type="button" class="btn btn-sm unassign-button" 
-                                    data-incident-id="{{ item.incident.id }}" 
-                                    data-user-id="{{ item.user.id }}"
-                                        >
-                                    <i class="fa fa-cancel" style="color: red; font-size: larger;" aria-hidden="true"></i>
-                                </button>
-                            </td>
-                        </tr>
-                    {% endfor %}
+                    {% include 'builder/incidents/_incidents_detail_rows.html' with row_start_index=0 %}
                 {% else %}
-                    <tr>
+                    <tr id="no-incident-users-row">
                         <td colspan="10" class="text-center">Нет назначенных пользователей</td>
                     </tr>
                 {% endif %}
             </tbody>
         </table>
     </div>
+    {% if has_more_incident_users %}
+    <div class="d-flex justify-content-center mt-3">
+        <button type="button"
+                id="show-more-incidents-btn"
+                class="btn btn-outline-primary"
+                data-next-offset="{{ incident_users_next_offset }}"
+                data-limit="50"
+                data-load-url="{% url 'builder:incident_detail_load_more' %}">
+            Показать еще
+        </button>
+    </div>
+    {% endif %}
 </div>
 
 <script>
@@ -392,6 +347,7 @@
                     tbody.appendChild(row);
                     row.children[0].textContent = index + 1;
                 });
+
             });
         });
     }
@@ -603,14 +559,7 @@
         // --- Сортировка таблицы по клику на заголовки ---
         initTableSorting();
 
-        // Обработчики для строк таблицы и кнопки "Отменить"
-        const incidentUserRows = document.querySelectorAll('.incident-user-row');
-        let selectedRow = null;
-        
-        incidentUserRows.forEach(row => {
-            
-            // Обработчик клика на кнопку "Отменить"
-            const unassignButton = row.querySelector('.unassign-button');
+        function bindUnassignButton(unassignButton) {
             if (unassignButton) {
                 unassignButton.addEventListener('click', function(event) {
                     event.stopPropagation(); // Предотвращаем срабатывание клика на строку
@@ -680,7 +629,76 @@
                     form.submit();
                 });
             }
-        });
+        }
+
+        function bindUnassignButtonsInScope(scopeNode) {
+            if (!scopeNode) return;
+            const buttons = scopeNode.querySelectorAll('.unassign-button');
+            buttons.forEach(bindUnassignButton);
+        }
+
+        bindUnassignButtonsInScope(document);
+
+        const showMoreButton = document.getElementById('show-more-incidents-btn');
+        const incidentTableBody = document.querySelector('.incidents-table-responsive .table tbody');
+        if (showMoreButton && incidentTableBody) {
+            showMoreButton.addEventListener('click', function() {
+                if (showMoreButton.disabled) {
+                    return;
+                }
+                showMoreButton.disabled = true;
+                const originalText = showMoreButton.textContent;
+                showMoreButton.textContent = 'Загрузка...';
+
+                const baseParams = new URLSearchParams(window.location.search);
+                baseParams.delete('offset');
+                baseParams.delete('limit');
+                baseParams.set('offset', showMoreButton.dataset.nextOffset || '0');
+                baseParams.set('limit', showMoreButton.dataset.limit || '50');
+
+                fetch(showMoreButton.dataset.loadUrl + '?' + baseParams.toString(), {
+                    method: 'GET',
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
+                })
+                    .then(function(response) {
+                        if (!response.ok) {
+                            throw new Error('Ошибка загрузки данных');
+                        }
+                        return response.json();
+                    })
+                    .then(function(data) {
+                        if (!data || !data.rows_html) {
+                            throw new Error('Пустой ответ сервера');
+                        }
+
+                        const noDataRow = document.getElementById('no-incident-users-row');
+                        if (noDataRow) {
+                            noDataRow.remove();
+                        }
+
+                        const tempWrapper = document.createElement('tbody');
+                        tempWrapper.innerHTML = data.rows_html;
+                        while (tempWrapper.firstChild) {
+                            incidentTableBody.appendChild(tempWrapper.firstChild);
+                        }
+                        bindUnassignButtonsInScope(incidentTableBody);
+
+                        showMoreButton.dataset.nextOffset = String(data.next_offset || 0);
+                        if (!data.has_more || Number(data.loaded_count || 0) === 0) {
+                            showMoreButton.style.display = 'none';
+                        }
+                    })
+                    .catch(function(error) {
+                        alert(error.message || 'Не удалось подгрузить данные');
+                    })
+                    .finally(function() {
+                        showMoreButton.disabled = false;
+                        showMoreButton.textContent = originalText;
+                    });
+            });
+        }
     });
 </script>
 

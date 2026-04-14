@@ -1,0 +1,52 @@
+{% for item in incident_user_list %}
+<tr class="incident-user-row" data-incident-id="{{ item.incident.id }}" data-user-id="{{ item.user.id }}" style="cursor: pointer;">
+    <td>{{ row_start_index|default:0|add:forloop.counter }}</td>
+    <td>{{ item.incident.created_at|date:"d.m.Y" }}</td>
+    <td>{{ item.incident.title }}</td>
+    <td>{{ item.user.get_full_name|default:item.user.username }}</td>
+    <td style="text-wrap: wrap;">
+        {{ item.user.profile.department }}
+    </td>
+    <td>
+        {% if item.is_violator %}
+            <span class="badge bg-danger">Да</span>
+        {% else %}
+            <span class="badge bg-secondary">Нет</span>
+        {% endif %}
+    </td>
+    <td>
+        {% if item.incident.responsible_mentor %}
+            {{ item.incident.responsible_mentor.get_full_name|default:item.incident.responsible_mentor.username }}
+        {% else %}
+            —
+        {% endif %}
+    </td>
+    <td style="text-align: center;">
+        {% if item.incident.course %}
+            {% if item.course_deadline %}
+                {{ item.course_deadline|date:"d.m.Y H:i" }}
+            {% else %}
+                Без срока
+            {% endif %}
+        {% else %}
+            —
+        {% endif %}
+    </td>
+    <td {% if item.incident_status %}class="status-{{ item.incident_status }}"{% endif %} style="text-align: center;">
+        {% if item.incident_status %}
+            {{ item.incident_status_display|capfirst }}
+        {% else %}
+            —
+        {% endif %}
+    </td>
+    {% if is_admin %}
+    <td style="text-align: center;">
+        <button type="button" class="btn btn-sm unassign-button"
+                data-incident-id="{{ item.incident.id }}"
+                data-user-id="{{ item.user.id }}">
+            <i class="fa fa-cancel" style="color: red; font-size: larger;" aria-hidden="true"></i>
+        </button>
+    </td>
+    {% endif %}
+</tr>
+{% endfor %}

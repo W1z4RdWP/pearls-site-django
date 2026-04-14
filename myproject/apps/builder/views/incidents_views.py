@@ -5,8 +5,9 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import Group, User
 from django.core.cache import cache
 from django.db.models import Count, Q, F
-from django.http import HttpResponse
+from django.http import HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
+from django.template.loader import render_to_string
 from django.urls import reverse, reverse_lazy
 from django.utils import timezone
 from django.utils.decorators import method_decorator
@@ -1130,25 +1131,66 @@ class IncidentDetailListView(ListView):
             # Блокируем фильтр по нарушителям, если он установлен в 'yes' (переход с кнопки "Нарушители")
             context['violator_filter_locked'] = (violator_filter == 'yes')
         
-        # Создаем список всех назначенных пользователей со всех инцидентов
-        incident_user_list = []
-        selected_user_id = context['selected_user_id']
-        violator_filter = context['violator_filter']
-        selected_department_filters = context.get('selected_department_filters') or []
-        only_overdue = context.get('only_overdue', False)
-        now = context['now']
-        
-        for incident in context['incidents']:
+        incident_user_list, has_more_items = self._get_incident_user_slice(limit=50, offset=0)
+        context['incident_user_list'] = incident_user_list
+        context['has_more_incident_users'] = has_more_items
+        context['incident_users_next_offset'] = len(incident_user_list)
+
+        context['is_admin'] = is_admin(self.request.user)
+        return context
+
+    def _get_incident_user_slice(self, limit=50, offset=0):
+        from myapp.models import QuizResult
+
+        try:
+            limit = int(limit)
+        except (TypeError, ValueError):
+            limit = 50
+        try:
+            offset = int(offset)
+        except (TypeError, ValueError):
+            offset = 0
+        limit = max(1, limit)
+        offset = max(0, offset)
+
+        incidents = self.get_queryset()
+        now = timezone.now()
+        is_mentor_only = (
+            self.request.user.profile.is_mentor_user
+            and not self.request.user.is_staff
+            and not self.request.user.is_superuser
+        )
+        mentor_department = self.request.user.profile.department if is_mentor_only else None
+        mentor_department_id = mentor_department.id if mentor_department else None
+
+        selected_user_id = self.request.GET.get('assigned_user', '')
+        try:
+            selected_user_id = int(selected_user_id) if selected_user_id else None
+        except (TypeError, ValueError):
+            selected_user_id = None
+
+        violator_filter = self.request.GET.get('violator_filter', 'all')
+        selected_department_filters = self.request.GET.getlist('department_filter')
+        if mentor_department_id is not None and mentor_department is not None:
+            selected_department_filters = [mentor_department.name]
+        only_overdue = self.request.GET.get('only_overdue', '') == 'on'
+
+        max_items_to_collect = offset + limit + 1
+        collected = []
+        stop_collecting = False
+
+        for incident in incidents:
+            if stop_collecting:
+                break
             assigned_users = incident.assigned_to.all()
             violators = incident.violators.all()
-            
+
             for user in assigned_users:
                 if mentor_department_id is not None:
                     user_department_id = getattr(getattr(user, 'profile', None), 'department_id', None)
                     if user_department_id != mentor_department_id:
                         continue
 
-                # Фильтр по подразделению (множественный выбор)
                 if selected_department_filters:
                     user_department_name = None
                     if hasattr(user, 'profile') and user.profile and user.profile.department:
@@ -1156,75 +1198,53 @@ class IncidentDetailListView(ListView):
                     if user_department_name not in selected_department_filters:
                         continue
 
-                # Фильтр по назначенному пользователю
                 if selected_user_id and user.id != selected_user_id:
                     continue
-                
+
                 is_violator = user in violators
-                
-                # Фильтр по нарушителям
                 if violator_filter == 'yes' and not is_violator:
                     continue
                 if violator_filter == 'no' and is_violator:
                     continue
-                
-                # Если фильтр "только просроченные" включен, показываем только инциденты с курсами
+
                 if only_overdue and not incident.course:
                     continue
-                
-                # Проверяем, назначен ли курс пользователю (если у инцидента есть курс)
+
                 if incident.course:
                     user_course_qs = UserCourse.objects.filter(user=user, course=incident.course)
-                    # Если подходящего UserCourse нет, пропускаем пользователя
                     if not user_course_qs.exists():
                         continue
-                
-                # Вычисляем прогресс курса, если он есть
+
                 progress_percent = None
                 course_deadline = None
                 course_status = None
-                user_course = None
 
                 if incident.course:
                     course = incident.course
-                    
-                    # Получаем UserCourse для получения дедлайна (с учетом уже примененного фильтра по статусу выше)
                     user_course = UserCourse.objects.filter(user=user, course=course).first()
                     if user_course:
                         course_deadline = user_course.deadline
                         course_status = user_course.status
-                    
-                    # Фильтр по просроченным курсам
+
                     if only_overdue:
-                        # Показываем только просроченные курсы: есть дедлайн, он просрочен и курс не завершен
                         if not course_deadline or course_deadline >= now or course_status == 'completed' or incident.status == 'declined':
                             continue
-                    
-                    # Получаем траекторию пользователя для этого курса
+
                     trajectory = UserLessonTrajectory.objects.filter(user=user, course=course).first()
-                    
                     if trajectory:
-                        # Используем уроки из траектории
                         lessons = trajectory.lessons.all().order_by('order')
                         total_lessons = lessons.count()
                         lesson_ids = lessons.values_list('id', flat=True)
                         completed_lessons = UserProgress.objects.filter(
-                            user=user,
-                            course=course,
-                            completed=True,
-                            lesson_id__in=lesson_ids
+                            user=user, course=course, completed=True, lesson_id__in=lesson_ids
                         ).count()
                     else:
-                        # Используем все уроки курса
                         lessons = course.lessons.all().order_by('order')
                         total_lessons = lessons.count()
                         completed_lessons = UserProgress.objects.filter(
-                            user=user,
-                            course=course,
-                            completed=True
+                            user=user, course=course, completed=True
                         ).count()
-                    
-                    # Подсчитываем завершенные тесты в рамках этого курса (только уникальные по quiz_title)
+
                     completed_quizzes = QuizResult.objects.filter(
                         user=user,
                         course=course,
@@ -1232,13 +1252,11 @@ class IncidentDetailListView(ListView):
                         passed=True
                     ).values('quiz_title').distinct().count()
                     total_quizzes = course.quizzes.count()
-                    
-                    # Вычисляем процент прогресса с учетом уроков и тестов
                     total_materials = total_lessons + total_quizzes
                     completed_materials = completed_lessons + completed_quizzes
                     progress_percent = int((completed_materials / total_materials) * 100) if total_materials > 0 else 0
-                
-                incident_user_list.append({
+
+                collected.append({
                     'incident': incident,
                     'user': user,
                     'is_violator': is_violator,
@@ -1248,93 +1266,65 @@ class IncidentDetailListView(ListView):
                     'incident_status': incident.status,
                     'incident_status_display': incident.get_status_display(),
                 })
-            
-            # Добавляем expert, если он существует и не находится в assigned_to
+                if len(collected) >= max_items_to_collect:
+                    stop_collecting = True
+                    break
+
+            if stop_collecting:
+                continue
+
             if incident.expert:
                 expert = incident.expert
-                # Проверяем, что expert не входит в assigned_to, чтобы не дублировать
                 if expert not in assigned_users:
-                    # Проверяем фильтры: если они не пропускают expert, добавляем его в список
                     should_add_expert = True
-
                     if mentor_department_id is not None:
                         expert_department_id = getattr(getattr(expert, 'profile', None), 'department_id', None)
                         if expert_department_id != mentor_department_id:
                             should_add_expert = False
-                    
-                    # Фильтр по подразделению (множественный выбор)
                     if selected_department_filters:
                         expert_department_name = None
                         if hasattr(expert, 'profile') and expert.profile and expert.profile.department:
                             expert_department_name = expert.profile.department.name
                         if expert_department_name not in selected_department_filters:
                             should_add_expert = False
-                    
-                    # Фильтр по назначенному пользователю
                     if selected_user_id and expert.id != selected_user_id:
                         should_add_expert = False
-                    
-                    # Expert не является нарушителем (violator_filter не применяется к expert)
-                    # Но если фильтр установлен на 'yes' (только нарушители), пропускаем expert
                     if violator_filter == 'yes':
                         should_add_expert = False
-                    
-                    # Если фильтр "только просроченные" включен, показываем только инциденты с курсами
                     if only_overdue and not incident.course:
                         should_add_expert = False
-                    
-                    # Проверяем, назначен ли курс expert (если у инцидента есть курс)
                     if incident.course:
                         expert_course_qs = UserCourse.objects.filter(user=expert, course=incident.course)
-                        # Если курс не назначен expert, пропускаем его
                         if not expert_course_qs.exists():
                             should_add_expert = False
-                    
+
                     if should_add_expert:
-                        # Вычисляем прогресс курса, если он есть
                         progress_percent = None
                         course_deadline = None
                         course_status = None
-                        user_course = None
                         if incident.course:
                             course = incident.course
-                            
-                            # Получаем UserCourse для получения дедлайна (с учетом уже примененного фильтра по статусу выше)
                             user_course = UserCourse.objects.filter(user=expert, course=course).first()
                             if user_course:
                                 course_deadline = user_course.deadline
                                 course_status = user_course.status
-                            
-                            # Фильтр по просроченным курсам
                             if only_overdue:
                                 if not course_deadline or course_deadline >= now or course_status == 'completed' or incident.status == 'declined':
                                     should_add_expert = False
-                            
-                            # Получаем траекторию пользователя для этого курса
                             trajectory = UserLessonTrajectory.objects.filter(user=expert, course=course).first()
-                            
                             if trajectory:
-                                # Используем уроки из траектории
                                 lessons = trajectory.lessons.all().order_by('order')
                                 total_lessons = lessons.count()
                                 lesson_ids = lessons.values_list('id', flat=True)
                                 completed_lessons = UserProgress.objects.filter(
-                                    user=expert,
-                                    course=course,
-                                    completed=True,
-                                    lesson_id__in=lesson_ids
+                                    user=expert, course=course, completed=True, lesson_id__in=lesson_ids
                                 ).count()
                             else:
-                                # Используем все уроки курса
                                 lessons = course.lessons.all().order_by('order')
                                 total_lessons = lessons.count()
                                 completed_lessons = UserProgress.objects.filter(
-                                    user=expert,
-                                    course=course,
-                                    completed=True
+                                    user=expert, course=course, completed=True
                                 ).count()
-                            
-                            # Подсчитываем завершенные тесты в рамках этого курса (только уникальные по quiz_title)
                             completed_quizzes = QuizResult.objects.filter(
                                 user=expert,
                                 course=course,
@@ -1342,27 +1332,62 @@ class IncidentDetailListView(ListView):
                                 passed=True
                             ).values('quiz_title').distinct().count()
                             total_quizzes = course.quizzes.count()
-                            
-                            # Вычисляем процент прогресса с учетом уроков и тестов
                             total_materials = total_lessons + total_quizzes
                             completed_materials = completed_lessons + completed_quizzes
                             progress_percent = int((completed_materials / total_materials) * 100) if total_materials > 0 else 0
-                        
+
                         if should_add_expert:
-                            incident_user_list.append({
+                            collected.append({
                                 'incident': incident,
                                 'user': expert,
-                                'is_violator': False,  # Expert никогда не является нарушителем
-                                'is_expert': True,  # Флаг, что это expert
+                                'is_violator': False,
+                                'is_expert': True,
                                 'progress_percent': progress_percent,
                                 'course_deadline': course_deadline,
                                 'incident_status': incident.status,
                                 'incident_status_display': incident.get_status_display(),
                             })
-        
-        context['incident_user_list'] = incident_user_list
-        context['is_admin'] = is_admin(self.request.user)
-        return context
+                            if len(collected) >= max_items_to_collect:
+                                stop_collecting = True
+                                break
+
+        has_more = len(collected) > (offset + limit)
+        return collected[offset:offset + limit], has_more
+
+
+@method_decorator(login_required, name='dispatch')
+class IncidentDetailLoadMoreView(IncidentDetailListView):
+    def get(self, request, *args, **kwargs):
+        if not request.user.is_authenticated or not (request.user.is_staff or request.user.is_superuser or request.user.profile.is_mentor_user):
+            return JsonResponse({'error': 'forbidden'}, status=403)
+
+        try:
+            offset = int(request.GET.get('offset', 0))
+        except (TypeError, ValueError):
+            offset = 0
+        try:
+            limit = int(request.GET.get('limit', 50))
+        except (TypeError, ValueError):
+            limit = 50
+        offset = max(0, offset)
+        limit = max(1, limit)
+
+        incident_user_list, has_more = self._get_incident_user_slice(limit=limit, offset=offset)
+        rows_html = render_to_string(
+            'builder/incidents/_incidents_detail_rows.html',
+            {
+                'incident_user_list': incident_user_list,
+                'row_start_index': offset,
+                'is_admin': is_admin(request.user),
+            },
+            request=request
+        )
+        return JsonResponse({
+            'rows_html': rows_html,
+            'loaded_count': len(incident_user_list),
+            'next_offset': offset + len(incident_user_list),
+            'has_more': has_more,
+        })
 
 
 @method_decorator(login_required, name='dispatch')
