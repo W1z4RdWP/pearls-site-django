@@ -221,10 +221,12 @@
                         {% endif %}
                     {% endfor %}
                 </fieldset>
-                <div class="form-group">
-                    <button class="btn btn-outline-info" type="submit" id="update-profile_info-btn">Обновить</button>
-                    <button class="btn btn-outline-secondary" id="cancel-edit-btn">Отмена</button>
-                    <a href="{% url 'users:password_change' %}" class="btn btn-outline-warning" id="change-password-btn" style="margin-left: 10px; color: #2dabc4; border: 1px solid #2dabc4;">
+                <div class="form-group update-profile_action-btns-wrapper">
+                    <div class="update-profile_action-btns">
+                        <button class="btn btn-outline-info" type="submit" id="update-profile_info-btn">Обновить</button>
+                        <button class="btn btn-outline-secondary" id="cancel-edit-btn">Отмена</button>
+                    </div>
+                    <a href="{% url 'users:password_change' %}" class="btn btn-outline-warning" id="change-password-btn">
                         <i class="fa fa-key"></i> Сменить пароль
                     </a>
                 </div>
