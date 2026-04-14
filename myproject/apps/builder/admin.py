@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import IPR, CategoryName, Document, IPRModule, Incident, LessonVersion, LessonCategoryMirror, DictionaryTerm, DictionarySection, LessonAllowedRole, AuditLog
+from .models import IPR, CategoryName, Document, IPRModule, Incident, LessonVersion, LessonCategoryMirror, DictionaryTerm, DictionarySection, LessonAllowedRole, AuditLog, LessonDraft
 from django.utils.html import format_html
 from django.urls import reverse
 from django.utils.safestring import mark_safe
@@ -69,6 +69,16 @@ class LessonAllowedRoleAdmin(admin.ModelAdmin):
 #         if not obj.pk:
 #             obj.author = request.user
 #         obj.save()
+
+
+@admin.register(LessonDraft)
+class LessonDraftAdmin(admin.ModelAdmin):
+    """Админка черновиков уроков."""
+    list_display = ('lesson', 'title', 'status', 'created_at', 'updated_at')
+    list_filter = ('status', 'created_at', 'updated_at')
+    search_fields = ('lesson__title', 'title')
+    ordering = ('lesson__title', 'title')
+    readonly_fields = ('created_at', 'updated_at')
 
 
 @admin.register(AuditLog)
