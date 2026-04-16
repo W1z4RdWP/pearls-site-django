@@ -1077,6 +1077,11 @@ class LessonDraftHistoryListView(ListView):
         if status in ['pending', 'approved', 'rejected']:
             queryset = queryset.filter(status=status)
         
+        # Фильтрация своих черновиков
+        is_draft_owner = self.request.GET.get('is_draft_owner', '')
+        if is_draft_owner:
+            queryset = queryset.exclude(created_by=self.request.user)
+        
         # Поиск по названию урока
         search_query = self.request.GET.get('search', '').strip()
         if search_query:
@@ -1087,6 +1092,7 @@ class LessonDraftHistoryListView(ListView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['current_status'] = self.request.GET.get('status', '')
+        context['current_is_draft_owner_filter'] = self.request.GET.get('is_draft_owner', '')
         context['search_query'] = self.request.GET.get('search', '')
         return context
 
