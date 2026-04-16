@@ -24,11 +24,11 @@
         {% if category.filtered_lessons %}
             <ul class="lesson-list" style='display: none;'>
                 {% for lesson in category.filtered_lessons %}
-                    <li class="lesson-li{% if lesson.is_mirror %} mirror{% endif %}"
+                    <li class="lesson-li{% if lesson.is_mirror and not is_readonly %} mirror{% endif %}"
                         data-lesson-id="{{ lesson.id }}"
-                        {% if lesson.is_mirror %}data-mirror-id="{{ lesson.mirror_id }}"{% endif %}
+                        {% if lesson.is_mirror and not is_readonly %}data-mirror-id="{{ lesson.mirror_id }}"{% endif %}
                         data-category-id="{{ category.id }}"
-                        {% if lesson.has_mirrors %}data-has-mirrors="1"{% endif %}>
+                        {% if lesson.has_mirrors and not is_readonly %}data-has-mirrors="1"{% endif %}>
                         <input type="radio" class="lesson-select" value="{{ lesson.id }}" style="display: none;">
                         <span class="lesson-icon svg-paper">
                             <svg width="16" height="16" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
