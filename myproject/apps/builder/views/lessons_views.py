@@ -1065,9 +1065,12 @@ class LessonDraftHistoryListView(ListView):
     
     def get_queryset(self):
         """Фильтруем черновики по текущему пользователю и параметрам поиска"""
-        queryset = LessonDraft.objects.filter(created_by=self.request.user).select_related(
-            'lesson', 'created_by', 'reviewed_by', 'category'
-        ).prefetch_related('courses').order_by('-created_at')
+        if self.request.user.profile.is_mentor_user and not (self.request.user.is_staff or self.request.user.is_superuser):
+            queryset = LessonDraft.objects.filter(created_by=self.request.user).select_related(
+                'lesson', 'created_by', 'reviewed_by', 'category'
+            ).prefetch_related('courses').order_by('-created_at')
+        else:
+            queryset = LessonDraft.objects.all()
         
         # Фильтр по статусу
         status = self.request.GET.get('status', '')
@@ -1104,7 +1107,7 @@ class LessonDraftHistoryDetailView(TemplateView):
         pk = kwargs.get('pk')
         if pk:
             draft = get_object_or_404(LessonDraft, pk=pk)
-            if draft.created_by != request.user:
+            if draft.created_by != request.user and not (request.user.is_staff or request.user.is_superuser):
                 return render(request, '403.html', status=403)
         
         return super().dispatch(request, *args, **kwargs)
