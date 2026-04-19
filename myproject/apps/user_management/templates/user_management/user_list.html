@@ -105,8 +105,8 @@
         <form method="get" class="um-user-list-filter">
             <input type="text" name="q" placeholder="Поиск по имени или email" value="{{ request.GET.q }}" autocomplete="off">
             <select name="filter" class="um-user-list-combined-filter">
-                <option value="" {% if request.GET.filter == "" %}selected{% endif %}>Все</option>
-                <option value="approved" {% if not request.GET.filter or request.GET.filter == "approved"  %}selected{% endif %}>Только подтверждённые</option>
+                <option value="" {% if 'filter' in request.GET and not request.GET.filter %}selected{% endif %}>Все</option>
+                <option value="approved" {% if 'filter' not in request.GET or request.GET.filter == "approved" %}selected{% endif %}>Только подтверждённые</option>
                 <option value="not_approved" {% if request.GET.filter == "not_approved" %}selected{% endif %}>Только не подтверждённые</option>
                 <option value="responsible" {% if request.GET.filter == "responsible" %}selected{% endif %}>Только ответственные</option>
                 <option value="not_responsible" {% if request.GET.filter == "not_responsible" %}selected{% endif %}>Только не ответственные</option>
@@ -182,10 +182,10 @@
             <ul class="pagination justify-content-center">
                 {% if page_obj.has_previous %}
                     <li class="page-item">
-                        <a class="page-link" href="?page=1{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}{% if request.GET.filter %}&filter={{ request.GET.filter }}{% endif %}{% for gid in selected_group_ids %}&group={{ gid }}{% endfor %}&exclude_external={% if exclude_external_checked %}1{% else %}0{% endif %}">Первая</a>
+                        <a class="page-link" href="?page=1{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}{% if 'filter' in request.GET %}&filter={{ request.GET.filter }}{% endif %}{% for gid in selected_group_ids %}&group={{ gid }}{% endfor %}&exclude_external={% if exclude_external_checked %}1{% else %}0{% endif %}">Первая</a>
                     </li>
                     <li class="page-item">
-                        <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}{% if request.GET.filter %}&filter={{ request.GET.filter }}{% endif %}{% for gid in selected_group_ids %}&group={{ gid }}{% endfor %}&exclude_external={% if exclude_external_checked %}1{% else %}0{% endif %}">Назад</a>
+                        <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}{% if 'filter' in request.GET %}&filter={{ request.GET.filter }}{% endif %}{% for gid in selected_group_ids %}&group={{ gid }}{% endfor %}&exclude_external={% if exclude_external_checked %}1{% else %}0{% endif %}">Назад</a>
                     </li>
                 {% endif %}
                 {% for num in page_obj.paginator.page_range %}
@@ -193,16 +193,16 @@
                         {% if page_obj.number == num %}
                             <li class="page-item active"><span class="page-link">{{ num }}</span></li>
                         {% else %}
-                            <li class="page-item"><a class="page-link" href="?page={{ num }}{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}{% if request.GET.filter %}&filter={{ request.GET.filter }}{% endif %}{% for gid in selected_group_ids %}&group={{ gid }}{% endfor %}&exclude_external={% if exclude_external_checked %}1{% else %}0{% endif %}">{{ num }}</a></li>
+                            <li class="page-item"><a class="page-link" href="?page={{ num }}{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}{% if 'filter' in request.GET %}&filter={{ request.GET.filter }}{% endif %}{% for gid in selected_group_ids %}&group={{ gid }}{% endfor %}&exclude_external={% if exclude_external_checked %}1{% else %}0{% endif %}">{{ num }}</a></li>
                         {% endif %}
                     {% endif %}
                 {% endfor %}
                 {% if page_obj.has_next %}
                     <li class="page-item">
-                        <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}{% if request.GET.filter %}&filter={{ request.GET.filter }}{% endif %}{% for gid in selected_group_ids %}&group={{ gid }}{% endfor %}&exclude_external={% if exclude_external_checked %}1{% else %}0{% endif %}">Вперед</a>
+                        <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}{% if 'filter' in request.GET %}&filter={{ request.GET.filter }}{% endif %}{% for gid in selected_group_ids %}&group={{ gid }}{% endfor %}&exclude_external={% if exclude_external_checked %}1{% else %}0{% endif %}">Вперед</a>
                     </li>
                     <li class="page-item">
-                        <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}{% if request.GET.filter %}&filter={{ request.GET.filter }}{% endif %}{% for gid in selected_group_ids %}&group={{ gid }}{% endfor %}&exclude_external={% if exclude_external_checked %}1{% else %}0{% endif %}">Последняя</a>
+                        <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}{% if 'filter' in request.GET %}&filter={{ request.GET.filter }}{% endif %}{% for gid in selected_group_ids %}&group={{ gid }}{% endfor %}&exclude_external={% if exclude_external_checked %}1{% else %}0{% endif %}">Последняя</a>
                     </li>
                 {% endif %}
             </ul>

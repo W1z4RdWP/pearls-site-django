@@ -51,15 +51,35 @@ class UserListView(ListView):
             raise PermissionDenied("У вас нет доступа к управлению пользователями.")
         return super().dispatch(request, *args, **kwargs)
 
+    _EXCLUDED_DEFAULT_GROUP_NAME = 'Внешний пользователь'
+
     def _get_selected_group_ids(self):
-        """ID групп из query string (параметр group может повторяться)."""
-        ids = set()
-        for x in self.request.GET.getlist('group'):
-            try:
-                ids.add(int(x))
-            except (ValueError, TypeError):
-                continue
-        return sorted(ids)
+        """ID групп из query string (параметр group может повторяться).
+
+        Если group в запросе не передан — по умолчанию все группы, кроме
+        «Внешний пользователь» (и для чекбоксов, и для фильтрации).
+        """
+        from django.contrib.auth.models import Group
+
+        raw = self.request.GET.getlist('group')
+        if raw:
+            ids = set()
+            for x in raw:
+                try:
+                    ids.add(int(x))
+                except (ValueError, TypeError):
+                    continue
+            return sorted(ids)
+
+        # Наставник без staff: фильтр по группам из URL не используется, список в шаблоне не показываем
+        if (hasattr(self.request.user, 'profile') and
+                self.request.user.profile.is_mentor_user and
+                not self.request.user.is_superuser and
+                not self.request.user.is_staff):
+            return []
+
+        qs = Group.objects.exclude(name=self._EXCLUDED_DEFAULT_GROUP_NAME).values_list('id', flat=True)
+        return sorted(qs)
 
     def get_queryset(self):
         queryset = super().get_queryset().order_by('email')
@@ -110,7 +130,11 @@ class UserListView(ListView):
                 not self.request.user.is_staff):
             group_ids = self._get_selected_group_ids()
             if group_ids:
-                queryset = queryset.filter(groups__id__in=group_ids).distinct()
+                # Если отмечены все группы в системе — не накладываем ограничение по группам,
+                # иначе пользователи без ни одной группы (часто неподтверждённые) не попадут в список.
+                all_group_ids = set(Group.objects.values_list('id', flat=True))
+                if set(group_ids) != all_group_ids:
+                    queryset = queryset.filter(groups__id__in=group_ids).distinct()
             
             # Исключаем внешних пользователей по умолчанию, можно отключить чекбоксом
             exclude_external_vals = self.request.GET.getlist('exclude_external')
