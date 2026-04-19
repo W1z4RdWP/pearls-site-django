@@ -118,6 +118,12 @@
                         <i class="fa-solid fa-chevron-down" aria-hidden="true" style="font-size:0.75em;opacity:0.7;"></i>
                     </button>
                     <ul class="um-group-multiselect-panel" id="um-group-multiselect-panel" role="listbox" aria-labelledby="um-group-multiselect-btn" hidden>
+                        <li>
+                            <label class="um-group-multiselect-option">
+                                <input type="checkbox" name="group" value="0" {% if 0 in selected_group_ids %}checked{% endif %} data-group-name="Без группы">
+                                <span>Без группы</span>
+                            </label>
+                        </li>
                         {% for group in groups %}
                         <li>
                             <label class="um-group-multiselect-option">
