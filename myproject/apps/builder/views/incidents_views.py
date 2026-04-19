@@ -29,6 +29,7 @@ from myapp.views import is_admin
 from users.models import Department
 from quizzes.models import HomeworkSubmission
 
+import json
 import logging
 
 logger = logging.getLogger(__name__)
@@ -1493,6 +1494,106 @@ class UnassignIncidentUserView(View, AuditLoggerMixin):
         if query_params:
             redirect_url += '?' + urlencode(query_params)
         
+        return redirect(redirect_url)
+
+
+@method_decorator(login_required, name='dispatch')
+class BulkUnassignIncidentUsersView(View, AuditLoggerMixin):
+    """
+    Массовая отмена назначений: удаляет пользователей из assigned_to по списку пар (инцидент, пользователь).
+    """
+    MAX_ASSIGNMENTS = 300
+
+    def dispatch(self, request, *args, **kwargs):
+        if not request.user.is_authenticated or not (
+            request.user.is_staff or request.user.is_superuser or request.user.profile.is_mentor_user
+        ):
+            return render(request, '403.html', status=403)
+        return super().dispatch(request, *args, **kwargs)
+
+    def post(self, request, *args, **kwargs):
+        from urllib.parse import urlencode
+
+        redirect_url = reverse('builder:incident_detail')
+        query_params = []
+        for key in ['search', 'date_from', 'date_to', 'assigned_user', 'violator_filter']:
+            value = request.POST.get(key) or request.GET.get(key)
+            if value:
+                query_params.append((key, value))
+        if query_params:
+            redirect_url += '?' + urlencode(query_params)
+
+        if not is_admin(request.user):
+            messages.error(request, 'Недостаточно прав для этой операции')
+            return redirect(redirect_url)
+
+        raw = request.POST.get('assignments', '')
+        try:
+            pairs = json.loads(raw) if raw else []
+        except json.JSONDecodeError:
+            messages.error(request, 'Некорректный формат списка назначений')
+            return redirect(redirect_url)
+
+        if not isinstance(pairs, list) or not pairs:
+            messages.warning(request, 'Не выбрано ни одной строки для отмены назначения')
+            return redirect(redirect_url)
+
+        normalized = []
+        seen = set()
+        for item in pairs[: self.MAX_ASSIGNMENTS]:
+            if not isinstance(item, dict):
+                continue
+            try:
+                incident_id = int(item.get('incident_id'))
+                user_id = int(item.get('user_id'))
+            except (TypeError, ValueError):
+                continue
+            if incident_id <= 0 or user_id <= 0:
+                continue
+            key = (incident_id, user_id)
+            if key in seen:
+                continue
+            seen.add(key)
+            normalized.append((incident_id, user_id))
+
+        if not normalized:
+            messages.warning(request, 'Не удалось обработать выбранные строки')
+            return redirect(redirect_url)
+
+        success_count = 0
+        skipped_count = 0
+
+        for incident_id, user_id in normalized:
+            incident = Incident.objects.filter(pk=incident_id).first()
+            user = User.objects.filter(pk=user_id).first()
+            if not incident or not user:
+                skipped_count += 1
+                continue
+            if user not in incident.assigned_to.all():
+                skipped_count += 1
+                continue
+
+            old_values = serialize_model_data(incident)
+            incident.assigned_to.remove(user)
+            comment = (
+                f'Массовая отмена: пользователь {user.get_full_name() or user.username} снят с инцидента'
+            )
+            self.log_update_action(incident, old_values, comment)
+            success_count += 1
+
+        if success_count:
+            messages.success(
+                request,
+                f'Отменено назначений: {success_count}.',
+            )
+        if skipped_count:
+            messages.info(
+                request,
+                f'Пропущено строк (не назначены или не найдены): {skipped_count}.',
+            )
+        if not success_count and not skipped_count:
+            messages.error(request, 'Не удалось отменить назначения')
+
         return redirect(redirect_url)
 
 

@@ -114,24 +114,40 @@
         </div>
     </form>
     
-    <h3 class="mb-3">Назначенные пользователи</h3>
-    
+    <h3 class="mb-2">Назначенные пользователи</h3>
+    {% if is_admin %}
+    <div class="incident-detail-assign-toolbar mb-3">
+        <div class="d-flex flex-wrap align-items-center justify-content-between gap-3">
+            <div class="incident-detail-assign-toolbar-text min-w-0">
+                <div id="incident-bulk-selection-summary" class="fw-medium text-body">Выберите строки в таблице</div>
+                <div class="small text-muted mt-1">Чтобы отменить назначение сразу у нескольких человек, отметьте строки или выберите все на странице галочкой в заголовке таблицы, затем нажмите кнопку красную справа.</div>
+            </div>
+            <div class="d-flex flex-wrap align-items-center gap-2 flex-shrink-0">
+                <button type="button" class="btn btn-outline-secondary btn-sm" id="incident-bulk-clear-selection" disabled>Снять выбор</button>
+                <button type="button" class="btn btn-danger btn-sm" id="incident-bulk-unassign-btn" disabled>Отменить назначение выбранным</button>
+            </div>
+        </div>
+    </div>
+    {% endif %}
     <div class="incidents-table-responsive">
         <table class="table">
             <thead>
                 <tr>
-                    <th style="width: 5%;">№</th>
-                    <th style="width: 10%;" class="sortable" data-sort-type="date-dot" data-sort-col="1">Дата назначения<span class="sort-icon"><span class="sort-asc">&#9650;</span><span class="sort-desc">&#9660;</span></span></th>
-                    <th style="width: 20%;" class="sortable" data-sort-type="text" data-sort-col="2">Название инцидента<span class="sort-icon"><span class="sort-asc">&#9650;</span><span class="sort-desc">&#9660;</span></span></th>
-                    <th style="width: 15%;" class="sortable" data-sort-type="text" data-sort-col="3">Назначено<span class="sort-icon"><span class="sort-asc">&#9650;</span><span class="sort-desc">&#9660;</span></span></th>
-                    <th style="width: 15%;" class="sortable" data-sort-type="text" data-sort-col="4">Подразделение<span class="sort-icon"><span class="sort-asc">&#9650;</span><span class="sort-desc">&#9660;</span></span></th>
-                    <th style="width: 10%;" class="sortable" data-sort-type="text" data-sort-col="5">Нарушитель<span class="sort-icon"><span class="sort-asc">&#9650;</span><span class="sort-desc">&#9660;</span></span></th>
-                    <th style="width: 10%;" class="sortable" data-sort-type="text" data-sort-col="6">Ответственный<span class="sort-icon"><span class="sort-asc">&#9650;</span><span class="sort-desc">&#9660;</span></span></th>
-                    <th style="width: 10%;" class="sortable" data-sort-type="datetime-dot" data-sort-col="7">Дедлайн<span class="sort-icon"><span class="sort-asc">&#9650;</span><span class="sort-desc">&#9660;</span></span></th>
-                    <th style="width: 10%;" class="sortable" data-sort-type="text" data-sort-col="8">Статус<span class="sort-icon"><span class="sort-asc">&#9650;</span><span class="sort-desc">&#9660;</span></span></th>
                     {% if is_admin %}
-                        <th style="width: 5%;">Действия</th>
+                    <th class="text-center align-middle incident-user-select-head" style="width: 2.75rem;" scope="col">
+                        <span class="visually-hidden">Выбор строк на странице</span>
+                        <input type="checkbox" class="form-check-input" id="incident-user-select-all" autocomplete="off" title="Выбрать все на странице" aria-label="Выбрать все строки на странице">
+                    </th>
                     {% endif %}
+                    <th style="width: 5%;">№</th>
+                    <th style="width: 10%;" class="sortable" data-sort-type="date-dot" data-sort-col="{% if is_admin %}2{% else %}1{% endif %}">Дата назначения<span class="sort-icon"><span class="sort-asc">&#9650;</span><span class="sort-desc">&#9660;</span></span></th>
+                    <th style="width: 20%;" class="sortable" data-sort-type="text" data-sort-col="{% if is_admin %}3{% else %}2{% endif %}">Название инцидента<span class="sort-icon"><span class="sort-asc">&#9650;</span><span class="sort-desc">&#9660;</span></span></th>
+                    <th style="width: 15%;" class="sortable" data-sort-type="text" data-sort-col="{% if is_admin %}4{% else %}3{% endif %}">Назначено<span class="sort-icon"><span class="sort-asc">&#9650;</span><span class="sort-desc">&#9660;</span></span></th>
+                    <th style="width: 15%;" class="sortable" data-sort-type="text" data-sort-col="{% if is_admin %}5{% else %}4{% endif %}">Подразделение<span class="sort-icon"><span class="sort-asc">&#9650;</span><span class="sort-desc">&#9660;</span></span></th>
+                    <th style="width: 10%;" class="sortable" data-sort-type="text" data-sort-col="{% if is_admin %}6{% else %}5{% endif %}">Нарушитель<span class="sort-icon"><span class="sort-asc">&#9650;</span><span class="sort-desc">&#9660;</span></span></th>
+                    <th style="width: 10%;" class="sortable" data-sort-type="text" data-sort-col="{% if is_admin %}7{% else %}6{% endif %}">Ответственный<span class="sort-icon"><span class="sort-asc">&#9650;</span><span class="sort-desc">&#9660;</span></span></th>
+                    <th style="width: 10%;" class="sortable" data-sort-type="datetime-dot" data-sort-col="{% if is_admin %}8{% else %}7{% endif %}">Дедлайн<span class="sort-icon"><span class="sort-asc">&#9650;</span><span class="sort-desc">&#9660;</span></span></th>
+                    <th style="width: 10%;" class="sortable" data-sort-type="text" data-sort-col="{% if is_admin %}9{% else %}8{% endif %}">Статус<span class="sort-icon"><span class="sort-asc">&#9650;</span><span class="sort-desc">&#9660;</span></span></th>
                 </tr>
             </thead>
             <tbody>
@@ -139,7 +155,7 @@
                     {% include 'builder/incidents/_incidents_detail_rows.html' with row_start_index=0 %}
                 {% else %}
                     <tr id="no-incident-users-row">
-                        <td colspan="10" class="text-center">Нет назначенных пользователей</td>
+                        <td colspan="{% if is_admin %}10{% else %}9{% endif %}" class="text-center">Нет назначенных пользователей</td>
                     </tr>
                 {% endif %}
             </tbody>
@@ -345,7 +361,10 @@
 
                 rows.forEach(function(row, index) {
                     tbody.appendChild(row);
-                    row.children[0].textContent = index + 1;
+                    var numCell = row.querySelector('.incident-detail-row-num');
+                    if (numCell) {
+                        numCell.textContent = index + 1;
+                    }
                 });
 
             });
@@ -559,85 +578,187 @@
         // --- Сортировка таблицы по клику на заголовки ---
         initTableSorting();
 
-        function bindUnassignButton(unassignButton) {
-            if (unassignButton) {
-                unassignButton.addEventListener('click', function(event) {
-                    event.stopPropagation(); // Предотвращаем срабатывание клика на строку
-                    
-                    const incidentId = this.dataset.incidentId;
-                    const userId = this.dataset.userId;
-                    
-                    if (!incidentId || !userId) {
-                        alert('Ошибка: не удалось определить инцидент или пользователя');
-                        return;
-                    }
-                    
-                    // Подтверждение действия
-                    if (!confirm('Вы уверены, что хотите отменить назначение этого пользователя на инцидент?')) {
-                        return;
-                    }
-                    
-                    // Получаем текущие параметры URL для сохранения фильтров
-                    const urlParams = new URLSearchParams(window.location.search);
-                    
-                    // Функция для получения CSRF токена
-                    function getCookie(name) {
-                        let cookieValue = null;
-                        if (document.cookie && document.cookie !== '') {
-                            const cookies = document.cookie.split(';');
-                            for (let i = 0; i < cookies.length; i++) {
-                                const cookie = cookies[i].trim();
-                                if (cookie.substring(0, name.length + 1) === (name + '=')) {
-                                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-                                    break;
-                                }
-                            }
-                        }
-                        return cookieValue;
-                    }
-                    
-                    // Создаем форму для отправки POST запроса
-                    const form = document.createElement('form');
-                    form.method = 'POST';
-                    // Генерируем URL с правильными параметрами
-                    const baseUrl = "{% url 'builder:incident_unassign_user' incident_id=999999 user_id=888888 %}";
-                    form.action = baseUrl.replace('999999', incidentId).replace('888888', userId);
-                    
-                    // Добавляем CSRF токен
-                    const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]');
-                    const csrfInput = document.createElement('input');
-                    csrfInput.type = 'hidden';
-                    csrfInput.name = 'csrfmiddlewaretoken';
-                    if (csrfToken) {
-                        csrfInput.value = csrfToken.value;
-                    } else {
-                        // Если токен не найден, получаем его из cookies
-                        csrfInput.value = getCookie('csrftoken') || '';
-                    }
-                    form.appendChild(csrfInput);
-                    
-                    // Добавляем параметры фильтров как скрытые поля
-                    urlParams.forEach((value, key) => {
-                        const input = document.createElement('input');
-                        input.type = 'hidden';
-                        input.name = key;
-                        input.value = value;
-                        form.appendChild(input);
+        function getCsrfTokenValue() {
+            const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]');
+            if (csrfToken) {
+                return csrfToken.value;
+            }
+            const cookies = document.cookie ? document.cookie.split(';') : [];
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, 10) === 'csrftoken=') {
+                    return decodeURIComponent(cookie.substring(10));
+                }
+            }
+            return '';
+        }
+
+        function getIncidentUserRowCheckboxes() {
+            return Array.prototype.slice.call(document.querySelectorAll('.incident-user-select'));
+        }
+
+        function syncBulkUnassignToolbar() {
+            const summary = document.getElementById('incident-bulk-selection-summary');
+            const bulkBtn = document.getElementById('incident-bulk-unassign-btn');
+            const clearBtn = document.getElementById('incident-bulk-clear-selection');
+            const selectAll = document.getElementById('incident-user-select-all');
+            if (!summary || !bulkBtn || !clearBtn) {
+                return;
+            }
+            const boxes = getIncidentUserRowCheckboxes();
+            const total = boxes.length;
+            const checkedCount = boxes.filter(function(cb) { return cb.checked; }).length;
+
+            if (total === 0) {
+                summary.textContent = 'Нет строк для выбора';
+                bulkBtn.disabled = true;
+                clearBtn.disabled = true;
+                if (selectAll) {
+                    selectAll.checked = false;
+                    selectAll.indeterminate = false;
+                    selectAll.disabled = true;
+                }
+                return;
+            }
+
+            if (selectAll) {
+                selectAll.disabled = false;
+                if (checkedCount === 0) {
+                    selectAll.checked = false;
+                    selectAll.indeterminate = false;
+                } else if (checkedCount === total) {
+                    selectAll.checked = true;
+                    selectAll.indeterminate = false;
+                } else {
+                    selectAll.checked = false;
+                    selectAll.indeterminate = true;
+                }
+            }
+
+            if (checkedCount === 0) {
+                summary.textContent = 'Строк не выбрано — отметьте нужные или все на странице (заголовок таблицы)';
+            } else {
+                summary.textContent = 'Выбрано строк: ' + checkedCount;
+            }
+            bulkBtn.disabled = checkedCount === 0;
+            clearBtn.disabled = checkedCount === 0;
+        }
+
+        function initBulkUnassignControls() {
+            const selectAll = document.getElementById('incident-user-select-all');
+            const bulkBtn = document.getElementById('incident-bulk-unassign-btn');
+            const clearBtn = document.getElementById('incident-bulk-clear-selection');
+            const tbody = document.querySelector('.incidents-table-responsive .table tbody');
+
+            if (!bulkBtn || !clearBtn) {
+                return;
+            }
+
+            if (selectAll) {
+                selectAll.addEventListener('change', function() {
+                    const on = selectAll.checked;
+                    getIncidentUserRowCheckboxes().forEach(function(cb) {
+                        cb.checked = on;
                     });
-                    
-                    document.body.appendChild(form);
-                    form.submit();
+                    syncBulkUnassignToolbar();
                 });
             }
+
+            if (tbody) {
+                tbody.addEventListener('change', function(e) {
+                    if (e.target && e.target.classList && e.target.classList.contains('incident-user-select')) {
+                        syncBulkUnassignToolbar();
+                    }
+                });
+
+                tbody.addEventListener('click', function(e) {
+                    var row = e.target.closest && e.target.closest('tr.incident-user-row');
+                    if (!row) {
+                        return;
+                    }
+                    if (e.target.closest && e.target.closest('input.incident-user-select')) {
+                        return;
+                    }
+                    var cb = row.querySelector('input.incident-user-select');
+                    if (!cb) {
+                        return;
+                    }
+                    cb.checked = !cb.checked;
+                    syncBulkUnassignToolbar();
+                });
+            }
+
+            clearBtn.addEventListener('click', function() {
+                getIncidentUserRowCheckboxes().forEach(function(cb) {
+                    cb.checked = false;
+                });
+                if (selectAll) {
+                    selectAll.checked = false;
+                    selectAll.indeterminate = false;
+                }
+                syncBulkUnassignToolbar();
+            });
+
+            bulkBtn.addEventListener('click', function() {
+                const selected = getIncidentUserRowCheckboxes().filter(function(cb) { return cb.checked; });
+                if (!selected.length) {
+                    return;
+                }
+                const n = selected.length;
+                const msg = n === 1
+                    ? 'Отменить назначение для одной выбранной строки?'
+                    : 'Отменить назначение для ' + n + ' выбранных строк?';
+                if (!window.confirm(msg)) {
+                    return;
+                }
+
+                const assignments = selected.map(function(cb) {
+                    return {
+                        incident_id: parseInt(cb.dataset.incidentId, 10),
+                        user_id: parseInt(cb.dataset.userId, 10)
+                    };
+                }).filter(function(p) {
+                    return p.incident_id > 0 && p.user_id > 0;
+                });
+
+                if (!assignments.length) {
+                    window.alert('Не удалось определить инцидент или пользователя для выбранных строк');
+                    return;
+                }
+
+                const urlParams = new URLSearchParams(window.location.search);
+                const form = document.createElement('form');
+                form.method = 'POST';
+                form.action = "{% url 'builder:incident_bulk_unassign' %}";
+
+                const csrfInput = document.createElement('input');
+                csrfInput.type = 'hidden';
+                csrfInput.name = 'csrfmiddlewaretoken';
+                csrfInput.value = getCsrfTokenValue();
+                form.appendChild(csrfInput);
+
+                const assignmentsInput = document.createElement('input');
+                assignmentsInput.type = 'hidden';
+                assignmentsInput.name = 'assignments';
+                assignmentsInput.value = JSON.stringify(assignments);
+                form.appendChild(assignmentsInput);
+
+                urlParams.forEach(function(value, key) {
+                    const input = document.createElement('input');
+                    input.type = 'hidden';
+                    input.name = key;
+                    input.value = value;
+                    form.appendChild(input);
+                });
+
+                document.body.appendChild(form);
+                form.submit();
+            });
+
+            syncBulkUnassignToolbar();
         }
 
-        function bindUnassignButtonsInScope(scopeNode) {
-            if (!scopeNode) return;
-            const buttons = scopeNode.querySelectorAll('.unassign-button');
-            buttons.forEach(bindUnassignButton);
-        }
-
-        bindUnassignButtonsInScope(document);
+        initBulkUnassignControls();
 
         const showMoreButton = document.getElementById('show-more-incidents-btn');
         const incidentTableBody = document.querySelector('.incidents-table-responsive .table tbody');
@@ -683,7 +804,7 @@
                         while (tempWrapper.firstChild) {
                             incidentTableBody.appendChild(tempWrapper.firstChild);
                         }
-                        bindUnassignButtonsInScope(incidentTableBody);
+                        syncBulkUnassignToolbar();
 
                         showMoreButton.dataset.nextOffset = String(data.next_offset || 0);
                         if (!data.has_more || Number(data.loaded_count || 0) === 0) {
