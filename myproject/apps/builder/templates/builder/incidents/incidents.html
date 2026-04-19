@@ -94,6 +94,10 @@
                 {% csrf_token %}
                 <button type="submit" id="resume-button" class="btn btn-success">Возобновить</button>
             </form>
+            <form id="delete-incident-form" method="post" action="" style="display: none;">
+                {% csrf_token %}
+                <button type="submit" id="delete-incident-button" class="btn btn-danger">Удалить</button>
+            </form>
         {% endif %}
 
         <!-- Контекстное меню по ПКМ на строке инцидента -->
@@ -103,6 +107,7 @@
             {% if not readonly %}
             <a href="#" class="incident-context-menu-item incident-context-menu-decline" data-action="decline"><i class="fas fa-times-circle me-2"></i>Отклонить</a>
             <a href="#" class="incident-context-menu-item incident-context-menu-resume" data-action="resume" style="display: none;"><i class="fas fa-play-circle me-2"></i>Возобновить</a>
+            <a href="#" class="incident-context-menu-item incident-context-menu-delete" data-action="delete"><i class="fas fa-trash-alt me-2"></i>Удалить</a>
             {% endif %}
         </div>
         
@@ -134,22 +139,6 @@
                         <td>{{ inc.title }}</td>
                         <td>{{ inc.get_incident_type_display }}</td>
                         <td>{{ inc.user.get_full_name|default:inc.user.username }}</td>
-                        <!-- <td class="responsible-cell">
-                            {% if inc.violators.exists %}
-                                {% for resp in inc.violators.all %}
-                                    {{ resp.get_full_name|default:resp.username }}{% if not forloop.last %}, {% endif %}
-                                {% endfor %}
-                            {% else %}
-                                —
-                            {% endif %}
-                        </td> -->
-                        <!-- <td class="{% if inc.deadline and inc.deadline|is_overdue:now %}deadline-overdue{% endif %}">
-                            {% if inc.deadline %}
-                                <span class="deadline-date">{{ inc.deadline|date:"d.m.Y" }}</span> <span class="deadline-time">{{ inc.deadline|date:"H:i" }}</span>
-                            {% else %}
-                                —
-                            {% endif %}
-                        </td> -->
                         <td style="text-align: center;">
                             {% if inc.course %}
                                 {{ inc.assigned_users_count|default:0 }}
@@ -181,6 +170,10 @@ const incidentDetailUrl = "{% url 'builder:incident_detail' %}";
 // Функция для формирования URL отклонения/возобновления инцидента
 function getIncidentDeclineUrl(incidentId) {
     return `/builder/incidents/${incidentId}/decline/`;
+}
+
+function getIncidentDeleteUrl(incidentId) {
+    return `/builder/incidents/${incidentId}/delete/`;
 }
 
 // Функция для формирования URL с фильтром по нарушителям
@@ -582,6 +575,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const contextMenu = document.getElementById('incident-context-menu');
     const declineForm = document.getElementById('decline-form');
     const resumeForm = document.getElementById('resume-form');
+    const deleteIncidentForm = document.getElementById('delete-incident-form');
     const declineMenuItem = document.querySelector('.incident-context-menu-decline');
     const resumeMenuItem = document.querySelector('.incident-context-menu-resume');
 
@@ -616,6 +610,9 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (declineForm) declineForm.action = getIncidentDeclineUrl(incidentId);
             }
         }
+        if (deleteIncidentForm && incidentId) {
+            deleteIncidentForm.action = getIncidentDeleteUrl(incidentId);
+        }
 
         contextMenu.style.left = (e.clientX + 2) + 'px';
         contextMenu.style.top = (e.clientY + 2) + 'px';
@@ -644,6 +641,15 @@ document.addEventListener('DOMContentLoaded', function() {
             } else if (action === 'resume' && resumeForm) {
                 e.preventDefault();
                 resumeForm.submit();
+            } else if (action === 'delete' && deleteIncidentForm) {
+                e.preventDefault();
+                const t = contextMenuRow.getAttribute('data-incident-title') || '';
+                const msg = t
+                    ? 'Удалить инцидент безвозвратно?\n«' + t + '»'
+                    : 'Удалить инцидент безвозвратно?';
+                if (confirm(msg)) {
+                    deleteIncidentForm.submit();
+                }
             }
         });
     }

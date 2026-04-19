@@ -670,6 +670,15 @@
   width: 1.1em;
 }
 
+.incident-context-menu-delete {
+  color: #c0392b;
+}
+
+.incident-context-menu-delete:hover {
+  background-color: #fdeaea;
+  color: #a93226;
+}
+
 /* Массовая отмена назначений на странице «Детали инцидентов» */
 .incident-detail-assign-toolbar {
   padding: 0.85rem 1rem;

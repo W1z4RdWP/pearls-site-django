@@ -938,6 +938,32 @@ class IncidentDeclineView(View, AuditLoggerMixin):
         return redirect('builder:incidents')
 
 
+@method_decorator(login_required, name='dispatch')
+class IncidentDeleteView(View, AuditLoggerMixin):
+    """
+    Полное удаление инцидента: запись и связанные назначения на курс-инцидент.
+    """
+    def dispatch(self, request, *args, **kwargs):
+        if not request.user.is_authenticated or not (request.user.is_staff or request.user.is_superuser):
+            return render(request, '403.html', status=403)
+        return super().dispatch(request, *args, **kwargs)
+
+    def post(self, request, *args, **kwargs):
+        incident = get_object_or_404(Incident, pk=kwargs.get('pk'))
+        title = incident.title
+        course = incident.course
+
+        self.log_delete_action(incident, f'Инцидент удалён: «{title}»')
+
+        if course:
+            incident.assigned_to.clear()
+            incident.violators.clear()
+            ManualCourseUnassignment.objects.filter(course=course).delete()
+            UserCourse.objects.filter(course=course).delete()
+
+        incident.delete()
+        messages.success(request, f'Инцидент «{title}» удалён')
+        return redirect('builder:incidents')
 
 
 @method_decorator(login_required, name='dispatch')
