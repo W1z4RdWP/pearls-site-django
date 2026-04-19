@@ -14,4 +14,9 @@ urlpatterns = [
     path('chat/room/<str:room_id>/search-users/', views.search_users_for_room, name='chat_room_search_users'),
     path('chat/room/<str:room_id>/notifications/toggle/', views.toggle_room_notifications, name='chat_room_toggle_notifications'),
     path('chat/room/<str:room_id>/notifications/status/', views.get_room_notification_status, name='chat_room_notification_status'),
+
+    # Web Push (PWA)
+    path('push/vapid-public-key/', views.push_vapid_public_key, name='push_vapid_public_key'),
+    path('push/subscribe/', views.push_subscribe, name='push_subscribe'),
+    path('push/unsubscribe/', views.push_unsubscribe, name='push_unsubscribe'),
 ]

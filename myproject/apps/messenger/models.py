@@ -162,3 +162,54 @@ class ChatRoomNotificationSettings(models.Model):
             settings.notifications_enabled = False
             settings.save()
         return settings.notifications_enabled
+
+
+class WebPushSubscription(models.Model):
+    """
+    Web Push подписка браузера/устройства пользователя.
+
+    Хранит данные подписки (endpoint + ключи p256dh/auth), полученные от
+    PushManager в браузере. Используется для отправки push-уведомлений о новых
+    сообщениях в чате, когда у пользователя нет открытой вкладки сайта.
+    """
+
+    user = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name='web_push_subscriptions',
+        verbose_name="Пользователь",
+    )
+    endpoint = models.URLField(
+        max_length=500,
+        unique=True,
+        verbose_name="Endpoint",
+    )
+    p256dh = models.CharField(max_length=255, verbose_name="Публичный ключ (p256dh)")
+    auth = models.CharField(max_length=255, verbose_name="Секрет (auth)")
+    user_agent = models.CharField(
+        max_length=500,
+        blank=True,
+        verbose_name="User-Agent устройства",
+    )
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name="Дата создания")
+    updated_at = models.DateTimeField(auto_now=True, verbose_name="Дата обновления")
+
+    class Meta:
+        verbose_name = "Web Push подписка"
+        verbose_name_plural = "Web Push подписки"
+        indexes = [models.Index(fields=['user'])]
+        ordering = ['-updated_at']
+
+    def __str__(self):
+        endpoint_short = self.endpoint[:60] + ('…' if len(self.endpoint) > 60 else '')
+        return f"{self.user.username}: {endpoint_short}"
+
+    def to_subscription_info(self):
+        """Возвращает dict в формате, ожидаемом pywebpush."""
+        return {
+            'endpoint': self.endpoint,
+            'keys': {
+                'p256dh': self.p256dh,
+                'auth': self.auth,
+            },
+        }
