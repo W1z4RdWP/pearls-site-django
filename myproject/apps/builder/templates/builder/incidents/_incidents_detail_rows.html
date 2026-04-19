@@ -11,7 +11,7 @@
     <td class="incident-detail-row-num">{{ row_start_index|default:0|add:forloop.counter }}</td>
     <td>{{ item.incident.created_at|date:"d.m.Y" }}</td>
     <td title="{{ item.incident.title }}">{{ item.incident.title }}</td>
-    <td title="{{ item.user.get_full_name|default:item.user.username }}">{{ item.user.get_full_name|default:item.user.username }}</td>
+    <td title="{{ item.user.profile.get_full_name|default:item.user.username }}">{{ item.user.profile.get_full_name|default:item.user.username }}</td>
     <td style="text-wrap: wrap;">
         {{ item.user.profile.department }}
     </td>
