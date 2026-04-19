@@ -3,88 +3,6 @@
 {% block specific_styles %}
     <link rel="stylesheet" href="{% static 'user_management/css/user_list.css' %}">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
-    <style>
-        .um-btn-wide { display: none; }
-        .um-user-list-table th, .um-user-list-table td { padding: 6px 4px; font-size: 0.97rem; }
-        .um-user-avatar { width: 28px; height: 28px; min-width: 28px; min-height: 28px; }
-        .um-user-avatar-name { gap: 6px; }
-        .um-user-list-table td { vertical-align: middle; }
-        .um-user-list-table th { font-size: 0.98rem; }
-        .um-user-list-table { font-size: 0.97rem; }
-        .um-user-list-table .um-user-name-email { line-height: 1.1; }
-        .um-user-list-table .um-user-email { font-size: 0.92em; }
-        .um-action-btns { display: flex; gap: 8px; }
-        .um-action-btn { border: none; background: none; padding: 0 4px; color: #5b3cc4; font-size: 1.2em; cursor: pointer; transition: color 0.15s; }
-        .um-action-btn:hover { color: #2dabc4; }
-        .um-group-multiselect {
-            position: relative;
-            min-width: 200px;
-            max-width: 280px;
-        }
-        .um-group-multiselect-toggle {
-            width: 100%;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 8px;
-            padding: 8px 12px;
-            border: 1px solid var(--um-list-filter-border, #d1d5db);
-            border-radius: var(--um-list-filter-radius, 6px);
-            font-size: 1rem;
-            color: var(--um-list-filter-color, #222);
-            background: var(--um-list-filter-bg, #fff);
-            cursor: pointer;
-            text-align: left;
-        }
-        .um-group-multiselect-toggle:hover {
-            border-color: #9ca3af;
-        }
-        .um-group-multiselect-label {
-            flex: 1;
-            min-width: 0;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
-        }
-        .um-group-multiselect-panel {
-            position: absolute;
-            left: 0;
-            right: 0;
-            top: calc(100% + 4px);
-            z-index: 40;
-            max-height: 260px;
-            overflow-y: auto;
-            padding: 6px 0;
-            margin: 0;
-            list-style: none;
-            background: #fff;
-            border: 1px solid var(--um-list-filter-border, #d1d5db);
-            border-radius: var(--um-list-filter-radius, 6px);
-            box-shadow: 0 8px 20px rgba(0,0,0,0.12);
-        }
-        .um-group-multiselect-panel[hidden] {
-            display: none !important;
-        }
-        .um-group-multiselect-option {
-            display: flex;
-            align-items: flex-start;
-            gap: 8px;
-            padding: 6px 12px;
-            margin: 0;
-            cursor: pointer;
-            font-size: 0.97rem;
-            line-height: 1.35;
-            word-break: break-word;
-        }
-        .um-group-multiselect-option:hover {
-            background: #f3f4f6;
-        }
-        .um-group-multiselect-option input {
-            margin-top: 3px;
-            flex-shrink: 0;
-        }
-        .um-row-link { cursor: pointer; }
-    </style>
 {% endblock %}
 
 {% block content %}
@@ -118,6 +36,12 @@
                         <i class="fa-solid fa-chevron-down" aria-hidden="true" style="font-size:0.75em;opacity:0.7;"></i>
                     </button>
                     <ul class="um-group-multiselect-panel" id="um-group-multiselect-panel" role="listbox" aria-labelledby="um-group-multiselect-btn" hidden>
+                        <li class="um-group-multiselect-toolbar">
+                            <div class="um-group-multiselect-actions">
+                                <button type="button" class="um-group-multiselect-action-btn" data-um-group-select-all>Выбрать все</button>
+                                <button type="button" class="um-group-multiselect-action-btn" data-um-group-clear-all>Снять все</button>
+                            </div>
+                        </li>
                         <li>
                             <label class="um-group-multiselect-option">
                                 <input type="checkbox" name="group" value="0" {% if 0 in selected_group_ids %}checked{% endif %} data-group-name="Без группы">
@@ -262,7 +186,29 @@
                 cb.addEventListener('change', updateLabel);
             });
 
-            document.addEventListener('click', function() {
+            var btnSelectAll = root.querySelector('[data-um-group-select-all]');
+            var btnClearAll = root.querySelector('[data-um-group-clear-all]');
+            if (btnSelectAll) {
+                btnSelectAll.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    checkboxes.forEach(function(cb) { cb.checked = true; });
+                    updateLabel();
+                });
+            }
+            if (btnClearAll) {
+                btnClearAll.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    checkboxes.forEach(function(cb) { cb.checked = false; });
+                    updateLabel();
+                });
+            }
+
+            document.addEventListener('click', function(e) {
+                if (e.target.closest && e.target.closest('.um-user-list-filter')) {
+                    return;
+                }
                 setOpen(false);
             });
 
