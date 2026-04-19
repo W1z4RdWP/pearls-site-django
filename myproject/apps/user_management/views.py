@@ -51,6 +51,16 @@ class UserListView(ListView):
             raise PermissionDenied("У вас нет доступа к управлению пользователями.")
         return super().dispatch(request, *args, **kwargs)
 
+    def _get_selected_group_ids(self):
+        """ID групп из query string (параметр group может повторяться)."""
+        ids = set()
+        for x in self.request.GET.getlist('group'):
+            try:
+                ids.add(int(x))
+            except (ValueError, TypeError):
+                continue
+        return sorted(ids)
+
     def get_queryset(self):
         queryset = super().get_queryset().order_by('email')
         
@@ -98,9 +108,9 @@ class UserListView(ListView):
                 self.request.user.profile.is_mentor_user and 
                 not self.request.user.is_superuser and 
                 not self.request.user.is_staff):
-            group_filter = self.request.GET.get('group')
-            if group_filter:
-                queryset = queryset.filter(groups__id=group_filter)
+            group_ids = self._get_selected_group_ids()
+            if group_ids:
+                queryset = queryset.filter(groups__id__in=group_ids).distinct()
             
             # Исключаем внешних пользователей по умолчанию, можно отключить чекбоксом
             exclude_external_vals = self.request.GET.getlist('exclude_external')
@@ -124,6 +134,7 @@ class UserListView(ListView):
             context['groups'] = self.request.user.groups.all().order_by('name')
         exclude_external_vals = self.request.GET.getlist('exclude_external')
         context['exclude_external_checked'] = ('1' in exclude_external_vals) or (not exclude_external_vals)
+        context['selected_group_ids'] = self._get_selected_group_ids()
         return context
 
 
