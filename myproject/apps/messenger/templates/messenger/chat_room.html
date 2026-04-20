@@ -1212,8 +1212,11 @@
             }
         }
         
-        // Запрашиваем разрешение при загрузке страницы
-        requestNotificationPermission();
+        // После DOMContentLoaded уже выполнились defer-скрипты из <head> (push-notifications.js),
+        // иначе window.MessengerPush ещё undefined и подписка на /messenger/push/subscribe/ не уходит.
+        document.addEventListener('DOMContentLoaded', function () {
+            requestNotificationPermission();
+        });
     </script>
 {% endblock %}
 
