@@ -104,10 +104,11 @@ class DashboardView(TemplateView):
             if mentor_groups.exists():
                 # Получаем топ-5 пользователей по DASCOIN из групп наставника
                 top_users = User.objects.filter(
-                    groups__in=mentor_groups,
+                    # groups__in=mentor_groups,
+                    profile__department=self.request.user.profile.department,
                     profile__is_approved=True
                 ).exclude(
-                    Q(is_superuser=True) | Q(is_staff=True)
+                    Q(is_superuser=True) | Q(is_staff=True) | Q(id=self.request.user.id)
                 ).select_related('profile').order_by(
                     '-profile__dascoin_points', 'email'
                 ).distinct()[:5]
