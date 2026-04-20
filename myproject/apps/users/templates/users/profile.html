@@ -98,7 +98,7 @@
                 <!-- Бейджи -->
                 <div class="gamification-card">
                     <div class="card-header">
-                        <h4><i class="fa fa-medal"></i> Бейджи</h4>
+                        <h4><i class="fa fa-medal"></i> Бейджи <span class="help-icon" id="badges-help-icon" tabindex="0" role="button" aria-label="Подсказка" data-bs-toggle="modal" data-bs-target="#badgesHelpModal">?</span></h4> 
                         <span class="badge-count">{{ total_badges }}</span>
                     </div>
                     <div class="card-content">
@@ -235,5 +235,64 @@
     </div>
 </div>
 
+
+<!-- Модальное окно для подсказки к бейджам -->
+<div class="modal fade" id="badgesHelpModal" tabindex="-1" aria-labelledby="badgesHelpModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="badgesHelpModalLabel">Сводная таблица бейджей</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body text-center">
+                <!-- <p>Бейджи выдаются автоматически при выполнении условий. Отображаются в личном профиле.</p> -->
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Название</th>
+                            <th>Условие получения</th>
+                            <th>Описание</th>
+                        </tr>
+                    </thead>
+                    <tbody class="badgedHelpModal__tbody">
+                        <tr>
+                            <td><p>"Первый шаг"</p><img src="{% static 'users/imgs/badgesHelpModal_1.png' %}" alt="Первый шаг"></td>
+                            <td>Пройден первый урок</td>
+                            <td>Мотивация к началу обучения</td>
+                        </tr>
+                        <tr>
+                            <td><p>"100 очков"</p><img src="{% static 'users/imgs/badgesHelpModal_2.png' %}" alt="100 очков" /></td>
+                            <td>Достигнут счёт 100 баллов</td>
+                            <td>Активный участник</td>
+                        </tr>
+                        <tr>
+                            <td><p>"Половина пути"</p><img src="{% static 'users/imgs/badgesHelpModal_3.png' %}" alt="Половина пути" /></td>
+                            <td>Пройдена половина курсов по направлению (должности)</td>
+                            <td>Углубление знаний по направлению (должности)</td>
+                        </tr>
+                        <tr>
+                            <td><p>"Траектория пройдена"</p><img src="{% static 'users/imgs/badgesHelpModal_4.png' %}" alt="Траектория пройдена"></td>
+                            <td>Завершена 1 траектория</td>
+                            <td>Успешное завершение обучения</td>
+                        </tr>
+                        <tr>
+                            <td><p>"Спикер"</p><img src="{% static 'users/imgs/badgesHelpModal_5.png' %}" alt="Спикер"></td>
+                            <td>Проведено обучение офлайн/онлайн для коллег</td>
+                            <td>Делится опытом</td>
+                        </tr>
+                        <tr>
+                            <td><p>"Наставник"</p><img src="{% static 'users/imgs/badgesHelpModal_6.png' %}" alt="Наставник"></td>
+                            <td>Помог адаптироваться  другому сотруднику</td>
+                            <td>Командная вовлеченность</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-primary" data-bs-dismiss="modal">Понятно</button>
+            </div>
+        </div>
+    </div>
+</div>
 
 {% endblock content %}
