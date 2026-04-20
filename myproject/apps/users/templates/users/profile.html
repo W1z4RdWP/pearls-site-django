@@ -138,7 +138,7 @@
                 <!-- Достижения -->
                 <div class="gamification-card">
                     <div class="card-header">
-                        <h4><i class="fa fa-trophy"></i> Достижения</h4>
+                        <h4><i class="fa fa-trophy"></i> Достижения <span class="help-icon" id="achievement-help-icon" tabindex="0" role="button" aria-label="Подсказка" data-bs-toggle="modal" data-bs-target="#achievementsHelpModal">?</span> </h4>
                         <span class="badge-count">{{ total_achievements }}</span>
                     </div>
                     <div class="card-content">
@@ -284,6 +284,65 @@
                             <td><p>"Наставник"</p><img src="{% static 'users/imgs/badgesHelpModal_6.png' %}" alt="Наставник"></td>
                             <td>Помог адаптироваться  другому сотруднику</td>
                             <td>Командная вовлеченность</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-primary" data-bs-dismiss="modal">Понятно</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<!-- Модальное окно для подсказки к достижениям -->
+<div class="modal fade" id="achievementsHelpModal" tabindex="-1" aria-labelledby="achievementsHelpModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="achievementsHelpModalLabel">Сводная таблица бейджей</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body text-center">
+                <!-- <p>Бейджи выдаются автоматически при выполнении условий. Отображаются в личном профиле.</p> -->
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Название</th>
+                            <th>Кто может получить</th>
+                            <th>Условие</th>
+                            <th>Периодичность</th>
+                        </tr>
+                    </thead>
+                    <tbody class="achievementsHelpModal__tbody">
+                        <tr>
+                            <td><p>"Лидер месяца"
+                                Легенда месяца</p><img src="{% static 'users/imgs/achievementsHelpModal_1.png' %}" alt="Лидер месяца"></td>
+                            <td>Все сотрудники</td>
+                            <td>Самый высокий прирост баллов за месяц</td>
+                            <td>1 раз в месяц</td>
+                        </tr>
+                        <tr>
+                            <td><p>"Эрудит отдела"
+                                Гугл на минималках</p><img src="{% static 'users/imgs/achievementsHelpModal_2.png' %}" alt="Эрудит отдела" /></td>
+                            <td>По отделам</td>
+                            <td>Пройдено больше всех курсов в своем отделе</td>
+                            <td>1 раз в квартал</td>
+                        </tr>
+                        <tr>
+                            <td><p>"Наставник года"
+                                Легенда поддержки</p><img src="{% static 'users/imgs/achievementsHelpModal_3.png' %}" alt="Наставник года" /></td>
+                            <td>Наставники</td>
+                            <td>Наиболее активный наставник</td>
+                            <td>1 раз в год</td>
+                        </tr>
+                        <tr>
+                            <td><p>"Инициатор"
+                                Двигатель апгрейда</p><img src="{% static 'users/imgs/achievementsHelpModal_4.png' %}" alt="Инициатор"></td>
+                            <td>Все</td>
+                            <td>Автор идеи (значительной), одобренной и внедренной на платформу</td>
+                            <td>По решению</td>
                         </tr>
                     </tbody>
                 </table>
