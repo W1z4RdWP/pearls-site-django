@@ -83,32 +83,33 @@ class IndexView(TemplateView):
     """Класс представление домашней страницы."""
     template_name = 'home.html'
 
-    # def get(self, request, *args, **kwargs):
-    #     """
-    #     Возвращает домашнюю страницу с кэшированием по пользователю и URL.
-    #     Использует версию кэша пользователя, чтобы сброс через clear_user_cache
-    #     автоматически инвалидировал HTML для конкретного пользователя.
-    #     """
-    #     if request.user.is_authenticated:
-    #         user_part = request.user.pk
-    #         version = _get_user_cache_version(user_part)
-    #         cache_key = f"home_page:user_{user_part}:v{version}:{request.get_full_path()}"
-    #     else:
-    #         user_part = 'anon'
-    #         cache_key = f"home_page:user_{user_part}:{request.get_full_path()}"
+    def get(self, request, *args, **kwargs):
+        """
+        Возвращает домашнюю страницу с кэшированием по пользователю и URL.
+        Использует версию кэша пользователя, чтобы сброс через clear_user_cache
+        автоматически инвалидировал HTML для конкретного пользователя.
+        """
+        if request.user.is_authenticated:
+            user_part = request.user.pk
+            version = _get_user_cache_version(user_part)
+            cache_key = f"home_page:user_{user_part}:v{version}:{request.get_full_path()}"
+        else:
+            user_part = 'anon'
+            cache_key = f"home_page:user_{user_part}:{request.get_full_path()}"
 
-    #     cached_content = cache.get(cache_key)
-    #     if cached_content is not None:
-    #         return HttpResponse(cached_content, content_type='text/html; charset=utf-8')
+        cached_content = cache.get(cache_key)
+        if cached_content is not None:
+            return HttpResponse(cached_content, content_type='text/html; charset=utf-8')
 
-    #     response = super().get(request, *args, **kwargs)
-    #     if response.status_code == 200:
-    #         content_type = response.get('Content-Type', '')
-    #         if content_type.startswith('text/html'):
-    #             # TemplateResponse рендерится лениво — выполняем явный render()
-    #             response.render()
-    #             cache.set(cache_key, response.content, timeout=HOMEPAGE_CACHE_TIMEOUT)
-    #     return response
+        response = super().get(request, *args, **kwargs)
+        if response.status_code == 200:
+            content_type = response.get('Content-Type', '')
+            if content_type.startswith('text/html'):
+                # TemplateResponse рендерится лениво — выполняем явный render()
+                response.render()
+                cache.set(cache_key, response.content, timeout=HOMEPAGE_CACHE_TIMEOUT)
+        return response
+
 
     def _is_course_available_in_trajectory(self, user, course):
         """
