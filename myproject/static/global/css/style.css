@@ -2151,42 +2151,83 @@ main > section > .text-block-2 {
     display: inline-block; margin-top: 12px; background: var(--color-accent); color: #fff; padding: 10px 28px; border-radius: 24px; text-decoration: none; font-weight: 500; transition: background 0.2s;
   }
   .hero-landing__cta:hover { background: var(--color-accent-hover); }
-  .hero-landing__faces {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0px 32px;
-    justify-content: flex-end;
-    align-items: flex-end;
-    max-width: 420px;
+  /* Коллаж карточек: портрет 3:4 без круглой «рамки», единый стиль с hero */
+  .hero-showcase {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 14px 16px;
+    max-width: 440px;
+    margin-left: auto;
+    width: 100%;
   }
-  .hero-face-block {
+
+  .hero-showcase__card {
     display: flex;
     flex-direction: column;
-    align-items: center;
-    gap: 8px;
+    background: var(--color-bg-secondary);
+    border-radius: 14px;
+    overflow: hidden;
+    box-shadow: var(--color-hero-face-shadow);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
   }
-  .hero-face {
-    width: 110px;
-    height: 110px;
-    border-radius: 50%;
+
+  .hero-showcase__card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 10px 28px rgba(35, 42, 58, 0.12);
+  }
+
+  .hero-showcase__media {
+    aspect-ratio: 3 / 4;
+    overflow: hidden;
+    background: linear-gradient(180deg, var(--color-hero-gradient) 0%, rgba(227, 232, 240, 0.6) 100%);
+  }
+
+  .hero-showcase__img {
+    width: 100%;
+    height: 100%;
     object-fit: cover;
-    border: 3px solid var(--color-accent);
-    box-shadow: 0 2px 12px rgba(0,0,0,0.10);
-    background: var(--color-hero-face-bg);
+    object-position: center top;
+    display: block;
+    transform: translateZ(0);
+    backface-visibility: hidden;
   }
-  .hero-face-label {
-    font-size: 0.95rem;
-    color: var(--color-hero-face-label);
+
+  .hero-showcase__card--symbol .hero-showcase__symbol {
+    aspect-ratio: 3 / 4;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: clamp(2rem, 6vw, 2.75rem);
+    line-height: 1;
+    background: linear-gradient(145deg, rgba(77, 124, 255, 0.14), rgba(76, 175, 144, 0.18));
+  }
+
+  .hero-showcase__label {
+    margin: 0;
+    padding: 10px 10px 12px;
+    font-size: 0.82rem;
+    font-weight: 600;
     text-align: center;
+    color: var(--color-hero-face-label);
+    line-height: 1.3;
     transition: color 0.3s ease;
   }
-  .hero-emoji { font-size: 3.2rem; }
+
+@supports (image-rendering: high-quality) {
+  .hero-showcase__img {
+    image-rendering: high-quality;
+  }
+}
+
   @media (max-width: 900px) {
     .hero-landing { flex-direction: column; padding: 32px 12px; }
     .hero-landing__right, .hero-landing__left { min-width: unset; width: 100%; }
-    .hero-landing__faces { justify-content: center; }
+    .hero-showcase {
+      margin-left: auto;
+      margin-right: auto;
+      max-width: min(440px, 100%);
+    }
   }
-  
 
 
 
@@ -2582,7 +2623,8 @@ main > section > .text-block-2 {
         min-height: 0;
         padding: 24px 16px;
         margin-bottom: 24px;
-        overflow: hidden;
+        /* overflow: hidden режет декоративные тени и иногда ухудшает сглаживание фото внутри */
+        overflow: visible;
     }
 
     .hero-landing__left,
@@ -2611,35 +2653,14 @@ main > section > .text-block-2 {
         justify-content: center;
     }
 
-    .hero-landing__faces {
-        width: 100%;
-        max-width: 100%;
-        justify-content: center;
-        align-content: flex-start;
-        gap: 8px 12px;
+    .hero-showcase {
+        gap: 10px 12px;
+        max-width: min(440px, 100%);
     }
 
-    .hero-face-block {
-        flex: 0 1 calc(33.333% - 8px);
-        min-width: 78px;
-        max-width: 98px;
-    }
-
-    .hero-face {
-        width: 72px;
-        height: 72px;
-    }
-
-    .hero-face-label {
-        font-size: 0.8rem;
-        line-height: 1.2;
-        white-space: normal;
-        word-break: break-word;
-    }
-
-    .hero-emoji {
-        font-size: 2.4rem;
-        line-height: 1;
+    .hero-showcase__label {
+        font-size: 0.78rem;
+        padding: 8px 6px 10px;
     }
 
     section.home-staff-section,
@@ -2711,7 +2732,7 @@ main > section > .text-block-2 {
 
     .hero-landing__right {
         margin-top: 24px;
-        max-height: 25vh;
+        max-height: none;
     }
 
     .hero-landing__stats {
@@ -2737,23 +2758,15 @@ main > section > .text-block-2 {
         font-size: 0.88rem;
     }
 
-    .hero-face-block {
-        flex-basis: calc(33.333% - 8px);
-        min-width: 70px;
-        max-width: 90px;
+    .hero-showcase {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 10px;
+        max-width: 100%;
     }
 
-    .hero-face {
-        width: 64px;
-        height: 64px;
-    }
-
-    .hero-face-label {
+    .hero-showcase__label {
         font-size: 0.74rem;
-    }
-
-    .hero-emoji {
-        font-size: 2rem;
+        padding: 8px 6px;
     }
 
     section.home-staff-section,
