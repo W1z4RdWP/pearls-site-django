@@ -11,11 +11,11 @@
         <img src="{{ first_image.image.url }}" alt="{{ item.title }}" loading="lazy">
       </a>
     {% elif first_media and first_media.video %}
-      <video class="w-100" controls preload="metadata" playsinline>
+      <video controls preload="metadata" playsinline>
         <source src="{{ first_media.video.url }}">
       </video>
     {% elif item.video %}
-      <video class="w-100" controls preload="metadata" playsinline>
+      <video controls preload="metadata" playsinline>
         <source src="{{ item.video.url }}">
       </video>
     {% else %}

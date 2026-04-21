@@ -147,7 +147,7 @@
             <div class="top-user-info">
                 <h5 class="top-user-name">{{ top_user.profile.get_full_name|default:top_user.username }}</h5>
                 {% if top_user.profile.role %}
-                <p class="top-user-role">{{ top_user.profile.role.name }}</p>
+                    <p class="top-user-role">{{ top_user.profile.role.name }}</p>
                 {% endif %}
             </div>
             <div class="top-user-points" title="Баллы DASCOIN">
