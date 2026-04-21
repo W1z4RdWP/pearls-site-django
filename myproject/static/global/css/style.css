@@ -143,6 +143,107 @@ header{
     color: var(--color-navbar-link-hover) !important;
 }
 
+/* Навигация: эмодзи до загрузки веб-шрифта Font Awesome (медленный CDN) */
+.nav-icon-slot {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.2em;
+    height: 1.2em;
+    flex-shrink: 0;
+    vertical-align: middle;
+}
+
+.nav-icon-slot__emoji {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 1em;
+    line-height: 1;
+    font-style: normal;
+    z-index: 0;
+    opacity: 1;
+    transition: opacity 0.2s ease;
+    pointer-events: none;
+}
+
+.nav-icon-slot__fa {
+    position: relative;
+    z-index: 1;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+}
+
+html.nav-fa-ready .nav-icon-slot__emoji {
+    opacity: 0;
+}
+
+html.nav-fa-ready .nav-icon-slot__fa {
+    opacity: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .nav-icon-slot__emoji,
+    .nav-icon-slot__fa {
+        transition: none;
+    }
+}
+
+.navbar-avatar-wrap {
+    position: relative;
+    display: inline-flex;
+    width: 38px;
+    height: 38px;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.navbar-avatar-wrap__emoji {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 1.35rem;
+    line-height: 1;
+    opacity: 1;
+    transition: opacity 0.25s ease;
+    pointer-events: none;
+    z-index: 0;
+}
+
+.navbar-avatar--defer {
+    position: relative;
+    z-index: 1;
+    opacity: 0;
+    transition: opacity 0.25s ease;
+}
+
+.navbar-avatar-wrap.is-loaded .navbar-avatar-wrap__emoji {
+    opacity: 0;
+}
+
+.navbar-avatar--defer.is-loaded {
+    opacity: 1;
+}
+
+.navbar-avatar.is-broken {
+    display: none;
+}
+
+@media (max-width: 900px) {
+    .navbar-avatar-wrap {
+        width: 32px;
+        height: 32px;
+    }
+
+    .navbar-avatar-wrap__emoji {
+        font-size: 1.15rem;
+    }
+}
+
 .custom-navbar .navbar-nav {
     margin-right: 130px; /* отступ от колокольчика и аватара */
 }
@@ -2060,7 +2161,10 @@ main > section > .text-block-2 {
     transform: translateY(-2px) scale(1.06);
     text-shadow: 0 2px 8px rgba(255,179,0,0.12);
 }
-.custom-nav-link:hover i, .custom-nav-link:focus i {
+.custom-nav-link:hover i,
+.custom-nav-link:focus i,
+.custom-nav-link:hover .nav-icon-slot__fa,
+.custom-nav-link:focus .nav-icon-slot__fa {
     color: #ffb300;
     transform: scale(1.2) rotate(-8deg);
 }
