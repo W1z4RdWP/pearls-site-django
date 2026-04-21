@@ -1303,9 +1303,14 @@ main > section > .text-block-2 {
 
     #staffCarousel .carousel-item img {
         width: 100%;
-        place-self: center;
+        max-width: 100%;
         height: 20vh;
-        object-fit: cover;
+        max-height: 20vh;
+        object-fit: contain;
+        object-position: center;
+        display: block;
+        margin-left: auto;
+        margin-right: auto;
     }
 
 
@@ -1637,7 +1642,10 @@ main > section > .text-block-2 {
 
     #staffCarousel .carousel-item img {
         height: 10vh!important;
+        max-height: 10vh !important;
         max-width: 95%;
+        object-fit: contain !important;
+        object-position: center;
     }
 
     /* Section 3 - Doctors */
@@ -2688,7 +2696,9 @@ main > section > .text-block-2 {
         width: 100%;
         max-width: 100%;
         height: 220px !important;
-        object-fit: cover;
+        max-height: 220px !important;
+        object-fit: contain;
+        object-position: center;
         border-radius: 18px;
     }
 }
@@ -2766,5 +2776,8 @@ main > section > .text-block-2 {
 
     #staffCarousel .carousel-item img {
         height: 180px !important;
+        max-height: 180px !important;
+        object-fit: contain !important;
+        object-position: center;
     }
 }
