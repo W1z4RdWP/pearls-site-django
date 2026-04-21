@@ -145,7 +145,15 @@
             </div>
             <div class="top-user-avatar">
                 {% if top_user.profile.image %}
-                    <img src="{{ top_user.profile.image.url }}" alt="{{ top_user.profile.get_full_name|default:top_user.username }}">
+                    <span class="top-user-avatar__placeholder" aria-hidden="true"></span>
+                    <img class="top-user-avatar__img"
+                         src="{% url 'users:avatar_thumbnail' user_id=top_user.pk %}"
+                         alt="{{ top_user.profile.get_full_name|default:top_user.username }}"
+                         width="64"
+                         height="64"
+                         loading="lazy"
+                         decoding="async"
+                         onload="this.classList.add('is-loaded'); var p=this.previousElementSibling; if(p) p.classList.add('is-hidden');">
                 {% else %}
                     <div class="top-user-avatar-fallback"><i class="fa-solid fa-user"></i></div>
                 {% endif %}

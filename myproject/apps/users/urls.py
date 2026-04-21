@@ -15,7 +15,7 @@ urlpatterns = [
     path('profile/transactions/export/excel/', views.export_transactions_excel, name='export_transactions_excel'),
     path('profile/transactions/export/pdf/', views.export_transactions_pdf, name='export_transactions_pdf'),
     path('clear-intro-modal-flag/', views.clear_intro_modal_flag, name='clear_intro_modal_flag'),
-    
+    path('avatar-thumb/<int:user_id>/', views.public_profile_avatar_thumbnail, name='avatar_thumbnail'),
 
     # Регистрация и аутентификация
     path('register/', views.RegisterView.as_view(), name='register'),
