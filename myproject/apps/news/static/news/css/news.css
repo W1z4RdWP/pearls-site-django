@@ -28,6 +28,7 @@
   border-radius: 0.35rem;
   color: #212529;
   border: 1px solid transparent;
+  text-decoration: none;
 }
 
 .news-sidebar__link:hover {
