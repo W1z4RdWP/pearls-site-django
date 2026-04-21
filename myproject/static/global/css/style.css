@@ -2680,7 +2680,7 @@ main > section > .text-block-2 {
     }
 
     #staffCarousel .staff-indicators {
-        bottom: 8px;
+        bottom: 0;
     }
 
     #staffCarousel .carousel-item img {
