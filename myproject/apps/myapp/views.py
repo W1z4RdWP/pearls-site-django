@@ -1,4 +1,6 @@
 from sys import version
+from typing import Optional
+from django.core.exceptions import ObjectDoesNotExist
 from django.db.models import Q
 from django.shortcuts import render, redirect
 from django.http import HttpResponse, HttpRequest, JsonResponse
@@ -16,6 +18,41 @@ from django.core.cache import cache
 
 
 HOMEPAGE_CACHE_TIMEOUT = 3600
+
+
+def _leaderboard_users_qs():
+    """Одобренные сотрудники без прав персонала — та же выборка, что и для рейтинга на главной."""
+    return User.objects.filter(profile__is_approved=True).exclude(
+        Q(is_superuser=True) | Q(is_staff=True)
+    )
+
+
+def _dascoin_leaderboard_rank(user) -> Optional[int]:
+    """
+    Место пользователя (1 — лидер) среди одобренных обычных сотрудников
+    по баллам DASCOIN и email как тайбрейку, как в order_by рейтинга.
+    """
+    if not user.is_authenticated:
+        return None
+    try:
+        profile = user.profile
+    except ObjectDoesNotExist:
+        return None
+    if not profile.is_approved or user.is_superuser or user.is_staff:
+        return None
+    points = profile.dascoin_points or 0
+    email = user.email or ""
+    ahead = (
+        _leaderboard_users_qs()
+        .exclude(pk=user.pk)
+        .filter(
+            Q(profile__dascoin_points__gt=points)
+            | Q(profile__dascoin_points=points, email__lt=email)
+        )
+        .count()
+    )
+    return ahead + 1
+
 
 def _get_user_cache_version(user_id: int) -> int:
     return cache.get(f"user_cache_version:{user_id}", 1)
@@ -184,15 +221,15 @@ class IndexView(TemplateView):
         else:
             context['courses'] = []
 
-        # Рейтинг по всем сотрудникам, выводим 10 лучших по баллам пользователей
-        top_users = User.objects.filter(
-            profile__is_approved=True
-        ).exclude(
-            Q(is_superuser=True) | Q(is_staff=True) | Q(id=self.request.user.id)
-        ).select_related('profile').order_by(
-            '-profile__dascoin_points', 'email'
-        ).distinct()[:10]
-        context['top_10_users'] = top_users
+        # Рейтинг: 10 лучших среди одобренных сотрудников (без staff/superuser)
+        top_users = (
+            _leaderboard_users_qs()
+            .select_related("profile")
+            .order_by("-profile__dascoin_points", "email")
+            .distinct()[:10]
+        )
+        context["top_10_users"] = top_users
+        context["current_user_dascoin_rank"] = _dascoin_leaderboard_rank(self.request.user)
         return context
 
 

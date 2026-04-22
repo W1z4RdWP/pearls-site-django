@@ -180,6 +180,41 @@
         </li>
         {% endfor %}
     </ol>
+    {% if user.is_authenticated and current_user_dascoin_rank and current_user_dascoin_rank > 10 %}
+    <div class="top-users-current-rank">
+        <p class="top-users-current-rank__hint">Ваше место в общем рейтинге (не в топ-10)</p>
+        <div class="top-user-card top-user-card--self box hidden" aria-label="Ваша позиция в рейтинге">
+            <div class="top-user-rank">
+                <span class="top-user-rank-num">{{ current_user_dascoin_rank }}</span>
+            </div>
+            <div class="top-user-avatar">
+                {% if user.profile.image %}
+                    <span class="top-user-avatar__placeholder" aria-hidden="true"></span>
+                    <img class="top-user-avatar__img"
+                         src="{% url 'users:avatar_thumbnail' user_id=user.pk %}"
+                         alt="{{ user.profile.get_full_name|default:user.username }}"
+                         width="64"
+                         height="64"
+                         loading="lazy"
+                         decoding="async"
+                         onload="this.classList.add('is-loaded'); var p=this.previousElementSibling; if(p) p.classList.add('is-hidden');">
+                {% else %}
+                    <div class="top-user-avatar-fallback"><i class="fa-solid fa-user"></i></div>
+                {% endif %}
+            </div>
+            <div class="top-user-info">
+                <h5 class="top-user-name">{{ user.profile.get_full_name|default:user.username }}</h5>
+                {% if user.profile.role %}
+                    <p class="top-user-role">{{ user.profile.role.name }}</p>
+                {% endif %}
+            </div>
+            <div class="top-user-points" title="Баллы DASCOIN">
+                <i class="fa-solid fa-gem"></i>
+                <span>{{ user.profile.dascoin_points|default:0 }}</span>
+            </div>
+        </div>
+    </div>
+    {% endif %}
     {% else %}
     <div class="top-users-empty">
         <p>Пока нет данных для рейтинга.</p>

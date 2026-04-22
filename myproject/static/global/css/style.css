@@ -2613,6 +2613,24 @@ main > section > .text-block-2 {
     background: linear-gradient(135deg, rgba(205, 127, 50, 0.10), var(--color-bg-secondary));
 }
 
+.top-users-current-rank {
+    margin-top: 10px;
+    width: 100%;
+}
+
+.top-users-current-rank__hint {
+    text-align: center;
+    font-size: 0.95rem;
+    color: var(--color-text-secondary);
+    margin: 0 0 12px;
+}
+
+.top-user-card.top-user-card--self {
+    border-style: dashed;
+    border-color: var(--color-accent);
+    background: linear-gradient(135deg, rgba(77, 124, 255, 0.06), var(--color-bg-secondary));
+}
+
 .top-user-rank {
     display: flex;
     align-items: center;
