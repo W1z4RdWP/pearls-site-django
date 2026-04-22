@@ -140,7 +140,10 @@
     {% if top_10_users %}
     <ol class="top-users-list">
         {% for top_user in top_10_users %}
-        <li class="top-user-card box hidden {% if forloop.counter == 1 %}rank-gold{% elif forloop.counter == 2 %}rank-silver{% elif forloop.counter == 3 %}rank-bronze{% endif %}">
+        <li class="top-user-card box hidden {% if forloop.counter == 1 %}rank-gold{% elif forloop.counter == 2 %}rank-silver{% elif forloop.counter == 3 %}rank-bronze{% endif %}{% if user.is_authenticated and top_user.pk == user.pk %} top-user-card--you{% endif %}"{% if user.is_authenticated and top_user.pk == user.pk %} aria-current="true"{% endif %}>
+            {% if user.is_authenticated and top_user.pk == user.pk %}
+            <span class="top-user-card__you-badge">Это Вы🤩</span>
+            {% endif %}
             <div class="top-user-rank">
                 {% if forloop.counter == 1 %}
                     <i class="fa-solid fa-medal" style="color: #FFD700;" title="1 место"></i>
