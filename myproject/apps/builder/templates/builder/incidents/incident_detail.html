@@ -4,6 +4,7 @@
 {% block title %}Детали инцидентов{% endblock %}
 {% block specific_styles %}
     <link rel="stylesheet" href="{% static 'builder/css/incidents.css' %}">
+    <link rel="stylesheet" href="{% static 'global/admin/css/vendor/select2/select2.min.css' %}">
 {% endblock %}
 {% block content %}
 {% csrf_token %}
@@ -36,14 +37,15 @@
                     <button type="button" class="btn btn-sm btn-outline-secondary date-quick-btn" id="date-btn-reset" title="Весь период, сбросить фильтр по дате">&lt;-&gt;</button>
                 </div>
             </div>
-            <!-- Фильтр по пользователю -->
-            <div class="col-md-3 col-lg-2">
-                <select class="form-control" id="assigned_user" name="assigned_user">
+            <!-- Фильтр по пользователю (поиск внутри списка — Select2) -->
+            <div class="col-md-3 col-lg-2 incident-assigned-user-col">
+                <label for="assigned_user" class="sr-only">Пользователь</label>
+                <select class="form-control" id="assigned_user" name="assigned_user" title="Фильтр по назначенному пользователю, поиск в раскрывающемся списке">
                     <option value="">Все пользователи</option>
                     {% for user in users %}
-                        <option value="{{ user.id }}" {% if selected_user_id == user.id %}selected{% endif %}>
-                            {{ user.get_full_name|default:user.username }}
-                        </option>
+                    <option value="{{ user.id }}" {% if selected_user_id == user.id %}selected{% endif %}>
+                        {{ user.get_full_name|default:user.username }}
+                    </option>
                     {% endfor %}
                 </select>
             </div>
@@ -836,4 +838,22 @@
         </form>
     </div>
 </div>
+{% endblock %}
+
+{% block specific_scripts %}
+    <script src="{% static 'global/admin/js/vendor/select2/select2.full.min.js' %}"></script>
+    <script src="{% static 'global/admin/js/vendor/select2/i18n/ru.js' %}"></script>
+    <script>
+        jQuery(function($) {
+            if (!$('#assigned_user').length || !$.fn.select2) return;
+            $('#assigned_user').select2({
+                width: '100%',
+                language: 'ru',
+                minimumResultsForSearch: 0,
+                dropdownParent: jQuery('body'),
+                containerCssClass: 'incident-assigned-user-s2',
+                dropdownCssClass: 'incident-assigned-user-s2-d'
+            });
+        });
+    </script>
 {% endblock %}

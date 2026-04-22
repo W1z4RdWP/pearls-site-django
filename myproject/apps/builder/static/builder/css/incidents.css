@@ -68,7 +68,44 @@
   cursor: default;
 }
 .department-dropdown-menu label.cursor-pointer {
-  cursor: pointer;
+    cursor: pointer;
+}
+
+/* Select2: фильтр по пользователю (детали инцидентов), поиск в раскрывающемся списке */
+.incident-assigned-user-s2.select2-container--default,
+.incident-assigned-user-s2 {
+    display: block;
+    font-size: 0.9rem;
+}
+.incident-assigned-user-s2 .select2-selection--single {
+    min-height: calc(1.5em + 0.75rem + 2px);
+    padding: 0.25rem 0.5rem;
+    border: 1px solid #ced4da;
+    border-radius: 0.25rem;
+    background: #fff;
+    display: flex;
+    align-items: center;
+}
+.incident-assigned-user-s2 .select2-selection--single .select2-selection__arrow {
+    height: 100%;
+    top: 0;
+    right: 0.3rem;
+}
+.incident-assigned-user-s2-d .select2-search--dropdown .select2-search__field {
+    border: 1px solid #ced4da;
+    border-radius: 0.25rem;
+    padding: 0.25rem 0.5rem;
+    margin: 0.2rem 0.25rem 0.35rem;
+    width: calc(100% - 0.5rem);
+    box-sizing: border-box;
+}
+.incident-assigned-user-s2-d .select2-results__options {
+    max-height: 18rem;
+}
+.incident-assigned-user-s2-d {
+    border-color: #ced4da;
+    border-radius: 0.25rem;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
 }
 
 /* Кнопки быстрого выбора периода по дате (инциденты) */
