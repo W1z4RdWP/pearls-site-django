@@ -152,6 +152,106 @@ legend{
     border-right: 1px solid #333;
 }
 
+/* Сводные таблицы бейджей/достижений в модальных окнах профиля */
+.profile-help-modal-body {
+    text-align: left;
+}
+
+.profile-help-table-wrap {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    max-width: 100%;
+}
+
+.profile-help-table {
+    width: 100%;
+    margin-bottom: 0;
+    table-layout: auto;
+}
+
+.profile-help-table thead th {
+    white-space: normal;
+    vertical-align: middle;
+}
+
+.profile-help-table td {
+    vertical-align: top;
+    text-align: left;
+}
+
+.profile-help-table td p {
+    margin-bottom: 0.35rem;
+}
+
+.profile-help-table img {
+    max-width: 100%;
+    height: auto;
+    display: block;
+    margin: 0.35rem auto 0;
+}
+
+@media (max-width: 767.98px) {
+    #badgesHelpModal .modal-dialog,
+    #achievementsHelpModal .modal-dialog {
+        margin: 0.5rem auto;
+        max-width: calc(100% - 1rem);
+    }
+
+    .profile-help-table thead {
+        display: none;
+    }
+
+    .profile-help-table tbody tr {
+        display: block;
+        border: 1px solid #dee2e6;
+        border-radius: 8px;
+        margin-bottom: 1rem;
+        padding: 0;
+        background: #fff;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+    }
+
+    .profile-help-table tbody tr:last-child {
+        margin-bottom: 0;
+    }
+
+    .profile-help-table tbody td {
+        display: block;
+        width: 100%;
+        max-width: 100%;
+        box-sizing: border-box;
+        border: none !important;
+        border-bottom: 1px solid #eee !important;
+        text-align: left !important;
+        padding: 0.75rem 1rem;
+    }
+
+    .profile-help-table tbody td:last-child {
+        border-bottom: none !important;
+    }
+
+    .profile-help-table tbody td::before {
+        content: attr(data-label);
+        display: block;
+        font-weight: 600;
+        font-size: 0.7rem;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        color: #6c757d;
+        margin-bottom: 0.4rem;
+    }
+
+    .badgedHelpModal__tbody tr td:first-child,
+    .achievementsHelpModal__tbody tr td:first-child {
+        border-right: none !important;
+    }
+
+    .badgedHelpModal__tbody tr,
+    .achievementsHelpModal__tbody tr {
+        border-top: none;
+    }
+}
+
 /* #badgesHelpModal .modal-body table thead th {
     position: sticky;
     top: 0;
