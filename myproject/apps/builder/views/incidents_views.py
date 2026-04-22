@@ -1089,10 +1089,10 @@ class IncidentDetailListView(ListView):
         
         # Получаем список всех активных пользователей для фильтра
         User = get_user_model()
-        users_queryset = User.objects.filter(is_active=True)
+        users_queryset = User.objects.filter(is_active=True).filter(profile__is_approved=True)
         if mentor_department_id is not None:
             users_queryset = users_queryset.filter(profile__department_id=mentor_department_id)
-        context['users'] = users_queryset.order_by('last_name', 'first_name')
+        context['users'] = users_queryset.order_by('last_name', 'first_name').reverse()
         
         # Параметры фильтров
         search = self.request.GET.get('search', '').strip()
