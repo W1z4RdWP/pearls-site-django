@@ -2592,6 +2592,17 @@ main > section > .text-block-2 {
     min-height: 92px;
 }
 
+/* Ссылка внутри li: не ломает сетку карточки (как у пользователей без ссылки) */
+a.top-user-card__link {
+    display: contents;
+    color: inherit;
+    text-decoration: none;
+}
+
+.top-user-card--staff-link {
+    cursor: pointer;
+}
+
 .top-user-card:hover {
     transform: translateY(-3px);
     box-shadow: 0 10px 24px rgba(77, 124, 255, 0.12);

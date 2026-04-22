@@ -140,46 +140,52 @@
     {% if top_10_users %}
     <ol class="top-users-list">
         {% for top_user in top_10_users %}
-        <li class="top-user-card box hidden {% if forloop.counter == 1 %}rank-gold{% elif forloop.counter == 2 %}rank-silver{% elif forloop.counter == 3 %}rank-bronze{% endif %}{% if user.is_authenticated and top_user.pk == user.pk %} top-user-card--you{% endif %}"{% if user.is_authenticated and top_user.pk == user.pk %} aria-current="true"{% endif %}>
-            {% if user.is_authenticated and top_user.pk == user.pk %}
-            <span class="top-user-card__you-badge">Это Вы🤩</span>
+        <li class="top-user-card box hidden {% if forloop.counter == 1 %}rank-gold{% elif forloop.counter == 2 %}rank-silver{% elif forloop.counter == 3 %}rank-bronze{% endif %}{% if user.is_authenticated and top_user.pk == user.pk %} top-user-card--you{% endif %}{% if request.user.is_staff %} top-user-card--staff-link{% endif %}"{% if user.is_authenticated and top_user.pk == user.pk %} aria-current="true"{% endif %}>
+            {% if request.user.is_staff %}
+            <a href="{% url 'user_management:user_progress' pk=top_user.pk %}" class="top-user-card__link">
             {% endif %}
-            <div class="top-user-rank">
-                {% if forloop.counter == 1 %}
-                    <i class="fa-solid fa-medal" style="color: #FFD700;" title="1 место"></i>
-                {% elif forloop.counter == 2 %}
-                    <i class="fa-solid fa-medal" style="color: #C0C0C0;" title="2 место"></i>
-                {% elif forloop.counter == 3 %}
-                    <i class="fa-solid fa-medal" style="color: #CD7F32;" title="3 место"></i>
-                {% else %}
-                    <span class="top-user-rank-num">{{ forloop.counter }}</span>
-                {% endif %}
-            </div>
-            <div class="top-user-avatar">
-                {% if top_user.profile.image %}
-                    <span class="top-user-avatar__placeholder" aria-hidden="true"></span>
-                    <img class="top-user-avatar__img"
-                         src="{% url 'users:avatar_thumbnail' user_id=top_user.pk %}"
-                         alt="{{ top_user.profile.get_full_name|default:top_user.username }}"
-                         width="64"
-                         height="64"
-                         loading="lazy"
-                         decoding="async"
-                         onload="this.classList.add('is-loaded'); var p=this.previousElementSibling; if(p) p.classList.add('is-hidden');">
-                {% else %}
-                    <div class="top-user-avatar-fallback"><i class="fa-solid fa-user"></i></div>
-                {% endif %}
-            </div>
-            <div class="top-user-info">
-                <h5 class="top-user-name">{{ top_user.profile.get_full_name|default:top_user.username }}</h5>
-                {% if top_user.profile.role %}
-                    <p class="top-user-role">{{ top_user.profile.role.name }}</p>
-                {% endif %}
-            </div>
-            <div class="top-user-points" title="Баллы DASCOIN">
-                <i class="fa-solid fa-gem"></i>
-                <span>{{ top_user.profile.dascoin_points|default:0 }}</span>
-            </div>
+              {% if user.is_authenticated and top_user.pk == user.pk %}
+              <span class="top-user-card__you-badge">Это Вы🤩</span>
+              {% endif %}
+              <div class="top-user-rank">
+                  {% if forloop.counter == 1 %}
+                      <i class="fa-solid fa-medal" style="color: #FFD700;" title="1 место"></i>
+                  {% elif forloop.counter == 2 %}
+                      <i class="fa-solid fa-medal" style="color: #C0C0C0;" title="2 место"></i>
+                  {% elif forloop.counter == 3 %}
+                      <i class="fa-solid fa-medal" style="color: #CD7F32;" title="3 место"></i>
+                  {% else %}
+                      <span class="top-user-rank-num">{{ forloop.counter }}</span>
+                  {% endif %}
+              </div>
+              <div class="top-user-avatar">
+                  {% if top_user.profile.image %}
+                      <span class="top-user-avatar__placeholder" aria-hidden="true"></span>
+                      <img class="top-user-avatar__img"
+                           src="{% url 'users:avatar_thumbnail' user_id=top_user.pk %}"
+                           alt="{{ top_user.profile.get_full_name|default:top_user.username }}"
+                           width="64"
+                           height="64"
+                           loading="lazy"
+                           decoding="async"
+                           onload="this.classList.add('is-loaded'); var p=this.previousElementSibling; if(p) p.classList.add('is-hidden');">
+                  {% else %}
+                      <div class="top-user-avatar-fallback"><i class="fa-solid fa-user"></i></div>
+                  {% endif %}
+              </div>
+              <div class="top-user-info">
+                  <h5 class="top-user-name">{{ top_user.profile.get_full_name|default:top_user.username }}</h5>
+                  {% if top_user.profile.role %}
+                      <p class="top-user-role">{{ top_user.profile.role.name }}</p>
+                  {% endif %}
+              </div>
+              <div class="top-user-points" title="Баллы DASCOIN">
+                  <i class="fa-solid fa-gem"></i>
+                  <span>{{ top_user.profile.dascoin_points|default:0 }}</span>
+              </div>
+            {% if request.user.is_staff %}
+            </a>
+            {% endif %}
         </li>
         {% endfor %}
     </ol>
