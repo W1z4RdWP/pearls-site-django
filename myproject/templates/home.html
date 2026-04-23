@@ -191,20 +191,29 @@
                     {% endif %}
                     <div class="top-podium__card top-podium__card--1">
                         <div class="top-podium__medal top-podium__medal--1" title="1 место"><span class="top-podium__medal-ring">1</span></div>
-                        <div class="top-podium__avatar top-user-avatar top-user-avatar--podium">
-                            {% if top_user.profile.image %}
-                            <span class="top-user-avatar__placeholder" aria-hidden="true"></span>
-                            <img class="top-user-avatar__img"
-                                 src="{% url 'users:avatar_thumbnail' user_id=top_user.pk %}"
-                                 alt="{{ top_user.profile.get_full_name|default:top_user.username }}"
-                                 width="80"
-                                 height="80"
-                                 loading="lazy"
+                        <div class="top-podium__avatar-laurel">
+                            <img class="top-podium__laurel-img"
+                                 src="{% static 'global/imgs/golden-laurel-wreath.png' %}"
+                                 alt=""
+                                 width="140"
+                                 height="140"
                                  decoding="async"
-                                 onload="this.classList.add('is-loaded'); var p=this.previousElementSibling; if(p) p.classList.add('is-hidden');">
-                            {% else %}
-                            <div class="top-user-avatar-fallback"><i class="fa-solid fa-user"></i></div>
-                            {% endif %}
+                                 aria-hidden="true">
+                            <div class="top-podium__avatar top-user-avatar top-user-avatar--podium">
+                                {% if top_user.profile.image %}
+                                <span class="top-user-avatar__placeholder" aria-hidden="true"></span>
+                                <img class="top-user-avatar__img"
+                                     src="{% url 'users:avatar_thumbnail' user_id=top_user.pk %}"
+                                     alt="{{ top_user.profile.get_full_name|default:top_user.username }}"
+                                     width="80"
+                                     height="80"
+                                     loading="lazy"
+                                     decoding="async"
+                                     onload="this.classList.add('is-loaded'); var p=this.previousElementSibling; if(p) p.classList.add('is-hidden');">
+                                {% else %}
+                                <div class="top-user-avatar-fallback"><i class="fa-solid fa-user"></i></div>
+                                {% endif %}
+                            </div>
                         </div>
                         <h3 class="top-podium__name top-user-name">{{ top_user.profile.get_full_name|default:top_user.username }}</h3>
                         {% if top_user.profile.role %}
@@ -266,7 +275,7 @@
         </div>
     </div>
 
-    <ol class="top-users-list top-users-list--rest" start="4" aria-label="Места с 4 по 10">
+    <ol class="top-users-list top-users-list--rest" start="4" aria-label="{% if user.is_authenticated and current_user_dascoin_rank and current_user_dascoin_rank > 10 %}Места с 4 по 10 и ваша позиция{% else %}Места с 4 по 10{% endif %}">
         {% for top_user in top_10_users %}
         {% if forloop.counter > 3 %}
         <li class="top-user-card box hidden{% if user.is_authenticated and top_user.pk == user.pk %} top-user-card--you{% endif %}{% if request.user.is_staff %} top-user-card--staff-link{% endif %}"{% if user.is_authenticated and top_user.pk == user.pk %} aria-current="true"{% endif %}>
@@ -310,43 +319,46 @@
         </li>
         {% endif %}
         {% endfor %}
-    </ol>
-    </div>
-    {% if user.is_authenticated and current_user_dascoin_rank and current_user_dascoin_rank > 10 %}
-    <div class="top-users-current-rank">
-        <p class="top-users-current-rank__hint">Ваше место в общем рейтинге (не в топ-10)</p>
-        <div class="top-user-card top-user-card--self box hidden" aria-label="Ваша позиция в рейтинге">
+        {% if user.is_authenticated and current_user_dascoin_rank and current_user_dascoin_rank > 10 %}
+        <li class="top-user-card top-user-card--self top-user-card--in-table box hidden" value="{{ current_user_dascoin_rank }}" aria-label="Ваше место в рейтинге: {{ current_user_dascoin_rank }}" aria-current="true">
+            {% if request.user.is_staff %}
+            <a href="{% url 'user_management:user_progress' pk=user.pk %}" class="top-user-card__link">
+            {% endif %}
             <div class="top-user-rank">
                 <span class="top-user-rank-num">{{ current_user_dascoin_rank }}</span>
             </div>
             <div class="top-user-avatar">
                 {% if user.profile.image %}
-                    <span class="top-user-avatar__placeholder" aria-hidden="true"></span>
-                    <img class="top-user-avatar__img"
-                         src="{% url 'users:avatar_thumbnail' user_id=user.pk %}"
-                         alt="{{ user.profile.get_full_name|default:user.username }}"
-                         width="64"
-                         height="64"
-                         loading="lazy"
-                         decoding="async"
-                         onload="this.classList.add('is-loaded'); var p=this.previousElementSibling; if(p) p.classList.add('is-hidden');">
+                <span class="top-user-avatar__placeholder" aria-hidden="true"></span>
+                <img class="top-user-avatar__img"
+                     src="{% url 'users:avatar_thumbnail' user_id=user.pk %}"
+                     alt="{{ user.profile.get_full_name|default:user.username }}"
+                     width="64"
+                     height="64"
+                     loading="lazy"
+                     decoding="async"
+                     onload="this.classList.add('is-loaded'); var p=this.previousElementSibling; if(p) p.classList.add('is-hidden');">
                 {% else %}
-                    <div class="top-user-avatar-fallback"><i class="fa-solid fa-user"></i></div>
+                <div class="top-user-avatar-fallback"><i class="fa-solid fa-user"></i></div>
                 {% endif %}
             </div>
             <div class="top-user-info">
                 <h5 class="top-user-name">{{ user.profile.get_full_name|default:user.username }}</h5>
                 {% if user.profile.role %}
-                    <p class="top-user-role">{{ user.profile.role.name }}</p>
+                <p class="top-user-role">{{ user.profile.role.name }}</p>
                 {% endif %}
             </div>
             <div class="top-user-points" title="Баллы DASCOIN">
                 <i class="fa-solid fa-gem"></i>
                 <span>{{ user.profile.dascoin_points|default:0 }}</span>
             </div>
-        </div>
+            {% if request.user.is_staff %}
+            </a>
+            {% endif %}
+        </li>
+        {% endif %}
+    </ol>
     </div>
-    {% endif %}
     {% else %}
     <div class="top-users-empty">
         <p>Пока нет данных для рейтинга.</p>
