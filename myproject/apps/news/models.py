@@ -4,11 +4,7 @@ from django.urls import reverse
 
 class NewsType(models.TextChoices):
     NEW_EMPLOYEES = 'new_employees', 'Новые сотрудники'
-    EVENTS = 'events', 'Мероприятия'
-    BIRTHDAYS = 'birthdays', 'Дни рождения'
     CORPORATE_EVENTS = 'corporate_events', 'Корпоративная жизнь'
-    INTERNAL_EVENTS = 'internal_events', 'Праздники компании'
-    NEW_YEAR = 'new_year', 'Новый год'
     OTHER = 'other', 'Другое'
 
 
