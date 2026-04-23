@@ -191,12 +191,6 @@ legend{
 }
 
 @media (max-width: 767.98px) {
-    #badgesHelpModal .modal-dialog,
-    #achievementsHelpModal .modal-dialog {
-        margin: 0.5rem auto;
-        max-width: calc(100% - 1rem);
-    }
-
     .profile-help-table thead {
         display: none;
     }
@@ -942,7 +936,8 @@ legend{
     animation: fadeIn 0.3s ease;
 }
 
-.modal-content {
+/* Скоуп под .modal-overlay — иначе перебиваем Bootstrap .modal (профиль, подсказки бейджей) */
+.modal-overlay .modal-content {
     background: white;
     border-radius: 12px;
     max-width: 90%;
@@ -953,7 +948,7 @@ legend{
     animation: slideIn 0.3s ease;
 }
 
-.modal-header {
+.modal-overlay .modal-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -962,13 +957,13 @@ legend{
     background: #f8f9fa;
 }
 
-.modal-header h3 {
+.modal-overlay .modal-header h3 {
     margin: 0;
     color: var(--primary-text-color);
     font-size: 1.3em;
 }
 
-.modal-close {
+.modal-overlay .modal-close {
     background: none;
     border: none;
     font-size: 24px;
@@ -984,12 +979,12 @@ legend{
     transition: background-color 0.2s;
 }
 
-.modal-close:hover {
+.modal-overlay .modal-close:hover {
     background: #e0e0e0;
     color: #333;
 }
 
-.modal-body {
+.modal-overlay .modal-body {
     padding: 20px;
     max-height: 60vh;
     overflow-y: auto;
@@ -1013,21 +1008,21 @@ legend{
 
 /* Адаптивность для модального окна */
 @media (max-width: 768px) {
-    .modal-content {
+    .modal-overlay .modal-content {
         width: 95%;
         max-height: 95%;
     }
     
-    .modal-header {
+    .modal-overlay .modal-header {
         padding: 15px;
     }
     
-    .modal-body {
+    .modal-overlay .modal-body {
         padding: 15px;
         max-height: 70vh;
     }
     
-    .modal-header h3 {
+    .modal-overlay .modal-header h3 {
         font-size: 1.1em;
     }
 }
