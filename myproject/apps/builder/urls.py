@@ -22,7 +22,7 @@ from builder.views.categories_views import (
                     ajax_rename_category, reorder_categories
 )
 from builder.views.incidents_views import (
-                    CreateCourseFromIncidentView, IncidentDeclineView, IncidentDetailListView, 
+                    BulkUnassignIncidentUsersView, CreateCourseFromIncidentView, IncidentDeclineView, IncidentDeleteView, IncidentDetailListView, IncidentDetailLoadMoreView,
                     IncidentListView, IncidentCreateView, IncidentStatusesReportView, IncidentUpdateView, UnassignIncidentUserView, 
                     incidents_export_excel_report
                 )
@@ -76,8 +76,11 @@ urlpatterns = [
     path('incidents/add/', IncidentCreateView.as_view(), name='incident_add'),
     path('incidents/<int:pk>/edit/', IncidentUpdateView.as_view(), name='incident_edit'),
     path('incidents/<int:pk>/decline/', IncidentDeclineView.as_view(), name='incident_decline'),
+    path('incidents/<int:pk>/delete/', IncidentDeleteView.as_view(), name='incident_delete'),
     path('incidents/<int:pk>/create-course/', CreateCourseFromIncidentView.as_view(), name='incident_create_course'),
     path('incidents/detail/', IncidentDetailListView.as_view(), name='incident_detail'),
+    path('incidents/detail/bulk-unassign/', BulkUnassignIncidentUsersView.as_view(), name='incident_bulk_unassign'),
+    path('incidents/detail/load-more/', IncidentDetailLoadMoreView.as_view(), name='incident_detail_load_more'),
     path('incidents/statuses-report/', IncidentStatusesReportView.as_view(), name='incident_statuses_report'),
     path('incidents/<int:incident_id>/unassign-user/<int:user_id>/', UnassignIncidentUserView.as_view(), name='incident_unassign_user'),
     path('incident/export_excel_report/', incidents_export_excel_report, name='incidents_export_excel_report'),

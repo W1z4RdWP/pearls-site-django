@@ -98,7 +98,7 @@
                 <!-- Бейджи -->
                 <div class="gamification-card">
                     <div class="card-header">
-                        <h4><i class="fa fa-medal"></i> Бейджи</h4>
+                        <h4><i class="fa fa-medal"></i> Бейджи <span class="help-icon" id="badges-help-icon" tabindex="0" role="button" aria-label="Подсказка" data-bs-toggle="modal" data-bs-target="#badgesHelpModal">?</span></h4> 
                         <span class="badge-count">{{ total_badges }}</span>
                     </div>
                     <div class="card-content">
@@ -138,7 +138,7 @@
                 <!-- Достижения -->
                 <div class="gamification-card">
                     <div class="card-header">
-                        <h4><i class="fa fa-trophy"></i> Достижения</h4>
+                        <h4><i class="fa fa-trophy"></i> Достижения <span class="help-icon" id="achievement-help-icon" tabindex="0" role="button" aria-label="Подсказка" data-bs-toggle="modal" data-bs-target="#achievementsHelpModal">?</span> </h4>
                         <span class="badge-count">{{ total_achievements }}</span>
                     </div>
                     <div class="card-content">
@@ -221,10 +221,12 @@
                         {% endif %}
                     {% endfor %}
                 </fieldset>
-                <div class="form-group">
-                    <button class="btn btn-outline-info" type="submit" id="update-profile_info-btn">Обновить</button>
-                    <button class="btn btn-outline-secondary" id="cancel-edit-btn">Отмена</button>
-                    <a href="{% url 'users:password_change' %}" class="btn btn-outline-warning" id="change-password-btn" style="margin-left: 10px; color: #2dabc4; border: 1px solid #2dabc4;">
+                <div class="form-group update-profile_action-btns-wrapper">
+                    <div class="update-profile_action-btns">
+                        <button class="btn btn-outline-info" type="submit" id="update-profile_info-btn">Обновить</button>
+                        <button class="btn btn-outline-secondary" id="cancel-edit-btn">Отмена</button>
+                    </div>
+                    <a href="{% url 'users:password_change' %}" class="btn btn-outline-warning" id="change-password-btn">
                         <i class="fa fa-key"></i> Сменить пароль
                     </a>
                 </div>
@@ -233,5 +235,127 @@
     </div>
 </div>
 
+
+<!-- Модальное окно для подсказки к бейджам -->
+<div class="modal fade" id="badgesHelpModal" tabindex="-1" aria-labelledby="badgesHelpModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-fullscreen">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="badgesHelpModalLabel">Сводная таблица бейджей</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body profile-help-modal-body">
+                <!-- <p>Бейджи выдаются автоматически при выполнении условий. Отображаются в личном профиле.</p> -->
+                <div class="table-responsive profile-help-table-wrap">
+                <table class="table table-bordered profile-help-table profile-help-table--badges">
+                    <thead>
+                        <tr>
+                            <th scope="col">Название</th>
+                            <th scope="col">Условие получения</th>
+                            <th scope="col">Описание</th>
+                        </tr>
+                    </thead>
+                    <tbody class="badgedHelpModal__tbody">
+                        <tr>
+                            <td data-label="Название"><p>"Первый шаг"</p><img src="{% static 'users/imgs/badgesHelpModal_1.png' %}" alt="Первый шаг"></td>
+                            <td data-label="Условие получения">Пройден первый урок</td>
+                            <td data-label="Описание">Мотивация к началу обучения</td>
+                        </tr>
+                        <tr>
+                            <td data-label="Название"><p>"100 очков"</p><img src="{% static 'users/imgs/badgesHelpModal_2.png' %}" alt="100 очков" /></td>
+                            <td data-label="Условие получения">Достигнут счёт 100 баллов</td>
+                            <td data-label="Описание">Активный участник</td>
+                        </tr>
+                        <tr>
+                            <td data-label="Название"><p>"Половина пути"</p><img src="{% static 'users/imgs/badgesHelpModal_3.png' %}" alt="Половина пути" /></td>
+                            <td data-label="Условие получения">Пройдена половина курсов по направлению (должности)</td>
+                            <td data-label="Описание">Углубление знаний по направлению (должности)</td>
+                        </tr>
+                        <tr>
+                            <td data-label="Название"><p>"Траектория пройдена"</p><img src="{% static 'users/imgs/badgesHelpModal_4.png' %}" alt="Траектория пройдена"></td>
+                            <td data-label="Условие получения">Завершена 1 траектория</td>
+                            <td data-label="Описание">Успешное завершение обучения</td>
+                        </tr>
+                        <tr>
+                            <td data-label="Название"><p>"Спикер"</p><img src="{% static 'users/imgs/badgesHelpModal_5.png' %}" alt="Спикер"></td>
+                            <td data-label="Условие получения">Проведено обучение офлайн/онлайн для коллег</td>
+                            <td data-label="Описание">Делится опытом</td>
+                        </tr>
+                        <tr>
+                            <td data-label="Название"><p>"Наставник"</p><img src="{% static 'users/imgs/badgesHelpModal_6.png' %}" alt="Наставник"></td>
+                            <td data-label="Условие получения">Помог адаптироваться  другому сотруднику</td>
+                            <td data-label="Описание">Командная вовлеченность</td>
+                        </tr>
+                    </tbody>
+                </table>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-primary" data-bs-dismiss="modal">Понятно</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<!-- Модальное окно для подсказки к достижениям -->
+<div class="modal fade" id="achievementsHelpModal" tabindex="-1" aria-labelledby="achievementsHelpModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-fullscreen">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="achievementsHelpModalLabel">Сводная таблица достижений</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body profile-help-modal-body">
+                <!-- <p>Бейджи выдаются автоматически при выполнении условий. Отображаются в личном профиле.</p> -->
+                <div class="table-responsive profile-help-table-wrap">
+                <table class="table table-bordered profile-help-table profile-help-table--achievements">
+                    <thead>
+                        <tr>
+                            <th scope="col">Название</th>
+                            <th scope="col">Кто может получить</th>
+                            <th scope="col">Условие</th>
+                            <th scope="col">Периодичность</th>
+                        </tr>
+                    </thead>
+                    <tbody class="achievementsHelpModal__tbody">
+                        <tr>
+                            <td data-label="Название"><p>"Лидер месяца"
+                                Легенда месяца</p><img src="{% static 'users/imgs/achievementsHelpModal_1.png' %}" alt="Лидер месяца"></td>
+                            <td data-label="Кто может получить">Все сотрудники</td>
+                            <td data-label="Условие">Самый высокий прирост баллов за месяц</td>
+                            <td data-label="Периодичность">1 раз в месяц</td>
+                        </tr>
+                        <tr>
+                            <td data-label="Название"><p>"Эрудит отдела"
+                                Гугл на минималках</p><img src="{% static 'users/imgs/achievementsHelpModal_2.png' %}" alt="Эрудит отдела" /></td>
+                            <td data-label="Кто может получить">По отделам</td>
+                            <td data-label="Условие">Пройдено больше всех курсов в своем отделе</td>
+                            <td data-label="Периодичность">1 раз в квартал</td>
+                        </tr>
+                        <tr>
+                            <td data-label="Название"><p>"Наставник года"
+                                Легенда поддержки</p><img src="{% static 'users/imgs/achievementsHelpModal_3.png' %}" alt="Наставник года" /></td>
+                            <td data-label="Кто может получить">Наставники</td>
+                            <td data-label="Условие">Наиболее активный наставник</td>
+                            <td data-label="Периодичность">1 раз в год</td>
+                        </tr>
+                        <tr>
+                            <td data-label="Название"><p>"Инициатор"
+                                Двигатель апгрейда</p><img src="{% static 'users/imgs/achievementsHelpModal_4.png' %}" alt="Инициатор"></td>
+                            <td data-label="Кто может получить">Все</td>
+                            <td data-label="Условие">Автор идеи (значительной), одобренной и внедренной на платформу</td>
+                            <td data-label="Периодичность">По решению</td>
+                        </tr>
+                    </tbody>
+                </table>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-primary" data-bs-dismiss="modal">Понятно</button>
+            </div>
+        </div>
+    </div>
+</div>
 
 {% endblock content %}

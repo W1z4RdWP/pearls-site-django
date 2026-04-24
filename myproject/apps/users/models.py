@@ -148,7 +148,14 @@ class Profile(models.Model):
         return f'Учётная запись {self.user.username}'
     
 
-
+    def get_full_name(self) -> str:
+        """
+        Возвращает полное имя пользователя.
+        """
+        if self.middle_name:
+            return f'{self.user.last_name} {self.user.first_name} {self.middle_name}'
+        else:
+            return f'{self.user.last_name} {self.user.first_name}'
 
     @property
     def is_mentor_user(self) -> bool:

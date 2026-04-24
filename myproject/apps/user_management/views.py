@@ -51,6 +51,42 @@ class UserListView(ListView):
             raise PermissionDenied("У вас нет доступа к управлению пользователями.")
         return super().dispatch(request, *args, **kwargs)
 
+    _EXCLUDED_DEFAULT_GROUP_NAME = 'Внешний пользователь'
+    # Псевдо-ID в параметре group: пользователи без ни одной группы (в БД нет Group с id=0).
+    GROUP_FILTER_NO_GROUP_VALUE = 0
+
+    def _get_selected_group_ids(self):
+        """ID групп из query string (параметр group может повторяться).
+
+        Значение 0 — пункт «Без группы» (пользователи без групп).
+
+        Если group в запросе не передан — по умолчанию все группы, кроме
+        «Внешний пользователь» (и для чекбоксов, и для фильтрации).
+        """
+        from django.contrib.auth.models import Group
+
+        raw = self.request.GET.getlist('group')
+        if raw:
+            ids = set()
+            for x in raw:
+                try:
+                    v = int(x)
+                except (ValueError, TypeError):
+                    continue
+                if v >= 0:
+                    ids.add(v)
+            return sorted(ids)
+
+        # Наставник без staff: фильтр по группам из URL не используется, список в шаблоне не показываем
+        if (hasattr(self.request.user, 'profile') and
+                self.request.user.profile.is_mentor_user and
+                not self.request.user.is_superuser and
+                not self.request.user.is_staff):
+            return []
+
+        qs = Group.objects.exclude(name=self._EXCLUDED_DEFAULT_GROUP_NAME).values_list('id', flat=True)
+        return sorted(qs)
+
     def get_queryset(self):
         queryset = super().get_queryset().order_by('email')
         
@@ -98,16 +134,29 @@ class UserListView(ListView):
                 self.request.user.profile.is_mentor_user and 
                 not self.request.user.is_superuser and 
                 not self.request.user.is_staff):
-            group_filter = self.request.GET.get('group')
-            if group_filter:
-                queryset = queryset.filter(groups__id=group_filter)
-            
-            # Исключаем внешних пользователей по умолчанию, можно отключить чекбоксом
-            exclude_external_vals = self.request.GET.getlist('exclude_external')
-            exclude_external = ('1' in exclude_external_vals) or (not exclude_external_vals)
-            if exclude_external:
-                queryset = queryset.exclude(groups__name="Внешний пользователь")
-        
+            group_ids = self._get_selected_group_ids()
+            if group_ids:
+                all_group_ids = set(Group.objects.values_list('id', flat=True))
+                include_no_group = self.GROUP_FILTER_NO_GROUP_VALUE in group_ids
+                real_ids = [g for g in group_ids if g != self.GROUP_FILTER_NO_GROUP_VALUE]
+                real_set = set(real_ids)
+
+                # Все реальные группы отмечены — без ограничения по группам (в т.ч. если есть «Без группы»).
+                if real_set == all_group_ids:
+                    pass
+                elif include_no_group and not real_ids:
+                    queryset = queryset.annotate(
+                        _um_gcount=Count('groups', distinct=True),
+                    ).filter(_um_gcount=0)
+                elif include_no_group and real_ids:
+                    queryset = queryset.annotate(
+                        _um_gcount=Count('groups', distinct=True),
+                    ).filter(
+                        Q(_um_gcount=0) | Q(groups__id__in=real_ids),
+                    ).distinct()
+                else:
+                    queryset = queryset.filter(groups__id__in=real_ids).distinct()
+
         return queryset
 
     def get_context_data(self, **kwargs):
@@ -122,8 +171,7 @@ class UserListView(ListView):
         else:
             # Для наставников показываем только их группы
             context['groups'] = self.request.user.groups.all().order_by('name')
-        exclude_external_vals = self.request.GET.getlist('exclude_external')
-        context['exclude_external_checked'] = ('1' in exclude_external_vals) or (not exclude_external_vals)
+        context['selected_group_ids'] = self._get_selected_group_ids()
         return context
 
 

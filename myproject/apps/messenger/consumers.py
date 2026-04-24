@@ -254,21 +254,49 @@ class ChatRoomConsumer(AsyncWebsocketConsumer):
     
     @database_sync_to_async
     def create_notifications_for_participants(self, room_id, sender, message_text):
-        """Создание уведомлений для всех участников комнаты (кроме отправителя)"""
+        """Создание уведомлений для всех участников комнаты (кроме отправителя).
+
+        Дополнительно отправляет Web Push (PWA) подписанным участникам, чтобы
+        уведомление показывалось даже при закрытой вкладке сайта.
+        """
         from notifications.models import Notification
-        
+        from .push import is_configured as push_is_configured, send_push_to_user
+
         try:
             room = ChatRoom.objects.get(room_id=room_id)
-            participants = room.participants.exclude(id=sender.id)
-            
+            participants = list(room.participants.exclude(id=sender.id))
+
+            sender_name = sender.get_full_name() or sender.username
+            room_title = room.name or 'Чат'
+            preview = (message_text or '').strip()
+            if len(preview) > 140:
+                preview = preview[:140] + '…'
+            push_url = f'/messenger/chat/room/{room.room_id}/'
+
+            push_payload = {
+                'title': room_title,
+                'body': f'{sender_name}: {preview}' if preview else f'{sender_name}: новое сообщение',
+                'tag': f'chat-{room.room_id}',
+                'url': push_url,
+            }
+            push_available = push_is_configured()
+
             for participant in participants:
-                if ChatRoomNotificationSettings.are_notifications_enabled(participant, room):
-                    Notification.create_chat_message_notification(
-                        user=participant,
-                        chat_room=room,
-                        sender=sender,
-                        message_text=message_text
-                    )
+                if not ChatRoomNotificationSettings.are_notifications_enabled(participant, room):
+                    continue
+
+                Notification.create_chat_message_notification(
+                    user=participant,
+                    chat_room=room,
+                    sender=sender,
+                    message_text=message_text,
+                )
+
+                if push_available:
+                    try:
+                        send_push_to_user(participant, push_payload)
+                    except Exception as push_exc:
+                        print(f"Ошибка отправки Web Push для {participant}: {push_exc}")
         except ChatRoom.DoesNotExist:
             pass
         except Exception as e:

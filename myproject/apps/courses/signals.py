@@ -703,7 +703,7 @@ def check_incident_completion_on_course_completion(sender, instance, created, **
                                         # Создаем внутреннее уведомление
                                         try:
                                             from notifications.models import Notification
-                                            Notification.create_course_assignment_notification(assigned_user, course)
+                                            Notification.create_incident_course_assignment_notification(assigned_user, course)
                                         except Exception as e:
                                             logger.error(f"Ошибка создания внутреннего уведомления о курсе-инциденте {course.title}: {e}")
                                         

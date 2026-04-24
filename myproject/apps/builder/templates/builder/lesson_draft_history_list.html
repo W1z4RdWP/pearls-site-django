@@ -80,7 +80,7 @@
                        placeholder="Введите название урока..."
                        autocomplete="off">
             </div>
-            <div class="col-md-4">
+            <div class="col-md-2">
                 <label for="status" class="form-label">Статус</label>
                 <select class="form-select" id="status" name="status">
                     <option value="">Все статусы</option>
@@ -89,6 +89,16 @@
                     <option value="rejected" {% if current_status == 'rejected' %}selected{% endif %}>Отклонен</option>
                 </select>
             </div>
+            {% if request.user.is_staff %}
+                <div class="col-md-2" style="margin-top: 4%;">
+                    <label for="is_draft_owner" class="form-label">Скрыть мои черновики</label>
+                    <input type="checkbox" 
+                            name="is_draft_owner" 
+                            id="is_draft_owner"
+                            {% if current_is_draft_owner_filter %}checked{% endif %} 
+                            placeholder="Скрыть мои черновики" />
+                </div>
+            {% endif %}
             <div class="col-md-2 d-flex align-items-end">
                 <button type="submit" class="btn btn-primary w-100">
                     <i class="fas fa-search"></i> Найти
@@ -102,7 +112,7 @@
         <div class="draft-list">
             {% for draft in drafts %}
             <div class="draft-history-card {{ draft.status }}" 
-                 onclick="window.location.href='{% url 'builder:lesson_draft_history_detail' draft.pk %}'">
+                 onclick="window.location.href={% if not request.user.is_staff %}'{% url 'builder:lesson_draft_history_detail' draft.pk %}'{% else %}'{% url 'builder:lesson_draft_review' draft.pk %}'{% endif %}">
                 <div class="d-flex justify-content-between align-items-start">
                     <div class="flex-grow-1">
                         <h5 class="mb-2">{{ draft.lesson.title }}</h5>
@@ -115,6 +125,9 @@
                             <i class="far fa-calendar"></i> Создан: {{ draft.created_at|date:"d.m.Y H:i" }}
                             {% if draft.reviewed_at %}
                                 <br><i class="far fa-calendar-check"></i> Рассмотрен: {{ draft.reviewed_at|date:"d.m.Y H:i" }}
+                            {% endif %}
+                            {% if not draft.created_by == request.user %}
+                                <br><i class="far fa-user"></i> Создал: {{ draft.created_by.get_full_name|default:draft.created_by.username }}
                             {% endif %}
                         </div>
                         {% if draft.submit_comment %}

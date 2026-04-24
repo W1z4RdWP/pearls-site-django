@@ -70,22 +70,21 @@
                 </div>
             </div>
         </form>
-        
         <!-- Кнопки "Подробнее", "Отклонить" и "Возобновить" -->
         <div id="details-button-container" class="mb-3 d-flex gap-2">
-            <a id="details-button" href="{% url 'builder:incident_detail' %}" class="btn btn-primary" title="🎯 Цель:
- Отчёт позволяет быстро увидеть, кто из сотрудников вовлечён в инцидент, на каком этапе находится его работа над ошибкой, сколько шагов уже выполнено и требуется ли подключение наставника или руководителя.
-
- Описание:
- При нажатии открывается список сотрудников, связанных с инцидентом: отображаются фамилии, роли (инициатор, участник), отметка о необходимости внесения в ИПР и статус прохождения обучения или проверки — в процессе, завершено или просрочено.
-">Подробнее</a>
-            <a id="violators_details-button" href="{% url 'builder:incident_detail' %}" class="btn btn-primary" title="🎯 Цель:
- Отчёт позволяет быстро отследить сотрудников, у которых за последние 30 дней были зафиксированы нарушения, и проанализировать частоту и характер инцидентов.
-
- Описание:
- Кнопка открывает отчёт с фильтром “только нарушители” за последние 30 дней. В таблице отображаются все сотрудники, у которых были нарушения, с указанием количества инцидентов и деталей по каждому случаю. При изменении периода можно выбрать конкретного человека и посмотреть, в каких именно инцидентах он участвовал как нарушитель.
-">Нарушители</a>
-
+                        <a id="details-button" href="{% url 'builder:incident_detail' %}" class="btn btn-primary" title="🎯 Цель:
+            Отчёт позволяет быстро увидеть, кто из сотрудников вовлечён в инцидент, на каком этапе находится его работа над ошибкой, сколько шагов уже выполнено и требуется ли подключение наставника или руководителя.
+            
+            Описание:
+            При нажатии открывается список сотрудников, связанных с инцидентом: отображаются фамилии, роли (инициатор, участник), отметка о необходимости внесения в ИПР и статус прохождения обучения или проверки — в процессе, завершено или просрочено.
+            ">Подробнее</a>
+                        <a id="violators_details-button" href="{% url 'builder:incident_detail' %}" class="btn btn-primary" title="🎯 Цель:
+            Отчёт позволяет быстро отследить сотрудников, у которых за последние 30 дней были зафиксированы нарушения, и проанализировать частоту и характер инцидентов.
+            
+            Описание:
+            Кнопка открывает отчёт с фильтром “только нарушители” за последние 30 дней. В таблице отображаются все сотрудники, у которых были нарушения, с указанием количества инцидентов и деталей по каждому случаю. При изменении периода можно выбрать конкретного человека и посмотреть, в каких именно инцидентах он участвовал как нарушитель.
+            ">Нарушители</a>
+        </div>
         {% if not readonly %}
             <form id="decline-form" method="post" action="" style="display: none;">
                 {% csrf_token %}
@@ -95,21 +94,36 @@
                 {% csrf_token %}
                 <button type="submit" id="resume-button" class="btn btn-success">Возобновить</button>
             </form>
+            <form id="delete-incident-form" method="post" action="" style="display: none;">
+                {% csrf_token %}
+                <button type="submit" id="delete-incident-button" class="btn btn-danger">Удалить</button>
+            </form>
         {% endif %}
+
+        <!-- Контекстное меню по ПКМ на строке инцидента -->
+        <div id="incident-context-menu" class="incident-context-menu" style="display: none;">
+            <a href="#" class="incident-context-menu-item" data-action="details"><i class="fas fa-info-circle me-2"></i>Подробнее</a>
+            <a href="#" class="incident-context-menu-item" data-action="violators"><i class="fas fa-user-times me-2"></i>Нарушители</a>
+            {% if not readonly %}
+            <a href="#" class="incident-context-menu-item incident-context-menu-decline" data-action="decline"><i class="fas fa-times-circle me-2"></i>Отклонить</a>
+            <a href="#" class="incident-context-menu-item incident-context-menu-resume" data-action="resume" style="display: none;"><i class="fas fa-play-circle me-2"></i>Возобновить</a>
+            <a href="#" class="incident-context-menu-item incident-context-menu-delete" data-action="delete"><i class="fas fa-trash-alt me-2"></i>Удалить</a>
+            {% endif %}
         </div>
         
         <div class="incidents-table-responsive">
             <table class="table">
                 <thead>
                     <tr>
-                        <th style="width: 8%;" class="sortable" data-sort-type="date-dot" data-sort-col="0" title="Дата">Дата<span class="sort-icon"><span class="sort-asc">&#9650;</span><span class="sort-desc">&#9660;</span></span></th>
-                        <th style="width: 18%;" class="sortable" data-sort-type="text" data-sort-col="1" title="Описание">Описание<span class="sort-icon"><span class="sort-asc">&#9650;</span><span class="sort-desc">&#9660;</span></span></th>
-                        <th style="width: 12%;" class="sortable" data-sort-type="text" data-sort-col="2" title="Тип инцидента">Тип инцидента<span class="sort-icon"><span class="sort-asc">&#9650;</span><span class="sort-desc">&#9660;</span></span></th>
-                        <th style="width: 12%;" class="sortable" data-sort-type="text" data-sort-col="3" title="Кто зафиксировал">Кто зафиксировал<span class="sort-icon"><span class="sort-asc">&#9650;</span><span class="sort-desc">&#9660;</span></span></th>
-                        <th style="width: 7%;" class="sortable" data-sort-type="number" data-sort-col="4" title="Всего обучающихся">Всего обучающихся<span class="sort-icon"><span class="sort-asc">&#9650;</span><span class="sort-desc">&#9660;</span></span></th>
-                        <th style="width: 7%;" class="sortable" data-sort-type="number" data-sort-col="5" title="Завершили обуч.">Завершили обуч.<span class="sort-icon"><span class="sort-asc">&#9650;</span><span class="sort-desc">&#9660;</span></span></th>
-                        <th style="width: 8%;" class="sortable" data-sort-type="text" data-sort-col="6" title="Статус">Статус<span class="sort-icon"><span class="sort-asc">&#9650;</span><span class="sort-desc">&#9660;</span></span></th>
-                        <th style="width: 5%;" class="comment-column sortable" data-sort-type="text" data-sort-col="7" title="Комментарий (опционально)">Комментарий (опционально)<span class="sort-icon"><span class="sort-asc">&#9650;</span><span class="sort-desc">&#9660;</span></span></th>
+                        <th style="width: 5%;" class="sortable" data-sort-type="number" data-sort-col="0" title="Номер">№<span class="sort-icon"><span class="sort-asc">&#9650;</span><span class="sort-desc">&#9660;</span></span></th>
+                        <th style="width: 8%;" class="sortable" data-sort-type="date-dot" data-sort-col="1" title="Дата">Дата<span class="sort-icon"><span class="sort-asc">&#9650;</span><span class="sort-desc">&#9660;</span></span></th>
+                        <th style="width: 18%;" class="sortable" data-sort-type="text" data-sort-col="2" title="Описание">Описание<span class="sort-icon"><span class="sort-asc">&#9650;</span><span class="sort-desc">&#9660;</span></span></th>
+                        <th style="width: 12%;" class="sortable" data-sort-type="text" data-sort-col="3" title="Тип инцидента">Тип инцидента<span class="sort-icon"><span class="sort-asc">&#9650;</span><span class="sort-desc">&#9660;</span></span></th>
+                        <th style="width: 12%;" class="sortable" data-sort-type="text" data-sort-col="4" title="Кто зафиксировал">Кто зафиксировал<span class="sort-icon"><span class="sort-asc">&#9650;</span><span class="sort-desc">&#9660;</span></span></th>
+                        <th style="width: 7%;" class="sortable" data-sort-type="number" data-sort-col="5" title="Всего обучающихся">Всего обучающихся<span class="sort-icon"><span class="sort-asc">&#9650;</span><span class="sort-desc">&#9660;</span></span></th>
+                        <th style="width: 7%;" class="sortable" data-sort-type="number" data-sort-col="6" title="Завершили обуч.">Завершили обуч.<span class="sort-icon"><span class="sort-asc">&#9650;</span><span class="sort-desc">&#9660;</span></span></th>
+                        <th style="width: 8%;" class="sortable" data-sort-type="status" data-sort-col="7" title="Статус">Статус<span class="sort-icon"><span class="sort-asc">&#9650;</span><span class="sort-desc">&#9660;</span></span></th>
+                        <th style="width: 5%;" class="comment-column sortable" data-sort-type="text" data-sort-col="8" title="Комментарий (опционально)">Комментарий (опционально)<span class="sort-icon"><span class="sort-asc">&#9650;</span><span class="sort-desc">&#9660;</span></span></th>
                     </tr>
                 </thead>
                 <tbody>
@@ -120,26 +134,11 @@
                         data-incident-status="{{ inc.status }}"
                         onclick="selectRow(this, event)"
                         {% if not readonly %}ondblclick="window.location.href='{% url 'builder:incident_edit' inc.pk %}'"{% endif %}>
+                        <td>{{ forloop.counter }}</td>
                         <td>{{ inc.created_at|date:"d.m.Y" }}</td>
                         <td>{{ inc.title }}</td>
                         <td>{{ inc.get_incident_type_display }}</td>
                         <td>{{ inc.user.get_full_name|default:inc.user.username }}</td>
-                        <!-- <td class="responsible-cell">
-                            {% if inc.violators.exists %}
-                                {% for resp in inc.violators.all %}
-                                    {{ resp.get_full_name|default:resp.username }}{% if not forloop.last %}, {% endif %}
-                                {% endfor %}
-                            {% else %}
-                                —
-                            {% endif %}
-                        </td> -->
-                        <!-- <td class="{% if inc.deadline and inc.deadline|is_overdue:now %}deadline-overdue{% endif %}">
-                            {% if inc.deadline %}
-                                <span class="deadline-date">{{ inc.deadline|date:"d.m.Y" }}</span> <span class="deadline-time">{{ inc.deadline|date:"H:i" }}</span>
-                            {% else %}
-                                —
-                            {% endif %}
-                        </td> -->
                         <td style="text-align: center;">
                             {% if inc.course %}
                                 {{ inc.assigned_users_count|default:0 }}
@@ -171,6 +170,10 @@ const incidentDetailUrl = "{% url 'builder:incident_detail' %}";
 // Функция для формирования URL отклонения/возобновления инцидента
 function getIncidentDeclineUrl(incidentId) {
     return `/builder/incidents/${incidentId}/decline/`;
+}
+
+function getIncidentDeleteUrl(incidentId) {
+    return `/builder/incidents/${incidentId}/delete/`;
 }
 
 // Функция для формирования URL с фильтром по нарушителям
@@ -310,6 +313,14 @@ function initTableSorting() {
     const headers = table.querySelectorAll('thead th.sortable');
     const tbody = table.querySelector('tbody');
     if (!tbody) return;
+    const statusSortOrder = {
+        declined: 0,
+        resolved: 1,
+        studies_completed: 2,
+        assigned: 3,
+        accepted: 4,
+        new: 5,
+    };
 
     function parseDateDot(str) {
         str = str.trim();
@@ -319,16 +330,31 @@ function initTableSorting() {
         return new Date(parts[3], parts[2] - 1, parts[1]);
     }
 
-    function getSortValue(cell, type) {
+    function parseNumber(str) {
+        const normalized = str.replace(/\s+/g, '').replace(',', '.');
+        if (!normalized || normalized === '—') return null;
+        const value = Number(normalized);
+        return Number.isNaN(value) ? null : value;
+    }
+
+    function getSortValue(row, colIdx, type) {
+        const cell = row.children[colIdx];
+        if (!cell) return null;
         const text = cell.textContent.trim();
         switch (type) {
             case 'number':
-                return parseFloat(text) || (text === '—' ? null : 0);
+                return parseNumber(text);
             case 'date-dot':
                 return parseDateDot(text);
+            case 'status': {
+                const statusCode = row.dataset.incidentStatus || '';
+                return Object.prototype.hasOwnProperty.call(statusSortOrder, statusCode)
+                    ? statusSortOrder[statusCode]
+                    : null;
+            }
             case 'text':
             default:
-                return text.toLowerCase();
+                return text.toLocaleLowerCase('ru');
         }
     }
 
@@ -336,8 +362,7 @@ function initTableSorting() {
         if (a === null && b === null) return 0;
         if (a === null) return 1;
         if (b === null) return -1;
-        if (type === 'number') return a - b;
-        if (type === 'date-dot') return a - b;
+        if (type === 'number' || type === 'date-dot' || type === 'status') return a - b;
         return a < b ? -1 : a > b ? 1 : 0;
     }
 
@@ -362,12 +387,8 @@ function initTableSorting() {
             if (rows.length === 0) return;
 
             rows.sort(function(rowA, rowB) {
-                const cellA = rowA.children[colIdx];
-                const cellB = rowB.children[colIdx];
-                if (!cellA || !cellB) return 0;
-
-                const valA = getSortValue(cellA, sortType);
-                const valB = getSortValue(cellB, sortType);
+                const valA = getSortValue(rowA, colIdx, sortType);
+                const valB = getSortValue(rowB, colIdx, sortType);
                 const cmp = compareValues(valA, valB, sortType);
                 return direction === 'asc' ? cmp : -cmp;
             });
@@ -546,20 +567,98 @@ document.addEventListener('DOMContentLoaded', function() {
     // Сортировка таблицы по клику на заголовки
     initTableSorting();
     
-    // Инициализация кнопки "Нарушители" с правильным URL
-    const violatorsButton = document.getElementById('violators_details-button');
-    if (violatorsButton) {
-        violatorsButton.href = buildViolatorsUrl(null);
-    }
-    
     // Применяем сохраненные title к столбцам при загрузке страницы
     applySavedColumnTitles();
+
+    // Контекстное меню по ПКМ на строке инцидента
+    let contextMenuRow = null;
+    const contextMenu = document.getElementById('incident-context-menu');
+    const declineForm = document.getElementById('decline-form');
+    const resumeForm = document.getElementById('resume-form');
+    const deleteIncidentForm = document.getElementById('delete-incident-form');
+    const declineMenuItem = document.querySelector('.incident-context-menu-decline');
+    const resumeMenuItem = document.querySelector('.incident-context-menu-resume');
+
+    function hideIncidentContextMenu() {
+        if (contextMenu) contextMenu.style.display = 'none';
+        contextMenuRow = null;
+    }
+
+    function showIncidentContextMenu(e) {
+        const row = e.target.closest('.incident-row');
+        if (!row) return;
+        e.preventDefault();
+        hideIncidentContextMenu();
+        contextMenuRow = row;
+        const incidentTitle = row.getAttribute('data-incident-title');
+        const incidentId = row.getAttribute('data-incident-id');
+        const incidentStatus = row.getAttribute('data-incident-status');
+
+        const detailsItem = contextMenu.querySelector('[data-action="details"]');
+        const violatorsItem = contextMenu.querySelector('[data-action="violators"]');
+        if (detailsItem) detailsItem.href = incidentDetailUrl + '?search=' + encodeURIComponent(incidentTitle || '');
+        if (violatorsItem) violatorsItem.href = buildViolatorsUrl(incidentTitle || null);
+
+        if (declineMenuItem && resumeMenuItem) {
+            if (incidentStatus === 'declined') {
+                declineMenuItem.style.display = 'none';
+                resumeMenuItem.style.display = '';
+                if (resumeForm) resumeForm.action = getIncidentDeclineUrl(incidentId);
+            } else {
+                declineMenuItem.style.display = '';
+                resumeMenuItem.style.display = 'none';
+                if (declineForm) declineForm.action = getIncidentDeclineUrl(incidentId);
+            }
+        }
+        if (deleteIncidentForm && incidentId) {
+            deleteIncidentForm.action = getIncidentDeleteUrl(incidentId);
+        }
+
+        contextMenu.style.left = (e.clientX + 2) + 'px';
+        contextMenu.style.top = (e.clientY + 2) + 'px';
+        contextMenu.style.display = 'block';
+    }
+
+    document.querySelectorAll('.incident-row').forEach(function(r) {
+        r.addEventListener('contextmenu', showIncidentContextMenu);
+    });
+
+    document.addEventListener('click', function() {
+        hideIncidentContextMenu();
+    });
+
+    if (contextMenu) {
+        contextMenu.addEventListener('click', function(e) {
+            const item = e.target.closest('.incident-context-menu-item');
+            if (!item || !contextMenuRow) return;
+            const action = item.getAttribute('data-action');
+            if (action === 'details' || action === 'violators') {
+                e.preventDefault();
+                window.location.href = item.href;
+            } else if (action === 'decline' && declineForm) {
+                e.preventDefault();
+                declineForm.submit();
+            } else if (action === 'resume' && resumeForm) {
+                e.preventDefault();
+                resumeForm.submit();
+            } else if (action === 'delete' && deleteIncidentForm) {
+                e.preventDefault();
+                const t = contextMenuRow.getAttribute('data-incident-title') || '';
+                const msg = t
+                    ? 'Удалить инцидент безвозвратно?\n«' + t + '»'
+                    : 'Удалить инцидент безвозвратно?';
+                if (confirm(msg)) {
+                    deleteIncidentForm.submit();
+                }
+            }
+        });
+    }
 });
 
 // Переменная для отслеживания таймаута одиночного клика
 let clickTimeout = null;
 
-// Функция для выделения строки и показа кнопки "Подробнее"
+// Функция для выделения строки; по ЛКМ скрывается контекстное меню
 function selectRow(row, event) {
     // Предотвращаем выделение при двойном клике
     if (event.detail === 2) {
@@ -570,114 +669,35 @@ function selectRow(row, event) {
         return;
     }
     
+    // По клику ЛКМ на строку — скрыть контекстное меню
+    const ctxMenu = document.getElementById('incident-context-menu');
+    if (ctxMenu) ctxMenu.style.display = 'none';
+    
     // Очищаем предыдущий таймаут
     if (clickTimeout) {
         clearTimeout(clickTimeout);
     }
     
-    // Устанавливаем таймаут для обработки одиночного клика
+    // Устанавливаем таймаут для обработки одиночного клика (выделение строки)
     clickTimeout = setTimeout(function() {
-        // Убираем выделение со всех строк
         document.querySelectorAll('.incident-row').forEach(r => {
             r.classList.remove('row-selected');
         });
-        
-        // Выделяем выбранную строку
         row.classList.add('row-selected');
-        
-        // Обновляем кнопку "Подробнее" с названием инцидента
-        const detailsButton = document.getElementById('details-button');
-        const violatorsButton = document.getElementById('violators_details-button');
-        const incidentTitle = row.getAttribute('data-incident-title');
-        const incidentId = row.getAttribute('data-incident-id');
-        const incidentStatus = row.getAttribute('data-incident-status');
-        
-        if (detailsButton && incidentTitle) {
-            // Обрезаем название до 30 символов
-            const truncatedTitle = incidentTitle.length > 30 
-                ? incidentTitle.substring(0, 30) + '...' 
-                : incidentTitle;
-            
-            // Меняем текст кнопки
-            detailsButton.textContent = 'Подробнее по "' + truncatedTitle + '"';
-            
-            // Формируем URL с параметром search
-            const detailUrl = incidentDetailUrl + "?search=" + encodeURIComponent(incidentTitle);
-            detailsButton.href = detailUrl;
-        }
-        
-        // Обновляем кнопку "Нарушители"
-        if (violatorsButton) {
-            if (incidentTitle) {
-                // Обрезаем название до 30 символов
-                const truncatedTitle = incidentTitle.length > 30 
-                    ? incidentTitle.substring(0, 30) + '...' 
-                    : incidentTitle;
-                violatorsButton.textContent = 'Нарушители по "' + truncatedTitle + '"';
-            } else {
-                violatorsButton.textContent = 'Нарушители';
-            }
-            violatorsButton.href = buildViolatorsUrl(incidentTitle || null);
-        }
-        
-        // Показываем/скрываем кнопки "Отклонить" и "Возобновить"
-        const declineForm = document.getElementById('decline-form');
-        const resumeForm = document.getElementById('resume-form');
-        
-        if (incidentId && incidentStatus) {
-            const declineUrl = getIncidentDeclineUrl(incidentId);
-            
-            if (incidentStatus === 'declined') {
-                // Показываем кнопку "Возобновить" только для отклонённых инцидентов
-                if (declineForm) declineForm.style.display = 'none';
-                if (resumeForm) {
-                    resumeForm.action = declineUrl;
-                    resumeForm.style.display = 'inline-block';
-                }
-            } else {
-                // Показываем кнопку "Отклонить" только если статус не "Отклонён"
-                if (resumeForm) resumeForm.style.display = 'none';
-                if (declineForm) {
-                    declineForm.action = declineUrl;
-                    declineForm.style.display = 'inline-block';
-                }
-            }
-        } else {
-            // Скрываем обе кнопки, если нет выбранного инцидента
-            if (declineForm) declineForm.style.display = 'none';
-            if (resumeForm) resumeForm.style.display = 'none';
-        }
-        
         clickTimeout = null;
-    }, 200); // Задержка 200мс для различения одиночного и двойного клика
+    }, 200);
 }
 
-// Убираем выделение при клике вне таблицы
+// Убираем выделение при клике вне строки и вне контекстного меню
 document.addEventListener('click', function(event) {
-    if (!event.target.closest('.incident-row') && !event.target.closest('#details-button-container')) {
-        // Очищаем таймаут, если он есть
+    if (!event.target.closest('.incident-row') && !event.target.closest('#incident-context-menu')) {
         if (clickTimeout) {
             clearTimeout(clickTimeout);
             clickTimeout = null;
         }
-        
         document.querySelectorAll('.incident-row').forEach(r => {
             r.classList.remove('row-selected');
         });
-        
-        // Возвращаем кнопки к исходному состоянию
-        const detailsButton = document.getElementById('details-button');
-        const violatorsButton = document.getElementById('violators_details-button');
-        if (detailsButton) {
-            detailsButton.textContent = 'Подробнее';
-            detailsButton.href = incidentDetailUrl;
-        }
-        if (violatorsButton) {
-            violatorsButton.textContent = 'Нарушители';
-            violatorsButton.href = buildViolatorsUrl(null);
-        }
-        
-        // Скрываем кнопки "Отклонить" и "Возобновить"
         const declineForm = document.getElementById('decline-form');
         const resumeForm = document.getElementById('resume-form');
         if (declineForm) declineForm.style.display = 'none';

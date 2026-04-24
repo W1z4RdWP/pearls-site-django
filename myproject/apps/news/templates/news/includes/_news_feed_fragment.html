@@ -1,0 +1,16 @@
+{% for item in news_items %}
+<div class="col-md-6 mb-4">
+  {% include "news/_news_card.html" with item=item %}
+</div>
+{% empty %}
+  {% if page_obj.number == 1 %}
+  <div class="col-12">
+    <p class="text-muted mb-0">Нет публикаций по выбранному фильтру.</p>
+  </div>
+  {% endif %}
+{% endfor %}
+{% if page_obj.has_next %}
+<div class="col-12 news-feed-pagination pt-2 mt-2 border-top" data-next-page="{{ page_obj.next_page_number }}">
+  <button type="button" class="btn btn-outline-primary w-100 news-load-more">Показать ещё</button>
+</div>
+{% endif %}

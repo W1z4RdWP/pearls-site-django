@@ -1216,9 +1216,15 @@ document.addEventListener('DOMContentLoaded', function() {
                         currentLessonIdsForAssignment = data.lesson_ids;
                         
                         // Обновляем заголовок модального окна
+                        const ruPlural = new Intl.PluralRules('ru');
+                        const lesson_word_category = ruPlural.select(data.count);
+                        let lesson_word;
+                        if (lesson_word_category === 'one') lesson_word = 'урок';
+                        else if (lesson_word_category === 'few') lesson_word = 'урока';
+                        else lesson_word = 'уроков'; 
                         if (lessonAssignmentModalTitle) {
                             lessonAssignmentModalTitle.textContent = 
-                                `Выберите пользователей для назначения уроков категории "${data.category_name}" (${data.count} уроков)`;
+                                `Выберите пользователей для назначения уроков категории "${data.category_name}" (${data.count} ${lesson_word})`;
                         }
                         
                         // Загружаем группы и отображаем выбранных пользователей

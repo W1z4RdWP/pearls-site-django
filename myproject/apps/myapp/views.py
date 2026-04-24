@@ -1,10 +1,14 @@
 from sys import version
+from typing import Optional
+from django.core.exceptions import ObjectDoesNotExist
+from django.db.models import Q
 from django.shortcuts import render, redirect
 from django.http import HttpResponse, HttpRequest, JsonResponse
 from django.urls import reverse
 from django.views.generic import TemplateView, ListView
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
+from django.contrib.auth.models import User
 from .models import Course, UserCourse, ChangeLog
 from courses.models import Course as CourseModel, TrajectoryCourse, UserCourseTrajectory
 from datetime import date
@@ -14,6 +18,41 @@ from django.core.cache import cache
 
 
 HOMEPAGE_CACHE_TIMEOUT = 3600
+
+
+def _leaderboard_users_qs():
+    """Одобренные сотрудники без прав персонала — та же выборка, что и для рейтинга на главной."""
+    return User.objects.filter(profile__is_approved=True).exclude(
+        Q(is_superuser=True) | Q(is_staff=True)
+    )
+
+
+def _dascoin_leaderboard_rank(user) -> Optional[int]:
+    """
+    Место пользователя (1 — лидер) среди одобренных обычных сотрудников
+    по баллам DASCOIN и email как тайбрейку, как в order_by рейтинга.
+    """
+    if not user.is_authenticated:
+        return None
+    try:
+        profile = user.profile
+    except ObjectDoesNotExist:
+        return None
+    if not profile.is_approved or user.is_superuser or user.is_staff:
+        return None
+    points = profile.dascoin_points or 0
+    email = user.email or ""
+    ahead = (
+        _leaderboard_users_qs()
+        .exclude(pk=user.pk)
+        .filter(
+            Q(profile__dascoin_points__gt=points)
+            | Q(profile__dascoin_points=points, email__lt=email)
+        )
+        .count()
+    )
+    return ahead + 1
+
 
 def _get_user_cache_version(user_id: int) -> int:
     return cache.get(f"user_cache_version:{user_id}", 1)
@@ -80,33 +119,6 @@ class EventTemplateView(TemplateView):
 class IndexView(TemplateView):
     """Класс представление домашней страницы."""
     template_name = 'home.html'
-
-    def get(self, request, *args, **kwargs):
-        """
-        Возвращает домашнюю страницу с кэшированием по пользователю и URL.
-        Использует версию кэша пользователя, чтобы сброс через clear_user_cache
-        автоматически инвалидировал HTML для конкретного пользователя.
-        """
-        if request.user.is_authenticated:
-            user_part = request.user.pk
-            version = _get_user_cache_version(user_part)
-            cache_key = f"home_page:user_{user_part}:v{version}:{request.get_full_path()}"
-        else:
-            user_part = 'anon'
-            cache_key = f"home_page:user_{user_part}:{request.get_full_path()}"
-
-        cached_content = cache.get(cache_key)
-        if cached_content is not None:
-            return HttpResponse(cached_content, content_type='text/html; charset=utf-8')
-
-        response = super().get(request, *args, **kwargs)
-        if response.status_code == 200:
-            content_type = response.get('Content-Type', '')
-            if content_type.startswith('text/html'):
-                # TemplateResponse рендерится лениво — выполняем явный render()
-                response.render()
-                cache.set(cache_key, response.content, timeout=HOMEPAGE_CACHE_TIMEOUT)
-        return response
 
     def _is_course_available_in_trajectory(self, user, course):
         """
@@ -180,17 +192,25 @@ class IndexView(TemplateView):
             context['courses'] = filtered_courses
         else:
             context['courses'] = []
+
+        # Рейтинг: 10 лучших среди одобренных сотрудников (без staff/superuser)
+        top_users = (
+            _leaderboard_users_qs()
+            .select_related("profile")
+            .order_by("-profile__dascoin_points", "email")
+            .distinct()[:10]
+        )
+        context["top_10_users"] = top_users
+        context["current_user_dascoin_rank"] = _dascoin_leaderboard_rank(self.request.user)
         return context
 
-class AboutView(TemplateView):
-    """Класс представление страницы 'О нас' """
-    template_name = 'about.html'
 
 
 
 
 def is_admin(user) -> bool:
-    return user.is_staff
+    if user.is_staff or (user.profile.is_mentor and user.is_staff):
+        return user.is_staff
 
 def is_author_or_admin(user, course):
     return user.is_staff or user == course.author

@@ -1,0 +1,80 @@
+{% extends 'layout.html' %}
+{% load static %}
+
+{% block title %}Создать новость{% endblock %}
+
+{% block specific_styles %}
+<link rel="stylesheet" href="{% static 'news/css/news_item_create.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="nfc-page">
+  <div class="nfc-card">
+    <header class="nfc-header">
+      <!-- <a href="{% url 'news:news_dashboard' %}" class="nfc-back" aria-label="Назад к ленте новостей">&larr; К ленте</a> -->
+      <h1 class="nfc-title">Создать новость</h1>
+    </header>
+
+    <form method="post" enctype="multipart/form-data" class="nfc-form" autocomplete="off">
+      {% csrf_token %}
+
+      {% if form.non_field_errors %}
+      <div class="alert alert-danger nfc-alert" role="alert">
+        {{ form.non_field_errors }}
+      </div>
+      {% endif %}
+
+      <section class="nfc-section" aria-labelledby="nfc-section-main">
+        <div class="nfc-field">
+          <label class="nfc-label" for="{{ form.title.id_for_label }}">{{ form.title.label }}</label>
+          {{ form.title }}
+          {% if form.title.help_text %}<p class="nfc-hint">{{ form.title.help_text }}</p>{% endif %}
+          {% if form.title.errors %}<div class="nfc-errors">{{ form.title.errors }}</div>{% endif %}
+        </div>
+
+        <div class="nfc-field">
+          <label class="nfc-label" for="{{ form.news_type.id_for_label }}">{{ form.news_type.label }}</label>
+          {{ form.news_type }}
+          {% if form.news_type.help_text %}<p class="nfc-hint">{{ form.news_type.help_text }}</p>{% endif %}
+          {% if form.news_type.errors %}<div class="nfc-errors">{{ form.news_type.errors }}</div>{% endif %}
+        </div>
+
+        <div class="nfc-field">
+          <label class="nfc-label" for="{{ form.content.id_for_label }}">{{ form.content.label }}</label>
+          {{ form.content }}
+          {% if form.content.help_text %}<p class="nfc-hint">{{ form.content.help_text }}</p>{% endif %}
+          {% if form.content.errors %}<div class="nfc-errors">{{ form.content.errors }}</div>{% endif %}
+        </div>
+      </section>
+
+      <section class="nfc-section" aria-labelledby="nfc-section-media">
+        <div class="nfc-field">
+          <label class="nfc-label" for="id_media_files">Медиафайлы</label>
+          <div class="nfc-file-input-wrapper">
+            <label for="id_media_files" class="nfc-file-input-label" id="mediaInputLabel">
+              <span class="nfc-file-input-icon" aria-hidden="true">+</span>
+              <span>Нажмите для выбора файлов или перетащите их сюда</span>
+              <small>Изображения и видео, до 50 МБ на файл</small>
+            </label>
+            <input type="file" name="media_files" id="id_media_files" multiple accept="image/*,video/*">
+          </div>
+          <p class="nfc-hint">Главным в ленте будет первое изображение из добавленных. В самой новости первым крупно покажется первое загруженное медиа.</p>
+          <div class="nfc-attachments-list" id="mediaFilesList" aria-live="polite">
+            <div class="nfc-attachments-list__header">
+              <strong>Добавленные файлы</strong>
+              <span class="nfc-attachments-count" id="mediaFilesCount">0</span>
+            </div>
+            <div id="mediaFilesContainer"></div>
+          </div>
+        </div>
+      </section>
+
+      <div class="nfc-actions">
+        <button type="submit" class="btn btn-primary">Сохранить</button>
+        <a href="{% url 'news:news_dashboard' %}" class="btn btn-secondary">Отмена</a>
+      </div>
+    </form>
+  </div>
+</div>
+<script src="{% static 'news/js/news_item_create.js' %}"></script>
+{% endblock %}

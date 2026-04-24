@@ -41,14 +41,10 @@ class IncidentForm(forms.ModelForm):
             'incident_type': forms.Select(attrs={'class': 'form-control'}),
             'responsible_mentor': forms.HiddenInput(),
             'user': forms.HiddenInput(),
-            # 'deadline': forms.DateTimeInput(
-            #     attrs={'class': 'form-control', 'type': 'datetime-local'},
-            #     format='%Y-%m-%dT%H:%M'
-            # ),
             'expert': forms.HiddenInput(),
             'assigned_to_time_to_complete': forms.HiddenInput(),
             'expert_time_to_complete': forms.HiddenInput(),
-            'status': forms.Select(attrs={'class': 'form-control', 'disabled': True}),
+            'status': forms.Select(attrs={'class': 'form-control'}),
             'description': forms.Textarea(attrs={'class': 'form-control', 'rows': 3, 'placeholder': 'Дополнительные комментарии...'}),
         }
     

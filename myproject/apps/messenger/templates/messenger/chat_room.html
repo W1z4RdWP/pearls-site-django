@@ -5,6 +5,7 @@
 
 {% block specific_styles %}
     <link rel="stylesheet" href="{% static 'messenger/css/chat_room.css' %}">
+    <script src="{% static 'messenger/js/push-notifications.js' %}" defer></script>
 {% endblock %}
 
 
@@ -1121,11 +1122,27 @@
         // === Управление уведомлениями ===
         const notificationToggleBtn = document.getElementById('notification-toggle-btn');
         
-        // Запрос разрешения на уведомления при загрузке страницы
-        function requestNotificationPermission() {
-            if ('Notification' in window) {
-                if (Notification.permission === 'default') {
-                    Notification.requestPermission();
+        // Запрос разрешения на уведомления и подписка на Web Push (PWA).
+        // После permission=granted подписываем браузер через service worker,
+        // чтобы уведомления приходили даже при закрытой вкладке.
+        async function requestNotificationPermission() {
+            if (!('Notification' in window)) return;
+
+            let permission = Notification.permission;
+            if (permission === 'default') {
+                try {
+                    permission = await Notification.requestPermission();
+                } catch (_) {
+                    return;
+                }
+            }
+            if (permission !== 'granted') return;
+
+            if (window.MessengerPush && window.MessengerPush.isSupported && window.MessengerPush.isSupported()) {
+                try {
+                    await window.MessengerPush.enable(csrfToken);
+                } catch (err) {
+                    console.warn('Не удалось подписаться на Web Push:', err);
                 }
             }
         }
@@ -1195,8 +1212,11 @@
             }
         }
         
-        // Запрашиваем разрешение при загрузке страницы
-        requestNotificationPermission();
+        // После DOMContentLoaded уже выполнились defer-скрипты из <head> (push-notifications.js),
+        // иначе window.MessengerPush ещё undefined и подписка на /messenger/push/subscribe/ не уходит.
+        document.addEventListener('DOMContentLoaded', function () {
+            requestNotificationPermission();
+        });
     </script>
 {% endblock %}
 

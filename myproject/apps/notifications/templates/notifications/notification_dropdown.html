@@ -21,7 +21,7 @@
             {% endif %}>
             <div class="dropdown-item d-flex align-items-start">
                 <div class="notification-icon me-3 flex-shrink-0">
-                    {% if notification.notification_type == 'course_assigned' %}
+                    {% if notification.notification_type == 'course_assigned' or notification.notification_type == 'incident_course_assigned' %}
                         <i class="fas fa-graduation-cap text-success"></i>
                     {% elif notification.notification_type == 'trajectory_assigned' %}
                         <i class="fas fa-route text-info"></i>

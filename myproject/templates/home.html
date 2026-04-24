@@ -31,35 +31,50 @@
     <a href="{% if user.is_authenticated %}#courseCarousel{% else %}{% url 'users:login' %}{% endif %}" class="hero-landing__cta">Выбрать курс</a>
   </div>
   <div class="hero-landing__right">
-    <div class="hero-landing__faces">
-      <div class="hero-face-block">
-        <img src="{% static 'global/imgs/hero_das.jpg' %}" alt="Сотрудник 1" class="hero-face">
-        <span class="hero-face-label">Главный врач</span>
-      </div>
-      <div class="hero-face-block">
-        <img src="{% static 'global/imgs/hero_dentist.jpg' %}" alt="Сотрудник 2" class="hero-face">
-        <span class="hero-face-label">Стоматолог</span>
-      </div>
-      <div class="hero-face-block">
-        <img src="{% static 'global/imgs/doc1.png' %}" alt="Обучение" class="hero-face">
-        <span class="hero-face-label">Обучение</span>
-      </div>
-      <div class="hero-face-block">
-        <span class="hero-emoji">🏆</span>
-        <span class="hero-face-label">Наставничество</span>
-      </div>
-      <div class="hero-face-block">
-        <span class="hero-emoji">🔥</span>
-        <span class="hero-face-label">Вдохновение</span>
-      </div>
-      <div class="hero-face-block">
-        <span class="hero-emoji">😊</span>
-        <span class="hero-face-label">Дружелюбие</span>
-      </div>
+    <div class="hero-showcase" aria-label="Команда и ценности">
+      <article class="hero-showcase__card">
+        <div class="hero-showcase__media">
+          <img src="{% static 'global/imgs/hero_das.jpg' %}" alt="Главный врач" class="hero-showcase__img" width="320" height="427" fetchpriority="high" decoding="async">
+        </div>
+        <p class="hero-showcase__label">Главный врач</p>
+      </article>
+      <article class="hero-showcase__card">
+        <div class="hero-showcase__media">
+          <img src="{% static 'global/imgs/hero_dentist.jpg' %}" alt="Стоматолог" class="hero-showcase__img" width="320" height="427" loading="lazy" decoding="async">
+        </div>
+        <p class="hero-showcase__label">Стоматолог</p>
+      </article>
+      <article class="hero-showcase__card">
+        <div class="hero-showcase__media">
+          <img src="{% static 'global/imgs/doc1.png' %}" alt="Обучение" class="hero-showcase__img" width="320" height="427" loading="lazy" decoding="async">
+        </div>
+        <p class="hero-showcase__label">Обучение</p>
+      </article>
+      <article class="hero-showcase__card hero-showcase__card--symbol">
+        <div class="hero-showcase__symbol" aria-hidden="true">
+          <span class="hero-showcase__emoji">🏆</span>
+          <i class="fa-solid fa-trophy hero-showcase__symbol-fa" aria-hidden="true"></i>
+        </div>
+        <p class="hero-showcase__label">Наставничество</p>
+      </article>
+      <article class="hero-showcase__card hero-showcase__card--symbol">
+        <div class="hero-showcase__symbol" aria-hidden="true">
+          <span class="hero-showcase__emoji">🔥</span>
+          <i class="fa-solid fa-fire hero-showcase__symbol-fa" aria-hidden="true"></i>
+        </div>
+        <p class="hero-showcase__label">Вдохновение</p>
+      </article>
+      <article class="hero-showcase__card hero-showcase__card--symbol">
+        <div class="hero-showcase__symbol" aria-hidden="true">
+          <span class="hero-showcase__emoji">📈</span>
+          <i class="fa-solid fa-briefcase hero-showcase__symbol-fa" aria-hidden="true"></i>
+        </div>
+        <p class="hero-showcase__label">Профессионализм</p>
+      </article>
     </div>
   </div>
 </section>
-<section>
+<section class="home-staff-section">
     <div class="carousel-block">
         <div id="staffCarousel" class="carousel slide" data-bs-ride="carousel">
             <!-- Индикаторы -->
@@ -116,68 +131,239 @@
         </div>
     </div>
 </section>
-<section>
-    <div class="cards-box">
-        <div class="box hidden">
-            <svg xmlns="http://www.w3.org/2000/svg" width="72" height="72" fill="currentColor" class="bi bi-phone-vibrate" viewBox="0 0 16 16">
-                <path d="M10 3a1 1 0 0 1 1 1v8a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1zM6 2a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h4a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2z"/>
-                <path d="M8 12a1 1 0 1 0 0-2 1 1 0 0 0 0 2M1.599 4.058a.5.5 0 0 1 .208.676A7 7 0 0 0 1 8c0 1.18.292 2.292.807 3.266a.5.5 0 0 1-.884.468A8 8 0 0 1 0 8c0-1.347.334-2.619.923-3.734a.5.5 0 0 1 .676-.208m12.802 0a.5.5 0 0 1 .676.208A8 8 0 0 1 16 8a8 8 0 0 1-.923 3.734.5.5 0 0 1-.884-.468A7 7 0 0 0 15 8c0-1.18-.292-2.292-.807-3.266a.5.5 0 0 1 .208-.676M3.057 5.534a.5.5 0 0 1 .284.648A5 5 0 0 0 3 8c0 .642.12 1.255.34 1.818a.5.5 0 1 1-.93.364A6 6 0 0 1 2 8c0-.769.145-1.505.41-2.182a.5.5 0 0 1 .647-.284m9.886 0a.5.5 0 0 1 .648.284C13.855 6.495 14 7.231 14 8s-.145 1.505-.41 2.182a.5.5 0 0 1-.93-.364C12.88 9.255 13 8.642 13 8s-.12-1.255-.34-1.818a.5.5 0 0 1 .283-.648"/>
-              </svg>
-            <h5>Обучение и повышение квалификации персонала</h5>
-            <p>Обучение внутреннему регламенту.</p>
-        </div>
-        <div class="box hidden">
-            <svg xmlns="http://www.w3.org/2000/svg" width="72" height="72" fill="currentColor" class="bi bi-award" viewBox="0 0 16 16">
-                <path d="M9.669.864 8 0 6.331.864l-1.858.282-.842 1.68-1.337 1.32L2.6 6l-.306 1.854 1.337 1.32.842 1.68 1.858.282L8 12l1.669-.864 1.858-.282.842-1.68 1.337-1.32L13.4 6l.306-1.854-1.337-1.32-.842-1.68zm1.196 1.193.684 1.365 1.086 1.072L12.387 6l.248 1.506-1.086 1.072-.684 1.365-1.51.229L8 10.874l-1.355-.702-1.51-.229-.684-1.365-1.086-1.072L3.614 6l-.25-1.506 1.087-1.072.684-1.365 1.51-.229L8 1.126l1.356.702z"/>
-                <path d="M4 11.794V16l4-1 4 1v-4.206l-2.018.306L8 13.126 6.018 12.1z"/>
-              </svg>
-            <h5>Курсы для сотрудников клиники</h5>
-            <p>Повышение квалификации сотрудников.</p>
-        </div>
-        <div class="box hidden">
-            <svg xmlns="http://www.w3.org/2000/svg" width="72" height="72" fill="currentColor" class="bi bi-chevron-double-up" viewBox="0 0 16 16">
-                <path fill-rule="evenodd" d="M7.646 2.646a.5.5 0 0 1 .708 0l6 6a.5.5 0 0 1-.708.708L8 3.707 2.354 9.354a.5.5 0 1 1-.708-.708z"/>
-                <path fill-rule="evenodd" d="M7.646 6.646a.5.5 0 0 1 .708 0l6 6a.5.5 0 0 1-.708.708L8 7.707l-5.646 5.647a.5.5 0 0 1-.708-.708z"/>
-              </svg>
-            <h5>Улучшение работы внутреннего регламента</h5>
-            <p>Каталог курсов доступен.</p>
-        </div>
-        <div class="box hidden">
-            <svg xmlns="http://www.w3.org/2000/svg" width="72" height="72" fill="currentColor" class="bi bi-card-checklist" viewBox="0 0 16 16">
-                <path d="M14.5 3a.5.5 0 0 1 .5.5v9a.5.5 0 0 1-.5.5h-13a.5.5 0 0 1-.5-.5v-9a.5.5 0 0 1 .5-.5zm-13-1A1.5 1.5 0 0 0 0 3.5v9A1.5 1.5 0 0 0 1.5 14h13a1.5 1.5 0 0 0 1.5-1.5v-9A1.5 1.5 0 0 0 14.5 2z"/>
-                <path d="M7 5.5a.5.5 0 0 1 .5-.5h5a.5.5 0 0 1 0 1h-5a.5.5 0 0 1-.5-.5m-1.496-.854a.5.5 0 0 1 0 .708l-1.5 1.5a.5.5 0 0 1-.708 0l-.5-.5a.5.5 0 1 1 .708-.708l.146.147 1.146-1.147a.5.5 0 0 1 .708 0M7 9.5a.5.5 0 0 1 .5-.5h5a.5.5 0 0 1 0 1h-5a.5.5 0 0 1-.5-.5m-1.496-.854a.5.5 0 0 1 0 .708l-1.5 1.5a.5.5 0 0 1-.708 0l-.5-.5a.5.5 0 0 1 .708-.708l.146.147 1.146-1.147a.5.5 0 0 1 .708 0"/>
-              </svg>
-            <h5>Каталог доступных курсов</h5>
-            <p>Приобретение курсов возможно.</p>
-        </div>
+<section class="top-users-section">
+    <div class="top-users-header">
+        <h2><i class="fa-solid fa-trophy"></i> Топ-10 сотрудников</h2>
+        <p>Рейтинг лучших сотрудников по баллам DASCOIN</p>
     </div>
-</section>
-{% comment %} <br><br><br> {% endcomment %}
-<a href="{% url 'courses:user_course_trajectory_list' %}"><button class= "btn" id='show_all_courses_btn'>Все курсы</button></a>
-<div id="courseCarousel" class="carousel slide" data-bs-ride="carousel">
-    <div class="carousel-inner">
-        {% for course in courses %}
-        <div class="carousel-item {% if forloop.first %}active{% endif %}">
-            <!-- Если при создании курса загрузили картинку - используется она, иначе используется default.jpg -->
-            <a href="{% url 'courses:course_detail' course.slug|default:'default-slug' %}"><img src="{% if course.image %}{{ course.image.url }}{% else %}{% static 'global/imgs/default.jpg' %}{% endif %}" class="d-block mx-auto" alt="{{ course.title }}" id="course_carousel_img"></a>
-            <div class="course-info-block">
-                <a href="{% url 'courses:course_detail' course.slug|default:'default-slug' %}"><h5>{{ course.title }}</h5></a>
-                <p>{{ course.description|truncatewords:50|safe }}</p>
-            </div>
-        </div>
-        {% endfor %}
-    </div>
-    <div class="carousel-arrows">
 
-        <button class="carousel-control-prev" type="button" data-bs-target="#courseCarousel" data-bs-slide="prev">
-          <span style="color: var(--color-text); font-size: 40px;"><i class="fa-solid fa-chevron-left"></i></span>
-          <span class="visually-hidden">Previous</span>
-        </button>
-        <button class="carousel-control-next" type="button" data-bs-target="#courseCarousel" data-bs-slide="next">
-            <span style="color: var(--color-text); font-size: 40px;"><i class="fa-solid fa-chevron-right"></i></span>
-            <span class="visually-hidden">Next</span>
-        </button>
+    {% if top_10_users %}
+    <div class="top-users-leaderboard">
+    <div class="top-podium box hidden" aria-label="Первые три места">
+        <div class="top-podium__row">
+            {% if top_10_users|length > 1 %}
+            <article class="top-podium__place top-podium__place--2"{% if user.is_authenticated and top_10_users.1.pk == user.pk %} aria-current="true"{% endif %}>
+                {% with top_user=top_10_users.1 %}
+                <div class="top-podium__place-inner{% if user.is_authenticated and top_user.pk == user.pk %} top-podium__place-inner--you{% endif %}{% if request.user.is_staff %} top-podium__place--staff-link{% endif %}">
+                    {% if user.is_authenticated and top_user.pk == user.pk %}
+                    <span class="top-user-card__you-badge">Это Вы🤩</span>
+                    {% endif %}
+                    <div class="top-podium__card">
+                        <div class="top-podium__medal top-podium__medal--2" title="2 место">2</div>
+                        <div class="top-podium__avatar top-user-avatar top-user-avatar--podium">
+                            {% if top_user.profile.image %}
+                            <span class="top-user-avatar__placeholder" aria-hidden="true"></span>
+                            <img class="top-user-avatar__img"
+                                 src="{% url 'users:avatar_thumbnail' user_id=top_user.pk %}"
+                                 alt="{{ top_user.profile.get_full_name|default:top_user.username }}"
+                                 width="72"
+                                 height="72"
+                                 loading="lazy"
+                                 decoding="async"
+                                 onload="this.classList.add('is-loaded'); var p=this.previousElementSibling; if(p) p.classList.add('is-hidden');">
+                            {% else %}
+                            <div class="top-user-avatar-fallback"><i class="fa-solid fa-user"></i></div>
+                            {% endif %}
+                        </div>
+                        <h3 class="top-podium__name top-user-name">{{ top_user.profile.get_full_name|default:top_user.username }}</h3>
+                        {% if top_user.profile.role %}
+                        <p class="top-podium__subtitle top-user-role">{{ top_user.profile.role.name }}</p>
+                        {% endif %}
+                        <p class="top-podium__points" title="Баллы DASCOIN"><i class="fa-solid fa-gem"></i> {{ top_user.profile.dascoin_points|default:0 }}</p>
+                    </div>
+                    <div class="top-podium__plinth top-podium__plinth--2" aria-hidden="true">
+                        <span class="top-podium__plinth-num">2</span>
+                    </div>
+                </div>
+                {% if request.user.is_staff %}
+                <a href="{% url 'user_management:user_progress' pk=top_user.pk %}" class="top-podium__click" aria-label="Прогресс: {{ top_user.profile.get_full_name|default:top_user.username }}"></a>
+                {% endif %}
+                {% endwith %}
+            </article>
+            {% endif %}
+
+            {% if top_10_users.0 %}
+            <article class="top-podium__place top-podium__place--1"{% if user.is_authenticated and top_10_users.0.pk == user.pk %} aria-current="true"{% endif %}>
+                {% with top_user=top_10_users.0 %}
+                <div class="top-podium__place-inner{% if user.is_authenticated and top_user.pk == user.pk %} top-podium__place-inner--you{% endif %}{% if request.user.is_staff %} top-podium__place--staff-link{% endif %}">
+                    {% if user.is_authenticated and top_user.pk == user.pk %}
+                    <span class="top-user-card__you-badge">Это Вы🤩</span>
+                    {% endif %}
+                    <div class="top-podium__card top-podium__card--1">
+                        <div class="top-podium__medal top-podium__medal--1" title="1 место"><span class="top-podium__medal-ring">1</span></div>
+                        <div class="top-podium__avatar-laurel">
+                            <img class="top-podium__laurel-img"
+                                 src="{% static 'global/imgs/golden-laurel-wreath.png' %}"
+                                 alt=""
+                                 width="140"
+                                 height="140"
+                                 decoding="async"
+                                 aria-hidden="true">
+                            <div class="top-podium__avatar top-user-avatar top-user-avatar--podium">
+                                {% if top_user.profile.image %}
+                                <span class="top-user-avatar__placeholder" aria-hidden="true"></span>
+                                <img class="top-user-avatar__img"
+                                     src="{% url 'users:avatar_thumbnail' user_id=top_user.pk %}"
+                                     alt="{{ top_user.profile.get_full_name|default:top_user.username }}"
+                                     width="80"
+                                     height="80"
+                                     loading="lazy"
+                                     decoding="async"
+                                     onload="this.classList.add('is-loaded'); var p=this.previousElementSibling; if(p) p.classList.add('is-hidden');">
+                                {% else %}
+                                <div class="top-user-avatar-fallback"><i class="fa-solid fa-user"></i></div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <h3 class="top-podium__name top-user-name">{{ top_user.profile.get_full_name|default:top_user.username }}</h3>
+                        {% if top_user.profile.role %}
+                        <p class="top-podium__subtitle top-user-role">{{ top_user.profile.role.name }}</p>
+                        {% endif %}
+                        <p class="top-podium__points" title="Баллы DASCOIN"><i class="fa-solid fa-gem"></i> {{ top_user.profile.dascoin_points|default:0 }}</p>
+                    </div>
+                    <div class="top-podium__plinth top-podium__plinth--1" aria-hidden="true">
+                        <span class="top-podium__plinth-wreath"><span class="top-podium__plinth-num top-podium__plinth-num--1">1</span></span>
+                    </div>
+                </div>
+                {% if request.user.is_staff %}
+                <a href="{% url 'user_management:user_progress' pk=top_user.pk %}" class="top-podium__click" aria-label="Прогресс: {{ top_user.profile.get_full_name|default:top_user.username }}"></a>
+                {% endif %}
+                {% endwith %}
+            </article>
+            {% endif %}
+
+            {% if top_10_users|length > 2 %}
+            <article class="top-podium__place top-podium__place--3"{% if user.is_authenticated and top_10_users.2.pk == user.pk %} aria-current="true"{% endif %}>
+                {% with top_user=top_10_users.2 %}
+                <div class="top-podium__place-inner{% if user.is_authenticated and top_user.pk == user.pk %} top-podium__place-inner--you{% endif %}{% if request.user.is_staff %} top-podium__place--staff-link{% endif %}">
+                    {% if user.is_authenticated and top_user.pk == user.pk %}
+                    <span class="top-user-card__you-badge">Это Вы🤩</span>
+                    {% endif %}
+                    <div class="top-podium__card">
+                        <div class="top-podium__medal top-podium__medal--3" title="3 место">3</div>
+                        <div class="top-podium__avatar top-user-avatar top-user-avatar--podium">
+                            {% if top_user.profile.image %}
+                            <span class="top-user-avatar__placeholder" aria-hidden="true"></span>
+                            <img class="top-user-avatar__img"
+                                 src="{% url 'users:avatar_thumbnail' user_id=top_user.pk %}"
+                                 alt="{{ top_user.profile.get_full_name|default:top_user.username }}"
+                                 width="72"
+                                 height="72"
+                                 loading="lazy"
+                                 decoding="async"
+                                 onload="this.classList.add('is-loaded'); var p=this.previousElementSibling; if(p) p.classList.add('is-hidden');">
+                            {% else %}
+                            <div class="top-user-avatar-fallback"><i class="fa-solid fa-user"></i></div>
+                            {% endif %}
+                        </div>
+                        <h3 class="top-podium__name top-user-name">{{ top_user.profile.get_full_name|default:top_user.username }}</h3>
+                        {% if top_user.profile.role %}
+                        <p class="top-podium__subtitle top-user-role">{{ top_user.profile.role.name }}</p>
+                        {% endif %}
+                        <p class="top-podium__points" title="Баллы DASCOIN"><i class="fa-solid fa-gem"></i> {{ top_user.profile.dascoin_points|default:0 }}</p>
+                    </div>
+                    <div class="top-podium__plinth top-podium__plinth--3" aria-hidden="true">
+                        <span class="top-podium__plinth-num">3</span>
+                    </div>
+                </div>
+                {% if request.user.is_staff %}
+                <a href="{% url 'user_management:user_progress' pk=top_user.pk %}" class="top-podium__click" aria-label="Прогресс: {{ top_user.profile.get_full_name|default:top_user.username }}"></a>
+                {% endif %}
+                {% endwith %}
+            </article>
+            {% endif %}
+        </div>
     </div>
-</div>
+
+    <ol class="top-users-list top-users-list--rest" start="4" aria-label="{% if user.is_authenticated and current_user_dascoin_rank and current_user_dascoin_rank > 10 %}Места с 4 по 10 и ваша позиция{% else %}Места с 4 по 10{% endif %}">
+        {% for top_user in top_10_users %}
+        {% if forloop.counter > 3 %}
+        <li class="top-user-card box hidden{% if user.is_authenticated and top_user.pk == user.pk %} top-user-card--you{% endif %}{% if request.user.is_staff %} top-user-card--staff-link{% endif %}"{% if user.is_authenticated and top_user.pk == user.pk %} aria-current="true"{% endif %}>
+            {% if request.user.is_staff %}
+            <a href="{% url 'user_management:user_progress' pk=top_user.pk %}" class="top-user-card__link">
+            {% endif %}
+            {% if user.is_authenticated and top_user.pk == user.pk %}
+            <span class="top-user-card__you-badge">Это Вы🤩</span>
+            {% endif %}
+            <div class="top-user-rank">
+                <span class="top-user-rank-num">{{ forloop.counter }}</span>
+            </div>
+            <div class="top-user-avatar">
+                {% if top_user.profile.image %}
+                <span class="top-user-avatar__placeholder" aria-hidden="true"></span>
+                <img class="top-user-avatar__img"
+                     src="{% url 'users:avatar_thumbnail' user_id=top_user.pk %}"
+                     alt="{{ top_user.profile.get_full_name|default:top_user.username }}"
+                     width="64"
+                     height="64"
+                     loading="lazy"
+                     decoding="async"
+                     onload="this.classList.add('is-loaded'); var p=this.previousElementSibling; if(p) p.classList.add('is-hidden');">
+                {% else %}
+                <div class="top-user-avatar-fallback"><i class="fa-solid fa-user"></i></div>
+                {% endif %}
+            </div>
+            <div class="top-user-info">
+                <h5 class="top-user-name">{{ top_user.profile.get_full_name|default:top_user.username }}</h5>
+                {% if top_user.profile.role %}
+                <p class="top-user-role">{{ top_user.profile.role.name }}</p>
+                {% endif %}
+            </div>
+            <div class="top-user-points" title="Баллы DASCOIN">
+                <i class="fa-solid fa-gem"></i>
+                <span>{{ top_user.profile.dascoin_points|default:0 }}</span>
+            </div>
+            {% if request.user.is_staff %}
+            </a>
+            {% endif %}
+        </li>
+        {% endif %}
+        {% endfor %}
+        {% if user.is_authenticated and current_user_dascoin_rank and current_user_dascoin_rank > 10 %}
+        <li class="top-user-card top-user-card--self top-user-card--in-table box hidden" value="{{ current_user_dascoin_rank }}" aria-label="Ваше место в рейтинге: {{ current_user_dascoin_rank }}" aria-current="true">
+            {% if request.user.is_staff %}
+            <a href="{% url 'user_management:user_progress' pk=user.pk %}" class="top-user-card__link">
+            {% endif %}
+            <div class="top-user-rank">
+                <span class="top-user-rank-num">{{ current_user_dascoin_rank }}</span>
+            </div>
+            <div class="top-user-avatar">
+                {% if user.profile.image %}
+                <span class="top-user-avatar__placeholder" aria-hidden="true"></span>
+                <img class="top-user-avatar__img"
+                     src="{% url 'users:avatar_thumbnail' user_id=user.pk %}"
+                     alt="{{ user.profile.get_full_name|default:user.username }}"
+                     width="64"
+                     height="64"
+                     loading="lazy"
+                     decoding="async"
+                     onload="this.classList.add('is-loaded'); var p=this.previousElementSibling; if(p) p.classList.add('is-hidden');">
+                {% else %}
+                <div class="top-user-avatar-fallback"><i class="fa-solid fa-user"></i></div>
+                {% endif %}
+            </div>
+            <div class="top-user-info">
+                <h5 class="top-user-name">{{ user.profile.get_full_name|default:user.username }}</h5>
+                {% if user.profile.role %}
+                <p class="top-user-role">{{ user.profile.role.name }}</p>
+                {% endif %}
+            </div>
+            <div class="top-user-points" title="Баллы DASCOIN">
+                <i class="fa-solid fa-gem"></i>
+                <span>{{ user.profile.dascoin_points|default:0 }}</span>
+            </div>
+            {% if request.user.is_staff %}
+            </a>
+            {% endif %}
+        </li>
+        {% endif %}
+    </ol>
+    </div>
+    {% else %}
+    <div class="top-users-empty">
+        <p>Пока нет данных для рейтинга.</p>
+    </div>
+    {% endif %}
+</section>
 
 {% endblock %}

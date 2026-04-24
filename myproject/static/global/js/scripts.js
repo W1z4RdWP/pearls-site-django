@@ -1,3 +1,67 @@
+/**
+ * Пока не загружен веб-шрифт Font Awesome, в шапке видны эмодзи из разметки (.nav-icon-slot__emoji).
+ * После проверки document.fonts — класс nav-fa-ready на <html>.
+ */
+(function initNavFontAwesomeReady() {
+  function faNavFontsLikelyLoaded() {
+    if (!document.fonts || typeof document.fonts.check !== 'function') {
+      return false;
+    }
+    try {
+      return (
+        document.fonts.check('900 1em "Font Awesome 6 Free"') ||
+        document.fonts.check('400 1em "Font Awesome 6 Brands"')
+      );
+    } catch (e) {
+      return false;
+    }
+  }
+  function markReady() {
+    document.documentElement.classList.add('nav-fa-ready');
+  }
+  function pollUntilReady() {
+    const started = Date.now();
+    const maxMs = 45000;
+    const tick = () => {
+      if (faNavFontsLikelyLoaded()) {
+        markReady();
+        return;
+      }
+      if (Date.now() - started >= maxMs) {
+        return;
+      }
+      setTimeout(tick, 250);
+    };
+    tick();
+  }
+  function run() {
+    if (faNavFontsLikelyLoaded()) {
+      markReady();
+      return;
+    }
+    if (document.fonts && document.fonts.ready) {
+      document.fonts.ready
+        .then(() => {
+          requestAnimationFrame(() => {
+            if (faNavFontsLikelyLoaded()) {
+              markReady();
+            } else {
+              pollUntilReady();
+            }
+          });
+        })
+        .catch(() => pollUntilReady());
+    } else {
+      pollUntilReady();
+    }
+  }
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', run);
+  } else {
+    run();
+  }
+})();
+
 // header
 document.addEventListener('DOMContentLoaded', () => {
   const hero = document.querySelector('.hero-landing');

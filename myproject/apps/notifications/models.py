@@ -10,6 +10,7 @@ class Notification(models.Model):
     NOTIFICATION_TYPES = [
         ('dascoin', 'Начисление/списание DASCOIN'),
         ('course_assigned', 'Назначение курса'),
+        ('incident_course_assigned', 'Назначение курса-инцидента'),
         ('trajectory_assigned', 'Назначение траектории'),
         ('platform_update', 'Обновление платформы'),
         ('course_reminder', 'Напоминание о курсе'),
@@ -120,7 +121,7 @@ class Notification(models.Model):
     
     def get_absolute_url(self):
         """Возвращает URL для перехода к связанному объекту"""
-        if self.notification_type == 'course_assigned' and self.related_course:
+        if self.notification_type in ('course_assigned', 'incident_course_assigned') and self.related_course:
             return reverse('courses:course_detail', kwargs={'slug': self.related_course.slug})
         elif self.notification_type == 'trajectory_assigned' and self.related_trajectory:
             # Для траекторий нужно найти UserCourseTrajectory для данного пользователя
@@ -199,6 +200,18 @@ class Notification(models.Model):
         # НЕ отправляем email отсюда - email отправляется из сигналов courses/signals.py
         # чтобы избежать дублирования и правильно обрабатывать случаи с траекториями
         
+        return notification
+    
+    @classmethod
+    def create_incident_course_assignment_notification(cls, user, course):
+        """Создаёт уведомление о назначении курса-инцидента."""
+        notification = cls.objects.create(
+            user=user,
+            notification_type='incident_course_assigned',
+            title="Вам назначен курс-инцидент",
+            message=f"Вам назначен курс-инцидент «{course.title}»",
+            related_course=course,
+        )
         return notification
     
     @classmethod

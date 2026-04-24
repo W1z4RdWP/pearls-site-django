@@ -1,3 +1,4 @@
+from io import BytesIO
 from openpyxl import Workbook
 from openpyxl.styles import Font, PatternFill
 from weasyprint import HTML
@@ -6,17 +7,20 @@ from datetime import datetime
 
 import logging
 
+from PIL import Image, ImageOps
 
+from django.contrib.auth import get_user_model
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
-from django.http import HttpRequest, HttpResponse, JsonResponse
+from django.http import HttpRequest, HttpResponse, HttpResponseNotFound, JsonResponse
 from django.contrib.auth import login as auth_login
 from django.contrib.auth.views import LoginView
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.views.generic import FormView, ListView
 from django.urls import reverse, reverse_lazy
 from django.views.decorators.http import require_http_methods
+from django.views.decorators.cache import cache_control
 
 
 from myapp.models import QuizResult
@@ -500,5 +504,50 @@ def quiz_attempts_report(request: HttpRequest) -> HttpResponse:
     }
     
     return render(request, 'users/quiz_attempts_report.html', context)
+
+
+_THUMB_MAX = 128
+
+
+@cache_control(public=True, max_age=900)
+def public_profile_avatar_thumbnail(request: HttpRequest, user_id: int) -> HttpResponse:
+    """
+    Лёгкая JPEG-миниатюра аватара для списков (главная, рейтинги).
+    Уменьшает трафик по сравнению с полноразмерным media-файлом.
+    """
+    User = get_user_model()
+    user = get_object_or_404(
+        User.objects.select_related('profile'),
+        pk=user_id,
+        is_active=True,
+        profile__is_approved=True,
+    )
+    profile = user.profile
+    if not profile.image:
+        return HttpResponseNotFound()
+
+    try:
+        with profile.image.open('rb') as f:
+            im = Image.open(f)
+            im = ImageOps.exif_transpose(im)
+            if im.mode == 'RGBA':
+                background = Image.new('RGB', im.size, (255, 255, 255))
+                background.paste(im, mask=im.split()[3])
+                im = background
+            elif im.mode != 'RGB':
+                im = im.convert('RGB')
+            im.thumbnail((_THUMB_MAX, _THUMB_MAX), Image.Resampling.LANCZOS)
+            buf = BytesIO()
+            im.save(buf, format='JPEG', quality=82, optimize=True)
+            data = buf.getvalue()
+    except (OSError, ValueError, TypeError):
+        audit_logger.warning(
+            'Не удалось построить миниатюру аватара',
+            extra={'user': getattr(request.user, 'email', None), 'target_user_id': user_id},
+        )
+        return HttpResponseNotFound()
+
+    resp = HttpResponse(data, content_type='image/jpeg')
+    return resp
 
 

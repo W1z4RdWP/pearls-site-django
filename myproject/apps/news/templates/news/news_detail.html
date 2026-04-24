@@ -1,0 +1,118 @@
+{% extends 'layout.html' %}
+{% load static %}
+
+{% block title %}{{ news.title }}{% endblock %}
+
+{% block specific_styles %}
+  <link rel="stylesheet" href="{% static 'news/css/news.css' %}">
+{% endblock %}
+
+{% block content %}
+<article class="container py-4 news-detail">
+  <nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+      <li class="breadcrumb-item"><a href="{% url 'news:news_dashboard' %}">Новости</a></li>
+      <li class="breadcrumb-item active" aria-current="page">{{ news.title|truncatechars:48 }}</li>
+    </ol>
+  </nav>
+  <header class="mb-3" style="
+  display: flex;
+  justify-content: space-between;
+">
+    <span class="badge badge-secondary mb-2">{{ news.get_news_type_display }}</span>
+    <h1 class="h2">{{ news.title }}</h1>
+    <p class="text-muted mb-0">
+      <time datetime="{{ news.created_at|date:'c' }}">{{ news.created_at|date:"d.m.Y H:i" }}</time>
+    </p>
+  </header>
+
+  {% with gf=news.gallery_images.first %}
+  <div class="news-detail__hero">
+    {% if news.main_image %}
+      <button
+        type="button"
+        class="news-detail__media-button"
+        data-news-gallery-src="{{ news.main_image.url }}"
+        data-news-gallery-alt="{{ news.title }}"
+        aria-label="Открыть изображение"
+      >
+        <img src="{{ news.main_image.url }}" alt="{{ news.title }}" class="rounded shadow-sm">
+      </button>
+    {% elif news.video %}
+      <div class="embed-responsive embed-responsive-16by9 bg-dark">
+        <video class="embed-responsive-item" controls playsinline preload="metadata">
+          <source src="{{ news.video.url }}" type="video/mp4">
+        </video>
+      </div>
+    {% elif gf %}
+      <button
+        type="button"
+        class="news-detail__media-button"
+        data-news-gallery-src="{{ gf.image.url }}"
+        data-news-gallery-alt="{{ news.title }}"
+        aria-label="Открыть изображение"
+      >
+        <img src="{{ gf.image.url }}" alt="{{ news.title }}" class="rounded shadow-sm">
+      </button>
+    {% endif %}
+  </div>
+
+  {% if news.gallery_images.exists %}
+    {% if news.gallery_images.count > 1 or news.main_image or news.video or news.resolved_video_embed_src %}
+  <section class="news-detail__gallery" aria-label="Фотогалерея">
+    <div class="row">
+      {% for g in news.gallery_images.all %}
+        {% if gf and not news.main_image and not news.video and not news.resolved_video_embed_src and forloop.first %}
+        {% else %}
+        <div class="col-6 col-md-4 mb-3">
+          <button
+            type="button"
+            class="news-gallery__button"
+            data-news-gallery-src="{{ g.image.url }}"
+            data-news-gallery-alt="{{ news.title }}"
+            aria-label="Открыть изображение из галереи"
+          >
+            <img class="news-gallery__thumb shadow-sm" src="{{ g.image.url }}" alt="" loading="lazy">
+          </button>
+        </div>
+        {% endif %}
+      {% endfor %}
+    </div>
+  </section>
+    {% endif %}
+  {% endif %}
+
+  <div class="news-detail__body mb-4">
+    {{ news.content|linebreaks }}
+  </div>
+
+  <div class="modal fade news-gallery-modal" id="newsGalleryModal" tabindex="-1" aria-labelledby="newsGalleryModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-xl">
+      <div class="modal-content">
+        <div class="modal-header border-0">
+          <h5 class="modal-title" id="newsGalleryModalLabel">{{ news.title }}</h5>
+          <div class="news-gallery-modal__toolbar">
+            <span class="news-gallery-modal__counter" data-news-gallery-counter></span>
+            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Закрыть"></button>
+          </div>
+        </div>
+        <div class="modal-body">
+          <button type="button" class="news-gallery-modal__nav news-gallery-modal__nav--prev" data-news-gallery-prev aria-label="Предыдущее изображение">
+            <span aria-hidden="true">&lsaquo;</span>
+          </button>
+          <img src="" alt="" class="news-gallery-modal__image" data-news-gallery-image>
+          <button type="button" class="news-gallery-modal__nav news-gallery-modal__nav--next" data-news-gallery-next aria-label="Следующее изображение">
+            <span aria-hidden="true">&rsaquo;</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  {% endwith %}
+</article>
+{% endblock %}
+
+{% block specific_scripts %}
+  <script src="{% static 'news/js/news_detail.js' %}"></script>
+{% endblock %}

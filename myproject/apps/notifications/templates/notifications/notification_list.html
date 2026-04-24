@@ -392,7 +392,7 @@
                         <div class="d-flex align-items-start">
                             <!-- Иконка типа уведомления -->
                             <div class="notification-icon">
-                                {% if notification.notification_type == 'course_assigned' %}
+                                {% if notification.notification_type == 'course_assigned' or notification.notification_type == 'incident_course_assigned' %}
                                     <i class="fas fa-graduation-cap text-success"></i>
                                 {% elif notification.notification_type == 'trajectory_assigned' %}
                                     <i class="fas fa-route text-info"></i>

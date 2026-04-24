@@ -84,7 +84,8 @@ INSTALLED_APPS = [
     'reports.apps.ReportsConfig',
     'delegation.apps.DelegationConfig',
     'shop.apps.ShopConfig',
-    'messenger.apps.MessengerConfig'
+    'messenger.apps.MessengerConfig',
+    'news.apps.NewsConfig',
 ]
 
 X_FRAME_OPTIONS = "SAMEORIGIN"              # allows you to use modals insated of popups
@@ -278,6 +279,17 @@ STATICFILES_DIRS = [
 
 
 SITE_URL = os.getenv('SITE_URL')
+
+# Web Push (VAPID) настройки для messenger
+# Сгенерировать ключи можно командой: python manage.py generate_vapid_keys
+# Сохранять в .env:
+#   VAPID_PUBLIC_KEY  - base64url-encoded (применяется на клиенте как applicationServerKey)
+#   VAPID_PRIVATE_KEY - base64url-encoded (применяется на сервере в pywebpush)
+#   VAPID_ADMIN_EMAIL - email администратора (попадает в subject VAPID-claims)
+VAPID_PUBLIC_KEY = os.getenv('VAPID_PUBLIC_KEY', '')
+VAPID_PRIVATE_KEY = os.getenv('VAPID_PRIVATE_KEY', '')
+VAPID_ADMIN_EMAIL = os.getenv('VAPID_ADMIN_EMAIL', '')
+VAPID_TTL = int(os.getenv('VAPID_TTL', 60 * 60 * 24))
 
 # Email settings
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'

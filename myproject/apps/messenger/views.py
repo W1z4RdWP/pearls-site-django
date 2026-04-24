@@ -1,3 +1,6 @@
+import json
+
+from django.conf import settings
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.http import JsonResponse, HttpResponseForbidden
@@ -6,7 +9,13 @@ from django.views.generic import View, DetailView, ListView
 from django.views.decorators.http import require_http_methods
 from django.db.models import Q
 
-from .models import ChatRoom, RoomMessage, RoomMessageAttachment, ChatRoomNotificationSettings
+from .models import (
+    ChatRoom,
+    ChatRoomNotificationSettings,
+    RoomMessage,
+    RoomMessageAttachment,
+    WebPushSubscription,
+)
 
 # WebSocket Chat Views
 class ChatRoomCreateView(LoginRequiredMixin, View):
@@ -331,3 +340,76 @@ def get_room_notification_status(request, room_id):
     return JsonResponse({
         'notifications_enabled': notifications_enabled
     })
+
+
+# ============================================================================
+# Web Push подписки (PWA уведомления)
+# ============================================================================
+
+
+@login_required
+@require_http_methods(["GET"])
+def push_vapid_public_key(request):
+    """Возвращает публичный VAPID-ключ для PushManager.subscribe()."""
+    public_key = getattr(settings, 'VAPID_PUBLIC_KEY', '')
+    if not public_key:
+        return JsonResponse(
+            {'error': 'VAPID public key не настроен на сервере'},
+            status=503,
+        )
+    return JsonResponse({'publicKey': public_key})
+
+
+@login_required
+@require_http_methods(["POST"])
+def push_subscribe(request):
+    """
+    Сохраняет (или обновляет) Web Push подписку текущего пользователя.
+    Ожидает JSON: {"endpoint": str, "keys": {"p256dh": str, "auth": str}}.
+    """
+    try:
+        data = json.loads(request.body or b'{}')
+    except json.JSONDecodeError:
+        return JsonResponse({'error': 'Неверный JSON'}, status=400)
+
+    endpoint = (data.get('endpoint') or '').strip()
+    keys = data.get('keys') or {}
+    p256dh = (keys.get('p256dh') or '').strip()
+    auth = (keys.get('auth') or '').strip()
+
+    if not (endpoint and p256dh and auth):
+        return JsonResponse({'error': 'Некорректные данные подписки'}, status=400)
+
+    subscription, created = WebPushSubscription.objects.update_or_create(
+        endpoint=endpoint,
+        defaults={
+            'user': request.user,
+            'p256dh': p256dh,
+            'auth': auth,
+            'user_agent': request.META.get('HTTP_USER_AGENT', '')[:500],
+        },
+    )
+    return JsonResponse({
+        'success': True,
+        'created': created,
+        'subscription_id': subscription.id,
+    })
+
+
+@login_required
+@require_http_methods(["POST"])
+def push_unsubscribe(request):
+    """Удаляет подписку текущего пользователя по endpoint."""
+    try:
+        data = json.loads(request.body or b'{}')
+    except json.JSONDecodeError:
+        return JsonResponse({'error': 'Неверный JSON'}, status=400)
+
+    endpoint = (data.get('endpoint') or '').strip()
+    if not endpoint:
+        return JsonResponse({'error': 'Не указан endpoint'}, status=400)
+
+    deleted, _ = WebPushSubscription.objects.filter(
+        user=request.user, endpoint=endpoint
+    ).delete()
+    return JsonResponse({'success': True, 'deleted': deleted})

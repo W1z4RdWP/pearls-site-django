@@ -100,14 +100,14 @@ class DashboardView(TemplateView):
         if is_mentor_only:
             from django.contrib.auth.models import User
             # Получаем группы наставника
-            mentor_groups = self.request.user.groups.all()
-            if mentor_groups.exists():
+            mentor_department = self.request.user.profile.department
+            if mentor_department:
                 # Получаем топ-5 пользователей по DASCOIN из групп наставника
                 top_users = User.objects.filter(
-                    groups__in=mentor_groups,
+                    profile__department=mentor_department,
                     profile__is_approved=True
                 ).exclude(
-                    Q(is_superuser=True) | Q(is_staff=True)
+                    Q(is_superuser=True) | Q(is_staff=True) | Q(id=self.request.user.id)
                 ).select_related('profile').order_by(
                     '-profile__dascoin_points', 'email'
                 ).distinct()[:5]

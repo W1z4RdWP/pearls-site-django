@@ -1,14 +1,40 @@
 {% extends "layout.html" %}
+{% load static %}
 
-{% block title %}Подтвердите действие{% endblock title %}
+{% block title %}Поздравляем! — {{ course.title }}{% endblock title %}
+
+{% block specific_styles %}
+    <link rel="stylesheet" href="{% static 'courses/css/redir_to_quiz.css' %}">
+{% endblock %}
 
 {% block content %}
-    <h2>Вы завершили все уроки курса "{{ course.title }}"</h2>
-    <p>Чтобы курс считался завершенным нужно закрепить усвоенный материал! 😉</p>
-    <p>Хотите пройти итоговый тест сейчас?</p>
-    <form method="post" action="{% url 'courses:redir_to_quiz' course.slug %}">
-        {% csrf_token %}
-        <button type="submit" name="action" value="start_quiz">Пройти тест</button>
-        <button type="submit" name="action" value="skip_quiz">Отложить</button>
-    </form>
+<div class="redir-quiz-wrapper">
+    <div class="redir-quiz-card">
+        <div class="redir-quiz-icon">
+            <i class="fa-solid fa-graduation-cap"></i>
+        </div>
+
+        <h2>Вы завершили все уроки курса<br>
+            <span class="redir-quiz-course-title">«{{ course.title }}»</span>
+        </h2>
+
+        <div class="redir-quiz-divider"></div>
+
+        <p class="redir-quiz-subtitle">Чтобы курс считался завершённым, нужно закрепить усвоенный материал.</p>
+
+        <p class="redir-quiz-question">Хотите пройти итоговый тест сейчас?</p>
+
+        <form method="post" action="{% url 'courses:redir_to_quiz' course.slug %}">
+            {% csrf_token %}
+            <div class="redir-quiz-actions">
+                <button type="submit" name="action" value="start_quiz" class="btn-quiz-start">
+                    <i class="fa-solid fa-circle-play"></i> Пройти тест
+                </button>
+                <button type="submit" name="action" value="skip_quiz" class="btn-quiz-skip">
+                    <i class="fa-solid fa-clock-rotate-left"></i> Отложить
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
 {% endblock %}
